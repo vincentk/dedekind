@@ -29,7 +29,7 @@ It defines an embedded domain-specific language (eDSL) for mathematics with the 
 
 Listing 5 of the Jlt paper, in C++ and in Python through `pynzli`: open either.
 A restriction site is a word equal to its reverse complement, as EcoRI's `GAATTC`; an enzyme cuts a genome where one occurs.
-The first counts the cuts in *all* genomes of length `N`, never building one: the join's plan is a product of factors, a constant at compile time.
+The first counts the cuts in *all* genomes of length `N`, never building one: the count is a product of factors, a constant at compile time.
 At `N = 32` the count is `27 · 2⁵⁸`, while the `4³² = 2⁶⁴` genomes it stands for are more than a 64-bit word can enumerate.
 The second scans *one* genome: each window tested, or the matcher specialised to the sites.
 
@@ -40,21 +40,18 @@ The second scans *one* genome: each window tested, or the matcher specialised to
 <!-- listing5:all-genomes:cpp -->
 
 ```cpp
-constexpr Alphabet nucleotides = alphabet("ACGT");
+// Σ, the alphabet :
+constexpr Alphabet bases = abc("ACGT");
 // Σ* = ⊔ₙ Σⁿ :
-constexpr Words sequences = words(nucleotides);
-constexpr Reflection complement = refl(nucleotides);
-constexpr auto rc = reverse >> map(complement);
-// Σ⁶, and the predicate rc(w) = w :
-constexpr auto hexamers = sequences & length(6);
-constexpr auto palindromic = fixed_by(rc);
-// { w ∈ Σ⁶ | rc(w) = w }, the six-cutters' recognition sites :
-constexpr auto sites = hexamers & palindromic;
-// |{ (s, i) ∈ Σᴺ × [0, N−6] | s[i, i+6) ∈ sites }| :
-constexpr size_t cuts(size_t N) {
-  return count(join(sequences & length(N), sites));
-}
-static_assert(cuts(12) == 1'835'008uz && cuts(32) == 27uz << 58);
+constexpr Words oligos = words(bases);
+// Σ⁶, read at every offset :
+constexpr auto hexamers = windows(6);
+// ~rev, the reverse complement: CCTA ↦ TAGG
+// { w ∈ Σ⁶ | ~rev w = w }, the palindromic hexamers :
+constexpr auto sites = oligos & hexamers & fixed_by(~rev);
+// { (s, i) ∈ Σᴺ × ℕ | s[i, i+6) ∈ sites } :
+constexpr auto cuts(size_t N) { return (oligos & len(N)) >> hexamers & sites; }
+static_assert(count(cuts(12)) == 1'835'008uz && count(cuts(32)) == 27uz << 58);
 ```
 
 </details>
@@ -63,16 +60,13 @@ static_assert(cuts(12) == 1'835'008uz && cuts(32) == 27uz << 58);
 <!-- listing5:all-genomes:python -->
 
 ```pycon
->>> nucleotides = alphabet("ACGT")
->>> sequences = words(nucleotides)
->>> complement = refl(nucleotides)
->>> rc = reverse >> map(complement)
->>> hexamers = sequences & length(6)
->>> palindromic = fixed_by(rc)
->>> sites = hexamers & palindromic
+>>> bases = abc("ACGT")
+>>> oligos = words(bases)
+>>> hexamers = windows(6)
+>>> sites = oligos & hexamers & fixed_by(~rev)
 >>> def cuts(N):
-...     return count(join(sequences & length(N), sites))
->>> cuts(12), cuts(32) == 27 << 58
+...     return (oligos & len(N)) >> hexamers & sites
+>>> count(cuts(12)), count(cuts(32)) == 27 << 58
 (1835008, True)
 ```
 
@@ -85,13 +79,11 @@ static_assert(cuts(12) == 1'835'008uz && cuts(32) == 27uz << 58);
 <!-- listing5:one-genome:cpp -->
 
 ```cpp
-// { i | s[i, i+6) ∈ sites } :
-constexpr auto cut_sites = windows(sites);
 constexpr auto by_the_query(std::span<const std::byte> sequence) {
-  return count(sequence >> cut_sites);
+  return count(sequence >> hexamers & sites);
 }
 constexpr auto by_the_plan(std::span<const std::byte> sequence) {  // a Maybe
-  return count(sequence >> rank(nucleotides) >> matches(automaton(sites)));
+  return count(sequence >> rank(bases) >> matches(automaton(sites)));
 }
 ```
 
@@ -102,10 +94,9 @@ constexpr auto by_the_plan(std::span<const std::byte> sequence) {  // a Maybe
 
 ```pycon
 >>> sequence = b"TTGAATTCAAGCTTA"
->>> cut_sites = windows(sites)
->>> count(sequence >> cut_sites)
+>>> count(sequence >> hexamers & sites)
 2
->>> count(sequence >> rank(nucleotides) >> matches(automaton(sites)))
+>>> count(sequence >> rank(bases) >> matches(automaton(sites)))
 2
 ```
 

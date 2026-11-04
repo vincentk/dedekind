@@ -180,7 +180,7 @@ class QuadraticReal {
     if (!a_pos && !b_pos) return std::strong_ordering::less;
     // Mixed signs: the sum's sign is decided by a² <=> b²D.
     const std::strong_ordering sq = (a * a) <=> (b * b * Q{D});
-    return a_pos ? sq : reverse(sq);  // a>0,b<0 ⇒ sq; a<0,b>0 ⇒ reverse
+    return a_pos ? sq : rev(sq);  // a>0,b<0 ⇒ sq; a<0,b>0 ⇒ reverse
   }
 
   Q a_{};  ///< rational part

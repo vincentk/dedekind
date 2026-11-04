@@ -939,8 +939,8 @@ constexpr auto operator>>(F f, G g) {
   using B = typename std::decay_t<F>::Codomain;
   return std::move(f) >> arrow<B>(std::move(g));
 }
-/** @brief The same with the callable on the LHS: @c reverse @c >> @c map(τ)
- *  gives @c reverse the arrow's domain, as @c map(τ) @c >> @c reverse gives
+/** @brief The same with the callable on the LHS: @c rev @c >> @c map(τ)
+ *  gives @c rev the arrow's domain, as @c map(τ) @c >> @c rev gives
  *  it the codomain.  A value on the LHS is application (below); the two do
  *  not meet, since a value convertible to the domain is not a callable on
  *  it. */

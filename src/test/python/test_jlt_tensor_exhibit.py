@@ -13,7 +13,7 @@ import time
 import unittest
 
 from pynzli.jlt import (
-    alphabet,
+    abc,
     count,
     count_factors,
     cylinder,
@@ -27,7 +27,7 @@ from pynzli.jlt import (
     pack,
     power,
     refl,
-    reverse,
+    rev,
     rotate,
     symmetric,
     window,
@@ -40,8 +40,8 @@ def total(tensor):
 
 
 class JltTensorExhibitTest(unittest.TestCase):
-    nucleotides = alphabet("ACGT")
-    bits = alphabet("01")
+    nucleotides = abc("ACGT")
+    bits = abc("01")
     complement = letter_map("ACGT", "TGCA")  # Watson–Crick pairing
 
     def test_the_genome_is_refused_as_a_sequence(self) -> None:
@@ -50,20 +50,20 @@ class JltTensorExhibitTest(unittest.TestCase):
 
     def test_the_genome_is_counted_as_a_tensor(self) -> None:
         self.assertEqual(count_factors(power(self.nucleotides, 99)), [(4, 99)])
-        palindromes = symmetric(power(self.nucleotides, 13), reverse)
+        palindromes = symmetric(power(self.nucleotides, 13), rev)
         self.assertEqual(count_factors(palindromes), [(4, 6), (4, 1)])
         self.assertEqual(exact_count(palindromes), 4**7)
         sites = symmetric(
-            power(self.nucleotides, 12), power(self.complement) >> reverse
+            power(self.nucleotides, 12), power(self.complement) >> rev
         )
         self.assertEqual(exact_count(sites), 4**6)
         odd = symmetric(
-            power(self.nucleotides, 13), power(self.complement) >> reverse
+            power(self.nucleotides, 13), power(self.complement) >> rev
         )
         self.assertEqual(exact_count(odd), 0)  # no base is its own complement
 
     def test_a_site_in_a_window_is_pushed_down(self) -> None:
-        sites = symmetric(power(self.nucleotides, 6), power(self.complement) >> reverse)
+        sites = symmetric(power(self.nucleotides, 6), power(self.complement) >> rev)
         genomes = power(self.nucleotides, 12)
         # the window's legs merged through the reverse complement, the rest free
         self.assertEqual(count_factors(cylinder(genomes, window(3, 6), sites)), [(4, 3), (4, 6)])
@@ -85,7 +85,7 @@ class JltTensorExhibitTest(unittest.TestCase):
     def test_a_power_multiplies_on_either_side(self) -> None:
         a = self.nucleotides
         self.assertEqual(count_factors(power(a, 2) * power(a, 3)), [(4, 2), (4, 3)])
-        palindromes = symmetric(power(a, 3), reverse)
+        palindromes = symmetric(power(a, 3), rev)
         self.assertEqual(
             count_factors(power(a, 2) * palindromes),
             count_factors(power(a, 2)) + count_factors(palindromes),
@@ -96,20 +96,20 @@ class JltTensorExhibitTest(unittest.TestCase):
         self.assertTrue(is_involution(self.complement))  # decided on its table
         self.assertFalse(is_involution(letter_map("ACGT", "CGTA")))
         # derived: the complement and the reversal commute
-        self.assertTrue(is_involution(power(self.complement) >> reverse))
+        self.assertTrue(is_involution(power(self.complement) >> rev))
 
     def test_the_dual_is_the_complement(self) -> None:
         # the alphabet's duality, an involution by construction, counts the
         # same sites as the complement written out as a table
         d = refl(self.nucleotides)
         self.assertTrue(is_involution(d))
-        self.assertTrue(is_involution(power(d) >> reverse))
+        self.assertTrue(is_involution(power(d) >> rev))
         for n in (4, 6, 7):
             self.assertEqual(
-                count(symmetric(power(self.nucleotides, n), power(d) >> reverse)),
+                count(symmetric(power(self.nucleotides, n), power(d) >> rev)),
                 count(
                     symmetric(
-                        power(self.nucleotides, n), power(self.complement) >> reverse
+                        power(self.nucleotides, n), power(self.complement) >> rev
                     )
                 ),
             )
@@ -125,11 +125,11 @@ class JltTensorExhibitTest(unittest.TestCase):
         self.assertEqual(pack(0xFF, 4), 0xF)  # the low w bits, no padding
         self.assertTrue(is_square(0xAA, 4))  # 1010 above padding 1010
         # the letters are ordered as bytes: "é" is two bytes above "A", in UTF-8
-        self.assertEqual(count_factors(power(alphabet("Aé"), 1)), [(3, 1)])
+        self.assertEqual(count_factors(power(abc("Aé"), 1)), [(3, 1)])
 
     def test_the_exhibit_answers_at_once(self) -> None:
         start = time.perf_counter()
-        box = symmetric(power(self.nucleotides, 99), reverse) * symmetric(
+        box = symmetric(power(self.nucleotides, 99), rev) * symmetric(
             power(self.bits, 128), rotate(64)
         )
         factors = count_factors(box)

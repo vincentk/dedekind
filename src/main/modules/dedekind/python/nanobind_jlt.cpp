@@ -147,6 +147,7 @@ using dedekind::category::Letters;
 using dedekind::category::power;
 using dedekind::category::Power;
 using dedekind::category::PowerMap;
+using dedekind::category::ReflectedReverse;
 using dedekind::category::Reflection;
 using dedekind::category::Reverse;
 using dedekind::category::Rotation;
@@ -181,14 +182,15 @@ using DualAfterReverse = dedekind::category::Compose<
     dedekind::category::Morphism<Word, Word, Reverse>, DualPower>;
 
 /** @brief @c fixed_by(g): the stage of what the reverse complement fixes,
- *  for @c power @c & @c fixed_by(g); the complement a table or the duality. */
+ *  for @c power @c & @c fixed_by(g); the complement a table, the duality,
+ *  or @c ~rev, the alphabet's own, taken where the stage meets the power. */
 struct FixedStage {
   std::variant<ReverseAfter, ReverseAfterDual, MapAfterReverse,
-               DualAfterReverse>
+               DualAfterReverse, ReflectedReverse>
       g;
 };
 /** @brief @c words(a) @c & @c fixed_by(g): the words @c g fixes, by length,
- *  Listing 5's @c palindromes; @c & @c length(n) is one of its sections. */
+ *  @c oligos @c & @c fixed_by(~rev); @c & @c len(n) is one of its sections. */
 struct SectionFamily {
   std::variant<decltype(std::declval<const WordPowers&>() &
                         dedekind::category::fixed_by(
@@ -257,11 +259,11 @@ Factored times(const A& a, const B& b) {
 }
 
 /** @param a the letters, as written.  @return the alphabet. */
-Alphabet alphabet(std::string_view a) {
-  if (a.empty()) throw nb::value_error("alphabet: no letters");
+Alphabet abc(std::string_view a) {
+  if (a.empty()) throw nb::value_error("abc: no letters");
   if (std::ranges::contains(a, '\xFF'))
-    throw nb::value_error("alphabet: the byte 0xFF ends no byte slice");
-  return dedekind::category::alphabet(a);
+    throw nb::value_error("abc: the byte 0xFF ends no byte slice");
+  return dedekind::category::abc(a);
 }
 /** @brief The factors as Python sees them: pairs (base, exponent). */
 template <std::ranges::sized_range L>
@@ -346,11 +348,14 @@ struct WhereSection {
   Section section;
 };
 /** @brief @c windows(n) @c & @c section: the windows that lie in the
- *  section, a stage named before any sequence, @c cut_sites. */
+ *  section, a stage named before any sequence, @c hexamers @c & @c sites. */
 struct WindowsIn {
   Windows windows;
   Section section;
 };
+/** @brief @c power @c >> @c windows(n): the windows of every word of a tensor
+ *  power; @c & @c section is the join on the window, counted by its laws. */
+using PowerWindows = dedekind::category::PowerWindows<WordPower>;
 /** @brief @c ... @c >> @c windows(n) @c >> @c where(section): the query. */
 struct WindowQuery {
   WindowsOver over;
@@ -487,6 +492,18 @@ void bind_matcher(nb::module_ module_) {
       .def("__rrshift__", [](const jlt::WindowsIn& w, nb::bytes b) {
         return jlt::WindowQuery{{{std::move(b)}, w.windows}, w.section};
       });
+  nb::class_<jlt::PowerWindows>(
+      module_, "PowerWindows",
+      "power >> windows(n): the windows of every word of a tensor power, at "
+      "every offset; & section is the join on the window, a tensor counted "
+      "by its laws, never enumerated.")
+      .def("__and__", [](const jlt::PowerWindows& pw, const jlt::Section& s) {
+        return std::visit(
+            [&](const auto& x) {
+              return jlt::Factored{jlt::count_factors(pw & x)};
+            },
+            s.section);
+      });
   nb::class_<jlt::WhereSection>(
       module_, "Where", "where(section): the windows the section holds.");
   nb::class_<jlt::RankedText>(module_, "RankedText",
@@ -562,16 +579,6 @@ void bind_matcher(nb::module_ module_) {
       },
       nb::arg("n"), "windows(n): each position's window of n letters, n >= 1.");
   module_.def(
-      "windows",
-      [](const jlt::Section& s) {
-        const std::size_t n =
-            std::visit([](const auto& x) { return x.power.length; }, s.section);
-        return jlt::WindowsIn{dedekind::category::windows(n), s};
-      },
-      nb::arg("section"),
-      "windows(section): the windows of the section's length that lie in it, "
-      "windows(n) & section with n read off the section; cut_sites.");
-  module_.def(
       "fixed_by", [](const jlt::ReverseAfter& g) { return jlt::FixedStage{g}; },
       nb::arg("symmetry"),
       "fixed_by(g): the stage of the words g fixes, for power & fixed_by(g), "
@@ -587,6 +594,10 @@ void bind_matcher(nb::module_ module_) {
   module_.def(
       "fixed_by",
       [](const jlt::DualAfterReverse& g) { return jlt::FixedStage{g}; },
+      nb::arg("symmetry"));
+  module_.def(
+      "fixed_by",
+      [](const jlt::ReflectedReverse& g) { return jlt::FixedStage{g}; },
       nb::arg("symmetry"));
   module_.def(
       "where", [](const jlt::Section& s) { return jlt::WhereSection{s}; },
@@ -630,6 +641,17 @@ void bind_tensors(nb::module_ module_) {
                              "tensor power, never built.")
       .def("__mul__", &jlt::times<jlt::WordPower, jlt::WordPower>)
       .def("__mul__", &jlt::times<jlt::WordPower, jlt::Factored>)
+      .def("__rshift__", [](const jlt::WordPower& p,
+                            const jlt::Windows& w) { return p >> w; })
+      .def("__rshift__",
+           [](const jlt::WordPower& p, const jlt::WindowsIn& w) {
+             return std::visit(
+                 [&](const auto& x) {
+                   return jlt::Factored{
+                       jlt::count_factors((p >> w.windows) & x)};
+                 },
+                 w.section);
+           })
       .def("__and__", [](const jlt::WordPower& p, const jlt::FixedStage& st) {
         return std::visit(
             [&](const auto& g) {
@@ -642,11 +664,17 @@ void bind_tensors(nb::module_ module_) {
                          "length: the coproduct of the tensor powers.");
   nb::class_<jlt::Reverse>(module_, "Reverse",
                            "The reversal of a word's positions.")
+      .def("__invert__", [](const jlt::Reverse& r) { return ~r; })
       .def("__rshift__", [](const jlt::Reverse& r,
                             const jlt::LetterPower& f) { return r >> f; })
       .def("__rshift__", [](const jlt::Reverse& r, const jlt::DualPower& f) {
         return r >> f;
       });
+  nb::class_<jlt::ReflectedReverse>(
+      module_, "ReflectedReverse",
+      "~rev: the reversal, then the reflection of the alphabet on every "
+      "letter, the reverse complement, natural in the alphabet; fixed_by(~rev) "
+      "takes the component at the power it meets.");
   nb::class_<jlt::MapAfterReverse>(
       module_, "MapAfterReverse",
       "The reversal of the positions, then a map on every letter.");
@@ -707,9 +735,8 @@ void bind_tensors(nb::module_ module_) {
       "The window of a word: its letters from a position, a given number "
       "long, the projection onto those positions.");
 
-  module_.def(
-      "alphabet", &jlt::alphabet, nb::arg("letters"),
-      "alphabet(letters): the filtered alphabet of the letters written.");
+  module_.def("abc", &jlt::abc, nb::arg("letters"),
+              "abc(letters): the filtered alphabet of the letters written.");
   module_.def(
       "refl",
       [](const jlt::Alphabet& a) { return dedekind::category::refl(a); },
@@ -726,7 +753,7 @@ void bind_tensors(nb::module_ module_) {
       nb::arg("from_"), nb::arg("to"),
       "letter_map(from, to): each letter to the image at the same place, every "
       "other byte fixed.");
-  module_.attr("reverse") = dedekind::category::reverse;
+  module_.attr("rev") = dedekind::category::rev;
   module_.def(
       "rotate", [](std::size_t d) { return dedekind::category::rotate(d); },
       nb::arg("by"), "rotate(by): the positions i -> i + by mod n.");
@@ -774,20 +801,23 @@ void bind_tensors(nb::module_ module_) {
       nb::arg("alphabet"), nb::arg("length"),
       "power(alphabet, n): the words of length n, a tensor power.");
   nb::class_<jlt::Length>(module_, "Length",
-                          "length(n): the fibre of the length over n, the "
+                          "len(n): the fibre of the length over n, the "
                           "predicate a family of words is met with.");
   module_.def(
-      "length", [](std::size_t n) { return dedekind::category::length(n); },
-      nb::arg("n"), "length(n): words & length(n) is the words of length n.");
+      "len", [](std::size_t n) { return dedekind::category::len(n); },
+      nb::arg("n"), "len(n): words & len(n) is the words of length n.");
   nb::class_<jlt::WordPowers>(module_, "Words",
                               "words(alphabet): the words over it, by "
-                              "length; words(a) & length(n) is power(a, n).")
+                              "length; words(a) & len(n) is power(a, n), as "
+                              "is words(a) & windows(n).")
       .def(
           "__call__",
           [](const jlt::WordPowers& p, std::size_t n) { return p(n); },
           nb::arg("length"))
       .def("__and__",
            [](const jlt::WordPowers& p, const jlt::Length& l) { return p & l; })
+      .def("__and__", [](const jlt::WordPowers& p,
+                         const jlt::Windows& w) { return p & w; })
       .def("__and__", [](const jlt::WordPowers& p, const jlt::FixedStage& st) {
         return std::visit(
             [&](const auto& g) {
@@ -797,7 +827,7 @@ void bind_tensors(nb::module_ module_) {
       });
   nb::class_<jlt::SectionFamily>(
       module_, "SectionFamily",
-      "words(a) & fixed_by(g): the words g fixes, by length; & length(n) "
+      "words(a) & fixed_by(g): the words g fixes, by length; & len(n) "
       "is the section of that length.")
       .def("__and__",
            [](const jlt::SectionFamily& f, const jlt::Length& l) {
@@ -848,8 +878,8 @@ void bind_tensors(nb::module_ module_) {
       },
       nb::arg("power"), nb::arg("symmetry"),
       "symmetric(power, g): the words g fixes, the legs merged along the "
-      "cycles of its permutation of the positions: reverse, rotate(d), or "
-      "power(complement) >> reverse.");
+      "cycles of its permutation of the positions: rev, rotate(d), or "
+      "power(complement) >> rev.");
   module_.def(
       "symmetric",
       [](const jlt::WordPower& p, const jlt::Rotation<>& s) {
@@ -959,20 +989,6 @@ void bind_tensors(nb::module_ module_) {
       nb::arg("power"), nb::arg("inner"),
       "exact_occurrences(p, s): the occurrences, or None where the word "
       "cannot hold them.");
-  module_.def(
-      "join",
-      [](const jlt::WordPower& p, const jlt::Section& s) {
-        return std::visit(
-            [&](const auto& x) {
-              return jlt::Factored{
-                  jlt::count_factors(dedekind::category::join(p, x))};
-            },
-            s.section);
-      },
-      nb::arg("power"), nb::arg("sites"),
-      "join(p, s): the words of p with a window in s, each window an "
-      "occurrence: the windows' offsets times the cylinder on each, its "
-      "count the factors' product (pushdown and the box law).");
   module_.def(
       "pack", &jlt::packed, nb::arg("pattern"), nb::arg("width"),
       "pack(k, w): the pattern k in the bit word of width w, read back: "

@@ -952,9 +952,9 @@ export constexpr Letters letters(std::string_view alphabet) {
   return {std::ranges::fold_left(alphabet, std::bitset<256>{},
                                  detail_periodic::SetByte{})};
 }
-/** @brief The byte alphabet's type, as @c alphabet builds it: the letters
+/** @brief The byte alphabet's type, as @c abc builds it: the letters
  *  under their predicate, a filtered chain of the bytes.  Listing 5's
- *  @c Alphabet @c nucleotides.  (#1141: the first carrier of the alphabet
+ *  @c Alphabet @c bases.  (#1141: the first carrier of the alphabet
  *  concept.) */
 export using Alphabet =
     unfold_view<std::optional<std::byte>,
@@ -963,10 +963,10 @@ export using Alphabet =
  *  that holds them, under the predicate that keeps them, @c slice(lo, hi)
  *  @c >> @c letters(a) with @c lo the least letter and @c hi one past the
  *  greatest.  @param a the letters, as written: at least one, none the
- *  last byte.  @return the filtered byte chain, as @c nucleotides is
+ *  last byte.  @return the filtered byte chain, as @c bases is
  *  written.  (#1141: one constructor of the alphabet concept, the filtered
  *  finite chain; the byte is its first carrier.) */
-export constexpr auto alphabet(std::string_view a) {
+export constexpr auto abc(std::string_view a) {
   if (a.empty()) detail_periodic::refuse_no_alphabet();
   const auto [lo, hi] =
       std::ranges::minmax(a | std::views::transform(detail_periodic::ByteOf{}));
@@ -993,7 +993,7 @@ export struct Ranked {
 };
 /** @param on the alphabet.  @return the rank of a byte in it. */
 export constexpr Ranked rank(const Letters& on) { return {on}; }
-/** @param alphabet the filtered byte chain, as @c alphabet builds it.
+/** @param alphabet the filtered byte chain, as @c abc builds it.
  *  @return the rank of a byte in its letters. */
 export constexpr Ranked rank(const Alphabet& alphabet) {
   return {alphabet.coalgebra().f};
@@ -1004,10 +1004,10 @@ static_assert(rank(letters("ACGT"))(std::byte{'A'}) == 0uz &&
               rank(letters("ACGT"))(std::byte{'T'}) == 3uz &&
               !rank(letters("ACGT"))(std::byte{'N'}).has_value());
 // The alphabet is its letters' least slice: the same ranks, the same holes.
-static_assert(rank(alphabet("ACGT"))(std::byte{'A'}) == 0uz &&
-              rank(alphabet("ACGT"))(std::byte{'T'}) == 3uz &&
-              !rank(alphabet("ACGT"))(std::byte{'@'}).has_value() &&
-              !rank(alphabet("ACGT"))(std::byte{'['}).has_value());
+static_assert(rank(abc("ACGT"))(std::byte{'A'}) == 0uz &&
+              rank(abc("ACGT"))(std::byte{'T'}) == 3uz &&
+              !rank(abc("ACGT"))(std::byte{'@'}).has_value() &&
+              !rank(abc("ACGT"))(std::byte{'['}).has_value());
 
 namespace detail_periodic {
 /** @brief The letter at a rank, the inverse of @c rank: one more byte of
@@ -1029,7 +1029,7 @@ struct NthLetter {
  *  to the letters along @c rank, @f$\mathrm{rank}^{-1} \circ ({\sim} + n)
  *  \circ \mathrm{rank}@f$ with @f$n@f$ the letters' count; the identity
  *  off the alphabet.  The arrow @c ~Identity @c >> @c shift(n) is the one
- *  @c reverse applies to the @f$n@f$ positions of a word, here applied to
+ *  @c rev applies to the @f$n@f$ positions of a word, here applied to
  *  the chain of letters: the Watson–Crick complement of @c ACGT, which
  *  pairs the outer letters and the inner ones because of how the four
  *  one-letter codes fall in the Latin alphabet.  An involution and antitone
@@ -1061,8 +1061,8 @@ template <>
 struct is_involutive<Reflection, std::byte> : std::true_type {};
 /** @param on the letters.  @return their duality.  (#1141) */
 export constexpr Reflection refl(const Letters& on) { return {on}; }
-/** @param alphabet the filtered byte chain, as @c alphabet builds it.
- *  @return the duality of its letters, as @c complement is written.
+/** @param alphabet the filtered byte chain, as @c abc builds it.
+ *  @return the duality of its letters, the complement of @c ACGT.
  *  (#1141) */
 export constexpr Reflection refl(const Alphabet& alphabet) {
   return {alphabet.coalgebra().f};
@@ -1161,7 +1161,7 @@ constexpr PowerMap<T> power(const T& tau) {
 }
 /** @brief @c map(τ), the list functor's own name for the same arrow: the
  *  textbook factors the functor as the type on objects, @c words, and
- *  @c map on arrows, so Listing 5 writes @c map(complement) @c >>
+ *  @c map on arrows, so the exhibit writes @c map(complement) @c >>
  *  @c reverse for the reverse complement.  @param tau an arrow on the
  *  letters.  @return @c tau on every letter of a word. */
 export template <IsArrow T>
@@ -1302,7 +1302,7 @@ concept HasCycleType = IsCountWord<N> && requires(const S& s, N n) {
   { decltype(cycle_type(s, n))::capacity } -> std::convertible_to<std::size_t>;
 };
 
-/** @brief The naturality of the permutations of positions: @c reverse and
+/** @brief The naturality of the permutations of positions: @c rev and
  *  @c rotate(d) are natural transformations of the power functor
  *  @f$(-)^n@f$ to itself, so each square @f$\sigma \circ \tau^{\times n} =
  *  \tau^{\times n} \circ \sigma@f$ commutes, for every @c tau at once.  The
@@ -1401,19 +1401,16 @@ struct DualIsTheMask {
 }  // namespace detail_periodic
 static_assert(
     IsInvolution<Reflection> &&
-        std::ranges::fold_left(std::views::iota(std::size_t{0},
-                                                std::size_t{256}),
-                               true,
-                               detail_periodic::ReturnsTwice<Reflection>{
-                                   refl(alphabet("ACGT"))}) &&
-        is_antitone(refl(alphabet("ACGT")), letters("ACGT")) &&
+        std::ranges::fold_left(
+            std::views::iota(std::size_t{0}, std::size_t{256}), true,
+            detail_periodic::ReturnsTwice<Reflection>{refl(abc("ACGT"))}) &&
+        is_antitone(refl(abc("ACGT")), letters("ACGT")) &&
         std::ranges::fold_left(std::string_view{"ACGT"}, true,
                                detail_periodic::DualIsTheMask{
-                                   rank(alphabet("ACGT")),
-                                   refl(alphabet("ACGT"))}) &&
-        refl(alphabet("ACGT"))(std::byte{'N'}) == std::byte{'N'} &&
-        refl(alphabet("ACG"))(std::byte{'C'}) == std::byte{'C'} &&
-        refl(alphabet("ACG"))(std::byte{'A'}) == std::byte{'G'},
+                                   rank(abc("ACGT")), refl(abc("ACGT"))}) &&
+        refl(abc("ACGT"))(std::byte{'N'}) == std::byte{'N'} &&
+        refl(abc("ACG"))(std::byte{'C'}) == std::byte{'C'} &&
+        refl(abc("ACG"))(std::byte{'A'}) == std::byte{'G'},
     "the duality is an involution by its type, antitone on its alphabet, "
     "bitwise NOT on the two-bit ranks, the identity off the alphabet, and "
     "fixes the middle letter of an odd alphabet");
@@ -1663,7 +1660,7 @@ constexpr Powers<C, F, N> words(
   return {one.letters, one.member};
 }
 /** @brief The words over the byte alphabet, by length: @c words(Σ)'s type,
- *  Listing 5's @c Words @c sequences. */
+ *  Listing 5's @c Words @c oligos. */
 export using Words = Powers<std::byte, Letters, std::size_t>;
 
 /** @brief @c fixed_by(g), a tensor power to its section fixed by @c g, a
@@ -1693,7 +1690,7 @@ struct FixedByStage {
 };
 }  // namespace detail_periodic
 /** @param g a letter map on every letter, then a permutation of the
- *  positions: @c power(complement) @c >> @c reverse.  @return the stage that
+ *  positions: @c power(complement) @c >> @c rev.  @return the stage that
  *  fixes it. */
 export template <IsArrow T, typename C, typename S>
 constexpr detail_periodic::FixedByStage<S, T> fixed_by(
@@ -1719,8 +1716,7 @@ constexpr auto operator>>(const Powers<C, F, N>& ps,
   return ps >> FixedBy<Power<C, F, N>, S, T>{st.sigma, st.tau};
 }
 /** @brief @c words(Σ) @c & @c fixed_by(g): the words @c g fixes, by length,
- *  the same family spelled as Trsk spells a set under a predicate; Listing
- *  5's @c sites @c = @c hexamers @c & @c palindromic.
+ *  the same family spelled as Trsk spells a set under a predicate.
  *  @param ps the words.  @param st the stage.  @return the family. */
 export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S, IsArrow T>
   requires std::same_as<Dom<T>, C> && HasCycleType<S, N>
@@ -1728,21 +1724,21 @@ constexpr auto operator&(const Powers<C, F, N>& ps,
                          const detail_periodic::FixedByStage<S, T>& st) {
   return ps >> st;
 }
-/** @brief @c length(n): the fibre of the length over @c n, the predicate a
- *  graded family of words is met with.  @c sequences @c & @c length(n) is
+/** @brief @c len(n): the fibre of the length over @c n, the predicate a
+ *  graded family of words is met with.  @c oligos @c & @c len(n) is
  *  the words of length @c n, @f$\Sigma^n@f$ as the fibre of @f$\Sigma^*
  *  \to \mathbb{N}@f$ over @c n, Trsk's filter on the graded set; it is
  *  the family applied at @c n, so the count law of the fibre is the
- *  power's, @f$|\Sigma|^n@f$.  The meets commute: @c sequences @c &
- *  @c length(n) @c & @c fixed_by(g) and @c sequences @c & @c fixed_by(g)
- *  @c & @c length(n) are one section.  @tparam N the counts. */
+ *  power's, @f$|\Sigma|^n@f$.  The meets commute: @c oligos @c &
+ *  @c len(n) @c & @c fixed_by(g) and @c oligos @c & @c fixed_by(g)
+ *  @c & @c len(n) are one section.  @tparam N the counts. */
 export template <IsCountWord N = std::size_t>
 struct Length {
   N n;
 };
 /** @param n the length.  @return the fibre's predicate. */
 export template <IsCountWord N = std::size_t>
-constexpr Length<N> length(std::type_identity_t<N> n) {
+constexpr Length<N> len(std::type_identity_t<N> n) {
   return {n};
 }
 /** @brief A graded family of sets of words, indexed by the length:
@@ -1771,6 +1767,69 @@ constexpr Symmetric<Power<C, F, N>, S, T> operator&(
     const Power<C, F, N>& p, const detail_periodic::FixedByStage<S, T>& st) {
   return FixedBy<Power<C, F, N>, S, T>{st.sigma, st.tau}(p);
 }
+
+/** @brief @c ~rev: the reversal, then the reflection of the alphabet on
+ *  every letter, the reverse complement.  @c ~f is @c :posetal's: @c f then
+ *  the reflection of its codomain's chain, which on the ranks of @c ACGT is
+ *  @f$x \mapsto 3 - x@f$, bitwise NOT on two bits.  A word carries no
+ *  alphabet, so @c ~rev is natural in it: a family with a component at
+ *  every alphabet, @c map(refl(Σ)) @c >> @c rev at Σ, taken where
+ *  @c fixed_by(~rev) meets a power over Σ, as the exhibit's @c oligos @c &
+ *  @c hexamers @c & @c fixed_by(~rev).  Each component is an involution,
+ *  two commuting involutions (@c commutes and @c is_involutive above).
+ *  (#1141: an alphabet over another carrier has its component from its
+ *  rank, as @c refl does.) */
+export struct ReflectedReverse {
+  constexpr bool operator==(const ReflectedReverse&) const = default;
+};
+/** @return the reversal, then the reflection of the alphabet on every
+ *  letter. */
+export constexpr ReflectedReverse operator~(Reverse) { return {}; }
+namespace detail_periodic {
+/** @brief @c fixed_by(~rev) before it meets the powers it applies to. */
+struct FixedByReflectedReverse {};
+/** @param p a power over the byte alphabet, or the powers.  @return the
+ *  component of @c ~rev at its alphabet, @c map(refl(Σ)) @c >> @c rev. */
+template <IsCountWord N>
+constexpr auto reverse_complement(const Power<std::byte, Letters, N>& p) {
+  return map(refl(p.member)) >> rev;
+}
+template <IsCountWord N>
+constexpr auto reverse_complement(const Powers<std::byte, Letters, N>& ps) {
+  return map(refl(ps.member)) >> rev;
+}
+}  // namespace detail_periodic
+/** @param g the reverse complement, natural in the alphabet.  @return the
+ *  stage fixing it, its component taken at the power it meets. */
+export constexpr detail_periodic::FixedByReflectedReverse fixed_by(
+    ReflectedReverse) {
+  return {};
+}
+/** @brief @c power @c & @c fixed_by(~rev): the words the reverse complement
+ *  fixes, the complement the power's own, @c refl of its letters.
+ *  @param p the power.  @return the section. */
+export template <IsCountWord N>
+constexpr Symmetric<Power<std::byte, Letters, N>, Reverse, Reflection>
+operator&(const Power<std::byte, Letters, N>& p,
+          detail_periodic::FixedByReflectedReverse) {
+  return p & fixed_by(detail_periodic::reverse_complement(p));
+}
+/** @brief @c words(Σ) @c & @c fixed_by(~rev): the same, by length.
+ *  @param ps the words.  @return the family. */
+export template <IsCountWord N>
+constexpr auto operator&(const Powers<std::byte, Letters, N>& ps,
+                         detail_periodic::FixedByReflectedReverse) {
+  return ps & fixed_by(detail_periodic::reverse_complement(ps));
+}
+export template <IsCountWord N>
+constexpr auto operator>>(const Powers<std::byte, Letters, N>& ps,
+                          detail_periodic::FixedByReflectedReverse st) {
+  return ps & st;
+}
+// The component at ACGT: the reversal, and the alphabet's own reflection.
+static_assert((power(abc("ACGT"), 6uz) & fixed_by(~rev)).tau ==
+                  refl(letters("ACGT")) &&
+              (power(abc("ACGT"), 6uz) & fixed_by(~rev)).sigma == Reverse{});
 
 /** @brief A permutation family coherent across lengths: from @c n to
  *  @c n @c + @c 2 its cycle type gains cycles and changes none.  The
