@@ -438,9 +438,8 @@ using dedekind::category::matches;
 using dedekind::category::rank;
 using dedekind::category::windows;
 // [listing5:one-genome]
-constexpr auto hexamers = windows(6);  // every window of six letters
-constexpr auto cut_sites =
-    hexamers & sites(6);  // the hexamers a six-cutter recognises
+constexpr auto hexamers = windows(6);            // every window of six letters
+constexpr auto cut_sites = hexamers & sites(6);  // the hexamers that are sites
 constexpr auto by_the_query(std::span<const std::byte> sequence) {
   return count(sequence >> cut_sites);
 }

@@ -77,7 +77,7 @@ static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 
 ```cpp
 constexpr auto hexamers = windows(6);            // every window of six letters
-constexpr auto cut_sites = hexamers & sites(6);  // the hexamers a six-cutter recognises
+constexpr auto cut_sites = hexamers & sites(6);  // the hexamers that are sites
 constexpr auto by_the_query(std::span<const std::byte> sequence) {
   return count(sequence >> cut_sites);
 }
