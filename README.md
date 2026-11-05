@@ -148,16 +148,13 @@ For full build targets and contributor workflow helpers, see [CONTRIBUTING.md](C
 
 ### Architecture
 
-The project rests on two pillars: **C++23** and **Category Theory**.
+Two choices shape the code: C++23, a mainstream language with a compiler that evaluates programs, and category theory, the shared vocabulary between types and textbook mathematics.
+C++ templates, concepts and traits give what functional languages call type constructors over type constructors, and types indexed by compile-time values, within what the standard allows.
 
- - **Why C++?** It is a mainstream language with many features which is suitable for performance-optimized code. Its flexible type system allows for the simulation of functional concepts—such as higher-kinded and dependent types—via template metaprogramming, concepts, and traits.
- - **Why Category Theory?** It bridges the gap from the mathematical end: typed λ-calculus can be expressed directly in the terminology of established mathematical textbooks.
-
-In this approach:
-1. **Verbatim Lifting**: Mathematical concepts are translated into `C++` `concept`s with minimal adjustments. The flow from axioms to theorems is enforced by the `module` build order, the `import` graph and `C++` declaration order rules.
-2. **Language Conformity**: Modifications required to satisfy the host language (`C++`) are kept as non-intrusive as possible. Textbook naming conventions using `UTF-8` are preferred, i.e. `ℝ` instead of `IsRealNumberSet`.
-3. **Bi-directional Fidelity**: Once a `concept` compiles, its behaviour is checked by mapping `C++` invariants back to their mathematical counterparts within the test suite.
-4. **Co-Domain Anchoring**: Where the C++ standard library provides native support for algebraic concepts, this anchoring is made explicit (e.g. `bool`, `std::pair`, `std::variant`, ...) and documented via translation tables.
+1. **Concepts follow the textbook.** A mathematical definition becomes a `concept` with few changes, and modules are built in the order the theory depends on them, so a theorem can't be imported before its axioms.
+2. **Textbook names.** `ℕ` over `IsNaturalNumberSet`, in `UTF-8`, where the language allows.
+3. **Tests map back.** A concept that compiles isn't yet a correct one, so the test suite checks its behaviour against the mathematics.
+4. **Standard types where they fit.** `bool`, `std::pair` and `std::variant` serve as the truth values, products and sums they already are.
 
 ### What you have to get right
 
