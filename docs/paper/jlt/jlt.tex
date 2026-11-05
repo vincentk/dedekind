@@ -1000,6 +1000,10 @@ And laws that are computed with rather than only declared, which needs terms and
 
 Declared laws, and the laws inferred from them, license optimisations of the application's own algebra, as types rule out errors: by a sound check, not a decision of equivalence.
 The same laws are those a query optimiser applies to relational algebra~\cite{codd1970relational}, so the posture reads, the other way round, as an intensional SQL: queries over relations given by their laws, not by their rows.
+Where that reading should pay most is a hint, not a claim.
+Constant evaluation may allocate, but nothing allocated outlives it, so a \cppinline{constexpr} value is flat, sized by its type; the persistent structures of functional programming share by pointer, which the boundary cannot carry.
+What crosses from compile time to run time is therefore bounded state, and the computations that specialise well across it are those that run in bounded state over an unbounded input, the streaming algorithms~\cite{alon1999space}: Listing~\ref{lst:sites}'s matcher is one, a table that crosses and a pass that keeps a state and a count.
+Streaming queries, and the plans an optimiser chooses for them, are where an intensional SQL in this posture would be tried first.
 The laws survive the trip into Python, up to the compile-time evaluation: a session that composes and counts through the bindings runs the overloads the laws license, for those who would rather tinker than compile.
 Nothing was added to the language, the compiler or the library: what was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged, for the people who already write \Cpp{23}.
 
