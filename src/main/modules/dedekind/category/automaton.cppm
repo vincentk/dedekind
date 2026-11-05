@@ -839,6 +839,49 @@ constexpr bool one_strand_is_enough() {
   return count(std::span<const std::byte>{s} >> law_section) ==
          count(std::span<const std::byte>{other} >> law_section);
 }
+// The same laws on random words, seeded, at compile time.  Two letters, A and
+// T, so that sites are dense enough to test anything: about one window in eight
+// is a site, one in thirty-two begins AT.
+constexpr auto random_subset = law_section & prefix("AT");
+constexpr auto random_plan = *automaton<4, 6, 8, 12>(random_subset);
+constexpr std::size_t random_length = 24;
+/** @brief The kernel the random words' table factors. */
+struct EndsInSubset {
+  using Domain = std::span<const std::byte>;
+  using Codomain = bool;
+  constexpr bool operator()(std::span<const std::byte> p) const {
+    return p.size() >= 6 && random_subset(p.last(6));
+  }
+};
+/** @brief What the seeds say: whether the laws hold on their words, and how
+ *  many sites of the subset those held, so a vacuous run can be refused. */
+struct RandomLaws {
+  bool hold{true};
+  std::size_t sites{0};
+};
+struct LawsOnSeed {
+  constexpr RandomLaws operator()(RandomLaws r, std::uint64_t seed) const {
+    const auto word = random_word<random_length>(abc("AT"), seed);
+    const std::span<const std::byte> s{word};
+    const std::size_t by_plan = count(scan(random_plan, s));
+    const std::size_t by_kernel = static_cast<std::size_t>(
+        std::ranges::count(scan(EndsInSubset{}, s), true));
+    const std::vector<std::byte> mine(word.begin(), word.end());
+    const std::vector<std::byte> other =
+        (rev >> power(refl(letters("ACGT"))))(mine);
+    return {r.hold && by_plan == by_kernel &&
+                by_plan == count(s >> random_subset) &&
+                count(s >> random_subset) <= count(s >> law_section) &&
+                count(s >> law_section) ==
+                    count(std::span<const std::byte>{other} >> law_section),
+            r.sites + by_plan};
+  }
+};
+constexpr RandomLaws on_random_words() {
+  return std::ranges::fold_left(
+      std::views::iota(std::uint64_t{0}, std::uint64_t{4}), RandomLaws{},
+      LawsOnSeed{});
+}
 }  // namespace detail_automaton
 static_assert(detail_automaton::plan_factors_the_kernel(),
               "the plan's extension is the kernel's, in one state");
@@ -848,6 +891,10 @@ static_assert(
     count(detail_automaton::law_text >> detail_automaton::law_subset) <=
         count(detail_automaton::law_text >> detail_automaton::law_section),
     "reading through a smaller set finds no more");
+static_assert(detail_automaton::on_random_words().hold,
+              "the scan's laws, on seeded random words");
+static_assert(detail_automaton::on_random_words().sites > 0,
+              "and those words held sites, or the laws were vacuous");
 static_assert(
     detail_automaton::one_strand_is_enough(),
     "a set the reverse complement fixes finds as many on either strand");

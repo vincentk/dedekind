@@ -1102,41 +1102,74 @@ export constexpr Reflection refl(const Letters& on) {
 export constexpr Reflection refl(const Alphabet& alphabet) {
   return refl(alphabet.coalgebra().f);
 }
-/** @brief A random letter as an arrow out of the counts, a sequence on a chain:
- *  each letter a hash of its position and the seed (SplitMix64, Steele, Lea and
- *  Flood 2014), so a text of any length is never stored and nothing keeps a
- *  state.  Good enough to exercise a scan; no cryptography, and its bias, of
- *  order @f$2^{-64}@f$ per letter, is not a statistician's.
- *  @c random_text(bases, N) reads it along @c N positions. */
+/** @brief A random number as an arrow out of the counts, a sequence on a chain:
+ *  the hash of a position and a seed (SplitMix64, Steele, Lea and Flood 2014).
+ *  @c constexpr, with no state: any position is at hand, a sequence of any
+ *  length is never stored, and two seeds are two streams.  So a law can be
+ * asked of random inputs in a @c static_assert, and a million events cost
+ * nothing to spin up.  For exercising code: no cryptography, and no claim on
+ * sampling. */
+export struct SplitMix {
+  using Domain = std::size_t;
+  using Codomain = std::uint64_t;
+  std::uint64_t seed{0};
+  constexpr std::uint64_t operator()(std::size_t i) const {
+    std::uint64_t z =
+        seed + (static_cast<std::uint64_t>(i) + 1) * 0x9E3779B97F4A7C15u;
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9u;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EBu;
+    return z ^ (z >> 31);
+  }
+};
+static_assert(IsFiniteChainSequence<SplitMix>);
+/** @brief A random letter by position: the hash, read as a rank in an alphabet.
+ */
 export struct RandomLetter {
   using Domain = std::size_t;
   using Codomain = std::byte;
   std::array<std::byte, 256> letters;  ///< the alphabet, in order
   std::size_t n;                       ///< how many
-  std::uint64_t seed;
+  SplitMix hash;
   constexpr std::byte operator()(std::size_t i) const {
-    std::uint64_t z =
-        seed + (static_cast<std::uint64_t>(i) + 1) * 0x9E3779B97F4A7C15u;
-    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9u;
-    z = (z ^ (z >> 27)) * 0x94D049BB133111EBu;
-    z ^= z >> 31;
-    return letters[z % n];
+    return letters[hash(i) % n];
   }
 };
-/** @param alphabet the letters.  @param length how many positions.
- *  @param seed the seed.  @return the random text, a view, never stored. */
-export constexpr auto random_text(const Alphabet& alphabet, std::size_t length,
-                                  std::uint64_t seed = 0) {
+/** @param alphabet the letters.  @param seed the seed.  @return its random
+ *  letter by position. */
+export constexpr RandomLetter random_letter(const Alphabet& alphabet,
+                                            std::uint64_t seed = 0) {
   const Letters on = alphabet.coalgebra().f;
-  RandomLetter letter{{}, on.members.count(), seed};
+  RandomLetter letter{{}, on.members.count(), SplitMix{seed}};
   std::ranges::transform(
       std::views::iota(0uz, 256uz) |
           std::views::filter(detail_periodic::IsLetterAt{on}),
       letter.letters.begin(), detail_periodic::ByteAt{});
-  return std::views::iota(0uz, length) | std::views::transform(letter);
+  return letter;
+}
+/** @param alphabet the letters.  @param length how many positions.
+ *  @param seed the seed.  @return the random text, a view, never stored. */
+export constexpr auto random_text(const Alphabet& alphabet, std::size_t length,
+                                  std::uint64_t seed = 0) {
+  return std::views::iota(0uz, length) |
+         std::views::transform(random_letter(alphabet, seed));
+}
+/** @brief A random word held as a value, for a law's input where a stage wants
+ *  contiguous letters.  @tparam N its length.  @param alphabet the letters.
+ *  @param seed the seed.  @return the word. */
+export template <std::size_t N>
+constexpr std::array<std::byte, N> random_word(const Alphabet& alphabet,
+                                               std::uint64_t seed = 0) {
+  std::array<std::byte, N> word{};
+  std::ranges::transform(std::views::iota(0uz, N), word.begin(),
+                         random_letter(alphabet, seed));
+  return word;
 }
 static_assert(std::ranges::size(random_text(abc("ACGT"), 5uz)) == 5uz &&
-              letters("ACGT")(random_text(abc("ACGT"), 5uz)[3]));
+              letters("ACGT")(random_text(abc("ACGT"), 5uz)[3]) &&
+              random_word<5>(abc("ACGT"))[3] ==
+                  random_text(abc("ACGT"), 5uz)[3] &&
+              SplitMix{1}(0) != SplitMix{2}(0) &&
+              SplitMix{1}(0) != SplitMix{1}(1));
 /** @brief An arrow on the bytes given by a table, each letter of @c from to
  *  the letter at the same place of @c to, every other byte fixed:
  *  @c letter_map("ACGT", "TGCA") is the complement of a base, an
