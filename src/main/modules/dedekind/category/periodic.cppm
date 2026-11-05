@@ -982,16 +982,35 @@ struct ToByte {
   }
 };
 }  // namespace detail_periodic
-/** @brief A text written in the source, as the bytes a sequence is read
- *  from.  @param s the text.  @return its bytes, without the terminator. */
+/** @brief A text written in the source: its bytes, held by value, and a view,
+ *  so a query over it owns them and nothing dangles, a temporary's included.
+ *  Its copy is constant-time in the sense a view asks, the length being in the
+ *  type.  @tparam N the length. */
+export template <std::size_t N>
+struct Bytes {
+  std::array<std::byte, N> letters{};
+  constexpr const std::byte* begin() const { return letters.data(); }
+  constexpr const std::byte* end() const { return letters.data() + N; }
+  constexpr const std::byte* data() const { return letters.data(); }
+  constexpr std::size_t size() const { return N; }
+};
+/** @param s the text.  @return its bytes, without the terminator. */
 export template <std::size_t M>
   requires(M >= 1)
-constexpr std::array<std::byte, M - 1> bytes(const char (&s)[M]) {
-  std::array<std::byte, M - 1> out{};
-  std::ranges::transform(std::string_view{s, M - 1}, out.begin(),
+constexpr Bytes<M - 1> bytes(const char (&s)[M]) {
+  Bytes<M - 1> out{};
+  std::ranges::transform(std::string_view{s, M - 1}, out.letters.begin(),
                          detail_periodic::ToByte{});
   return out;
 }
+}  // namespace dedekind::category
+template <std::size_t N>
+inline constexpr bool std::ranges::enable_view<dedekind::category::Bytes<N>> =
+    true;
+namespace dedekind::category {
+static_assert(std::ranges::view<Bytes<3>> &&
+              std::ranges::contiguous_range<Bytes<3>> &&
+              std::ranges::sized_range<Bytes<3>>);
 /** @brief A byte's rank in an alphabet: how many of its letters lie below
  *  it, the order isomorphism of the letters, in the bytes' order, onto
  *  @f$[0, |\Sigma|)@f$; a byte outside it is a hole.  A Kleisli arrow into
@@ -1028,6 +1047,20 @@ static_assert(rank(abc("ACGT"))(std::byte{'A'}) == 0uz &&
               !rank(abc("ACGT"))(std::byte{'['}).has_value());
 
 namespace detail_periodic {
+/** @brief One byte into the identity table. */
+struct FixByte {
+  constexpr std::array<std::byte, 256> operator()(std::array<std::byte, 256> t,
+                                                  std::size_t i) const {
+    t[i] = std::byte{static_cast<unsigned char>(i)};
+    return t;
+  }
+};
+/** @brief The identity table on the bytes. */
+constexpr std::array<std::byte, 256> identity_table() {
+  return std::ranges::fold_left(
+      std::views::iota(std::size_t{0}, std::size_t{256}),
+      std::array<std::byte, 256>{}, FixByte{});
+}
 /** @brief One byte's image under the reflection: the letter at the reflected
  *  rank, the byte itself off the alphabet.  (#1141: the chain's enumeration,
  *  once alphabets range over other carriers.) */
@@ -1069,14 +1102,22 @@ struct ByteAt {
  *  isomorphism, so the TYPE carries the law (@c IsInvolution), where a
  *  @c letter_map's law is read off its table.  (#1141: an alphabet over
  *  another carrier gets its duality the same way, from its rank.) */
+export struct Reflection;
+export constexpr Reflection refl(const Letters& on);
 export struct Reflection {
   using Domain = std::byte;
   using Codomain = std::byte;
-  std::array<std::byte, 256> image;  ///< computed once, by @c refl
   constexpr std::byte operator()(std::byte b) const {
     return image[std::to_integer<unsigned char>(b)];
   }
   constexpr bool operator==(const Reflection&) const = default;
+
+ private:
+  friend constexpr Reflection refl(const Letters& on);
+  /** @brief Computed once, by @c refl, and reachable no other way, so the type
+   *  certificate below holds of every value; the default, of no alphabet, is
+   *  the identity. */
+  std::array<std::byte, 256> image = detail_periodic::identity_table();
 };
 /** @brief The duality is an involution: @f$({\sim} + n)@f$ is one on the
  *  ranks (@c is_involutive above), and a conjugate of an involution by a
@@ -1184,20 +1225,6 @@ export struct LetterMap {
   constexpr bool operator==(const LetterMap&) const = default;
 };
 namespace detail_periodic {
-/** @brief One byte into the identity table. */
-struct FixByte {
-  constexpr std::array<std::byte, 256> operator()(std::array<std::byte, 256> t,
-                                                  std::size_t i) const {
-    t[i] = std::byte{static_cast<unsigned char>(i)};
-    return t;
-  }
-};
-/** @brief The identity table on the bytes. */
-constexpr std::array<std::byte, 256> identity_table() {
-  return std::ranges::fold_left(
-      std::views::iota(std::size_t{0}, std::size_t{256}),
-      std::array<std::byte, 256>{}, FixByte{});
-}
 /** @brief Refuses a letter map whose letters and images differ in number. */
 [[noreturn]] constexpr void refuse_unequal_letters() { std::abort(); }
 }  // namespace detail_periodic

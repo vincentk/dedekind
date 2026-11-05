@@ -385,6 +385,15 @@ constexpr Maybe<RunList<N, KL>> run_list(
   return detail_automaton::tested_run_list<KL, Sigma, P>(sites);
 }
 namespace detail_automaton {
+/** @param p a power over the bytes.  @return whether its slice holds all its
+ *  predicate's letters, as the half-site law reads them: a narrower slice has
+ *  other words and other codes. */
+template <IsCountWord N>
+constexpr bool whole_alphabet(const Power<std::byte, Letters, N>& p) {
+  return letters_of(p).size() == p.member.members.count();
+}
+}  // namespace detail_automaton
+namespace detail_automaton {
 /** @brief One more digit of a half-site read backwards, reflected: the next
  *  letter of the other half, @f$\sigma - 1 - d@f$ on the ranks. */
 template <std::size_t Sigma, IsCountWord N>
@@ -424,7 +433,10 @@ constexpr Maybe<RunList<N, KL>> palindromes(N n, N prefix, N L) {
       detail_periodic::checked_power(static_cast<N>(Sigma), half);
   const Maybe<N> tail = detail_periodic::checked_power(static_cast<N>(Sigma),
                                                        static_cast<N>(n - L));
-  if (!high || !tail) return {};
+  // the whole code space must fit the word, or an end of the run wraps
+  if (!high || !tail ||
+      !detail_periodic::checked_power(static_cast<N>(Sigma), n))
+    return {};
   // the half-sites the prefix allows: its letters, or the first half of them
   const N cut = L > half ? static_cast<N>(L - half) : N{0};
   const N open = L < half ? static_cast<N>(half - L) : N{0};
@@ -454,7 +466,8 @@ export template <std::size_t KL, std::size_t Sigma, std::size_t P,
 constexpr Maybe<RunList<N, KL>> run_list(
     const Symmetric<Power<std::byte, Letters, N>, Reverse, Reflection>& sites) {
   const N n = sites.power.length;
-  if (n == 0 || n % 2 != 0 || sites.tau != refl(sites.power.member)) {
+  if (n == 0 || n % 2 != 0 || sites.tau != refl(sites.power.member) ||
+      !detail_automaton::whole_alphabet(sites.power)) {
     return detail_automaton::tested_run_list<KL, Sigma, P>(sites);
   }
   if (sites.power.member.members.count() != Sigma || n > P) return {};
@@ -470,12 +483,22 @@ struct WithLetters {
     return a;
   }
 };
-/** @param member a power's predicate.  @return its letters, where it is the
- *  bytes' subobject; none otherwise. */
-constexpr Letters letters_of(const Letters& member) { return member; }
-template <typename F>
-constexpr Letters letters_of(const F&) {
-  return {};
+/** @brief One more letter of a power, into the set of them. */
+struct SetLetter {
+  constexpr Letters operator()(Letters on, std::byte b) const {
+    on.members.set(std::to_integer<unsigned char>(b));
+    return on;
+  }
+};
+/** @param p a power.  @return the letters its words are written in, its slice
+ *  met with its predicate, as the codes are read; none off the bytes. */
+template <HasNNOStep C, IsArrow F, IsCountWord N>
+constexpr Letters effective_letters(const Power<C, F, N>& p) {
+  if constexpr (std::same_as<C, std::byte>) {
+    return std::ranges::fold_left(letters_of(p), Letters{}, SetLetter{});
+  } else {
+    return {};
+  }
 }
 }  // namespace detail_automaton
 /** @brief The matcher specialised to a section: its words as a run list,
@@ -495,7 +518,7 @@ constexpr Maybe<Automaton<Sigma, Q>> automaton(
   if (!words) return {};
   return automaton<Sigma, P, K, Q>(*words, sites.power.length)
       .transform(detail_automaton::WithLetters<Sigma, Q>{
-          detail_automaton::letters_of(sites.power.member)});
+          detail_automaton::effective_letters(sites.power)});
 }
 
 /** @brief @c prefix("GA"): the words beginning with these letters, the
@@ -566,7 +589,8 @@ constexpr Maybe<RunList<N, KL>> run_list(
   const N n = sites.section.power.length;
   const Letters on = sites.section.power.member;
   if (n == 0 || n % 2 != 0 || n > P || L > n || on.members.count() != Sigma ||
-      sites.section.tau != refl(on))
+      sites.section.tau != refl(on) ||
+      !detail_automaton::whole_alphabet(sites.section.power))
     return {};
   return detail_automaton::palindromes<KL, Sigma>(
       n,
@@ -585,8 +609,8 @@ constexpr Maybe<Automaton<Sigma, Q>> automaton(
   const Maybe<RunList<N, KL>> words = run_list<KL, Sigma, P>(sites);
   if (!words) return {};
   return automaton<Sigma, P, K, Q>(*words, sites.section.power.length)
-      .transform(
-          detail_automaton::WithLetters<Sigma, Q>{sites.section.power.member});
+      .transform(detail_automaton::WithLetters<Sigma, Q>{
+          detail_automaton::effective_letters(sites.section.power)});
 }
 /** @param plan a plan.  @return how many states it has. */
 export template <std::size_t Sigma, std::size_t Q>

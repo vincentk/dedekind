@@ -486,6 +486,21 @@ TEST_CASE("Category: palindromes listed by the law are those tested one by one",
   REQUIRE(none.has_value());
   CHECK(none->next.size() == 1);
   CHECK(count(dna >> matches(none)) == 0);
+  // the law declines what it cannot read: a slice narrower than the letters,
+  // and a code space past the word
+  using dedekind::category::slice;
+  const auto narrow = slice(std::byte{'C'}, std::byte{'H'}) >>
+                      dedekind::category::letters("ACGT");
+  CHECK(!run_list<128, 4, 2>(power(narrow, 2uz) &
+                             fixed_by(~dedekind::category::rev))
+             .has_value());
+  CHECK(!run_list<2, 4, 16>(power<std::uint32_t>(bases, 16u) &
+                            fixed_by(~dedekind::category::rev) &
+                            prefix("TTTTTTTT"))
+             .has_value());
+  // a temporary's bytes are the query's own
+  const auto kept = bytes("GAATTC") >> scanner;
+  CHECK(count(kept) == 1);
   // the meet holds what the section holds and the prefix allows
   CHECK((pali6 & prefix("GA"))(bytes("GAATTC")));
   CHECK(!(pali6 & prefix("GA"))(bytes("AAGCTT")));

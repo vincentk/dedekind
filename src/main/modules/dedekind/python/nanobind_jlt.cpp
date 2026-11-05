@@ -662,6 +662,12 @@ void bind_tensors(nb::module_ module_) {
       .def("__and__", &jlt::with_prefix)
       .def("__rrshift__",
            [](const jlt::Section& s, nb::bytes b) {
+             // a ValueError here, not the core's abort when it is evaluated
+             const std::size_t n = std::visit(
+                 [](const auto& x) { return x.power.length; }, s.section);
+             if (n == 0 || n > static_cast<std::size_t>(
+                                   std::numeric_limits<std::ptrdiff_t>::max()))
+               throw nb::value_error("section: no window of that length");
              return jlt::WindowQuery{{std::move(b)}, s};
            })
       .def(

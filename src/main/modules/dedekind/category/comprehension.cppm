@@ -264,16 +264,6 @@ export template <detail_comprehension::IsForeignView R>
 constexpr auto operator>>(R r, Windows w) {
   return detail_comprehension::sliding(std::move(r), w.n);
 }
-/** @brief The bytes of a named array read through a stage, as the span over
- *  them: Listing 5's @c dna @c >> @c matches(ecori).  The query reads them
- *  where they lie, so they outlive it.  @param a the bytes.
- *  @param st the stage.  @return the query. */
-export template <std::size_t N, typename St>
-  requires(!IsArrow<St>) &&
-          requires(std::span<const std::byte> s, const St& st) { s >> st; }
-constexpr auto operator>>(const std::array<std::byte, N>& a, const St& st) {
-  return std::span<const std::byte>{a} >> st;
-}
 
 /** @concept IsPrefixKernel
  *  @brief A kernel on the non-empty prefixes of a text: an arrow out of them,

@@ -1,6 +1,6 @@
 /**
  * @file src/test/cpp/modules/dedekind/python/showcase_14_ecori_table.cpp
- * @brief Showcase 14 — the Jlt paper's Listing 5, its right panel: a
+ * @brief Showcase 14: the Jlt paper's Listing 5, its right panel: a
  *        restriction site's table, by binding time.
  *
  * EcoRI recognises GAATTC.  Told so, the compiler builds the matcher's table,

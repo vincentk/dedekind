@@ -105,6 +105,10 @@ class JltTensorExhibitTest(unittest.TestCase):
         fewer = count(text >> automaton(sites & prefix("GA")))
         self.assertLess(abs(fewer - 976), 160)
 
+    def test_a_window_of_no_length_is_refused(self) -> None:
+        with self.assertRaises(ValueError):
+            b"A" >> symmetric(power(self.nucleotides, 0), rev)
+
     def test_a_power_read_through_a_section_is_the_join(self) -> None:
         sites = power(self.nucleotides, 6) & fixed_by(~rev)
         self.assertEqual(count(power(self.nucleotides, 12) >> sites), 1835008)
