@@ -463,6 +463,11 @@ static_assert(count(dna >> pali6) == 10uz);
 static_assert(count(dna >> scanner) == 2uz && sites(bytes("GAATTC")) &&
               sites(bytes("GAGCTC")));
 // [/listing5:one-genome]
+}  // namespace listing5
+// The tests below read the panel's names; they are outside its namespace so
+// that the linter's scope `listing5` holds the panel alone, not Catch2's
+// macros.
+using namespace listing5;
 // The plan's count is a Maybe: the plan may exceed its capacity, and the
 // monad carries that to the end, where the count is read.
 TEST_CASE("Category: Listing 5's one-genome lines agree",
@@ -525,7 +530,6 @@ TEST_CASE("Category: palindromes listed by the law are those tested one by one",
   CHECK((pali6 & prefix("GA"))(bytes("GAATTC")));
   CHECK(!(pali6 & prefix("GA"))(bytes("AAGCTT")));
 }
-}  // namespace listing5
 
 // The smoke test of the listing at scale.  Random DNA as a sequence on a chain,
 // an arrow out of the counts, so the text is never stored and no generator

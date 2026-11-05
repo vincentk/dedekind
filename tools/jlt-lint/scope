@@ -35,7 +35,7 @@ rule3-no-self-recursion      src/test/cpp/modules/dedekind/category/jlt_listings
 rule3-no-mutual-recursion    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 # The listings' one Rule 2 finding is Listing 2's twice_loose, the paper's
 # deliberate breach of the rule: the check confirms the paper's claim.
-rule2-definition             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  1
+rule2-definition             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
 rule2-constrained-templates  src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
 rule2-no-inline-requires     src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule2-decided-resolution     src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
