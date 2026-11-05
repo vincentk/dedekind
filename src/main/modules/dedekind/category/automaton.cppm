@@ -91,6 +91,48 @@ import :comprehension;  // where, take, collect, IsMaybe: queries
 
 namespace dedekind::category {
 
+/** @brief The column of a byte in a plan: its rank in the alphabet, as a table
+ *  of the 256 bytes the compiler computes once, so that a scan does one load
+ *  per letter where @c Ranked would count the letters below it.  An entry is
+ *  the rank plus one, zero for a byte outside the alphabet.  A Kleisli arrow
+ *  into @c Maybe, as @c Ranked is, and the same arrow by value. */
+export struct Columns {
+  using Domain = std::byte;
+  using Codomain = Maybe<std::size_t>;
+  std::array<std::uint8_t, 256> entries{};
+  bool any{false};  ///< whether it has an alphabet at all
+  constexpr Maybe<std::size_t> operator()(std::byte b) const {
+    const std::uint8_t e = entries[std::to_integer<unsigned char>(b)];
+    if (e == 0) return {};
+    return static_cast<std::size_t>(e - 1);
+  }
+  constexpr bool operator==(const Columns&) const = default;
+};
+namespace detail_automaton {
+/** @brief One byte's entry: its rank plus one, or zero. */
+struct ColumnAt {
+  Letters on;
+  constexpr std::uint8_t operator()(std::size_t b) const {
+    const Maybe<std::size_t> r =
+        Ranked{on}(std::byte{static_cast<unsigned char>(b)});
+    return r ? static_cast<std::uint8_t>(*r + 1) : std::uint8_t{0};
+  }
+};
+}  // namespace detail_automaton
+/** @param on the alphabet's letters, at most 255 of them, as @c abc holds.
+ *  @return the table of their columns. */
+export constexpr Columns columns_of(const Letters& on) {
+  Columns c{};
+  std::ranges::transform(std::views::iota(0uz, 256uz), c.entries.begin(),
+                         detail_automaton::ColumnAt{on});
+  c.any = on.members.any();
+  return c;
+}
+static_assert(columns_of(letters("ACGT"))(std::byte{'A'}) == 0uz &&
+              columns_of(letters("ACGT"))(std::byte{'T'}) == 3uz &&
+              !columns_of(letters("ACGT"))(std::byte{'N'}).has_value() &&
+              !Columns{}.any);
+
 /** @brief A matcher's plan: the transitions on each letter, and the states
  *  where a word of the set has just been read.  @tparam Sigma the letters.
  *  @tparam Q the bound on the states. */
@@ -99,9 +141,9 @@ export template <std::size_t Sigma, std::size_t Q>
 struct Automaton {
   AtMost<std::array<std::uint16_t, Sigma>, Q> next;
   AtMost<bool, Q> accepting;
-  /** @brief The alphabet the columns rank, so that a text of bytes is read
-   *  through it; none for a plan given as a table over ranks. */
-  Letters letters{};
+  /** @brief The columns of a byte, so that a text of bytes is read through
+   *  them; none for a plan given as a table over ranks. */
+  Columns columns{};
   constexpr bool operator==(const Automaton&) const = default;
 };
 
@@ -332,12 +374,12 @@ constexpr Maybe<RunList<N, KL>> run_list(
                                 sites, Decoder{alphabet, n}});
 }
 namespace detail_automaton {
-/** @brief A plan with the alphabet its columns rank. */
+/** @brief A plan with the columns of its alphabet's bytes. */
 template <std::size_t Sigma, std::size_t Q>
 struct WithLetters {
   Letters letters;
   constexpr Automaton<Sigma, Q> operator()(Automaton<Sigma, Q> a) const {
-    a.letters = letters;
+    a.columns = columns_of(letters);
     return a;
   }
 };
@@ -484,8 +526,11 @@ struct MatchStep {
       return std::nullopt;
     const auto x = std::ranges::begin(
         letters)[static_cast<std::ranges::range_difference_t<V>>(c.position)];
-    if constexpr (detail_comprehension::IsMaybe<
-                      std::remove_cvref_t<decltype(x)>>) {
+    using X = std::remove_cvref_t<decltype(x)>;
+    if constexpr (std::same_as<X, std::byte>) {
+      const Maybe<std::size_t> column = plan.columns(x);
+      return column ? letter(c, *column) : hole(c);
+    } else if constexpr (detail_comprehension::IsMaybe<X>) {
       return x ? letter(c, *x) : hole(c);
     } else {
       return letter(c, x);
@@ -509,40 +554,35 @@ constexpr auto operator>>(V letters, const Maybe<Matches<Sigma, Q>>& m) {
   if (!m) return Maybe<Query>{};
   return Maybe<Query>{std::move(letters) >> *m};
 }
-/** @param letters a text of the caller's, as the letters' ranks, or bytes
- *  read through @c rank(alphabet); a view, read where it is.
- *  @param m the stage.  @return the query of the positions where a word of
- *  the set ends: count it, take from it, collect it. */
+namespace detail_automaton {
+/** @brief Refuses bytes for a plan that knows no alphabet to read them in. */
+[[noreturn]] constexpr void refuse_no_letters() { std::abort(); }
+}  // namespace detail_automaton
+/** @param letters a text of the caller's: bytes, read through the plan's own
+ *  columns, so no text is read in another alphabet; or letters' ranks, also
+ *  as @c rank(alphabet) reads them; a view, read where it is.  @param m the
+ *  stage.  @return the query of the positions where a word of the set ends:
+ *  count it, take from it, collect it. */
 export template <std::ranges::view V, std::size_t Sigma, std::size_t Q>
   requires std::ranges::random_access_range<V> && std::ranges::sized_range<V> &&
-           std::semiregular<V> &&
-           (!std::same_as<std::ranges::range_value_t<V>, std::byte>)
+           std::semiregular<V>
 constexpr auto operator>>(V letters, const Matches<Sigma, Q>& m) {
+  if constexpr (std::same_as<std::ranges::range_value_t<V>, std::byte>) {
+    if (!m.plan.columns.any) detail_automaton::refuse_no_letters();
+  }
   return unfold(detail_automaton::Cursor{},
                 detail_automaton::MatchStep<Sigma, Q, V>{m.plan, m.holes,
                                                          std::move(letters)});
-}
-namespace detail_automaton {
-/** @brief Refuses bytes for a plan that knows no alphabet to rank them in. */
-[[noreturn]] constexpr void refuse_no_letters() { std::abort(); }
-}  // namespace detail_automaton
-/** @brief A text of bytes: read through the rank of the plan's own alphabet,
- *  so no text is ranked in another one.  @param text the bytes.  @param m the
- *  stage.  @return the query. */
-export template <std::ranges::view V, std::size_t Sigma, std::size_t Q>
-  requires std::ranges::random_access_range<V> && std::ranges::sized_range<V> &&
-           std::semiregular<V> &&
-           std::same_as<std::ranges::range_value_t<V>, std::byte>
-constexpr auto operator>>(V text, const Matches<Sigma, Q>& m) {
-  if (m.plan.letters.members.none()) detail_automaton::refuse_no_letters();
-  return std::move(text) >> Ranked{m.plan.letters} >> m;
 }
 
 // The rank of a byte in an alphabet is a Kleisli arrow into Maybe: a
 // letter's rank, or nothing.
 template <>
 inline constexpr bool is_kleisli_arrow_v<Ranked, maybe_monad_tag> = true;
-static_assert(IsKleisliArrow<Ranked, maybe_monad_tag>);
+template <>
+inline constexpr bool is_kleisli_arrow_v<Columns, maybe_monad_tag> = true;
+static_assert(IsKleisliArrow<Ranked, maybe_monad_tag> &&
+              IsKleisliArrow<Columns, maybe_monad_tag>);
 
 // EcoRI's site GAATTC, its letters ranked A < C < G < T, is the index
 // 2·4^5 + 0 + 0 + 3·4^2 + 3·4 + 1 = 2109.  Its plan is Knuth, Morris and

@@ -389,7 +389,7 @@ Site site(const Alphabet& a, std::string_view word) {
 Plan automaton_of_site(const Site& s) {
   auto plan = *dedekind::category::automaton<4, 8, 4, 16>(
       dedekind::category::run<2>(s.index, s.index + 1), s.length);
-  plan.letters = s.letters;
+  plan.columns = dedekind::category::columns_of(s.letters);
   return {plan};
 }
 Plan automaton(const Section& s) {

@@ -494,9 +494,11 @@ concept PlansAtCompileTime =
     requires { typename std::bool_constant<Plan::value().has_value()>; };
 static_assert(PlansAtCompileTime<EcoRIPlan> && !PlansAtCompileTime<SitesPlan>);
 // One site written out is that plan, and knows its alphabet.
-static_assert(listing5::ecori->next == EcoRIPlan::value()->next &&
-              listing5::ecori->accepting == EcoRIPlan::value()->accepting &&
-              listing5::ecori->letters == dedekind::category::letters("ACGT"));
+static_assert(
+    listing5::ecori->next == EcoRIPlan::value()->next &&
+    listing5::ecori->accepting == EcoRIPlan::value()->accepting &&
+    listing5::ecori->columns ==
+        dedekind::category::columns_of(dedekind::category::letters("ACGT")));
 // A genome as the caller has it, bytes, read through the alphabet's rank:
 // EcoRI's site once in TTGAATTCAAGCTTA.  A byte outside the alphabet is a
 // hole: by default it breaks a match, so GAANTTC holds none; skipped, the
