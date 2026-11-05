@@ -1934,6 +1934,14 @@ export constexpr ReflectedReverse operator~(Reverse) { return {}; }
 namespace detail_periodic {
 /** @brief @c fixed_by(~rev) before it meets the powers it applies to. */
 struct FixedByReflectedReverse {};
+/** @param bytes a slice of the bytes.  @param on a predicate.  @return the
+ *  letters it keeps within the slice. */
+constexpr Letters letters_in(const Slice<std::byte>& bytes, const Letters& on) {
+  return std::ranges::fold_left(
+      std::views::iota(0uz, 256uz), Letters{},
+      KeepInSlice{on, std::to_integer<std::size_t>(bytes.lo),
+                  std::to_integer<std::size_t>(bytes.hi)});
+}
 /** @param on the alphabet's letters.  @return the component of @c ~rev there,
  *  @c power(refl(Σ)) @c >> @c rev. */
 constexpr auto reverse_complement(const Letters& on) {
@@ -1953,14 +1961,16 @@ export template <IsCountWord N>
 constexpr Symmetric<Power<std::byte, Letters, N>, Reverse, Reflection>
 operator&(const Power<std::byte, Letters, N>& p,
           detail_periodic::FixedByReflectedReverse) {
-  return p & fixed_by(detail_periodic::reverse_complement(p.member));
+  return p & fixed_by(detail_periodic::reverse_complement(
+                 detail_periodic::letters_in(p.letters, p.member)));
 }
 /** @brief @c words(Σ) @c & @c fixed_by(~rev): the same, by length.
  *  @param ps the words.  @return the family. */
 export template <IsCountWord N>
 constexpr auto operator&(const Powers<std::byte, Letters, N>& ps,
                          detail_periodic::FixedByReflectedReverse) {
-  return ps & fixed_by(detail_periodic::reverse_complement(ps.member));
+  return ps & fixed_by(detail_periodic::reverse_complement(
+                  detail_periodic::letters_in(ps.letters, ps.member)));
 }
 // The component at ACGT: the reversal, and the alphabet's own reflection.
 static_assert((power(abc("ACGT"), 6uz) & fixed_by(~rev)).tau ==

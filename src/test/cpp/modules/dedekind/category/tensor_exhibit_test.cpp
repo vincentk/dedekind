@@ -505,6 +505,12 @@ TEST_CASE("Category: palindromes listed by the law are those tested one by one",
   CHECK(dedekind::category::refl(narrow)(std::byte{'A'}) == std::byte{'A'});
   CHECK(dedekind::category::letters("CG")(
       dedekind::category::random_text(narrow, 8uz)[5]));
+  // ~rev reflects what the slice keeps, as refl of the same alphabet does
+  const auto sliced = slice(std::byte{'A'}, std::byte{'E'}) >>
+                      dedekind::category::letters("ABCDEF");
+  CHECK((power(sliced, 2uz) & fixed_by(~dedekind::category::rev))(bytes("AD")));
+  CHECK((power(sliced, 2uz) & fixed_by(~dedekind::category::rev)).tau ==
+        dedekind::category::refl(sliced));
   // either order of the two commuting arrows fixes one section
   CHECK(exact_count(count_factors(
             power(nucleotides, 6uz) &
