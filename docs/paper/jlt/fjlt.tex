@@ -259,7 +259,7 @@ Constants, pairs, optionals and boxes are values; \textsc{S-Prim} and \textsc{S-
 
 The target is System~F with products, sums, the carriers of $\Sigma$ taken as constants with their total operations, and inductive types with their iterators: the natural numbers with $\mathit{iter} : \forall\sigma.\,\mathbb{N} \to (\sigma \to \sigma) \to \sigma \to \sigma$, reducing by $\mathit{iter}\,(k{+}1)\,s\,z \longrightarrow \mathit{iter}\,k\,s\,(s\,z)$ and $\mathit{iter}\,0\,s\,z \longrightarrow z$, and for each term type $\mu F$ its iterator $\mathit{fold}_F : \forall\sigma.\,(F(\sigma) \to \sigma) \to \mu F \to \sigma$, reducing one constructor at a time, $\mathit{fold}_F\,\beta\,(\mathrm{in}\,n) \longrightarrow \beta\,(F(\mathit{fold}_F\,\beta)\,n)$; the paramorphism, which also hands each node itself to the algebra, is the iterator at $\mu F \times \sigma$ with the node rebuilt beside the result, as usual.
 Reduction in the target is full $\beta$-reduction, any redex anywhere, together with the unfolding of a defined name $f_{\overline{\tau}}$ to its body and the two iterator rules; no evaluation order is imposed, which is the setting of the normalisation and confluence results used below.
-Records are nested pairs; the extension by inductive types with their iterators is strongly normalising and confluent~\cite{girard1989proofs,bohm1985automatic}, so the target is conservative over System~F for everything this appendix uses, and the one-constructor-at-a-time iterators are what make Theorem~\ref{thm:simulation} exact where a Church encoding, unfolding all at once, would not be.
+Records are nested pairs; System~F with products, sums and positive inductive types with their iterators is strongly normalising and confluent, and its iterative fragment embeds into System~F by an encoding that preserves reduction~\cite{matthes1999extensions}; adding terminating, confluent first-order rules for constants conserves both properties~\cite{breazutannen1991polymorphic,breazutannen1994polymorphic}. These results cover the parts separately; their combination, with $\mathit{iter}$ in the accumulator form above, is what this appendix assumes, so the target is conservative over System~F for everything this appendix uses, and the one-constructor-at-a-time iterators are what make Theorem~\ref{thm:simulation} exact where a Church encoding, unfolding all at once, would not be.
 Figure~\ref{fig:fjlt-translation} gives the translation.
 
 \paragraph{Reading the translation.}
@@ -342,7 +342,7 @@ Types, constraints as record types, dictionaries, declarations and terms; the pa
 The statements are in Section~\ref{sec:guarantees}; the proofs are here, complete relative to the rules of Figures~\ref{fig:fjlt-typing} to~\ref{fig:fjlt-translation}, whose omitted cases (constants, pairs, optionals, conditionals, the arithmetic of base types) are the textbook ones.
 Throughout, $\Sigma$ is any signature meeting the three conditions of Section~\ref{app:fjlt:syntax}, whose carriers the proofs use as constants and whose operations they use as total and nothing more, and the translation $\llbracket \cdot \rrbracket$ is the one of Section~\ref{app:fjlt:translation}, into System~F with products, sums and the carriers of $\Sigma$ as constants, which is conservative over System~F proper.
 A context translates pointwise: $\llbracket \Delta \rrbracket$ has a type variable for each $\alpha \in \Delta$ and a record variable $q_Q : \llbracket Q \rrbracket$ for each assumed constraint $Q \in \Delta$, and $\llbracket \Gamma \rrbracket = \overline{x : \llbracket \tau \rrbracket}$.
-Three facts about the target are used without proof: it is strongly normalising~\cite{girard1989proofs} and confluent, and substitution of types for type variables preserves typing.
+Three facts about the target are used without proof: it is strongly normalising and confluent, as above, and substitution of types for type variables preserves typing.
 
 \begin{lemma}[Dictionaries are well typed]
 \label{lem:dict}
@@ -421,7 +421,7 @@ the constants $\mathit{next}$ and $\mathit{head}$ computing the range's operatio
 \end{proof}
 
 \begin{proof}[Proof of Corollary~\ref{cor:termination}, termination]
-An infinite reduction $e \longrightarrow e_1 \longrightarrow \cdots$ would give, by Lemma~\ref{lem:forward}, an infinite reduction $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e_1 \rrbracket \longrightarrow^{+} \cdots$ in the target, which is strongly normalising~\cite{girard1989proofs}.
+An infinite reduction $e \longrightarrow e_1 \longrightarrow \cdots$ would give, by Lemma~\ref{lem:forward}, an infinite reduction $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e_1 \rrbracket \longrightarrow^{+} \cdots$ in the target, which is strongly normalising.
 The count enters as a natural number iterated by a primitive of the target, not as a recursion scheme the type system would have to admit.
 \end{proof}
 

@@ -158,7 +158,7 @@ Each rule has a listing of a few lines, verbatim from the repository's test up t
 Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
 Every function is \cppinline{constexpr} and depends on its arguments alone.\footnote{A \cppinline{constexpr} function may still change its own locals: constant evaluation permits modifying only objects whose lifetime began within it, so no mutation can leak, which is the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
 At runtime the linter of Section~\ref{sec:limits} holds the body to the same condition by closing each channel a mutation could leak through: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference.}
-What the rule conserves is Leibniz's law~\cite{leibniz1686discours,leibniz1686discourse}, that equals cannot be told apart by any operation, at either binding time: a call may be replaced by its value, $e[f(x)] = e[v]$ whenever $f(x)$ evaluates to $v$.
+What the rule conserves is what has come to be called Leibniz's law, that equals cannot be told apart by any operation, at either binding time, whose converse is the principle Leibniz himself stated~\cite{leibniz1686discours,leibniz1686discourse}: a call may be replaced by its value, $e[f(x)] = e[v]$ whenever $f(x)$ evaluates to $v$.
 In a programming language the law is referential transparency~\cite{strachey2000fundamental}, and a language where $a = b$ but $f(a) \neq f(b)$ for some $f$ has an equality one cannot reason with.
 
 \begin{listing}[htbp]
@@ -654,7 +654,7 @@ It gives ``the unit of \cppinline{+} at \cppinline{size_t}'' one meaning in a pr
 Every FJlt program terminates.
 \end{corollary}
 
-It follows from Theorem~\ref{thm:simulation} and strong normalisation of the target~\cite{girard1989proofs}.
+It follows from Theorem~\ref{thm:simulation} and strong normalisation of the target (Appendix~\ref{app:fjlt:translation}).
 Every step of the program is at least one step of its image, and the image cannot step forever.
 The count in Rule~3 is therefore not a guard against non-termination.
 It is how a bound is said.
@@ -968,7 +968,7 @@ CoreC++~\cite{wasserrab2006operational} gives an operational semantics and a mac
 These formalise the part of \Cpp{} that Rule~1 excludes, objects with identity and lifetime, and none covers templates, concepts or constant evaluation, so FJlt is a fragment with its own grammar rather than a subset of a formalised \Cpp{}.
 
 \paragraph{What System~F supplies.}
-Strong normalisation is Girard's \cite{girard1989proofs}, parametricity Reynolds' \cite{reynolds1983types}, and data types as their own folds B\"ohm and Berarducci's \cite{bohm1985automatic}: the appendix uses the three as black boxes, which is the point of translating into System~F.
+Strong normalisation is Girard's \cite{girard1989proofs}, with inductive types Matthes' \cite{matthes1999extensions}, parametricity Reynolds' \cite{reynolds1983types}, and data types as their own folds B\"ohm and Berarducci's \cite{bohm1985automatic}: the appendix uses the three as black boxes, which is the point of translating into System~F.
 
 \paragraph{Functional programming in \Cpp{}, and the other direction.}
 Functional programming in \Cpp{} is practised and taught: in a book~\cite{cukic2018functional}, in a metaprogramming library~\cite{chagnon2016hana}, and in category theory with examples in \Cpp{}~\cite{milewski2019category}; none states a fragment or proves anything of it.
