@@ -1,22 +1,5 @@
-% Featherweight Jlt (FJlt): the core calculus of the Jlt fragment, its
-% translation into System F, and the three theorems with proof sketches
-% (#981, option B; full proofs and mechanisation: #849).
-%
-% Division of labour (decided 2026-10-21): the body
-% (Section~\ref{sec:translation}) carries the claims, one worked example, the
-% rules that example uses, and the theorem statements.  This appendix carries
-% what a sceptic needs to check them: the full grammar, typing, evaluation,
-% the complete translation, and the proof sketches.  Nothing a theorem rests on
-% appears here only.
-
 \section{Featherweight Jlt}
 \label{app:fjlt}
-% Design (decided on #981): no overlapping instances; fold and an explicit budget as
-% the only recursion; laws as ordinary values; multi-parameter instances with
-% contexts; associated types and same-type constraints as in F^G; instance
-% resolution terminates because contexts mention only proper subterms;
-% struct templates are type operators (abbreviations); dictionaries are
-% resolved at concrete types, as C++ instantiates them.
 
 \subsection{Syntax}
 \label{app:fjlt:syntax}
@@ -27,8 +10,9 @@ The compiler decides semiregularity and that an operation is \cppinline{constexp
 A type enters $\Sigma$ by meeting the conditions, not by being named here, which is the structural admission the fragment is named for; the carriers this paper's listings use are \cppinline{bool}, \cppinline{size_t}, \cppinline{std::string}, with concatenation and the comparisons as its operations, allocation failure aside, and the finite enumerations a program or the library declares, such as \cppinline{Ternary} and \cppinline{ArrowLaw}, each a finite sum of units with equality.
 Figure~\ref{fig:fjlt-syntax} gives the grammar in the style of Featherweight Java: $\overline{\alpha}$ abbreviates a sequence $\alpha_1, \ldots, \alpha_n$, a construct written over a sequence is repeated for each element, and the separators the host language wants (commas, \cppinline{&&}, semicolons) are implied.
 The overbar is also how a parameter pack reads: a variadic declaration is the family of its arities, each a declaration of the grammar, and a fold expression at arity $n$ is the nested term; what the overbar does not give is a statement about all arities at once.
-Every FJlt program is a Jlt program, a \Cpp{23} program that keeps the three rules, with the same meaning. The converse, for a Jlt program written in this grammar, is the adequacy argument of Section~\ref{sec:translation:adequacy}.
-The listings of Section~\ref{sec:translation} are FJlt programs, with \cppinline{static_assert(e)} read as the claim that the closed term $e$ evaluates to \cppinline{true}.
+Every FJlt program is a Jlt program, a \Cpp{23} program that keeps the three rules, with the same meaning, provided no law and no \cppinline{static_assert} builds a box (Appendix~\ref{app:fjlt:evaluation}).
+The converse, for a Jlt program written in this grammar, is the adequacy argument of Section~\ref{sec:translation:adequacy}.
+The listings are Jlt programs, and FJlt programs up to the sugar of Appendix~\ref{app:fjlt:closure}, with \cppinline{static_assert(e)} read as the claim that the closed term $e$ evaluates to \cppinline{true}; where a listing steps outside the kernel the text says so: Listing~\ref{lst:rule3}'s Collatz chain is finite by fact, not by a condition on $\mathcal{R}$, and Listing~\ref{lst:sites} dereferences an optional in a constant initialiser (Appendix~\ref{app:fjlt:closure}).
 
 Metavariables: $\alpha, \beta$ range over type variables, $b$ over the carriers of $\Sigma$, $O$ over the function-object types, the standard templates (\cppinline{std::plus}, \cppinline{std::logical_and}, \ldots) and the operations a program declares, $r$ over ranges, $\oplus$ over the operations of $\Sigma$, total by the second condition: on unsigned carriers addition, subtraction, multiplication and the bitwise operations, which wrap, the comparisons, and division, remainder and the shifts by a literal the carrier can take (a nonzero divisor, a shift below the width); on \cppinline{bool} the logical operations; by a variable, division, remainder and the shifts are partial and not admitted, and the standard function objects $O$ are those of the same operations, $C$ over concept names, the standard ones included (\cppinline{std::semiregular} is the shape Rule~1 requires of every carrier), $S$ over the two standard result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ over function names, $x$ over term variables and $c$ over constants.
 
@@ -39,14 +23,14 @@ A constraint may be negated, \cppinline{!C<T>}, as a \cppinline{requires} clause
 A trait is a function template declared and deleted, indexed by a carrier and a value of the operation; an instance is an explicit specialisation of it at a carrier; an instance with a context is a generic function whose \cppinline{requires} clause is the context.
 A generic function is a \cppinline{constexpr} function template with a \cppinline{requires} clause and a single \cppinline{return}; \cppinline{auto} in a listing names the type the body has, and a parameter written \cppinline{const τ} or \cppinline{const τ&} is the parameter $\tau\; x$ of the grammar, since a value is immutable and a reference to one denotes it.
 The standard function objects and the operations a program declares (a struct with fields and a call operator, itself generic where the listing writes \cppinline{auto}; a former such as \cppinline{Compose} is one) are the only function objects; a term applies one by constructing it, with its fields, and reads a field with \cppinline{.}; the call operator is \cppinline{const}, so applying a function object observes it, as Rule~1 requires of a value.
-Terms are variables, constants, function names, calls with explicit or deduced type arguments, applications, arithmetic and comparisons, conditionals, pairs, sums and boxed values.
+Terms are variables, constants, function names, calls with explicit or deduced type arguments, applications, arithmetic and comparisons, conversions between carriers, conditionals, pairs, sums and boxed values.
 A sum is a type of a family $\mathcal{S}$ that, like $\mathcal{R}$ below, is defined by conditions: two injections $\iota_1, \iota_2$ and a total case form, \texttt{case(}$s$\texttt{, }$f$\texttt{, }$g$\texttt{)} applying $f$ or $g$ to the injected value, each instance spelling them in \Cpp{}.
 \cppinline{optional<τ>} is $1 + \tau$, with $\iota_1$ = \cppinline{nullopt}, $\iota_2\,e$ = \cppinline{optional\{e\}} and the case \cppinline{s.transform(g).value_or(f)}, $f$ the value for the empty one; \cppinline{variant<τ₁, τ₂>} is $\tau_1 + \tau_2$, with $\iota_i\,e$ = \cppinline{variant<τ₁, τ₂>(in_place_index<i-1>, e)}, both alternatives spelled, and the case dispatched on the index, \cppinline{s.index() == 0 ? f(get<0>(s)) : g(get<1>(s))}, each \cppinline{get} guarded by the test, as the library's \cppinline{Copairing} writes it; \cppinline{std::visit} is the special case in which one operation, its call operator entailed at both summands, serves as both branches.
-\cppinline{*} on an optional and \cppinline{std::get} on a variant are partial and are not terms; under a guard they are the case form.
+\cppinline{*} on an optional and \cppinline{std::get} on a variant are partial and are not terms; under a guard, or in a constant initialiser, where constant evaluation refuses the empty case, they are the case form.
 A box is built and read, and nothing else: there is no term for \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes, so no program can ask which box holds a value, and that absence is what makes a box a value.
 There are two recursion primitives, one per kind of finiteness.
 \cppinline{fold_left} folds over a range of fixed length, a value $r$ of a family $\mathcal{R}$ that, like $\Sigma$, is defined by conditions and not by a list: $r$ has a length $|r| \in \mathbb{N}$, fixed before the fold starts, and, when $|r| > 0$, a head and a tail $\mathit{next}\,r$ with $|\mathit{next}\,r| = |r| - 1$; \textsc{S-Fold} consults $|r|$ before it asks for either, and in the target both are extended to the empty range by an arbitrary value, which the iterator never reaches, since it runs $|r|$ times.
-Each instance $R$ of $\mathcal{R}$ over an element type $\tau$ contributes to the target a state type $\llbracket R \rrbracket$, a constructor constant $c_R$ applied to the translations of its arguments, and its operations as constants, $|\cdot| : \llbracket R \rrbracket \to \mathbb{N}$, $\mathit{head} : \llbracket R \rrbracket \to \llbracket \tau \rrbracket$ and $\mathit{next} : \llbracket R \rrbracket \to \llbracket R \rrbracket$; the state of \cppinline{n >> chain(prior)} is $\llbracket N \rrbracket$, the count, that of \cppinline{transform(r, g)} is $\llbracket R \rrbracket \times \llbracket g \rrbracket$, the arrow carried so that $\mathit{head}$ applies it and $\mathit{next}$ keeps it, that of \cppinline{repeat(x, n)} is $\llbracket \tau \rrbracket \times \mathbb{N}$, that of \cppinline{iota(i, j)} is $\mathbb{N} \times \mathbb{N}$, that of \cppinline{take(r, n)} is $\llbracket R \rrbracket \times \mathbb{N}$, that of \cppinline{reverse(a)} for an array $a$ of length $n$ is $\llbracket a \rrbracket \times \mathbb{N}$, the index from the end, and that of \cppinline{chain_view{lo, hi}} is $\llbracket C \rrbracket \times \llbracket C \rrbracket$ for the chain $C$.
+Each instance $R$ of $\mathcal{R}$ over an element type $\tau$ contributes to the target a state type $\llbracket R \rrbracket$, a constructor constant $c_R$ applied to the translations of its arguments, and its operations $|\cdot| : \llbracket R \rrbracket \to \mathbb{N}$, $\mathit{head} : \llbracket R \rrbracket \to \llbracket \tau \rrbracket$ and $\mathit{next} : \llbracket R \rrbracket \to \llbracket R \rrbracket$, constants for a base range and terms over the parts for a range built on another; the state of \cppinline{n >> chain(prior)} is $\llbracket N \rrbracket$, the count, that of \cppinline{transform(r, g)} is $\llbracket R \rrbracket \times \llbracket g \rrbracket$, the arrow carried so that $\mathit{head}$ applies it and $\mathit{next}$ keeps it, that of \cppinline{repeat(x, n)} is $\llbracket \tau \rrbracket \times \mathbb{N}$, that of \cppinline{iota(i, j)} is $\mathbb{N} \times \mathbb{N}$, that of \cppinline{take(r, n)} is $\llbracket R \rrbracket \times \mathbb{N}$, that of \cppinline{reverse(a)} for an array $a$ of length $n$ is $\llbracket a \rrbracket \times \mathbb{N}$, the index from the end, and that of \cppinline{chain_view{lo, hi}} is $(1 + \llbracket C \rrbracket) \times \llbracket C \rrbracket$ for the chain $C$, the position possibly past the top, as the library's \cppinline{unfold_view} over $1 + C$ holds it.
 The kernel's ranges are these.
 \cppinline{n >> chain(prior)} is the chain of a count under Figure~\ref{fig:structures}'s $\mathit{prior}$.
 Its head is \cppinline{prior(n)} and its tail \cppinline{prior(n) >> chain(prior)}.
@@ -56,7 +40,6 @@ Its head is \cppinline{g(head r)}, its tail \cppinline{transform(next r, g)}, an
 \cppinline{repeat(x, n)} is $n$ copies of $x$, with head $x$ and tail \cppinline{repeat(x, n - 1)}.
 \cppinline{take(r, n)} is the first $n$ of $r$, with head \cppinline{head r}, tail \cppinline{take(next r, n - 1)} and length $\min(|r|, n)$.
 \cppinline{reverse(a)} reads an array of length $n$ from its last element, $a_{n-1-i}$ at index $i$.
-With \cppinline{take} it spells the last $n$ elements of an array in order.
 \cppinline{iota(i, j)}, with $i \le j$, is the naturals from $i$ below $j$, with head $i$ and tail \cppinline{iota(i + 1, j)}.
 The condition $i \le j$ is the standard view's: reversed endpoints are undefined behaviour, not an empty range.
 \cppinline{chain_view{lo, hi}} is a finite chain from \cppinline{lo} to \cppinline{hi}, walked by the covering step.
@@ -66,15 +49,6 @@ Its head is \cppinline{lo} and its tail the interval from the cover of \cppinlin
 A pair's projections are written as the standard writes them, \cppinline{e.first} and \cppinline{e.second}, and read as $\pi_1$ and $\pi_2$~\cite{pierce1991basic}; the library's \cppinline{π_1} and \cppinline{π_2} are the same projections as function objects, applications under \textsc{T-Op}, so a program may write either.
 The type formers are productions, not members of $\Sigma$, because the translation acts on them structurally: pairs as products, optionals as sums, boxes as unary products; a former enters when it has such an image, as \cppinline{std::variant} does as a sum, above, and \cppinline{std::vector} would as lists with their fold, which is absent because no listing needs it.
 
-% Productions still to come, if a listing needs them: sums (std::variant,
-% std::visit); arrows as structs with fields and a call operator, if a
-% former is shown.
-% Parked for §6 (Limits and Seams), found 2026-10-21 while probing a pair
-% monoid on std::pair: (1) an operator on std::pair of standard carriers
-% cannot be supplied from outside std, since ADL only searches std; (2) the
-% typed std::plus<T> declares its result type, so a shape accepts
-% std::plus<std::pair<...>> and the call then fails inside <functional>;
-% the transparent std::plus<> is honest (decltype in its signature).
 \begin{figure}[htbp]
 \footnotesize
 \[
@@ -93,9 +67,10 @@ R &::=& Q & \text{nested shape} \\
   & | & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>;}} \texttt{ \}} & \text{operations} \\[3pt]
 Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
 \tau &::=& \alpha \;\mid\; b \;\mid\; O\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{pair<}\tau\texttt{, }\tau\texttt{>} \;\mid\; \texttt{optional<}\tau\texttt{>} & \text{type} \\
-  & \mid & \texttt{variant<}\tau\texttt{, }\tau\texttt{>} \;\mid\; \texttt{shared\_ptr<const }\tau\texttt{>} & \text{sum, boxed value} \\[3pt]
+  & \mid & \texttt{variant<}\tau\texttt{, }\tau\texttt{>} \;\mid\; \texttt{shared\_ptr<const }\tau\texttt{>} & \text{sum, boxed value} \\
+  & \mid & \mu F & \text{term type, the nodes that build it} \\[3pt]
 e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
-  & \mid & e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e \;\mid\; \texttt{pair\{}e\texttt{, }e\texttt{\}} \;\mid\; e\texttt{.first} \;\mid\; e\texttt{.second} & \\
+  & \mid & e \oplus e \;\mid\; \tau\texttt{(}e\texttt{)} \;\mid\; e \texttt{ ? } e \texttt{ : } e \;\mid\; \texttt{pair\{}e\texttt{, }e\texttt{\}} \;\mid\; e\texttt{.first} \;\mid\; e\texttt{.second} & \text{conversion between carriers} \\
   & \mid & \iota_1\,e \;\mid\; \iota_2\,e \;\mid\; \texttt{case(}e\texttt{, }e\texttt{, }e\texttt{)} & \text{sum} \\
   & \mid & \texttt{make\_shared<const }\tau\texttt{>(}e\texttt{)} \;\mid\; \texttt{*}e & \text{box, unbox} \\
   & \mid & \texttt{fold\_left(}r\texttt{, }e\texttt{, }e\texttt{)} & \text{fold over a range} \\
@@ -123,16 +98,16 @@ A trait call $f\texttt{<}\overline{\tau}\texttt{>}$ at concrete types \emph{reso
 The deleted primary never resolves, which is how an operation nobody registered fails a shape.
 Well-formedness requires resolution to be a function, in two cases.
 At concrete types, no two specialisations share a head, and among the generic functions whose head matches and whose context is entailed there is a unique most specific one, by head and then by context, as \Cpp{} orders constrained templates; \Cpp{} rejects the program where there is none.
-At a type variable, in a body with context $\Delta$, a call resolves only when its choice survives every instantiation of the body: every candidate whose head unifies with the call's types and that would be more specific than the chosen one is excluded by a constraint $\Delta$ decides, entailing it or its negation.
+At a type variable, in a body with context $\Delta$, a call resolves only when its choice survives every instantiation of the body: every candidate, explicit specialisations included, whose head unifies with the call's types and that would be more specific than the chosen one is excluded by a constraint $\Delta$ decides, entailing it or its negation.
 That refines GHC's rule for overlapping instances~\cite{ghc2024overlapping}, which looks at instance heads only and refuses to commit to an instance the types do not yet decide; \Cpp{} does not hold it, and a call it would refuse is a body that varies with a type through a constraint it did not declare, a breach of Rule~2, which the repository's tool reports where it can see one (Section~\ref{sec:limits}).
-Well-formedness also requires every context to mention only proper parts of the head's type arguments, so that each step lowers the depth of the arguments and resolution terminates; compare the Paterson conditions~\cite{sulzmann2007understanding}.
-It also orders the declarations: the body of an instance, a generic function or an operation may call only declarations that precede it, and a trait call in a body may resolve only to a declaration that precedes the body, with two exceptions.
-A generic function may call itself at type arguments that are proper subterms of its own, so that its instantiations are ordered by the size of their type arguments and no instantiation calls itself.
-And a function may call itself at the same instantiation on a value that visibly descends: the argument in the slot of an unsigned parameter $p$ is $p / c$ with $c \geq 2$, $p \gg c$ with $c \geq 1$, or $p - 1$, under a test of $p$ against $0$ whose branch returns without the call, Rule~3's step down, as Listing~\ref{lst:laws}'s \cppinline{power} halves.
-The first exception needs no recursive binding, since no instantiation calls itself.
-The second translates to a fold: along any path of calls each takes $p$ to a smaller value and none is made at $0$, so the body is evaluated at most $p + 1$ times, the last for the base case, and $f = \lambda p.\, (\mathit{iter}\; (p + 1)\; F\; d)\; p$, the successor taken in the target's naturals, where it does not wrap, with $F$ the body abstracted over the function its self-call names and $d$ the constant function to the default value of the result, which Rule~1's semiregularity supplies and no evaluation reaches.
+Well-formedness also requires that a context on a structured head mention only proper parts of its type arguments, and that a requirement or a context mention only shapes and traits declared before it, so that each step of resolution lowers the pair of declaration position and depth of the type arguments, and resolution terminates; compare the Paterson conditions~\cite{sulzmann2007understanding}.
+The same order stratifies \textsc{E-Not}'s negative premise and \textsc{E-Law}'s evaluation, so the rules define one relation.
+It also orders the declarations: the body of an instance, a generic function or an operation may call only declarations that precede it, a trait call in a body may resolve only to a declaration that precedes the body, the calls typed while entailing a constraint of the body (\textsc{E-Op}) and while evaluating a law (\textsc{E-Law}) are bound by the same order, and the field and parameter types of an operation mention only operations declared before it, with one exception.
+So the defined names of the translation are acyclic, and a term type is built from nodes declared before it, which is the positivity its iterator needs.
+A function may call itself at the same instantiation on a value that visibly descends: the argument in the slot of an unsigned parameter $p$ is $p / c$ with $c \geq 2$, $p \gg c$ with $c \geq 1$, or $p - 1$, under a test of $p$ against $0$ whose branch returns without the call, Rule~3's step down, as Listing~\ref{lst:laws}'s \cppinline{power} halves.
+The exception translates to a fold: along any path of calls each takes $p$ to a smaller value and none is made at $0$, so a path has at most $p + 1$ calls, the last for the base case, and $f = \lambda p.\, (\mathit{iter}\; (p + 1)\; F\; d)\; p$, the successor taken in the target's naturals, where it does not wrap, with $F$ the body abstracted over the function its self-call names and $d$ the constant function to the default value of the result; that value is the one field of \cppinline{std::semiregular}'s record that the translation uses, so it exists at a type variable too, and no evaluation reaches it.
 So the translation needs no recursive binding, and the only recursion in a program is that of the two folds.
-The first exception is what admits the library's \cppinline{cata} over typed terms, whose recursion is on the type of the term and not on a value; the second, the binary method of Listing~\ref{lst:laws}, whose recursion is on a count.
+The exception is what admits the binary method of Listing~\ref{lst:laws}, whose recursion is on a count; the library's \cppinline{cata} over typed terms, whose recursion is on the type of the term and not on a value, is the kernel's primitive \cppinline{cata} spelled as a generic function, sugar in the sense of Appendix~\ref{app:fjlt:closure}.
 
 \paragraph{Reading the rules.}
 \textsc{E-Law} is where a law is a value: entailment evaluates it, so a shape with a law is satisfied only at instances whose certificate holds, and the stratification of laws (closed terms of base type) keeps typing and evaluation from chasing each other.
@@ -142,8 +117,11 @@ The side condition of \textsc{E-Shape} makes entailment syntax-directed: an assu
 The library needs the conversion form about as often as the exact one (161 requirements against 181), where a requirement's expression is an lvalue of the wanted type (\cppinline{const T&} is not \cppinline{same_as<T>}; \cppinline{IsPointed}'s unit), where a step returns a proxy for the carrier (\cppinline{HasNNOStep}'s successor), or where an object is presented by another type (\cppinline{Presents}); in each, the body uses the result at the declared type, which is the discipline just stated.
 The requirements of a shape, in \textsc{T-Req-Assumed} and \textsc{E-Law-Assumed}, are its own and, transitively, those of its nested shapes, so that an assumed \cppinline{IsCommutativeMonoid<T, Op>} yields the operations and the associativity law of \cppinline{IsMonoid<T, Op>}; the dictionary projects along the path of nested fields, $q_C.m.r$ for a requirement $r$ of the nested shape held in field $m$.
 When more than one assumed requirement matches an operation, the rules take the leftmost shape of the \cppinline{requires} clause and, within it, the first matching requirement in declaration order, so both rules are functions of the body; once instantiated the candidates denote one operation, by Lemma~\ref{lem:resolve}, and the choice fixes which is projected before that.
-\textsc{T-Req-Assumed} is the rule that makes \textsc{D-Generic} a definition check: inside a constrained body, an operation on a constrained type is typed only as an instance of a requirement of a constraint in $\Delta$, \cppinline{Op{}(x, x)} as the pattern \cppinline{{ Op{}(a, b) }} at $a, b := x$, and \cppinline{unit<T>(Op{})} as the parameterless pattern \cppinline{{ unit<T>(Op{}) }}; a trait is reachable the same way.
+\textsc{T-Req-Assumed} is the rule that makes \textsc{D-Generic} a definition check: inside a constrained body, an operation on a constrained type is typed only as an instance of a requirement of a constraint in $\Delta$, \cppinline{Op{}(x, x)} as the pattern \cppinline{{ Op{}(a, b) }} at $a, b := x$, and \cppinline{unit<T>(Op{})} as the pattern \cppinline{{ unit<T>(Op{}) }}, whose parameters are the variables of the \cppinline{requires} clause free in it, here none; a trait is reachable the same way.
+A premise $f : \sigma \times \tau \to \sigma$ in \textsc{T-Fold} and \textsc{T-Case} says that $f$ is a function name or a function object whose application to arguments of those types is typed at $\sigma$ by \textsc{T-Call}, \textsc{T-Trait}, \textsc{T-Op} or \textsc{T-App}.
+\textsc{T-Conv} types the conversion between carriers that \Cpp{} inserts implicitly and the kernel term writes, $\tau\texttt{(}e\texttt{)}$, total by the condition on conversions of Table~\ref{tab:closure:decl}; where $S$ is \cppinline{std::convertible_to}, \textsc{T-Req-Assumed} types the converted term, so that a use of the requirement keeps its declared type when \textsc{S-Call} substitutes the instance (\textsc{S-Conv}).
 The range rule types a range of $\mathcal{R}$ by its instance's conditions, \cppinline{iota(i, j)} only at $i \le j$, and \textsc{S-Fold} preserves them, since $\mathit{next}$ does.
+The conditions are semantic, that a step descends or that two bounds are ordered, so a chain under a step that does not descend is ill-typed, and termination of a fold is in that measure assumed in the typing of its range.
 In \textsc{T-Cata}, $\mu F$ is a term type, the inductive type of the nodes that build it, and the algebra is applied to each node together with the folded values of its legs, the node itself still in hand, which is the library's interface (\cppinline{alg(t, cata(alg, leg)...)}) and the paramorphism's.
 
 \paragraph{Inferred laws.}
@@ -176,11 +154,19 @@ Each step reads the laws of a term's immediate parts only, so the inference is l
 \qquad
 \textsc{(T-Op)}\quad \dfrac{O\texttt{<}\overline{\tau}\texttt{>} : \overline{\sigma} \to \sigma \text{ (the standard's signature)} \qquad \Delta; \Gamma \vdash \overline{e : \sigma}}{\Delta; \Gamma \vdash O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{e}\texttt{)} : \sigma}
 \\[12pt]
+\textsc{(T-Conv)}\quad \dfrac{\Delta; \Gamma \vdash e : \tau' \qquad \tau' \text{ converts to } \tau}{\Delta; \Gamma \vdash \tau\texttt{(}e\texttt{)} : \tau}
+\qquad
+\textsc{(T-Construct)}\quad \dfrac{\texttt{struct } O \texttt{ \{ } \overline{\tau_y\; y}\texttt{; } \ldots \texttt{\}} \qquad \Delta; \Gamma \vdash \overline{e_y : \tau_y[\overline{\tau}/\overline{\alpha}]}}{\Delta; \Gamma \vdash O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e_y}\texttt{\}} : O\texttt{<}\overline{\tau}\texttt{>}}
+\qquad
+\textsc{(T-Field)}\quad \dfrac{\Delta; \Gamma \vdash e : O\texttt{<}\overline{\tau}\texttt{>} \qquad \tau_y\; y_i \text{ a field of } O}{\Delta; \Gamma \vdash e\texttt{.}y_i : \tau_y[\overline{\tau}/\overline{\alpha}]}
+\\[12pt]
+\textsc{(T-App)}\quad \dfrac{\Delta; \Gamma \vdash e : O\texttt{<}\overline{\tau}\texttt{>} \qquad O\text{'s call operator is } \forall\overline{\beta}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau_r \qquad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\beta}] \qquad \Delta; \Gamma \vdash \overline{e' : \tau_x[\overline{\sigma}/\overline{\beta}]}}{\Delta; \Gamma \vdash e\texttt{(}\overline{e'}\texttt{)} : \tau_r[\overline{\sigma}/\overline{\beta}]}
+\\[12pt]
 \textsc{(T-Call)}\quad \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to } f_i : \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau \qquad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \qquad \Delta; \Gamma \vdash \overline{e : \tau_x[\overline{\sigma}/\overline{\alpha}]}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau[\overline{\sigma}/\overline{\alpha}]}
 \\[12pt]
 \textsc{(T-Trait)}\quad \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to a declaration of type } \overline{\tau_x} \to \tau \qquad \Delta; \Gamma \vdash \overline{e : \tau_x}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau}
 \\[12pt]
-\textsc{(T-Req-Assumed)}\quad \dfrac{\begin{array}{c} C\texttt{<}\overline{\alpha}\texttt{>} \in \Delta \qquad \texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \text{ is a requirement of } C \text{ with parameters } \overline{a : \tau_a} \\ \Delta; \Gamma \vdash \overline{e : \tau_a} \end{array}}{\Delta; \Gamma \vdash e_r[\overline{e}/\overline{a}] : \tau}
+\textsc{(T-Req-Assumed)}\quad \dfrac{\begin{array}{c} C\texttt{<}\overline{\tau}\texttt{>} \in \Delta \qquad \texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \text{ is a requirement of } C \text{ with parameters } \overline{a : \tau_a} \\ \Delta; \Gamma \vdash \overline{e : \tau_a} \end{array}}{\Delta; \Gamma \vdash \tau\texttt{(}e_r[\overline{e}/\overline{a}]\texttt{)} : \tau}
 \\[12pt]
 \textsc{(T-Inj)}\quad \dfrac{\Delta; \Gamma \vdash e : \tau_i}{\Delta; \Gamma \vdash \iota_i\,e : \tau_1 + \tau_2}
 \qquad
@@ -193,6 +179,8 @@ Each step reads the laws of a term's immediate parts only, so the inference is l
 \textsc{(T-Range)}\quad \dfrac{r \in \mathcal{R} \text{ over } \tau \qquad \text{its arguments typed as its instance requires}}{\Delta; \Gamma \vdash r : \texttt{range<}\tau\texttt{>}}
 \\[12pt]
 \textsc{(D-Generic)}\quad \dfrac{\overline{\alpha}, \overline{Q};\; \overline{x : \tau_x} \vdash e : \tau}{\vdash \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ constexpr } \tau\; f\texttt{(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}}
+\\[12pt]
+\textsc{(D-Op)}\quad \dfrac{\overline{\alpha}, \overline{\beta}, \overline{Q};\; \overline{y : \tau_y}, \overline{x : \tau_x} \vdash e : \tau}{\vdash \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau_y\; y}\texttt{; template <typename }\overline{\beta}\texttt{> requires } \overline{Q} \texttt{ constexpr } \tau \texttt{ operator()(}\overline{\tau_x\; x}\texttt{) const \{ return } e\texttt{; \} \};}}
 \\[12pt]
 \textsc{(D-Instance)}\quad \dfrac{\varnothing;\; \overline{x : \tau_x} \vdash e : \tau}{\vdash \texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}}
 \end{array}
@@ -211,12 +199,12 @@ Evaluation is small-step and call-by-value on closed terms, $e \longrightarrow e
 \begin{array}{rcl}
 v &::=& c \mid f \mid O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}} \mid \texttt{std::pair\{}v\texttt{, }v\texttt{\}} \mid \iota_1\,v \mid \iota_2\,v \mid \texttt{std::optional\{}v\texttt{\}} \mid \texttt{std::nullopt} \\
   &\mid& \texttt{std::make\_shared<const }\tau\texttt{>(}v\texttt{)} \\
-E &::=& [\,] \mid f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid E\texttt{(}\overline{e}\texttt{)} \mid v\texttt{(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid E \oplus e \mid v \oplus E \mid E \texttt{ ? } e \texttt{ : } e \\
+E &::=& [\,] \mid f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid E\texttt{(}\overline{e}\texttt{)} \mid v\texttt{(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid E \oplus e \mid v \oplus E \mid \tau\texttt{(}E\texttt{)} \mid E \texttt{ ? } e \texttt{ : } e \\
   &\mid& \iota_i\,E \mid \texttt{case(}E\texttt{, }e\texttt{, }e\texttt{)} \mid \ldots
 \end{array}
 \]
 where the elided contexts are the remaining argument positions of pairs, optionals, boxes, projections, constructions and folds, each evaluated left to right.
-It is \Cpp{}'s constant evaluation restricted to the grammar, and Figure~\ref{fig:fjlt-eval} gives the rules; $e \Downarrow v$ abbreviates $e \longrightarrow^{*} v$.
+It is \Cpp{}'s constant evaluation restricted to the grammar, extended by \textsc{S-Unbox} at run time, and Figure~\ref{fig:fjlt-eval} gives the rules; $e \Downarrow v$ abbreviates $e \longrightarrow^{*} v$.
 The context grammar picks one redex per non-value term, so the relation is deterministic.
 
 \begin{figure}[htbp]
@@ -228,12 +216,13 @@ The context grammar picks one redex per non-value term, so the relation is deter
 \textsc{(S-Op)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)} \longrightarrow e[\overline{v_y}/\overline{y}][\overline{v}/\overline{x}] \quad \text{for a declared operation with body } e \\[3pt]
 \textsc{(S-Std)} & O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{c}\texttt{)} \longrightarrow c \quad \text{for a standard function object, } c \text{ the value the standard assigns} \\[3pt]
 \textsc{(S-Prim)} & c_1 \oplus c_2 \longrightarrow c \quad \text{the base type's operation, total by the choice of } \oplus \\[3pt]
+\textsc{(S-Conv)} & \tau\texttt{(}c\texttt{)} \longrightarrow c' \quad \text{the conversion to } \tau \text{ the standard or the declaration assigns, } c \text{ itself at its own type} \\[3pt]
 \textsc{(S-If)} & \texttt{true ? } e_1 \texttt{ : } e_2 \longrightarrow e_1 \qquad \texttt{false ? } e_1 \texttt{ : } e_2 \longrightarrow e_2 \\[3pt]
 \textsc{(S-Proj)} & \texttt{std::pair\{}v_1\texttt{, }v_2\texttt{\}.first} \longrightarrow v_1 \qquad \texttt{std::pair\{}v_1\texttt{, }v_2\texttt{\}.second} \longrightarrow v_2 \qquad O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}.}y_i \longrightarrow v_i \\[3pt]
 \textsc{(S-Unbox)} & \texttt{*make\_shared<const }\tau\texttt{>(}v\texttt{)} \longrightarrow v \\[3pt]
-\textsc{(S-Case)} & \texttt{case(}\iota_1\,v\texttt{, }f\texttt{, }g\texttt{)} \longrightarrow f\texttt{(}v\texttt{)} \qquad \texttt{case(}\iota_2\,v\texttt{, }f\texttt{, }g\texttt{)} \longrightarrow g\texttt{(}v\texttt{)} \\[3pt]
-\textsc{(S-Fold)} & \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} \longrightarrow \texttt{fold\_left(}\mathit{next}\,r\texttt{, }f\texttt{(}a\texttt{, }\mathit{head}\,r\texttt{), }f\texttt{)} \quad \text{if } |r| > 0 \\
- & \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} \longrightarrow a \quad \text{if } |r| = 0 \\[3pt]
+\textsc{(S-Case)} & \texttt{case(}\iota_1\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_f\texttt{(}v\texttt{)} \qquad \texttt{case(}\iota_2\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_g\texttt{(}v\texttt{)} \\[3pt]
+\textsc{(S-Fold)} & \texttt{fold\_left(}r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow \texttt{fold\_left(}\mathit{next}\,r\texttt{, }v_f\texttt{(}v_a\texttt{, }\mathit{head}\,r\texttt{), }v_f\texttt{)} \quad \text{if } |r| > 0 \\
+ & \texttt{fold\_left(}r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow v_a \quad \text{if } |r| = 0 \\[3pt]
 \textsc{(S-Cata)} & \texttt{cata(}v_{\mathit{alg}}\texttt{, }n\texttt{)} \longrightarrow v_{\mathit{alg}}\texttt{(}n\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_1\texttt{), }\ldots\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_k\texttt{))} \\
  & \qquad \text{for a node } n \text{ with legs } l_1 \ldots l_k \\[3pt]
 \textsc{(S-Ctx)} & E[e] \longrightarrow E[e'] \quad \text{if } e \longrightarrow e' \\
@@ -250,7 +239,7 @@ The context grammar picks one redex per non-value term, so the relation is deter
 \cppinline{chain_view{lo, hi}} steps to the interval from the cover of \cppinline{lo} with \cppinline{f(a, lo)}, or to the empty range when \cppinline{lo} has no cover or \cppinline{lo == hi}.
 \textsc{S-Cata} unfolds one node, passing the node itself beside its legs' folds; a leaf has no legs and the algebra is applied to it alone.
 Constants, pairs, optionals and boxes are values; \textsc{S-Prim} and \textsc{S-Std} are total because the admitted operations are, which is what Lemma~\ref{lem:progress} needs.
-\textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a constant evaluator rejects a term that builds a box.}
+\textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a constant evaluator rejects a term that builds a box, and a law or a \cppinline{static_assert} premise contains no \cppinline{make_shared}, which is the condition under which every FJlt program is a Jlt program.}
 \label{fig:fjlt-eval}
 \end{figure}
 
@@ -258,16 +247,19 @@ Constants, pairs, optionals and boxes are values; \textsc{S-Prim} and \textsc{S-
 \label{app:fjlt:translation}
 
 The target is System~F with products, sums, the carriers of $\Sigma$ taken as constants with their total operations, and inductive types with their iterators: the natural numbers with $\mathit{iter} : \forall\sigma.\,\mathbb{N} \to (\sigma \to \sigma) \to \sigma \to \sigma$, reducing by $\mathit{iter}\,(k{+}1)\,s\,z \longrightarrow \mathit{iter}\,k\,s\,(s\,z)$ and $\mathit{iter}\,0\,s\,z \longrightarrow z$, and for each term type $\mu F$ its iterator $\mathit{fold}_F : \forall\sigma.\,(F(\sigma) \to \sigma) \to \mu F \to \sigma$, reducing one constructor at a time, $\mathit{fold}_F\,\beta\,(\mathrm{in}\,n) \longrightarrow \beta\,(F(\mathit{fold}_F\,\beta)\,n)$; the paramorphism, which also hands each node itself to the algebra, is the iterator at $\mu F \times \sigma$ with the node rebuilt beside the result, as usual.
-Reduction in the target is full $\beta$-reduction, any redex anywhere, together with the unfolding of a defined name $f_{\overline{\tau}}$ to its body and the two iterator rules; no evaluation order is imposed, which is the setting of the normalisation and confluence results used below.
-Records are nested pairs; System~F with products, sums and positive inductive types with their iterators is strongly normalising and confluent, and its iterative fragment embeds into System~F by an encoding that preserves reduction~\cite{matthes1999extensions}; adding terminating, confluent first-order rules for constants conserves both properties~\cite{breazutannen1991polymorphic,breazutannen1994polymorphic}. These results cover the parts separately; their combination, with $\mathit{iter}$ in the accumulator form above, is what this appendix assumes, so the target is conservative over System~F for everything this appendix uses, and the one-constructor-at-a-time iterators are what make Theorem~\ref{thm:simulation} exact where a Church encoding, unfolding all at once, would not be.
+Reduction in the target is full $\beta$-reduction, any redex anywhere, together with projections, case, the $\delta$-rules of the constants, the unfolding of a defined name to its body and the two iterator rules; no evaluation order is imposed, which is the setting of the normalisation and confluence results used below.
+Records are nested pairs.
+System~F with products, sums and positive inductive types with their iterators is strongly normalising and confluent, and its iterative fragment embeds into System~F by an encoding that preserves reduction~\cite{matthes1999extensions}; for first-order rewrite rules on algebraic constants, Breazu-Tannen and Gallier show that adding them to System~F conserves strong normalisation and confluence~\cite{breazutannen1991polymorphic,breazutannen1994polymorphic}.
+These results cover the parts separately, and this appendix assumes their combination, which the same method gives: $\mathit{iter}$ in the accumulator form above is the standard iterator at $\sigma \to \sigma$, each of its steps at least one step of that; the defined names are acyclic, by the declaration order, and expand away; the $\delta$-rules are ground, a constant out of constants, and preserve reducibility; and confluence then follows by Newman's lemma, there being no critical pairs.
+That is a sketch, not a proof, and the one-constructor-at-a-time iterators are what make Theorem~\ref{thm:simulation} exact where a Church encoding, unfolding all at once, would not be.
 Figure~\ref{fig:fjlt-translation} gives the translation.
 
 \paragraph{Reading the translation.}
 A function object is a pair of its fields and its call function, so a fieldless \cppinline{std::plus<size_t>} is $((), \mathit{plus})$, passing it as a step uses its second component, and reading a field uses its first.
 A trait has no image of its own; its specialisations are closed terms $f_{\overline{\tau}}$, and a generic function that serves as an instance with a context is the function from records to a record that \textsc{E-Shape} builds its dictionary with.
-Where \cppinline{size_t} is read as $\mathbb{N}$, $\llbracket n \rrbracket$ is the natural number that is $n$'s value; the translation of a term with a runtime \cppinline{n} is the term with $n$ as a free variable of type $\mathbb{N}$, and Theorem~\ref{thm:simulation} is stated for closed terms.
+Where \cppinline{size_t} is read as $\mathbb{N}$, by a coercion constant from the carrier to the inductive naturals, $\llbracket n \rrbracket$ is the natural number that is $n$'s value; the translation of a term with a runtime \cppinline{n} is the term with $n$ as a free variable of type $\mathbb{N}$, and Theorem~\ref{thm:simulation} is stated for closed terms.
 The call function of a constrained operation abstracts over its dictionaries as a generic function does, and an application supplies them.
-The iterator is the catamorphism of the chain of a natural number, a fold over any range of $\mathcal{R}$ is that catamorphism at the range's length with the range's position carried beside the state, and \cppinline{cata} is the catamorphism of a term's inductive type; a term type translates to $\mu F$ with a node translating to its constructor applied to its fields.
+The iterator is the catamorphism of the chain of a natural number, a fold over any range of $\mathcal{R}$ is that catamorphism at the range's length with the range's position carried beside the state, and \cppinline{cata} is the catamorphism of a term's inductive type; a term type translates to $\mu F$, whose constructors are its node operations, so a node, a construction $O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}}$, translates by the construction row and is read as $\mathrm{in}$ of its fields.
 The library's set recursion is the first two, and its one engine over terms is the third.
 A box translates to a unary product rather than to nothing, on purpose: a box's only observable is its content, so which box holds it is erased, and the unit component keeps unboxing a step on both sides, which Lemma~\ref{lem:forward} needs.
 Its one non-local ingredient is the \emph{dictionary} of an entailment: $\llbracket \Delta \Vdash Q \rrbracket$ is the record that witnesses $Q$, built by the same recursion as resolution.
@@ -293,7 +285,7 @@ Its one non-local ingredient is the \emph{dictionary} of an entailment: $\llbrac
 \llbracket \Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i = \llbracket \Delta \Vdash R_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\} & \text{\textsc{E-Shape}} \\
 \llbracket \Delta \Vdash e \rrbracket = \mathit{true} & \text{\textsc{E-Law}, \textsc{E-Law-Assumed}} \\
 \llbracket \Delta \Vdash \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = () & \text{\textsc{E-Not}} \\
-\llbracket \Delta \Vdash \texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \lambda\overline{a}.\,\llbracket e_r \rrbracket & \text{\textsc{E-Op}, over the requirement's parameters} \\[6pt]
+\llbracket \Delta \Vdash \texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \lambda\overline{a}.\,\llbracket \tau\texttt{(}e_r\texttt{)} \rrbracket & \text{\textsc{E-Op}, over the requirement's parameters, the conversion in the field} \\[6pt]
 \multicolumn{2}{l}{\textit{declarations}} \\
 \texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{x}\texttt{) ... } e \;\mapsto\; f_{\overline{\tau}} = \lambda\overline{x}.\,\llbracket e \rrbracket & \text{an instance} \\
 \texttt{template <}\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ ... } f\texttt{(}\overline{x}\texttt{) ... } e \;\mapsto\; f = \Lambda\overline{\alpha}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \text{a generic function} \\
@@ -304,12 +296,13 @@ O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \text{the sta
 \multicolumn{2}{l}{\textit{terms}} \\
 \llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_i\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket}\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Call}, $f_i$ the declaration it resolves to} \\
 \llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_{\overline{\sigma}}\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Trait}, resolved to a specialisation} \\
-\llbracket e_r[\overline{e}/\overline{a}] \rrbracket = q_C.\pi.r\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Req-Assumed}, } \pi \text{ the path through nested shapes} \\
-\llbracket O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e_y}\texttt{\}} \rrbracket = (\overline{\llbracket e_y \rrbracket},\; O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket}) & \text{construction} \\
-\llbracket e\texttt{(}\overline{e'}\texttt{)} \rrbracket = (\pi_2\,\llbracket e \rrbracket)\,[\overline{\llbracket \sigma \rrbracket}]\,\overline{d}\,\overline{\llbracket e' \rrbracket} & \text{\textsc{T-Op}: application,} \\
+\llbracket \tau\texttt{(}e_r[\overline{e}/\overline{a}]\texttt{)} \rrbracket = q_C.\pi.r\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Req-Assumed}, } \pi \text{ the path through nested shapes} \\
+\llbracket O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e_y}\texttt{\}} \rrbracket = (\overline{\llbracket e_y \rrbracket},\; O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket}) & \text{construction; a fieldless } O \text{ has the empty tuple of fields} \\
+\llbracket e\texttt{(}\overline{e'}\texttt{)} \rrbracket = (\pi_2\,\llbracket e \rrbracket)\,[\overline{\llbracket \sigma \rrbracket}]\,\overline{d}\,\overline{\llbracket e' \rrbracket} & \text{\textsc{T-Op}, \textsc{T-App}: application,} \\
 \qquad \text{with } \overline{d} = \overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\beta}] \rrbracket} \text{ the call operator's dictionaries} & \\
 \llbracket e\texttt{.first} \rrbracket = \pi_1\,\llbracket e \rrbracket \qquad \llbracket e\texttt{.second} \rrbracket = \pi_2\,\llbracket e \rrbracket & \text{a pair's projections} \\
 \llbracket e\texttt{.}y_i \rrbracket = \pi_i\,(\pi_1\,\llbracket e \rrbracket) & \text{a field, through the fields' pair} \\
+\llbracket \tau\texttt{(}e\texttt{)} \rrbracket = \mathit{conv}_{\tau',\tau}\,\llbracket e \rrbracket & \text{a conversion, a constant of type } \llbracket \tau' \rrbracket \to \llbracket \tau \rrbracket \text{, erased where } \tau' = \tau \\
 \llbracket f\texttt{<}\overline{\sigma}\texttt{>} \rrbracket^{\!\circ} = f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d} & \text{the callable of a step: a function name,} \\
 \llbracket e \rrbracket^{\!\circ} = (\pi_2\,\llbracket e \rrbracket)\,[\overline{\llbracket \sigma \rrbracket}]\,\overline{d} & \text{a function object; elaborated at the fold's types,} \\
 \qquad \text{with } \overline{d} \text{ the dictionaries of its constraints at } \overline{\sigma} & \text{its dictionaries supplied} \\
@@ -334,13 +327,9 @@ Types, constraints as record types, dictionaries, declarations and terms; the pa
 
 \subsection{Theorems}
 \label{app:fjlt:theorems}
-% Proof sketches for the statements of Section~\ref{sec:guarantees}.  They
-% rest on the typing rules (A.2), the evaluation rules (A.3) and the
-% translation (A.4), which are still to be written; each sketch names the
-% cases it needs from them.  Full proofs and a mechanisation are future work.
 
-The statements are in Section~\ref{sec:guarantees}; the proofs are here, complete relative to the rules of Figures~\ref{fig:fjlt-typing} to~\ref{fig:fjlt-translation}, whose omitted cases (constants, pairs, optionals, conditionals, the arithmetic of base types) are the textbook ones.
-Throughout, $\Sigma$ is any signature meeting the three conditions of Section~\ref{app:fjlt:syntax}, whose carriers the proofs use as constants and whose operations they use as total and nothing more, and the translation $\llbracket \cdot \rrbracket$ is the one of Section~\ref{app:fjlt:translation}, into System~F with products, sums and the carriers of $\Sigma$ as constants, which is conservative over System~F proper.
+The statements are in Section~\ref{sec:guarantees}; the proofs are here as sketches, relative to the rules of Figures~\ref{fig:fjlt-typing} to~\ref{fig:fjlt-translation}, whose omitted cases (constants, pairs, optionals, conditionals, the arithmetic of base types) are the textbook ones; what the sketches leave open is listed after them.
+Throughout, $\Sigma$ is any signature meeting the three conditions of Appendix~\ref{app:fjlt:syntax}, used only as constants and total operations, and the translation $\llbracket \cdot \rrbracket$ is the one of Appendix~\ref{app:fjlt:translation}, into System~F with products, sums, the carriers of $\Sigma$ as constants and the iterators.
 A context translates pointwise: $\llbracket \Delta \rrbracket$ has a type variable for each $\alpha \in \Delta$ and a record variable $q_Q : \llbracket Q \rrbracket$ for each assumed constraint $Q \in \Delta$, and $\llbracket \Gamma \rrbracket = \overline{x : \llbracket \tau \rrbracket}$.
 Three facts about the target are used without proof: it is strongly normalising and confluent, as above, and substitution of types for type variables preserves typing.
 
@@ -354,35 +343,37 @@ By induction on the entailment derivation, mutually with Theorem~\ref{thm:preser
 \textsc{E-Assume}: the dictionary is the variable $q_Q$, which $\llbracket \Delta \rrbracket$ types at $\llbracket Q \rrbracket$.
 \textsc{E-Shape}: $Q = C\texttt{<}\overline{\tau}\texttt{>}$, the dictionary is the record $\{\,\overline{r_i = \llbracket \Delta \Vdash R_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\}$, each field has type $\llbracket R_i \rrbracket[\overline{\tau}/\overline{\alpha}]$ by the induction hypothesis, and that is the field type of $\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket$ by definition.
 \textsc{E-Law} and \textsc{E-Law-Assumed}: the dictionary is $\mathit{true} : \mathit{Bool}$.
-\textsc{E-Op}: the premise types $e$ at $\tau'$ under $\overline{x : \tau_x}$, so by Theorem~\ref{thm:preservation} on a smaller derivation $\llbracket e \rrbracket : \llbracket \tau' \rrbracket$ under $\overline{x : \llbracket \tau_x \rrbracket}$, and $\lambda\overline{x}.\,\llbracket e \rrbracket : \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau' \rrbracket$; for \cppinline{std::same_as} $\tau' = \tau$, and for \cppinline{std::convertible_to} the translation inserts the conversion, a constant of type $\llbracket \tau' \rrbracket \to \llbracket \tau \rrbracket$, so the field has type $\overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$ in both cases.
+\textsc{E-Not}: the dictionary is $() : 1$.
+\textsc{E-Op}: the premise types $e$ at $\tau'$ under $\overline{x : \tau_x}$, so by Theorem~\ref{thm:preservation} on a smaller derivation $\llbracket e \rrbracket : \llbracket \tau' \rrbracket$ under $\overline{x : \llbracket \tau_x \rrbracket}$, and $\lambda\overline{x}.\,\llbracket e \rrbracket : \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau' \rrbracket$; for \cppinline{std::same_as} $\tau' = \tau$ and the conversion is erased, and for \cppinline{std::convertible_to} the field applies the conversion constant $\mathit{conv}_{\tau',\tau} : \llbracket \tau' \rrbracket \to \llbracket \tau \rrbracket$ (\textsc{T-Conv}), so the field has type $\overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$ in both cases.
 \end{proof}
 
 \begin{proof}[Proof of Theorem~\ref{thm:preservation}, type preservation]
 By induction on the typing derivation, one case per rule.
 \textsc{T-Var}: $\llbracket x \rrbracket = x$, and $\llbracket \Gamma \rrbracket$ types it at $\llbracket \tau \rrbracket$.
-\textsc{T-Op}, construction: $\llbracket O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e_y}\texttt{\}} \rrbracket = (\overline{\llbracket e_y \rrbracket}, O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket})$; the fields have their types by the induction hypothesis, and $O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket} : \forall\overline{\beta}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$ by the induction hypothesis on the operation's body, typed under $\overline{\beta}, \overline{Q}$ as a generic function's is (for a standard function object, by the assumption on the standard's function), so the pair has type $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$.
-\textsc{T-Op}, application: $\pi_2\,\llbracket e \rrbracket$ has the call function's type, is instantiated at the deduced $\overline{\sigma}$, receives the dictionaries $\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\beta}] \rrbracket}$, of the parameter types by Lemma~\ref{lem:dict}, and the arguments, of theirs by the induction hypothesis; projection: $\pi_i\,(\pi_1\,\llbracket e \rrbracket)$ has the field's type.
+\textsc{T-Construct}: $\llbracket O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e_y}\texttt{\}} \rrbracket = (\overline{\llbracket e_y \rrbracket}, O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket})$; the fields have their types by the induction hypothesis, and $O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket} : \forall\overline{\beta}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$ by the induction hypothesis on the operation's body, typed under $\overline{\beta}, \overline{Q}$ as a generic function's is (for a standard function object, by the assumption on the standard's function), so the pair has type $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$.
+\textsc{T-Op} and \textsc{T-App}: $\pi_2\,\llbracket e \rrbracket$ has the call function's type, is instantiated at the deduced $\overline{\sigma}$, receives the dictionaries $\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\beta}] \rrbracket}$, of the parameter types by Lemma~\ref{lem:dict}, and the arguments, of theirs by the induction hypothesis; \textsc{T-Field}: $\pi_i\,(\pi_1\,\llbracket e \rrbracket)$ has the field's type; \textsc{T-Conv}: the conversion constant has type $\llbracket \tau' \rrbracket \to \llbracket \tau \rrbracket$.
 \textsc{T-Call}: $f$ was declared by \textsc{D-Generic}, so $f = \Lambda\overline{\alpha}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e_f \rrbracket$ has type $\forall\overline{\alpha}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$ by the induction hypothesis on that declaration; applying it to $\overline{\llbracket \sigma \rrbracket}$ gives, by type substitution, $\overline{\llbracket Q[\overline{\sigma}/\overline{\alpha}] \rrbracket} \to \overline{\llbracket \tau_x[\overline{\sigma}/\overline{\alpha}] \rrbracket} \to \llbracket \tau[\overline{\sigma}/\overline{\alpha}] \rrbracket$; the records have the parameter types by Lemma~\ref{lem:dict}, and the arguments theirs by the induction hypothesis.
 \textsc{T-Trait}: the call resolved to a specialisation declared by \textsc{D-Instance}, so $f_{\overline{\sigma}} = \lambda\overline{x}.\,\llbracket e \rrbracket : \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$ by the induction hypothesis on that declaration, and the arguments have the right types; if it resolved to a generic function with an entailed context, the case is \textsc{T-Call} with the context's dictionaries.
-\textsc{T-Req-Assumed}: $C\texttt{<}\overline{\alpha}\texttt{>} \in \Delta$, so $q_C : \llbracket C\texttt{<}\overline{\alpha}\texttt{>} \rrbracket$ is in $\llbracket \Delta \rrbracket$, the projection $q_C.r$ has the requirement's field type $\overline{\llbracket \tau_a \rrbracket} \to \llbracket \tau \rrbracket$, and the arguments have the parameters' types by the induction hypothesis.
+\textsc{T-Req-Assumed}: $C\texttt{<}\overline{\tau}\texttt{>} \in \Delta$, so $q_C : \llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket$ is in $\llbracket \Delta \rrbracket$, the projection $q_C.r$ has the requirement's field type, the conversion included, $\overline{\llbracket \tau_a \rrbracket} \to \llbracket \tau \rrbracket$, and the arguments have the parameters' types by the induction hypothesis.
 \textsc{T-Fold}, for a range of instance $R$ over $\tau$: $\llbracket r \rrbracket = c_R\,\overline{\llbracket e \rrbracket} : \llbracket R \rrbracket$ by the induction hypothesis on the arguments and the constructor's type, $\mathit{iter}\,[\llbracket R \rrbracket \times \sigma] : \mathbb{N} \to ((\llbracket R \rrbracket \times \sigma) \to \llbracket R \rrbracket \times \sigma) \to \llbracket R \rrbracket \times \sigma \to \llbracket R \rrbracket \times \sigma$, $|\llbracket r \rrbracket| : \mathbb{N}$, and the step has the pair type since $\mathit{next} : \llbracket R \rrbracket \to \llbracket R \rrbracket$, $\mathit{head} : \llbracket R \rrbracket \to \llbracket \tau \rrbracket$ and the callable, elaborated at $\sigma$ and $\tau$ with its type arguments applied and its dictionaries supplied by Lemma~\ref{lem:dict}, has type $\sigma \to \tau \to \sigma$ (curried in the target); $(\llbracket r \rrbracket, \llbracket a \rrbracket)$ has the pair type, and $\pi_2$ of the result has type $\sigma$.
 \textsc{T-Cata}: $\mathit{fold}_F\,[\mu F \times \sigma] : (F(\mu F \times \sigma) \to \mu F \times \sigma) \to \mu F \to \mu F \times \sigma$; $\beta$ has the algebra's type since $\mathrm{in}\,(F\,\pi_1\,n') : \mu F$ rebuilds the node, $F\,\pi_2\,n'$ holds the legs' results of type $\sigma$, and $\llbracket \mathit{alg} \rrbracket^{\!\circ}$, elaborated at $\mu F$ and $\sigma$, has type $\mu F \times \sigma^{k} \to \sigma$ by the induction hypothesis; $\llbracket t \rrbracket : \mu F$, and $\pi_2$ of the result has type $\sigma$.
 \textsc{D-Generic}: the body is typed under $\overline{\alpha}, \overline{Q}$ and $\overline{x : \tau_x}$, so by the induction hypothesis $\llbracket e \rrbracket : \llbracket \tau \rrbracket$ under type variables $\overline{\alpha}$, record variables $\overline{q : \llbracket Q \rrbracket}$ and $\overline{x : \llbracket \tau_x \rrbracket}$, and the abstraction has the stated polymorphic type; this is the case that uses \textsc{T-Req-Assumed}, since the body reaches an operation on a constrained type only through $\Delta$.
-\textsc{D-Instance}: the same with an empty $\Delta$; the declaration order, with instantiations of a self-calling generic function ordered by the size of their type arguments, makes the induction on declarations well founded.
+\textsc{D-Op}: as \textsc{D-Generic}, with the fields among the variables.
+\textsc{D-Instance}: the same with an empty $\Delta$; the declaration order makes the induction on declarations well founded, a self-call of the one exception being typed by the declared signature of $f$ and its body checked once.
 The omitted rules are the textbook cases for pairs, sums and conditionals.
 \end{proof}
 
 \begin{lemma}[Dictionaries agree with resolution]
 \label{lem:resolve}
-If $\Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>}$ with $\overline{\sigma}$ concrete and $\texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>}$ is a requirement of $C$ with parameters $\overline{a}$, then
-\[ \llbracket \Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>} \rrbracket.r = \lambda\overline{a}.\,\llbracket e_r[\overline{\sigma}/\overline{\alpha}] \rrbracket, \]
+If $\varnothing \Vdash C\texttt{<}\overline{\sigma}\texttt{>}$ with $\overline{\sigma}$ concrete and $\texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>}$ is a requirement of $C$ with parameters $\overline{a}$, then
+\[ \llbracket \varnothing \Vdash C\texttt{<}\overline{\sigma}\texttt{>} \rrbracket.r = \lambda\overline{a}.\,\llbracket \tau\texttt{(}e_r[\overline{\sigma}/\overline{\alpha}]\texttt{)} \rrbracket, \]
 in which every call has been resolved; hence for any terms $\overline{e}$,
-\[ (\llbracket \Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>} \rrbracket.r)\,\overline{\llbracket e \rrbracket} \longrightarrow^{+} \llbracket e_r[\overline{\sigma}/\overline{\alpha}][\overline{e}/\overline{a}] \rrbracket, \]
-in two steps, a projection and a $\beta$-reduction.
+\[ (\llbracket \varnothing \Vdash C\texttt{<}\overline{\sigma}\texttt{>} \rrbracket.r)\,\overline{\llbracket e \rrbracket} \longrightarrow^{+} \llbracket \tau\texttt{(}e_r[\overline{\sigma}/\overline{\alpha}][\overline{e}/\overline{a}]\texttt{)} \rrbracket, \]
+by a projection and $\beta$-reductions, one per parameter.
 \end{lemma}
 
 \begin{proof}
-The field is built by \textsc{E-Op} as $\lambda\overline{a}.\,\llbracket e_r[\overline{\sigma}/\overline{\alpha}] \rrbracket$, where the instantiated expression is typed at concrete types, so its calls are \textsc{T-Trait} or \textsc{T-Call} and translate to resolved terms; a projection of the constructed record followed by $\beta$-reduction on $\overline{\llbracket e \rrbracket}$, which full $\beta$-reduction permits whether or not the arguments are values, gives the stated term, the translation commuting with substitution.
+The field is built by \textsc{E-Op} as $\lambda\overline{a}.\,\llbracket \tau\texttt{(}e_r[\overline{\sigma}/\overline{\alpha}]\texttt{)} \rrbracket$, where the instantiated expression is typed at concrete types, so its calls are \textsc{T-Trait} or \textsc{T-Call} and translate to resolved terms; a projection of the constructed record followed by $\beta$-reduction on $\overline{\llbracket e \rrbracket}$, which full $\beta$-reduction permits whether or not the arguments are values, gives the stated term, the translation commuting with substitution.
 \end{proof}
 
 \begin{lemma}[Progress]
@@ -394,29 +385,30 @@ A closed well-typed term is a value or takes a step.
 By induction on the typing derivation.
 If some proper subterm in an evaluation position is not a value, the leftmost such subterm steps by the induction hypothesis, and \textsc{S-Ctx} lifts the step.
 Otherwise the term is a value, or a redex of one of the following shapes, each of which steps.
-A call $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)}$ typed by \textsc{T-Call} or \textsc{T-Trait}: the premise says the call resolves (for \textsc{T-Call}, the constraints are entailed, so resolution finds the generic function or, through its context, a specialisation), and the body it resolves to precedes the call by the declaration order, so \textsc{S-Call} applies; \textsc{T-Req-Assumed} cannot occur in a closed term, since $\Delta$ is empty.
+A call $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)}$ typed by \textsc{T-Call} or \textsc{T-Trait}: the premise says the call resolves (for \textsc{T-Call}, the constraints are entailed, so resolution finds the generic function or, through its context, a specialisation), so \textsc{S-Call} applies; \textsc{T-Req-Assumed} cannot occur in a closed term, since $\Delta$ is empty.
 An application $O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)}$: \textsc{S-Op} for a declared operation, \textsc{S-Std} for a standard one, whose operations are total by the choice of $O$.
 A primitive $c_1 \oplus c_2$: \textsc{S-Prim}, total by the choice of $\oplus$.
+A conversion $\tau\texttt{(}c\texttt{)}$: \textsc{S-Conv}, total by the condition on conversions.
 A conditional on a constant of type \cppinline{bool}, a case on a value of a sum, which by \textsc{T-Case} and canonical forms is an injection, a projection of a pair or of a constructed object, an unbox of a box, a fold whose count is a constant, and a \cppinline{cata} on a node: \textsc{S-If}, \textsc{S-Case}, \textsc{S-Proj}, \textsc{S-Unbox}, \textsc{S-Fold}, \textsc{S-Cata}, with \textsc{S-Fold}'s two cases covering every constant and \textsc{S-Cata} covering every node, leaves included.
-Preservation along a step, that $e \longrightarrow e'$ keeps the type, is the usual substitution argument and is used below without further comment.
+Preservation along a step, that $e \longrightarrow e'$ keeps the type, is the usual substitution argument, the conversion written in the kernel term keeping a requirement's use at its declared type after \textsc{S-Call}, and it is used below as source subject reduction.
 \end{proof}
 
 \begin{lemma}[Forward simulation]
 \label{lem:forward}
-If $e \longrightarrow e'$ then $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e' \rrbracket$, and every value translates to a value.
+If $e \longrightarrow e'$ then $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e' \rrbracket$, and a value of base type translates to a constant.
 \end{lemma}
 
 \begin{proof}
-Values: constants to constants, function objects to pairs of values, pairs to pairs, optionals to injections, boxes to pairs with unit.
-Steps, by cases on the rule; by \textsc{S-Ctx} and the fact that the translation of a context is a context, it suffices to treat the redex.
+Values: a constant translates to a constant; a function object with fields translates to a pair whose second component, $O_{\mathrm{call}}$ applied to the fields, may still reduce, which is why the claim is made for base types.
+Steps, by cases on the rule; by \textsc{S-Ctx} and the fact that the translation of a context is a context with one or more copies of the hole, each of which steps, it suffices to treat the redex.
 \textsc{S-Call} to a specialisation: $f_{\overline{\sigma}}\,\overline{\llbracket v \rrbracket}$ $\beta$-reduces to $\llbracket e_f \rrbracket[\overline{\llbracket v \rrbracket}/\overline{x}] = \llbracket e_f[\overline{v}/\overline{x}] \rrbracket$.
-\textsc{S-Call} to a generic function: $f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by type application and $\beta$-reduction to $\llbracket e_f \rrbracket$ with $\overline{\llbracket \sigma \rrbracket}$ for $\overline{\alpha}$, $\overline{d}$ for $\overline{q}$ and $\overline{\llbracket v \rrbracket}$ for $\overline{x}$; in it, each use of a requirement, translated as $q.r\,\overline{\llbracket e \rrbracket}$, has become $d.r\,\overline{\llbracket e \rrbracket}$ with $d$ a record constructed by \textsc{E-Shape}, the term being closed, and by Lemma~\ref{lem:resolve} each reduces in two steps to the translation of the resolved instance applied to the same arguments; the result is $\llbracket e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \rrbracket$, the term the source stepped to, whose requirement uses are typed by \textsc{T-Trait} at the concrete types.
+\textsc{S-Call} to a generic function: $f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by type application and $\beta$-reduction to $\llbracket e_f \rrbracket$ with $\overline{\llbracket \sigma \rrbracket}$ for $\overline{\alpha}$, $\overline{d}$ for $\overline{q}$ and $\overline{\llbracket v \rrbracket}$ for $\overline{x}$; in it, each use of a requirement, translated as $q.r\,\overline{\llbracket e \rrbracket}$, has become $d.r\,\overline{\llbracket e \rrbracket}$ with $d$ a record constructed by \textsc{E-Shape}, the term being closed, and by Lemma~\ref{lem:resolve} each reduces by a projection and $\beta$-reductions to the translation of the resolved instance, conversion included, applied to the same arguments; the result is $\llbracket e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \rrbracket$, the term the source stepped to, whose requirement uses are typed by \textsc{T-Trait} at the concrete types.
 \textsc{S-Op}: $(\pi_2\,(\overline{\llbracket v_y \rrbracket}, O_{\mathrm{call}}\,\overline{\llbracket v_y \rrbracket}))\,[\overline{\sigma}]\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by projection, type application and $\beta$-reduction to $\llbracket e_O \rrbracket$ with fields, dictionaries and arguments substituted, which is $\llbracket e' \rrbracket$ by the same argument as for a generic call.
-\textsc{S-Std} and \textsc{S-Prim}: one $\delta$-step to the constant the standard assigns, by the assumption that the primitives' translations compute the standard's functions on constants.
+\textsc{S-Std}, \textsc{S-Prim} and \textsc{S-Conv}: a projection where there is one, then a $\delta$-step to the constant the standard or the declaration assigns, by the assumption that the primitives' translations compute the standard's functions on constants.
 \textsc{S-If}, \textsc{S-Case}, \textsc{S-Proj} and \textsc{S-Unbox}: a case reduction, a case reduction to the translation of the selected application, whose evaluation is the next step's, a projection, a projection; the box is a unary product rather than nothing so that unboxing is a step on both sides and the simulation stays strict.
 \textsc{S-Fold} with $|r| = k + 1$:
 \[ \mathit{iter}\,(k{+}1)\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket) \longrightarrow \mathit{iter}\,k\,\mathit{step}\,(\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket)) \longrightarrow^{+} \mathit{iter}\,k\,\mathit{step}\,(\llbracket \mathit{next}\,r \rrbracket, \llbracket f \rrbracket^{\!\circ}\,\llbracket a \rrbracket\,\llbracket \mathit{head}\,r \rrbracket), \]
-the constants $\mathit{next}$ and $\mathit{head}$ computing the range's operations, and the last term is $\llbracket \texttt{fold\_left(}\mathit{next}\,r\texttt{, }f\texttt{(}a\texttt{, }\mathit{head}\,r\texttt{), }f\texttt{)} \rrbracket$ since $|\mathit{next}\,r| = k$; the empty case is one step of the iterator followed by a projection.
+the operations $\mathit{next}$ and $\mathit{head}$ computing the range's, and the last term is $\llbracket \texttt{fold\_left(}\mathit{next}\,r\texttt{, }f\texttt{(}a\texttt{, }\mathit{head}\,r\texttt{), }f\texttt{)} \rrbracket$ once that translation has reduced its count $|\llbracket \mathit{next}\,r \rrbracket|$ to $k$, the reduction it makes before its own first iterator step; the empty case is one step of the iterator followed by a projection.
 \textsc{S-Cata}: $\mathit{fold}_F\,\beta\,(\mathrm{in}\,n) \longrightarrow \beta\,(F(\mathit{fold}_F\,\beta)\,n)$ is one step of the term's iterator; $\beta$ then rebuilds the node from the first components, which reduces to $\llbracket n \rrbracket$ since each leg's pair has that leg as its first component, and applies $\llbracket \mathit{alg} \rrbracket^{\!\circ}$ to it and to the second components $\pi_2\,(\mathit{fold}_F\,\beta\,\llbracket l_i \rrbracket)$, which are $\llbracket \texttt{cata(}\mathit{alg}\texttt{, }l_i\texttt{)} \rrbracket$; after those projections the term is the translation of the source's reduct.
 \end{proof}
 
@@ -433,7 +425,7 @@ By Lemma~\ref{lem:progress} and preservation along steps, every term in the redu
 \begin{proof}[Proof of Theorem~\ref{thm:simulation}, simulation]
 The first two claims are Lemma~\ref{lem:forward}.
 For the converse at a base type: if $e \Downarrow v$ then $\llbracket e \rrbracket \longrightarrow^{*} \llbracket v \rrbracket$ by Lemma~\ref{lem:forward} and induction on the sequence.
-Conversely, if $\llbracket e \rrbracket \longrightarrow^{*} c$ for a constant $c$: by Corollary~\ref{cor:soundness} $e \Downarrow v$ for some $v$, so $\llbracket e \rrbracket \longrightarrow^{*} \llbracket v \rrbracket$ by the half just proved, and $c = \llbracket v \rrbracket$ since the target is confluent and both are normal forms.
+Conversely, if $\llbracket e \rrbracket \longrightarrow^{*} c$ for a constant $c$: by Corollary~\ref{cor:soundness} $e \Downarrow v$ for some $v$, so $\llbracket e \rrbracket \longrightarrow^{*} \llbracket v \rrbracket$ by the half just proved, and $c = \llbracket v \rrbracket$ since the target is confluent and both are normal forms, the translation being injective on constants.
 \end{proof}
 
 \begin{proof}[Proof of Theorem~\ref{thm:coherence}, coherence]
@@ -441,16 +433,17 @@ Resolution is a function by well-formedness: at concrete types one specialisatio
 \textsc{E-Not} applies only at concrete types, where entailment is decided, and only to a negation not already assumed, as \textsc{E-Shape} applies only to a shape not in $\Delta$, so it adds no choice.
 The entailment rules are syntax-directed, exactly one rule per constraint: \textsc{E-Assume} for a constraint in $\Delta$, \textsc{E-Shape} for a shape not in $\Delta$, by its side condition, \textsc{E-Op} for an operation, and \textsc{E-Law} or \textsc{E-Law-Assumed} for a law, which build the same $\mathit{true}$; so two derivations of $\Delta \Vdash Q$ have the same shape, and by induction on that shape they build the same dictionary: the same variable, the same record of fields by the induction hypothesis, the same $\mathit{true}$, the same $\lambda\overline{x}.\,\llbracket e \rrbracket$ in which every trait call resolved the same way.
 \textsc{T-Req-Assumed} and \textsc{E-Law-Assumed} are deterministic as well, taking the leftmost assumed shape and its first matching requirement in declaration order, nested shapes included, so the translation of a body is a function of the body.
-\textsc{T-Call} names the declaration resolution selects, so a call has one derivation even where several generic functions of one name have entailed contexts.
+\textsc{T-Req-Assumed} is tried before \textsc{T-Call} and \textsc{T-Trait}, and \textsc{T-Call} names the declaration resolution selects, so a call has one derivation even where several generic functions of one name have entailed contexts.
 Hence $\llbracket \Delta \Vdash Q \rrbracket$ depends only on $\Delta$ and $Q$, the records in \textsc{T-Call} are determined by the program, and the translation is a function of it.
 \end{proof}
 
 \begin{proof}[Proof of Corollary~\ref{cor:parametricity}, parametricity]
 By Theorem~\ref{thm:preservation}, a generic FJlt function translates to a closed System~F term of type $\forall\overline{\alpha}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$; Reynolds' abstraction theorem~\cite{reynolds1983types,wadler1989theorems} gives its free theorem, in which the record parameters are ordinary term parameters, so the theorem relates behaviour at two instantiations through the relation between their records.
+The target's constants are interpreted by the identity relation at their base types and its iterators by the least relations closed under $\mathrm{in}$, so the abstraction theorem extends to it, and the term is closed once the defined names are expanded.
 \end{proof}
 
-The dependencies run one way: preservation and the two lemmas on dictionaries; progress; forward simulation; termination from forward simulation and the target's strong normalisation; soundness from progress and termination; the converse of simulation from soundness; coherence and parametricity on their own.
-What the proofs do not do: they induct over the rules of Figures~\ref{fig:fjlt-typing} and~\ref{fig:fjlt-eval} as given, which omit the generic cases, and they take \cppinline{fold_left} over the ranges of $\mathcal{R}$ as a primitive with the evaluation rule of Figure~\ref{fig:fjlt-eval}, trusting the standard library for \cppinline{repeat} and \cppinline{iota} and the library for \cppinline{chain_view}, as Section~\ref{sec:translation:adequacy} says.
+The dependencies run one way: coherence, which makes the translation a function of the term; preservation with the lemma on dictionaries; the lemma on resolution and the substitution lemmas, that translation commutes with the substitution of types and of terms and that a dictionary built at a type variable reduces, after substitution, to the one built at the concrete types; source subject reduction; progress; forward simulation, which uses coherence to translate the reduct; termination from forward simulation and the target's strong normalisation; soundness from progress and termination; the converse of simulation from soundness; parametricity on its own.
+What the sketches leave open: they take \cppinline{fold_left} over the ranges of $\mathcal{R}$ as a primitive with the evaluation rule of Figure~\ref{fig:fjlt-eval}, trusting the standard library for \cppinline{repeat} and \cppinline{iota} and the library for \cppinline{chain_view} (Section~\ref{sec:limits}), and they type a fold only at a range of a known instance, so Listing~\ref{lst:rule3}'s \cppinline{concat}, a fold at a type variable, needs a shape for ranges that the calculus does not yet have; the conditions of \textsc{T-Range} are semantic, so termination is in part assumed in the typing; forward simulation is literal except at the self-call of the one exception, where the target carries the fuel $F^{m}\,d$ with $m$ above the argument and the image carries the name $f$, and at a fold step, where the count reduces first, two relations under which each source step still takes at least one target step, which is what termination and the base-type statement use; and the substitution lemmas are stated, not proved.
 Their mechanisation is future work.
 
 \subsection{The compiler's own functional language}
@@ -510,7 +503,7 @@ Theorem~\ref{thm:simulation} relates FJlt's evaluation to the System~F image; th
 It is not a theorem because the compiler is not one of the hypotheses: the lowering is trusted, as every \Cpp{} program trusts it, and the reading of SSA as the simply typed iterator terms is Appel's, which this paper uses and does not prove.
 One seam shows here too: SSA's values are the scalars in registers, and a value that lives in memory, a boxed value in particular, is read and written through a pointer that no $\phi$-node carries, which is the same line between a value and a cell that Rule~1 draws.
 The same line is an optimisation when it falls on the right side.
-Of the types of Figure~\ref{fig:fjlt-syntax}, the box and \cppinline{std::string} allocate; a value of any other type lives in a register or on the stack, and the top of the stack is the part of memory that is in cache almost always, so a function of such values has next to no cache to miss, and the two exhibits, both over scalars, have no load and no store at all.
+Of the types of Figure~\ref{fig:fjlt-syntax}, the box and \cppinline{std::string} allocate; a value of any other type lives in a register or on the stack, and the top of the stack is the part of memory that is in cache almost always, so a function of such values has next to no cache to miss, and Listing~\ref{lst:sites}'s pass, over scalars, loads the letter, its column, the next state and whether it accepts, and stores nothing (Section~\ref{sec:binding}).
 That is an observation about the exhibits and a tendency with a reason for the rest, not a guarantee: a boxed value is on the heap by definition, a string's characters too, a large value is passed through the stack, and the register allocator, not the rule, has the last word; what the rule does is remove every reason to keep state anywhere but in the frame of the function that owns it, which is the identification of \cppinline{const T} with \cppinline{const T&} of Section~\ref{sec:posture} read by the machine.
 
 \subsection{The sugar: closure under the host's constructions}
@@ -521,9 +514,9 @@ The question is one of closure: given terms of FJlt, under which condition is th
 That is the question Section~\ref{sec:translation:adequacy} leaves open for the constructions the grammar does not name, and this section answers it one construction at a time.
 Each answer is a closure statement: the construction, the condition, and the FJlt term it builds.
 The condition is always on how the term is built and never on inspecting it afterwards, which is what lets a closure, an object whose type has no name, be a term of the calculus.
-Tables~\ref{tab:closure} and~\ref{tab:closure:decl} are the summary, with a column for what the calculus lacks today to state each lemma, since that column is what decides the scope of the calculus.
+Tables~\ref{tab:closure} and~\ref{tab:closure:decl} are the summary.
 The statements come with the reason each holds, and none of them is used by the theorems of Appendix~\ref{app:fjlt:theorems}.
-Where a count is given it is measured on the library's \texttt{category} module, 35 files.
+Where a count is given it is measured on the library's \texttt{category} module, 40 files.
 
 \begin{table}[tbp]
 \centering
@@ -544,9 +537,9 @@ local state that does not escape & assignments only to locals, by-value paramete
 \bottomrule
 \end{tabularx}
 \caption{Closure of FJlt under the constructions of \Cpp{} that Table~\ref{tab:adequacy} keeps out by the grammar.
-Each row is a lemma: a term built by the construction from FJlt terms, under the condition, is the FJlt term in the third column, and none needs anything the calculus does not have.
+Each row is a closure statement: a term built by the construction from FJlt terms, under the condition, is the FJlt term in the third column, and none needs anything the calculus does not have.
 The fourth column is who holds the condition, as Table~\ref{tab:posture} says of the rules.
-The rows are the syntax the repository's tool finds in the library's \texttt{category} module and the listings, by node kind, beyond the kernel's grammar, and \texttt{if consteval}, which a parallel \cppinline{concat} would need (Appendix~\ref{app:fjlt:consteval}).}
+The rows are the syntax the repository's tool finds in the library's \texttt{category} module and the listings of \texttt{jlt\_listings\_test.cpp}, by node kind, beyond the kernel's grammar, and \texttt{if consteval}, which a parallel \cppinline{concat} would need (Appendix~\ref{app:fjlt:consteval}).}
 \label{tab:closure}
 \end{table}
 
@@ -595,7 +588,7 @@ The reason is the standard's own definition of the closure type: a class with th
 Capture by reference is excluded by Rule~1 before this lemma is reached.
 A capturing closure type is copy constructible and neither default constructible nor assignable, so it is not \cppinline{std::semiregular} and Rule~1 does not admit it as a value; it is admitted as sugar, judged through its image, which is semiregular when its captures are.
 That is the general rule for sugar: the rules are asked of the kernel term.
-A closure type has no name, so a lambda is never a carrier and never the head of an instance, and nothing in the lemma asks to look inside it once built.
+A closure type has no name, so a lambda is never a carrier and never the head of an instance, and nothing in the statement asks to look inside it once built.
 The library has 47.
 
 \paragraph{\texttt{if constexpr} on a value.}
@@ -621,14 +614,14 @@ Written by hand, the same thing is to decide the constraint in the clause, by re
 \paragraph{Sums.}
 The kernel has the case form (Appendix~\ref{app:fjlt:syntax}), so given FJlt terms \cppinline{f} and \cppinline{g} on the two summands their copairing is an FJlt term, \texttt{case(}$s$\texttt{, }$f$\texttt{, }$g$\texttt{)}.
 \cppinline{has_value} and \cppinline{value_or} on an optional are that case on $1 + T$, and \cppinline{std::visit(O{}, v)} is the case whose branches are one generic call operator entailed at each summand.
-\cppinline{*} on an optional is partial, undefined on the empty one, and is admitted only under a \cppinline{has_value} guard, which desugars to the case form, as the head of a range is admitted only when its length is positive.
+\cppinline{*} on an optional is partial, undefined on the empty one, and is admitted under a \cppinline{has_value} guard, which desugars to the case form, as the head of a range is admitted only when its length is positive, or in a constant initialiser, where constant evaluation refuses the empty case and the compiler holds the guard, as for Listing~\ref{lst:sites}'s \cppinline{*automaton(sites)}.
 The library's \cppinline{IsCoproduct} writes down the injection half of the condition on $\mathcal{S}$, two named injections into one type, with \cppinline{std::variant} as its instance; the case form and its equations, \texttt{case} after an injection is that branch, are the other half, which no concept checks and which $\mathcal{S}$ states as $\mathcal{R}$ states head and tail.
 
 \paragraph{Variable and class templates.}
 A variable template \cppinline{v<T...> = e} is the nullary function template \cppinline{v<T...>() { return e; }}, and a class template with a static constant member is the same, since constant evaluation of the three agrees.
 A partial specialisation over a family, every \cppinline{Rational<I>} under \cppinline{+}, is an instance with a context, in the grammar.
 Nothing is missing for one family; a primary that answers \cppinline{false} beside families that answer \cppinline{true} is two generic functions whose heads both match, which resolution by specificity orders.
-The host adds a wall the calculus does not have: a constrained function overload is found only when it precedes the shape (Section~\ref{sec:limits}), so the FJlt spelling is not writable in the library's module layout, while the library's spelling is FJlt by this lemma.
+The host adds a wall the calculus does not have: a constrained function overload is found only when it precedes the shape (Section~\ref{sec:limits}), so the FJlt spelling is not writable in the library's module layout, while the library's spelling is FJlt by this statement.
 The library has 225 registrations.
 
 \paragraph{Member functions.}
@@ -653,8 +646,8 @@ What the library writes with a base clause is a registration, \cppinline{struct 
 The one class that inherited state, a wrapper around \cppinline{Morphism}, had no users and is gone.
 
 \paragraph{What the table says.}
-Every row needs nothing from the calculus, the closure lemma being the standard's own account of the construction, once resolution is by specificity under GHC's rule and sums have their case form.
-The table is complete by measurement, not by argument, at the resolution of a syntax node's kind: the repository's tool lists every kind the \texttt{category} module and the listings write, leaving out the compiler's implicit wrappers, and each is the kernel's or a row of the table.
+Every row needs nothing from the calculus, the closure statement being the standard's own account of the construction, once resolution is by specificity under GHC's rule and sums have their case form.
+The table is complete by measurement, not by argument, at the resolution of a syntax node's kind: the repository's tool lists every kind the \texttt{category} module and the listings of \texttt{jlt\_listings\_test.cpp} write, leaving out the compiler's implicit wrappers, and each is the kernel's or a row of the table.
 A kind does not tell every use apart: a binary operator is arithmetic or an assignment, and the assignments are the row of local state, which Rule~1's footnote admits and which reading, not counting, finds.
 One construction the measurement found had no image in System~F, a template taking a class template as an argument, a type constructor of higher kind; the library used it once, for convenience, and no longer does.
 With the table closed, the second direction of Section~\ref{sec:translation:adequacy} reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.

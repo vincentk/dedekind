@@ -151,7 +151,7 @@ Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:rel
 \label{sec:posture}
 
 Jlt is standard \Cpp{23} under three rules, not a dialect and not a library; the compiler enforces some of the rules, and we say which.
-Each rule has a listing of a few lines, verbatim from the repository's test up to formatting and the definitions a listing omits or the test imports; the LLVM IR is Clang~23's output at \texttt{-O2 -fno-unroll-loops}, with names shortened.
+Each rule has a listing of a few lines, verbatim from the repository's test up to formatting and the definitions a listing omits or the test imports; the LLVM IR of Appendix~\ref{app:fjlt:ssa} is Clang~23's output, its flags in its caption, with names shortened.
 
 \paragraph{Rule 1, Substitution: values and pure functions.}
 \phantomsection\label{def:rule1}
@@ -498,7 +498,7 @@ Section~\ref{sec:limits} says how.}
 \section{From Jlt to Featherweight Jlt}
 \label{sec:translation:adequacy}
 
-This section is the $-$sugar arrow of Figure~\ref{fig:arrows}, between the rules of Section~\ref{sec:posture} and the kernel's grammar of Section~\ref{sec:translation}: which construction of Jlt becomes which term of the kernel, each lemma left to Appendix~\ref{app:fjlt:closure}.
+This section is the $-$sugar arrow of Figure~\ref{fig:arrows}, between the rules of Section~\ref{sec:posture} and the kernel's grammar of Section~\ref{sec:translation}: which construction of Jlt becomes which term of the kernel, each closure statement left to Appendix~\ref{app:fjlt:closure}.
 Desugaring rewrites a program into one that uses only the kernel's constructions and computes the same value, as the \Cpp{} standard defines a lambda as a class with a call operator; no tool runs it.
 Tables~\ref{tab:closure} and~\ref{tab:closure:decl} state it construction by construction: a condition, and the kernel term it yields.
 
@@ -526,7 +526,7 @@ It is also conditional on the grammar, because \Cpp{} has constructions FJlt lac
 1 & overloading & the grammar (Appendix~\ref{app:fjlt:syntax}), except by constraints & generic functions of one name ordered by their constraints, plus their specialisations \\
 2 & argument-dependent lookup & the grammar, and the lookup wall (Section~\ref{sec:limits}) & instances found by the trait's name \\
 3 & implicit conversions & the grammar, and Rule~2 for the body & a conversion only where a requirement declares one, and the body then sees the declared type \\
-4 & references, moves & erased by the translation (Appendix~\ref{app:fjlt:translation}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
+4 & references, moves & erased by the grammar (Appendix~\ref{app:fjlt:syntax}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
 5 & the sugar: branches on a trait or a concept, lambdas, inheritance, \texttt{*} on an optional, \ldots & the grammar, and desugared (Table~\ref{tab:closure}) & \texttt{?:} on a law, specialisation, an operation struct, a registration, the case form on a sum, \ldots \\
 \bottomrule
 \end{tabularx}
@@ -535,7 +535,7 @@ The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
 \label{tab:adequacy}
 \end{table}
 
-No row of Tables~\ref{tab:closure} and~\ref{tab:closure:decl} needs anything the calculus lacks, and by measurement they are complete for the \texttt{category} module and the listings, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}).
+No row of Tables~\ref{tab:closure} and~\ref{tab:closure:decl} needs anything the calculus lacks, and by measurement they are complete for the \texttt{category} module and the listings of \texttt{jlt\_listings\_test.cpp}, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}).
 That each desugaring keeps the meaning is named, not proved: it is the paper's working hypothesis.
 
 \section{From Featherweight Jlt to System~F}
@@ -605,9 +605,9 @@ pair_unit  =  Λ A. Λ B. λ da : MonoidDict A OpA. λ db : MonoidDict B OpB.
                 (da.unit, db.unit)
 \end{minted}
 The compiler applies such functions outside in, as often as the composite nests.
-The recursion ends, because a context can only mention proper parts of the type it is for.\footnote{The termination conditions on instance contexts are studied by Sulzmann et al.~\cite{sulzmann2007understanding}.
+The recursion ends, because a context on a structured head mentions only proper parts of its type arguments, and a context mentions only shapes declared before it.\footnote{The termination conditions on instance contexts are studied by Sulzmann et al.~\cite{sulzmann2007understanding}.
 GHC calls them the Paterson conditions.
-The FJlt syntax enforces them by construction, since a context can only mention the type arguments of the operation being specialised.}
+FJlt's well-formedness requires them (Appendix~\ref{app:fjlt:typing}).}
 
 \section{From System~F Back to Featherweight Jlt}
 \label{sec:guarantees}
@@ -624,7 +624,7 @@ They are what makes a \Cpp{} program a term of the calculus the theorems are abo
 
 \begin{theorem}[Type preservation]
 \label{thm:preservation}
-If $\Gamma \vdash e : \tau$ in FJlt, then $\llbracket \Gamma \rrbracket \vdash \llbracket e \rrbracket : \llbracket \tau \rrbracket$ in System~F.
+If $\Delta; \Gamma \vdash e : \tau$ in FJlt, then $\llbracket \Delta \rrbracket; \llbracket \Gamma \rrbracket \vdash \llbracket e \rrbracket : \llbracket \tau \rrbracket$ in the target, System~F with records and iterators (Appendix~\ref{app:fjlt:translation}).
 \end{theorem}
 
 Each \cppinline{requires} clause has become a record parameter.
@@ -632,7 +632,7 @@ At each call, the instance the compiler resolved supplies a record of the type t
 
 \begin{theorem}[Simulation]
 \label{thm:simulation}
-If $e \longrightarrow e'$ in FJlt (Appendix~\ref{app:fjlt:evaluation}), then $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e' \rrbracket$ in System~F, and values translate to values.
+If $e \longrightarrow e'$ in FJlt (Appendix~\ref{app:fjlt:evaluation}), then $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e' \rrbracket$ in the target, and a value of base type translates to a constant.
 For closed terms of base type, $e$ evaluates to $v$ if and only if $\llbracket e \rrbracket$ reduces to $\llbracket v \rrbracket$.
 \end{theorem}
 
@@ -882,7 +882,7 @@ Apart from the last row, no difference is a different value: where both evaluati
 In constant evaluation no optimiser runs: the front end interprets a fold one step at a time, and the optimiser that fuses Listing~\ref{lst:sites}'s stages into one residual pass sees only the code emitted for run time.
 So at compile time only a declared law shortens a fold, chosen by resolution, as for Listing~\ref{lst:laws}'s overloads: it buys at build time what the optimiser finds at run time by itself.
 
-Not every algorithm converges, so Jlt allows a \emph{budget}, a counter beside the structure's own count, as the compiler has one; exhausting either is never a value (Appendix~\ref{app:fjlt:ssa}).\footnote{The compiler's budgets apply at compile time only, Jlt's at both binding times, and they are the compiler's to set: raised, the refused fold of $10^8$ copies compiles and holds.}
+Not every algorithm converges, so Jlt allows a \emph{budget}, a counter beside the structure's own count, as the compiler has one; exhausting the compiler's is not a value, and exhausting Jlt's is the empty optional, the third answer of Table~\ref{tab:posture} (Appendix~\ref{app:fjlt:ssa}).\footnote{The compiler's budgets apply at compile time only, Jlt's at both binding times, and they are the compiler's to set: raised, the refused fold of $10^8$ copies compiles and holds.}
 
 \paragraph{The same laws license parallelism.}
 A parallel \cppinline{concat} is one more overload, licensed by \cppinline{IsCommutativeMonoid}.
@@ -928,7 +928,7 @@ Rule~3 keeps them predictable, because every fold's length is in the program: a 
 \paragraph{The linter is sound and incomplete.}
 The repository's linter, run in continuous integration on the compiler's own front end and documented there, checks Rule~3 for every instantiated body, Rule~1's syntactic part, and Rule~2 at the level of names: a body may use, on a value of parameter type, only what a declared constraint names.
 A finding is a breach or a gap in its reading of the standard's concepts, and its silence is not a proof.
-Review complements it: an agentic reviewer reads every pull request against the three rules, and the listings and the library's core are held at zero on all three to the extent the two instruments reach.
+Review complements it: an agentic reviewer reads every pull request against the three rules, and Listings~\ref{lst:rule1} to~\ref{lst:laws} and the library's core are held at zero on all three to the extent the two instruments reach.
 
 \paragraph{The adequacy argument covers part of the library.}
 Tables~\ref{tab:closure} and~\ref{tab:closure:decl} are measured complete for the \texttt{category} module and the listings only.
@@ -968,7 +968,7 @@ CoreC++~\cite{wasserrab2006operational} gives an operational semantics and a mac
 These formalise the part of \Cpp{} that Rule~1 excludes, objects with identity and lifetime, and none covers templates, concepts or constant evaluation, so FJlt is a fragment with its own grammar rather than a subset of a formalised \Cpp{}.
 
 \paragraph{What System~F supplies.}
-Strong normalisation is Girard's \cite{girard1989proofs}, with inductive types Matthes' \cite{matthes1999extensions}, parametricity Reynolds' \cite{reynolds1983types}, and data types as their own folds B\"ohm and Berarducci's \cite{bohm1985automatic}: the appendix uses the three as black boxes, which is the point of translating into System~F.
+Strong normalisation is Girard's \cite{girard1989proofs}, with inductive types Matthes' \cite{matthes1999extensions}, and parametricity Reynolds' \cite{reynolds1983types}: the appendix uses both as black boxes, which is the point of translating into System~F; data types as their own folds is B\"ohm and Berarducci's reading \cite{bohm1985automatic}, which the appendix takes with iterators in place of Church encodings.
 
 \paragraph{Functional programming in \Cpp{}, and the other direction.}
 Functional programming in \Cpp{} is practised and taught: in a book~\cite{cukic2018functional}, in a metaprogramming library~\cite{chagnon2016hana}, and in category theory with examples in \Cpp{}~\cite{milewski2019category}; none states a fragment or proves anything of it.
