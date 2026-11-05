@@ -19,8 +19,10 @@
  * Licensed under the Apache License, Version 2.0.
  */
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <ranges>
 #include <span>
 #include <string_view>
 #include <type_traits>
@@ -85,7 +87,54 @@ struct Digest {
         6uz);
   }
 };
+/** @brief The section's words alone, read off all 4^6 codes one by one. */
+struct RunListOnly {
+  static constexpr auto value() { return run_list<128, 4, 6>(pali6); }
+};
+/** @brief A palindromic hexamer's code from its half-site: three digits, then
+ *  their reflections in reverse.  A half read in order gives codes in order. */
+constexpr std::size_t code_of_half(std::size_t h) {
+  const std::size_t a = h / 16, b = (h / 4) % 4, c = h % 4;
+  return (h * 64) + ((3 - c) * 16) + ((3 - b) * 4) + (3 - a);
+}
+/** @brief One more site, as a run of one code. */
+template <std::size_t K>
+struct AddSite {
+  constexpr dedekind::category::AtMost<std::size_t, K> operator()(
+      dedekind::category::AtMost<std::size_t, K> steps, std::size_t h) const {
+    const std::size_t code = code_of_half(h);
+    return steps.with(code).with(code + 1);
+  }
+};
+/** @brief The table alone: the sites given by their halves in [lo, hi), so
+ *  only 4^3 at most are visited, none tested. */
+template <std::size_t lo, std::size_t hi, std::size_t K, std::size_t Q>
+struct Halves {
+  static constexpr auto value() {
+    constexpr std::size_t KL = 2 * (hi - lo);
+    const dedekind::category::RunList<std::size_t, KL> sites{
+        std::ranges::fold_left(std::views::iota(lo, hi),
+                               dedekind::category::AtMost<std::size_t, KL>{},
+                               AddSite<KL>{})};
+    return automaton<4, 6, K, Q>(sites, 6uz);
+  }
+};
 }  // namespace
+
+// Whether the list of the section's words fits by itself, and each table with
+// its sites given by their halves: what the budget buys, apart.
+extern "C" bool budget_run_list_alone() {
+  return PlansAtCompileTime<RunListOnly>;
+}
+extern "C" std::int64_t budget_table_ga() {
+  return measured<Halves<32, 36, 8, 12>>();
+}
+extern "C" std::int64_t budget_table_g() {
+  return measured<Halves<32, 48, 32, 53>>();
+}
+extern "C" std::int64_t budget_table_all_64() {
+  return measured<Halves<0, 64, 32, 288>>();
+}
 
 // The budget, by how much of the library is kept: the first letters of the
 // site, G = 2 · 4^5.  The states are 12, 11, 52 and 277 by the minimal
