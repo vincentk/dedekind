@@ -90,6 +90,10 @@ SOURCES = [
         _PYTHON_DIR / "showcase_13_site_occurrences.cpp",
         _PYTHON_DIR / "showcase_13_site_occurrences.ll",
     ),
+    (
+        _PYTHON_DIR / "showcase_14_ecori_table.cpp",
+        _PYTHON_DIR / "showcase_14_ecori_table.ll",
+    ),
 ]
 
 # Keep single-source aliases for backward compatibility with any callers.
@@ -434,6 +438,22 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             raise AssertionError(
                 "Expected witness_sites_12_6 to collapse to `ret i64 1835008` "
                 "in IR (both lengths bound by constexpr)."
+            )
+    elif "showcase_14_ecori_table" in name:
+        # Listing 5's right panel: the table by binding time.  Each stage is
+        # printed for reading; only the bound one is asserted.
+        for symbol in ("witness_windows", "witness_table_at_run_time",
+                       "witness_ecori_cuts", "witness_ecori_cuts_on_dna",
+                       "witness_ecori_dna"):
+            block = extract_function_block(ir_text, symbol)
+            if block is None:
+                raise AssertionError(f"IR missing {symbol} symbol.")
+            print(f"--- {symbol}: {len(block.splitlines())} lines\n{block}")
+        block = extract_function_block(ir_text, "witness_ecori_dna")
+        if not re.search(r"^\s*ret i64 1\s*$", block, re.MULTILINE):
+            raise AssertionError(
+                "Expected witness_ecori_dna to collapse to `ret i64 1` in IR "
+                "(table and sequence bound by constexpr)."
             )
     else:
         raise AssertionError(f"No semantic checks defined for {name}.")
