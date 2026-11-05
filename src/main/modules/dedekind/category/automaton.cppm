@@ -71,7 +71,7 @@ module;
 #include <optional>
 #include <ranges>
 #include <span>
-#include <string_view>  // a site, as written
+#include <string_view>  // a prefix, as written
 #include <type_traits>
 #include <utility>
 
@@ -498,49 +498,48 @@ constexpr Maybe<Automaton<Sigma, Q>> automaton(
 }
 
 /** @brief @c prefix("GA"): the words beginning with these letters, the
- * predicate a section is met with.  @tparam L how many. */
-export template <std::size_t L>
-struct Prefix {
-  std::array<std::byte, L> word;
+ *  predicate a section is met with.  At most eight, the longest word a plan's
+ *  menu holds. */
+export struct Prefix {
+  AtMost<std::byte, 8> word;
 };
+namespace detail_automaton {
+/** @brief One more letter of a prefix. */
+struct AddByte {
+  constexpr AtMost<std::byte, 8> operator()(AtMost<std::byte, 8> w,
+                                            char c) const {
+    return w.with(detail_periodic::ToByte{}(c));
+  }
+};
+}  // namespace detail_automaton
 /** @param word the letters, written out.  @return the predicate. */
-export template <std::size_t M>
-  requires(M >= 2)
-constexpr Prefix<M - 1> prefix(const char (&word)[M]) {
-  return {bytes(word)};
+export constexpr Prefix prefix(std::string_view word) {
+  return {std::ranges::fold_left(word, AtMost<std::byte, 8>{},
+                                 detail_automaton::AddByte{})};
 }
 /** @brief A section met with a prefix.  Its own type, so that only what knows
  *  the prefix reads it: @c count_factors reads cycle types alone, and would
  *  count the section as if no letter were fixed, so no count is offered until
- *  it has a law.  @tparam P @tparam S @tparam T the section's.
- *  @tparam L the prefix's length. */
-export template <typename P, typename S, IsArrow T, std::size_t L>
+ *  it has a law.  @tparam P @tparam S @tparam T the section's. */
+export template <typename P, typename S, IsArrow T>
 struct Prefixed {
   Symmetric<P, S, T> section;
-  std::array<std::byte, L> word;
+  AtMost<std::byte, 8> word;
   /** @param w a word.  @return whether the section holds it and it begins with
    *  the prefix. */
   template <std::ranges::random_access_range W>
     requires std::ranges::sized_range<W>
   constexpr bool operator()(const W& w) const {
-    return section(w) && std::ranges::equal(w | std::views::take(L), word);
+    return section(w) &&
+           std::ranges::equal(w | std::views::take(word.size()), word);
   }
 };
 /** @param s the section.  @param p the prefix.  @return their meet. */
-export template <typename P, typename S, IsArrow T, std::size_t L>
-constexpr Prefixed<P, S, T, L> operator&(const Symmetric<P, S, T>& s,
-                                         const Prefix<L>& p) {
+export template <typename P, typename S, IsArrow T>
+constexpr Prefixed<P, S, T> operator&(const Symmetric<P, S, T>& s,
+                                      const Prefix& p) {
   return {s, p.word};
 }
-/** @brief One word over an alphabet, the set of one site: @c GAATTC as
- *  @c site(bases, "GAATTC").  Its length is in the type, so its plan's
- *  capacities follow from it: the least that hold Knuth, Morris and Pratt's
- *  table, a plan the evaluator's budget admits.  @tparam L the length. */
-export template <std::size_t L>
-struct Site {
-  Letters letters;
-  std::size_t index;  ///< the letters' ranks in base |Σ|, the first the highest
-};
 namespace detail_automaton {
 /** @brief Refuses a word with a byte outside its alphabet. */
 [[noreturn]] constexpr void refuse_foreign_letter() { std::abort(); }
@@ -553,32 +552,16 @@ struct NextByte {
     return index * on.members.count() + *r;
   }
 };
-/** @brief One more letter of a word: its rank, the next digit. */
-struct NextDigit {
-  Letters on;
-  constexpr std::size_t operator()(std::size_t index, char c) const {
-    const Maybe<std::size_t> r = Ranked{on}(detail_periodic::ToByte{}(c));
-    if (!r) refuse_foreign_letter();
-    return index * on.members.count() + *r;
-  }
-};
 }  // namespace detail_automaton
-/** @param on the letters.  @param word a word of them.  @return its letters'
- *  ranks read as digits in base @f$|\Sigma|@f$, the first the highest. */
-export constexpr std::size_t word_index(const Letters& on,
-                                        std::string_view word) {
-  return std::ranges::fold_left(word, std::size_t{0},
-                                detail_automaton::NextDigit{on});
-}
 /** @brief The words of a section beginning with a prefix, by the law: no word
  *  tested, only the half-sites the prefix allows visited.  @param sites the
  *  meet.  @return its words, or nothing where a bound is too small. */
 export template <std::size_t KL, std::size_t Sigma, std::size_t P,
-                 IsCountWord N, std::size_t L>
+                 IsCountWord N>
   requires(Sigma >= 4 && Sigma % 2 == 0)
 constexpr Maybe<RunList<N, KL>> run_list(
-    const Prefixed<Power<std::byte, Letters, N>, Reverse, Reflection, L>&
-        sites) {
+    const Prefixed<Power<std::byte, Letters, N>, Reverse, Reflection>& sites) {
+  const std::size_t L = sites.word.size();
   const N n = sites.section.power.length;
   const Letters on = sites.section.power.member;
   if (n == 0 || n % 2 != 0 || n > P || L > n || on.members.count() != Sigma ||
@@ -595,33 +578,19 @@ constexpr Maybe<RunList<N, KL>> run_list(
  *  @param sites the meet.  @return the plan, or nothing where a bound is too
  *  small. */
 export template <std::size_t Sigma = 4, std::size_t P = 8, std::size_t K = 32,
-                 std::size_t Q = 320, std::size_t KL = 256, IsCountWord N,
-                 std::size_t L>
+                 std::size_t Q = 320, std::size_t KL = 256, IsCountWord N>
 constexpr Maybe<Automaton<Sigma, Q>> automaton(
-    const Prefixed<Power<std::byte, Letters, N>, Reverse, Reflection, L>&
-        sites) {
+    const Prefixed<Power<std::byte, Letters, N>, Reverse, Reflection>& sites) {
   const Maybe<RunList<N, KL>> words = run_list<KL, Sigma, P>(sites);
   if (!words) return {};
   return automaton<Sigma, P, K, Q>(*words, sites.section.power.length)
       .transform(
           detail_automaton::WithLetters<Sigma, Q>{sites.section.power.member});
 }
-/** @param alphabet the letters.  @param word a word of them, written out.
- *  @return the site. */
-export template <std::size_t M>
-  requires(M >= 2)
-constexpr Site<M - 1> site(const Alphabet& alphabet, const char (&word)[M]) {
-  const Letters on = alphabet.coalgebra().f;
-  return {on, word_index(on, std::string_view{word, M - 1})};
-}
-/** @brief The matcher of one site, Knuth, Morris and Pratt's: @c L + 1
- *  states, and a capacity of one more.  @param s the site.  @return the plan,
- *  or nothing where the alphabet has not @c Sigma letters. */
-export template <std::size_t Sigma = 4, std::size_t L>
-constexpr Maybe<Automaton<Sigma, L + 2>> automaton(const Site<L>& s) {
-  if (s.letters.members.count() != Sigma) return {};
-  return automaton<Sigma, L, 4, L + 2>(run<2>(s.index, s.index + 1), L)
-      .transform(detail_automaton::WithLetters<Sigma, L + 2>{s.letters});
+/** @param plan a plan.  @return how many states it has. */
+export template <std::size_t Sigma, std::size_t Q>
+constexpr std::size_t states(const Automaton<Sigma, Q>& plan) {
+  return plan.next.size();
 }
 
 /** @brief What a byte outside the alphabet does to a match: break it, the

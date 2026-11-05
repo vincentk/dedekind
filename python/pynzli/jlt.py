@@ -58,26 +58,27 @@ True
 >>> occurrences(oligos & len(12), pali6)  # the same count
 1835008
 
-The second panel of Listing 5 (#1135) scans **one** sequence, the caller's
-``bytes``, read where they are.  Two lines count the same sites: the query,
-the sequence's windows that are sites, ``>> pali6``, the first panel's
-expression read at one sequence; and the plan, the matcher
-specialised to the section's words (``automaton``, the minimal automaton,
-built here at run time by the function C++ runs at compile time).  A plan
-is a value: ``==`` compares the languages, ``repr`` is its EXPLAIN.
+The second panel of Listing 5 (#1135) builds a table before any sequence
+exists: the matcher specialised to the sites beginning ``GA`` (``automaton``,
+the minimal automaton, built here at run time by the function C++ runs at
+compile time).  What remains is one pass over the caller's ``bytes``, read
+where they are.  ``>> pali6``, the first panel's expression read at one
+sequence, is the definition it answers to.  A plan is a value: ``==`` compares
+the languages, ``repr`` is its EXPLAIN.
 
 .. [listing5:one-genome]
 
->>> dna = b"TTGAATTCNNNNNNNAAGCTTA"
+>>> sites = pali6 & prefix("GA")
+>>> scanner = automaton(sites)
+>>> states(scanner)
+11
+>>> def found(s):
+...     return s >> matches(scanner)
+>>> dna = b"GAATTCGAGCTCGGTACCCGGGGATCCTCTAGAGTCGACCTGCAGGCATGCAAGCTT"
 >>> count(dna >> pali6)
-2
->>> ecori = automaton(site(bases, "GAATTC"))
->>> count(dna >> matches(ecori))
-1
->>> def by_the_plan(s):
-...     return count(s >> matches(automaton(pali6)))
->>> by_the_plan(dna)
-2
+10
+>>> count(found(dna)), sites(b"GAATTC"), sites(b"GAGCTC")
+(2, True, True)
 
 .. [/listing5:one-genome]
 
@@ -85,11 +86,11 @@ is a value: ``==`` compares the languages, ``repr`` is its EXPLAIN.
 >>> plan
 automaton(states=277, accepting=64)
 >>> dna >> matches(plan) >> counting  # the stage form of count
-2
->>> collect(dna >> matches(plan))  # where a site ends
-[7, 20]
+10
+>>> collect(found(dna))  # where a site ends
+[5, 11]
 >>> collect(dna >> pali6)  # the restriction map: where each site begins
-[2, 15]
+[0, 6, 12, 16, 21, 27, 33, 39, 45, 51]
 >>> pali6(b"GAATTC"), pali6(b"GAATTA"), pali6(b"GAATT")
 (True, False, False)
 >>> count(b"GAANTTC" >> matches(plan))  # N breaks it
@@ -133,12 +134,13 @@ from ._jlt import matches
 from ._jlt import occurrences
 from ._jlt import pack
 from ._jlt import power
+from ._jlt import prefix
 from ._jlt import pred
 from ._jlt import refl
 from ._jlt import Reflection
 from ._jlt import rev
-from ._jlt import site
 from ._jlt import rotate
+from ._jlt import states
 from ._jlt import succ
 from ._jlt import symmetric
 from ._jlt import window
@@ -170,12 +172,13 @@ __all__ = [
     "occurrences",
     "pack",
     "power",
+    "prefix",
     "pred",
     "refl",
     "Reflection",
     "rev",
-    "site",
     "rotate",
+    "states",
     "succ",
     "symmetric",
     "window",

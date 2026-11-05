@@ -34,19 +34,17 @@ using dedekind::category::automaton;
 using dedekind::category::bytes;
 using dedekind::category::fixed_by;
 using dedekind::category::len;
-using dedekind::category::Letters;
 using dedekind::category::matches;
+using dedekind::category::prefix;
 using dedekind::category::rev;
-using dedekind::category::site;
-using dedekind::category::Site;
-using dedekind::category::word_index;
 using dedekind::category::words;
 
 namespace {
 constexpr auto bases = abc("ACGT");
 constexpr auto pali6 = words(bases) & len(6) & fixed_by(~rev);
 constexpr auto dna = bytes("TTGAATTCNNNNNNNAAGCTTA");
-constexpr auto ecori = *automaton(site(bases, "GAATTC"));
+constexpr auto ecori = *automaton<4, 6, 4, 8>(pali6 & prefix("GAATTC"));
+constexpr auto scanner = *automaton(pali6 & prefix("GA"));
 static_assert(count(dna >> matches(ecori)) == 1 && count(dna >> pali6) == 2);
 }  // namespace
 
@@ -122,7 +120,6 @@ struct Halves {
 }  // namespace
 
 namespace {
-using dedekind::category::prefix;
 template <std::size_t K, std::size_t Q>
 struct PrefixGa {
   static constexpr auto value() {
@@ -189,15 +186,19 @@ extern "C" __attribute__((noinline)) std::uint64_t witness_windows(
 /** @brief (b) The site known only at run time: the same plan, built here. */
 extern "C" __attribute__((noinline)) std::uint64_t witness_table_at_run_time(
     const char* word, const std::byte* s, std::size_t n) {
-  const Letters on = bases.coalgebra().f;
   const auto plan =
-      automaton(Site<6>{on, word_index(on, std::string_view{word, 6})});
+      automaton<4, 6, 4, 8>(pali6 & prefix(std::string_view{word, 6}));
   return count(std::span<const std::byte>{s, n} >> matches(plan)).value_or(0);
 }
 /** @brief (c) The table a constant, the sequence a value: the residual. */
 extern "C" __attribute__((noinline)) std::uint64_t witness_ecori_cuts(
     const std::byte* s, std::size_t n) {
   return count(std::span<const std::byte>{s, n} >> matches(ecori));
+}
+/** @brief (c′) The panel's scanner, by default capacities. */
+extern "C" __attribute__((noinline)) std::uint64_t witness_found(
+    const std::byte* s, std::size_t n) {
+  return count(std::span<const std::byte>{s, n} >> matches(scanner));
 }
 /** @brief (d) Both known, nothing bound: what the optimiser finds alone. */
 extern "C" __attribute__((noinline)) std::uint64_t witness_ecori_cuts_on_dna() {

@@ -443,7 +443,8 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
         # Listing 5's right panel: the table by binding time.  Each stage is
         # printed for reading; only the bound one is asserted.
         for symbol in ("witness_windows", "witness_table_at_run_time",
-                       "witness_ecori_cuts", "witness_ecori_cuts_on_dna",
+                       "witness_ecori_cuts", "witness_found",
+                       "witness_ecori_cuts_on_dna",
                        "witness_ecori_dna", "budget_digest_2",
                        "budget_prefix_ga", "budget_prefix_g",
                        "budget_prefix_g_menu", "budget_all_64",

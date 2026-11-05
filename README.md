@@ -76,17 +76,24 @@ static_assert(count(cuts(12)) == 1'835'008uz && count(cuts(32)) == 27uz << 58);
 <!-- listing5:one-genome:cpp -->
 
 ```cpp
-// a sequence, N an unknown base :
-constexpr auto dna = bytes("TTGAATTCNNNNNNNAAGCTTA");
-// { i | dna[i, i+6) ∈ pali6 }, each window tested :
-static_assert(count(dna >> pali6) == 2uz);
-// one site, its table built by the compiler :
-constexpr auto ecori = automaton(site(bases, "GAATTC"));
-static_assert(count(dna >> matches(ecori)) == 1uz);
-// all 64, by the same function; the table past the budget, built at run time :
-constexpr auto by_the_plan(std::span<const std::byte> s) {
-  return count(s >> matches(automaton(pali6)));
+// those of pali6 beginning GA :
+constexpr auto sites = pali6 & prefix("GA");
+// the table, computed once by the compiler :
+constexpr auto scanner = *automaton(sites);
+static_assert(states(scanner) == 11uz);
+// what remains, one pass over any s :
+constexpr auto found(std::span<const std::byte> s) {
+  return s >> matches(scanner);
 }
+// and only now a sequence :
+constexpr auto dna = bytes(
+    "GAATTCGAGCTCGGTACCCGGGGATCC"
+    "TCTAGAGTCGACCTGCAGGCATGCAAGCTT");
+// ten by definition, each window tested :
+static_assert(count(dna >> pali6) == 10uz);
+// two by the table: EcoRI's and SacI's :
+static_assert(count(found(dna)) == 2uz && sites(bytes("GAATTC")) &&
+              sites(bytes("GAGCTC")));
 ```
 
 </details>
@@ -95,23 +102,24 @@ constexpr auto by_the_plan(std::span<const std::byte> s) {
 <!-- listing5:one-genome:python -->
 
 ```pycon
->>> dna = b"TTGAATTCNNNNNNNAAGCTTA"
+>>> sites = pali6 & prefix("GA")
+>>> scanner = automaton(sites)
+>>> states(scanner)
+11
+>>> def found(s):
+...     return s >> matches(scanner)
+>>> dna = b"GAATTCGAGCTCGGTACCCGGGGATCCTCTAGAGTCGACCTGCAGGCATGCAAGCTT"
 >>> count(dna >> pali6)
-2
->>> ecori = automaton(site(bases, "GAATTC"))
->>> count(dna >> matches(ecori))
-1
->>> def by_the_plan(s):
-...     return count(s >> matches(automaton(pali6)))
->>> by_the_plan(dna)
-2
+10
+>>> count(found(dna)), sites(b"GAATTC"), sites(b"GAGCTC")
+(2, True, True)
 ```
 
 </details>
 
-The sequence holds two sites, EcoRI's `GAATTC` and HindIII's `AAGCTT`, with unread bases between them; a byte outside the alphabet is no site.
-The query tests each window against the sites, at compile time here.
-One site's matcher is Knuth, Morris and Pratt's table, a compile-time constant; the matcher of all 64 sites, the minimal automaton of their occurrences (277 states), exceeds the evaluator's budget and is built at run time by the same function, as Python builds it.
+The table is built first, for the sites beginning `GA`, before any sequence exists; what remains is one pass over the caller's bytes.
+The sequence is the polylinker of the cloning vector pUC19, ten sites by the definition, of which the table finds EcoRI's `GAATTC` and SacI's `GAGCTC`.
+In C++ this table is a compile-time constant, built from the sites' half-sites; the table of all 64, the minimal automaton of their occurrences (277 states), exceeds the evaluator's budget and is built at run time by the same function, as Python builds it.
 
 Both languages are checked sources: the C++ compiles in [`tensor_exhibit_test.cpp`](src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp), the Python runs as a doctest of [`pynzli.jlt`](python/pynzli/jlt.py), and [`test_readme_listing5.py`](src/test/python/test_readme_listing5.py) checks that this page shows them verbatim.
 

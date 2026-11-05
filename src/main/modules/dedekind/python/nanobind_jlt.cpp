@@ -366,31 +366,22 @@ Plan plan_of(const S& s) {
       "automaton: the section's plan exceeds the largest capacity (320 "
       "states, 32 steps per pending set, words of length 8 over 4 letters)");
 }
-/** @brief @c site(alphabet, word): one word, its letters' ranks as digits;
- *  its length a value here, where C++ has it in the type. */
-struct Site {
-  Letters letters;
-  std::size_t index;
-  std::size_t length;
-};
-/** @param a the alphabet.  @param word a word of it.  @return the site. */
-Site site(const Alphabet& a, std::string_view word) {
-  const Letters on = a.coalgebra().f;
-  if (on.members.count() != 4) throw nb::value_error("site: 4 letters");
-  if (word.empty() || word.size() > 8)
-    throw nb::value_error("site: a word of 1 to 8 letters");
-  if (!std::ranges::all_of(word, [&](char c) {
-        return on(std::byte{static_cast<unsigned char>(c)});
-      }))
-    throw nb::value_error("site: a letter outside the alphabet");
-  return {on, dedekind::category::word_index(on, word), word.size()};
-}
-/** @brief The plan of one site, the menu's smallest capacity holding it. */
-Plan automaton_of_site(const Site& s) {
-  auto plan = *dedekind::category::automaton<4, 8, 4, 16>(
-      dedekind::category::run<2>(s.index, s.index + 1), s.length);
-  plan.columns = dedekind::category::columns_of(s.letters);
-  return {plan};
+/** @brief @c pali6 @c & @c prefix(word): the law lists its words, so only the
+ *  reverse complement by the alphabet's own reflection has one yet. */
+using PrefixedSites =
+    dedekind::category::Prefixed<WordPower, Reverse, Reflection>;
+/** @param s the section.  @param p the prefix.  @return their meet. */
+inline PrefixedSites with_prefix(const Section& s,
+                                 const dedekind::category::Prefix& p) {
+  const auto* x = std::get_if<
+      dedekind::category::Symmetric<WordPower, Reverse, Reflection>>(
+      &s.section);
+  if (x == nullptr)
+    throw nb::type_error("section & prefix: the section must be fixed by ~rev");
+  for (const std::byte b : p.word)
+    if (!x->power.member(b))
+      throw nb::value_error("prefix: a letter outside the alphabet");
+  return *x & p;
 }
 Plan automaton(const Section& s) {
   return std::visit([](const auto& x) { return plan_of(x); }, s.section);
@@ -474,8 +465,18 @@ void bind_matcher(nb::module_ module_) {
       .def("__rrshift__", [](const jlt::MatchesStage& m, nb::bytes b) {
         return jlt::MatchQuery{{std::move(b)}, m};
       });
-  nb::class_<jlt::Site>(module_, "Site",
-                        "site(alphabet, word): one word, the set of one site.");
+  nb::class_<dedekind::category::Prefix>(
+      module_, "Prefix",
+      "prefix(word): the words beginning with these letters.");
+  nb::class_<jlt::PrefixedSites>(
+      module_, "PrefixedSection",
+      "section & prefix(word): the words of the section beginning so.")
+      .def(
+          "__call__",
+          [](const jlt::PrefixedSites& s, nb::bytes w) {
+            return s(jlt::Text{std::move(w)}.view());
+          },
+          nb::arg("word"));
   nb::class_<jlt::CountingStage>(
       module_, "Counting",
       "counting: the stage form of count, ending a query: q >> counting.");
@@ -508,9 +509,24 @@ void bind_matcher(nb::module_ module_) {
       "fixed_by",
       [](const jlt::ReflectedReverse& g) { return jlt::FixedStage{g}; },
       nb::arg("symmetry"));
-  module_.def("site", &jlt::site, nb::arg("alphabet"), nb::arg("word"),
-              "site(alphabet, word): one word over the alphabet.");
-  module_.def("automaton", &jlt::automaton_of_site, nb::arg("site"));
+  module_.def(
+      "prefix",
+      [](std::string_view word) {
+        if (word.size() > 8) throw nb::value_error("prefix: at most 8 letters");
+        return dedekind::category::prefix(word);
+      },
+      nb::arg("word"), "prefix(word): the words beginning with these letters.");
+  module_.def(
+      "automaton", [](const jlt::PrefixedSites& s) { return jlt::plan_of(s); },
+      nb::arg("section"));
+  module_.def(
+      "states",
+      [](const jlt::Plan& p) {
+        return std::visit(
+            [](const auto& a) { return dedekind::category::states(a); },
+            p.plan);
+      },
+      nb::arg("plan"), "states(plan): how many states the plan has.");
   module_.def("automaton", &jlt::automaton, nb::arg("section"),
               "automaton(section): the matcher specialised to the section's "
               "words, its plan built now; ValueError where it exceeds the "
@@ -603,6 +619,7 @@ void bind_tensors(nb::module_ module_) {
       "symmetry fixes.  Counted as a Tensor wherever one is taken.")
       .def("__mul__", &jlt::times<jlt::Section, jlt::Factored>)
       .def("__mul__", &jlt::times<jlt::Section, jlt::WordPower>)
+      .def("__and__", &jlt::with_prefix)
       .def("__rrshift__",
            [](const jlt::Section& s, nb::bytes b) {
              return jlt::WindowQuery{{std::move(b)}, s};

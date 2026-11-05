@@ -444,34 +444,42 @@ static_assert(
 using dedekind::category::automaton;
 using dedekind::category::bytes;
 using dedekind::category::matches;
+using dedekind::category::prefix;
 using dedekind::category::rank;
-using dedekind::category::site;
+using dedekind::category::states;
 // [listing5:one-genome]
-// a sequence, N an unknown base :
-constexpr auto dna = bytes("TTGAATTCNNNNNNNAAGCTTA");
-// { i | dna[i, i+6) ∈ pali6 }, each window tested :
-static_assert(count(dna >> pali6) == 2uz);
-// one site, its table built by the compiler :
-constexpr auto ecori = automaton(site(bases, "GAATTC"));
-static_assert(count(dna >> matches(ecori)) == 1uz);
-// all 64, by the same function; the table past the budget, built at run time :
-constexpr auto by_the_plan(std::span<const std::byte> s) {
-  return count(s >> matches(automaton(pali6)));
+// those of pali6 beginning GA :
+constexpr auto sites = pali6 & prefix("GA");
+// the table, computed once by the compiler :
+constexpr auto scanner = *automaton(sites);
+static_assert(states(scanner) == 11uz);
+// what remains, one pass over any s :
+constexpr auto found(std::span<const std::byte> s) {
+  return s >> matches(scanner);
 }
+// and only now a sequence :
+constexpr auto dna = bytes(
+    "GAATTCGAGCTCGGTACCCGGGGATCC"
+    "TCTAGAGTCGACCTGCAGGCATGCAAGCTT");
+// ten by definition, each window tested :
+static_assert(count(dna >> pali6) == 10uz);
+// two by the table: EcoRI's and SacI's :
+static_assert(count(found(dna)) == 2uz && sites(bytes("GAATTC")) &&
+              sites(bytes("GAGCTC")));
 // [/listing5:one-genome]
 // The plan's count is a Maybe: the plan may exceed its capacity, and the
 // monad carries that to the end, where the count is read.
 TEST_CASE("Category: Listing 5's one-genome lines agree",
           "[category][tensor][listing5]") {
   const Word genome(dna.begin(), dna.end());
-  CHECK(count(std::span<const std::byte>{genome} >> pali6) == 2);
-  CHECK(by_the_plan(genome) == 2);  // Maybe{2}
-  CHECK(by_the_plan(genome).has_value());
-  CHECK(by_the_plan(dna) == 2);
+  CHECK(count(std::span<const std::byte>{genome} >> pali6) == 10);
+  CHECK(count(found(genome)) == 2);
+  // the same builder on all 64, past the budget, so here at run time
+  CHECK(count(std::span<const std::byte>{genome} >>
+              matches(automaton(pali6))) == 10);
 }
 TEST_CASE("Category: palindromes listed by the law are those tested one by one",
           "[category][tensor][listing5]") {
-  using dedekind::category::prefix;
   using dedekind::category::run_list;
   // the law visits half-sites; the table section tests all 4^6 words
   CHECK(run_list<128, 4, 6>(pali6) == run_list<128, 4, 6>(sites_6));
@@ -511,11 +519,10 @@ concept PlansAtCompileTime =
     requires { typename std::bool_constant<Plan::value().has_value()>; };
 static_assert(PlansAtCompileTime<EcoRIPlan> && !PlansAtCompileTime<SitesPlan>);
 // One site written out is that plan, and knows its alphabet.
-static_assert(
-    listing5::ecori->next == EcoRIPlan::value()->next &&
-    listing5::ecori->accepting == EcoRIPlan::value()->accepting &&
-    listing5::ecori->columns ==
-        dedekind::category::columns_of(dedekind::category::letters("ACGT")));
+static_assert(automaton<4, 6, 4, 8>(listing5::pali6& prefix("GAATTC"))->next ==
+                  EcoRIPlan::value()->next &&
+              automaton<4, 6, 4, 8>(listing5::pali6 & prefix("GAATTC"))
+                      ->accepting == EcoRIPlan::value()->accepting);
 // A genome as the caller has it, bytes, read through the alphabet's rank:
 // EcoRI's site once in TTGAATTCAAGCTTA.  A byte outside the alphabet is a
 // hole: by default it breaks a match, so GAANTTC holds none; skipped, the
