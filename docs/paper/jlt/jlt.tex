@@ -535,7 +535,7 @@ The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
 \label{tab:adequacy}
 \end{table}
 
-No row of Tables~\ref{tab:closure} and~\ref{tab:closure:decl} needs anything the calculus lacks, and by measurement they are complete for the \texttt{category} module and the listings of \texttt{jlt\_listings\_test.cpp}, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}).
+No row of Tables~\ref{tab:closure} and~\ref{tab:closure:decl} needs anything the calculus lacks, and by measurement they are complete for the \texttt{category} module and the listings, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}).
 That each desugaring keeps the meaning is named, not proved: it is the paper's working hypothesis.
 
 \section{From Featherweight Jlt to System~F}
@@ -928,7 +928,7 @@ Rule~3 keeps them predictable, because every fold's length is in the program: a 
 \paragraph{The linter is sound and incomplete.}
 The repository's linter, run in continuous integration on the compiler's own front end and documented there, checks Rule~3 for every instantiated body, Rule~1's syntactic part, and Rule~2 at the level of names: a body may use, on a value of parameter type, only what a declared constraint names.
 A finding is a breach or a gap in its reading of the standard's concepts, and its silence is not a proof.
-Review complements it: an agentic reviewer reads every pull request against the three rules, and Listings~\ref{lst:rule1} to~\ref{lst:laws} and the library's core are held at zero on all three to the extent the two instruments reach.
+Review complements it: an agentic reviewer reads every pull request against the three rules, and the listings and the library's core are held at zero on all three to the extent the two instruments reach.
 
 \paragraph{The adequacy argument covers part of the library.}
 Tables~\ref{tab:closure} and~\ref{tab:closure:decl} are measured complete for the \texttt{category} module and the listings only.

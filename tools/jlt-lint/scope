@@ -35,7 +35,7 @@ rule3-no-self-recursion      src/test/cpp/modules/dedekind/category/jlt_listings
 rule3-no-mutual-recursion    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 # The listings' one Rule 2 finding is Listing 2's twice_loose, the paper's
 # deliberate breach of the rule: the check confirms the paper's claim.
-rule2-definition             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
+rule2-definition             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  1
 rule2-constrained-templates  src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
 rule2-no-inline-requires     src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule2-decided-resolution     src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
@@ -56,30 +56,30 @@ rule1-no-mutable-globals      src/test/cpp/modules/dedekind/category/jlt_listing
 rule1-no-escaping-reference-captures src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 
 # The paper's Listing 5, the tensor exhibit's panel (namespace listing5 of the
-# tensor test): reported first; a rule is gated at 0 once the report shows the
-# panel clean under it.
-rule3-no-loops               src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule3-no-self-recursion      src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule3-no-mutual-recursion    src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule2-definition             src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
+# tensor test): gated at 0 under every rule the other listings are gated on,
+# the panel having reported clean; the proxy and the inventory are reported.
+rule3-no-loops               src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule3-no-self-recursion      src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule3-no-mutual-recursion    src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule2-definition             src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
 rule2-constrained-templates  src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule2-no-inline-requires     src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule2-decided-resolution     src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule1-no-inheritance         src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule1-constexpr              src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule1-const-call-operator    src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule1-no-throw               src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule1-no-static-locals       src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule1-lvalue-reference-params src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule1-rvalue-reference-params src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule1-forwarding-reference-params src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule1-boxed-mutable-pointee  src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule1-boxed-identity         src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule1-no-volatile            src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule1-no-reference-returns   src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule1-const-member-functions src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule1-no-mutable-globals     src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
-rule1-no-escaping-reference-captures src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
+rule2-no-inline-requires     src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule2-decided-resolution     src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule1-no-inheritance         src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule1-constexpr              src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule1-const-call-operator    src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule1-no-throw               src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule1-no-static-locals       src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule1-lvalue-reference-params src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule1-rvalue-reference-params src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule1-forwarding-reference-params src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule1-boxed-mutable-pointee  src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule1-boxed-identity         src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule1-no-volatile            src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule1-no-reference-returns   src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule1-const-member-functions src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule1-no-mutable-globals     src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule1-no-escaping-reference-captures src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
 inventory                    src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
 
 # The category module (#1061): a rule is gated at 0 once the module is clean

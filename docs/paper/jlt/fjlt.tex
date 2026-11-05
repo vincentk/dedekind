@@ -559,7 +559,7 @@ local state that does not escape & assignments only to locals, by-value paramete
 \caption{Closure of FJlt under the constructions of \Cpp{} that Table~\ref{tab:adequacy} keeps out by the grammar.
 Each row is a closure statement: a term built by the construction from FJlt terms, under the condition, is the FJlt term in the third column, and none needs anything the calculus does not have.
 The fourth column is who holds the condition, as Table~\ref{tab:posture} says of the rules.
-The rows are the syntax the repository's tool finds in the library's \texttt{category} module and the listings of \texttt{jlt\_listings\_test.cpp}, by node kind, beyond the kernel's grammar, and \texttt{if consteval}, which a parallel \cppinline{concat} would need (Appendix~\ref{app:fjlt:consteval}).}
+The rows are the syntax the repository's tool finds in the library's \texttt{category} module and the listings, by node kind, beyond the kernel's grammar, and \texttt{if consteval}, which a parallel \cppinline{concat} would need (Appendix~\ref{app:fjlt:consteval}).}
 \label{tab:closure}
 \end{table}
 
@@ -661,6 +661,6 @@ Jlt has no subtyping: the grammar has no base clause and no derived-to-base conv
 What the library writes with a base clause is a registration, \cppinline{struct is_involutive<X> : std::true_type}, every base an empty class: the family row spelled by inheritance, read as the fact it states.
 
 \paragraph{What the table says.}
-The table is complete by measurement, not by argument, at the resolution of a syntax node's kind: the repository's tool lists every kind the \texttt{category} module and the listings of \texttt{jlt\_listings\_test.cpp} write, leaving out the compiler's implicit wrappers, and each is the kernel's or a row of the table.
+The table is complete by measurement, not by argument, at the resolution of a syntax node's kind: the repository's tool lists every kind the \texttt{category} module and the listings write, leaving out the compiler's implicit wrappers, and each is the kernel's or a row of the table.
 A kind does not tell every use apart: a binary operator is arithmetic or an assignment, and the assignments are the row of local state, which Rule~1's footnote admits and which reading, not counting, finds.
 With the table closed, the second direction of Section~\ref{sec:translation:adequacy} reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.
