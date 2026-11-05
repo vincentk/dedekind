@@ -843,7 +843,7 @@ constexpr bool one_strand_is_enough() {
 // T, so that sites are dense enough to test anything: about one window in eight
 // is a site, one in thirty-two begins AT.
 constexpr auto random_subset = law_section & prefix("AT");
-constexpr auto random_plan = *automaton<4, 6, 8, 12>(random_subset);
+constexpr auto random_plan = *automaton<4, 6, 16, 32>(random_subset);
 constexpr std::size_t random_length = 24;
 /** @brief The kernel the random words' table factors. */
 struct EndsInSubset {
