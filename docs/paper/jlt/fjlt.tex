@@ -30,23 +30,17 @@ A sum is a type of a family $\mathcal{S}$ that, like $\mathcal{R}$ below, is def
 A box is built and read, and nothing else: there is no term for \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes, so no program can ask which box holds a value, and that absence is what makes a box a value.
 There are two recursion primitives, one per kind of finiteness.
 \cppinline{fold_left} folds over a range of fixed length, a value $r$ of a family $\mathcal{R}$ that, like $\Sigma$, is defined by conditions and not by a list: $r$ has a length $|r| \in \mathbb{N}$, fixed before the fold starts, and, when $|r| > 0$, a head and a tail $\mathit{next}\,r$ with $|\mathit{next}\,r| = |r| - 1$; \textsc{S-Fold} consults $|r|$ before it asks for either, and in the target both are extended to the empty range by an arbitrary value, which the iterator never reaches, since it runs $|r|$ times.
-Each instance $R$ of $\mathcal{R}$ over an element type $\tau$ contributes to the target a state type $\llbracket R \rrbracket$, a constructor constant $c_R$ applied to the translations of its arguments, and its operations $|\cdot| : \llbracket R \rrbracket \to \mathbb{N}$, $\mathit{head} : \llbracket R \rrbracket \to \llbracket \tau \rrbracket$ and $\mathit{next} : \llbracket R \rrbracket \to \llbracket R \rrbracket$, constants for a base range and terms over the parts for a range built on another; the state of \cppinline{n >> chain(prior)} is $\llbracket N \rrbracket$, the count, that of \cppinline{transform(r, g)} is $\llbracket R \rrbracket \times \llbracket g \rrbracket$, the arrow carried so that $\mathit{head}$ applies it and $\mathit{next}$ keeps it, that of \cppinline{repeat(x, n)} is $\llbracket \tau \rrbracket \times \mathbb{N}$, that of \cppinline{iota(i, j)} is $\mathbb{N} \times \mathbb{N}$, that of \cppinline{take(r, n)} is $\llbracket R \rrbracket \times \mathbb{N}$, that of \cppinline{reverse(a)} for an array $a$ of length $n$ is $\llbracket a \rrbracket \times \mathbb{N}$, the index from the end, and that of \cppinline{chain_view{lo, hi}} is $(1 + \llbracket C \rrbracket) \times \llbracket C \rrbracket$ for the chain $C$, the position possibly past the top, as the library's \cppinline{unfold_view} over $1 + C$ holds it.
+Each instance $R$ of $\mathcal{R}$ over an element type $\tau$ contributes to the target a state type $\llbracket R \rrbracket$, a constructor constant $c_R$ applied to the translations of its arguments, and its operations $|\cdot| : \llbracket R \rrbracket \to \mathbb{N}$, $\mathit{head} : \llbracket R \rrbracket \to \llbracket \tau \rrbracket$ and $\mathit{next} : \llbracket R \rrbracket \to \llbracket R \rrbracket$, constants for a base range and terms over the parts for a range built on another; the state of \cppinline{n >> chain(prior)} is $\llbracket N \rrbracket$, the count, that of \cppinline{transform(r, g)} is $\llbracket R \rrbracket \times \llbracket g \rrbracket$, the arrow carried so that $\mathit{head}$ applies it and $\mathit{next}$ keeps it, and that of \cppinline{iota(i, j)} is $\mathbb{N} \times \mathbb{N}$.
 The kernel's ranges are these.
 \cppinline{n >> chain(prior)} is the chain of a count under Figure~\ref{fig:structures}'s $\mathit{prior}$.
 Its head is \cppinline{prior(n)} and its tail \cppinline{prior(n) >> chain(prior)}.
 It is empty where \cppinline{prior(n)} is nothing, and finite because the step descends (Section~\ref{sec:posture}).
 \cppinline{transform(r, g)} is the image of a range under an arrow, Listing~\ref{lst:rule3}'s \cppinline{r >> g}.
 Its head is \cppinline{g(head r)}, its tail \cppinline{transform(next r, g)}, and its length $|r|$.
-\cppinline{repeat(x, n)} is $n$ copies of $x$, with head $x$ and tail \cppinline{repeat(x, n - 1)}.
-\cppinline{take(r, n)} is the first $n$ of $r$, with head \cppinline{head r}, tail \cppinline{take(next r, n - 1)} and length $\min(|r|, n)$.
-\cppinline{reverse(a)} reads an array of length $n$ from its last element, $a_{n-1-i}$ at index $i$.
 \cppinline{iota(i, j)}, with $i \le j$, is the naturals from $i$ below $j$, with head $i$ and tail \cppinline{iota(i + 1, j)}.
 The condition $i \le j$ is the standard view's: reversed endpoints are undefined behaviour, not an empty range.
-\cppinline{chain_view{lo, hi}} is a finite chain from \cppinline{lo} to \cppinline{hi}, walked by the covering step.
-Its head is \cppinline{lo} and its tail the interval from the cover of \cppinline{lo}, and it is empty when \cppinline{lo > hi}.
-\cppinline{iota} is its half-open counterpart on the naturals.
 \cppinline{cata(alg, t)} folds over a term: an operation whose fields are terms is a node, a term is a finite composition of nodes, and the fold applies the algebra to each node and the folded values of its legs, one node at a time.
-A pair's projections are written as the standard writes them, \cppinline{e.first} and \cppinline{e.second}, and read as $\pi_1$ and $\pi_2$~\cite{pierce1991basic}; the library's \cppinline{π_1} and \cppinline{π_2} are the same projections as function objects, applications under \textsc{T-Op}, so a program may write either.
+A pair's projections are written as the standard writes them, \cppinline{e.first} and \cppinline{e.second}, and read as $\pi_1$ and $\pi_2$~\cite{pierce1991basic}; the library's \cppinline{π_1} and \cppinline{π_2} are the same projections as function objects, applications under \textsc{T-Op}.
 The type formers are productions, not members of $\Sigma$, because the translation acts on them structurally: pairs as products, optionals as sums, boxes as unary products; a former enters when it has such an image, as \cppinline{std::variant} does as a sum, above, and \cppinline{std::vector} would as lists with their fold, which is absent because no listing needs it.
 
 \begin{figure}[htbp]
@@ -114,7 +108,7 @@ The exception is what admits the binary method of Listing~\ref{lst:laws}, whose 
 Its premise is closed because evaluation is defined on closed terms only: a law is evaluated where a record is built, at concrete types, and at a type variable a law is entailed only through an assumed shape that lists it, by \textsc{E-Law-Assumed}, as an operation is through \textsc{T-Req-Assumed}.
 The side condition of \textsc{E-Shape} makes entailment syntax-directed: an assumed shape is its record variable and is never rebuilt field by field, which is what Theorem~\ref{thm:coherence} needs.
 \textsc{E-Op} reads $S$ as equality for \cppinline{std::same_as} and as conversion for \cppinline{std::convertible_to}; in the second case \textsc{T-Req-Assumed} lets a body use the result only at the declared $\tau$, so the conversion the dictionary makes once, in the field, is the conversion the source would make at every use, and a body that used the unconverted result, say to compare two of them at their own type, would be using an operation the constraint did not name, which the typing refuses and \Cpp{} accepts: the one place FJlt is stricter than the compiler.
-The library needs the conversion form about as often as the exact one (161 requirements against 181), where a requirement's expression is an lvalue of the wanted type (\cppinline{const T&} is not \cppinline{same_as<T>}; \cppinline{IsPointed}'s unit), where a step returns a proxy for the carrier (\cppinline{HasNNOStep}'s successor), or where an object is presented by another type (\cppinline{Presents}); in each, the body uses the result at the declared type, which is the discipline just stated.
+The library needs the conversion form where a requirement's expression is an lvalue of the wanted type (\cppinline{const T&} is not \cppinline{same_as<T>}; \cppinline{IsPointed}'s unit), where a step returns a proxy for the carrier (\cppinline{HasNNOStep}'s successor), or where an object is presented by another type (\cppinline{Presents}); in each, the body uses the result at the declared type.
 The requirements of a shape, in \textsc{T-Req-Assumed} and \textsc{E-Law-Assumed}, are its own and, transitively, those of its nested shapes, so that an assumed \cppinline{IsCommutativeMonoid<T, Op>} yields the operations and the associativity law of \cppinline{IsMonoid<T, Op>}; the dictionary projects along the path of nested fields, $q_C.m.r$ for a requirement $r$ of the nested shape held in field $m$.
 When more than one assumed requirement matches an operation, the rules take the leftmost shape of the \cppinline{requires} clause and, within it, the first matching requirement in declaration order, so both rules are functions of the body; once instantiated the candidates denote one operation, by Lemma~\ref{lem:resolve}, and the choice fixes which is projected before that.
 \textsc{T-Req-Assumed} is the rule that makes \textsc{D-Generic} a definition check: inside a constrained body, an operation on a constrained type is typed only as an instance of a requirement of a constraint in $\Delta$, \cppinline{Op{}(x, x)} as the pattern \cppinline{{ Op{}(a, b) }} at $a, b := x$, and \cppinline{unit<T>(Op{})} as the pattern \cppinline{{ unit<T>(Op{}) }}, whose parameters are the variables of the \cppinline{requires} clause free in it, here none; a trait is reachable the same way.
@@ -232,13 +226,8 @@ The context grammar picks one redex per non-value term, so the relation is deter
 \caption{Evaluation.
 \textsc{S-Call} covers specialisations and generic functions alike, since resolution has already chosen the body; for a generic function the explicit type arguments are substituted first.
 \textsc{S-Fold} consumes the head of the range, so a fold takes as many steps as the range has elements.
-\cppinline{n >> chain(prior)} steps to \cppinline{prior(n) >> chain(prior)} with \cppinline{f(a, prior(n))}, or to the empty range where \cppinline{prior(n)} is nothing.
-\cppinline{transform(r, g)} steps to \cppinline{transform(next r, g)} with \cppinline{f(a, g(head r))}.
-\cppinline{repeat(v, k + 1)} steps to \cppinline{repeat(v, k)} with \cppinline{f(a, v)}.
-\cppinline{iota(i, j)}, $i \le j$ by typing, steps to \cppinline{iota(i + 1, j)} with \cppinline{f(a, i)}.
-\cppinline{chain_view{lo, hi}} steps to the interval from the cover of \cppinline{lo} with \cppinline{f(a, lo)}, or to the empty range when \cppinline{lo} has no cover or \cppinline{lo == hi}.
 \textsc{S-Cata} unfolds one node, passing the node itself beside its legs' folds; a leaf has no legs and the algebra is applied to it alone.
-Constants, pairs, optionals and boxes are values; \textsc{S-Prim} and \textsc{S-Std} are total because the admitted operations are, which is what Lemma~\ref{lem:progress} needs.
+\textsc{S-Prim} and \textsc{S-Std} are total because the admitted operations are, which is what Lemma~\ref{lem:progress} needs.
 \textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a constant evaluator rejects a term that builds a box, and a law or a \cppinline{static_assert} premise contains no \cppinline{make_shared}, which is the condition under which every FJlt program is a Jlt program.}
 \label{fig:fjlt-eval}
 \end{figure}
@@ -414,7 +403,6 @@ the operations $\mathit{next}$ and $\mathit{head}$ computing the range's, and th
 
 \begin{proof}[Proof of Corollary~\ref{cor:termination}, termination]
 An infinite reduction $e \longrightarrow e_1 \longrightarrow \cdots$ would give, by Lemma~\ref{lem:forward}, an infinite reduction $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e_1 \rrbracket \longrightarrow^{+} \cdots$ in the target, which is strongly normalising.
-The count enters as a natural number iterated by a primitive of the target, not as a recursion scheme the type system would have to admit.
 \end{proof}
 
 \begin{proof}[Proof of Corollary~\ref{cor:soundness}, type soundness]
@@ -443,7 +431,7 @@ The target's constants are interpreted by the identity relation at their base ty
 \end{proof}
 
 The dependencies run one way: coherence, which makes the translation a function of the term; preservation with the lemma on dictionaries; the lemma on resolution and the substitution lemmas, that translation commutes with the substitution of types and of terms and that a dictionary built at a type variable reduces, after substitution, to the one built at the concrete types; source subject reduction; progress; forward simulation, which uses coherence to translate the reduct; termination from forward simulation and the target's strong normalisation; soundness from progress and termination; the converse of simulation from soundness; parametricity on its own.
-What the sketches leave open: they take \cppinline{fold_left} over the ranges of $\mathcal{R}$ as a primitive with the evaluation rule of Figure~\ref{fig:fjlt-eval}, trusting the standard library for \cppinline{repeat} and \cppinline{iota} and the library for \cppinline{chain_view} (Section~\ref{sec:limits}), and they type a fold only at a range of a known instance, so Listing~\ref{lst:rule3}'s \cppinline{concat}, a fold at a type variable, needs a shape for ranges that the calculus does not yet have; the conditions of \textsc{T-Range} are semantic, so termination is in part assumed in the typing; forward simulation is literal except at the self-call of the one exception, where the target carries the fuel $F^{m}\,d$ with $m$ above the argument and the image carries the name $f$, and at a fold step, where the count reduces first, two relations under which each source step still takes at least one target step, which is what termination and the base-type statement use; and the substitution lemmas are stated, not proved.
+What the sketches leave open: they take \cppinline{fold_left} over the ranges of $\mathcal{R}$ as a primitive with the evaluation rule of Figure~\ref{fig:fjlt-eval}, trusting the standard library for \cppinline{iota} (Section~\ref{sec:limits}), and they type a fold only at a range of a known instance, so Listing~\ref{lst:rule3}'s \cppinline{concat}, a fold at a type variable, needs a shape for ranges that the calculus does not yet have; the conditions of \textsc{T-Range} are semantic, so termination is in part assumed in the typing; forward simulation is literal except at the self-call of the one exception, where the target carries the fuel $F^{m}\,d$ with $m$ above the argument and the image carries the name $f$, and at a fold step, where the count reduces first, two relations under which each source step still takes at least one target step, which is what termination and the base-type statement use; and the substitution lemmas are stated, not proved.
 Their mechanisation is future work.
 
 \subsection{The compiler's own functional language}
@@ -498,25 +486,15 @@ define { i64, i8 } @first_rt(i64 %0) {
 \label{lst:ssa}
 \end{listing}
 
-What this adds to the adequacy argument is a reason, not a theorem.
-Theorem~\ref{thm:simulation} relates FJlt's evaluation to the System~F image; the compiler relates the same program to SSA; and since both targets are functional languages with the loop's state as an explicit parameter, the sentence of Section~\ref{sec:binding}, that the discipline costs nothing at runtime, has a structural ground: the compiler makes a local function of every loop and a parameter of every accumulator in any case, and a Jlt fold names that parameter in the source instead of leaving the compiler to recover it from assignments.
-It is not a theorem because the compiler is not one of the hypotheses: the lowering is trusted, as every \Cpp{} program trusts it, and the reading of SSA as the simply typed iterator terms is Appel's, which this paper uses and does not prove.
+This is a reason, not a theorem: the compiler is not among the hypotheses, its lowering is trusted, as every \Cpp{} program trusts it, and the reading of SSA as iterator terms is Appel's, which this paper uses and does not prove.
+Since both targets make the loop's state a parameter, the sentence of Section~\ref{sec:binding}, that the discipline costs nothing at run time, has a structural ground: a Jlt fold names in the source the parameter the compiler would otherwise recover from assignments.
 One seam shows here too: SSA's values are the scalars in registers, and a value that lives in memory, a boxed value in particular, is read and written through a pointer that no $\phi$-node carries, which is the same line between a value and a cell that Rule~1 draws.
-The same line is an optimisation when it falls on the right side.
-Of the types of Figure~\ref{fig:fjlt-syntax}, the box and \cppinline{std::string} allocate; a value of any other type lives in a register or on the stack, and the top of the stack is the part of memory that is in cache almost always, so a function of such values has next to no cache to miss, and Listing~\ref{lst:sites}'s pass, over scalars, loads the letter, its column, the next state and whether it accepts, and stores nothing (Section~\ref{sec:binding}).
-That is an observation about the exhibits and a tendency with a reason for the rest, not a guarantee: a boxed value is on the heap by definition, a string's characters too, a large value is passed through the stack, and the register allocator, not the rule, has the last word; what the rule does is remove every reason to keep state anywhere but in the frame of the function that owns it, which is the identification of \cppinline{const T} with \cppinline{const T&} of Section~\ref{sec:posture} read by the machine.
 
 \subsection{The sugar: closure under the host's constructions}
 \label{app:fjlt:closure}
-FJlt is the kernel of Jlt, and this section names the sugar: each construction of \Cpp{} that a Jlt program writes beyond the kernel's grammar, with its desugaring into the kernel and without a proof.
-Most of the desugarings are local in Felleisen's sense~\cite{felleisen1991expressive}; two are not, closure conversion and the split of a branch on a constraint into two functions, since both add declarations, which is one reason the sugar is named and its desugaring trusted rather than proved.
-The question is one of closure: given terms of FJlt, under which condition is their composition under a construction of \Cpp{} again a term of FJlt?
-That is the question Section~\ref{sec:translation:adequacy} leaves open for the constructions the grammar does not name, and this section answers it one construction at a time.
-Each answer is a closure statement: the construction, the condition, and the FJlt term it builds.
-The condition is always on how the term is built and never on inspecting it afterwards, which is what lets a closure, an object whose type has no name, be a term of the calculus.
-Tables~\ref{tab:closure} and~\ref{tab:closure:decl} are the summary.
-The statements come with the reason each holds, and none of them is used by the theorems of Appendix~\ref{app:fjlt:theorems}.
-Where a count is given it is measured on the library's \texttt{category} module, 40 files.
+This section names the sugar: each construction of \Cpp{} that a Jlt program writes beyond the kernel's grammar, with its desugaring into the kernel, its condition and no proof; two desugarings, closure conversion and the split of a branch on a constraint, add declarations and so are not local in Felleisen's sense~\cite{felleisen1991expressive}.
+The condition is always on how the term is built and never on inspecting it afterwards, so a closure, whose type has no name, can be a term of the calculus.
+Tables~\ref{tab:closure} and~\ref{tab:closure:decl} summarise, and the theorems of Appendix~\ref{app:fjlt:theorems} use none of it.
 
 \begin{table}[tbp]
 \centering
@@ -547,7 +525,6 @@ The rows are the syntax the repository's tool finds in the library's \texttt{cat
 \label{app:fjlt:consteval}
 \cppinline{std::reduce} may regroup and reorder its operands, so its result is determined only for an operation that \cppinline{IsCommutativeMonoid} certifies, and Rule~1 gives the absence of data races its parallel policies ask.
 A parallel \cppinline{concat} is then one more overload, a run-time one, since the policies' overloads are not \cppinline{constexpr}.
-The laws say when the split is correct, not when it pays.
 
 \cppinline{if consteval}, and an \cppinline{if} on \cppinline{std::is_constant_evaluated()}, are how a program can observe its binding time, and FJlt need not have them.
 \cppinline|if consteval { A } else { B }| desugars to \cppinline{A}, provided \cppinline{B} computes the same value as \cppinline{A} on every input, so that the program cannot observe the difference after all (Table~\ref{tab:closure}).\footnote{The choice of \cppinline{A} is not arbitrary: it is the branch constant evaluation takes, which is FJlt's evaluation, while \cppinline{B} is typically not constant-evaluable, which is why the program branches at all.}
@@ -589,20 +566,19 @@ Capture by reference is excluded by Rule~1 before this lemma is reached.
 A capturing closure type is copy constructible and neither default constructible nor assignable, so it is not \cppinline{std::semiregular} and Rule~1 does not admit it as a value; it is admitted as sugar, judged through its image, which is semiregular when its captures are.
 That is the general rule for sugar: the rules are asked of the kernel term.
 A closure type has no name, so a lambda is never a carrier and never the head of an instance, and nothing in the statement asks to look inside it once built.
-The library has 47.
 
 \paragraph{\texttt{if constexpr} on a value.}
 A body \cppinline{if constexpr (p) return A; else return B;} with \cppinline{p} a closed \cppinline{bool} term, a law or a trait read, and \cppinline{A}, \cppinline{B} FJlt terms of one type under the same context, is the term \cppinline{p ? A : B}.
 The condition is stronger than \Cpp{} asks, since \Cpp{} does not instantiate the discarded branch and FJlt types both, and the compiler decides it: the rewritten body compiles or it does not.
 Constant evaluation of the two spellings agrees because both evaluate \cppinline{p} first and then one branch.
-36 of the library's 81 \cppinline{if constexpr} test a value, a syntactic count; whether the two branches share a type is decided per site by the rewrite, and a site whose branches differ in type, \cppinline{lattice_term}'s \cppinline{Meet<RA, RB>} against \cppinline{Meet<RB, RA>}, is not this row but a branch on types in a value's clothing, and waits with the next.
+Whether the two branches share a type is decided per site by the rewrite, and a site whose branches differ in type, \cppinline{lattice_term}'s \cppinline{Meet<RA, RB>} against \cppinline{Meet<RB, RA>}, is not this row but a branch on types in a value's clothing, and waits with the next.
 
 \paragraph{\texttt{if constexpr} on a constraint.}
 A body \cppinline{if constexpr (C<T>) return A; else return B;} in a generic function with head $\overline{Q}$, where \cppinline{A} is an FJlt term under $\overline{Q}, C\texttt{<T>}$ and \cppinline{B} one under $\overline{Q}, \texttt{!}C\texttt{<T>}$, is the pair of generic functions with those two heads.
 The pair plays the role of a two-clause instance chain of Morris and Jones~\cite{morris2010instance}, an explicit alternation decided by one constraint, though here resolution by specificity (Appendix~\ref{app:fjlt:typing}) rather than clause order picks its branch: at a concrete type the compiler decides $C\texttt{<T>}$, and at a type variable the call resolves only where the enclosing context decides it.
 A call it cannot decide is the next row's.
 When the test is \cppinline{std::same_as<T, X>} at a concrete \cppinline{X} and \cppinline{T} is the whole head, the first function is an explicit specialisation at \cppinline{X}.
-45 of the library's 81 \cppinline{if constexpr} test a constraint; 7 of those tested a \cppinline{requires} expression written in the body, which Rule~2 does not count as a declared constraint, and are now named shapes, with the tool's \texttt{inline-requires} check holding the module at zero.
+A test of a \cppinline{requires} expression written in the body is not a declared constraint under Rule~2, and the tool's \texttt{inline-requires} check holds the module at zero.
 
 \paragraph{A call its clause does not decide.}
 A generic function whose body calls a chain at its own type variable, without a clause that entails the chain's constraint or its negation, varies with the type through a constraint it did not declare.
@@ -615,21 +591,18 @@ Written by hand, the same thing is to decide the constraint in the clause, by re
 The kernel has the case form (Appendix~\ref{app:fjlt:syntax}), so given FJlt terms \cppinline{f} and \cppinline{g} on the two summands their copairing is an FJlt term, \texttt{case(}$s$\texttt{, }$f$\texttt{, }$g$\texttt{)}.
 \cppinline{has_value} and \cppinline{value_or} on an optional are that case on $1 + T$, and \cppinline{std::visit(O{}, v)} is the case whose branches are one generic call operator entailed at each summand.
 \cppinline{*} on an optional is partial, undefined on the empty one, and is admitted under a \cppinline{has_value} guard, which desugars to the case form, as the head of a range is admitted only when its length is positive, or in a constant initialiser, where constant evaluation refuses the empty case and the compiler holds the guard, as for Listing~\ref{lst:sites}'s \cppinline{*automaton(sites)}.
-The library's \cppinline{IsCoproduct} writes down the injection half of the condition on $\mathcal{S}$, two named injections into one type, with \cppinline{std::variant} as its instance; the case form and its equations, \texttt{case} after an injection is that branch, are the other half, which no concept checks and which $\mathcal{S}$ states as $\mathcal{R}$ states head and tail.
 
 \paragraph{Variable and class templates.}
 A variable template \cppinline{v<T...> = e} is the nullary function template \cppinline{v<T...>() { return e; }}, and a class template with a static constant member is the same, since constant evaluation of the three agrees.
 A partial specialisation over a family, every \cppinline{Rational<I>} under \cppinline{+}, is an instance with a context, in the grammar.
 Nothing is missing for one family; a primary that answers \cppinline{false} beside families that answer \cppinline{true} is two generic functions whose heads both match, which resolution by specificity orders.
-The host adds a wall the calculus does not have: a constrained function overload is found only when it precedes the shape (Section~\ref{sec:limits}), so the FJlt spelling is not writable in the library's module layout, while the library's spelling is FJlt by this statement.
-The library has 225 registrations.
+The host's lookup wall (Section~\ref{sec:limits}) makes the FJlt spelling unwritable in the library's module layout; the library's spelling is FJlt by this statement.
 
 \paragraph{Member functions.}
 A \cppinline{const} member function \cppinline{τ m(τ x...) const { return e; }} of an operation is the generic function \cppinline{m(O self, τ x...)} whose body reads the fields of \cppinline{self} where the member read \cppinline{this}.
 A static member function is a generic function.
 A struct with fields and no call operator is a product, nested pairs.
 Rule~1 supplies the \cppinline{const}, and the body is FJlt by hypothesis, so nothing is missing.
-The library has 12.
 
 \paragraph{Abbreviations.}
 An alias template is substitution.
@@ -642,12 +615,9 @@ Constrained overloads are generic functions, and where their heads both match, r
 
 \paragraph{Inheritance.}
 Jlt has no subtyping: the grammar has no base clause and no derived-to-base conversion, a class with a base that holds state or a virtual function is outside the posture, and the tool's \texttt{inheritance} check holds the module at zero.
-What the library writes with a base clause is a registration, \cppinline{struct is_involutive<X> : std::true_type}, 44 of them in the module and every base an empty class: the family row spelled by inheritance, read as the fact it states.
-The one class that inherited state, a wrapper around \cppinline{Morphism}, had no users and is gone.
+What the library writes with a base clause is a registration, \cppinline{struct is_involutive<X> : std::true_type}, every base an empty class: the family row spelled by inheritance, read as the fact it states.
 
 \paragraph{What the table says.}
-Every row needs nothing from the calculus, the closure statement being the standard's own account of the construction, once resolution is by specificity under GHC's rule and sums have their case form.
 The table is complete by measurement, not by argument, at the resolution of a syntax node's kind: the repository's tool lists every kind the \texttt{category} module and the listings of \texttt{jlt\_listings\_test.cpp} write, leaving out the compiler's implicit wrappers, and each is the kernel's or a row of the table.
 A kind does not tell every use apart: a binary operator is arithmetic or an assignment, and the assignments are the row of local state, which Rule~1's footnote admits and which reading, not counting, finds.
-One construction the measurement found had no image in System~F, a template taking a class template as an argument, a type constructor of higher kind; the library used it once, for convenience, and no longer does.
 With the table closed, the second direction of Section~\ref{sec:translation:adequacy} reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.
