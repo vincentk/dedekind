@@ -17,6 +17,7 @@
  * | @c Join     | @c JOIN    | @c p @c >> @c s               |
  * | @c OrderBy  | @c ORDER BY| @c >> @c order_by(rank)     |
  * | @c Take     | @c LIMIT   | @c >> @c take<K>()          |
+ * | -           | @c OVER    | @c >> @c windows(n)         |
  * | @c Count    | @c COUNT   | @c count, @c >> @c counting   |
  * | @c Sum      | @c SUM     | @c sum                      |
  *
@@ -273,6 +274,63 @@ export template <std::size_t N, typename St>
 constexpr auto operator>>(const std::array<std::byte, N>& a, const St& st) {
   return std::span<const std::byte>{a} >> st;
 }
+
+namespace detail_comprehension {
+/** @brief The kernel at one more prefix. */
+template <typename T, IsArrow K>
+struct KernelAt {
+  std::span<const T> text;
+  K kernel;
+  constexpr Cod<K> operator()(std::size_t n) const {
+    return kernel(text.first(n));
+  }
+};
+}  // namespace detail_comprehension
+/** @brief @c s @c <<= @c k, the extension of the history comonad: a kernel on
+ *  the non-empty prefixes, asked at each position, SQL's window function over
+ *  @c ROWS @c UNBOUNDED @c PRECEDING.  Every position has a prefix, so unlike a
+ *  window of @c n this is a comonad on a finite range; each answer may read the
+ *  whole prefix, so a kernel that factors through finitely many states is
+ *  worth a stage of its own (@c :automaton).  @param s the text.
+ *  @param k the kernel.  @return the answers, read lazily. */
+export template <typename T, IsArrow K>
+  requires std::same_as<Dom<K>, std::span<const T>>
+constexpr auto operator<<=(std::span<const T> s, K k) {
+  return std::views::iota(1uz, s.size() + 1) |
+         std::views::transform(
+             detail_comprehension::KernelAt<T, K>{s, std::move(k)});
+}
+/** @brief The history comonad's counit: a prefix's last letter.  @tparam T the
+ *  letters. */
+export template <typename T>
+struct LastOf {
+  using Domain = std::span<const T>;
+  using Codomain = T;
+  constexpr T operator()(std::span<const T> p) const { return p.back(); }
+};
+namespace detail_comprehension {
+constexpr std::array<std::size_t, 3> history_witness{7, 8, 9};
+/** @brief A kernel for the laws: a prefix's length. */
+struct LengthOf {
+  using Domain = std::span<const std::size_t>;
+  using Codomain = std::size_t;
+  constexpr std::size_t operator()(std::span<const std::size_t> p) const {
+    return p.size();
+  }
+};
+}  // namespace detail_comprehension
+// Extending by the counit is the identity, and the counit of an extension is
+// the kernel.  Coassociativity is not stated: the extension is a view and its
+// kernel takes a span.
+static_assert(
+    std::ranges::equal(
+        std::span<const std::size_t>{detail_comprehension::history_witness} <<=
+        LastOf<std::size_t>{},
+        detail_comprehension::history_witness) &&
+    std::ranges::equal(
+        std::span<const std::size_t>{detail_comprehension::history_witness} <<=
+        detail_comprehension::LengthOf{},
+        std::array{1uz, 2uz, 3uz}));
 
 // The functor's laws, read on a range of the caller's: the identity maps
 // it to itself, and mapping twice is mapping the composite once.

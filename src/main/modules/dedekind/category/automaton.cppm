@@ -74,6 +74,7 @@ module;
 #include <string_view>  // a prefix, as written
 #include <type_traits>
 #include <utility>
+#include <vector>  // a law witness: the other strand, in constant evaluation
 
 export module dedekind.category:automaton;
 
@@ -710,6 +711,35 @@ constexpr auto operator>>(V letters, const Matches<Sigma, Q>& m) {
                                                          std::move(letters)});
 }
 
+/** @brief @c s @c <<= @c plan: the history comonad's extension with its kernel
+ *  factored through finitely many states, so that it keeps one state, not the
+ *  history (Myhill and Nerode).  It is @c matches(plan), its holes breaking a
+ *  match.  @param letters a text.  @param plan the plan.  @return the query. */
+export template <std::ranges::view V, std::size_t Sigma, std::size_t Q>
+  requires std::ranges::random_access_range<V> && std::ranges::sized_range<V> &&
+           std::semiregular<V>
+constexpr auto operator<<=(V letters, const Automaton<Sigma, Q>& plan) {
+  return std::move(letters) >> matches(plan);
+}
+/** @brief @c s @c >> @c scanner: a plan read as the stage it is.  @param
+ * letters a text.  @param plan the plan.  @return the query. */
+export template <std::ranges::view V, std::size_t Sigma, std::size_t Q>
+  requires std::ranges::random_access_range<V> && std::ranges::sized_range<V> &&
+           std::semiregular<V>
+constexpr auto operator>>(V letters, const Automaton<Sigma, Q>& plan) {
+  return std::move(letters) <<= plan;
+}
+/** @brief Where a prefixed section's words occur in a range of the caller's:
+ *  the windows of its length it holds, as @c r @c >> @c s for a section.
+ *  @param r the view.  @param s the meet.  @return the query. */
+export template <detail_comprehension::IsForeignView R, typename P, typename S,
+                 IsArrow T>
+constexpr auto operator>>(R r, const Prefixed<P, S, T>& s) {
+  return std::move(r) >>
+         windows(static_cast<std::size_t>(s.section.power.length)) >>
+         where(arrow<std::span<const Dom<T>>, bool>(s));
+}
+
 // The rank of a byte in an alphabet is a Kleisli arrow into Maybe: a
 // letter's rank, or nothing.
 template <>
@@ -768,5 +798,58 @@ static_assert(std::ranges::equal(
     collect(std::span<const std::size_t>{detail_automaton::ttgaattcaagctta} >>
             matches(kmp_gaattc) >> take<1>()),
     std::array{7uz}));
+
+// The laws a section's scan keeps, stated once on one text.  A table, and the
+// windows it was built from, answer alike at every prefix: the kernel factors
+// through the states.  A smaller set finds no more.  And a set the reverse
+// complement fixes finds as many on the other strand.
+namespace detail_automaton {
+constexpr auto law_section = power(abc("ACGT"), 6uz) & fixed_by(~rev);
+constexpr auto law_subset = law_section & prefix("GA");
+constexpr auto law_plan = *automaton<4, 6, 8, 12>(law_subset);
+constexpr auto law_text = bytes("GAATTCGAGCTCGGTACCCGGGGATCC");
+/** @brief The kernel the table factors: whether a prefix ends in a word of the
+ *  set, reading its last six letters and nothing kept. */
+struct EndsInSite {
+  using Domain = std::span<const std::byte>;
+  using Codomain = bool;
+  constexpr bool operator()(std::span<const std::byte> p) const {
+    return p.size() >= 6 && law_subset(p.last(6));
+  }
+};
+constexpr bool plan_factors_the_kernel() {
+  const std::span<const std::byte> s{law_text};
+  return static_cast<std::size_t>(std::ranges::count(
+             s <<= EndsInSite{}, true)) == count(s <<= law_plan);
+}
+/** @brief Whether the table and the windows agree on one more prefix. */
+struct AgreesOnPrefix {
+  constexpr bool operator()(bool ok, std::size_t n) const {
+    const std::span<const std::byte> s{law_text.data(), n};
+    return ok && count(s >> law_plan) == count(s >> law_subset);
+  }
+};
+constexpr bool table_is_the_kernel() {
+  return std::ranges::fold_left(std::views::iota(0uz, law_text.size() + 1),
+                                true, AgreesOnPrefix{});
+}
+constexpr bool one_strand_is_enough() {
+  const std::vector<std::byte> s(law_text.begin(), law_text.end());
+  const std::vector<std::byte> other = (rev >> power(refl(letters("ACGT"))))(s);
+  return count(std::span<const std::byte>{s} >> law_section) ==
+         count(std::span<const std::byte>{other} >> law_section);
+}
+}  // namespace detail_automaton
+static_assert(detail_automaton::plan_factors_the_kernel(),
+              "the plan's extension is the kernel's, in one state");
+static_assert(detail_automaton::table_is_the_kernel(),
+              "the table is the windows' answer, at every prefix");
+static_assert(
+    count(detail_automaton::law_text >> detail_automaton::law_subset) <=
+        count(detail_automaton::law_text >> detail_automaton::law_section),
+    "reading through a smaller set finds no more");
+static_assert(
+    detail_automaton::one_strand_is_enough(),
+    "a set the reverse complement fixes finds as many on either strand");
 
 }  // namespace dedekind::category

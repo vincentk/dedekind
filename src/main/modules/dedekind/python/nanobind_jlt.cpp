@@ -458,7 +458,11 @@ void bind_matcher(nb::module_ module_) {
       "function C++ runs at compile time, run here.")
       .def("__eq__",
            [](const jlt::Plan& a, const jlt::Plan& b) { return a == b; })
-      .def("__repr__", &jlt::explain);
+      .def("__repr__", &jlt::explain)
+      .def("__rrshift__", [](const jlt::Plan& p, nb::bytes b) {
+        return jlt::MatchQuery{{std::move(b)},
+                               jlt::MatchesStage{p, jlt::Holes::break_match}};
+      });
   nb::class_<jlt::MatchesStage>(module_, "Matches",
                                 "matches(plan): the stage running a matcher "
                                 "along a sequence of bytes.")

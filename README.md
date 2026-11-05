@@ -78,21 +78,17 @@ static_assert(count(cuts(12)) == 1'835'008uz && count(cuts(32)) == 27uz << 58);
 ```cpp
 // those of pali6 beginning GA :
 constexpr auto sites = pali6 & prefix("GA");
-// the table, computed once by the compiler :
+// the table, computed once by the compiler, a function of any s :
 constexpr auto scanner = *automaton(sites);
 static_assert(states(scanner) == 11uz);
-// what remains, one pass over any s :
-constexpr auto found(std::span<const std::byte> s) {
-  return s >> matches(scanner);
-}
 // and only now a sequence :
 constexpr auto dna = bytes(
     "GAATTCGAGCTCGGTACCCGGGGATCC"
     "TCTAGAGTCGACCTGCAGGCATGCAAGCTT");
 // ten by definition, each window tested :
 static_assert(count(dna >> pali6) == 10uz);
-// two by the table: EcoRI's and SacI's :
-static_assert(count(found(dna)) == 2uz && sites(bytes("GAATTC")) &&
+// two by the table, in one pass : EcoRI's and SacI's
+static_assert(count(dna >> scanner) == 2uz && sites(bytes("GAATTC")) &&
               sites(bytes("GAGCTC")));
 ```
 
@@ -106,12 +102,10 @@ static_assert(count(found(dna)) == 2uz && sites(bytes("GAATTC")) &&
 >>> scanner = automaton(sites)
 >>> states(scanner)
 11
->>> def found(s):
-...     return s >> matches(scanner)
 >>> dna = b"GAATTCGAGCTCGGTACCCGGGGATCCTCTAGAGTCGACCTGCAGGCATGCAAGCTT"
 >>> count(dna >> pali6)
 10
->>> count(found(dna)), sites(b"GAATTC"), sites(b"GAGCTC")
+>>> count(dna >> scanner), sites(b"GAATTC"), sites(b"GAGCTC")
 (2, True, True)
 ```
 

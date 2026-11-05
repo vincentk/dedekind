@@ -450,21 +450,17 @@ using dedekind::category::states;
 // [listing5:one-genome]
 // those of pali6 beginning GA :
 constexpr auto sites = pali6 & prefix("GA");
-// the table, computed once by the compiler :
+// the table, computed once by the compiler, a function of any s :
 constexpr auto scanner = *automaton(sites);
 static_assert(states(scanner) == 11uz);
-// what remains, one pass over any s :
-constexpr auto found(std::span<const std::byte> s) {
-  return s >> matches(scanner);
-}
 // and only now a sequence :
 constexpr auto dna = bytes(
     "GAATTCGAGCTCGGTACCCGGGGATCC"
     "TCTAGAGTCGACCTGCAGGCATGCAAGCTT");
 // ten by definition, each window tested :
 static_assert(count(dna >> pali6) == 10uz);
-// two by the table: EcoRI's and SacI's :
-static_assert(count(found(dna)) == 2uz && sites(bytes("GAATTC")) &&
+// two by the table, in one pass : EcoRI's and SacI's
+static_assert(count(dna >> scanner) == 2uz && sites(bytes("GAATTC")) &&
               sites(bytes("GAGCTC")));
 // [/listing5:one-genome]
 // The plan's count is a Maybe: the plan may exceed its capacity, and the
@@ -473,7 +469,7 @@ TEST_CASE("Category: Listing 5's one-genome lines agree",
           "[category][tensor][listing5]") {
   const Word genome(dna.begin(), dna.end());
   CHECK(count(std::span<const std::byte>{genome} >> pali6) == 10);
-  CHECK(count(found(genome)) == 2);
+  CHECK(count(std::span<const std::byte>{genome} >> scanner) == 2);
   // the same builder on all 64, past the budget, so here at run time
   CHECK(count(std::span<const std::byte>{genome} >>
               matches(automaton(pali6))) == 10);
