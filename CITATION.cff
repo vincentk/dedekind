@@ -14,10 +14,11 @@ abstract: >
   (Pst); intensional sets, given by a membership test rather than a list
   (Lwv); a point-free relational calculus over cartesian products (Trsk);
   and symbolic algebra over the canonical sets (Ddk). Algebraic laws are
-  stated as types and as constexpr values, so the compiler checks them and
-  reduces expressions at build time, leaving what cannot fold as a
-  specialised run-time residual. A linter in tools/jlt-lint holds the core
-  of the library to the three rules in continuous integration.
+  declared as traits and witnessed by constexpr values: the compiler checks
+  the witnesses, trusts the declarations, and reduces expressions at build
+  time by them, leaving what cannot fold as a specialised run-time residual.
+  A linter in tools/jlt-lint holds the category layer to the three rules in
+  continuous integration, and the layers above to recorded counts.
 authors:
   - family-names: "Kräutler"
     given-names: "Vincent"

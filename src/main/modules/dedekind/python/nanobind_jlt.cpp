@@ -147,25 +147,51 @@ using dedekind::category::Letters;
 using dedekind::category::power;
 using dedekind::category::Power;
 using dedekind::category::PowerMap;
+using dedekind::category::ReflectedReverse;
+using dedekind::category::Reflection;
 using dedekind::category::Reverse;
 using dedekind::category::Rotation;
-using dedekind::category::slice;
 using dedekind::category::symmetric;
 using dedekind::category::with_width;
 
 /** @brief A filtered alphabet: the byte chain between its first and last
  *  letter, under the predicate that keeps the letters. */
-using Alphabet = decltype(slice(std::byte{}, std::byte{}) >> Letters{});
+using Alphabet = dedekind::category::Alphabet;
 using WordPower = Power<std::byte, Letters, std::size_t>;
-using Words = FreeMonoid<std::byte, Letters, std::size_t>;
+/** @brief @c words(alphabet): all the words, by length; @c oligos. */
+using WordPowers = dedekind::category::Words;
+using Length = dedekind::category::Length<>;
+using TruncatedWords = FreeMonoid<std::byte, Letters, std::size_t>;
 /** @brief A letter map on every letter of a word, and that followed by the
  *  reversal of the positions: the reverse complement where the map is the
  *  complement. */
 using LetterPower = PowerMap<LetterMap>;
+using DualPower = PowerMap<Reflection>;
 using Word = std::vector<std::byte>;
 using ReverseAfter = dedekind::category::Compose<
     LetterPower, dedekind::category::Morphism<Word, Word, Reverse>>;
+/** @brief The duality on every letter, then the reversal: the reverse
+ *  complement as the alphabet's own, an involution by its type. */
+using ReverseAfterDual = dedekind::category::Compose<
+    DualPower, dedekind::category::Morphism<Word, Word, Reverse>>;
 
+/** @brief @c fixed_by(g): the stage of what the reverse complement fixes,
+ *  for @c power @c & @c fixed_by(g); the complement a table, the duality,
+ *  or @c ~rev, the alphabet's own, taken where the stage meets the power. */
+struct FixedStage {
+  std::variant<ReverseAfter, ReverseAfterDual, ReflectedReverse> g;
+};
+/** @brief @c words(a) @c & @c fixed_by(g): the words @c g fixes, by length,
+ *  @c oligos @c & @c fixed_by(~rev); @c & @c len(n) is one of its sections. */
+struct SectionFamily {
+  std::variant<decltype(std::declval<const WordPowers&>() &
+                        dedekind::category::fixed_by(
+                            std::declval<const ReverseAfter&>())),
+               decltype(std::declval<const WordPowers&>() &
+                        dedekind::category::fixed_by(
+                            std::declval<const ReverseAfterDual&>()))>
+      family;
+};
 /** @brief A symmetric section of a tensor power held as itself, not as its
  *  count, so that a window can land in it (@c cylinder, @c occurrences): the
  *  palindromes, the rotation-fixed words, or the words a letter map then the
@@ -176,7 +202,8 @@ struct Section {
                                     dedekind::category::Identity<std::byte>>,
       dedekind::category::Symmetric<WordPower, Rotation<>,
                                     dedekind::category::Identity<std::byte>>,
-      dedekind::category::Symmetric<WordPower, Reverse, LetterMap>>
+      dedekind::category::Symmetric<WordPower, Reverse, LetterMap>,
+      dedekind::category::Symmetric<WordPower, Reverse, Reflection>>
       section;
 };
 /** @brief A tensor held by its factors, the core's @c count_factors of
@@ -224,17 +251,11 @@ Factored times(const A& a, const B& b) {
 }
 
 /** @param a the letters, as written.  @return the alphabet. */
-Alphabet alphabet(std::string_view a) {
-  if (a.empty()) throw nb::value_error("alphabet: no letters");
-  // ordered as bytes, not as char, which may be signed
-  const auto [lo, hi] =
-      std::ranges::minmax(a | std::views::transform([](char c) {
-                            return static_cast<unsigned char>(c);
-                          }));
-  if (hi == 0xFF)
-    throw nb::value_error("alphabet: the byte 0xFF ends no byte slice");
-  return slice(std::byte{lo}, std::byte{static_cast<unsigned char>(hi + 1)}) >>
-         dedekind::category::letters(a);
+Alphabet abc(std::string_view a) {
+  if (a.empty()) throw nb::value_error("abc: no letters");
+  if (std::ranges::contains(a, '\xFF'))
+    throw nb::value_error("abc: the byte 0xFF ends no byte slice");
+  return dedekind::category::abc(a);
 }
 /** @brief The factors as Python sees them: pairs (base, exponent). */
 template <std::ranges::sized_range L>
@@ -277,8 +298,8 @@ bool is_square(std::size_t k, std::size_t n) {
 //
 // The two lines of panel 2, as Python spells them on the caller's bytes:
 //
-//   count(genome >> windows(6) >> where(sites))                 the query
-//   count(genome >> rank(nucleotides) >> matches(automaton(sites)))   the plan
+//   count(sequence >> pali6)                                    the query
+//   count(sequence >> matches(automaton(pali6)))                    the plan
 //
 // The bytes are read where they are (the handle keeps the Python object
 // alive, nothing is copied); every stage is the library's own, dispatched at
@@ -290,9 +311,11 @@ bool is_square(std::size_t k, std::size_t n) {
 namespace jlt {
 using dedekind::category::Automaton;
 using dedekind::category::Holes;
-using dedekind::category::Ranked;
-using dedekind::category::Windows;
 
+/** @brief The stage ending a query, @c >> @c counting: the exported object's
+ *  type (its namespace is the comprehension's detail). */
+using CountingStage =
+    std::remove_cvref_t<decltype(dedekind::category::counting)>;
 /** @brief A text of the caller's, Python's bytes, read in place. */
 struct Text {
   nb::bytes bytes;
@@ -300,23 +323,16 @@ struct Text {
     return {static_cast<const std::byte*>(bytes.data()), bytes.size()};
   }
 };
-/** @brief @c genome @c >> @c rank(alphabet): the text read as letters. */
-struct RankedText {
-  Text text;
-  Ranked ranked;
-};
-/** @brief @c genome @c >> @c windows(n): the text's windows. */
-struct WindowsOver {
-  Text text;
-  Windows windows;
-};
-/** @brief @c where(section): the stage keeping the windows a section holds. */
-struct WhereSection {
-  Section section;
-};
-/** @brief @c ... @c >> @c windows(n) @c >> @c where(section): the query. */
+/** @brief @c power @c >> @c section: the join on the window, held by its
+ *  factors.  @param p the power.  @param s the section.  @return the tensor. */
+inline Factored window_join(const WordPower& p, const Section& s) {
+  return std::visit(
+      [&](const auto& x) { return Factored{jlt::count_factors(p >> x)}; },
+      s.section);
+}
+/** @brief @c dna @c >> @c section: the query. */
 struct WindowQuery {
-  WindowsOver over;
+  Text text;
   Section section;
 };
 /** @brief A plan, one of the menu's capacities: the letters' count 4, the
@@ -324,22 +340,24 @@ struct WindowQuery {
  *  the menu says. */
 struct Plan {
   std::variant<Automaton<4, 16>, Automaton<4, 320>> plan;
-  /** @brief The alphabet the plan's columns are the ranks of: a text must
-   *  be ranked in the same one, not merely one of the same size. */
-  Letters alphabet;
-  bool operator==(const Plan& o) const {
-    return plan == o.plan && alphabet == o.alphabet;
-  }
+  bool operator==(const Plan& o) const { return plan == o.plan; }
 };
 /** @brief @c matches(plan, holes): the stage running a matcher. */
 struct MatchesStage {
   Plan plan;
   Holes holes;
 };
-/** @brief @c genome @c >> @c rank(a) @c >> @c matches(plan): the query of the
- *  positions where a site ends. */
+/** @brief @c random_text(alphabet, n, seed): letters by position, never stored.
+ */
+struct RandomText {
+  decltype(dedekind::category::random_text(std::declval<const Alphabet&>(), 0uz,
+                                           std::uint64_t{0})) view_;
+  auto view() const { return view_; }
+};
+/** @brief @c dna @c >> @c matches(plan): the query of the positions where a
+ *  site ends. */
 struct MatchQuery {
-  RankedText text;
+  std::variant<Text, RandomText> text;
   MatchesStage stage;
 };
 
@@ -348,12 +366,29 @@ struct MatchQuery {
 template <typename S>
 Plan plan_of(const S& s) {
   if (const auto small = dedekind::category::automaton<4, 8, 4, 16, 256>(s))
-    return {*small, s.power.member};
+    return {*small};
   if (const auto large = dedekind::category::automaton<4, 8, 32, 320, 256>(s))
-    return {*large, s.power.member};
+    return {*large};
   throw nb::value_error(
       "automaton: the section's plan exceeds the largest capacity (320 "
       "states, 32 steps per pending set, words of length 8 over 4 letters)");
+}
+/** @brief @c pali6 @c & @c prefix(word): the law lists its words, so only the
+ *  reverse complement by the alphabet's own reflection has one yet. */
+using PrefixedSites =
+    dedekind::category::Prefixed<WordPower, Reverse, Reflection>;
+/** @param s the section.  @param p the prefix.  @return their meet. */
+inline PrefixedSites with_prefix(const Section& s,
+                                 const dedekind::category::Prefix& p) {
+  const auto* x = std::get_if<
+      dedekind::category::Symmetric<WordPower, Reverse, Reflection>>(
+      &s.section);
+  if (x == nullptr)
+    throw nb::type_error("section & prefix: the section must be fixed by ~rev");
+  for (const std::byte b : p.word)
+    if (!x->power.member(b))
+      throw nb::value_error("prefix: a letter outside the alphabet");
+  return *x & p;
 }
 Plan automaton(const Section& s) {
   return std::visit([](const auto& x) { return plan_of(x); }, s.section);
@@ -374,31 +409,37 @@ bool holds(const Section& s, const Text& w) {
 }
 std::size_t count(const MatchQuery& q) {
   return std::visit(
-      [&](const auto& a) {
-        return dedekind::category::count(
-            q.text.text.view() >> q.text.ranked >>
-            dedekind::category::matches(a, q.stage.holes));
+      [&](const auto& t) {
+        return std::visit(
+            [&](const auto& a) {
+              return dedekind::category::count(
+                  t.view() >> dedekind::category::matches(a, q.stage.holes));
+            },
+            q.stage.plan.plan);
       },
-      q.stage.plan.plan);
+      q.text);
 }
 /** @brief The positions where a site ends, as a list: the boundary's own
  *  materialisation of the query (@c collect in C++ takes a static bound). */
 std::vector<std::size_t> collect(const MatchQuery& q) {
   return std::visit(
-      [&](const auto& a) {
-        std::vector<std::size_t> out;
-        for (const auto& m : q.text.text.view() >> q.text.ranked >>
-                                 dedekind::category::matches(a, q.stage.holes))
-          if (m) out.push_back(*m);
-        return out;
+      [&](const auto& t) {
+        return std::visit(
+            [&](const auto& a) {
+              std::vector<std::size_t> out;
+              for (const auto& m :
+                   t.view() >> dedekind::category::matches(a, q.stage.holes))
+                if (m) out.push_back(*m);
+              return out;
+            },
+            q.stage.plan.plan);
       },
-      q.stage.plan.plan);
+      q.text);
 }
 std::size_t count(const WindowQuery& q) {
   return std::visit(
       [&](const auto& x) {
-        return dedekind::category::count(q.over.text.view() >> q.over.windows >>
-                                         dedekind::category::where(x));
+        return dedekind::category::count(q.text.view() >> x);
       },
       q.section.section);
 }
@@ -408,8 +449,7 @@ std::vector<std::size_t> collect(const WindowQuery& q) {
       [&](const auto& x) {
         std::vector<std::size_t> out;
         std::size_t at = 0;
-        for (const auto& m : q.over.text.view() >> q.over.windows >>
-                                 dedekind::category::where(x)) {
+        for (const auto& m : q.text.view() >> x) {
           if (m) out.push_back(at);
           ++at;
         }
@@ -426,40 +466,6 @@ void bind_matcher(nb::module_ module_) {
                         "break it (the default), or be skipped.")
       .value("break_match", jlt::Holes::break_match)
       .value("skip", jlt::Holes::skip);
-  nb::class_<jlt::Ranked>(module_, "Rank",
-                          "rank(alphabet): a byte's rank in the alphabet, a "
-                          "hole for any other byte; genome >> rank(a) reads "
-                          "the genome as letters.")
-      .def("__rrshift__", [](const jlt::Ranked& r, nb::bytes b) {
-        return jlt::RankedText{{std::move(b)}, r};
-      });
-  nb::class_<jlt::Windows>(module_, "Windows",
-                           "windows(n): each position's window of n letters; "
-                           "genome >> windows(n).")
-      .def("__rrshift__", [](const jlt::Windows& w, nb::bytes b) {
-        return jlt::WindowsOver{{std::move(b)}, w};
-      });
-  nb::class_<jlt::WhereSection>(
-      module_, "Where", "where(section): the windows the section holds.");
-  nb::class_<jlt::RankedText>(module_, "RankedText",
-                              "A genome read as letters, where it is.")
-      .def("__rshift__",
-           [](const jlt::RankedText& t, const jlt::MatchesStage& m) {
-             // the plan's columns are the ranks of the alphabet it was
-             // built from: a text ranked in another one, even of the same
-             // size, would read other letters into them
-             if (t.ranked.letters != m.plan.alphabet)
-               throw nb::value_error(
-                   "matches: the text is ranked in an alphabet other than "
-                   "the one the plan was built from");
-             return jlt::MatchQuery{t, m};
-           });
-  nb::class_<jlt::WindowsOver>(module_, "WindowsOver",
-                               "A genome's windows, where it is.")
-      .def("__rshift__",
-           [](const jlt::WindowsOver& w, const jlt::WhereSection& s) {
-             return jlt::WindowQuery{w, s.section};
-           });
   nb::class_<jlt::Plan>(
       module_, "Automaton",
       "The matcher specialised to a section: the minimal automaton of the "
@@ -467,41 +473,100 @@ void bind_matcher(nb::module_ module_) {
       "function C++ runs at compile time, run here.")
       .def("__eq__",
            [](const jlt::Plan& a, const jlt::Plan& b) { return a == b; })
-      .def("__repr__", &jlt::explain);
+      .def("__repr__", &jlt::explain)
+      .def("__rrshift__", [](const jlt::Plan& p, nb::bytes b) {
+        return jlt::MatchQuery{jlt::Text{std::move(b)},
+                               jlt::MatchesStage{p, jlt::Holes::break_match}};
+      });
   nb::class_<jlt::MatchesStage>(module_, "Matches",
                                 "matches(plan): the stage running a matcher "
-                                "along a genome read as letters.");
+                                "along a sequence of bytes.")
+      .def("__rrshift__", [](const jlt::MatchesStage& m, nb::bytes b) {
+        return jlt::MatchQuery{jlt::Text{std::move(b)}, m};
+      });
+  nb::class_<jlt::RandomText>(module_, "RandomText",
+                              "random_text(alphabet, n, seed=0): n letters, "
+                              "each a hash of its position; "
+                              "never stored, so n may be a billion.")
+      .def("__rshift__",
+           [](const jlt::RandomText& t, const jlt::Plan& p) {
+             return jlt::MatchQuery{
+                 t, jlt::MatchesStage{p, jlt::Holes::break_match}};
+           })
+      .def("__rshift__",
+           [](const jlt::RandomText& t, const jlt::MatchesStage& m) {
+             return jlt::MatchQuery{t, m};
+           });
+  module_.def(
+      "random_text",
+      [](const jlt::Alphabet& a, std::size_t n, std::uint64_t seed) {
+        return jlt::RandomText{dedekind::category::random_text(a, n, seed)};
+      },
+      nb::arg("alphabet"), nb::arg("length"), nb::arg("seed") = 0,
+      "random_text(alphabet, n, seed=0): n letters, each a hash of its "
+      "position.");
+  nb::class_<dedekind::category::Prefix>(
+      module_, "Prefix",
+      "prefix(word): the words beginning with these letters.");
+  nb::class_<jlt::PrefixedSites>(
+      module_, "PrefixedSection",
+      "section & prefix(word): the words of the section beginning so.")
+      .def(
+          "__call__",
+          [](const jlt::PrefixedSites& s, nb::bytes w) {
+            return s(jlt::Text{std::move(w)}.view());
+          },
+          nb::arg("word"));
+  nb::class_<jlt::CountingStage>(
+      module_, "Counting",
+      "counting: the stage form of count, ending a query: q >> counting.");
+  module_.attr("counting") = dedekind::category::counting;
   nb::class_<jlt::MatchQuery>(module_, "MatchQuery",
                               "The positions where a site ends: count it, "
-                              "collect it.");
+                              "collect it.")
+      .def("__rshift__",
+           [](const jlt::MatchQuery& q, const jlt::CountingStage&) {
+             return jlt::count(q);
+           });
   nb::class_<jlt::WindowQuery>(module_, "WindowQuery",
                                "The windows that are sites: count it, collect "
-                               "it (the positions where they begin).");
+                               "it (the positions where they begin).")
+      .def("__rshift__",
+           [](const jlt::WindowQuery& q, const jlt::CountingStage&) {
+             return jlt::count(q);
+           });
 
   module_.def(
-      "rank",
-      [](const jlt::Alphabet& a) {
-        return dedekind::category::rank(a.coalgebra().f);
-      },
-      nb::arg("alphabet"),
-      "rank(alphabet): a byte's rank in the alphabet (A < C < G < T is 0, 1, "
-      "2, 3), a hole for any other byte.");
+      "fixed_by", [](const jlt::ReverseAfter& g) { return jlt::FixedStage{g}; },
+      nb::arg("symmetry"),
+      "fixed_by(g): the stage of the words g fixes, for power & fixed_by(g), "
+      "the power met with the predicate: symmetric(power, g).");
   module_.def(
-      "windows",
-      [](std::size_t n) {
-        if (n == 0) throw nb::value_error("windows: a window has a letter");
-        // the width a span's difference type counts: past it the stage
-        // would refuse, which in Python is a ValueError, not an abort
-        if (n > static_cast<std::size_t>(
-                    std::numeric_limits<std::ptrdiff_t>::max()))
-          throw nb::value_error("windows: a window wider than a text can be");
-        return dedekind::category::windows(n);
-      },
-      nb::arg("n"), "windows(n): each position's window of n letters, n >= 1.");
+      "fixed_by",
+      [](const jlt::ReverseAfterDual& g) { return jlt::FixedStage{g}; },
+      nb::arg("symmetry"));
   module_.def(
-      "where", [](const jlt::Section& s) { return jlt::WhereSection{s}; },
-      nb::arg("section"),
-      "where(section): keep the windows the section holds.");
+      "fixed_by",
+      [](const jlt::ReflectedReverse& g) { return jlt::FixedStage{g}; },
+      nb::arg("symmetry"));
+  module_.def(
+      "prefix",
+      [](std::string_view word) {
+        if (word.size() > 8) throw nb::value_error("prefix: at most 8 letters");
+        return dedekind::category::prefix(word);
+      },
+      nb::arg("word"), "prefix(word): the words beginning with these letters.");
+  module_.def(
+      "automaton", [](const jlt::PrefixedSites& s) { return jlt::plan_of(s); },
+      nb::arg("section"));
+  module_.def(
+      "states",
+      [](const jlt::Plan& p) {
+        return std::visit(
+            [](const auto& a) { return dedekind::category::states(a); },
+            p.plan);
+      },
+      nb::arg("plan"), "states(plan): how many states the plan has.");
   module_.def("automaton", &jlt::automaton, nb::arg("section"),
               "automaton(section): the matcher specialised to the section's "
               "words, its plan built now; ValueError where it exceeds the "
@@ -539,15 +604,42 @@ void bind_tensors(nb::module_ module_) {
                              "The words of one length over an alphabet, a "
                              "tensor power, never built.")
       .def("__mul__", &jlt::times<jlt::WordPower, jlt::WordPower>)
-      .def("__mul__", &jlt::times<jlt::WordPower, jlt::Factored>);
-  nb::class_<jlt::Words>(module_, "FreeMonoid",
-                         "The free monoid on an alphabet truncated below a "
-                         "length: the coproduct of the tensor powers.");
+      .def("__mul__", &jlt::times<jlt::WordPower, jlt::Factored>)
+      .def("__rshift__", &jlt::window_join)
+      .def("__and__", [](const jlt::WordPower& p, const jlt::FixedStage& st) {
+        return std::visit(
+            [&](const auto& g) {
+              return jlt::Section{p & dedekind::category::fixed_by(g)};
+            },
+            st.g);
+      });
+  nb::class_<jlt::TruncatedWords>(
+      module_, "FreeMonoid",
+      "The free monoid on an alphabet truncated below a "
+      "length: the coproduct of the tensor powers.");
   nb::class_<jlt::Reverse>(module_, "Reverse",
-                           "The reversal of a word's positions.");
+                           "The reversal of a word's positions.")
+      .def("__invert__", [](const jlt::Reverse& r) { return ~r; });
+  nb::class_<jlt::ReflectedReverse>(
+      module_, "ReflectedReverse",
+      "~rev: the reversal, then the reflection of the alphabet on every "
+      "letter, the reverse complement, a family by alphabet; fixed_by(~rev) "
+      "takes the component at the power it meets.");
   nb::class_<jlt::Rotation<>>(module_, "Rotation",
                               "A rotation of a word's positions.");
   nb::class_<jlt::LetterMap>(module_, "LetterMap", "An arrow on the letters.");
+  nb::class_<jlt::Reflection>(
+      module_, "Reflection",
+      "The duality of an alphabet: the one order-reversing "
+      "bijection of its letters, an involution by its type.");
+  nb::class_<jlt::ReverseAfterDual>(
+      module_, "ReverseAfterDual",
+      "The duality on every letter, then the reversal of the positions.");
+  nb::class_<jlt::DualPower>(module_, "DualPower",
+                             "The duality on every letter of a word.")
+      .def("__rshift__", [](const jlt::DualPower& f, const jlt::Reverse& r) {
+        return f >> r;
+      });
   nb::class_<jlt::ReverseAfter>(
       module_, "ReverseAfter",
       "A map on every letter, then the reversal of the positions.");
@@ -558,12 +650,26 @@ void bind_tensors(nb::module_ module_) {
       });
   // A Section counts as a Tensor wherever one is taken as an argument; as the
   // left operand of * it is not converted, so it multiplies itself.
+  nb::class_<jlt::FixedStage>(module_, "FixedBy",
+                              "fixed_by(g): what a symmetry fixes, the "
+                              "predicate a power is met with.");
   nb::class_<jlt::Section>(
       module_, "Section",
       "A symmetric section of a tensor power, held as itself: the words a "
       "symmetry fixes.  Counted as a Tensor wherever one is taken.")
       .def("__mul__", &jlt::times<jlt::Section, jlt::Factored>)
       .def("__mul__", &jlt::times<jlt::Section, jlt::WordPower>)
+      .def("__and__", &jlt::with_prefix)
+      .def("__rrshift__",
+           [](const jlt::Section& s, nb::bytes b) {
+             // a ValueError here, not the core's abort when it is evaluated
+             const std::size_t n = std::visit(
+                 [](const auto& x) { return x.power.length; }, s.section);
+             if (n == 0 || n > static_cast<std::size_t>(
+                                   std::numeric_limits<std::ptrdiff_t>::max()))
+               throw nb::value_error("section: no window of that length");
+             return jlt::WindowQuery{{std::move(b)}, s};
+           })
       .def(
           "__call__",
           [](const jlt::Section& s, nb::bytes w) {
@@ -584,9 +690,14 @@ void bind_tensors(nb::module_ module_) {
       "The window of a word: its letters from a position, a given number "
       "long, the projection onto those positions.");
 
+  module_.def("abc", &jlt::abc, nb::arg("letters"),
+              "abc(letters): the filtered alphabet of the letters written.");
   module_.def(
-      "alphabet", &jlt::alphabet, nb::arg("letters"),
-      "alphabet(letters): the filtered alphabet of the letters written.");
+      "refl",
+      [](const jlt::Alphabet& a) { return dedekind::category::refl(a); },
+      nb::arg("alphabet"),
+      "refl(alphabet): the alphabet's duality, each letter to the one at the "
+      "reflected rank, the Watson-Crick complement of ACGT; an involution.");
   module_.def(
       "letter_map",
       [](std::string_view from, std::string_view to) {
@@ -597,7 +708,7 @@ void bind_tensors(nb::module_ module_) {
       nb::arg("from_"), nb::arg("to"),
       "letter_map(from, to): each letter to the image at the same place, every "
       "other byte fixed.");
-  module_.attr("reverse") = dedekind::category::reverse;
+  module_.attr("rev") = dedekind::category::rev;
   module_.def(
       "rotate", [](std::size_t d) { return dedekind::category::rotate(d); },
       nb::arg("by"), "rotate(by): the positions i -> i + by mod n.");
@@ -616,14 +727,75 @@ void bind_tensors(nb::module_ module_) {
       },
       nb::arg("arrow"));
   module_.def(
+      "is_involution",
+      [](const jlt::Reflection& d) {
+        return dedekind::category::is_involution(d);
+      },
+      nb::arg("arrow"));
+  module_.def(
+      "is_involution",
+      [](const jlt::ReverseAfterDual& g) {
+        return dedekind::category::is_involution(g);
+      },
+      nb::arg("arrow"));
+  module_.def(
       "power",
       [](const jlt::Alphabet& a, std::size_t n) { return jlt::power(a, n); },
       nb::arg("alphabet"), nb::arg("length"),
       "power(alphabet, n): the words of length n, a tensor power.");
+  nb::class_<jlt::Length>(module_, "Length",
+                          "len(n): the fibre of the length over n, the "
+                          "predicate a family of words is met with.");
+  module_.def(
+      "len", [](std::size_t n) { return dedekind::category::len(n); },
+      nb::arg("n"), "len(n): words & len(n) is the words of length n.");
+  nb::class_<jlt::WordPowers>(module_, "Words",
+                              "words(alphabet): the words over it, by "
+                              "length; words(a) & len(n) is power(a, n).")
+      .def(
+          "__call__",
+          [](const jlt::WordPowers& p, std::size_t n) { return p(n); },
+          nb::arg("length"))
+      .def("__and__",
+           [](const jlt::WordPowers& p, const jlt::Length& l) { return p & l; })
+      .def("__and__", [](const jlt::WordPowers& p, const jlt::FixedStage& st) {
+        return std::visit(
+            [&](const auto& g) {
+              return jlt::SectionFamily{p & dedekind::category::fixed_by(g)};
+            },
+            st.g);
+      });
+  nb::class_<jlt::SectionFamily>(
+      module_, "SectionFamily",
+      "words(a) & fixed_by(g): the words g fixes, by length; & len(n) "
+      "is the section of that length.")
+      .def("__and__",
+           [](const jlt::SectionFamily& f, const jlt::Length& l) {
+             return std::visit(
+                 [&](const auto& fam) { return jlt::Section{fam & l}; },
+                 f.family);
+           })
+      .def(
+          "__call__",
+          [](const jlt::SectionFamily& f, std::size_t n) {
+            return std::visit(
+                [&](const auto& fam) { return jlt::Section{fam(n)}; },
+                f.family);
+          },
+          nb::arg("length"));
+  module_.def(
+      "words",
+      [](const jlt::Alphabet& a) { return dedekind::category::words(a); },
+      nb::arg("alphabet"),
+      "words(alphabet): the words over it, by length; the free monoid as a "
+      "graded family.");
   module_.def(
       "power", [](const jlt::LetterMap& t) { return jlt::power(t); },
       nb::arg("arrow"),
       "power(f): the letter map f on every letter of a word.");
+  module_.def(
+      "power", [](const jlt::Reflection& d) { return jlt::power(d); },
+      nb::arg("arrow"));
   module_.def(
       "free_monoid",
       [](const jlt::Alphabet& a, std::size_t below) {
@@ -638,8 +810,8 @@ void bind_tensors(nb::module_ module_) {
       },
       nb::arg("power"), nb::arg("symmetry"),
       "symmetric(power, g): the words g fixes, the legs merged along the "
-      "cycles of its permutation of the positions: reverse, rotate(d), or "
-      "power(complement) >> reverse.");
+      "cycles of its permutation of the positions: rev, rotate(d), or "
+      "power(complement) >> rev.");
   module_.def(
       "symmetric",
       [](const jlt::WordPower& p, const jlt::Rotation<>& s) {
@@ -649,6 +821,12 @@ void bind_tensors(nb::module_ module_) {
   module_.def(
       "symmetric",
       [](const jlt::WordPower& p, const jlt::ReverseAfter& g) {
+        return jlt::Section{jlt::symmetric(p, g)};
+      },
+      nb::arg("power"), nb::arg("symmetry"));
+  module_.def(
+      "symmetric",
+      [](const jlt::WordPower& p, const jlt::ReverseAfterDual& g) {
         return jlt::Section{jlt::symmetric(p, g)};
       },
       nb::arg("power"), nb::arg("symmetry"));
@@ -683,7 +861,8 @@ void bind_tensors(nb::module_ module_) {
       [](const jlt::Factored& f) { return jlt::exact_count(f.factors); },
       nb::arg("tensor"));
   module_.def(
-      "exact_count", [](const jlt::Words& w) { return jlt::exact_count(w); },
+      "exact_count",
+      [](const jlt::TruncatedWords& w) { return jlt::exact_count(w); },
       nb::arg("tensor"));
   module_.def(
       "window",

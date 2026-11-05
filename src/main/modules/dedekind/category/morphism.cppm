@@ -939,6 +939,20 @@ constexpr auto operator>>(F f, G g) {
   using B = typename std::decay_t<F>::Codomain;
   return std::move(f) >> arrow<B>(std::move(g));
 }
+/** @brief The same with the callable on the LHS: @c rev @c >> @c power(τ)
+ *  gives @c rev the arrow's domain, as @c power(τ) @c >> @c rev gives
+ *  it the codomain.  A value on the LHS is application (below); the two do
+ *  not meet, since a value convertible to the domain is not a callable on
+ *  it. */
+export template <typename F, typename G>
+  requires(!IsArrow<std::decay_t<F>>) && IsArrow<std::decay_t<G>> &&
+          std::invocable<std::decay_t<F>&,
+                         const typename std::decay_t<G>::Domain&> &&
+          (!std::convertible_to<F, typename std::decay_t<G>::Domain>)
+constexpr auto operator>>(F f, G g) {
+  using A = typename std::decay_t<G>::Domain;
+  return arrow<A>(std::move(f)) >> std::move(g);
+}
 
 /** @section morphism__Categorical_2 Verification: The Unit Laws (f ∘ id = f =
  * id ∘ f) */

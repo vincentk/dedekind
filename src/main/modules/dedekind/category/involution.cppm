@@ -122,7 +122,7 @@ struct is_involutive<std::negate<T>, T> : std::true_type {};
  *  caller's letters.  A pure function object, value in and value
  *  out, so that it is an arrow in the sense of the Jlt paper's Rule 1, and a
  *  family of them, one per word type, as @c std::logical_not is one per
- *  truth type; @c endo<W>(reverse) names the domain. */
+ *  truth type; @c endo<W>(rev) names the domain. */
 export struct Reverse {
   template <std::ranges::bidirectional_range W>
     requires std::semiregular<W> && (!std::ranges::view<W>) &&
@@ -150,7 +150,7 @@ template <>
 struct is_involutive<Reverse, std::strong_ordering> : std::true_type {};
 /** @brief The reversal: of a word's positions, @f$i \mapsto n - 1 - i@f$, the
  *  symmetry of a palindrome, and of a comparison. */
-export inline constexpr Reverse reverse{};
+export inline constexpr Reverse rev{};
 
 /** @brief The identity arrow is (trivially) an involution: @c id(id(x)) = x,
  *  so @c id⁻¹ = id.  @c Identity is the degenerate case where @b idempotent

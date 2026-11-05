@@ -12,18 +12,105 @@
 ### Abstract
 
 <!-- The same text as CITATION.cff's abstract, verbatim; change both together. -->
-A symbolic-algebra library in standard C++23 that uses compile-time evaluation for static analysis, verification and optimisation. Its foundation is the Juliet Posture (Jlt), a fragment of C++23 under three rules: values are copyable data and functions are pure and constexpr; generic code varies with a type only through that type's concepts and traits; recursion is structural, on a type or on a natural number that counts down. On it the library builds an embedded, lazy language in layers: lattices of truth values from the Boolean and Kleene chains on (Pst); intensional sets, given by a membership test rather than a list (Lwv); a point-free relational calculus over cartesian products (Trsk); and symbolic algebra over the canonical sets (Ddk). Algebraic laws are stated as types and as constexpr values, so the compiler checks them and reduces expressions at build time, leaving what cannot fold as a specialised run-time residual. A linter in tools/jlt-lint holds the core of the library to the three rules in continuous integration.
+A symbolic-algebra library in standard C++23 that uses compile-time evaluation for static analysis, verification and optimisation. Its foundation is the Juliet Posture (Jlt), a fragment of C++23 under three rules: values are copyable data and functions are pure and constexpr; generic code varies with a type only through that type's concepts and traits; recursion is structural, on a type or on a natural number that counts down. On it the library builds an embedded, lazy language in layers: lattices of truth values from the Boolean and Kleene chains on (Pst); intensional sets, given by a membership test rather than a list (Lwv); a point-free relational calculus over cartesian products (Trsk); and symbolic algebra over the canonical sets (Ddk). Algebraic laws are declared as traits and witnessed by constexpr values: the compiler checks the witnesses, trusts the declarations, and reduces expressions at build time by them, leaving what cannot fold as a specialised run-time residual. A linter in tools/jlt-lint holds the category layer to the three rules in continuous integration, and the layers above to recorded counts.
 
-### Computational Structuralism in Modern C++23
+### What it is for
 
-The `dedekind` library translates a coherent slice of mathematical concepts into modern high-efficiency `C++`.
-It defines an embedded domain-specific language (eDSL) for mathematics with the following goals:
+An embedded language for mathematics in C++: it reads like set-builder notation, and it handles infinite sets given by a predicate as well as finite data.
+You state laws about your types.
+The compiler checks what it can at build time and uses them to simplify, and what can't be folded runs as ordinary code.
+It needs only a standard C++23 toolchain, and the tests fetch Catch2.
 
-- **Efficiency:** the default runtime footprint stays modest. This keeps embeddings in higher-level languages and constrained environments open. The build itself uses the standard C++ toolchain with CMake and Ninja (and fetches Catch2 for the tests).
-- **Recognizability:** Code should be intuitive to both mathematicians and `C++` programmers. The DSL mimics set-builder notation and common algebraic idioms.
-- **Versatility:** The DSL expresses both infinite (intensional, symbolic) and finite (extensional, data) structures. It is extensible to allow the specification of further algebraic laws and identities. It allows mixing numerical and symbolic codes.
-- **Abstraction First:** Intensional and symbolic development should stay in abstract mathematical carriers; choose a concrete runtime representation only when explicitly realizing or evaluating numerically.
-- **Optimization:** The library performs *mathematically motivated* optimizations (e.g., identity laws) at compile time, through theorem search and term reduction. Whatever cannot fold is emitted as a specialized runtime residual.
+### The exhibit: restriction sites, two ways
+
+Listing 5 of the [Jlt paper](https://vincentk.github.io/dedekind/jlt.pdf), in C++ and in Python through `pynzli`.
+A restriction site is a word equal to its reverse complement, as EcoRI's `GAATTC`.
+
+#### All sequences, counted
+
+<details open><summary><b>C++ (Jlt)</b></summary>
+
+<!-- listing5:all-genomes:cpp -->
+
+```cpp
+// Σ, the alphabet :
+constexpr Alphabet bases = abc("ACGT");
+// Σ* = ⊔ₙ Σⁿ :
+constexpr Words oligos = words(bases);
+// ~rev, the reverse complement: CCTA ↦ TAGG
+// { w ∈ Σ⁶ | ~rev w = w }, the palindromic hexamers :
+constexpr auto pali6 = oligos & len(6) & fixed_by(~rev);
+// { (s, i) ∈ Σᴺ × ℕ | s[i, i+6) ∈ pali6 } :
+constexpr auto cuts(size_t N) { return (oligos & len(N)) >> pali6; }
+static_assert(count(cuts(12)) == 1'835'008uz && count(cuts(32)) == 27uz << 58);
+```
+
+</details>
+<details><summary><b>Python (<code>pynzli</code>)</b></summary>
+
+<!-- listing5:all-genomes:python -->
+
+```pycon
+>>> bases = abc("ACGT")
+>>> oligos = words(bases)
+>>> pali6 = oligos & len(6) & fixed_by(~rev)
+>>> def cuts(N):
+...     return (oligos & len(N)) >> pali6
+>>> count(cuts(12)), count(cuts(32)) == 27 << 58
+(1835008, True)
+```
+
+</details>
+
+No sequence is built: at `N = 32` there are more than a 64-bit word can enumerate.
+
+#### One sequence, scanned
+
+<details open><summary><b>C++ (Jlt)</b></summary>
+
+<!-- listing5:one-genome:cpp -->
+
+```cpp
+// those of pali6 beginning GA :
+constexpr auto sites = pali6 & prefix("GA");
+// the table, computed once by the compiler, a function of any s :
+constexpr auto scanner = *automaton(sites);
+static_assert(states(scanner) == 11uz);
+// and only now a sequence :
+constexpr auto dna = bytes(
+    "GAATTCGAGCTCGGTACCCGGGGATCC"
+    "TCTAGAGTCGACCTGCAGGCATGCAAGCTT");
+// ten by definition, each window tested :
+static_assert(count(dna >> pali6) == 10uz);
+// two by the table, in one pass : EcoRI's and SacI's
+static_assert(count(dna >> scanner) == 2uz && sites(bytes("GAATTC")) &&
+              sites(bytes("GAGCTC")));
+```
+
+</details>
+<details><summary><b>Python (<code>pynzli</code>)</b></summary>
+
+<!-- listing5:one-genome:python -->
+
+```pycon
+>>> sites = pali6 & prefix("GA")
+>>> scanner = automaton(sites)
+>>> states(scanner)
+11
+>>> dna = b"GAATTCGAGCTCGGTACCCGGGGATCCTCTAGAGTCGACCTGCAGGCATGCAAGCTT"
+>>> count(dna >> pali6)
+10
+>>> count(dna >> scanner), sites(b"GAATTC"), sites(b"GAGCTC")
+(2, True, True)
+```
+
+</details>
+
+The table exists before any sequence does, and what remains is one pass over the caller's bytes; here the sequence is the polylinker of the plasmid pUC19.
+
+The C++ compiles in [a test](src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp), the Python runs as [a doctest](python/pynzli/jlt.py), and [another test](src/test/python/test_readme_listing5.py) holds this page and the paper to them.
+
+### Another exhibit: a set collapsed to a point
 
 ```cpp
 // Cardinality-1 reduction: an intensional meet of two halfspaces over
@@ -61,20 +148,19 @@ For full build targets and contributor workflow helpers, see [CONTRIBUTING.md](C
 
 ### Architecture
 
-The project rests on two pillars: **C++23** and **Category Theory**.
+Two choices shape the code: C++23, a mainstream language with a compiler that evaluates programs, and category theory, the shared vocabulary between types and textbook mathematics.
+C++ templates, concepts and traits give what functional languages call type constructors over type constructors, and types indexed by compile-time values, within what the standard allows.
 
- - **Why C++?** It is a mainstream language with many features which is suitable for performance-optimized code. Its flexible type system allows for the simulation of functional concepts—such as higher-kinded and dependent types—via template metaprogramming, concepts, and traits.
- - **Why Category Theory?** It bridges the gap from the mathematical end: typed λ-calculus can be expressed directly in the terminology of established mathematical textbooks.
+1. **Concepts follow the textbook.** A mathematical definition becomes a `concept` with few changes, and modules are built in the order the theory depends on them, so a theorem can't be imported before its axioms.
+2. **Textbook names.** `ℕ` over `IsNaturalNumberSet`, in `UTF-8`, where the language allows.
+3. **Tests map back.** A concept that compiles isn't yet a correct one, so the test suite checks its behaviour against the mathematics.
+4. **Standard types where they fit.** `bool`, `std::pair` and `std::variant` serve as the truth values, products and sums they already are.
 
-In this approach:
-1. **Verbatim Lifting**: Mathematical concepts are translated into `C++` `concept`s with minimal adjustments. The flow from axioms to theorems is enforced by the `module` build order, the `import` graph and `C++` declaration order rules.
-2. **Language Conformity**: Modifications required to satisfy the host language (`C++`) are kept as non-intrusive as possible. Textbook naming conventions using `UTF-8` are preferred, i.e. `ℝ` instead of `IsRealNumberSet`.
-3. **Bi-directional Fidelity**: Once a `concept` compiles, its behaviour is checked by mapping `C++` invariants back to their mathematical counterparts within the test suite.
-4. **Co-Domain Anchoring**: Where the C++ standard library provides native support for algebraic concepts, this anchoring is made explicit (e.g. `bool`, `std::pair`, `std::variant`, ...) and documented via translation tables.
+### What you have to get right
 
-### Engineering honesty and mechanical sympathy
-
-The library asks the engineer to claim only what is mathematically true of a type, and lets the compiler check the consequences mechanically. The trade is an **honesty obligation up front for a mechanical guarantee afterward**; that asymmetry, not the cost, is what makes the technique worth practising.
+A declared law is trusted: the library checks it on the values it tries, and cannot prove it.
+Declare a false one, and the compiler will use it to give you wrong answers.
+In return, what follows from true declarations is derived for you and checked at build time.
 
 
 ### Further reading:

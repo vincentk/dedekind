@@ -32,7 +32,7 @@ using dedekind::category::letter_map;
 using dedekind::category::letters;
 using dedekind::category::occurrences;
 using dedekind::category::power;
-using dedekind::category::reverse;
+using dedekind::category::rev;
 using dedekind::category::slice;
 using dedekind::category::symmetric;
 
@@ -44,8 +44,7 @@ constexpr auto complement = letter_map("ACGT", "TGCA");
 
 // The sites of length n in all genomes of length N, with their positions.
 constexpr std::size_t site_occurrences(std::size_t N, std::size_t n) {
-  const auto sites =
-      symmetric(power(nucleotides, n), power(complement) >> reverse);
+  const auto sites = symmetric(power(nucleotides, n), power(complement) >> rev);
   return occurrences(power(nucleotides, N), sites);
 }
 static_assert(site_occurrences(12, 6) == 1'835'008 &&  // 7 · 4^3 · 4^6

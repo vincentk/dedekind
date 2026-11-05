@@ -90,6 +90,10 @@ SOURCES = [
         _PYTHON_DIR / "showcase_13_site_occurrences.cpp",
         _PYTHON_DIR / "showcase_13_site_occurrences.ll",
     ),
+    (
+        _PYTHON_DIR / "showcase_14_ecori_table.cpp",
+        _PYTHON_DIR / "showcase_14_ecori_table.ll",
+    ),
 ]
 
 # Keep single-source aliases for backward compatibility with any callers.
@@ -434,6 +438,40 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             raise AssertionError(
                 "Expected witness_sites_12_6 to collapse to `ret i64 1835008` "
                 "in IR (both lengths bound by constexpr)."
+            )
+    elif "showcase_14_ecori_table" in name:
+        # Listing 5's right panel: the table by binding time.  Each stage is
+        # printed for reading; only the bound one is asserted.
+        for symbol in ("witness_windows", "witness_table_at_run_time",
+                       "witness_ecori_cuts", "witness_found",
+                       "witness_ecori_cuts_on_dna",
+                       "witness_ecori_dna", "witness_panel_dna", "budget_digest_2",
+                       "budget_prefix_ga", "budget_prefix_g",
+                       "budget_prefix_g_menu", "budget_all_64",
+                       "budget_run_list_alone", "budget_table_ga",
+                       "budget_table_g", "budget_table_all_64",
+                       "budget_panel_ga", "budget_panel_ga_default",
+                       "budget_panel_one_word"):
+            block = extract_function_block(ir_text, symbol)
+            if block is None:
+                raise AssertionError(f"IR missing {symbol} symbol.")
+            print(f"--- {symbol}: {len(block.splitlines())} lines\n{block}")
+        block = extract_function_block(ir_text, "witness_ecori_dna")
+        if not re.search(r"^\s*ret i64 1\s*$", block, re.MULTILINE):
+            raise AssertionError(
+                "Expected witness_ecori_dna to collapse to `ret i64 1` in IR "
+                "(table and sequence bound by constexpr)."
+            )
+        block = extract_function_block(ir_text, "witness_panel_dna")
+        if not re.search(r"^\s*ret i64 2\s*$", block, re.MULTILINE):
+            raise AssertionError(
+                "Expected witness_panel_dna to collapse to `ret i64 2` in IR."
+            )
+        # The residual's claim in the paper: it allocates nothing.
+        heap = heap_calls(ir_text)
+        if heap:
+            raise AssertionError(
+                f"Expected no heap allocation in the scan, found {sorted(heap)}."
             )
     else:
         raise AssertionError(f"No semantic checks defined for {name}.")

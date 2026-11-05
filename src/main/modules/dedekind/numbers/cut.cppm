@@ -160,14 +160,14 @@ class Cut {
     if (a_principal)  // a rational vs b = ±√c
       return cmp_rational_radical(a.radicand_, b.radicand_, b.neg_);
     if (b_principal)  // symmetric
-      return reverse(cmp_rational_radical(b.radicand_, a.radicand_, a.neg_));
+      return rev(cmp_rational_radical(b.radicand_, a.radicand_, a.neg_));
     // both radical: compare signs, then magnitudes (√c₁<=>√c₂ is c₁<=>c₂).
     const int sa = a.radical_sign();
     const int sb = b.radical_sign();
     if (sa != sb) return sa <=> sb;
     if (sa == 0) return std::strong_ordering::equal;
     const std::strong_ordering mag = a.radicand_ <=> b.radicand_;
-    return sa > 0 ? mag : reverse(mag);
+    return sa > 0 ? mag : rev(mag);
   }
 
   Q radicand_{};  ///< Principal: the value; Radical: the radicand.

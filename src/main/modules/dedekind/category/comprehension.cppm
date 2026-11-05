@@ -14,16 +14,18 @@
  * | @c from     | @c FROM    | @c n @c >> @c chain<N>()    |
  * | @c Select   | @c SELECT  | @c >> @c f                  |
  * | @c Where    | @c WHERE   | @c >> @c where(p)           |
- * | @c Join     | @c JOIN    | @c join(p, s)               |
+ * | @c Join     | @c JOIN    | @c p @c >> @c s               |
  * | @c OrderBy  | @c ORDER BY| @c >> @c order_by(rank)     |
  * | @c Take     | @c LIMIT   | @c >> @c take<K>()          |
- * | @c Count    | @c COUNT   | @c count                    |
+ * | -           | @c OVER    | @c >> @c windows(n)         |
+ * | @c Count    | @c COUNT   | @c count, @c >> @c counting   |
  * | @c Sum      | @c SUM     | @c sum                      |
  *
  * The names are the common ones; where a name is the category theory's,
  * the comprehension takes another: @c take, Haskell's and LINQ's, for SQL's
  * @c LIMIT, since a limit here is the universal construction (@c :limit),
- * and the monad's multiplication is @c μ, so that @c join is SQL's.
+ * and the monad's multiplication is @c μ; SQL's @c JOIN keeps no name of its
+ * own, being a power read through a set of words, the bind.
  *
  * The carrier is a finite chain sequence holding at most one element per
  * position: the list monad whose Kleisli arrows yield none or one, so a
@@ -263,6 +265,69 @@ constexpr auto operator>>(R r, Windows w) {
   return detail_comprehension::sliding(std::move(r), w.n);
 }
 
+/** @concept IsPrefixKernel
+ *  @brief A kernel on the non-empty prefixes of a text: an arrow out of them,
+ *  a coKleisli arrow of the history comonad, whose answer at a position may
+ *  read all that came before it and nothing after.  @tparam K the kernel.
+ *  @tparam T the letters. */
+export template <typename K, typename T>
+concept IsPrefixKernel = IsArrow<K> && std::same_as<Dom<K>, std::span<const T>>;
+namespace detail_comprehension {
+/** @brief The kernel at one more prefix. */
+template <typename T, IsPrefixKernel<T> K>
+struct KernelAt {
+  std::span<const T> text;
+  K kernel;
+  constexpr Cod<K> operator()(std::size_t n) const {
+    return kernel(text.first(n));
+  }
+};
+}  // namespace detail_comprehension
+/** @brief @c scan(k, s), the extension of the history comonad: a kernel asked
+ *  at every non-empty prefix, SQL's window function over @c ROWS @c UNBOUNDED
+ *  @c PRECEDING, as @c scan on a @c Path (@c :sequences).  Every position has
+ *  a prefix, so unlike a window of @c n this is a comonad on a finite range;
+ *  each answer may read the whole prefix, so a kernel that factors through
+ *  finitely many states has an overload of its own (@c :automaton).
+ *  @param k the kernel.  @param s the text.  @return the answers, lazily. */
+export template <typename T, IsPrefixKernel<T> K>
+constexpr auto scan(K k, std::span<const T> s) {
+  return std::views::iota(1uz, s.size() + 1) |
+         std::views::transform(
+             detail_comprehension::KernelAt<T, K>{s, std::move(k)});
+}
+/** @brief The history comonad's counit: a prefix's last letter.  @tparam T the
+ *  letters. */
+export template <typename T>
+struct LastOf {
+  using Domain = std::span<const T>;
+  using Codomain = T;
+  constexpr T operator()(std::span<const T> p) const { return p.back(); }
+};
+namespace detail_comprehension {
+constexpr std::array<std::size_t, 3> history_witness{7, 8, 9};
+/** @brief A kernel for the laws: a prefix's length. */
+struct LengthOf {
+  using Domain = std::span<const std::size_t>;
+  using Codomain = std::size_t;
+  constexpr std::size_t operator()(std::span<const std::size_t> p) const {
+    return p.size();
+  }
+};
+}  // namespace detail_comprehension
+// Extending by the counit is the identity, and the counit of an extension is
+// the kernel.  Coassociativity is not stated: the extension is a view and its
+// kernel takes a span.
+static_assert(
+    std::ranges::equal(scan(LastOf<std::size_t>{},
+                            std::span<const std::size_t>{
+                                detail_comprehension::history_witness}),
+                       detail_comprehension::history_witness) &&
+    std::ranges::equal(scan(detail_comprehension::LengthOf{},
+                            std::span<const std::size_t>{
+                                detail_comprehension::history_witness}),
+                       std::array{1uz, 2uz, 3uz}));
+
 // The functor's laws, read on a range of the caller's: the identity maps
 // it to itself, and mapping twice is mapping the composite once.
 namespace detail_comprehension {
@@ -307,7 +372,7 @@ static_assert(std::same_as<decltype(std::span<const std::size_t>{} >> is_even),
                                     std::views::transform(is_even))>);
 
 /** @brief @c where(section): the windows a section holds, its membership
- *  as the filter, @c where(sites(6)).  The section stays a tensor (its @c *
+ *  as the filter, @c where(sites).  The section stays a tensor (its @c *
  *  is the outer product); only here is it read as a predicate, its
  *  characteristic map, an arrow from a window of its letters: a
  *  @c std::span, since an arrow has one domain and a text is contiguous (a
@@ -318,6 +383,21 @@ static_assert(std::same_as<decltype(std::span<const std::size_t>{} >> is_even),
 export template <typename P, typename S, IsArrow T>
 constexpr auto where(const Symmetric<P, S, T>& s) {
   return where(arrow<std::span<const Dom<T>>, bool>(s));
+}
+/** @brief @c r @c >> @c s: where the words of a section occur in a range of
+ *  the caller's: its windows of the section's length, each kept where the
+ *  section holds it.  The section knows its length, so no window of another
+ *  arises.  Listing 5's @c dna @c >> @c pali6, the same expression as the join
+ *  below read at one sequence.  @param r the view.  @param s the section.
+ *  @return the query. */
+export template <detail_comprehension::IsForeignView R, typename P, typename S,
+                 IsArrow T>
+  requires requires(R r, const Symmetric<P, S, T>& s) {
+    std::move(r) >> windows(1uz) >> where(s);
+  }
+constexpr auto operator>>(R r, const Symmetric<P, S, T>& s) {
+  return std::move(r) >> windows(static_cast<std::size_t>(s.power.length)) >>
+         where(s);
 }
 
 // where(p) keeps what p classifies: the subobject {x | p(x)} is the pullback
@@ -405,11 +485,11 @@ constexpr N sum(Q q) {
   return std::ranges::fold_left(std::move(q), N{0}, lifted(std::plus<N>{}));
 }
 
-/** @brief @c join(p, s), SQL's @c JOIN on a window: the tensor of the
- *  windows of the words of @c p that land in @c s, at every offset where a
- *  window fits.  A constructor, not a materialisation: the join is a
- *  tensor, counted, never enumerated, so it stays inside the counted world
- *  and never meets the bag a join yielding rows would need.
+/** @brief @c p @c >> @c s, SQL's @c JOIN on a window:
+ *  the tensor of the windows of the words of @c p that land in @c s, at
+ *  every offset where a window fits.  A constructor, not a materialisation: the
+ * join is a tensor, counted, never enumerated, so it stays inside the counted
+ * world and never meets the bag a join yielding rows would need.
  *  @details Read three ways.  As a @b pullback: the cylinder at offset
  *  @c i is the preimage of @c s under the window @f$\pi_I : \Sigma^N \to
  *  \Sigma^n@f$, the pullback of @f$\pi_I@f$ along the inclusion
@@ -421,7 +501,7 @@ constexpr N sum(Q q) {
  *  a @b query: @c COUNT(*) over the join, its aggregate pushed through it
  *  by R2, Yan and Larson's eager aggregation (VLDB 1995), the window's
  *  count times the free legs', and the offsets summed by translation
- *  invariance (@c HasUnitPeriod).  So @c count(join(p, s)) is
+ *  invariance (@c HasUnitPeriod).  So its @c count is
  *  @c occurrences(p, s), and @c exact_count the checked one.
  *  @tparam P the tensor power.  @tparam S the set of words. */
 export template <typename P, typename S>
@@ -430,12 +510,17 @@ struct WindowJoin {
   P power;
   S inner;
 };
-/** @param p a tensor power.  @param s a set of words over the same legs.
- *  @return the join of @c p and @c s on the window. */
-export template <typename P, typename S>
-  requires requires(const P& p, const S& s) { occurrences(p, s); }
-constexpr WindowJoin<P, S> join(P p, S s) {
-  return {std::move(p), std::move(s)};
+/** @param p a tensor power.  @param s a section over the same legs.
+ *  @return the join of @c p and @c s on the window: @c s's words at every
+ *  offset of every word of @c p, counted by its laws, never enumerated. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename P, typename S,
+                 IsArrow T>
+  requires requires(const Power<C, F, N>& p, const Symmetric<P, S, T>& s) {
+    occurrences(p, s);
+  }
+constexpr WindowJoin<Power<C, F, N>, Symmetric<P, S, T>> operator>>(
+    const Power<C, F, N>& p, const Symmetric<P, S, T>& s) {
+  return {p, s};
 }
 /** @brief The offsets a window takes, as a tensor: the chain of @c m, its
  *  count @c m, one factor @f$m^1@f$.  Its outer product with a tensor is the
@@ -500,8 +585,8 @@ constexpr auto exact_count(const WindowJoin<P, S>& j) {
 }
 
 /** @brief @c join_with(p), a set of words to its join with @c p on the
- *  window: the curried @c join, an arrow between tensors, the exponential
- *  transpose of @c join (@c curry, @c :cartesian); each join the pullback
+ *  window: the join curried in the set, an arrow between tensors, its
+ *  exponential transpose (@c curry, @c :cartesian); each join the pullback
  *  along the window (@c IsPullback, @c :pullback).
  *  @tparam P the tensor power.  @tparam S the sets. */
 export template <typename P, typename S>
@@ -510,7 +595,7 @@ struct JoinWith {
   using Domain = S;
   using Codomain = WindowJoin<P, S>;
   P power;
-  constexpr Codomain operator()(const S& s) const { return join(power, s); }
+  constexpr Codomain operator()(const S& s) const { return {power, s}; }
 };
 /** @brief @c counting, a counted tensor to its count: the reading that ends
  *  a pipeline of arrows, as @c count ends a query.  The cardinality, strong
@@ -551,6 +636,37 @@ export template <IsArrow F>
   requires requires(const Cod<F>& j) { count(j); }
 constexpr auto operator>>(const F& f, detail_comprehension::CountingStage) {
   return f >> Counting<Cod<F>>{};
+}
+/** @brief @c q @c >> @c counting, the stage form of @c count(q): the fold
+ *  that ends a query, in the query's own rhythm.  @param q the query.
+ *  @return its count. */
+export template <IsQuery Q>
+constexpr std::size_t operator>>(Q q, detail_comprehension::CountingStage) {
+  return count(std::move(q));
+}
+namespace detail_comprehension {
+/** @brief The count of a query, as @c Maybe's action: a query that may not
+ *  be, counted where it is. */
+struct Counted {
+  template <IsQuery Q>
+  constexpr std::size_t operator()(Q q) const {
+    return count(std::move(q));
+  }
+};
+}  // namespace detail_comprehension
+/** @brief A query that may not be (a plan past its capacity), counted: the
+ *  count lifted through @c Maybe, nothing where the query is nothing.  The
+ *  monad carries the uncertainty to the end, so no caller cases on it.
+ *  @param q the query, or nothing.  @return its count, or nothing. */
+export template <IsQuery Q>
+constexpr Maybe<std::size_t> count(const Maybe<Q>& q) {
+  return q.transform(detail_comprehension::Counted{});
+}
+/** @brief The stage form of the same. */
+export template <IsQuery Q>
+constexpr Maybe<std::size_t> operator>>(const Maybe<Q>& q,
+                                        detail_comprehension::CountingStage) {
+  return count(q);
 }
 /** @brief A rank whose values do not grow along the even lengths, so that
  *  ranking the even lengths descending reads them upwards.  Derived, not
