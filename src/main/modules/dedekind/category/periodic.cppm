@@ -1028,17 +1028,31 @@ static_assert(rank(abc("ACGT"))(std::byte{'A'}) == 0uz &&
               !rank(abc("ACGT"))(std::byte{'['}).has_value());
 
 namespace detail_periodic {
-/** @brief The letter at a rank, the inverse of @c rank: one more byte of
- *  the alphabet, counted until the rank is reached.  (#1141: the chain's
- *  enumeration, once alphabets range over other carriers.) */
-struct NthLetter {
+/** @brief One byte's image under the reflection: the letter at the reflected
+ *  rank, the byte itself off the alphabet.  (#1141: the chain's enumeration,
+ *  once alphabets range over other carriers.) */
+struct ReflectedAt {
   Letters on;
-  std::size_t rank;
-  constexpr std::pair<std::size_t, std::byte> operator()(
-      std::pair<std::size_t, std::byte> s, std::size_t i) const {
+  std::array<std::byte, 256> letters;  ///< the alphabet, in order
+  std::size_t n;                       ///< how many
+  constexpr std::byte operator()(std::size_t i) const {
     const std::byte b{static_cast<unsigned char>(i)};
-    if (!on(b)) return s;
-    return {s.first + 1, s.first == rank ? b : s.second};
+    const Maybe<std::size_t> r = Ranked{on}(b);
+    if (!r) return b;
+    return letters[(~Identity<std::size_t>{} >> shift(n))(*r)];
+  }
+};
+/** @brief Whether a position of the bytes is a letter. */
+struct IsLetterAt {
+  Letters on;
+  constexpr bool operator()(std::size_t i) const {
+    return on(std::byte{static_cast<unsigned char>(i)});
+  }
+};
+/** @brief A position of the bytes as its byte. */
+struct ByteAt {
+  constexpr std::byte operator()(std::size_t i) const {
+    return std::byte{static_cast<unsigned char>(i)};
   }
 };
 }  // namespace detail_periodic
@@ -1058,17 +1072,9 @@ struct NthLetter {
 export struct Reflection {
   using Domain = std::byte;
   using Codomain = std::byte;
-  Letters on;
+  std::array<std::byte, 256> image;  ///< computed once, by @c refl
   constexpr std::byte operator()(std::byte b) const {
-    const Maybe<std::size_t> r = Ranked{on}(b);
-    if (!r) return b;
-    const std::size_t n = on.members.count();
-    return std::ranges::fold_left(
-               std::views::iota(std::size_t{0}, std::size_t{256}),
-               std::pair<std::size_t, std::byte>{0, b},
-               detail_periodic::NthLetter{
-                   on, (~Identity<std::size_t>{} >> shift(n))(*r)})
-        .second;
+    return image[std::to_integer<unsigned char>(b)];
   }
   constexpr bool operator==(const Reflection&) const = default;
 };
@@ -1078,12 +1084,23 @@ export struct Reflection {
 template <>
 struct is_involutive<Reflection, std::byte> : std::true_type {};
 /** @param on the letters.  @return their duality.  (#1141) */
-export constexpr Reflection refl(const Letters& on) { return {on}; }
+export constexpr Reflection refl(const Letters& on) {
+  std::array<std::byte, 256> letters{};
+  std::ranges::transform(
+      std::views::iota(0uz, 256uz) |
+          std::views::filter(detail_periodic::IsLetterAt{on}),
+      letters.begin(), detail_periodic::ByteAt{});
+  Reflection r{};
+  std::ranges::transform(
+      std::views::iota(0uz, 256uz), r.image.begin(),
+      detail_periodic::ReflectedAt{on, letters, on.members.count()});
+  return r;
+}
 /** @param alphabet the filtered byte chain, as @c abc builds it.
  *  @return the duality of its letters, the complement of @c ACGT.
  *  (#1141) */
 export constexpr Reflection refl(const Alphabet& alphabet) {
-  return {alphabet.coalgebra().f};
+  return refl(alphabet.coalgebra().f);
 }
 /** @brief An arrow on the bytes given by a table, each letter of @c from to
  *  the letter at the same place of @c to, every other byte fixed:
