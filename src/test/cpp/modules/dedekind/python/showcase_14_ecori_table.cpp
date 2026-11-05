@@ -42,10 +42,13 @@ using dedekind::category::words;
 namespace {
 constexpr auto bases = abc("ACGT");
 constexpr auto pali6 = words(bases) & len(6) & fixed_by(~rev);
-constexpr auto dna = bytes("TTGAATTCNNNNNNNAAGCTTA");
+constexpr auto dna = bytes(
+    "GAATTCGAGCTCGGTACCCGGGGATCC"
+    "TCTAGAGTCGACCTGCAGGCATGCAAGCTT");
 constexpr auto ecori = *automaton<4, 6, 4, 8>(pali6 & prefix("GAATTC"));
 constexpr auto scanner = *automaton(pali6 & prefix("GA"));
-static_assert(count(dna >> matches(ecori)) == 1 && count(dna >> pali6) == 2);
+static_assert(count(dna >> matches(ecori)) == 1 && count(dna >> pali6) == 10 &&
+              count(dna >> scanner) == 2);
 }  // namespace
 
 namespace {
@@ -203,6 +206,11 @@ extern "C" __attribute__((noinline)) std::uint64_t witness_found(
 /** @brief (d) Both known, nothing bound: what the optimiser finds alone. */
 extern "C" __attribute__((noinline)) std::uint64_t witness_ecori_cuts_on_dna() {
   return count(dna >> matches(ecori));
+}
+/** @brief (e′) The panel's scanner on the panel's sequence, bound. */
+extern "C" __attribute__((noinline)) std::uint64_t witness_panel_dna() {
+  constexpr std::size_t cuts = count(dna >> scanner);
+  return cuts;
 }
 /** @brief (e) Both bound by @c constexpr: the constant in the IR. */
 extern "C" __attribute__((noinline)) std::uint64_t witness_ecori_dna() {
