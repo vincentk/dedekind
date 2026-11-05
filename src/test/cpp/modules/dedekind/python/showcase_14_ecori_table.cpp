@@ -121,6 +121,34 @@ struct Halves {
 };
 }  // namespace
 
+namespace {
+using dedekind::category::prefix;
+template <std::size_t K, std::size_t Q>
+struct PrefixGa {
+  static constexpr auto value() {
+    return automaton<4, 6, K, Q>(pali6 & prefix("GA"));
+  }
+};
+struct PrefixGaDefault {
+  static constexpr auto value() { return automaton(pali6 & prefix("GA")); }
+};
+struct PrefixGaatt {
+  static constexpr auto value() {
+    return automaton<4, 6, 4, 8>(pali6 & prefix("GAATTC"));
+  }
+};
+}  // namespace
+// The panel's spelling: the words listed by the law, then the table.
+extern "C" std::int64_t budget_panel_ga() {
+  return measured<PrefixGa<8, 12>>();
+}
+extern "C" std::int64_t budget_panel_ga_default() {
+  return measured<PrefixGaDefault>();
+}
+extern "C" std::int64_t budget_panel_one_word() {
+  return measured<PrefixGaatt>();
+}
+
 // Whether the list of the section's words fits by itself, and each table with
 // its sites given by their halves: what the budget buys, apart.
 extern "C" bool budget_run_list_alone() {

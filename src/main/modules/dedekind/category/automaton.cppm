@@ -77,16 +77,17 @@ module;
 
 export module dedekind.category:automaton;
 
-import :morphism;  // Identity: a chain's letters read as they are
-import :nno;       // HasNNOStep: the letters' chain
-import :chain;     // IsCountWord
-import :functor;   // Maybe
-import :lattice;   // | and &: a union, a restriction, as the lattice's nodes
-import :periodic;  // AtMost, shift, Symmetric, Power: a section of words
-import :runs;      // RunList, run, reduced, narrowed
-import :total;     // power: σ^k by squaring
-import :action;    // fold: a plain fold
-import :kleisli;   // fold in the Kleisli category: the steps that may fail
+import :morphism;    // Identity: a chain's letters read as they are
+import :nno;         // HasNNOStep: the letters' chain
+import :involution;  // Reverse: the symmetry a section's words are listed by
+import :chain;       // IsCountWord
+import :functor;     // Maybe
+import :lattice;     // | and &: a union, a restriction, as the lattice's nodes
+import :periodic;    // AtMost, shift, Symmetric, Power: a section of words
+import :runs;        // RunList, run, reduced, narrowed
+import :total;       // power: σ^k by squaring
+import :action;      // fold: a plain fold
+import :kleisli;     // fold in the Kleisli category: the steps that may fail
 import :comprehension;  // where, take, collect, IsMaybe: queries
 
 namespace dedekind::category {
@@ -349,6 +350,25 @@ struct ReadBack {
 };
 }  // namespace detail_automaton
 
+namespace detail_automaton {
+/** @brief Every code read back as its word and tested by the section. */
+template <std::size_t KL, std::size_t Sigma, std::size_t P, HasNNOStep C,
+          IsArrow F, IsCountWord N, typename S, IsArrow T>
+constexpr Maybe<RunList<N, KL>> tested_run_list(
+    const Symmetric<Power<C, F, N>, S, T>& sites) {
+  const AtMost<C, 257> alphabet = letters_of(sites.power);
+  const N n = sites.power.length;
+  // exactly Sigma letters: a wider chain shows a letter past Sigma
+  if (alphabet.size() != Sigma || n > P) return {};
+  // σ^n, nothing where it outgrows the word
+  const Maybe<N> end = detail_periodic::checked_power(static_cast<N>(Sigma), n);
+  if (!end) return {};
+  using Decoder = Decode<Sigma, C, P, N>;
+  using Section = Symmetric<Power<C, F, N>, S, T>;
+  return run_list<KL>(*end,
+                      ReadBack<Section, Decoder>{sites, Decoder{alphabet, n}});
+}
+}  // namespace detail_automaton
 /** @brief A section's words as a run list over their codes: each word read
  *  as its letters' ranks in base @f$\sigma@f$, the first the most
  *  significant, so the chain @f$[0, \sigma^n)@f$ in the dictionary order.
@@ -361,17 +381,83 @@ export template <std::size_t KL, std::size_t Sigma, std::size_t P, HasNNOStep C,
                  IsArrow F, IsCountWord N, typename S, IsArrow T>
 constexpr Maybe<RunList<N, KL>> run_list(
     const Symmetric<Power<C, F, N>, S, T>& sites) {
-  const AtMost<C, 257> alphabet = detail_automaton::letters_of(sites.power);
+  return detail_automaton::tested_run_list<KL, Sigma, P>(sites);
+}
+namespace detail_automaton {
+/** @brief One more digit of a half-site read backwards, reflected: the next
+ *  letter of the other half, @f$\sigma - 1 - d@f$ on the ranks. */
+template <std::size_t Sigma, IsCountWord N>
+struct MirrorDigit {
+  constexpr std::pair<N, N> operator()(std::pair<N, N> s, N) const {
+    return {static_cast<N>(s.first / Sigma),
+            static_cast<N>(s.second * Sigma + (Sigma - 1 - s.first % Sigma))};
+  }
+};
+/** @brief One more half-site, its word's code a run of one where it lies in
+ *  the codes kept.  Halves ascending give codes ascending, the half being the
+ *  word's most significant digits. */
+template <std::size_t Sigma, IsCountWord N, std::size_t KL>
+struct AddPalindrome {
+  N half;   ///< the half's length
+  N high;   ///< sigma^half
+  N first;  ///< the least code kept
+  N last;   ///< one past the greatest
+  constexpr AtMost<N, KL> operator()(AtMost<N, KL> steps, N h) const {
+    const N low = fold(std::views::iota(N{0}, half), std::pair<N, N>{h, N{0}},
+                       MirrorDigit<Sigma, N>{})
+                      .second;
+    const N code = static_cast<N>(h * high + low);
+    if (code < first || code >= last) return steps;
+    return steps.with(code).with(static_cast<N>(code + 1));
+  }
+};
+/** @brief The palindromes of even length @c n among the codes
+ *  [prefix, prefix + 1) @f$\cdot \sigma^{n - L}@f$: only their half-sites are
+ *  visited, none tested.  @param n the length.  @param prefix the code of the
+ *  @c L letters kept.  @return the run list, or nothing where @c KL is too
+ *  small or a power outgrows the word. */
+template <std::size_t KL, std::size_t Sigma, IsCountWord N>
+constexpr Maybe<RunList<N, KL>> palindromes(N n, N prefix, N L) {
+  const N half = static_cast<N>(n / 2);
+  const Maybe<N> high =
+      detail_periodic::checked_power(static_cast<N>(Sigma), half);
+  const Maybe<N> tail = detail_periodic::checked_power(static_cast<N>(Sigma),
+                                                       static_cast<N>(n - L));
+  if (!high || !tail) return {};
+  // the half-sites the prefix allows: its letters, or the first half of them
+  const N cut = L > half ? static_cast<N>(L - half) : N{0};
+  const N open = L < half ? static_cast<N>(half - L) : N{0};
+  const N drop = *detail_periodic::checked_power(static_cast<N>(Sigma), cut);
+  const N grow = *detail_periodic::checked_power(static_cast<N>(Sigma), open);
+  const N lo = static_cast<N>(prefix / drop * grow);
+  const N hi = static_cast<N>(lo + grow);
+  if (static_cast<std::size_t>(hi - lo) * 2 > KL) return {};
+  return RunList<N, KL>{fold(
+      std::views::iota(lo, hi), AtMost<N, KL>{},
+      AddPalindrome<Sigma, N, KL>{half, *high, static_cast<N>(prefix * *tail),
+                                  static_cast<N>((prefix + 1) * *tail)})};
+}
+}  // namespace detail_automaton
+/** @brief The words a reflection then the reversal fixes, listed by the law:
+ *  a word is fixed by its half-site, so the @f$\sigma^{n/2}@f$ halves are
+ *  visited in order and no word is tested, where the general overload tests
+ *  all @f$\sigma^n@f$.  This is what lets a small panel's table be built at
+ *  compile time.  With an even alphabet the reflection fixes no letter, and
+ *  from four letters no two codes are adjacent, so each is a run of its own.
+ *  An odd length, or a reflection other than the alphabet's own, is left to
+ *  the general overload.  @param sites the section.  @return its words, or
+ *  nothing where a bound is too small. */
+export template <std::size_t KL, std::size_t Sigma, std::size_t P,
+                 IsCountWord N>
+  requires(Sigma >= 4 && Sigma % 2 == 0)
+constexpr Maybe<RunList<N, KL>> run_list(
+    const Symmetric<Power<std::byte, Letters, N>, Reverse, Reflection>& sites) {
   const N n = sites.power.length;
-  // exactly Sigma letters: a wider chain shows a letter past Sigma
-  if (alphabet.size() != Sigma || n > P) return {};
-  // σ^n, nothing where it outgrows the word
-  const Maybe<N> end = detail_periodic::checked_power(static_cast<N>(Sigma), n);
-  if (!end) return {};
-  using Decoder = detail_automaton::Decode<Sigma, C, P, N>;
-  using Section = Symmetric<Power<C, F, N>, S, T>;
-  return run_list<KL>(*end, detail_automaton::ReadBack<Section, Decoder>{
-                                sites, Decoder{alphabet, n}});
+  if (n == 0 || n % 2 != 0 || sites.tau != refl(sites.power.member)) {
+    return detail_automaton::tested_run_list<KL, Sigma, P>(sites);
+  }
+  if (sites.power.member.members.count() != Sigma || n > P) return {};
+  return detail_automaton::palindromes<KL, Sigma>(n, N{0}, N{0});
 }
 namespace detail_automaton {
 /** @brief A plan with the columns of its alphabet's bytes. */
@@ -411,6 +497,41 @@ constexpr Maybe<Automaton<Sigma, Q>> automaton(
           detail_automaton::letters_of(sites.power.member)});
 }
 
+/** @brief @c prefix("GA"): the words beginning with these letters, the
+ * predicate a section is met with.  @tparam L how many. */
+export template <std::size_t L>
+struct Prefix {
+  std::array<std::byte, L> word;
+};
+/** @param word the letters, written out.  @return the predicate. */
+export template <std::size_t M>
+  requires(M >= 2)
+constexpr Prefix<M - 1> prefix(const char (&word)[M]) {
+  return {bytes(word)};
+}
+/** @brief A section met with a prefix.  Its own type, so that only what knows
+ *  the prefix reads it: @c count_factors reads cycle types alone, and would
+ *  count the section as if no letter were fixed, so no count is offered until
+ *  it has a law.  @tparam P @tparam S @tparam T the section's.
+ *  @tparam L the prefix's length. */
+export template <typename P, typename S, IsArrow T, std::size_t L>
+struct Prefixed {
+  Symmetric<P, S, T> section;
+  std::array<std::byte, L> word;
+  /** @param w a word.  @return whether the section holds it and it begins with
+   *  the prefix. */
+  template <std::ranges::random_access_range W>
+    requires std::ranges::sized_range<W>
+  constexpr bool operator()(const W& w) const {
+    return section(w) && std::ranges::equal(w | std::views::take(L), word);
+  }
+};
+/** @param s the section.  @param p the prefix.  @return their meet. */
+export template <typename P, typename S, IsArrow T, std::size_t L>
+constexpr Prefixed<P, S, T, L> operator&(const Symmetric<P, S, T>& s,
+                                         const Prefix<L>& p) {
+  return {s, p.word};
+}
 /** @brief One word over an alphabet, the set of one site: @c GAATTC as
  *  @c site(bases, "GAATTC").  Its length is in the type, so its plan's
  *  capacities follow from it: the least that hold Knuth, Morris and Pratt's
@@ -423,6 +544,15 @@ struct Site {
 namespace detail_automaton {
 /** @brief Refuses a word with a byte outside its alphabet. */
 [[noreturn]] constexpr void refuse_foreign_letter() { std::abort(); }
+/** @brief One more byte of a word: its rank, the next digit. */
+struct NextByte {
+  Letters on;
+  constexpr std::size_t operator()(std::size_t index, std::byte b) const {
+    const Maybe<std::size_t> r = Ranked{on}(b);
+    if (!r) refuse_foreign_letter();
+    return index * on.members.count() + *r;
+  }
+};
 /** @brief One more letter of a word: its rank, the next digit. */
 struct NextDigit {
   Letters on;
@@ -439,6 +569,42 @@ export constexpr std::size_t word_index(const Letters& on,
                                         std::string_view word) {
   return std::ranges::fold_left(word, std::size_t{0},
                                 detail_automaton::NextDigit{on});
+}
+/** @brief The words of a section beginning with a prefix, by the law: no word
+ *  tested, only the half-sites the prefix allows visited.  @param sites the
+ *  meet.  @return its words, or nothing where a bound is too small. */
+export template <std::size_t KL, std::size_t Sigma, std::size_t P,
+                 IsCountWord N, std::size_t L>
+  requires(Sigma >= 4 && Sigma % 2 == 0)
+constexpr Maybe<RunList<N, KL>> run_list(
+    const Prefixed<Power<std::byte, Letters, N>, Reverse, Reflection, L>&
+        sites) {
+  const N n = sites.section.power.length;
+  const Letters on = sites.section.power.member;
+  if (n == 0 || n % 2 != 0 || n > P || L > n || on.members.count() != Sigma ||
+      sites.section.tau != refl(on))
+    return {};
+  return detail_automaton::palindromes<KL, Sigma>(
+      n,
+      static_cast<N>(std::ranges::fold_left(sites.word, std::size_t{0},
+                                            detail_automaton::NextByte{on})),
+      static_cast<N>(L));
+}
+/** @brief The matcher of the words of a section beginning with a prefix.  The
+ *  same builder on a subset of the same words; capacities as for a section.
+ *  @param sites the meet.  @return the plan, or nothing where a bound is too
+ *  small. */
+export template <std::size_t Sigma = 4, std::size_t P = 8, std::size_t K = 32,
+                 std::size_t Q = 320, std::size_t KL = 256, IsCountWord N,
+                 std::size_t L>
+constexpr Maybe<Automaton<Sigma, Q>> automaton(
+    const Prefixed<Power<std::byte, Letters, N>, Reverse, Reflection, L>&
+        sites) {
+  const Maybe<RunList<N, KL>> words = run_list<KL, Sigma, P>(sites);
+  if (!words) return {};
+  return automaton<Sigma, P, K, Q>(*words, sites.section.power.length)
+      .transform(
+          detail_automaton::WithLetters<Sigma, Q>{sites.section.power.member});
 }
 /** @param alphabet the letters.  @param word a word of them, written out.
  *  @return the site. */

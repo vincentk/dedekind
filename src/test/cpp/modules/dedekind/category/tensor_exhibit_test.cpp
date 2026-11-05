@@ -469,6 +469,23 @@ TEST_CASE("Category: Listing 5's one-genome lines agree",
   CHECK(by_the_plan(genome).has_value());
   CHECK(by_the_plan(dna) == 2);
 }
+TEST_CASE("Category: palindromes listed by the law are those tested one by one",
+          "[category][tensor][listing5]") {
+  using dedekind::category::prefix;
+  using dedekind::category::run_list;
+  // the law visits half-sites; the table section tests all 4^6 words
+  CHECK(run_list<128, 4, 6>(pali6) == run_list<128, 4, 6>(sites_6));
+  CHECK(automaton<4, 6, 8, 12>(pali6 & prefix("GA"))->next.size() == 11);
+  CHECK(automaton<4, 6, 4, 8>(pali6 & prefix("GAATTC"))->next.size() == 7);
+  // a word no palindrome begins with: no word, no site, one state
+  const auto none = automaton<4, 6, 4, 8>(pali6 & prefix("GAATTA"));
+  REQUIRE(none.has_value());
+  CHECK(none->next.size() == 1);
+  CHECK(count(dna >> matches(none)) == 0);
+  // the meet holds what the section holds and the prefix allows
+  CHECK((pali6 & prefix("GA"))(bytes("GAATTC")));
+  CHECK(!(pali6 & prefix("GA"))(bytes("AAGCTT")));
+}
 }  // namespace listing5
 
 // Panel 2's plans and their binding times, each a plan of the library's own

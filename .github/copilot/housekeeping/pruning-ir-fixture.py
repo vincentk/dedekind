@@ -448,7 +448,9 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
                        "budget_prefix_ga", "budget_prefix_g",
                        "budget_prefix_g_menu", "budget_all_64",
                        "budget_run_list_alone", "budget_table_ga",
-                       "budget_table_g", "budget_table_all_64"):
+                       "budget_table_g", "budget_table_all_64",
+                       "budget_panel_ga", "budget_panel_ga_default",
+                       "budget_panel_one_word"):
             block = extract_function_block(ir_text, symbol)
             if block is None:
                 raise AssertionError(f"IR missing {symbol} symbol.")
