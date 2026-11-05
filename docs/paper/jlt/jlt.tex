@@ -799,16 +799,11 @@ static_assert(
 constexpr auto sites =
   pali6 & prefix("GA");
 
-// the table, computed once by the compiler :
+// the table, computed once by the compiler,
+// a function of any s :
 constexpr auto scanner =
   *automaton(sites);
 static_assert(states(scanner) == 11uz);
-
-// what remains, one pass over any s :
-constexpr auto found(
-    span<const byte> s) {
-  return s >> matches(scanner);
-}
 
 // and only now a sequence :
 constexpr auto dna = bytes(
@@ -818,9 +813,10 @@ constexpr auto dna = bytes(
 // ten by definition, each window tested :
 static_assert(count(dna >> pali6) == 10uz);
 
-// two by the table: EcoRI's and SacI's :
+// two by the table, in one pass :
+// EcoRI's and SacI's
 static_assert(
-  count(found(dna)) == 2uz &&
+  count(dna >> scanner) == 2uz &&
   sites(bytes("GAATTC")) &&
   sites(bytes("GAGCTC")));
 \end{cpp}
@@ -843,7 +839,7 @@ count (cuts 32) ~> 27 · 2^58
 -- the pass over the sequence is not
 automaton sites ~> (0, T, F)
   -- static, 11 states: the compiler's
-found s =                    -- the residual
+s >> scanner =               -- the residual
   π₂ (fold (λ (q, c) a. (T q a, c + F (T q a)))
            (0, 0) (map rank s))
 automaton pali6 ~> (0, T', F')
