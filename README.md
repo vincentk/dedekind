@@ -12,22 +12,18 @@
 ### Abstract
 
 <!-- The same text as CITATION.cff's abstract, verbatim; change both together. -->
-A symbolic-algebra library in standard C++23 that uses compile-time evaluation for static analysis, verification and optimisation. Its foundation is the Juliet Posture (Jlt), a fragment of C++23 under three rules: values are copyable data and functions are pure and constexpr; generic code varies with a type only through that type's concepts and traits; recursion is structural, on a type or on a natural number that counts down. On it the library builds an embedded, lazy language in layers: lattices of truth values from the Boolean and Kleene chains on (Pst); intensional sets, given by a membership test rather than a list (Lwv); a point-free relational calculus over cartesian products (Trsk); and symbolic algebra over the canonical sets (Ddk). Algebraic laws are stated as types and as constexpr values, so the compiler checks them and reduces expressions at build time, leaving what cannot fold as a specialised run-time residual. A linter in tools/jlt-lint holds the core of the library to the three rules in continuous integration.
+A symbolic-algebra library in standard C++23 that uses compile-time evaluation for static analysis, verification and optimisation. Its foundation is the Juliet Posture (Jlt), a fragment of C++23 under three rules: values are copyable data and functions are pure and constexpr; generic code varies with a type only through that type's concepts and traits; recursion is structural, on a type or on a natural number that counts down. On it the library builds an embedded, lazy language in layers: lattices of truth values from the Boolean and Kleene chains on (Pst); intensional sets, given by a membership test rather than a list (Lwv); a point-free relational calculus over cartesian products (Trsk); and symbolic algebra over the canonical sets (Ddk). Algebraic laws are declared as traits and witnessed by constexpr values: the compiler checks the witnesses, trusts the declarations, and reduces expressions at build time by them, leaving what cannot fold as a specialised run-time residual. A linter in tools/jlt-lint holds the category layer to the three rules in continuous integration, and the layers above to recorded counts.
 
-### Computational Structuralism in Modern C++23
+### What it is for
 
-The `dedekind` library translates a coherent slice of mathematical concepts into modern high-efficiency `C++`.
-It defines an embedded domain-specific language (eDSL) for mathematics with the following goals:
-
-- **Efficiency:** the default runtime footprint stays modest. This keeps embeddings in higher-level languages and constrained environments open. The build itself uses the standard C++ toolchain with CMake and Ninja (and fetches Catch2 for the tests).
-- **Recognizability:** Code should be intuitive to both mathematicians and `C++` programmers. The DSL mimics set-builder notation and common algebraic idioms.
-- **Versatility:** The DSL expresses both infinite (intensional, symbolic) and finite (extensional, data) structures. It is extensible to allow the specification of further algebraic laws and identities. It allows mixing numerical and symbolic codes.
-- **Abstraction First:** Intensional and symbolic development should stay in abstract mathematical carriers; choose a concrete runtime representation only when explicitly realizing or evaluating numerically.
-- **Optimization:** The library performs *mathematically motivated* optimizations (e.g., identity laws) at compile time, through theorem search and term reduction. Whatever cannot fold is emitted as a specialized runtime residual.
+An embedded language for mathematics in C++: it reads like set-builder notation, and it handles infinite sets given by a predicate as well as finite data.
+You state laws about your types.
+The compiler checks what it can at build time and uses them to simplify, and what can't be folded runs as ordinary code.
+It needs only a standard C++23 toolchain, and the tests fetch Catch2.
 
 ### The exhibit: restriction sites, two ways
 
-Listing 5 of the [Jlt paper](docs/paper/jlt/jlt.tex), in C++ and in Python through `pynzli`.
+Listing 5 of the [Jlt paper](https://vincentk.github.io/dedekind/jlt.pdf), in C++ and in Python through `pynzli`.
 A restriction site is a word equal to its reverse complement, as EcoRI's `GAATTC`.
 
 #### All sequences, counted
@@ -163,9 +159,11 @@ In this approach:
 3. **Bi-directional Fidelity**: Once a `concept` compiles, its behaviour is checked by mapping `C++` invariants back to their mathematical counterparts within the test suite.
 4. **Co-Domain Anchoring**: Where the C++ standard library provides native support for algebraic concepts, this anchoring is made explicit (e.g. `bool`, `std::pair`, `std::variant`, ...) and documented via translation tables.
 
-### Engineering honesty and mechanical sympathy
+### What you have to get right
 
-The library asks the engineer to claim only what is mathematically true of a type, and lets the compiler check the consequences mechanically. The trade is an **honesty obligation up front for a mechanical guarantee afterward**; that asymmetry, not the cost, is what makes the technique worth practising.
+A declared law is trusted: the library checks it on the values it tries, and cannot prove it.
+Declare a false one, and the compiler will use it to give you wrong answers.
+In return, what follows from true declarations is derived for you and checked at build time.
 
 
 ### Further reading:
