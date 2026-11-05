@@ -27,13 +27,10 @@ It defines an embedded domain-specific language (eDSL) for mathematics with the 
 
 ### The exhibit: restriction sites, two ways
 
-Listing 5 of the Jlt paper, in C++ and in Python through `pynzli`: open either.
-A restriction site is a word equal to its reverse complement, as EcoRI's `GAATTC`; an enzyme cuts a genome where one occurs.
-The first counts the cuts in *all* genomes of length `N`, never building one: the count is a product of factors, a constant at compile time.
-At `N = 32` the count is `27 · 2⁵⁸`, while the `4³² = 2⁶⁴` genomes it stands for are more than a 64-bit word can enumerate.
-The second scans *one* sequence: each window tested, or the matcher specialised to the sites.
+Listing 5 of the [Jlt paper](docs/paper/jlt/jlt.tex), in C++ and in Python through `pynzli`.
+A restriction site is a word equal to its reverse complement, as EcoRI's `GAATTC`.
 
-#### All genomes, counted
+#### All sequences, counted
 
 <details open><summary><b>C++ (Jlt)</b></summary>
 
@@ -69,7 +66,9 @@ static_assert(count(cuts(12)) == 1'835'008uz && count(cuts(32)) == 27uz << 58);
 
 </details>
 
-#### One genome, scanned
+No sequence is built: at `N = 32` there are more than a 64-bit word can enumerate.
+
+#### One sequence, scanned
 
 <details open><summary><b>C++ (Jlt)</b></summary>
 
@@ -111,11 +110,9 @@ static_assert(count(dna >> scanner) == 2uz && sites(bytes("GAATTC")) &&
 
 </details>
 
-The table is built first, for the sites beginning `GA`, before any sequence exists; what remains is one pass over the caller's bytes.
-The sequence is the polylinker of the cloning vector pUC19, ten sites by the definition, of which the table finds EcoRI's `GAATTC` and SacI's `GAGCTC`.
-In C++ this table is a compile-time constant, built from the sites' half-sites; the table of all 64, the minimal automaton of their occurrences (277 states), exceeds the evaluator's budget and is built at run time by the same function, as Python builds it.
+The table exists before any sequence does, and what remains is one pass over the caller's bytes; here the sequence is the polylinker of the plasmid pUC19.
 
-Both languages are checked sources: the C++ compiles in [`tensor_exhibit_test.cpp`](src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp), the Python runs as a doctest of [`pynzli.jlt`](python/pynzli/jlt.py), and [`test_readme_listing5.py`](src/test/python/test_readme_listing5.py) checks that this page shows them verbatim.
+The C++ compiles in [a test](src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp), the Python runs as [a doctest](python/pynzli/jlt.py), and [another test](src/test/python/test_readme_listing5.py) holds this page and the paper to them.
 
 ### Another exhibit: a set collapsed to a point
 

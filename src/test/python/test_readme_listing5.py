@@ -16,6 +16,7 @@ import pynzli.jlt
 ROOT = Path(__file__).resolve().parents[3]
 README = ROOT / "README.md"
 CPP = ROOT / "src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp"
+PAPER = ROOT / "docs/paper/jlt/jlt.tex"
 PANELS = ["all-genomes", "one-genome"]
 
 # The host language's own words, not the library's.
@@ -62,6 +63,11 @@ def readme_panel(panel: str, language: str) -> str:
     )
 
 
+def code_of(cpp: str) -> str:
+    """A panel as code alone: no comments, no std::, no whitespace."""
+    return re.sub(r"\s+", "", re.sub(r"//[^\n]*", "", cpp).replace("std::", ""))
+
+
 def definitions(cpp: str) -> set[str]:
     """What a panel defines: its constants, functions and parameters."""
     code = re.sub(r"'[^']*'|\"[^\"]*\"|//[^\n]*", "", cpp)
@@ -89,6 +95,17 @@ class ReadmeListing5(unittest.TestCase):
         for panel in PANELS:
             with self.subTest(panel=panel):
                 self.assertEqual(readme_panel(panel, "python"), python_panel(panel))
+
+    def test_the_paper_shows_the_same_code(self) -> None:
+        # the paper breaks lines for its column and drops std::, so its panels
+        # are compared as code, comments aside
+        paper = PAPER.read_text(encoding="utf-8")
+        listing = paper[paper.index(r"\label{sec:binding}") : paper.index(r"\label{lst:sites}")]
+        panels = re.findall(r"\\begin\{cpp\}(.*?)\\end\{cpp\}", listing, re.S)
+        self.assertEqual(len(panels), len(PANELS))
+        for panel, text in zip(PANELS, panels):
+            with self.subTest(panel=panel):
+                self.assertEqual(code_of(text), code_of(cpp_panel(panel)))
 
     def test_python_has_the_listings_surface(self) -> None:
         defined = set().union(*(definitions(cpp_panel(p)) for p in PANELS))
