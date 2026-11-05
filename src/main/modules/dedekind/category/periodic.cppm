@@ -1102,6 +1102,41 @@ export constexpr Reflection refl(const Letters& on) {
 export constexpr Reflection refl(const Alphabet& alphabet) {
   return refl(alphabet.coalgebra().f);
 }
+/** @brief A random letter as an arrow out of the counts, a sequence on a chain:
+ *  each letter a hash of its position and the seed (SplitMix64, Steele, Lea and
+ *  Flood 2014), so a text of any length is never stored and nothing keeps a
+ *  state.  Good enough to exercise a scan; no cryptography, and its bias, of
+ *  order @f$2^{-64}@f$ per letter, is not a statistician's.
+ *  @c random_text(bases, N) reads it along @c N positions. */
+export struct RandomLetter {
+  using Domain = std::size_t;
+  using Codomain = std::byte;
+  std::array<std::byte, 256> letters;  ///< the alphabet, in order
+  std::size_t n;                       ///< how many
+  std::uint64_t seed;
+  constexpr std::byte operator()(std::size_t i) const {
+    std::uint64_t z =
+        seed + (static_cast<std::uint64_t>(i) + 1) * 0x9E3779B97F4A7C15u;
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9u;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EBu;
+    z ^= z >> 31;
+    return letters[z % n];
+  }
+};
+/** @param alphabet the letters.  @param length how many positions.
+ *  @param seed the seed.  @return the random text, a view, never stored. */
+export constexpr auto random_text(const Alphabet& alphabet, std::size_t length,
+                                  std::uint64_t seed = 0) {
+  const Letters on = alphabet.coalgebra().f;
+  RandomLetter letter{{}, on.members.count(), seed};
+  std::ranges::transform(
+      std::views::iota(0uz, 256uz) |
+          std::views::filter(detail_periodic::IsLetterAt{on}),
+      letter.letters.begin(), detail_periodic::ByteAt{});
+  return std::views::iota(0uz, length) | std::views::transform(letter);
+}
+static_assert(std::ranges::size(random_text(abc("ACGT"), 5uz)) == 5uz &&
+              letters("ACGT")(random_text(abc("ACGT"), 5uz)[3]));
 /** @brief An arrow on the bytes given by a table, each letter of @c from to
  *  the letter at the same place of @c to, every other byte fixed:
  *  @c letter_map("ACGT", "TGCA") is the complement of a base, an

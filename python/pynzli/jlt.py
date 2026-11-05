@@ -134,6 +134,7 @@ from ._jlt import pack
 from ._jlt import power
 from ._jlt import prefix
 from ._jlt import pred
+from ._jlt import random_text
 from ._jlt import refl
 from ._jlt import Reflection
 from ._jlt import rev
@@ -172,6 +173,7 @@ __all__ = [
     "power",
     "prefix",
     "pred",
+    "random_text",
     "refl",
     "Reflection",
     "rev",

@@ -14,6 +14,7 @@ import unittest
 
 from pynzli.jlt import (
     abc,
+    automaton,
     count,
     count_factors,
     cylinder,
@@ -27,6 +28,8 @@ from pynzli.jlt import (
     occurrences,
     pack,
     power,
+    prefix,
+    random_text,
     refl,
     rev,
     rotate,
@@ -92,6 +95,15 @@ class JltTensorExhibitTest(unittest.TestCase):
             count_factors(power(a, 2)) + count_factors(palindromes),
         )
         self.assertEqual(exact_count(free_monoid(a, 1_000_000_000)), None)
+
+    def test_a_random_text_finds_what_the_left_panel_predicts(self) -> None:
+        # never stored; the law says (N - 5) / 64 sites, spread about 124
+        sites = power(self.nucleotides, 6) & fixed_by(~rev)
+        text = random_text(self.nucleotides, 1_000_000, seed=1)
+        self.assertLess(abs(count(text >> automaton(sites)) - 15625), 620)
+        # a smaller set, a sixteenth of them
+        fewer = count(text >> automaton(sites & prefix("GA")))
+        self.assertLess(abs(fewer - 976), 160)
 
     def test_a_power_read_through_a_section_is_the_join(self) -> None:
         sites = power(self.nucleotides, 6) & fixed_by(~rev)

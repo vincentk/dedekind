@@ -347,10 +347,17 @@ struct MatchesStage {
   Plan plan;
   Holes holes;
 };
+/** @brief @c random_text(alphabet, n, seed): letters by position, never stored.
+ */
+struct RandomText {
+  decltype(dedekind::category::random_text(std::declval<const Alphabet&>(), 0uz,
+                                           std::uint64_t{0})) view_;
+  auto view() const { return view_; }
+};
 /** @brief @c dna @c >> @c matches(plan): the query of the positions where a
  *  site ends. */
 struct MatchQuery {
-  Text text;
+  std::variant<Text, RandomText> text;
   MatchesStage stage;
 };
 
@@ -402,24 +409,32 @@ bool holds(const Section& s, const Text& w) {
 }
 std::size_t count(const MatchQuery& q) {
   return std::visit(
-      [&](const auto& a) {
-        return dedekind::category::count(
-            q.text.view() >> dedekind::category::matches(a, q.stage.holes));
+      [&](const auto& t) {
+        return std::visit(
+            [&](const auto& a) {
+              return dedekind::category::count(
+                  t.view() >> dedekind::category::matches(a, q.stage.holes));
+            },
+            q.stage.plan.plan);
       },
-      q.stage.plan.plan);
+      q.text);
 }
 /** @brief The positions where a site ends, as a list: the boundary's own
  *  materialisation of the query (@c collect in C++ takes a static bound). */
 std::vector<std::size_t> collect(const MatchQuery& q) {
   return std::visit(
-      [&](const auto& a) {
-        std::vector<std::size_t> out;
-        for (const auto& m :
-             q.text.view() >> dedekind::category::matches(a, q.stage.holes))
-          if (m) out.push_back(*m);
-        return out;
+      [&](const auto& t) {
+        return std::visit(
+            [&](const auto& a) {
+              std::vector<std::size_t> out;
+              for (const auto& m :
+                   t.view() >> dedekind::category::matches(a, q.stage.holes))
+                if (m) out.push_back(*m);
+              return out;
+            },
+            q.stage.plan.plan);
       },
-      q.stage.plan.plan);
+      q.text);
 }
 std::size_t count(const WindowQuery& q) {
   return std::visit(
@@ -460,15 +475,36 @@ void bind_matcher(nb::module_ module_) {
            [](const jlt::Plan& a, const jlt::Plan& b) { return a == b; })
       .def("__repr__", &jlt::explain)
       .def("__rrshift__", [](const jlt::Plan& p, nb::bytes b) {
-        return jlt::MatchQuery{{std::move(b)},
+        return jlt::MatchQuery{jlt::Text{std::move(b)},
                                jlt::MatchesStage{p, jlt::Holes::break_match}};
       });
   nb::class_<jlt::MatchesStage>(module_, "Matches",
                                 "matches(plan): the stage running a matcher "
                                 "along a sequence of bytes.")
       .def("__rrshift__", [](const jlt::MatchesStage& m, nb::bytes b) {
-        return jlt::MatchQuery{{std::move(b)}, m};
+        return jlt::MatchQuery{jlt::Text{std::move(b)}, m};
       });
+  nb::class_<jlt::RandomText>(module_, "RandomText",
+                              "random_text(alphabet, n, seed=0): n letters, "
+                              "each a hash of its position; "
+                              "never stored, so n may be a billion.")
+      .def("__rshift__",
+           [](const jlt::RandomText& t, const jlt::Plan& p) {
+             return jlt::MatchQuery{
+                 t, jlt::MatchesStage{p, jlt::Holes::break_match}};
+           })
+      .def("__rshift__",
+           [](const jlt::RandomText& t, const jlt::MatchesStage& m) {
+             return jlt::MatchQuery{t, m};
+           });
+  module_.def(
+      "random_text",
+      [](const jlt::Alphabet& a, std::size_t n, std::uint64_t seed) {
+        return jlt::RandomText{dedekind::category::random_text(a, n, seed)};
+      },
+      nb::arg("alphabet"), nb::arg("length"), nb::arg("seed") = 0,
+      "random_text(alphabet, n, seed=0): n letters, each a hash of its "
+      "position.");
   nb::class_<dedekind::category::Prefix>(
       module_, "Prefix",
       "prefix(word): the words beginning with these letters.");

@@ -493,20 +493,8 @@ TEST_CASE("Category: palindromes listed by the law are those tested one by one",
 }  // namespace listing5
 
 // The smoke test of the listing at scale.  Random DNA as a sequence on a chain,
-// an arrow out of the counts: each letter a hash of its position (SplitMix64,
-// its top two bits), so the text is never stored and no generator keeps a
-// state.  The scan keeps one state and a count.
-struct RandomBase {
-  using Domain = size_t;
-  using Codomain = std::byte;
-  constexpr std::byte operator()(size_t i) const {
-    std::uint64_t z = (static_cast<std::uint64_t>(i) + 1) * 0x9E3779B97F4A7C15u;
-    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9u;
-    z = (z ^ (z >> 27)) * 0x94D049BB133111EBu;
-    z ^= z >> 31;
-    return std::byte{static_cast<unsigned char>("ACGT"[z >> 62])};
-  }
-};
+// an arrow out of the counts, so the text is never stored and no generator
+// keeps a state.  The scan keeps one state and a count.
 /** @brief The other way to find them, as an exact check: the last six ranks
  *  and their reverse complement in two registers of 12 bits, compared. */
 struct RollingCode {
@@ -529,8 +517,7 @@ struct AddLetter {
 TEST_CASE("Category: Listing 5's scanner on ten million random bases",
           "[category][tensor][listing5][smoke]") {
   constexpr size_t N = 10'000'000;
-  const auto text =
-      std::views::iota(0uz, N) | std::views::transform(RandomBase{});
+  const auto text = dedekind::category::random_text(listing5::bases, N);
   const auto plan = dedekind::category::automaton(listing5::pali6);
   REQUIRE(plan.has_value());
   const size_t by_the_table = count(text >> *plan);
