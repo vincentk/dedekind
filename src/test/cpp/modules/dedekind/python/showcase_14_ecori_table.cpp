@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <span>
 #include <string_view>
+#include <type_traits>
 
 import dedekind.category;
 
@@ -46,6 +47,62 @@ constexpr auto dna = bytes("TTGAATTCNNNNNNNAAGCTTA");
 constexpr auto ecori = *automaton(site(bases, "GAATTC"));
 static_assert(count(dna >> matches(ecori)) == 1 && count(dna >> pali6) == 2);
 }  // namespace
+
+namespace {
+using dedekind::category::run;
+using dedekind::category::run_list;
+template <typename Plan>
+concept PlansAtCompileTime =
+    requires { typename std::bool_constant<Plan::value().has_value()>; };
+/** @return a plan's states, 0 where a capacity is too small, -1 where the
+ *  evaluator's budget ran out: the measurement, read back from the IR. */
+template <typename Plan>
+constexpr std::int64_t measured() {
+  if constexpr (PlansAtCompileTime<Plan>) {
+    constexpr auto plan = Plan::value();
+    return plan ? static_cast<std::int64_t>(plan->next.size()) : 0;
+  } else {
+    return -1;
+  }
+}
+/** @brief The sites whose code lies in [lo, hi): a prefix, as a run of codes;
+ *  each letter of the prefix narrows the run by four.  K and Q the capacities
+ *  the plan's bounds name. */
+template <std::size_t lo, std::size_t hi, std::size_t K, std::size_t Q>
+struct Prefix {
+  static constexpr auto value() {
+    const auto all = run_list<128, 4, 6>(pali6);
+    return automaton<4, 6, K, Q>(*all & run<2>(lo, hi), 6uz);
+  }
+};
+constexpr std::size_t eco_index = 2109;  // GAATTC
+constexpr std::size_t hind_index = 159;  // AAGCTT
+template <std::size_t K, std::size_t Q>
+struct Digest {
+  static constexpr auto value() {
+    return automaton<4, 6, K, Q>(
+        run<2>(hind_index, hind_index + 1) | run<2>(eco_index, eco_index + 1),
+        6uz);
+  }
+};
+}  // namespace
+
+// The budget, by how much of the library is kept: the first letters of the
+// site, G = 2 · 4^5.  The states are 12, 11, 52 and 277 by the minimal
+// automaton; each with the least capacities that hold it, or the menu's.
+extern "C" std::int64_t budget_digest_2() { return measured<Digest<4, 13>>(); }
+extern "C" std::int64_t budget_prefix_ga() {
+  return measured<Prefix<2048, 2304, 8, 12>>();
+}
+extern "C" std::int64_t budget_prefix_g() {
+  return measured<Prefix<2048, 3072, 32, 53>>();
+}
+extern "C" std::int64_t budget_prefix_g_menu() {
+  return measured<Prefix<2048, 3072, 32, 320>>();
+}
+extern "C" std::int64_t budget_all_64() {
+  return measured<Prefix<0, 4096, 32, 288>>();
+}
 
 /** @brief (a) No table: each window tested against the 64 sites. */
 extern "C" __attribute__((noinline)) std::uint64_t witness_windows(

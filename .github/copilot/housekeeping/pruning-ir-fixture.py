@@ -444,7 +444,9 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
         # printed for reading; only the bound one is asserted.
         for symbol in ("witness_windows", "witness_table_at_run_time",
                        "witness_ecori_cuts", "witness_ecori_cuts_on_dna",
-                       "witness_ecori_dna"):
+                       "witness_ecori_dna", "budget_digest_2",
+                       "budget_prefix_ga", "budget_prefix_g",
+                       "budget_prefix_g_menu", "budget_all_64"):
             block = extract_function_block(ir_text, symbol)
             if block is None:
                 raise AssertionError(f"IR missing {symbol} symbol.")
