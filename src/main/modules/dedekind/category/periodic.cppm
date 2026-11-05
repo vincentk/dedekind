@@ -1030,10 +1030,35 @@ export struct Ranked {
 };
 /** @param on the alphabet.  @return the rank of a byte in it. */
 export constexpr Ranked rank(const Letters& on) { return {on}; }
+namespace detail_periodic {
+/** @brief One more byte, kept where the slice and the predicate both do. */
+struct KeepInSlice {
+  Letters on;
+  std::size_t lo;
+  std::size_t hi;
+  constexpr Letters operator()(Letters kept, std::size_t b) const {
+    if (lo <= b && b < hi && on(std::byte{static_cast<unsigned char>(b)}))
+      kept.members.set(b);
+    return kept;
+  }
+};
+}  // namespace detail_periodic
+/** @param alphabet the filtered byte chain.  @return the letters it holds: its
+ *  predicate's within its slice, which @c abc makes the same, and a chain
+ *  sliced more narrowly does not. */
+export constexpr Letters letters_of(const Alphabet& alphabet) {
+  const auto step = alphabet.coalgebra();
+  return std::ranges::fold_left(
+      std::views::iota(0uz, 256uz), Letters{},
+      detail_periodic::KeepInSlice{
+          step.f,
+          std::to_integer<std::size_t>(alphabet.seed().value_or(step.hi)),
+          std::to_integer<std::size_t>(step.hi)});
+}
 /** @param alphabet the filtered byte chain, as @c abc builds it.
  *  @return the rank of a byte in its letters. */
 export constexpr Ranked rank(const Alphabet& alphabet) {
-  return {alphabet.coalgebra().f};
+  return {letters_of(alphabet)};
 }
 // The nucleotides ranked in the bytes' order, A < C < G < T; N is none.
 static_assert(rank(letters("ACGT"))(std::byte{'A'}) == 0uz &&
@@ -1141,7 +1166,7 @@ export constexpr Reflection refl(const Letters& on) {
  *  @return the duality of its letters, the complement of @c ACGT.
  *  (#1141) */
 export constexpr Reflection refl(const Alphabet& alphabet) {
-  return refl(alphabet.coalgebra().f);
+  return refl(letters_of(alphabet));
 }
 /** @brief A random number as an arrow out of the counts, a sequence on a chain:
  *  the hash of a position and a seed (SplitMix64, Steele, Lea and Flood 2014).
@@ -1179,7 +1204,8 @@ export struct RandomLetter {
  *  letter by position. */
 export constexpr RandomLetter random_letter(const Alphabet& alphabet,
                                             std::uint64_t seed = 0) {
-  const Letters on = alphabet.coalgebra().f;
+  const Letters on = letters_of(alphabet);
+  if (on.members.none()) detail_periodic::refuse_no_alphabet();
   RandomLetter letter{{}, on.members.count(), SplitMix{seed}};
   std::ranges::transform(
       std::views::iota(0uz, 256uz) |
@@ -1818,6 +1844,14 @@ constexpr detail_periodic::FixedByStage<S, T> fixed_by(
         g) {
   return {g.g.transform, g.f.tau};
 }
+/** @param g a permutation of the positions, then a letter map on every
+ *  letter: the same section, the two commuting.  @return the stage. */
+export template <IsArrow T, typename C, typename S>
+constexpr detail_periodic::FixedByStage<S, T> fixed_by(
+    const Compose<Morphism<std::vector<C>, std::vector<C>, S>, PowerMap<T>>&
+        g) {
+  return {g.f.transform, g.g.tau};
+}
 /** @brief The powers, then the sections each fixes: a family of sets of
  *  words by length, @c words(Σ) @c >> @c fixed_by(g).
  *  @param ps the powers.  @param st the stage.  @return the family. */
@@ -1884,8 +1918,8 @@ constexpr Symmetric<Power<C, F, N>, S, T> operator&(
  *  every letter, the reverse complement.  @c ~f is @c :posetal's: @c f then
  *  the reflection of its codomain's chain, which on the ranks of @c ACGT is
  *  @f$x \mapsto 3 - x@f$, bitwise NOT on two bits.  A word carries no
- *  alphabet, so @c ~rev is natural in it: a family with a component at
- *  every alphabet, @c power(refl(Σ)) @c >> @c rev at Σ, taken where
+ *  alphabet, so @c ~rev is a family indexed by the alphabet, with a component
+ *  at each, @c power(refl(Σ)) @c >> @c rev at Σ, taken where
  *  @c fixed_by(~rev) meets a power over Σ, as the exhibit's @c oligos @c &
  *  @c len(6) @c & @c fixed_by(~rev).  Each component is an involution,
  *  two commuting involutions (@c commutes and @c is_involutive above).
@@ -1906,7 +1940,7 @@ constexpr auto reverse_complement(const Letters& on) {
   return power(refl(on)) >> rev;
 }
 }  // namespace detail_periodic
-/** @param g the reverse complement, natural in the alphabet.  @return the
+/** @param g the reverse complement, a family by alphabet.  @return the
  *  stage fixing it, its component taken at the power it meets. */
 export constexpr detail_periodic::FixedByReflectedReverse fixed_by(
     ReflectedReverse) {

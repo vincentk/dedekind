@@ -623,7 +623,7 @@ void bind_tensors(nb::module_ module_) {
   nb::class_<jlt::ReflectedReverse>(
       module_, "ReflectedReverse",
       "~rev: the reversal, then the reflection of the alphabet on every "
-      "letter, the reverse complement, natural in the alphabet; fixed_by(~rev) "
+      "letter, the reverse complement, a family by alphabet; fixed_by(~rev) "
       "takes the component at the power it meets.");
   nb::class_<jlt::Rotation<>>(module_, "Rotation",
                               "A rotation of a word's positions.");

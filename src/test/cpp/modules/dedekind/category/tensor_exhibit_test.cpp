@@ -498,6 +498,20 @@ TEST_CASE("Category: palindromes listed by the law are those tested one by one",
                             fixed_by(~dedekind::category::rev) &
                             prefix("TTTTTTTT"))
              .has_value());
+  // an alphabet is its letters within its slice, whichever reads it
+  CHECK(!dedekind::category::rank(narrow)(std::byte{'A'}).has_value());
+  CHECK(dedekind::category::rank(narrow)(std::byte{'G'}) == 1uz);
+  CHECK(dedekind::category::refl(narrow)(std::byte{'C'}) == std::byte{'G'});
+  CHECK(dedekind::category::refl(narrow)(std::byte{'A'}) == std::byte{'A'});
+  CHECK(dedekind::category::letters("CG")(
+      dedekind::category::random_text(narrow, 8uz)[5]));
+  // either order of the two commuting arrows fixes one section
+  CHECK(exact_count(count_factors(
+            power(nucleotides, 6uz) &
+            fixed_by(dedekind::category::rev >> power(complement)))) ==
+        exact_count(count_factors(
+            power(nucleotides, 6uz) &
+            fixed_by(power(complement) >> dedekind::category::rev))));
   // a temporary's bytes are the query's own
   const auto kept = bytes("GAATTC") >> scanner;
   CHECK(count(kept) == 1);
