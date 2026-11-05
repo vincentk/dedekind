@@ -1775,7 +1775,7 @@ constexpr Symmetric<Power<C, F, N>, S, T> operator&(
  *  alphabet, so @c ~rev is natural in it: a family with a component at
  *  every alphabet, @c power(refl(Σ)) @c >> @c rev at Σ, taken where
  *  @c fixed_by(~rev) meets a power over Σ, as the exhibit's @c oligos @c &
- *  @c hexamers @c & @c fixed_by(~rev).  Each component is an involution,
+ *  @c len(6) @c & @c fixed_by(~rev).  Each component is an involution,
  *  two commuting involutions (@c commutes and @c is_involutive above).
  *  (#1141: an alphabet over another carrier has its component from its
  *  rank, as @c refl does.) */
