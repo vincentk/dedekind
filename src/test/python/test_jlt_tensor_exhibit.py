@@ -32,7 +32,6 @@ from pynzli.jlt import (
     rotate,
     symmetric,
     window,
-    windows,
 )
 
 
@@ -94,12 +93,9 @@ class JltTensorExhibitTest(unittest.TestCase):
         )
         self.assertEqual(exact_count(free_monoid(a, 1_000_000_000)), None)
 
-    def test_windows_of_another_length_are_refused(self) -> None:
-        # a ValueError, not the core's abort, which would end the interpreter
+    def test_a_power_read_through_a_section_is_the_join(self) -> None:
         sites = power(self.nucleotides, 6) & fixed_by(~rev)
-        self.assertEqual(count(power(self.nucleotides, 12) >> windows(6) & sites), 1835008)
-        with self.assertRaises(ValueError):
-            power(self.nucleotides, 12) >> windows(7) & sites
+        self.assertEqual(count(power(self.nucleotides, 12) >> sites), 1835008)
 
     def test_the_reverse_complement_is_an_involution(self) -> None:
         self.assertTrue(is_involution(self.complement))  # decided on its table

@@ -30,28 +30,27 @@ using dedekind::category::abc;
 using dedekind::category::automaton;
 using dedekind::category::bytes;
 using dedekind::category::fixed_by;
+using dedekind::category::len;
 using dedekind::category::Letters;
 using dedekind::category::matches;
 using dedekind::category::rev;
 using dedekind::category::site;
 using dedekind::category::Site;
-using dedekind::category::windows;
 using dedekind::category::word_index;
 using dedekind::category::words;
 
 namespace {
 constexpr auto bases = abc("ACGT");
-constexpr auto sites = words(bases) & windows(6) & fixed_by(~rev);
+constexpr auto pali6 = words(bases) & len(6) & fixed_by(~rev);
 constexpr auto dna = bytes("TTGAATTCNNNNNNNAAGCTTA");
 constexpr auto ecori = *automaton(site(bases, "GAATTC"));
-static_assert(count(dna >> matches(ecori)) == 1 &&
-              count(dna >> windows(6) & sites) == 2);
+static_assert(count(dna >> matches(ecori)) == 1 && count(dna >> pali6) == 2);
 }  // namespace
 
 /** @brief (a) No table: each window tested against the 64 sites. */
 extern "C" __attribute__((noinline)) std::uint64_t witness_windows(
     const std::byte* s, std::size_t n) {
-  return count(std::span<const std::byte>{s, n} >> windows(6) & sites);
+  return count(std::span<const std::byte>{s, n} >> pali6);
 }
 /** @brief (b) The site known only at run time: the same plan, built here. */
 extern "C" __attribute__((noinline)) std::uint64_t witness_table_at_run_time(

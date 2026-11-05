@@ -779,15 +779,13 @@ With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fi
 constexpr Alphabet bases = abc("ACGT");
 // Σ* = ⊔ₙ Σⁿ :
 constexpr Words oligos = words(bases);
-// Σ⁶, read at every offset :
-constexpr auto hexamers = windows(6);
 // ~rev, the reverse complement: CCTA ↦ TAGG
 // { w ∈ Σ⁶ | ~rev w = w }, the palindromic hexamers :
-constexpr auto sites =
-  oligos & hexamers & fixed_by(~rev);
-// { (s, i) ∈ Σᴺ × ℕ | s[i, i+6) ∈ sites } :
+constexpr auto pali6 =
+  oligos & len(6) & fixed_by(~rev);
+// { (s, i) ∈ Σᴺ × ℕ | s[i, i+6) ∈ pali6 } :
 constexpr auto cuts(size_t N) {
-  return (oligos & len(N)) >> hexamers & sites;
+  return (oligos & len(N)) >> pali6;
 }
 
 static_assert(
@@ -801,13 +799,9 @@ static_assert(
 constexpr auto dna =
   bytes("TTGAATTCNNNNNNNAAGCTTA");
 
-// { i | s[i, i+6) ∈ sites },
+// { i | dna[i, i+6) ∈ pali6 },
 // each window tested :
-constexpr auto cut_sites(
-    span<const byte> s) {
-  return s >> hexamers & sites;
-}
-static_assert(count(cut_sites(dna)) == 2uz);
+static_assert(count(dna >> pali6) == 2uz);
 
 // one site, its table built by the compiler :
 constexpr auto ecori =
@@ -819,7 +813,7 @@ static_assert(
 // the table past the budget, built at run time :
 constexpr auto by_the_plan(
     span<const byte> s) {
-  return count(s >> matches(automaton(sites)));
+  return count(s >> matches(automaton(pali6)));
 }
 \end{cpp}
 \end{minipage}
@@ -828,7 +822,7 @@ constexpr auto by_the_plan(
 -- the right panel's query at every N-mer, the
 -- bind of the bag monad, counted by its laws:
 -- a cylinder per offset, 4^3 · 4^(N−6), N − 5 alike
-cuts N = Σ^N >>= (λ s. s >> hexamers & sites)
+cuts N = Σ^N >>= (λ s. s >> pali6)
 count (cuts N)
        = (N − 5) · 4^3 · 4^(N − 6)
 count (cuts 32) ~> 27 · 2^58
@@ -840,14 +834,14 @@ count (cuts 32) ~> 27 · 2^58
 -- the plan is a closed term,
 -- the pass over the sequence is not
 by_the_plan g =
-  κ (automaton sites) (λ (q₀, δ, ε).
+  κ (automaton pali6) (λ (q₀, δ, ε).
     η (π₂ (fold (λ (q, c) a.
                   (δ q a, c + ε (δ q a)))
                 (q₀, 0) (map rank g))))
   -- in Maybe: nothing past the capacity
 automaton (site GAATTC) ~> (0, T, F)
   -- static: KMP's table, 7 states
-automaton sites ~> (0, T', F')
+automaton pali6 ~> (0, T', F')
   -- static, 277 states: past the budget,
   -- so at run time
 by_the_plan g =              -- the residual

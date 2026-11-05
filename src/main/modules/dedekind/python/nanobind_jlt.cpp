@@ -298,8 +298,8 @@ bool is_square(std::size_t k, std::size_t n) {
 //
 // The two lines of panel 2, as Python spells them on the caller's bytes:
 //
-//   count(sequence >> hexamers & sites)                         the query
-//   count(sequence >> matches(automaton(sites)))                    the plan
+//   count(sequence >> pali6)                                    the query
+//   count(sequence >> matches(automaton(pali6)))                    the plan
 //
 // The bytes are read where they are (the handle keeps the Python object
 // alive, nothing is copied); every stage is the library's own, dispatched at
@@ -311,7 +311,6 @@ bool is_square(std::size_t k, std::size_t n) {
 namespace jlt {
 using dedekind::category::Automaton;
 using dedekind::category::Holes;
-using dedekind::category::Windows;
 
 /** @brief The stage ending a query, @c >> @c counting: the exported object's
  *  type (its namespace is the comprehension's detail). */
@@ -324,37 +323,16 @@ struct Text {
     return {static_cast<const std::byte*>(bytes.data()), bytes.size()};
   }
 };
-/** @brief @c genome @c >> @c windows(n): the text's windows. */
-struct WindowsOver {
-  Text text;
-  Windows windows;
-};
-/** @brief @c windows(n) @c & @c section: the windows that lie in the
- *  section, a stage named before any sequence, @c hexamers @c & @c sites. */
-struct WindowsIn {
-  Windows windows;
-  Section section;
-};
-/** @brief @c power @c >> @c windows(n): the windows of every word of a tensor
- *  power; @c & @c section is the join on the window, counted by its laws. */
-using PowerWindows = dedekind::category::PowerWindows<WordPower>;
-/** @brief The join on the window, held by its factors.  Windows of another
- *  length than the section's are refused, which in Python is a ValueError,
- *  not the core's abort.  @param pw the power's windows.  @param s the
- *  section.  @return the tensor. */
-inline Factored window_join(const PowerWindows& pw, const Section& s) {
+/** @brief @c power @c >> @c section: the join on the window, held by its
+ *  factors.  @param p the power.  @param s the section.  @return the tensor. */
+inline Factored window_join(const WordPower& p, const Section& s) {
   return std::visit(
-      [&](const auto& x) {
-        if (pw.windows.n != x.power.length)
-          throw nb::value_error(
-              "power >> windows(n) & section: n is not the section's length");
-        return Factored{jlt::count_factors(pw & x)};
-      },
+      [&](const auto& x) { return Factored{jlt::count_factors(p >> x)}; },
       s.section);
 }
-/** @brief @c ... @c >> @c windows(n) @c >> @c where(section): the query. */
+/** @brief @c dna @c >> @c section: the query. */
 struct WindowQuery {
-  WindowsOver over;
+  Text text;
   Section section;
 };
 /** @brief A plan, one of the menu's capacities: the letters' count 4, the
@@ -455,8 +433,7 @@ std::vector<std::size_t> collect(const MatchQuery& q) {
 std::size_t count(const WindowQuery& q) {
   return std::visit(
       [&](const auto& x) {
-        return dedekind::category::count(q.over.text.view() >> q.over.windows >>
-                                         dedekind::category::where(x));
+        return dedekind::category::count(q.text.view() >> x);
       },
       q.section.section);
 }
@@ -466,8 +443,7 @@ std::vector<std::size_t> collect(const WindowQuery& q) {
       [&](const auto& x) {
         std::vector<std::size_t> out;
         std::size_t at = 0;
-        for (const auto& m : q.over.text.view() >> q.over.windows >>
-                                 dedekind::category::where(x)) {
+        for (const auto& m : q.text.view() >> x) {
           if (m) out.push_back(at);
           ++at;
         }
@@ -484,34 +460,6 @@ void bind_matcher(nb::module_ module_) {
                         "break it (the default), or be skipped.")
       .value("break_match", jlt::Holes::break_match)
       .value("skip", jlt::Holes::skip);
-  nb::class_<jlt::Windows>(module_, "Windows",
-                           "windows(n): each position's window of n letters; "
-                           "genome >> windows(n).")
-      .def("__rrshift__",
-           [](const jlt::Windows& w, nb::bytes b) {
-             return jlt::WindowsOver{{std::move(b)}, w};
-           })
-      .def("__and__", [](const jlt::Windows& w, const jlt::Section& s) {
-        return jlt::WindowsIn{w, s};
-      });
-  nb::class_<jlt::WindowsIn>(module_, "WindowsIn",
-                             "windows(n) & section: the windows that lie in "
-                             "the section, a stage; sequence >> it is the "
-                             "query.")
-      .def("__rrshift__", [](const jlt::WindowsIn& w, nb::bytes b) {
-        return jlt::WindowQuery{{{std::move(b)}, w.windows}, w.section};
-      });
-  nb::class_<jlt::PowerWindows>(
-      module_, "PowerWindows",
-      "power >> windows(n): the windows of every word of a tensor power, at "
-      "every offset; & section is the join on the window, a tensor counted "
-      "by its laws, never enumerated.")
-      .def("__and__", &jlt::window_join);
-  nb::class_<jlt::WindowsOver>(module_, "WindowsOver",
-                               "A genome's windows, where it is.")
-      .def("__and__", [](const jlt::WindowsOver& w, const jlt::Section& s) {
-        return jlt::WindowQuery{w, s};
-      });
   nb::class_<jlt::Plan>(
       module_, "Automaton",
       "The matcher specialised to a section: the minimal automaton of the "
@@ -547,18 +495,6 @@ void bind_matcher(nb::module_ module_) {
              return jlt::count(q);
            });
 
-  module_.def(
-      "windows",
-      [](std::size_t n) {
-        if (n == 0) throw nb::value_error("windows: a window has a letter");
-        // the width a span's difference type counts: past it the stage
-        // would refuse, which in Python is a ValueError, not an abort
-        if (n > static_cast<std::size_t>(
-                    std::numeric_limits<std::ptrdiff_t>::max()))
-          throw nb::value_error("windows: a window wider than a text can be");
-        return dedekind::category::windows(n);
-      },
-      nb::arg("n"), "windows(n): each position's window of n letters, n >= 1.");
   module_.def(
       "fixed_by", [](const jlt::ReverseAfter& g) { return jlt::FixedStage{g}; },
       nb::arg("symmetry"),
@@ -613,12 +549,7 @@ void bind_tensors(nb::module_ module_) {
                              "tensor power, never built.")
       .def("__mul__", &jlt::times<jlt::WordPower, jlt::WordPower>)
       .def("__mul__", &jlt::times<jlt::WordPower, jlt::Factored>)
-      .def("__rshift__", [](const jlt::WordPower& p,
-                            const jlt::Windows& w) { return p >> w; })
-      .def("__rshift__",
-           [](const jlt::WordPower& p, const jlt::WindowsIn& w) {
-             return jlt::window_join(p >> w.windows, w.section);
-           })
+      .def("__rshift__", &jlt::window_join)
       .def("__and__", [](const jlt::WordPower& p, const jlt::FixedStage& st) {
         return std::visit(
             [&](const auto& g) {
@@ -672,6 +603,10 @@ void bind_tensors(nb::module_ module_) {
       "symmetry fixes.  Counted as a Tensor wherever one is taken.")
       .def("__mul__", &jlt::times<jlt::Section, jlt::Factored>)
       .def("__mul__", &jlt::times<jlt::Section, jlt::WordPower>)
+      .def("__rrshift__",
+           [](const jlt::Section& s, nb::bytes b) {
+             return jlt::WindowQuery{{std::move(b)}, s};
+           })
       .def(
           "__call__",
           [](const jlt::Section& s, nb::bytes w) {
@@ -753,16 +688,13 @@ void bind_tensors(nb::module_ module_) {
       nb::arg("n"), "len(n): words & len(n) is the words of length n.");
   nb::class_<jlt::WordPowers>(module_, "Words",
                               "words(alphabet): the words over it, by "
-                              "length; words(a) & len(n) is power(a, n), as "
-                              "is words(a) & windows(n).")
+                              "length; words(a) & len(n) is power(a, n).")
       .def(
           "__call__",
           [](const jlt::WordPowers& p, std::size_t n) { return p(n); },
           nb::arg("length"))
       .def("__and__",
            [](const jlt::WordPowers& p, const jlt::Length& l) { return p & l; })
-      .def("__and__", [](const jlt::WordPowers& p,
-                         const jlt::Windows& w) { return p & w; })
       .def("__and__", [](const jlt::WordPowers& p, const jlt::FixedStage& st) {
         return std::visit(
             [&](const auto& g) {

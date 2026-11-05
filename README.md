@@ -44,13 +44,11 @@ The second scans *one* sequence: each window tested, or the matcher specialised 
 constexpr Alphabet bases = abc("ACGT");
 // Σ* = ⊔ₙ Σⁿ :
 constexpr Words oligos = words(bases);
-// Σ⁶, read at every offset :
-constexpr auto hexamers = windows(6);
 // ~rev, the reverse complement: CCTA ↦ TAGG
 // { w ∈ Σ⁶ | ~rev w = w }, the palindromic hexamers :
-constexpr auto sites = oligos & hexamers & fixed_by(~rev);
-// { (s, i) ∈ Σᴺ × ℕ | s[i, i+6) ∈ sites } :
-constexpr auto cuts(size_t N) { return (oligos & len(N)) >> hexamers & sites; }
+constexpr auto pali6 = oligos & len(6) & fixed_by(~rev);
+// { (s, i) ∈ Σᴺ × ℕ | s[i, i+6) ∈ pali6 } :
+constexpr auto cuts(size_t N) { return (oligos & len(N)) >> pali6; }
 static_assert(count(cuts(12)) == 1'835'008uz && count(cuts(32)) == 27uz << 58);
 ```
 
@@ -62,10 +60,9 @@ static_assert(count(cuts(12)) == 1'835'008uz && count(cuts(32)) == 27uz << 58);
 ```pycon
 >>> bases = abc("ACGT")
 >>> oligos = words(bases)
->>> hexamers = windows(6)
->>> sites = oligos & hexamers & fixed_by(~rev)
+>>> pali6 = oligos & len(6) & fixed_by(~rev)
 >>> def cuts(N):
-...     return (oligos & len(N)) >> hexamers & sites
+...     return (oligos & len(N)) >> pali6
 >>> count(cuts(12)), count(cuts(32)) == 27 << 58
 (1835008, True)
 ```
@@ -81,17 +78,14 @@ static_assert(count(cuts(12)) == 1'835'008uz && count(cuts(32)) == 27uz << 58);
 ```cpp
 // a sequence, N an unknown base :
 constexpr auto dna = bytes("TTGAATTCNNNNNNNAAGCTTA");
-// { i | s[i, i+6) ∈ sites }, each window tested :
-constexpr auto cut_sites(std::span<const std::byte> s) {
-  return s >> hexamers & sites;
-}
-static_assert(count(cut_sites(dna)) == 2uz);
+// { i | dna[i, i+6) ∈ pali6 }, each window tested :
+static_assert(count(dna >> pali6) == 2uz);
 // one site, its table built by the compiler :
 constexpr auto ecori = automaton(site(bases, "GAATTC"));
 static_assert(count(dna >> matches(ecori)) == 1uz);
 // all 64, by the same function; the table past the budget, built at run time :
 constexpr auto by_the_plan(std::span<const std::byte> s) {
-  return count(s >> matches(automaton(sites)));
+  return count(s >> matches(automaton(pali6)));
 }
 ```
 
@@ -102,15 +96,13 @@ constexpr auto by_the_plan(std::span<const std::byte> s) {
 
 ```pycon
 >>> dna = b"TTGAATTCNNNNNNNAAGCTTA"
->>> def cut_sites(s):
-...     return s >> hexamers & sites
->>> count(cut_sites(dna))
+>>> count(dna >> pali6)
 2
 >>> ecori = automaton(site(bases, "GAATTC"))
 >>> count(dna >> matches(ecori))
 1
 >>> def by_the_plan(s):
-...     return count(s >> matches(automaton(sites)))
+...     return count(s >> matches(automaton(pali6)))
 >>> by_the_plan(dna)
 2
 ```

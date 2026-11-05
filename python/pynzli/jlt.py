@@ -33,7 +33,7 @@ A ``window(i, n)`` projects a word onto its letters i to i + n - 1;
 ``cylinder(p, w, s)`` is the words of ``p`` whose window lies in ``s``, its count
 pushed down (the set's, times the alphabet's for each free leg); and
 ``occurrences(p, s)`` counts ``s`` in ``p``'s words with its positions,
-``exact_occurrences`` the same or ``None``.  ``p >> windows(n) & s`` is the
+``exact_occurrences`` the same or ``None``.  ``p >> s`` is the
 same count as a query's: the windows' offsets times the cylinder on each, a
 tensor whose ``count`` is the product of its factors.  The Jlt paper's
 Listing 5, the restriction sites (words equal to their reverse complement)
@@ -43,10 +43,9 @@ in all genomes, the README's text between the markers:
 
 >>> bases = abc("ACGT")
 >>> oligos = words(bases)
->>> hexamers = windows(6)
->>> sites = oligos & hexamers & fixed_by(~rev)
+>>> pali6 = oligos & len(6) & fixed_by(~rev)
 >>> def cuts(N):
-...     return (oligos & len(N)) >> hexamers & sites
+...     return (oligos & len(N)) >> pali6
 >>> count(cuts(12)), count(cuts(32)) == 27 << 58
 (1835008, True)
 
@@ -54,15 +53,15 @@ in all genomes, the README's text between the markers:
 
 >>> count(oligos & fixed_by(~rev) & len(7))  # no base is its own complement
 0
->>> exact_count((oligos & len(40)) >> hexamers & sites) is None  # past 2**64
+>>> exact_count((oligos & len(40)) >> pali6) is None  # past 2**64
 True
->>> occurrences(oligos & len(12), sites)  # the same count
+>>> occurrences(oligos & len(12), pali6)  # the same count
 1835008
 
 The second panel of Listing 5 (#1135) scans **one** sequence, the caller's
 ``bytes``, read where they are.  Two lines count the same sites: the query,
-the sequence's hexamers that are sites, ``>> hexamers & sites``, the first
-panel's stage read at one sequence, here a function of it; and the plan, the matcher
+the sequence's windows that are sites, ``>> pali6``, the first panel's
+expression read at one sequence; and the plan, the matcher
 specialised to the section's words (``automaton``, the minimal automaton,
 built here at run time by the function C++ runs at compile time).  A plan
 is a value: ``==`` compares the languages, ``repr`` is its EXPLAIN.
@@ -70,36 +69,34 @@ is a value: ``==`` compares the languages, ``repr`` is its EXPLAIN.
 .. [listing5:one-genome]
 
 >>> dna = b"TTGAATTCNNNNNNNAAGCTTA"
->>> def cut_sites(s):
-...     return s >> hexamers & sites
->>> count(cut_sites(dna))
+>>> count(dna >> pali6)
 2
 >>> ecori = automaton(site(bases, "GAATTC"))
 >>> count(dna >> matches(ecori))
 1
 >>> def by_the_plan(s):
-...     return count(s >> matches(automaton(sites)))
+...     return count(s >> matches(automaton(pali6)))
 >>> by_the_plan(dna)
 2
 
 .. [/listing5:one-genome]
 
->>> plan = automaton(sites)
+>>> plan = automaton(pali6)
 >>> plan
 automaton(states=277, accepting=64)
 >>> dna >> matches(plan) >> counting  # the stage form of count
 2
 >>> collect(dna >> matches(plan))  # where a site ends
 [7, 20]
->>> collect(cut_sites(dna))  # the restriction map: where each site begins
+>>> collect(dna >> pali6)  # the restriction map: where each site begins
 [2, 15]
->>> sites(b"GAATTC"), sites(b"GAATTA"), sites(b"GAATT")
+>>> pali6(b"GAATTC"), pali6(b"GAATTA"), pali6(b"GAATT")
 (True, False, False)
 >>> count(b"GAANTTC" >> matches(plan))  # N breaks it
 0
 >>> count(b"GAANTTC" >> matches(plan, Holes.skip))
 1
->>> plan == automaton(sites)
+>>> plan == automaton(pali6)
 True
 
 Arrows are **extensional** (functions): ``id(T) >> f`` and ``f`` are equal on
@@ -145,7 +142,6 @@ from ._jlt import rotate
 from ._jlt import succ
 from ._jlt import symmetric
 from ._jlt import window
-from ._jlt import windows
 from ._jlt import words
 from ._jlt import Words
 
@@ -183,7 +179,6 @@ __all__ = [
     "succ",
     "symmetric",
     "window",
-    "windows",
     "words",
     "Words",
 ]

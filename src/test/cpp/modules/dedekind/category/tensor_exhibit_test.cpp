@@ -333,13 +333,11 @@ static_assert(
 using dedekind::category::explain;
 using dedekind::category::Offsets;
 static_assert(
-    std::same_as<decltype(explain((power(nucleotides, 12) >> windows(6) &
-                                   sites_6))),
+    std::same_as<decltype(explain((power(nucleotides, 12) >> sites_6))),
                  Outer<Offsets<std::size_t>,
                        std::remove_cvref_t<decltype(cylinder(
                            power(nucleotides, 12), window(0, 6), sites_6))>>> &&
-    std::ranges::equal(count_factors((power(nucleotides, 12) >> windows(6) &
-                                      sites_6)),
+    std::ranges::equal(count_factors((power(nucleotides, 12) >> sites_6)),
                        Factors{{7, 1}, {4, 3}, {4, 6}}));
 // Which site lengths cut most often: the even lengths from 2 to 12, ranked
 // by their occurrences in all genomes of length 12, the first five.  The rank
@@ -392,25 +390,20 @@ TEST_CASE("Category: the fused ranking agrees with the law's",
 // it is the same count.
 using dedekind::category::bits_needed;
 using dedekind::category::narrowest_count_word;
-static_assert(bits_needed(count_factors((power(nucleotides, 12) >> windows(6) &
-                                         sites_6))) == 22 &&
+static_assert(bits_needed(count_factors((power(nucleotides, 12) >> sites_6))) ==
+                  22 &&
               std::bit_width(1'835'008uz) == 21);
 using SiteCount = narrowest_count_word<bits_needed(
-    count_factors((power(nucleotides, 12) >> windows(6) & sites_6)))>;
+    count_factors((power(nucleotides, 12) >> sites_6)))>;
 static_assert(std::same_as<SiteCount, std::uint32_t>);
 static_assert(occurrences(power<SiteCount>(nucleotides, 12),
                           symmetric(power<SiteCount>(nucleotides, 6),
                                     power(complement) >> rev)) == 1'835'008u);
 // The same count as a query: COUNT(*) over the join on the window, the
-// power's windows met with the sites.
-static_assert(
-    count((power(nucleotides, 12) >> windows(6) & sites_6)) == 1'835'008uz &&
-    exact_count((power(nucleotides, 12) >> windows(6) & sites_6)) ==
-        1'835'008uz &&
-    !exact_count((power(nucleotides, 40) >> windows(6) & sites_6)).has_value());
-// Grouped either way, one join: (p >> w) & s = p >> (w & s), the stage.
-static_assert(count((power(nucleotides, 12) >> windows(6)) & sites_6) ==
-              count(power(nucleotides, 12) >> (windows(6) & sites_6)));
+// power read through the sites.
+static_assert(count((power(nucleotides, 12) >> sites_6)) == 1'835'008uz &&
+              exact_count((power(nucleotides, 12) >> sites_6)) == 1'835'008uz &&
+              !exact_count((power(nucleotides, 40) >> sites_6)).has_value());
 
 // Listing 5, all genomes: the README's and the paper's text, verbatim between
 // the markers (src/test/python/test_readme_listing5.py checks it), beside
@@ -427,22 +420,20 @@ using dedekind::category::Words;
 constexpr Alphabet bases = abc("ACGT");
 // Σ* = ⊔ₙ Σⁿ :
 constexpr Words oligos = words(bases);
-// Σ⁶, read at every offset :
-constexpr auto hexamers = windows(6);
 // ~rev, the reverse complement: CCTA ↦ TAGG
 // { w ∈ Σ⁶ | ~rev w = w }, the palindromic hexamers :
-constexpr auto sites = oligos & hexamers & fixed_by(~rev);
-// { (s, i) ∈ Σᴺ × ℕ | s[i, i+6) ∈ sites } :
-constexpr auto cuts(size_t N) { return (oligos & len(N)) >> hexamers & sites; }
+constexpr auto pali6 = oligos & len(6) & fixed_by(~rev);
+// { (s, i) ∈ Σᴺ × ℕ | s[i, i+6) ∈ pali6 } :
+constexpr auto cuts(size_t N) { return (oligos & len(N)) >> pali6; }
 static_assert(count(cuts(12)) == 1'835'008uz && count(cuts(32)) == 27uz << 58);
 // [/listing5:all-genomes]
 // The meets commute: the length then the symmetry, or the symmetry then
 // the length, is one section; the complement is the alphabet's own, its
 // reflection; and no odd palindrome, as no base is its own complement.
 static_assert(
-    exact_count(count_factors(sites)) ==
+    exact_count(count_factors(pali6)) ==
         exact_count(count_factors(oligos & fixed_by(~rev) & len(6uz))) &&
-    sites.tau == dedekind::category::refl(bases) &&
+    pali6.tau == dedekind::category::refl(bases) &&
     exact_count(count_factors(oligos & fixed_by(~rev) & len(7uz))) == 0uz);
 
 // Listing 5, one genome: the two lines, the README's text between the markers.
@@ -458,17 +449,14 @@ using dedekind::category::site;
 // [listing5:one-genome]
 // a sequence, N an unknown base :
 constexpr auto dna = bytes("TTGAATTCNNNNNNNAAGCTTA");
-// { i | s[i, i+6) ∈ sites }, each window tested :
-constexpr auto cut_sites(std::span<const std::byte> s) {
-  return s >> hexamers & sites;
-}
-static_assert(count(cut_sites(dna)) == 2uz);
+// { i | dna[i, i+6) ∈ pali6 }, each window tested :
+static_assert(count(dna >> pali6) == 2uz);
 // one site, its table built by the compiler :
 constexpr auto ecori = automaton(site(bases, "GAATTC"));
 static_assert(count(dna >> matches(ecori)) == 1uz);
 // all 64, by the same function; the table past the budget, built at run time :
 constexpr auto by_the_plan(std::span<const std::byte> s) {
-  return count(s >> matches(automaton(sites)));
+  return count(s >> matches(automaton(pali6)));
 }
 // [/listing5:one-genome]
 // The plan's count is a Maybe: the plan may exceed its capacity, and the
@@ -476,7 +464,7 @@ constexpr auto by_the_plan(std::span<const std::byte> s) {
 TEST_CASE("Category: Listing 5's one-genome lines agree",
           "[category][tensor][listing5]") {
   const Word genome(dna.begin(), dna.end());
-  CHECK(count(cut_sites(genome)) == 2);
+  CHECK(count(std::span<const std::byte>{genome} >> pali6) == 2);
   CHECK(by_the_plan(genome) == 2);  // Maybe{2}
   CHECK(by_the_plan(genome).has_value());
   CHECK(by_the_plan(dna) == 2);

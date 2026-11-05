@@ -14,7 +14,7 @@
  * | @c from     | @c FROM    | @c n @c >> @c chain<N>()    |
  * | @c Select   | @c SELECT  | @c >> @c f                  |
  * | @c Where    | @c WHERE   | @c >> @c where(p)           |
- * | @c Join     | @c JOIN    | @c p @c >> @c windows(n) @c & @c s |
+ * | @c Join     | @c JOIN    | @c p @c >> @c s               |
  * | @c OrderBy  | @c ORDER BY| @c >> @c order_by(rank)     |
  * | @c Take     | @c LIMIT   | @c >> @c take<K>()          |
  * | @c Count    | @c COUNT   | @c count, @c >> @c counting   |
@@ -24,7 +24,7 @@
  * the comprehension takes another: @c take, Haskell's and LINQ's, for SQL's
  * @c LIMIT, since a limit here is the universal construction (@c :limit),
  * and the monad's multiplication is @c μ; SQL's @c JOIN keeps no name of its
- * own, being a power read through @c windows(n), the bind, met with a set.
+ * own, being a power read through a set of words, the bind.
  *
  * The carrier is a finite chain sequence holding at most one element per
  * position: the list monad whose Kleisli arrows yield none or one, so a
@@ -273,35 +273,6 @@ export template <std::size_t N, typename St>
 constexpr auto operator>>(const std::array<std::byte, N>& a, const St& st) {
   return std::span<const std::byte>{a} >> st;
 }
-/** @brief @c words(Σ) @c & @c windows(n): the stage read against the graded
- *  family is its fibre, @f$\Sigma^n@f$, a window of @c n letters being a
- *  word of @c n letters; so the exhibit writes the six once, @c hexamers
- *  @c = @c windows(6), and @c oligos @c & @c hexamers is @f$\Sigma^6@f$.
- *  @param fam the family.  @param w the windows.  @return the fibre. */
-export template <IsArrow Fam>
-  requires is_graded_v<Fam> && std::same_as<Dom<Fam>, std::size_t>
-constexpr Cod<Fam> operator&(const Fam& fam, Windows w) {
-  return fam(w.n);
-}
-/** @brief @c p @c >> @c windows(n): the windows of every word of a tensor
- *  power at every offset, the bag a set yields when read through the stage,
- *  as a sequence yields its windows.  Met with a section (@c &) it is the
- *  join on the window below, counted by its laws and never enumerated: the
- *  exhibit's @c cuts(N) @c = @c (oligos @c & @c len(N)) @c >> @c hexamers
- *  @c & @c sites, the right panel's query at every N-mer.  @tparam P the
- *  power. */
-export template <typename P>
-struct PowerWindows {
-  P power;
-  Windows windows;
-};
-/** @param p a tensor power.  @param w the stage.  @return its words'
- *  windows. */
-export template <HasNNOStep C, IsArrow F, IsCountWord N>
-constexpr PowerWindows<Power<C, F, N>> operator>>(const Power<C, F, N>& p,
-                                                  Windows w) {
-  return {p, w};
-}
 
 // The functor's laws, read on a range of the caller's: the identity maps
 // it to itself, and mapping twice is mapping the composite once.
@@ -359,47 +330,20 @@ export template <typename P, typename S, IsArrow T>
 constexpr auto where(const Symmetric<P, S, T>& s) {
   return where(arrow<std::span<const Dom<T>>, bool>(s));
 }
-/** @brief @c r @c & @c s: a range of the caller's windows met with a
- *  section, the windows that lie in it, @c where(s) on the range.  Trsk's
- *  @c & of a set and a predicate, read on the caller's data: the meet in
- *  the subobjects of the windows.  @c >> binds tighter than @c &, so
- *  @c genome @c >> @c windows(6) @c & @c sites is the windows, then the
- *  meet, and @c count of it the panel's number.  @param r the view.
- *  @param s the section.  @return the query. */
+/** @brief @c r @c >> @c s: where the words of a section occur in a range of
+ *  the caller's: its windows of the section's length, each kept where the
+ *  section holds it.  The section knows its length, so no window of another
+ *  arises.  Listing 5's @c dna @c >> @c pali6, the same expression as the join
+ *  below read at one sequence.  @param r the view.  @param s the section.
+ *  @return the query. */
 export template <detail_comprehension::IsForeignView R, typename P, typename S,
                  IsArrow T>
   requires requires(R r, const Symmetric<P, S, T>& s) {
-    std::move(r) >> where(s);
+    std::move(r) >> windows(1uz) >> where(s);
   }
-constexpr auto operator&(R r, const Symmetric<P, S, T>& s) {
-  return std::move(r) >> where(s);
-}
-/** @brief @c windows(n) @c & @c s: the windows of @c n that lie in the
- *  section, as a stage, named before any sequence is given.  @c >> binds
- *  tighter than @c &, so @c x @c >> @c hexamers @c & @c sites is the
- *  windows, then the meet; grouped the other way, @c x @c >> @c (hexamers
- *  @c & @c sites), it is this stage, and the two are one value, for a
- *  sequence and for a tensor power alike.  @tparam P @tparam S
- *  @tparam T the section's. */
-export template <typename P, typename S, IsArrow T>
-struct WindowsIn {
-  Windows windows;
-  Symmetric<P, S, T> section;
-};
-/** @param w the windows.  @param s the section.  @return the stage. */
-export template <typename P, typename S, IsArrow T>
-constexpr WindowsIn<P, S, T> operator&(Windows w, const Symmetric<P, S, T>& s) {
-  return {w, s};
-}
-/** @param r a view of the caller's.  @param w the stage.  @return the
- *  windows of @c r that lie in the section, the query. */
-export template <detail_comprehension::IsForeignView R, typename P, typename S,
-                 IsArrow T>
-  requires requires(R r, const WindowsIn<P, S, T>& w) {
-    (std::move(r) >> w.windows) & w.section;
-  }
-constexpr auto operator>>(R r, const WindowsIn<P, S, T>& w) {
-  return (std::move(r) >> w.windows) & w.section;
+constexpr auto operator>>(R r, const Symmetric<P, S, T>& s) {
+  return std::move(r) >> windows(static_cast<std::size_t>(s.power.length)) >>
+         where(s);
 }
 
 // where(p) keeps what p classifies: the subobject {x | p(x)} is the pullback
@@ -487,7 +431,7 @@ constexpr N sum(Q q) {
   return std::ranges::fold_left(std::move(q), N{0}, lifted(std::plus<N>{}));
 }
 
-/** @brief @c p @c >> @c windows(n) @c & @c s, SQL's @c JOIN on a window:
+/** @brief @c p @c >> @c s, SQL's @c JOIN on a window:
  *  the tensor of the windows of the words of @c p that land in @c s, at
  *  every offset where a window fits.  A constructor, not a materialisation: the
  * join is a tensor, counted, never enumerated, so it stays inside the counted
@@ -512,32 +456,17 @@ struct WindowJoin {
   P power;
   S inner;
 };
-namespace detail_comprehension {
-/** @brief Refuses windows of one length met with words of another. */
-[[noreturn]] constexpr void refuse_window_length() { std::abort(); }
-}  // namespace detail_comprehension
-/** @param pw the windows of a tensor power's words.  @param s a set of words
- *  of the windows' length over the same legs.  @return the join of the
- *  power and @c s on the window. */
-export template <typename P, typename S>
-  requires requires(const P& p, const S& s) { occurrences(p, s); }
-constexpr WindowJoin<P, S> operator&(const PowerWindows<P>& pw, const S& s) {
-  if (pw.windows.n !=
-      static_cast<std::size_t>(detail_periodic::power_of(s).length))
-    detail_comprehension::refuse_window_length();
-  return {pw.power, s};
-}
-/** @brief @c p @c >> @c (windows(n) @c & @c s): the join with its stage
- *  grouped first, the same value as @c (p @c >> @c windows(n)) @c & @c s,
- *  so the expression reads either way.  @param p the power.  @param w the
- *  stage.  @return the join. */
-export template <typename P, typename Q, typename S, IsArrow T>
-  requires requires(const P& p, const Symmetric<Q, S, T>& s) {
+/** @param p a tensor power.  @param s a section over the same legs.
+ *  @return the join of @c p and @c s on the window: @c s's words at every
+ *  offset of every word of @c p, counted by its laws, never enumerated. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename P, typename S,
+                 IsArrow T>
+  requires requires(const Power<C, F, N>& p, const Symmetric<P, S, T>& s) {
     occurrences(p, s);
   }
-constexpr WindowJoin<P, Symmetric<Q, S, T>> operator>>(
-    const P& p, const WindowsIn<Q, S, T>& w) {
-  return (p >> w.windows) & w.section;
+constexpr WindowJoin<Power<C, F, N>, Symmetric<P, S, T>> operator>>(
+    const Power<C, F, N>& p, const Symmetric<P, S, T>& s) {
+  return {p, s};
 }
 /** @brief The offsets a window takes, as a tensor: the chain of @c m, its
  *  count @c m, one factor @f$m^1@f$.  Its outer product with a tensor is the
