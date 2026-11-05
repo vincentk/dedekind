@@ -795,26 +795,34 @@ static_assert(
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// a sequence, N an unknown base :
-constexpr auto dna =
-  bytes("TTGAATTCNNNNNNNAAGCTTA");
+// those of pali6 beginning GA :
+constexpr auto sites =
+  pali6 & prefix("GA");
 
-// { i | dna[i, i+6) ∈ pali6 },
-// each window tested :
-static_assert(count(dna >> pali6) == 2uz);
+// the table, computed once by the compiler :
+constexpr auto scanner =
+  *automaton(sites);
+static_assert(states(scanner) == 11uz);
 
-// one site, its table built by the compiler :
-constexpr auto ecori =
-  automaton(site(bases, "GAATTC"));
-static_assert(
-  count(dna >> matches(ecori)) == 1uz);
-
-// all 64, by the same function;
-// the table past the budget, built at run time :
-constexpr auto by_the_plan(
+// what remains, one pass over any s :
+constexpr auto found(
     span<const byte> s) {
-  return count(s >> matches(automaton(pali6)));
+  return s >> matches(scanner);
 }
+
+// and only now a sequence :
+constexpr auto dna = bytes(
+  "GAATTCGAGCTCGGTACCCGGGGATCC"
+  "TCTAGAGTCGACCTGCAGGCATGCAAGCTT");
+
+// ten by definition, each window tested :
+static_assert(count(dna >> pali6) == 10uz);
+
+// two by the table: EcoRI's and SacI's :
+static_assert(
+  count(found(dna)) == 2uz &&
+  sites(bytes("GAATTC")) &&
+  sites(bytes("GAGCTC")));
 \end{cpp}
 \end{minipage}
 \begin{minipage}[t]{0.49\linewidth}
@@ -831,28 +839,22 @@ count (cuts 32) ~> 27 · 2^58
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{minted}{text}
--- the plan is a closed term,
+-- the table is a closed term,
 -- the pass over the sequence is not
-by_the_plan g =
-  κ (automaton pali6) (λ (q₀, δ, ε).
-    η (π₂ (fold (λ (q, c) a.
-                  (δ q a, c + ε (δ q a)))
-                (q₀, 0) (map rank g))))
-  -- in Maybe: nothing past the capacity
-automaton (site GAATTC) ~> (0, T, F)
-  -- static: KMP's table, 7 states
-automaton pali6 ~> (0, T', F')
-  -- static, 277 states: past the budget,
-  -- so at run time
-by_the_plan g =              -- the residual
+automaton sites ~> (0, T, F)
+  -- static, 11 states: the compiler's
+found s =                    -- the residual
   π₂ (fold (λ (q, c) a. (T q a, c + F (T q a)))
-           (0, 0) (map rank g))
+           (0, 0) (map rank s))
+automaton pali6 ~> (0, T', F')
+  -- 277 states: past the budget, so
+  -- the same function runs at run time
 \end{minted}
 \end{minipage}
 \caption{Palindromic DNA restriction sites, counted two ways on one definition.
 A palindrome is a word equal to its reverse complement, as EcoRI's \texttt{GAATTC}; an enzyme cuts where one occurs.
 Left: how many cuts a cocktail of every six-cutter makes in all $4^N$ $N$-mers, each digested once.
-Right: the cuts of the same cocktail in one sequence, the caller's bytes read where they lie.
+Right: the cuts of a smaller cocktail, the six-cutters beginning \texttt{GA}, in any one sequence, the caller's bytes read where they lie; here the polylinker of the plasmid pUC19.
 Below each: its translation (Section~\ref{sec:translation}), a closed term the compiler reduces and a residual for the run time.
 Without the count's laws, the left panel would build the $N$-mers and exhaust the step limit (Table~\ref{tab:binding}) before reaching its \cppinline{static_assert}.
 The table is Brzozowski's automaton~\cite{brzozowski1964derivatives}, for one site that of Knuth, Morris and Pratt~\cite{knuth1977fast} as partial evaluation derives it~\cite{consel1989partial}.
