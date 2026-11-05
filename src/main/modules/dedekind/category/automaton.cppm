@@ -711,14 +711,14 @@ constexpr auto operator>>(V letters, const Matches<Sigma, Q>& m) {
                                                          std::move(letters)});
 }
 
-/** @brief @c s @c <<= @c plan: the history comonad's extension with its kernel
+/** @brief @c scan(plan, s): the history comonad's extension with its kernel
  *  factored through finitely many states, so that it keeps one state, not the
  *  history (Myhill and Nerode).  It is @c matches(plan), its holes breaking a
- *  match.  @param letters a text.  @param plan the plan.  @return the query. */
+ *  match.  @param plan the plan.  @param letters a text.  @return the query. */
 export template <std::ranges::view V, std::size_t Sigma, std::size_t Q>
   requires std::ranges::random_access_range<V> && std::ranges::sized_range<V> &&
            std::semiregular<V>
-constexpr auto operator<<=(V letters, const Automaton<Sigma, Q>& plan) {
+constexpr auto scan(const Automaton<Sigma, Q>& plan, V letters) {
   return std::move(letters) >> matches(plan);
 }
 /** @brief @c s @c >> @c scanner: a plan read as the stage it is.  @param
@@ -727,7 +727,7 @@ export template <std::ranges::view V, std::size_t Sigma, std::size_t Q>
   requires std::ranges::random_access_range<V> && std::ranges::sized_range<V> &&
            std::semiregular<V>
 constexpr auto operator>>(V letters, const Automaton<Sigma, Q>& plan) {
-  return std::move(letters) <<= plan;
+  return scan(plan, std::move(letters));
 }
 /** @brief Where a prefixed section's words occur in a range of the caller's:
  *  the windows of its length it holds, as @c r @c >> @c s for a section.
@@ -820,7 +820,7 @@ struct EndsInSite {
 constexpr bool plan_factors_the_kernel() {
   const std::span<const std::byte> s{law_text};
   return static_cast<std::size_t>(std::ranges::count(
-             s <<= EndsInSite{}, true)) == count(s <<= law_plan);
+             scan(EndsInSite{}, s), true)) == count(scan(law_plan, s));
 }
 /** @brief Whether the table and the windows agree on one more prefix. */
 struct AgreesOnPrefix {

@@ -492,6 +492,57 @@ TEST_CASE("Category: palindromes listed by the law are those tested one by one",
 }
 }  // namespace listing5
 
+// The smoke test of the listing at scale.  Random DNA as a sequence on a chain,
+// an arrow out of the counts: each letter a hash of its position (SplitMix64,
+// its top two bits), so the text is never stored and no generator keeps a
+// state.  The scan keeps one state and a count.
+struct RandomBase {
+  using Domain = size_t;
+  using Codomain = std::byte;
+  constexpr std::byte operator()(size_t i) const {
+    std::uint64_t z = (static_cast<std::uint64_t>(i) + 1) * 0x9E3779B97F4A7C15u;
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9u;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EBu;
+    z ^= z >> 31;
+    return std::byte{static_cast<unsigned char>("ACGT"[z >> 62])};
+  }
+};
+/** @brief The other way to find them, as an exact check: the last six ranks
+ *  and their reverse complement in two registers of 12 bits, compared. */
+struct RollingCode {
+  std::uint32_t forward{0};
+  std::uint32_t reverse{0};
+  size_t seen{0};
+  size_t found{0};
+};
+struct AddLetter {
+  constexpr RollingCode operator()(RollingCode c, std::byte b) const {
+    const auto r = static_cast<std::uint32_t>(
+        *dedekind::category::rank(listing5::bases)(b));
+    c.forward = ((c.forward << 2) | r) & 0xFFFu;
+    c.reverse = (c.reverse >> 2) | ((3u - r) << 10);
+    ++c.seen;
+    if (c.seen >= 6 && c.forward == c.reverse) ++c.found;
+    return c;
+  }
+};
+TEST_CASE("Category: Listing 5's scanner on ten million random bases",
+          "[category][tensor][listing5][smoke]") {
+  constexpr size_t N = 10'000'000;
+  const auto text =
+      std::views::iota(0uz, N) | std::views::transform(RandomBase{});
+  const auto plan = dedekind::category::automaton(listing5::pali6);
+  REQUIRE(plan.has_value());
+  const size_t by_the_table = count(text >> *plan);
+  // the scan and an independent register agree exactly
+  CHECK(by_the_table ==
+        std::ranges::fold_left(text, RollingCode{}, AddLetter{}).found);
+  // and the left panel's law says what to expect: (N - 5) / 64 of them, with a
+  // spread of about 392, so five spreads either side
+  CHECK(by_the_table > 156'250 - 2'000);
+  CHECK(by_the_table < 156'250 + 2'000);
+}
+
 // Panel 2's plans and their binding times, each a plan of the library's own
 // values: EcoRI's single site, and the section sites itself.  Whether a
 // plan is a constant is decided by a concept: the evaluator running out of

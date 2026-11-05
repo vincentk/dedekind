@@ -275,9 +275,16 @@ constexpr auto operator>>(const std::array<std::byte, N>& a, const St& st) {
   return std::span<const std::byte>{a} >> st;
 }
 
+/** @concept IsPrefixKernel
+ *  @brief A kernel on the non-empty prefixes of a text: an arrow out of them,
+ *  a coKleisli arrow of the history comonad, whose answer at a position may
+ *  read all that came before it and nothing after.  @tparam K the kernel.
+ *  @tparam T the letters. */
+export template <typename K, typename T>
+concept IsPrefixKernel = IsArrow<K> && std::same_as<Dom<K>, std::span<const T>>;
 namespace detail_comprehension {
 /** @brief The kernel at one more prefix. */
-template <typename T, IsArrow K>
+template <typename T, IsPrefixKernel<T> K>
 struct KernelAt {
   std::span<const T> text;
   K kernel;
@@ -286,16 +293,15 @@ struct KernelAt {
   }
 };
 }  // namespace detail_comprehension
-/** @brief @c s @c <<= @c k, the extension of the history comonad: a kernel on
- *  the non-empty prefixes, asked at each position, SQL's window function over
- *  @c ROWS @c UNBOUNDED @c PRECEDING.  Every position has a prefix, so unlike a
- *  window of @c n this is a comonad on a finite range; each answer may read the
- *  whole prefix, so a kernel that factors through finitely many states is
- *  worth a stage of its own (@c :automaton).  @param s the text.
- *  @param k the kernel.  @return the answers, read lazily. */
-export template <typename T, IsArrow K>
-  requires std::same_as<Dom<K>, std::span<const T>>
-constexpr auto operator<<=(std::span<const T> s, K k) {
+/** @brief @c scan(k, s), the extension of the history comonad: a kernel asked
+ *  at every non-empty prefix, SQL's window function over @c ROWS @c UNBOUNDED
+ *  @c PRECEDING, as @c scan on a @c Path (@c :sequences).  Every position has
+ *  a prefix, so unlike a window of @c n this is a comonad on a finite range;
+ *  each answer may read the whole prefix, so a kernel that factors through
+ *  finitely many states has an overload of its own (@c :automaton).
+ *  @param k the kernel.  @param s the text.  @return the answers, lazily. */
+export template <typename T, IsPrefixKernel<T> K>
+constexpr auto scan(K k, std::span<const T> s) {
   return std::views::iota(1uz, s.size() + 1) |
          std::views::transform(
              detail_comprehension::KernelAt<T, K>{s, std::move(k)});
@@ -323,14 +329,14 @@ struct LengthOf {
 // the kernel.  Coassociativity is not stated: the extension is a view and its
 // kernel takes a span.
 static_assert(
-    std::ranges::equal(
-        std::span<const std::size_t>{detail_comprehension::history_witness} <<=
-        LastOf<std::size_t>{},
-        detail_comprehension::history_witness) &&
-    std::ranges::equal(
-        std::span<const std::size_t>{detail_comprehension::history_witness} <<=
-        detail_comprehension::LengthOf{},
-        std::array{1uz, 2uz, 3uz}));
+    std::ranges::equal(scan(LastOf<std::size_t>{},
+                            std::span<const std::size_t>{
+                                detail_comprehension::history_witness}),
+                       detail_comprehension::history_witness) &&
+    std::ranges::equal(scan(detail_comprehension::LengthOf{},
+                            std::span<const std::size_t>{
+                                detail_comprehension::history_witness}),
+                       std::array{1uz, 2uz, 3uz}));
 
 // The functor's laws, read on a range of the caller's: the identity maps
 // it to itself, and mapping twice is mapping the composite once.
