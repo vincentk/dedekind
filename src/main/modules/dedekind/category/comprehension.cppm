@@ -264,8 +264,8 @@ constexpr auto operator>>(R r, Windows w) {
   return detail_comprehension::sliding(std::move(r), w.n);
 }
 /** @brief The bytes of a named array read through a stage, as the span over
- *  them: Listing 5's @c dna @c >> @c matches(ecori).  A temporary's are
- *  refused: the query reads them where they lie.  @param a the bytes.
+ *  them: Listing 5's @c dna @c >> @c matches(ecori).  The query reads them
+ *  where they lie, so they outlive it.  @param a the bytes.
  *  @param st the stage.  @return the query. */
 export template <std::size_t N, typename St>
   requires(!IsArrow<St>) &&
@@ -273,10 +273,6 @@ export template <std::size_t N, typename St>
 constexpr auto operator>>(const std::array<std::byte, N>& a, const St& st) {
   return std::span<const std::byte>{a} >> st;
 }
-export template <std::size_t N, typename St>
-  requires(!IsArrow<St>) &&
-              requires(std::span<const std::byte> s, const St& st) { s >> st; }
-auto operator>>(const std::array<std::byte, N>&&, const St&) = delete;
 /** @brief @c words(Σ) @c & @c windows(n): the stage read against the graded
  *  family is its fibre, @f$\Sigma^n@f$, a window of @c n letters being a
  *  word of @c n letters; so the exhibit writes the six once, @c hexamers
