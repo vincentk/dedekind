@@ -456,7 +456,7 @@ using dedekind::category::matches;
 using dedekind::category::rank;
 using dedekind::category::site;
 // [listing5:one-genome]
-// a sequence, N a base not read :
+// a sequence, N an unknown base :
 constexpr auto dna = bytes("TTGAATTCNNNNNNNAAGCTTA");
 // { i | s[i, i+6) ∈ sites }, each window tested :
 constexpr auto cut_sites(std::span<const std::byte> s) {
@@ -475,7 +475,7 @@ constexpr auto by_the_plan(std::span<const std::byte> s) {
 // monad carries that to the end, where the count is read.
 TEST_CASE("Category: Listing 5's one-genome lines agree",
           "[category][tensor][listing5]") {
-  const Word genome = ::dna("TTGAATTCAAGCTTA");
+  const Word genome(dna.begin(), dna.end());
   CHECK(count(cut_sites(genome)) == 2);
   CHECK(by_the_plan(genome) == 2);  // Maybe{2}
   CHECK(by_the_plan(genome).has_value());

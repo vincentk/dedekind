@@ -79,7 +79,7 @@ static_assert(count(cuts(12)) == 1'835'008uz && count(cuts(32)) == 27uz << 58);
 <!-- listing5:one-genome:cpp -->
 
 ```cpp
-// a sequence, N a base not read :
+// a sequence, N an unknown base :
 constexpr auto dna = bytes("TTGAATTCNNNNNNNAAGCTTA");
 // { i | s[i, i+6) ∈ sites }, each window tested :
 constexpr auto cut_sites(std::span<const std::byte> s) {
