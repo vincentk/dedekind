@@ -1,5 +1,5 @@
-# TEMPORARY, to be removed before this PR is ready: what pip does today, by
-# platform and route, against what is on PyPI.
+# TEMPORARY, to be removed before this PR is ready: what a source build says
+# with a compiler it cannot use.
 name: pip probe
 on:
   pull_request:
@@ -18,9 +18,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - { runner: ubuntu-26.04,   route: plain, compiler: system }
-        - { runner: ubuntu-26.04,   route: sdist, compiler: system }
-        - { runner: macos-26,       route: plain, compiler: system }
+        - { runner: ubuntu-26.04, route: source, compiler: system }
+        - { runner: macos-26,     route: source, compiler: system }
     steps:
     - uses: actions/setup-python@v7
       with:
@@ -50,10 +49,8 @@ jobs:
       run: |
         cd "$(mktemp -d)"
         python -I -m venv venv
-        args=()
-        [ "$ROUTE" = sdist ] && args=(--no-binary pynzli)
         start=$SECONDS
-        venv/bin/python -I -m pip --isolated install -v "${args[@]+"${args[@]}"}" pynzli > pip.log 2>&1 && ok=0 || ok=$?
+        venv/bin/python -I -m pip --isolated install -v "git+https://github.com/vincentk/dedekind@ci/pip-linux-macos" > pip.log 2>&1 && ok=0 || ok=$?
         echo "pip exit $ok after $((SECONDS-start))s"
         grep -n -E 'Using cached|Downloading|Building wheel|CMake Error|error:|FATAL|Successfully' pip.log | head -40 | cut -c1-200 || true
         echo "--- tail"; tail -30 pip.log | cut -c1-220
