@@ -42,7 +42,7 @@ _HOST_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || ech
 JOBS ?= $(shell j=$$(( $(_HOST_CORES) - 2 )); [ $$j -lt 2 ] && j=2; echo $$j)
 
 .PHONY: help python-api jlt-lint jlt-lint-tool
-.PHONY: all clean compile test-compile test integration-test coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-paper-deps doxygen paper paper-jlt \
+.PHONY: bench all clean compile test-compile test integration-test coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-paper-deps doxygen paper paper-jlt \
 	ci-history ci-main pr-init pr-status pr-status-all pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list jupyter
 
@@ -169,6 +169,23 @@ coverage: compile ## Build, run tests, and produce the LLVM coverage report
 # The wheel at a version (build, manylinux retag, check) and its install,
 # from dist/ or an index (INDEX=test.pypi.org|pypi.org): the steps a release calls,
 # by CI or by hand.
+# The Listing 5 benchmark, in its own build directory: no coverage, the one
+# difference from the build `make test` uses.  Results in build/bench.
+BENCH_DIR := $(BUILD_DIR)-bench
+bench: ## Run the C++ benchmark, without coverage
+	cmake -S . -B $(BENCH_DIR) -G Ninja \
+		-DCMAKE_CXX_COMPILER=$(CXX) \
+		-DCMAKE_C_COMPILER=$(CC) \
+		-DCMAKE_CXX_SCAN_FOR_MODULES=ON \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DDEDEKIND_BENCH=ON
+	cmake --build $(BENCH_DIR) --target bench_listing5 --parallel $(JOBS)
+	mkdir -p $(BUILD_DIR)/bench
+	$(BENCH_DIR)/bench_listing5 | tee $(BUILD_DIR)/bench/scanner.md
+	{ echo; echo '| Letters | Found | Peak KiB |'; echo '|---:|---:|---:|'; \
+	  $(BENCH_DIR)/bench_listing5 memory 10000000; \
+	  $(BENCH_DIR)/bench_listing5 memory 10000000000; } | tee -a $(BUILD_DIR)/bench/scanner.md
+
 wheel: ## Build and check the Python wheel (VERSION=)
 	bash .github/scripts/wheel.sh $(VERSION)
 

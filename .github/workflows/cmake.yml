@@ -82,6 +82,35 @@ jobs:
       ARTIFACT: python-dist-macos
     steps: *wheel
 
+  # The benchmark, for a PR labelled `benchmark`: never a gate, as a shared
+  # runner's times are noisy, and the results are an artifact.
+  benchmark:
+    if: contains(github.event.pull_request.labels.*.name, 'benchmark')
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        submodules: recursive
+    - uses: ./.github/actions/wheel
+      with:
+        version: 0.0.0.dev0
+        artifact: benchmark-wheel
+    - name: The machine
+      run: |
+        mkdir -p build/bench
+        { git rev-parse HEAD; lscpu | grep -E 'Model name|^CPU\(s\)'; "$CXX" --version | head -1; } | tee build/bench/machine.txt
+    - name: C++
+      run: make bench CXX="$CXX" CC="$CC" JOBS="$(nproc)"
+    - name: Python, on the wheel without coverage
+      run: build/venv-wheel-verify/bin/python -I src/bench/python/listing5_bench.py | tee build/bench/python.md
+    - name: Upload the results
+      uses: actions/upload-artifact@v7
+      with:
+        name: benchmark
+        path: build/bench/*
+
   # The docs and the papers; deployed to Pages from main.  A PR labelled
   # `docs` builds them too, to try a change to the toolchain before main.
   # The Python reference reads the wheel, so this job follows python-dist.

@@ -460,6 +460,14 @@ if (DOXYGEN_FOUND)
     
 endif()
 
+# The Listing 5 benchmark (#1154), which `make bench` configures on its own.
+option(DEDEKIND_BENCH "Build the benchmark" OFF)
+if(DEDEKIND_BENCH)
+    add_executable(bench_listing5 src/bench/cpp/listing5_bench.cpp)
+    set_target_properties(bench_listing5 PROPERTIES CXX_SCAN_FOR_MODULES ON)
+    target_link_libraries(bench_listing5 PRIVATE dedekind_category)
+endif()
+
 get_property(ALL_TESTS GLOBAL PROPERTY DEDEKIND_ALL_TEST_BINARIES)
 get_property(ALL_LIBS GLOBAL PROPERTY DEDEKIND_ALL_LIB_ARCHIVES)
 if(DEDEKIND_COVERAGE)
