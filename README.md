@@ -80,7 +80,7 @@ static_assert(states(scanner) == 11uz);
 constexpr auto dna = bytes(
     "GAATTCGAGCTCGGTACCCGGGGATCC"
     "TCTAGAGTCGACCTGCAGGCATGCAAGCTT");
-// ten by definition, each window tested :
+// ten by definition, in windows of six :
 static_assert(count(dna >> pali6) == 10uz);
 // two by the table, in one pass : EcoRI's and SacI's
 static_assert(count(dna >> scanner) == 2uz && sites(bytes("GAATTC")) &&
