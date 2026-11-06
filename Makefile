@@ -41,14 +41,18 @@ endif
 _HOST_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 JOBS ?= $(shell j=$$(( $(_HOST_CORES) - 2 )); [ $$j -lt 2 ] && j=2; echo $$j)
 
-.PHONY: jlt-lint jlt-lint-tool
+.PHONY: help python-api jlt-lint jlt-lint-tool
 .PHONY: all clean compile test-compile test integration-test coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-paper-deps doxygen paper paper-jlt \
 	ci-history ci-main pr-init pr-status pr-status-all pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list jupyter
 
 all: compile
 
-clean:
+# Every target with a description after ##.
+help: ## List the targets
+	@awk -F':.*## ' '/^[a-zA-Z0-9_-]+:.*## /{printf "  %-22s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+clean: ## Remove the build directory
 	rm -rf $(BUILD_DIR)
 
 # Project configure step: select the LLVM toolchain, enable C++ module
@@ -63,7 +67,7 @@ $(BUILD_DIR)/CMakeCache.txt:
 		-DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON \
 		$(CMAKE_EXTRA_ARGS)
 
-compile: $(BUILD_DIR)/CMakeCache.txt
+compile: $(BUILD_DIR)/CMakeCache.txt ## Configure if needed and build all targets
 	cmake --build $(BUILD_DIR) --parallel $(JOBS)
 
 # Build + type-check every C++ translation unit in the repo (library
@@ -72,17 +76,17 @@ compile: $(BUILD_DIR)/CMakeCache.txt
 # violations, Unicode/species-visibility issues, and template
 # instantiation errors without paying the cost of ctest, Python
 # bindings, or Jupyter integration runs.
-test-compile: compile
+test-compile: compile ## compile, plus the IR-fixture showcases: type-checks every C++ file without running tests
 	cmake --build $(BUILD_DIR) --target set-pruning-ir-fixture --parallel $(JOBS)
 
-test: test-compile
+test: test-compile ## Build, then run the full test suite
 	ctest --test-dir $(BUILD_DIR) --output-on-failure --parallel $(JOBS)
 
 # The notebooks run against the package `make test` already built and staged
 # in $(BUILD_DIR)/python (the extensions next to the pure-Python modules),
 # not a second build of the library through pip; the wheel job on main checks
 # that the package installs.
-integration-test: test
+integration-test: test ## test, plus the Python and notebook suites
 	python -m pip install --upgrade pip jupyter
 	@ls $(BUILD_DIR)/python/pynzli/_jlt*.so $(BUILD_DIR)/python/pynzli/_pst*.so >/dev/null 2>&1 || \
 		{ echo "ERROR: no staged dedekind package in $(BUILD_DIR)/python; configure with DEDEKIND_BUILD_PYTHON_BINDINGS=ON"; exit 2; }
@@ -150,7 +154,7 @@ jupyter: compile $(VENV_DIR)/bin/python
 	$(VENV_DIR)/bin/pip install -e .
 	$(VENV_DIR)/bin/jupyter notebook $(NOTEBOOKS_DIR)
 
-coverage: compile
+coverage: compile ## Build, run tests, and produce the LLVM coverage report
 	@echo "Running tests with profile environment..."
 	rm -f $(BUILD_DIR)/*.profraw
 	# Set the variable for the duration of the ctest command
@@ -164,41 +168,41 @@ coverage: compile
 # The wheel at a version (build, manylinux retag, check) and its install,
 # from dist/ or an index (INDEX=test.pypi.org|pypi.org): the steps a release calls,
 # by CI or by hand.
-wheel:
+wheel: ## Build and check the Python wheel (VERSION=)
 	bash .github/scripts/wheel.sh $(VERSION)
 
-wheel-verify:
+wheel-verify: ## Install the wheel in a fresh environment and test it (VERSION=, INDEX=)
 	bash .github/scripts/wheel-verify.sh $(VERSION) $(INDEX)
 
 # The Python API reference, from the installed wheel's docstrings, for Pages
 # beside the Doxygen: pdoc imports pynzli, so the wheel must be installed.
-python-api:
+python-api: ## The Python API reference, from the installed wheel
 	python -m pip install --quiet pdoc
 	python -m pdoc pynzli --output-directory $(BUILD_DIR)/python-api \
 		--footer-text "pynzli, the Python handles over dedekind"
 
-python-coverage:
+python-coverage: ## Python tests and build/python-coverage.xml
 	bash .github/copilot/housekeeping/python-coverage.sh
 
 # Local convenience alias (same behavior as python-coverage).
 python-coverage-local: python-coverage
 
-ir-fixture-refresh:
+ir-fixture-refresh: ## Regenerate the checked-in LLVM IR fixtures
 	python .github/copilot/housekeeping/pruning-ir-fixture.py refresh
 
-ir-fixture-check:
+ir-fixture-check: ## Check the LLVM IR fixtures against the source
 	python .github/copilot/housekeeping/pruning-ir-fixture.py check
 
 
-format:
+format: ## Format all C++ sources
 	find src -name "*.cpp" -o -name "*.cppm" | xargs $(CLANG_FORMAT) -i
 
-format-check:
+format-check: ## Check formatting without changing files
 	find src -name "*.cpp" -o -name "*.cppm" | xargs $(CLANG_FORMAT) --dry-run --Werror
 
 # The Jlt linter (#1060): a post-processing step over the build's compilation
 # database; the gate is tools/jlt-lint/scope.
-jlt-lint: jlt-lint-tool
+jlt-lint: jlt-lint-tool ## The Jlt linter, after a build
 	python3 tools/jlt-lint/jlt_lint.py $(CLANG_QUERY) $(BUILD_DIR) $(BUILD_DIR)/jlt-lint/jlt-lint
 
 # The linter's own binary (tools/jlt-lint/tool): the checks that need code
@@ -207,7 +211,7 @@ jlt-lint-tool:
 	cmake -S tools/jlt-lint/tool -B $(BUILD_DIR)/jlt-lint -G Ninja $(JLT_LINT_CMAKE_ARGS)
 	cmake --build $(BUILD_DIR)/jlt-lint
 
-install-hooks:
+install-hooks: ## Install the pre-push git hook
 	git config core.hooksPath .githooks
 	chmod +x .githooks/pre-push
 	@echo "Installed repo hooks from .githooks/"
@@ -301,7 +305,7 @@ issue-list:
 		gh issue list --state "$$STATE_VAL" --limit "$$LIMIT_VAL" --json "$$FIELDS_VAL"; \
 	fi
 
-ci-history:
+ci-history: ## Recent CI runs of a branch (BRANCH=, LIMIT=)
 	@BRANCH_NAME="$(BRANCH)"; \
 	LIMIT_VAL="$(LIMIT)"; \
 	if [ -z "$$BRANCH_NAME" ]; then \
@@ -313,7 +317,7 @@ ci-history:
 	echo "Recent CI runs for branch '$$BRANCH_NAME' (limit=$$LIMIT_VAL):"; \
 	gh run list --branch "$$BRANCH_NAME" --limit "$$LIMIT_VAL"
 
-ci-main:
+ci-main: ## Recent CI runs of main
 	@$(MAKE) ci-history BRANCH=main LIMIT=5
 
 # Initialize an issue-scoped branch, empty checkpoint commit, remote push, and draft PR.
@@ -323,20 +327,20 @@ ci-main:
 # Optional:
 #   TYPE=feat|fix|docs|chore   (default: feat)
 #   BASE=main                  (default: main)
-pr-init:
+pr-init: ## Issue branch, empty commit and draft PR (ISSUES="1 2", TYPE=, BASE=)
 	@ISSUES="$(ISSUES)" TYPE="$(TYPE)" BASE="$(BASE)" \
 		bash .github/copilot/housekeeping/pr-init.sh
 
-pr-status:
+pr-status: ## The current branch's PR
 	gh pr view --json number,title,state,isDraft,url
 
-pr-checks:
+pr-checks: ## The PR's checks now
 	gh pr checks || true
 
-pr-watch:
+pr-watch: ## Wait for the PR's checks
 	gh pr checks --watch || true
 
-pr-sync:
+pr-sync: ## Fetch, status and checks before a push; fails on merge conflicts
 	git fetch --prune
 	git status -sb
 	gh pr view --json number,title,state,isDraft,url,mergeStateStatus
@@ -358,7 +362,7 @@ pr-status-all:
 	@bash .github/copilot/housekeeping/pr-status-all.sh
 
 # List inline PR review comments for the current PR (or PR=<number>).
-pr-review-comments:
+pr-review-comments: ## Inline review comments on the PR (PR=)
 	@PR_NUM="$(PR)"; \
 	if [ -z "$$PR_NUM" ]; then \
 		PR_NUM="$$(gh pr view --json number --jq .number)"; \
@@ -369,7 +373,7 @@ pr-review-comments:
 		--jq '.[] | "- " + .path + ":" + (.line|tostring) + " :: " + (.body | gsub("\\n"; " "))'
 
 # Scan unresolved review threads on the current PR (or PR=<number>).
-pr-review-unresolved:
+pr-review-unresolved: ## Unresolved review threads; non-zero if any (PR=)
 	@PR_NUM="$(PR)"; \
 	if [ -z "$$PR_NUM" ]; then \
 		PR_NUM="$$(gh pr view --json number --jq .number)"; \
@@ -409,7 +413,7 @@ check-review-comments:
 # exported, since make expands an exported variable to build the environment.
 # The thread is resolved only after the reply is posted.
 unexport REASON
-pr-resolve-thread:
+pr-resolve-thread: ## Reply to and resolve one thread (THREAD_ID=, REASON=)
 	@PR_NUM="$(PR)"; \
 	THREAD_ID="$(THREAD_ID)"; \
 	REASON='$(subst ','\'',$(value REASON))'; \
@@ -479,7 +483,7 @@ pr-resolve-threads:
 	echo "  make pr-resolve-thread THREAD_ID=<thread_id> REASON=\"<resolution note>\" [PR=<number>]"; \
 	exit 2
 
-doxygen: $(BUILD_DIR)/CMakeCache.txt
+doxygen: $(BUILD_DIR)/CMakeCache.txt ## The Doxygen API docs in build/docs
 	cmake -S . -B $(BUILD_DIR) -G Ninja \
 		-DCMAKE_CXX_COMPILER=$(CXX) \
 		-DCMAKE_C_COMPILER=$(CC) \
@@ -489,9 +493,9 @@ doxygen: $(BUILD_DIR)/CMakeCache.txt
 		$(CMAKE_EXTRA_ARGS)
 	cmake --build $(BUILD_DIR) --target docs --parallel $(JOBS)
 
-paper:
+paper: ## Fast compile check of the older paper
 	$(MAKE) -C docs/paper ci-check
 
 # The Jlt paper, full build with bibliography: docs/paper/jlt/jlt.pdf.
-paper-jlt:
+paper-jlt: ## The Jlt paper with its bibliography
 	$(MAKE) -C docs/paper jlt
