@@ -577,8 +577,8 @@ TEST_CASE("Category: the count by the law is the plain fold's",
   const auto stored = dedekind::category::random_text(
                           dedekind::category::abc("ACGTN"), 5'000uz) |
                       std::ranges::to<std::vector>();
-  constexpr std::array<std::size_t, 8> lengths{6,   7,   239, 240,
-                                               245, 246, 247, 5'000};
+  constexpr std::array<std::size_t, 8> lengths{6,   7,   191, 192,
+                                               197, 198, 199, 5'000};
   CHECK(std::ranges::all_of(
       lengths, LawAgreesWithFold{std::span<const std::byte>{stored}}));
 }

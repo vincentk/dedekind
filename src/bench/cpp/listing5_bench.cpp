@@ -288,7 +288,7 @@ struct WordCount {
 // they are in a plan and in Python, and a block goes through in stages small
 // enough for the compiler to see each as a loop: ranks, then one pass per pair,
 // then the count.  Fixed storage, so the text is still never stored.
-constexpr std::size_t block_windows = 240;
+constexpr std::size_t block_windows = 192;
 constexpr std::size_t longest_word = 16;
 /** @brief A letter's rank by comparing it with each of four, a hole 0x80. */
 struct RankOf {

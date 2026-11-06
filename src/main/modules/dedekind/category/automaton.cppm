@@ -805,9 +805,10 @@ constexpr ReflectedWindows<R, N> operator>>(
 
 namespace detail_automaton {
 /** @brief How many windows a block holds: their verdicts sum in a byte, the
- *  width of a vector's lane.  @c longest_word bounds a word, for the block's
- *  fixed storage. */
-inline constexpr std::size_t block_windows = 240;
+ * width of a vector's lane, and 192 is whole in lanes of 16, 32 and 64 bytes,
+ * so a pass leaves no remainder to do one at a time.  @c longest_word bounds a
+ * word, for the block's fixed storage. */
+inline constexpr std::size_t block_windows = 192;
 inline constexpr std::size_t longest_word = 16;
 using BlockRanks = std::array<std::uint8_t, block_windows + longest_word>;
 using BlockVerdicts = std::array<std::uint8_t, block_windows>;
