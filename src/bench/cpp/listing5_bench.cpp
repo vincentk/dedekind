@@ -371,6 +371,12 @@ struct MaskByte {
 }  // namespace
 
 // Named for the disassembly `make bench` keeps.
+extern "C" std::uint64_t scan_definition(const std::byte* s, std::size_t n) {
+  return each_window(Text{s, n});
+}
+extern "C" std::uint64_t scan_table(const std::byte* s, std::size_t n) {
+  return table_64(Text{s, n});
+}
 extern "C" std::uint64_t law_ascii(const std::uint8_t* s, std::size_t n) {
   return over_the_windows(AsciiPali6{s}, n);
 }
