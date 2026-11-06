@@ -54,7 +54,9 @@
 //                     operation the constraint did not name, which C++ accepts
 //                     and FJlt's typing refuses.  Name-level like `definition`;
 //                     a call's argument is not judged, its parameter being
-//                     unknown in a template.
+//                     unknown in a template, and !, && and || on a result
+//                     converted to bool are read at bool, though a proxy may
+//                     overload them: the check reports what it is sure of.
 //   inventory         not a rule: the syntax a scope uses, one line per AST
 //                     node kind (declarations, statements and expressions,
 //                     type forms as written) with its count, for diffing
@@ -956,6 +958,8 @@ void gatherResults(const clang::Expr* e, ResultTypes& r,
     return;
   }
   if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {
+    // Only a conjunction guarantees both sides; a disjunct may not hold.
+    if (b->getOpcode() != clang::BO_LAnd) return;
     gatherResults(b->getLHS(), r, args);
     gatherResults(b->getRHS(), r, args);
     return;
@@ -1007,11 +1011,23 @@ class ConvertedResult : public clang::ASTConsumer,
         !sm->isInMainFile(ft->getLocation()) || !inScope(ft))
       return true;
     results = ResultTypes{};
-    for (const clang::NamedDecl* p : *ft->getTemplateParameters())
-      if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
-        if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
-          gatherResults(tc->getImmediatelyDeclaredConstraint(), results);
-    gatherResults(ft->getTemplateParameters()->getRequiresClause(), results);
+    const auto gatherHead = [this](const clang::TemplateParameterList* ps) {
+      for (const clang::NamedDecl* p : *ps)
+        if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
+          if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
+            gatherResults(tc->getImmediatelyDeclaredConstraint(), results);
+      gatherResults(ps->getRequiresClause(), results);
+    };
+    // A member template's enclosing class templates constrain its body too.
+    for (const clang::DeclContext* c = f->getDeclContext(); c;
+         c = c->getParent())
+      if (const auto* ps =
+              llvm::dyn_cast<clang::ClassTemplatePartialSpecializationDecl>(c))
+        gatherHead(ps->getTemplateParameters());
+      else if (const auto* r = llvm::dyn_cast<clang::CXXRecordDecl>(c))
+        if (const clang::ClassTemplateDecl* ct = r->getDescribedClassTemplate())
+          gatherHead(ct->getTemplateParameters());
+    gatherHead(ft->getTemplateParameters());
     gatherResults(f->getTrailingRequiresClause().ConstraintExpr, results);
     if (!results.converted.empty()) TraverseStmt(f->getBody());
     results = ResultTypes{};  // only this body is judged by these constraints
@@ -1041,9 +1057,40 @@ class ConvertedResult : public clang::ASTConsumer,
     if (!e->isImplicitAccess()) judge(e->getBase(), false);
     return true;
   }
+  bool VisitCallExpr(clang::CallExpr* e) {
+    // The result called through its own type; the arguments are not judged.
+    if (!llvm::isa<clang::CXXOperatorCallExpr>(e)) judge(e->getCallee(), false);
+    return true;
+  }
+  bool VisitIfStmt(clang::IfStmt* s) {
+    judge(s->getCond(), true);
+    return true;
+  }
+  bool VisitWhileStmt(clang::WhileStmt* s) {
+    judge(s->getCond(), true);
+    return true;
+  }
+  bool VisitDoStmt(clang::DoStmt* s) {
+    judge(s->getCond(), true);
+    return true;
+  }
+  bool VisitForStmt(clang::ForStmt* s) {
+    judge(s->getCond(), true);
+    return true;
+  }
+  bool VisitConditionalOperator(clang::ConditionalOperator* e) {
+    judge(e->getCond(), true);
+    return true;
+  }
   bool VisitVarDecl(clang::VarDecl* d) {
-    if (d->hasInit() && d->getType()->getContainedAutoType())
-      judge(d->getInit(), false);
+    if (!d->hasInit() || !d->getType()->getContainedAutoType()) return true;
+    const clang::Expr* init = d->getInit()->IgnoreParenImpCasts();
+    if (const auto* list = llvm::dyn_cast<clang::InitListExpr>(init))
+      for (const clang::Expr* x : list->inits()) judge(x, false);
+    else if (const auto* paren = llvm::dyn_cast<clang::ParenListExpr>(init))
+      for (const clang::Expr* x : paren->exprs()) judge(x, false);
+    else
+      judge(init, false);
     return true;
   }
 

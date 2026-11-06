@@ -9,6 +9,8 @@ template <typename T>
 T f(T);
 template <typename T>
 T g(T);
+template <typename T>
+int h(T);
 
 template <typename T>
 concept Loose = requires(const T a, const T b) {
@@ -64,6 +66,48 @@ template <Shaped T>
 constexpr T shaped(const T& a, const T& b) {
   return a + b + a;  // converted-result 9: a shape is not the exact type
 }
+template <typename T>
+concept Exactly = requires(const T a, const T b) {
+  { a + b } -> std::same_as<T>;
+};
+template <typename T>
+  requires Shaped<T> && (Exactly<T> || std::semiregular<T>)
+constexpr T either(const T& a, const T& b) {
+  return a + b + a;  // converted-result 10: a disjunct guarantees nothing
+}
+template <Loose T>
+struct Box {
+  template <typename U>
+  constexpr T inside(const T& a, const T& b, const U&) const {
+    return a + b + a;  // converted-result 11: the class's constraint holds
+  }
+};
+template <typename T>
+concept Counted = requires(const T a) {
+  { h(a) } -> std::convertible_to<int>;
+};
+template <Counted T>
+constexpr int tested(const T& a) {
+  return h(a) ? 1 : 0;  // converted-result 12: a condition is at bool, not int
+}
+template <Counted T>
+constexpr int tested_if(const T& a) {
+  if (h(a)) {  // converted-result 13: the same with an if
+    return 1;
+  } else {
+    return 0;
+  }
+}
+template <Loose T>
+constexpr auto invoked(const T& a) {
+  return f(a)();  // converted-result 14: the result called at its own type
+}
+template <Loose T>
+constexpr T braced(const T& a, const T& b) {
+  const auto x{a + b};  // converted-result 15: braces keep the own type too
+  return x;
+}
+
 template <typename T, typename R>
 concept EqAs = requires(const T a, const T b) {
   { a == b } -> std::convertible_to<R>;

@@ -13,7 +13,7 @@ rule2-constrained-templates  tools/jlt-lint/fixtures/rule2-constraints.cpp  jlt_
 rule2-no-inline-requires     tools/jlt-lint/fixtures/rule2-inline-requires.cpp  jlt_listing  4
 rule2-decided-resolution     tools/jlt-lint/fixtures/rule2-decided-resolution.cpp  jlt_listing  6
 rule2-context-order          tools/jlt-lint/fixtures/rule2-context-order.cpp  jlt_listing  2
-rule2-converted-result       tools/jlt-lint/fixtures/rule2-converted-result.cpp  jlt_listing  9
+rule2-converted-result       tools/jlt-lint/fixtures/rule2-converted-result.cpp  jlt_listing  15
 rule1-no-inheritance         tools/jlt-lint/fixtures/rule1-inheritance.cpp  jlt_listing  3
 inventory                    tools/jlt-lint/fixtures/inventory.cpp  jlt_listing  7
 rule1-constexpr              tools/jlt-lint/fixtures/rule1.cpp        jlt_listing  3
