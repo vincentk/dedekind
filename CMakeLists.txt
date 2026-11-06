@@ -349,7 +349,9 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     # The Jlt exhibit (#961) is its own private native module, pynzli._jlt
     # (NumPy-style: one private compiled module per cohesive component,
     # re-exported by the pure-Python pynzli.jlt facade).
-    nanobind_add_module(_jlt PROTECT_STACK STABLE_ABI
+    # NOMINSIZE: nanobind's default is to optimise these for size, which would
+    # hold the scans they instantiate to other flags than the rest of the build.
+    nanobind_add_module(_jlt NOMINSIZE PROTECT_STACK STABLE_ABI
         src/main/modules/dedekind/python/nanobind_jlt.cpp)
     set_target_properties(_jlt PROPERTIES
         CXX_SCAN_FOR_MODULES ON
@@ -362,7 +364,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     # The Pst exhibit (#1001) is its own private native module, pynzli._pst
     # (the bounded chains the sets are valued in, the canonical ring u64 and
     # field 𝔽ₚ, and the term surface over them; re-exported by pynzli.pst).
-    nanobind_add_module(_pst PROTECT_STACK STABLE_ABI
+    nanobind_add_module(_pst NOMINSIZE PROTECT_STACK STABLE_ABI
         src/main/modules/dedekind/python/nanobind_pst.cpp)
     set_target_properties(_pst PROPERTIES
         CXX_SCAN_FOR_MODULES ON

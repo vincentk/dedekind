@@ -57,6 +57,7 @@ const auto scanner_64 = planned_64();
  *  flattened, one load for the letter's column and one for the state's. */
 struct HandWritten {
   std::array<std::uint8_t, 256> column{};
+  std::array<std::uint8_t, 256> entry{};  ///< its column plus one, or zero
   std::vector<std::array<std::uint16_t, 4>> next;
   std::vector<std::uint8_t> accepting;
 };
@@ -67,6 +68,10 @@ HandWritten hand_written(const Plan& plan) {
   h.column[static_cast<std::size_t>('C')] = 1;
   h.column[static_cast<std::size_t>('G')] = 2;
   h.column[static_cast<std::size_t>('T')] = 3;
+  h.entry[static_cast<std::size_t>('A')] = 1;
+  h.entry[static_cast<std::size_t>('C')] = 2;
+  h.entry[static_cast<std::size_t>('G')] = 3;
+  h.entry[static_cast<std::size_t>('T')] = 4;
   const std::size_t n = states(plan);
   h.next.assign(plan.next.items.begin(), plan.next.items.begin() + n);
   for (std::size_t s = 0; s < n; ++s)
@@ -81,6 +86,23 @@ std::uint64_t by_hand(const HandWritten& h, Text text) {
   std::uint64_t found = 0;
   for (const std::byte b : text) {
     state = h.next[state][h.column[static_cast<std::size_t>(b)]];
+    found += h.accepting[state];
+  }
+  return found;
+}
+
+/** @brief The loop that does what the library's does on any byte: one outside
+ *  the alphabet breaks a match. */
+std::uint64_t by_hand_with_holes(const HandWritten& h, Text text) {
+  std::uint16_t state = 0;
+  std::uint64_t found = 0;
+  for (const std::byte b : text) {
+    const std::uint8_t entry = h.entry[static_cast<std::size_t>(b)];
+    if (entry == 0) {
+      state = 0;
+      continue;
+    }
+    state = h.next[state][entry - 1u];
     found += h.accepting[state];
   }
   return found;
@@ -111,6 +133,8 @@ std::uint64_t table_64(Text t) { return count(t >> scanner_64); }
 std::uint64_t table_11(Text t) { return count(t >> scanner_11); }
 std::uint64_t by_hand_64(Text t) { return by_hand(hand_64, t); }
 std::uint64_t by_hand_11(Text t) { return by_hand(hand_11, t); }
+std::uint64_t holes_64(Text t) { return by_hand_with_holes(hand_64, t); }
+std::uint64_t holes_11(Text t) { return by_hand_with_holes(hand_11, t); }
 std::uint64_t drawn_table_64(std::size_t n) {
   return count(random_text(bases, n) >> scanner_64);
 }
@@ -152,11 +176,13 @@ int table() {
   // The two ways, and the hand-written one, must count the same.
   const std::uint64_t by_table = table_64(few);
   if (by_table != each_window(few) || by_table != by_hand_64(few) ||
-      table_11(few) != by_hand_11(few)) {
+      by_table != holes_64(few) || table_11(few) != by_hand_11(few)) {
     std::println(stderr, "the ways to count disagree");
     return 1;
   }
 
+  keep(hash_alone(
+      N));  // warm: the first row must not pay for the machine waking
   const double draw = ns_per_letter(hash_alone, N, N);
   std::println("{} letters, median of {} ({} for the windows).", N, repeats,
                N_windows);
@@ -167,12 +193,16 @@ int table() {
       ns_per_letter(each_window, few, N_windows), draw);
   row("the 64 sites' table (277 states), stored text",
       ns_per_letter(table_64, text, N), draw);
-  row("the same table, hand-written loop", ns_per_letter(by_hand_64, text, N),
-      draw);
+  row("the same table, hand-written, holes as the library",
+      ns_per_letter(holes_64, text, N), draw);
+  row("the same table, hand-written, no holes",
+      ns_per_letter(by_hand_64, text, N), draw);
   row("the 11-state table, stored text", ns_per_letter(table_11, text, N),
       draw);
-  row("the same table, hand-written loop", ns_per_letter(by_hand_11, text, N),
-      draw);
+  row("the same table, hand-written, holes as the library",
+      ns_per_letter(holes_11, text, N), draw);
+  row("the same table, hand-written, no holes",
+      ns_per_letter(by_hand_11, text, N), draw);
   row("hash alone", draw, draw);
   row("a letter, hash and mask", ns_per_letter(letter_masked, N, N), draw);
   row("a letter, the library's random_text",
