@@ -30,6 +30,10 @@ assert len(SITES) == 64
 OVERLAPPING = re.compile(b"(?=(" + b"|".join(sorted(SITES)) + b"))")
 
 
+def by_the_law(t):
+    return jlt.count(t >> pali6)
+
+
 def with_pynzli(t):
     return jlt.count(t >> scanner)
 
@@ -56,11 +60,12 @@ def ns_per_letter(call, argument, letters):
 
 
 few = text[:N_LOOP]
-assert with_pynzli(few) == with_re(few) == with_a_loop(few)
+assert by_the_law(few) == with_pynzli(few) == with_re(few) == with_a_loop(few)
 
 print(f"{N} letters, median of {REPEATS} ({N_LOOP} for the loop).\n")
 print("| Row | ns a letter |")
 print("|---|---:|")
+print(f"| pynzli, by the law, from bytes | {ns_per_letter(by_the_law, text, N):.2f} |")
 print(f"| pynzli, the table, from bytes | {ns_per_letter(with_pynzli, text, N):.2f} |")
 print(f"| pynzli, drawn and scanned | {ns_per_letter(drawn_by_pynzli, None, N):.2f} |")
 print(f"| re, 64 alternatives in a lookahead | {ns_per_letter(with_re, text, N):.2f} |")
