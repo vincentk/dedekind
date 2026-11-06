@@ -25,6 +25,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/vincentk/dedekind"
+Documentation = "https://vincentk.github.io/dedekind/python/"
 
 # The version is python/pynzli/_version.py's: 0.0.0.dev0 in the tree, the
 # release's 0.<YYYYMMDD>.<n> written there by CI before a release's wheel is

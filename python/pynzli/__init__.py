@@ -18,6 +18,12 @@ A term may use the operators the carrier's certified algebras have (the laws
 decide the syntax), and equality of terms is equality in the free algebra
 they generate where it has a normal form (a chain's run lists); see the
 ``sets:terms`` header in the C++ sources.
+
+The project: https://github.com/vincentk/dedekind#readme
+
+The C++ API reference: https://vincentk.github.io/dedekind/
+
+The Jlt paper: https://vincentk.github.io/dedekind/jlt.pdf
 """
 
 from ._version import __version__
