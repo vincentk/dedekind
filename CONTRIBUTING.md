@@ -174,7 +174,6 @@ applies).
 
 - Use [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) terms proportionally: `MUST` for hard governance or safety constraints, `SHOULD` for routine guidance.
 - Keep the [README](README.md) small and stable; routine progress belongs in the [paper](https://vincentk.github.io/dedekind/jlt.pdf) and the [C++](https://vincentk.github.io/dedekind/) and [Python](https://vincentk.github.io/dedekind/python/) references.
-- The maintainer's [backlog process](docs/backlog.md) is separate.
 
 ## Questions
 
