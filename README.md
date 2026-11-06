@@ -144,6 +144,11 @@ git clone https://github.com/vincentk/dedekind && cd dedekind
 make clean compile test
 ```
 
+The Python library alone:
+```bash
+pip install pynzli
+```
+
 For full build targets and contributor workflow helpers, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Architecture

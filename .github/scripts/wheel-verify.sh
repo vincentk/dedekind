@@ -57,3 +57,9 @@ PY
 tests=$(pwd)/src/test/python
 (cd "$venv" && "${py[@]}" -m pytest -q -p no:cacheprovider -c /dev/null \
   --doctest-modules --pyargs pynzli "$tests")
+
+# A wheel carries no instrumentation: no profile counters in its modules.
+if grep -l __llvm_prf_cnts "$venv"/lib/python*/site-packages/pynzli/*.so; then
+  echo "the wheel is instrumented for coverage" >&2
+  exit 1
+fi

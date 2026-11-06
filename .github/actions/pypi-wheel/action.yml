@@ -1,4 +1,4 @@
-# A wheel built at <version>, from an artifact into dist/ for an upload: one
+# The wheels built at <version>, from the artifacts into dist/ for an upload: one
 # definition for the jobs that publish (the release; a PR labelled testpypi).
 # The upload itself is the job's own step, pypa/gh-action-pypi-publish, a
 # Docker action that does not run inside a composite action.
@@ -6,7 +6,7 @@ name: The wheel to publish
 description: An artifact's wheel at a version, in dist/
 inputs:
   artifact:
-    description: The artifact holding the wheel (python-dist, release-dist)
+    description: The artifacts' common prefix, one per platform (python-dist, release-dist)
     required: true
   version:
     description: The version the wheel was built at
@@ -17,7 +17,8 @@ runs:
   - name: The wheel built
     uses: actions/download-artifact@v8
     with:
-      name: ${{ inputs.artifact }}
+      pattern: ${{ inputs.artifact }}*
+      merge-multiple: true
       path: wheel-artifact
 
   # The wheel must carry the version asked for: one built at another (a

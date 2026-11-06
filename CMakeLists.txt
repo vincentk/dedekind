@@ -21,6 +21,16 @@ endif()
 
 project(Dedekind VERSION ${DEDEKIND_VERSION} LANGUAGES CXX)
 
+# --- The compiler ---
+# LLVM's own clang: CI builds and tests with 23, and 22 has built the wheel.
+# Said here, as pip shows this to whoever builds the sdist.
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_VERSION VERSION_LESS 22)
+    message(FATAL_ERROR
+        "Dedekind builds with LLVM clang 22 or later, not "
+        "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}.  "
+        "Set CC and CXX to LLVM's clang and clang++.")
+endif()
+
 # --- Toolchain/Platform Adjustments ---
 if(APPLE)
     # Move the Makefile's "CXXFLAGS" logic here so it's not overwritten
@@ -46,16 +56,14 @@ set(DEDEKIND_WARNING_FLAGS
     -Wno-c2y-extensions
 )
 
-# --- Instrumentation (Shared by CI and Local) ---
-set(DEDEKIND_COVERAGE_FLAGS -fprofile-instr-generate -fcoverage-mapping)
-
-# 2. Use a unified "instrumentation" block for the whole project
-# This ensures the profiling runtime is linked into every binary
-add_compile_options(${DEDEKIND_COVERAGE_FLAGS})
-add_link_options(${DEDEKIND_COVERAGE_FLAGS})
-
-# Ensure the linker also uses the profiling runtime
-add_link_options(-fprofile-instr-generate)
+# --- Instrumentation ---
+# On in a developer's build; a wheel turns it off (pyproject.toml), and carries
+# none.
+option(DEDEKIND_COVERAGE "Instrument every target for LLVM coverage" ON)
+if(DEDEKIND_COVERAGE)
+    add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
+    add_link_options(-fprofile-instr-generate)
+endif()
 set(CMAKE_CXX_STANDARD 23)
 # One optimisation level for every target, -O2, the level the Jlt paper reads
 # its IR at: a module's consumers then share its flags, and CMake reuses its
@@ -342,7 +350,9 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     # The Jlt exhibit (#961) is its own private native module, pynzli._jlt
     # (NumPy-style: one private compiled module per cohesive component,
     # re-exported by the pure-Python pynzli.jlt facade).
-    nanobind_add_module(_jlt PROTECT_STACK STABLE_ABI
+    # NOMINSIZE: nanobind's default is to optimise these for size, which would
+    # hold the scans they instantiate to other flags than the rest of the build.
+    nanobind_add_module(_jlt NOMINSIZE PROTECT_STACK STABLE_ABI
         src/main/modules/dedekind/python/nanobind_jlt.cpp)
     set_target_properties(_jlt PROPERTIES
         CXX_SCAN_FOR_MODULES ON
@@ -355,7 +365,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     # The Pst exhibit (#1001) is its own private native module, pynzli._pst
     # (the bounded chains the sets are valued in, the canonical ring u64 and
     # field 𝔽ₚ, and the term surface over them; re-exported by pynzli.pst).
-    nanobind_add_module(_pst PROTECT_STACK STABLE_ABI
+    nanobind_add_module(_pst NOMINSIZE PROTECT_STACK STABLE_ABI
         src/main/modules/dedekind/python/nanobind_pst.cpp)
     set_target_properties(_pst PROPERTIES
         CXX_SCAN_FOR_MODULES ON
@@ -455,6 +465,7 @@ endif()
 
 get_property(ALL_TESTS GLOBAL PROPERTY DEDEKIND_ALL_TEST_BINARIES)
 get_property(ALL_LIBS GLOBAL PROPERTY DEDEKIND_ALL_LIB_ARCHIVES)
+if(DEDEKIND_COVERAGE)
 # --- Find LLVM Tools (Cross-Platform) ---
 # Next to the compiler first: Homebrew's LLVM is keg-only, not on PATH.
 cmake_path(GET CMAKE_CXX_COMPILER PARENT_PATH _dedekind_compiler_dir)
@@ -489,3 +500,4 @@ add_custom_target(generate_coverage
     VERBATIM
     COMMENT "Generating unified LCOV coverage report..."
 )
+endif()
