@@ -168,8 +168,9 @@ coverage: compile ## Build, run tests, and produce the LLVM coverage report
 # The wheel at a version (build, manylinux retag, check) and its install,
 # from dist/ or an index (INDEX=test.pypi.org|pypi.org): the steps a release calls,
 # by CI or by hand.
-# The Listing 5 benchmark, in its own build directory: no coverage, the one
-# difference from the build `make test` uses.  Results in build/bench.
+# The Listing 5 benchmark, in its own build directory, without coverage.  It fails
+# if the ways of counting disagree or the library falls far behind.  Results in
+# build/bench.
 BENCH_DIR := $(BUILD_DIR)-bench
 bench: ## Run the C++ benchmark, without coverage
 	cmake -S . -B $(BENCH_DIR) -G Ninja \
@@ -181,7 +182,7 @@ bench: ## Run the C++ benchmark, without coverage
 		-DDEDEKIND_BENCH=ON
 	cmake --build $(BENCH_DIR) --target bench_listing5 --parallel $(JOBS)
 	mkdir -p $(BUILD_DIR)/bench
-	$(BENCH_DIR)/bench_listing5 | tee $(BUILD_DIR)/bench/scanner.md
+	bash -o pipefail -c '$(BENCH_DIR)/bench_listing5 | tee $(BUILD_DIR)/bench/scanner.md'
 	{ echo; echo '| Letters | Found | Peak KiB |'; echo '|---:|---:|---:|'; \
 	  $(BENCH_DIR)/bench_listing5 memory 10000000; \
 	  $(BENCH_DIR)/bench_listing5 memory 10000000000; } | tee -a $(BUILD_DIR)/bench/scanner.md
