@@ -46,6 +46,17 @@
 //                     whose requirement calls the trait, a satisfaction that
 //                     depends on itself.  A structured head descends by its
 //                     parts and is not judged.
+//   converted-result  Rule 2, the conversion discipline (#1143): the result of
+//                     a requirement `{ e } -> std::convertible_to<T>` is used
+//                     only at the declared T.  A body that takes it as the
+//                     operand of a further operation, reads a member of it or
+//                     holds it in an `auto` uses it at its own type, an
+//                     operation the constraint did not name, which C++ accepts
+//                     and FJlt's typing refuses.  Name-level like `definition`;
+//                     a call's argument is not judged, its parameter being
+//                     unknown in a template, and !, && and || on a result
+//                     converted to bool are read at bool, though a proxy may
+//                     overload them: the check reports what it is sure of.
 //   inventory         not a rule: the syntax a scope uses, one line per AST
 //                     node kind (declarations, statements and expressions,
 //                     type forms as written) with its count, for diffing
@@ -874,6 +885,251 @@ class InlineRequires : public clang::ASTConsumer,
 };
 
 // ---------------------------------------------------------------------------
+// converted-result: a converted requirement's result is used at its type
+// ---------------------------------------------------------------------------
+
+/// The name of an expression's outermost operation, as NameCollector spells
+/// it, or empty where it has none.
+std::string outerOperation(const clang::Expr* e) {
+  e = e->IgnoreParenImpCasts();
+  if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e))
+    return clang::BinaryOperator::getOpcodeStr(b->getOpcode()).str();
+  if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
+    return clang::UnaryOperator::getOpcodeStr(u->getOpcode()).str();
+  if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(e))
+    return clang::getOperatorSpelling(o->getOperator());
+  if (const auto* c = llvm::dyn_cast<clang::CallExpr>(e)) {
+    const clang::Expr* callee = c->getCallee()->IgnoreParenImpCasts();
+    if (const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(callee))
+      return u->getName().getAsString();
+    if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(callee))
+      return llvm::isa<clang::VarDecl>(d->getDecl())
+                 ? std::string("()")
+                 : d->getNameInfo().getAsString();
+    if (const auto* m =
+            llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(callee))
+      return m->getMember().getAsString();
+    if (const auto* m = llvm::dyn_cast<clang::MemberExpr>(callee))
+      return m->getMemberNameInfo().getAsString();
+    return "()";
+  }
+  if (const auto* m = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(e))
+    return m->getMember().getAsString();
+  if (const auto* m = llvm::dyn_cast<clang::MemberExpr>(e))
+    return m->getMemberNameInfo().getAsString();
+  return "";
+}
+
+/// What a template's constraints say of each operation's result: converted to
+/// a declared type (and whether that type is bool), or exact.
+struct ResultTypes {
+  std::map<std::string, bool> converted;  // name -> converted to bool
+  std::set<std::string> exact;
+};
+
+/// A type as the enclosing concept's applied arguments make it: a concept's
+/// parameter is read as what the concept was applied to, defaults included.
+clang::QualType applied(clang::QualType t,
+                        llvm::ArrayRef<clang::TemplateArgument> args) {
+  const auto* p = t.getCanonicalType()->getAs<clang::TemplateTypeParmType>();
+  if (p && p->getIndex() < args.size() &&
+      args[p->getIndex()].getKind() == clang::TemplateArgument::Type)
+    return args[p->getIndex()].getAsType();
+  return t;
+}
+
+/// `args` are the applied arguments of the concept whose body `e` is; empty
+/// at a function template's own constraints.  Concepts cannot recurse, so no
+/// visited set is needed, and each application is read with its own arguments.
+void gatherResults(const clang::Expr* e, ResultTypes& r,
+                   llvm::ArrayRef<clang::TemplateArgument> args = {}) {
+  if (!e) return;
+  e = e->IgnoreParenImpCasts();
+  if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e)) {
+    const clang::ConceptDecl* c = cs->getNamedConcept();
+    if (!c || inStd(c)) return;
+    llvm::SmallVector<clang::TemplateArgument, 4> inner;
+    for (const clang::TemplateArgument& a : cs->getTemplateArguments())
+      inner.push_back(
+          a.getKind() == clang::TemplateArgument::Type
+              ? clang::TemplateArgument(applied(a.getAsType(), args))
+              : a);
+    gatherResults(c->getConstraintExpr(), r, inner);
+    return;
+  }
+  if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {
+    // Only a conjunction guarantees both sides; a disjunct may not hold.
+    if (b->getOpcode() != clang::BO_LAnd) return;
+    gatherResults(b->getLHS(), r, args);
+    gatherResults(b->getRHS(), r, args);
+    return;
+  }
+  const auto* q = llvm::dyn_cast<clang::RequiresExpr>(e);
+  if (!q) return;
+  for (const clang::concepts::Requirement* req : q->getRequirements()) {
+    if (const auto* n =
+            llvm::dyn_cast<clang::concepts::NestedRequirement>(req)) {
+      if (!n->hasInvalidConstraint())
+        gatherResults(n->getConstraintExpr(), r, args);
+      continue;
+    }
+    const auto* er = llvm::dyn_cast<clang::concepts::ExprRequirement>(req);
+    if (!er || er->isExprSubstitutionFailure()) continue;
+    const std::string name = outerOperation(er->getExpr());
+    if (name.empty()) continue;
+    const auto& ret = er->getReturnTypeRequirement();
+    const clang::TypeConstraint* tc =
+        ret.isTypeConstraint() ? ret.getTypeConstraint() : nullptr;
+    if (!tc) continue;
+    const llvm::StringRef concept_name = tc->getNamedConcept()->getName();
+    if (concept_name == "same_as") r.exact.insert(name);
+    if (concept_name != "convertible_to") continue;  // a shape of the result
+    bool toBool = false;
+    if (const auto* w = tc->getTemplateArgsAsWritten())
+      for (const clang::TemplateArgumentLoc& a : w->arguments())
+        if (a.getArgument().getKind() == clang::TemplateArgument::Type)
+          toBool = applied(a.getArgument().getAsType(), args)->isBooleanType();
+    r.converted.emplace(name, toBool);
+  }
+}
+
+/// The check: in each function template of the scope, a use of a converted
+/// requirement's result other than at the declared type.  A use in a
+/// condition, or under !, && or ||, of a result converted to bool, is at bool.
+class ConvertedResult : public clang::ASTConsumer,
+                        public clang::RecursiveASTVisitor<ConvertedResult> {
+ public:
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    sm = &ctx.getSourceManager();
+    TraverseDecl(ctx.getTranslationUnitDecl());
+  }
+  bool shouldVisitTemplateInstantiations() const { return false; }
+  bool TraverseLambdaExpr(clang::LambdaExpr*) { return true; }
+  bool TraverseFunctionTemplateDecl(clang::FunctionTemplateDecl* ft) {
+    const clang::FunctionDecl* f = ft->getTemplatedDecl();
+    if (!f->doesThisDeclarationHaveABody() ||
+        !sm->isInMainFile(ft->getLocation()) || !inScope(ft))
+      return true;
+    results = ResultTypes{};
+    const auto gatherHead = [this](const clang::TemplateParameterList* ps) {
+      for (const clang::NamedDecl* p : *ps)
+        if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
+          if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
+            gatherResults(tc->getImmediatelyDeclaredConstraint(), results);
+      gatherResults(ps->getRequiresClause(), results);
+    };
+    // A member template's enclosing class templates constrain its body too.
+    for (const clang::DeclContext* c = f->getDeclContext(); c;
+         c = c->getParent())
+      if (const auto* ps =
+              llvm::dyn_cast<clang::ClassTemplatePartialSpecializationDecl>(c))
+        gatherHead(ps->getTemplateParameters());
+      else if (const auto* r = llvm::dyn_cast<clang::CXXRecordDecl>(c))
+        if (const clang::ClassTemplateDecl* ct = r->getDescribedClassTemplate())
+          gatherHead(ct->getTemplateParameters());
+    gatherHead(ft->getTemplateParameters());
+    gatherResults(f->getTrailingRequiresClause().ConstraintExpr, results);
+    if (!results.converted.empty()) TraverseStmt(f->getBody());
+    results = ResultTypes{};  // only this body is judged by these constraints
+    return true;
+  }
+  bool VisitBinaryOperator(clang::BinaryOperator* e) {
+    if (e->isCommaOp()) return true;
+    judge(e->getLHS(), e->isLogicalOp());
+    if (!e->isAssignmentOp()) judge(e->getRHS(), e->isLogicalOp());
+    return true;
+  }
+  bool VisitUnaryOperator(clang::UnaryOperator* e) {
+    judge(e->getSubExpr(), e->getOpcode() == clang::UO_LNot);
+    return true;
+  }
+  bool VisitCXXOperatorCallExpr(clang::CXXOperatorCallExpr* e) {
+    const clang::OverloadedOperatorKind k = e->getOperator();
+    const bool logical = k == clang::OO_AmpAmp || k == clang::OO_PipePipe ||
+                         k == clang::OO_Exclaim;
+    const bool firstOnly =
+        k == clang::OO_Call || k == clang::OO_Subscript || k == clang::OO_Equal;
+    for (unsigned i = 0; i < e->getNumArgs() && (i == 0 || !firstOnly); ++i)
+      judge(e->getArg(i), logical);
+    return true;
+  }
+  bool VisitCXXDependentScopeMemberExpr(clang::CXXDependentScopeMemberExpr* e) {
+    if (!e->isImplicitAccess()) judge(e->getBase(), false);
+    return true;
+  }
+  bool VisitCallExpr(clang::CallExpr* e) {
+    // The result called through its own type; the arguments are not judged.
+    // A member callee, a.next in a.next(), names the operation, not a result.
+    const clang::Expr* callee = e->getCallee()->IgnoreParenImpCasts();
+    if (!llvm::isa<clang::CXXOperatorCallExpr>(e) &&
+        !llvm::isa<clang::CXXDependentScopeMemberExpr>(callee) &&
+        !llvm::isa<clang::MemberExpr>(callee))
+      judge(callee, false);
+    return true;
+  }
+  bool VisitIfStmt(clang::IfStmt* s) {
+    judge(s->getCond(), true);
+    return true;
+  }
+  bool VisitWhileStmt(clang::WhileStmt* s) {
+    judge(s->getCond(), true);
+    return true;
+  }
+  bool VisitDoStmt(clang::DoStmt* s) {
+    judge(s->getCond(), true);
+    return true;
+  }
+  bool VisitForStmt(clang::ForStmt* s) {
+    judge(s->getCond(), true);
+    return true;
+  }
+  bool VisitConditionalOperator(clang::ConditionalOperator* e) {
+    judge(e->getCond(), true);
+    return true;
+  }
+  bool VisitVarDecl(clang::VarDecl* d) {
+    if (!d->hasInit() || !d->getType()->getContainedAutoType()) return true;
+    const clang::Expr* init = d->getInit()->IgnoreParenImpCasts();
+    if (const auto* list = llvm::dyn_cast<clang::InitListExpr>(init))
+      for (const clang::Expr* x : list->inits()) judge(x, false);
+    else if (const auto* paren = llvm::dyn_cast<clang::ParenListExpr>(init))
+      for (const clang::Expr* x : paren->exprs()) judge(x, false);
+    else
+      judge(init, false);
+    return true;
+  }
+
+ private:
+  void judge(const clang::Expr* operand, bool contextualBool) {
+    if (!operand) return;
+    operand = operand->IgnoreParenImpCasts();
+    if (!operand->isTypeDependent()) return;
+    const std::string name = outerOperation(operand);
+    const auto c = results.converted.find(name);
+    if (c == results.converted.end() || results.exact.count(name)) return;
+    if (contextualBool && c->second) return;
+    bool onParameter = false;
+    for (const clang::Stmt* child : operand->children())
+      if (const auto* x = llvm::dyn_cast_or_null<clang::Expr>(child))
+        onParameter |= isParameterTyped(x->IgnoreParenImpCasts());
+    if (const auto* c = llvm::dyn_cast<clang::CallExpr>(operand))
+      if (const auto* m = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(
+              c->getCallee()->IgnoreParenImpCasts()))
+        if (!m->isImplicitAccess())
+          onParameter |= isParameterTyped(m->getBase()->IgnoreParenImpCasts());
+    if (!onParameter) return;
+    const clang::SourceLocation loc =
+        sm->getExpansionLoc(operand->getBeginLoc());
+    out() << sm->getFilename(loc) << ':' << sm->getExpansionLineNumber(loc)
+          << ':' << sm->getExpansionColumnNumber(loc) << ": the result of '"
+          << name << "' is converted by its requirement, and used here at its "
+          << "own type\n";
+  }
+  const clang::SourceManager* sm = nullptr;
+  ResultTypes results;
+};
+
+// ---------------------------------------------------------------------------
 // context-order: a context on an unstructured head precedes the trait
 // ---------------------------------------------------------------------------
 
@@ -1360,6 +1616,7 @@ std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
   if (name == "inline-requires") return std::make_unique<InlineRequires>();
   if (name == "inheritance") return std::make_unique<Inheritance>();
   if (name == "context-order") return std::make_unique<ContextOrder>();
+  if (name == "converted-result") return std::make_unique<ConvertedResult>();
   if (name == "inventory") return std::make_unique<Inventory>();
   if (name == "undecided-resolution")
     return std::make_unique<UndecidedResolution>();

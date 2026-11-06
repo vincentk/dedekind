@@ -1,0 +1,8 @@
+# Rule 2, the conversion discipline (#1143): the result of a requirement
+# { e } -> std::convertible_to<T> is used only at the declared T.  The dictionary
+# converts once, in the field; a body that takes the unconverted result as the
+# operand of a further operation, reads a member of it or holds it in an auto
+# uses an operation the constraint did not name.  C++ accepts it and FJlt's
+# typing refuses it.  The types of uses have no clang-query matcher, hence the
+# tool.
+tool converted-result
