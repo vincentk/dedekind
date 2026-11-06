@@ -1,0 +1,65 @@
+// Negative control for rules/rule2-converted-result.query (the tool's
+// converted-result check): a converted requirement's result used at its own
+// type is a finding, and at the declared type it is not.  Standalone.
+#include <concepts>
+
+namespace jlt_listing {
+
+template <typename T>
+T f(T);
+template <typename T>
+T g(T);
+
+template <typename T>
+concept Loose = requires(const T a, const T b) {
+  { a + b } -> std::convertible_to<T>;
+  { a == b } -> std::convertible_to<bool>;
+  { f(a) } -> std::convertible_to<T>;
+  { g(a) } -> std::same_as<T>;
+};
+
+template <Loose T>
+constexpr bool compared(const T& a, const T& b) {
+  return (a + b) == (b + a);  // converted-result 1, 2: == at the own type
+}
+template <Loose T>
+constexpr T chained(const T& a, const T& b) {
+  return a + b + a;  // converted-result 3: the inner sum at its own type
+}
+template <Loose T>
+constexpr T held(const T& a, const T& b) {
+  const auto x = a + b;  // converted-result 4: auto keeps the own type
+  return x;
+}
+template <Loose T>
+constexpr auto member(const T& a, const T& b) {
+  return (a + b).size();  // converted-result 5: a member of the own type
+}
+template <Loose T>
+constexpr T called(const T& a) {
+  return f(a) + a;  // converted-result 6: f's result at its own type
+}
+
+template <Loose T>
+constexpr T at_type(const T& a, const T& b) {  // fine: returned at T
+  return a + b;
+}
+template <Loose T>
+constexpr T declared(const T& a, const T& b) {  // fine: held at T
+  const T x = a + b;
+  return x;
+}
+template <Loose T>
+constexpr T chosen(const T& a, const T& b) {  // fine: a condition is at bool
+  return (a == b) ? a : b;
+}
+template <Loose T>
+constexpr bool both(const T& a, const T& b) {  // fine: !, && and || are at bool
+  return !(a == b) && (b == a);
+}
+template <Loose T>
+constexpr T exact(const T& a) {  // fine: g's result is exactly T
+  return g(a) + a;
+}
+
+}  // namespace jlt_listing
