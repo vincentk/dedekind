@@ -27,6 +27,12 @@ jobs:
         # and headers the quality queries misread that code (an unused
         # "static variable" in a binding or a test case), so C/C++ runs the
         # security queries only, until modules are read (#1139).
+        # The Python tests are skipped: they build terms by overloaded operators
+        # (π != π, H == H) and run expressions to see them raise, which the
+        # quality queries read as mistakes.  The C++ tests stay, being most of
+        # what the C/C++ scan can read.  The path is derived from the language
+        # and not a matrix key, so that the matrix, part of each configuration's
+        # identity, stays as it was and the old alerts close.
         include:
           - language: actions
             queries: security-and-quality
@@ -42,6 +48,8 @@ jobs:
         languages: ${{ matrix.language }}
         build-mode: none
         queries: ${{ matrix.queries }}
+        config: |
+          paths-ignore: ${{ matrix.language == 'python' && '["src/test/python"]' || '[]' }}
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370  # v4.39.1
       with:
