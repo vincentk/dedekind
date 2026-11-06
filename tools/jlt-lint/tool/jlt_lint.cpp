@@ -38,6 +38,14 @@
 //                     instantiations, a dependence on a constraint the
 //                     template did not declare.  A call its constraints name
 //                     is read through the dictionary and is not judged.
+//   context-order     Rule 2, the well-formedness of resolution: an instance
+//                     with a context whose head has no proper part (a bare
+//                     type parameter or a concrete type) may mention in its
+//                     context only shapes declared before the trait's
+//                     primary; otherwise resolving the trait entails a shape
+//                     whose requirement calls the trait, a satisfaction that
+//                     depends on itself.  A structured head descends by its
+//                     parts and is not judged.
 //   inventory         not a rule: the syntax a scope uses, one line per AST
 //                     node kind (declarations, statements and expressions,
 //                     type forms as written) with its count, for diffing
@@ -161,9 +169,8 @@ class MutualRecursion : public clang::ASTConsumer {
 
     for (const clang::FunctionDecl* f : findings) {
       const clang::SourceLocation loc = sm.getExpansionLoc(f->getLocation());
-      out() << sm.getFilename(loc) << ':'
-                   << sm.getExpansionLineNumber(loc) << ':'
-                   << sm.getExpansionColumnNumber(loc) << '\n';
+      out() << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc)
+            << ':' << sm.getExpansionColumnNumber(loc) << '\n';
     }
   }
 };
@@ -563,7 +570,6 @@ bool anyParameterTyped(llvm::ArrayRef<const clang::Expr*> es) {
   return std::any_of(es.begin(), es.end(), isParameterTyped);
 }
 
-
 /// Whether a template is constrained: a type constraint on a parameter, a
 /// requires clause, or a trailing one.
 bool constrained(const clang::FunctionTemplateDecl* ft) {
@@ -804,11 +810,10 @@ class Definition : public clang::ASTConsumer {
       if (op.builtin && v.everything) continue;
       if (grantedInBranch(op)) continue;
       const clang::SourceLocation loc = sm.getExpansionLoc(op.loc);
-      out() << sm.getFilename(loc) << ':'
-                   << sm.getExpansionLineNumber(loc) << ':'
-                   << sm.getExpansionColumnNumber(loc) << ": '" << op.name
-                   << "' is not named by the constraints of "
-                   << ft->getNameAsString() << '\n';
+      out() << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc)
+            << ':' << sm.getExpansionColumnNumber(loc) << ": '" << op.name
+            << "' is not named by the constraints of " << ft->getNameAsString()
+            << '\n';
     }
   }
 };
@@ -857,15 +862,104 @@ class InlineRequires : public clang::ASTConsumer,
     if (!judged(f, ctx->getSourceManager())) return true;
     const clang::SourceManager& sm = ctx->getSourceManager();
     const clang::SourceLocation loc = sm.getExpansionLoc(s->getIfLoc());
-    out() << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc)
-                 << ':' << sm.getExpansionColumnNumber(loc)
-                 << ": a requires-expression tested in a body is not a "
-                    "declared constraint\n";
+    out() << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc) << ':'
+          << sm.getExpansionColumnNumber(loc)
+          << ": a requires-expression tested in a body is not a "
+             "declared constraint\n";
     return true;
   }
 
  private:
   clang::ASTContext* ctx = nullptr;
+};
+
+// ---------------------------------------------------------------------------
+// context-order: a context on an unstructured head precedes the trait
+// ---------------------------------------------------------------------------
+
+/// Whether a function's parameters are unstructured at the type level: each a
+/// bare template type parameter or a type that depends on none, so that a
+/// context on them has no proper part to descend by.
+bool unstructuredHead(const clang::FunctionDecl* f) {
+  for (const clang::ParmVarDecl* p : f->parameters()) {
+    const clang::QualType t =
+        p->getType().getNonReferenceType().getUnqualifiedType();
+    if (!t->isDependentType()) continue;
+    if (t->getAs<clang::TemplateTypeParmType>()) continue;
+    return false;
+  }
+  return true;
+}
+
+/// The concepts a constraint expression names, through conjunction,
+/// disjunction and negation; a nested concept's own body is not followed,
+/// since the order asked is of the shapes the clause names.
+void namedConcepts(const clang::Expr* e,
+                   std::vector<const clang::ConceptSpecializationExpr*>& out) {
+  if (!e) return;
+  e = e->IgnoreParenImpCasts();
+  if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e)) {
+    out.push_back(cs);
+    return;
+  }
+  if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {
+    namedConcepts(b->getLHS(), out);
+    namedConcepts(b->getRHS(), out);
+    return;
+  }
+  if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
+    namedConcepts(u->getSubExpr(), out);
+}
+
+/// The check: for every trait of the scope, a deleted primary function
+/// template, each other function template of the same name with a requires
+/// clause and an unstructured head names in that clause only concepts
+/// declared before the primary.  A concept from another file precedes by the
+/// module order.  A finding is at the instance.
+class ContextOrder : public clang::ASTConsumer,
+                     public clang::RecursiveASTVisitor<ContextOrder> {
+ public:
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    sm = &ctx.getSourceManager();
+    TraverseDecl(ctx.getTranslationUnitDecl());
+    for (const clang::FunctionTemplateDecl* ft : instances) {
+      const clang::FunctionDecl* f = ft->getTemplatedDecl();
+      const auto primary = primaries.find(f->getNameAsString());
+      if (primary == primaries.end()) continue;
+      std::vector<const clang::ConceptSpecializationExpr*> named;
+      namedConcepts(f->getTrailingRequiresClause().ConstraintExpr, named);
+      for (const auto* cs : named) {
+        const clang::ConceptDecl* c = cs->getNamedConcept();
+        const clang::SourceLocation at = sm->getExpansionLoc(c->getLocation());
+        if (!sm->isInMainFile(at)) continue;
+        if (!sm->isBeforeInTranslationUnit(primary->second, at)) continue;
+        const clang::SourceLocation loc =
+            sm->getExpansionLoc(ft->getLocation());
+        out() << sm->getFilename(loc) << ':' << sm->getExpansionLineNumber(loc)
+              << ':' << sm->getExpansionColumnNumber(loc) << ": the context of "
+              << f->getNameAsString() << " names " << c->getNameAsString()
+              << ", declared after the trait's primary\n";
+      }
+    }
+  }
+  bool shouldVisitTemplateInstantiations() const { return false; }
+  bool VisitFunctionTemplateDecl(clang::FunctionTemplateDecl* ft) {
+    if (!sm->isInMainFile(ft->getLocation()) || !inScope(ft)) return true;
+    const clang::FunctionDecl* f = ft->getTemplatedDecl();
+    if (f->isDeleted()) {
+      primaries.emplace(f->getNameAsString(),
+                        sm->getExpansionLoc(ft->getLocation()));
+    } else if (f->getTrailingRequiresClause().ConstraintExpr &&
+               unstructuredHead(f)) {
+      instances.push_back(ft);
+    }
+    return true;
+  }
+
+ private:
+  const clang::SourceManager* sm = nullptr;
+  std::map<std::string, clang::SourceLocation> primaries;
+  std::vector<const clang::FunctionTemplateDecl*> instances;
 };
 
 // ---------------------------------------------------------------------------
@@ -916,11 +1010,10 @@ class Inheritance : public clang::ASTConsumer,
       if (!emptyBase(b.getType())) finding = true;
     if (!finding) return true;
     const clang::SourceLocation loc = sm->getExpansionLoc(r->getLocation());
-    out() << sm->getFilename(loc) << ':'
-                 << sm->getExpansionLineNumber(loc) << ':'
-                 << sm->getExpansionColumnNumber(loc)
-                 << ": a base that is not an empty class, or a virtual "
-                    "function: subtyping\n";
+    out() << sm->getFilename(loc) << ':' << sm->getExpansionLineNumber(loc)
+          << ':' << sm->getExpansionColumnNumber(loc)
+          << ": a base that is not an empty class, or a virtual "
+             "function: subtyping\n";
     return true;
   }
 
@@ -1179,12 +1272,11 @@ class UndecidedResolution : public clang::ASTConsumer {
       }
       if (undecided.empty()) continue;
       const clang::SourceLocation loc = sm->getExpansionLoc(u->getNameLoc());
-      out() << sm->getFilename(loc) << ':'
-                   << sm->getExpansionLineNumber(loc) << ':'
-                   << sm->getExpansionColumnNumber(loc) << ": the call to '"
-                   << name << "' resolves by '" << undecided
-                   << "', which the constraints of " << ft->getNameAsString()
-                   << " do not decide\n";
+      out() << sm->getFilename(loc) << ':' << sm->getExpansionLineNumber(loc)
+            << ':' << sm->getExpansionColumnNumber(loc) << ": the call to '"
+            << name << "' resolves by '" << undecided
+            << "', which the constraints of " << ft->getNameAsString()
+            << " do not decide\n";
     }
   }
 
@@ -1206,8 +1298,7 @@ class Inventory : public clang::ASTConsumer,
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     sm = &ctx.getSourceManager();
     TraverseDecl(ctx.getTranslationUnitDecl());
-    for (const auto& [kind, n] : counts)
-      out() << kind << ' ' << n << '\n';
+    for (const auto& [kind, n] : counts) out() << kind << ' ' << n << '\n';
   }
   bool shouldVisitTemplateInstantiations() const { return false; }
   bool shouldVisitImplicitCode() const { return false; }
@@ -1258,6 +1349,7 @@ std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
   if (name == "definition") return std::make_unique<Definition>();
   if (name == "inline-requires") return std::make_unique<InlineRequires>();
   if (name == "inheritance") return std::make_unique<Inheritance>();
+  if (name == "context-order") return std::make_unique<ContextOrder>();
   if (name == "inventory") return std::make_unique<Inventory>();
   if (name == "undecided-resolution")
     return std::make_unique<UndecidedResolution>();

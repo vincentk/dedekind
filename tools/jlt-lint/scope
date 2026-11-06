@@ -6,12 +6,13 @@
 
 # Negative controls.
 rule3-no-loops               tools/jlt-lint/fixtures/rule3-loops.cpp  jlt_listing  4
-rule3-no-self-recursion      tools/jlt-lint/fixtures/rule3-recursion.cpp  jlt_listing  9
+rule3-no-self-recursion      tools/jlt-lint/fixtures/rule3-recursion.cpp  jlt_listing  11
 rule3-no-mutual-recursion    tools/jlt-lint/fixtures/rule3-mutual.cpp  jlt_listing  5
 rule2-definition             tools/jlt-lint/fixtures/rule2-definition.cpp  jlt_listing  16
 rule2-constrained-templates  tools/jlt-lint/fixtures/rule2-constraints.cpp  jlt_listing  2
 rule2-no-inline-requires     tools/jlt-lint/fixtures/rule2-inline-requires.cpp  jlt_listing  4
 rule2-decided-resolution     tools/jlt-lint/fixtures/rule2-decided-resolution.cpp  jlt_listing  6
+rule2-context-order          tools/jlt-lint/fixtures/rule2-context-order.cpp  jlt_listing  1
 rule1-no-inheritance         tools/jlt-lint/fixtures/rule1-inheritance.cpp  jlt_listing  3
 inventory                    tools/jlt-lint/fixtures/inventory.cpp  jlt_listing  7
 rule1-constexpr              tools/jlt-lint/fixtures/rule1.cpp        jlt_listing  3
@@ -39,6 +40,7 @@ rule2-definition             src/test/cpp/modules/dedekind/category/jlt_listings
 rule2-constrained-templates  src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
 rule2-no-inline-requires     src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule2-decided-resolution     src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
+rule2-context-order          src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
 rule1-no-inheritance         src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule1-constexpr              src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule1-const-call-operator    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
@@ -65,6 +67,7 @@ rule2-definition             src/test/cpp/modules/dedekind/category/tensor_exhib
 rule2-constrained-templates  src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
 rule2-no-inline-requires     src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
 rule2-decided-resolution     src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule2-context-order          src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
 rule1-no-inheritance         src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
 rule1-constexpr              src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
 rule1-const-call-operator    src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
@@ -91,6 +94,7 @@ rule2-definition             src/main/modules/dedekind/category/*.cppm  category
 rule2-constrained-templates  src/main/modules/dedekind/category/*.cppm  category  report
 rule2-no-inline-requires     src/main/modules/dedekind/category/*.cppm  category  0
 rule2-decided-resolution     src/main/modules/dedekind/category/*.cppm  category  0
+rule2-context-order          src/main/modules/dedekind/category/*.cppm  category  report
 rule1-no-inheritance         src/main/modules/dedekind/category/*.cppm  category  0
 rule1-constexpr              src/main/modules/dedekind/category/*.cppm  category  0
 rule1-const-call-operator    src/main/modules/dedekind/category/*.cppm  category  0

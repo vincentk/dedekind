@@ -1,0 +1,10 @@
+# Rule 2, well-formedness of resolution: an instance with a context whose head
+# has no proper part, a bare type parameter or a concrete type, may mention in
+# its context only shapes declared before the trait's primary.  Otherwise
+# resolving the trait entails the shape, whose requirement calls the trait,
+# whose resolution entails the shape: a satisfaction that depends on itself,
+# which the compiler reads as unsatisfied and says nothing about.  A context on
+# a structured head descends by the head's parts and is not judged here (the
+# Paterson conditions).  Declaration order through constraints has no
+# clang-query matcher, hence the tool.
+tool context-order
