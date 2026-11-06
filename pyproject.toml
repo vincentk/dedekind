@@ -62,17 +62,6 @@ DEDEKIND_BUILD_PYTHON_BINDINGS = "ON"
 DEDEKIND_ENABLE_DOUBLE_REAL_PROXY = "ON"
 DEDEKIND_COVERAGE = "OFF"
 
-[project.optional-dependencies]
-graphblas = [
-  "python-graphblas[default]>=2025.2.0",
-]
-
-test = [
-  "pytest>=9.2",
-  "pytest-cov>=7.1",
-  "numpy>=2.5",
-]
-
 [tool.pytest.ini_options]
 testpaths = ["src/test/python"]
 
