@@ -128,6 +128,10 @@ So at compile time only a declared law shortens a fold, chosen by resolution, as
 
 Not every algorithm converges, so Jlt allows a \emph{budget}, a counter beside the structure's own count, as the compiler has one; exhausting the compiler's is not a value, and exhausting Jlt's is the empty optional, the third answer of Table~\ref{tab:posture} (Appendix~\ref{app:fjlt:ssa}).\footnote{The compiler's budgets apply at compile time only, Jlt's at both binding times, and they are the compiler's to set: raised, the refused fold of $10^8$ copies compiles and holds.}
 
+\paragraph{A law can leave the compiler a batch.}
+Listing~\ref{lst:sites}'s section names its law in its type, so one more overload of \cppinline{count} takes no table: a window is independent pairs, and each position its own lane.
+Written as folds over small blocks, it vectorises at \texttt{-O2} with no intrinsic, about five times the table's speed (Appendix~\ref{app:fjlt:ssa}); the overload names a law of biochemistry and no instruction of any machine, and \Cpp{26}'s \cppinline{std::simd}~\cite{kretz2024simd} would make the lanes explicit.
+
 \paragraph{The same laws license parallelism.}
 A parallel \cppinline{concat} is one more overload, licensed by \cppinline{IsCommutativeMonoid}.
 The branch on the binding time that selects it desugars to its compile-time branch, because the same law proves the branches agree (Appendix~\ref{app:fjlt:consteval}).

@@ -2,7 +2,7 @@
 
 How fast is the scan of [Listing 5](../../README.md), and why? This counts the palindromic hexamers in a text of DNA, four ways, and keeps the compiler's output beside the times. Tracked in [#1154](https://github.com/vincentk/dedekind/issues/1154).
 
-> **Work in progress.** Figures are ballpark, from shared GitHub runners, and will be replaced by one run with the machine named.
+Figures are from one run on one shared GitHub runner, an AMD EPYC 7763, Clang 23, `-O2`, unless a row says otherwise. Absolute numbers move between runners; ratios within a run are what to quote.
 
 ## Kick the tyres
 
@@ -37,19 +37,23 @@ Results and disassembly land in `build/bench/`. In CI, the `benchmark` job runs 
 
 ## The result
 
-One core, baseline SSE2, from raw ASCII.
+One core, baseline SSE2, from raw ASCII. *The table* is Knuth, Morris and Pratt's matcher, for many words Aho and Corasick's, generic over the alphabet. *The law* embeds the alphabet in the vector unit's operations.
 
-| Counting the sites | ns per letter | GB/s |
+| Counting the sites | ns per letter | Relative |
 |---|---:|---:|
-| A plain read of the same memory, for scale | under 0.05 | 20–40 |
-| The library, `count(text >> pali6)`, by the law | 0.3–0.4 | 2.5–3.9 |
-| The library, by its table | about 2 | about 0.5 |
-| Python, a loop over a set | 100–150 | 0.01 |
-| Python, `re` with 64 alternatives in a lookahead | 200–250 | 0.005 |
+| The library, `count(text >> pali6)`, by the law | 0.44 | 1 |
+| `pynzli`, by the law, the same | 0.44 | 1 |
+| The library or `pynzli`, by the table | 2.2 | 5× |
+| The same table, a hand-written loop, for reference | 2.0 | 4.6× |
+| Each window asked, as defined | 22 | 51× |
+| Python, a loop over a set | 155 | 350× |
+| Python, `re` with 64 alternatives in a lookahead | 254 | 580× |
 
-A text the size of a human genome, 3.1 billion letters, takes about a second, and peak memory stays at about 10.7 MB from 10^7 to 10^10 letters, as the text is read where it lies. All rows count the same number of sites.
+On 3.1 billion letters, about a human genome, past the cache: a plain read of the same memory at 21 GB/s, the law at 2.0 GB/s (2.9 at `-O3 -march=native`), the table at 0.46. So about 1.6 seconds, by calculation, and the scan is bound by the core and not by memory. Peak memory stays at about 10.8 MB from 10^7 to 10^10 letters, as the text is read where it lies. All rows count the same number of sites, and the job fails if they do not.
 
-`re` is a backtracking engine and is here as what a Python user reaches for, not as regular expressions at large; RE2 and Hyperscan are not measured.
+Drawing a letter from `random_text` costs 2.8 ns, and drawing and scanning it by the table 2.95: the scan adds about 5% to making its own input.
+
+`re` is a backtracking engine, here as what a Python user reaches for and not as regular expressions at large; RE2 and Hyperscan are not measured.
 
 ## Why it is fast
 
@@ -62,6 +66,8 @@ So `count` has one more overload, keyed on what the section's type already says,
 
 **The rule:** a specialization is keyed on a law or a data shape, never on a particular problem or compiler. It guarantees the answer; vectorising stays the compiler's choice.
 
+The overload is narrow, DNA's and RNA's in practice: exactly four letters, a reflection, a word of even length up to 16. It names a law of biochemistry and no instruction of any machine. C++26's `std::simd` would make the lanes explicit.
+
 ## What did not work
 
 | Attempt | What happened |
@@ -72,7 +78,7 @@ So `count` has one more overload, keyed on what the section's type already says,
 
 ## Reading the compiler
 
-`-O3` once made the library's table 2.5 times slower than a hand-written loop on the same table, with `-march=native` not to blame. In the assembly:
+`-O3` once made the library's table 2.5 times slower than a hand-written loop on the same table, and `-march=native` was not to blame. In the assembly:
 
 ```
 movups (%rdx),%xmm0     16-byte load of the cursor...
@@ -81,12 +87,17 @@ mov    %r9w,0x20(%rsi)  ...which a 2-byte and an 8-byte store wrote one step ear
 mov    %r12,0x28(%rsi)
 ```
 
-A load spanning two earlier stores can't be forwarded, so it waits for them, on every letter: a store-forwarding stall. The source was `unfold_view`'s iterator, copying a state only so that two positions could compare; they now compare by a step count.
+A load spanning two earlier stores can't be forwarded, so it waits for them, on every letter: a store-forwarding stall. The source was `unfold_view`'s iterator, copying a state only so that two positions could compare; they now compare by a step count. That took the table to within 2 to 12% of the loop at every flag setting, halved "drawn and scanned", and removed code.
 
-## Open
+## Oddities and open questions
 
-- [ ] Whether that fix closes the gap at `-O3`, and the rest of the gap in "drawn and scanned".
-- [ ] Why the law's plan gains nothing from `-march=native` while simpler loops gain 4×.
+Each is one `make bench` away. Pull requests welcome.
+
+- Why does `random_text` get slower with native flags, 2.80 to 3.61 ns, while the bare hash gets faster, 1.57 to 0.65?
+- Why is a hash and a mask cheaper than the hash alone at baseline, 1.26 against 1.57 ns?
+- A set of bases per byte goes from the slowest law row to a fast one with native flags, 4.06 to 0.76 ns.
+- The law gains 1.3× from native flags on AVX2, while the unblocked fold gains 2×. What is the block's stages' limit?
+- Two bits a base, one word holding 27 windows, reaches 0.07 ns per base at native flags and isn't in the library.
 - [ ] `llvm-mca` on the hot loops, and full `lscpu` with each run.
 - [ ] A real assembly, with the file named and its lowercase and `N` runs handled.
 
