@@ -1,6 +1,7 @@
 // Negative control for rules/rule3-no-self-recursion.query: recursion on a
 // value is a finding unless its descent is visible (p / c, p >> c, p - 1 on
-// an unsigned parameter, under a test of it against 0); recursion over a
+// an unsigned parameter, under a test of it against 0, the call in the branch
+// the test does not select); recursion over a
 // type's structure is a fold and passes.  Standalone.
 #include <cstddef>
 
@@ -99,6 +100,20 @@ constexpr std::size_t leap(std::size_t n) {  // self-recursion 8: n - 2 wraps
 // self-recursion 9: n / 2 descends, but in m's slot; n never changes
 constexpr std::size_t aside(std::size_t n, std::size_t m) {
   return n == 0 ? m : aside(n, n / 2);
+}
+
+// self-recursion 10: n - 1 descends, under n == 0, but in the branch the test
+// selects: the base case calls
+constexpr std::size_t base_calls(std::size_t n) {
+  return n == 0 ? base_calls(n - 1) : 0;
+}
+// self-recursion 11: the same with an if, the call in the else of n != 0
+constexpr std::size_t base_if(std::size_t n) {
+  if (n != 0) {
+    return 0;
+  } else {
+    return base_if(n / 2);
+  }
 }
 
 }  // namespace jlt_listing

@@ -122,11 +122,24 @@ jobs:
     - name: Build & Run Integration Tests
       run: make integration-test CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
+    # The report (gates, reported counts, the syntax inventory) is kept as an
+    # artifact: the paper's closure table rests on the inventory as
+    # supplementary material, so the counts live here and not in the paper.
     - name: Jlt Lint (post-processing over the compilation database)
-      run: >-
-        make jlt-lint CLANG_QUERY="$CLANG_QUERY" LLVM_ROOT="$LLVM_ROOT"
-        JLT_LINT_CMAKE_ARGS="-DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC
-        -DClang_DIR=$LLVM_ROOT/lib/cmake/clang -DLLVM_DIR=$LLVM_ROOT/lib/cmake/llvm"
+      run: |
+        set -o pipefail
+        mkdir -p build/jlt-lint
+        make jlt-lint CLANG_QUERY="$CLANG_QUERY" LLVM_ROOT="$LLVM_ROOT" \
+          JLT_LINT_CMAKE_ARGS="-DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DClang_DIR=$LLVM_ROOT/lib/cmake/clang -DLLVM_DIR=$LLVM_ROOT/lib/cmake/llvm" \
+          2>&1 | tee build/jlt-lint/report.txt
+
+    - name: Publish the lint report
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+      with:
+        name: jlt-lint-report${{ runner.os == 'macOS' && '-macos' || '' }}
+        if-no-files-found: ignore
+        path: build/jlt-lint/report.txt
 
     # The checked-in IR is x86-64's: it is read where it was written.
     - name: Validate Checked-In LLVM IR Fixture

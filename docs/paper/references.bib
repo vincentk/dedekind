@@ -41,7 +41,7 @@
   booktitle={Proceedings of the 4th ACM SIGACT-SIGPLAN Symposium on Principles of Programming Languages (POPL)},
   pages={238--252},
   year={1977},
-  note={Sound decidable approximation of an undecidable semantics via a Galois connection between concrete and abstract domains.}
+  doi = {10.1145/512950.512973}
 }
 
 @article{kleene1945realizability,
@@ -270,7 +270,7 @@
 }
 
 @book{shakespeare1597romeo,
-  title={The Most Excellent and Lamentable Tragedy of Romeo and Juliet},
+  title={An Excellent Conceited Tragedie of Romeo and Iuliet},
   author={Shakespeare, William},
   year={1597},
   publisher={John Danter},
@@ -435,16 +435,14 @@
   isbn      = {9780471982326}
 }
 
-@article{cardelli1996typesystems,
+@incollection{cardelli1996typesystems,
   author    = {Cardelli, Luca},
-  title     = {Type systems},
-  journal   = {ACM Computing Surveys},
-  volume    = {28},
-  number    = {1},
-  pages     = {263--264},
-  year      = {1996},
-  publisher = {ACM},
-  doi       = {10.1145/234313.234418}
+  title     = {Type Systems},
+  editor    = {Tucker, Allen B.},
+  booktitle = {The Computer Science and Engineering Handbook},
+  publisher = {CRC Press},
+  pages     = {2208--2236},
+  year      = {1997}
 }
 
 % PyTorch citation (NeurIPS 2019)
@@ -545,8 +543,8 @@
   number    = {2},
   pages     = {358--366},
   year      = {1953},
-  publisher = {JSTOR},
-  doi       = {10.2307/1990888}
+  publisher = {American Mathematical Society},
+  doi       = {10.1090/S0002-9947-1953-0053041-6}
 }
 
 @article{diaconescu1975axiom,
@@ -668,7 +666,7 @@
   url     = {https://github.com/vincentk/dedekind},
   urldate = {2026-10-24},
   doi     = {10.5281/zenodo.23697077},
-  note    = {Apache-2.0. The listings of this paper are the test \texttt{jlt\_listings\_test.cpp}; the linter of Section~7 is \texttt{tools/jlt-lint}}
+  note    = {Apache-2.0. The listings of this paper are the tests \texttt{jlt\_listings\_test.cpp} and \texttt{tensor\_exhibit\_test.cpp}; the linter of Section~7 is \texttt{tools/jlt-lint}}
 }
 
 @inproceedings{ClaessenHughes2000,
@@ -832,7 +830,10 @@
   booktitle={Conference on Functional Programming Languages and Computer Architecture},
   pages={124--144},
   year={1991},
-  organization={Springer}
+  doi = {10.1007/3540543961_7},
+  publisher = {Springer},
+  series = {Lecture Notes in Computer Science},
+  volume = {523}
 }
 
 @article{elliott2018simple,
@@ -852,7 +853,6 @@
   journal = {arXiv preprint arXiv:2107.03374},
   year    = {2021},
   doi     = {10.48550/arXiv.2107.03374},
-  note    = {Foundational paper on LLM-based coding assistants (Codex / GitHub Copilot)}
 }
 
 @manual{cpp23standard,
@@ -861,7 +861,7 @@
   organization = {International Organization for Standardization},
   address      = {Geneva, Switzerland},
   year         = {2024},
-  url          = {https://www.iso.org},
+  url          = {https://www.iso.org/standard/83626.html},
   note         = {Commonly referred to as C++23}
 }
 
@@ -892,7 +892,7 @@
   booktitle = {Proceedings of the ACM SIGPLAN Conference on Programming Language Design and Implementation (PLDI)},
   pages     = {73--84},
   year      = {2005},
-  doi       = {10.1145/1064978.1065021}
+  doi       = {10.1145/1065010.1065021}
 }
 
 @techreport{siek2004formalization,
@@ -921,7 +921,8 @@
   volume  = {4},
   number  = {OOPSLA},
   year    = {2020},
-  doi     = {10.1145/3428217}
+  doi     = {10.1145/3428217},
+  pages = {149:1--149:29}
 }
 
 @article{ellis2022generic,
@@ -931,7 +932,8 @@
   volume  = {6},
   number  = {OOPSLA2},
   pages   = {168:1--168:29},
-  year    = {2022}
+  year    = {2022},
+  doi = {10.1145/3563331}
 }
 
 @article{racordon2025coherence,
@@ -952,7 +954,7 @@
   publisher = {No Starch Press},
   address   = {San Francisco},
   year      = {2023},
-  note      = {Chapter 10, Generic Data Types; the text is also published at \url{https://doc.rust-lang.org/book/}}
+  note      = {Section 10.1, Generic Data Types; the text is also published at \url{https://doc.rust-lang.org/book/}}
 }
 
 @online{swift2026generics,
@@ -1029,11 +1031,13 @@
   title     = {Specifying {C++} concepts},
   author    = {Dos Reis, Gabriel and Stroustrup, Bjarne},
   booktitle = {Proceedings of the ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages (POPL)},
-  year      = {2006}
+  year      = {2006},
+  doi = {10.1145/1111037.1111064},
+  pages = {295--308}
 }
 
 @techreport{stroustrup2003concepts,
-  title       = {Concepts: Design Choices for Template Argument Checking},
+  title       = {Concepts -- Design Choices for Template Argument Checking},
   author      = {Stroustrup, Bjarne and Dos Reis, Gabriel},
   number      = {N1522 = 03-0105},
   institution = {ISO/IEC JTC1/SC22/WG21},
@@ -1069,7 +1073,8 @@
   volume  = {17},
   number  = {2},
   pages   = {145--205},
-  year    = {2007}
+  year    = {2007},
+  doi = {10.1017/S0956796806006198}
 }
 
 @article{bernardy2010generic,
@@ -1079,7 +1084,8 @@
   volume  = {20},
   number  = {3--4},
   pages   = {271--302},
-  year    = {2010}
+  year    = {2010},
+  doi = {10.1017/S095679681000016X}
 }
 
 @inproceedings{wasserrab2006operational,
@@ -1087,7 +1093,8 @@
   author    = {Wasserrab, Daniel and Nipkow, Tobias and Snelting, Gregor and Tip, Frank},
   booktitle = {Proceedings of the ACM SIGPLAN Conference on Object-Oriented Programming, Systems, Languages, and Applications (OOPSLA)},
   pages     = {345--362},
-  year      = {2006}
+  year      = {2006},
+  doi = {10.1145/1167473.1167503}
 }
 
 @inproceedings{ramananandro2011layout,
@@ -1095,7 +1102,8 @@
   author    = {Ramananandro, Tahina and Dos Reis, Gabriel and Leroy, Xavier},
   booktitle = {Proceedings of the ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages (POPL)},
   pages     = {67--80},
-  year      = {2011}
+  year      = {2011},
+  doi = {10.1145/1926385.1926395}
 }
 
 @inproceedings{ramananandro2012construction,
@@ -1103,7 +1111,8 @@
   author    = {Ramananandro, Tahina and Dos Reis, Gabriel and Leroy, Xavier},
   booktitle = {Proceedings of the ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages (POPL)},
   pages     = {521--532},
-  year      = {2012}
+  year      = {2012},
+  doi = {10.1145/2103656.2103718}
 }
 
 @book{girard1989proofs,
@@ -1142,7 +1151,8 @@
   volume  = {17},
   number  = {1},
   pages   = {83--129},
-  year    = {2007}
+  year    = {2007},
+  doi = {10.1017/S0956796806006137}
 }
 
 @article{hughes1989why,
@@ -1152,7 +1162,8 @@
   volume  = {32},
   number  = {2},
   pages   = {98--107},
-  year    = {1989}
+  year    = {1989},
+  doi = {10.1093/comjnl/32.2.98}
 }
 
 @inproceedings{demoura2021lean,
@@ -1162,15 +1173,19 @@
   series    = {Lecture Notes in Computer Science},
   publisher = {Springer},
   pages     = {625--635},
-  year      = {2021}
+  year      = {2021},
+  doi = {10.1007/978-3-030-79876-5_37}
 }
 
 @article{hubert2025olympiad,
   title   = {Olympiad-level formal mathematical reasoning with reinforcement learning},
   author  = {Hubert, Thomas and Mehta, Rishi and Sartran, Laurent and others},
   journal = {Nature},
-  year    = {2025},
-  doi     = {10.1038/s41586-025-09833-y}
+  year    = {2026},
+  doi     = {10.1038/s41586-025-09833-y},
+  volume = {651},
+  number = {8106},
+  pages = {607--613}
 }
 
 @inproceedings{wadler1989adhoc,
@@ -1179,7 +1194,8 @@
   booktitle = {Proceedings of the 16th ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages (POPL)},
   pages     = {60--76},
   year      = {1989},
-  organization = {ACM}
+  organization = {ACM},
+  doi = {10.1145/75277.75283}
 }
 
 @inproceedings{wadler1989theorems,
@@ -1188,7 +1204,8 @@
   booktitle={Conference on Functional Programming Languages and Computer Architecture},
   pages={347--359},
   year={1989},
-  organization={ACM}
+  organization={ACM},
+  doi = {10.1145/99370.99404}
 }
 
 @article{wadler2015propositions,
@@ -1346,7 +1363,7 @@
 }
 
 @misc{chagnon2016hana,
-  title  = {{Boost.Hana}: a modern metaprogramming library},
+  title  = {{Boost.Hana}: Your standard library for metaprogramming},
   author = {Dionne, Louis},
   year   = {2016},
   note   = {Part of Boost since 1.61},
@@ -1436,7 +1453,6 @@
   pages        = {221--242},
   year         = {2008},
   howpublished = {\url{https://www.math.harvard.edu/~mazur/preprints/when_is_one.pdf}},
-  note         = {Structuralist reading of mathematical equality: objects are individuated by behaviour up to isomorphism, not strict identity. Anchors the category:equivalence partition's up-to-equivalence relaxation of strict == on machine carriers.}
 }
 
 @book{dantzig1963simplex,
@@ -1601,7 +1617,7 @@
   publisher = {Springer},
   year      = {1981},
   isbn      = {9780387905785},
-  note      = {The Millennium Edition is freely available at \url{https://www.math.uwaterloo.ca/~snburris/htdocs/ualg.html}.  Treats an algebra formally as a pair $(A, F)$ of a carrier set $A$ with a family of operations $F$, separating the underlying-set reading (carrier) from the quotient / free / subalgebra constructions that produce new algebras.}
+  note      = {The Millennium Edition is freely available at \url{https://www.math.uwaterloo.ca/~snburris/htdocs/ualg.html}}
 }
 
 @book{hartshorne1977agalg,
@@ -1664,11 +1680,10 @@
 }
 
 @misc{cppcoreguidelines,
-  author       = {Stroustrup, Bjarne and Sutter, Herb},
+  editor       = {Stroustrup, Bjarne and Sutter, Herb},
   title        = {C++ Core Guidelines},
-  year         = {2024},
+  year         = {2026},
   howpublished = {\url{https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines}},
-  note         = {Rule T.20: ``Avoid `concepts' without meaningful semantics.''  The rule is the canonical statement of the closure-vs-laws split: concepts witness syntactic closure mechanically, but the semantic obligations (associativity, commutativity, etc.) require manual certification --- traits, documentation, or other out-of-band evidence.}
 }
 
 @misc{isocpp_concepts_history,
@@ -1688,7 +1703,6 @@
   pages     = {377--387},
   year      = {1970},
   doi       = {10.1145/362384.362685},
-  note      = {The founding statement of relational algebra: $\sigma$ (selection), $\pi$ (projection), $\cup$, $\cap$, $\setminus$, $\times$ (Cartesian product), and $\theta$-join (= $\sigma_\theta \circ \times$) as the primitives over relations.  Used in §3 page-2 to justify the codebase's posture that \texttt{LIMIT~N} is a $\sigma$-specialisation not separately named.}
 }
 
 @book{date2006third,
@@ -1698,14 +1712,6 @@
   publisher = {Addison-Wesley},
   year      = {2006},
   note      = {The modern restatement of Codd's algebra with explicit type discipline.  Prescription~7 / RM~Pre~24 reads \texttt{LIMIT~N} as $\sigma$ with a derived upper-cutoff pivot on the index column --- the reading the codebase adopts in \texttt{:sequences:path} via \cppinline{select(R, [n](\&p){return p.first < n;})} instead of a separately named primitive.}
-}
-
-@book{abiteboul1995foundations,
-  author    = {Abiteboul, Serge and Hull, Richard and Vianu, Victor},
-  title     = {Foundations of Databases},
-  publisher = {Addison-Wesley},
-  year      = {1995},
-  note      = {The textbook treatment of relational query languages, complete with the categorical reading of $\theta$-join as $\sigma_\theta$ applied to the Cartesian product.}
 }
 
 @book{bourbaki1968theoryofsets,
@@ -1896,7 +1902,9 @@
   booktitle = {Proceedings of the ACM SIGPLAN Conference on Programming Language Design and Implementation (PLDI)},
   address   = {Orlando, Florida},
   publisher = {ACM},
-  year      = {1994}
+  year      = {1994},
+  doi = {10.1145/178243.178246},
+  pages = {24--35}
 }
 
 @article{hudak1996building,
@@ -1946,7 +1954,6 @@
   year   = {2010},
   url    = {https://www.haskell.org/onlinereport/haskell2010/}
 }
-}
 
 @article{burstall1969proving,
   author  = {Burstall, Rod M.},
@@ -1972,7 +1979,7 @@
 
 @inproceedings{morris2010instance,
   author    = {Morris, J. Garrett and Jones, Mark P.},
-  title     = {Instance Chains: Type Class Programming without Overlapping Instances},
+  title     = {Instance Chains: Type Class Programming Without Overlapping Instances},
   booktitle = {Proceedings of the 15th ACM SIGPLAN International Conference on Functional Programming (ICFP)},
   pages     = {375--386},
   year      = {2010},
@@ -1983,12 +1990,12 @@
   title        = {{GHC} User's Guide: Overlapping Instances},
   organization = {The GHC Team},
   year         = {2024},
-  url          = {https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/instances.html#overlapping-instances}
+  url          = {https://downloads.haskell.org/ghc/9.10.1/docs/users_guide/exts/instances.html#overlapping-instances}
 }
 
 @manual{misra2023cpp,
   title        = {{MISRA C++:2023}: Guidelines for the Use of {C++17} in Critical Systems},
-  organization = {The MISRA Consortium},
+  organization = {The MISRA Consortium Limited},
   year         = {2023}
 }
 
@@ -2138,7 +2145,7 @@
 @misc{stroustrup2026peterman,
   author       = {Stroustrup, Bjarne},
   title        = {Creator of {C++}: {Bell Labs}, Negative Overhead Abstraction, Mistakes},
-  howpublished = {The Peterman Pod, interview by Ryan Peterman, 18 May 2026, transcript at 1:23:12},
+  howpublished = {The Peterman Pod, interview by Ryan Peterman, 18 May 2026, at 1:23:12},
   year         = {2026},
   month        = may,
   url          = {https://www.developing.dev/p/creator-of-c-bell-labs-negative-overhead}
@@ -2231,7 +2238,7 @@
   author    = {Jones, Mark P.},
   title     = {Qualified Types: Theory and Practice},
   publisher = {Cambridge University Press},
-  series    = {Cambridge Tracts in Theoretical Computer Science},
+  series    = {Distinguished Dissertations in Computer Science},
   volume    = {9},
   year      = {1994},
   doi       = {10.1017/CBO9780511663086}
@@ -2333,4 +2340,75 @@
   pages   = {137--147},
   year    = {1999},
   doi     = {10.1006/jcss.1997.1545}
+}
+
+@article{backus1978can,
+  author  = {Backus, John},
+  title   = {Can Programming Be Liberated from the von {Neumann} Style? A Functional Style and Its Algebra of Programs},
+  journal = {Communications of the ACM},
+  volume  = {21},
+  number  = {8},
+  pages   = {613--641},
+  year    = {1978},
+  doi     = {10.1145/359576.359579}
+}
+
+@article{hutton1999tutorial,
+  author  = {Hutton, Graham},
+  title   = {A Tutorial on the Universality and Expressiveness of Fold},
+  journal = {Journal of Functional Programming},
+  volume  = {9},
+  number  = {4},
+  pages   = {355--372},
+  year    = {1999},
+  doi     = {10.1017/S0956796899003500}
+}
+
+@phdthesis{matthes1999extensions,
+  author = {Matthes, Ralph},
+  title  = {Extensions of System {F} by Iteration and Primitive Recursion on Monotone Inductive Types},
+  school = {Ludwig-Maximilians-Universit{\"a}t M{\"u}nchen},
+  year   = {1999},
+  url    = {https://www.irit.fr/~Ralph.Matthes/dissertation/matthesdiss.pdf}
+}
+
+@article{breazutannen1991polymorphic,
+  author  = {Breazu-Tannen, Val and Gallier, Jean},
+  title   = {Polymorphic Rewriting Conserves Algebraic Strong Normalization},
+  journal = {Theoretical Computer Science},
+  volume  = {83},
+  number  = {1},
+  pages   = {3--28},
+  year    = {1991},
+  doi     = {10.1016/0304-3975(91)90037-3}
+}
+
+@article{breazutannen1994polymorphic,
+  author  = {Breazu-Tannen, Val and Gallier, Jean},
+  title   = {Polymorphic Rewriting Conserves Algebraic Confluence},
+  journal = {Information and Computation},
+  volume  = {114},
+  number  = {1},
+  pages   = {1--29},
+  year    = {1994},
+  doi     = {10.1006/inco.1994.1078}
+}
+
+@misc{demoura2026postmortem,
+  author  = {de Moura, Leonardo},
+  title   = {Postmortem for Kernel Soundness Bug \#14576},
+  year    = {2026},
+  url     = {https://leodemoura.github.io/blog/2026-8-1-postmortem-for-kernel-soundness-bug-14576/},
+  urldate = {2026-11-05}
+}
+
+@article{thompson1984reflections,
+  author  = {Thompson, Ken},
+  title   = {Reflections on Trusting Trust},
+  journal = {Communications of the ACM},
+  volume  = {27},
+  number  = {8},
+  pages   = {761--763},
+  year    = {1984},
+  doi     = {10.1145/358198.358210}
 }

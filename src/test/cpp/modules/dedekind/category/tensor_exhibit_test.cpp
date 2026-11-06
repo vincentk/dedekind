@@ -463,11 +463,22 @@ static_assert(count(dna >> pali6) == 10uz);
 static_assert(count(dna >> scanner) == 2uz && sites(bytes("GAATTC")) &&
               sites(bytes("GAGCTC")));
 // [/listing5:one-genome]
+}  // namespace listing5
+// The tests below read the panel's names; they are outside its namespace so
+// that the linter's scope `listing5` holds the panel alone, not Catch2's
+// macros.
+using listing5::automaton;
+using listing5::bases;
+using listing5::bytes;
+using listing5::pali6;
+using listing5::prefix;
+using listing5::scanner;
+using listing5::sites;
 // The plan's count is a Maybe: the plan may exceed its capacity, and the
 // monad carries that to the end, where the count is read.
 TEST_CASE("Category: Listing 5's one-genome lines agree",
           "[category][tensor][listing5]") {
-  const Word genome(dna.begin(), dna.end());
+  const Word genome(listing5::dna.begin(), listing5::dna.end());
   CHECK(count(std::span<const std::byte>{genome} >> pali6) == 10);
   CHECK(count(std::span<const std::byte>{genome} >> scanner) == 2);
   // the same builder on all 64, past the budget, so here at run time
@@ -485,7 +496,7 @@ TEST_CASE("Category: palindromes listed by the law are those tested one by one",
   const auto none = automaton<4, 6, 4, 8>(pali6 & prefix("GAATTA"));
   REQUIRE(none.has_value());
   CHECK(none->next.size() == 1);
-  CHECK(count(dna >> matches(none)) == 0);
+  CHECK(count(listing5::dna >> matches(none)) == 0);
   // the law declines what it cannot read: a slice narrower than the letters,
   // and a code space past the word
   using dedekind::category::slice;
@@ -525,7 +536,6 @@ TEST_CASE("Category: palindromes listed by the law are those tested one by one",
   CHECK((pali6 & prefix("GA"))(bytes("GAATTC")));
   CHECK(!(pali6 & prefix("GA"))(bytes("AAGCTT")));
 }
-}  // namespace listing5
 
 // The smoke test of the listing at scale.  Random DNA as a sequence on a chain,
 // an arrow out of the counts, so the text is never stored and no generator
