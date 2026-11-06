@@ -142,6 +142,90 @@ std::uint64_t drawn_table_11(std::size_t n) {
   return count(random_text(bases, n) >> scanner_11);
 }
 
+// The law's own plan.  fixed_by(~rev) over a fixed length says a window is
+// three independent pairs, so nothing need be carried from one position to the
+// next; the plain count over the positions is then the whole program, and
+// whether it is vectorised is the compiler's to decide.  Three readings of the
+// text, each its own predicate, none written as a loop or with intrinsics.
+
+/** @brief Letters as they come, ACGT only: complements differ in bits 1 and 2
+ *  by 4 (A 00, C 01, T 10, G 11 there). */
+struct AsciiPali6 {
+  const std::uint8_t* s;
+  static constexpr bool pair(std::uint8_t x, std::uint8_t y) {
+    return ((x ^ y) & 6u) == 4u;
+  }
+  constexpr bool operator()(std::size_t i) const {
+    return pair(s[i], s[i + 5]) & pair(s[i + 1], s[i + 4]) &
+           pair(s[i + 2], s[i + 3]);
+  }
+};
+/** @brief Ranks in bytes, a hole 0x80: the complement is ~ on two bits, so
+ *  complements xor to 3, and a hole never does. */
+struct RanksPali6 {
+  const std::uint8_t* r;
+  static constexpr bool pair(std::uint8_t x, std::uint8_t y) {
+    return (x ^ y) == 3u;
+  }
+  constexpr bool operator()(std::size_t i) const {
+    return pair(r[i], r[i + 5]) & pair(r[i + 1], r[i + 4]) &
+           pair(r[i + 2], r[i + 3]);
+  }
+};
+/** @brief One bit a base in bytes, a set of bases being IUPAC's code: the
+ *  complement is the nibble reversed, and a meet says they can pair. */
+struct MasksPali6 {
+  const std::uint8_t* m;
+  static constexpr std::uint8_t reversed(std::uint8_t x) {
+    return static_cast<std::uint8_t>(((x & 1u) << 3) | ((x & 2u) << 1) |
+                                     ((x & 4u) >> 1) | ((x & 8u) >> 3));
+  }
+  static constexpr bool pair(std::uint8_t x, std::uint8_t y) {
+    return (x & reversed(y)) != 0u;
+  }
+  constexpr bool operator()(std::size_t i) const {
+    return pair(m[i], m[i + 5]) & pair(m[i + 1], m[i + 4]) &
+           pair(m[i + 2], m[i + 3]);
+  }
+};
+template <typename Window>
+std::uint64_t over_the_windows(Window window, std::size_t n) {
+  return count<std::uint64_t>(std::views::iota(0uz, n - 5) |
+                              std::views::transform(window));
+}
+/** @brief The rank of a letter in a byte, or the hole. */
+struct RankByte {
+  constexpr std::uint8_t operator()(std::byte b) const {
+    const auto r = scanner_11.columns(b);
+    return r ? static_cast<std::uint8_t>(*r) : std::uint8_t{0x80};
+  }
+};
+/** @brief A set of one base in a byte, or the empty set. */
+struct MaskByte {
+  constexpr std::uint8_t operator()(std::byte b) const {
+    const auto r = scanner_11.columns(b);
+    return r ? static_cast<std::uint8_t>(1u << *r) : std::uint8_t{0};
+  }
+};
+}  // namespace
+
+// Named for the disassembly `make bench` keeps.
+extern "C" std::uint64_t law_ascii(const std::uint8_t* s, std::size_t n) {
+  return over_the_windows(AsciiPali6{s}, n);
+}
+extern "C" std::uint64_t law_ranks(const std::uint8_t* s, std::size_t n) {
+  return over_the_windows(RanksPali6{s}, n);
+}
+extern "C" std::uint64_t law_masks(const std::uint8_t* s, std::size_t n) {
+  return over_the_windows(MasksPali6{s}, n);
+}
+
+namespace {
+using Bytes = std::span<const std::uint8_t>;
+std::uint64_t ascii_row(Bytes b) { return law_ascii(b.data(), b.size()); }
+std::uint64_t ranks_row(Bytes b) { return law_ranks(b.data(), b.size()); }
+std::uint64_t masks_row(Bytes b) { return law_masks(b.data(), b.size()); }
+
 /** @brief Stops the optimiser removing a result it can see is unused. */
 void keep(std::uint64_t x) { asm volatile("" : : "r"(x) : "memory"); }
 
@@ -183,6 +267,19 @@ int table() {
 
   keep(hash_alone(
       N));  // warm: the first row must not pay for the machine waking
+  const auto ranks =
+      text | std::views::transform(RankByte{}) | std::ranges::to<std::vector>();
+  const auto masks =
+      text | std::views::transform(MaskByte{}) | std::ranges::to<std::vector>();
+  const Bytes ascii{reinterpret_cast<const std::uint8_t*>(stored.data()), N};
+  // The full count, as the laws' plans must agree with the table on all of it.
+  const std::uint64_t all = table_64(text);
+  if (ascii_row(ascii) != all || ranks_row(ranks) != all ||
+      masks_row(masks) != all) {
+    std::println(stderr, "the law's plans disagree with the table");
+    return 1;
+  }
+
   const double draw = ns_per_letter(hash_alone, N, N);
   std::println("{} letters, median of {} ({} for the windows).", N, repeats,
                N_windows);
@@ -203,6 +300,12 @@ int table() {
       ns_per_letter(holes_11, text, N), draw);
   row("the same table, hand-written, no holes",
       ns_per_letter(by_hand_11, text, N), draw);
+  row("the law, letters as they come (ACGT only)",
+      ns_per_letter(ascii_row, ascii, N), draw);
+  row("the law, ranks in bytes", ns_per_letter(ranks_row, Bytes{ranks}, N),
+      draw);
+  row("the law, sets of bases in bytes (IUPAC's code)",
+      ns_per_letter(masks_row, Bytes{masks}, N), draw);
   row("hash alone", draw, draw);
   row("a letter, hash and mask", ns_per_letter(letter_masked, N, N), draw);
   row("a letter, the library's random_text",

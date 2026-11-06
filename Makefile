@@ -185,6 +185,9 @@ bench: ## Run the C++ benchmark, without coverage
 	{ echo; echo '| Letters | Found | Peak KiB |'; echo '|---:|---:|---:|'; \
 	  $(BENCH_DIR)/bench_listing5 memory 10000000; \
 	  $(BENCH_DIR)/bench_listing5 memory 10000000000; } | tee -a $(BUILD_DIR)/bench/scanner.md
+	-for f in law_ascii law_ranks law_masks; do \
+	  objdump -d --no-show-raw-insn --disassemble=$$f $(BENCH_DIR)/bench_listing5; \
+	done | tee $(BUILD_DIR)/bench/law.s
 
 wheel: ## Build and check the Python wheel (VERSION=)
 	bash .github/scripts/wheel.sh $(VERSION)
