@@ -632,7 +632,7 @@ At each call, the instance the compiler resolved supplies a record of the type t
 
 \begin{theorem}[Simulation]
 \label{thm:simulation}
-If $e \longrightarrow e'$ in FJlt (Appendix~\ref{app:fjlt:evaluation}), then $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e' \rrbracket$ in the target, up to the reduction of a fold's count and of a descending self-call's fuel (Appendix~\ref{app:fjlt:theorems}), and a value of base type translates to a constant.
+If $e \longrightarrow e'$ in FJlt (Appendix~\ref{app:fjlt:evaluation}), then $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e' \rrbracket$ in the target, up to the reduction of a fold's count, a descending self-call's fuel and a node's reading (Appendix~\ref{app:fjlt:theorems}), and a value of base type translates to a constant.
 For closed terms of base type, $e$ evaluates to $v$ if and only if $\llbracket e \rrbracket$ reduces to $\llbracket v \rrbracket$.
 \end{theorem}
 
