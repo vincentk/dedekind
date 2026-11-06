@@ -20,11 +20,7 @@ jobs:
         include:
         - { runner: ubuntu-26.04,   route: plain, compiler: system }
         - { runner: ubuntu-26.04,   route: sdist, compiler: system }
-        - { runner: ubuntu-26.04,   route: sdist, compiler: llvm }
         - { runner: macos-26,       route: plain, compiler: system }
-        - { runner: macos-26,       route: plain, compiler: llvm }
-        - { runner: macos-15-intel, route: plain, compiler: system }
-        - { runner: macos-15-intel, route: plain, compiler: llvm }
     steps:
     - uses: actions/setup-python@v7
       with:
@@ -61,5 +57,6 @@ jobs:
         echo "pip exit $ok after $((SECONDS-start))s"
         grep -n -E 'Using cached|Downloading|Building wheel|CMake Error|error:|FATAL|Successfully' pip.log | head -40 | cut -c1-200 || true
         echo "--- tail"; tail -30 pip.log | cut -c1-220
-        [ "$ok" = 0 ]
+        [ "$ok" = 0 ] || { grep -A6 'CMake Error' pip.log | cut -c1-200; exit 1; }
         venv/bin/python -I -c 'import pynzli; print("pynzli", pynzli.__version__)'
+        echo "--- left behind"; ls -la

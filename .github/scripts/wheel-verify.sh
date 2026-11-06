@@ -57,3 +57,9 @@ PY
 tests=$(pwd)/src/test/python
 (cd "$venv" && "${py[@]}" -m pytest -q -p no:cacheprovider -c /dev/null \
   --doctest-modules --pyargs pynzli "$tests")
+
+# A wheel carries no instrumentation: using it leaves nothing behind.
+if ls "$venv"/*.profraw 2>/dev/null; then
+  echo "the wheel wrote a coverage profile" >&2
+  exit 1
+fi

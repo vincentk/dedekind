@@ -21,6 +21,16 @@ endif()
 
 project(Dedekind VERSION ${DEDEKIND_VERSION} LANGUAGES CXX)
 
+# --- The compiler ---
+# The modules want LLVM's own clang (Apple's has no module scanner).  Said here,
+# as pip shows this to whoever builds the sdist.
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_VERSION VERSION_LESS 23)
+    message(FATAL_ERROR
+        "Dedekind builds with LLVM clang 23 or later, not "
+        "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}.  "
+        "Set CC and CXX to LLVM's clang and clang++.")
+endif()
+
 # --- Toolchain/Platform Adjustments ---
 if(APPLE)
     # Move the Makefile's "CXXFLAGS" logic here so it's not overwritten
@@ -46,16 +56,13 @@ set(DEDEKIND_WARNING_FLAGS
     -Wno-c2y-extensions
 )
 
-# --- Instrumentation (Shared by CI and Local) ---
-set(DEDEKIND_COVERAGE_FLAGS -fprofile-instr-generate -fcoverage-mapping)
-
-# 2. Use a unified "instrumentation" block for the whole project
-# This ensures the profiling runtime is linked into every binary
-add_compile_options(${DEDEKIND_COVERAGE_FLAGS})
-add_link_options(${DEDEKIND_COVERAGE_FLAGS})
-
-# Ensure the linker also uses the profiling runtime
-add_link_options(-fprofile-instr-generate)
+# --- Instrumentation ---
+# The developer's build turns it on (the Makefile); a wheel never carries it.
+option(DEDEKIND_COVERAGE "Instrument every target for LLVM coverage" OFF)
+if(DEDEKIND_COVERAGE)
+    add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
+    add_link_options(-fprofile-instr-generate)
+endif()
 set(CMAKE_CXX_STANDARD 23)
 # One optimisation level for every target, -O2, the level the Jlt paper reads
 # its IR at: a module's consumers then share its flags, and CMake reuses its
@@ -455,6 +462,7 @@ endif()
 
 get_property(ALL_TESTS GLOBAL PROPERTY DEDEKIND_ALL_TEST_BINARIES)
 get_property(ALL_LIBS GLOBAL PROPERTY DEDEKIND_ALL_LIB_ARCHIVES)
+if(DEDEKIND_COVERAGE)
 # --- Find LLVM Tools (Cross-Platform) ---
 # Next to the compiler first: Homebrew's LLVM is keg-only, not on PATH.
 cmake_path(GET CMAKE_CXX_COMPILER PARENT_PATH _dedekind_compiler_dir)
@@ -489,3 +497,4 @@ add_custom_target(generate_coverage
     VERBATIM
     COMMENT "Generating unified LCOV coverage report..."
 )
+endif()
