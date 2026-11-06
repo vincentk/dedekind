@@ -440,14 +440,11 @@ jobs:
   # main went red: one issue, assigned to the owner, which stays open while main
   # is red and is closed by the next green run.  So one notification an incident,
   # not one a run, and none for a PR.  A cancelled run says nothing either way.
+  # Runs may overlap: a second issue from two red runs closes with a later green.
   # Writes issues, and runs only gh: no checkout.
   main-status:
     if: >-
       !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    # One at a time: two red runs must not each find no issue and open one.
-    concurrency:
-      group: main-status
-      cancel-in-progress: false
     needs:
     - build-and-deploy
     - python-dist
