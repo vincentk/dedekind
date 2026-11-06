@@ -48,7 +48,7 @@ jobs:
       contents: read
       pull-requests: write  # required by codecov-action to post PR coverage comments
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
 
@@ -61,7 +61,7 @@ jobs:
         echo "NCPU=$(getconf _NPROCESSORS_ONLN)" >> "$GITHUB_ENV"
 
     - name: Set up Python
-      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
@@ -135,7 +135,7 @@ jobs:
 
     - name: Publish the lint report
       if: always()
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+      uses: actions/upload-artifact@v7
       with:
         name: jlt-lint-report${{ runner.os == 'macOS' && '-macos' || '' }}
         if-no-files-found: ignore
@@ -154,7 +154,7 @@ jobs:
 
     - name: Upload Refreshed LLVM IR Snapshots
       if: runner.os == 'Linux' && runner.arch == 'X64'
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+      uses: actions/upload-artifact@v7
       with:
         name: ir-fixtures
         if-no-files-found: error
@@ -183,7 +183,7 @@ jobs:
     # so the critical path reads top-to-bottom without diagnostic noise.
     - name: Upload Notebook Integration Artifacts
       if: ${{ always() }}
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+      uses: actions/upload-artifact@v7
       with:
         name: python-notebooks${{ runner.os == 'macOS' && '-macos' || '' }}
         if-no-files-found: warn
