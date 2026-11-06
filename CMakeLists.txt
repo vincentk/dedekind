@@ -57,8 +57,9 @@ set(DEDEKIND_WARNING_FLAGS
 )
 
 # --- Instrumentation ---
-# The developer's build turns it on (the Makefile); a wheel never carries it.
-option(DEDEKIND_COVERAGE "Instrument every target for LLVM coverage" OFF)
+# On in a developer's build; a wheel turns it off (pyproject.toml), and carries
+# none.
+option(DEDEKIND_COVERAGE "Instrument every target for LLVM coverage" ON)
 if(DEDEKIND_COVERAGE)
     add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
     add_link_options(-fprofile-instr-generate)

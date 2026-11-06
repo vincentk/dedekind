@@ -552,10 +552,10 @@ int table() {
   std::println("|---|---:|---:|");
   row("each of the 64 sites' windows tested, stored text",
       ns_per_letter(each_window, few, N_windows), draw);
-  row("the 64 sites' table (277 states), stored text",
-      ns_per_letter(table_64, text, N), draw);
-  row("the same table, hand-written, holes as the library",
-      ns_per_letter(holes_64, text, N), draw);
+  const double table_time = ns_per_letter(table_64, text, N);
+  row("the 64 sites' table (277 states), stored text", table_time, draw);
+  const double yardstick = ns_per_letter(holes_64, text, N);
+  row("the same table, hand-written, holes as the library", yardstick, draw);
   row("the same table, hand-written, no holes",
       ns_per_letter(by_hand_64, text, N), draw);
   row("the 11-state table, stored text", ns_per_letter(table_11, text, N),
@@ -564,8 +564,8 @@ int table() {
       ns_per_letter(holes_11, text, N), draw);
   row("the same table, hand-written, no holes",
       ns_per_letter(by_hand_11, text, N), draw);
-  row("the library's count(text >> pali6), by the law",
-      ns_per_letter(by_the_law, text, N), draw);
+  const double law = ns_per_letter(by_the_law, text, N);
+  row("the library's count(text >> pali6), by the law", law, draw);
   row("the law, letters as they come (ACGT only)",
       ns_per_letter(ascii_row, ascii, N), draw);
   row("the law, ranks in bytes", ns_per_letter(ranks_row, Bytes{ranks}, N),
@@ -591,6 +591,12 @@ int table() {
   row("drawn and scanned, the 11-state table",
       ns_per_letter(drawn_table_11, N, N), draw);
   past_the_cache();
+  // Generous, for a shared runner: a regression, not a difference.
+  if (table_time > 2.0 * yardstick || law > table_time) {
+    std::println(stderr, "the library fell behind: table {} against {}, law {}",
+                 table_time, yardstick, law);
+    return 1;
+  }
   return 0;
 }
 

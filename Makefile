@@ -65,7 +65,6 @@ $(BUILD_DIR)/CMakeCache.txt:
 		-DCMAKE_CXX_SCAN_FOR_MODULES=ON \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON \
-		-DDEDEKIND_COVERAGE=ON \
 		$(CMAKE_EXTRA_ARGS)
 
 compile: $(BUILD_DIR)/CMakeCache.txt ## Configure if needed and build all targets
@@ -178,6 +177,7 @@ bench: ## Run the C++ benchmark, without coverage
 		-DCMAKE_C_COMPILER=$(CC) \
 		-DCMAKE_CXX_SCAN_FOR_MODULES=ON \
 		-DCMAKE_BUILD_TYPE=Release \
+		-DDEDEKIND_COVERAGE=OFF \
 		-DDEDEKIND_BENCH=ON
 	cmake --build $(BENCH_DIR) --target bench_listing5 --parallel $(JOBS)
 	mkdir -p $(BUILD_DIR)/bench
@@ -188,6 +188,8 @@ bench: ## Run the C++ benchmark, without coverage
 	-for f in law_ascii law_ranks law_masks law_guarded law_blocks law_guarded_blocks law_words law_columnar; do \
 	  objdump -d --no-show-raw-insn --disassemble=$$f $(BENCH_DIR)/bench_listing5; \
 	done | tee $(BUILD_DIR)/bench/law.s
+	-objdump -d -C --no-show-raw-insn $(BENCH_DIR)/bench_listing5 | \
+	  awk '/^[0-9a-f]+ <.*ReflectedBlock.*>:/,/^$$/' > $(BUILD_DIR)/bench/library.s
 
 wheel: ## Build and check the Python wheel (VERSION=)
 	bash .github/scripts/wheel.sh $(VERSION)
@@ -511,7 +513,6 @@ doxygen: $(BUILD_DIR)/CMakeCache.txt ## The Doxygen API docs in build/docs
 		-DCMAKE_CXX_SCAN_FOR_MODULES=ON \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON \
-		-DDEDEKIND_COVERAGE=ON \
 		$(CMAKE_EXTRA_ARGS)
 	cmake --build $(BUILD_DIR) --target docs --parallel $(JOBS)
 

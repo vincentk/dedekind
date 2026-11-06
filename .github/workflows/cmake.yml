@@ -21,6 +21,13 @@ on:
         type: boolean
         default: true
 
+# Main's builds queue, each to its end; a PR's runs do not wait for each other.
+# GitHub holds one run waiting and drops an older one, which loses nothing: the
+# newer holds its commits.
+concurrency:
+  group: ${{ github.ref == 'refs/heads/main' && 'main' || github.run_id }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -82,10 +89,14 @@ jobs:
       ARTIFACT: python-dist-macos
     steps: *wheel
 
-  # The benchmark, for a PR labelled `benchmark`: never a gate, as a shared
-  # runner's times are noisy, and the results are an artifact.
+  # The benchmark, on main and for a PR labelled `benchmark`.  Times on a shared
+  # runner are noisy, so it fails only on what they cannot explain: the ways of
+  # counting disagree, or the library falls far behind its yardsticks.
   benchmark:
-    if: contains(github.event.pull_request.labels.*.name, 'benchmark')
+    if: >-
+      (github.ref == 'refs/heads/main' && github.event_name != 'pull_request') ||
+      contains(github.event.pull_request.labels.*.name, 'benchmark')
+    needs: build-and-deploy
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: read
@@ -243,7 +254,8 @@ jobs:
   testpypi-dev-install:
     needs: testpypi-dev
     strategy:
-      matrix: &platforms  # what pip is offered: what is built
+      # What pip is offered: what is built.
+      matrix: &platforms
         runner: [ubuntu-26.04, macos-26]
     runs-on: ${{ matrix.runner }}
     permissions:
@@ -478,6 +490,7 @@ jobs:
     - docs-and-pages
     - release-plan
     - build-macos
+    - benchmark
     - release-tag
     - release-wheel
     - release-testpypi
