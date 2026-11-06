@@ -196,9 +196,10 @@ bench: ## Run the C++ benchmark, without coverage
 	  awk '/^[0-9a-f]+ <.*ReflectedBlock.*>:/,/^$$/' > $(BENCH_OUT)/library.s
 
 # The same at -O3 for this machine's own instructions: what the hardware can do,
-# where `bench` is what a wheel ships.
+# where `bench` is what a wheel ships.  For information, so it holds nothing to the
+# limits (-i), and still leaves its disassembly.
 bench-native: ## Run the C++ benchmark at -O3 -march=native
-	$(MAKE) bench BENCH_DIR=$(BUILD_DIR)-bench-native BENCH_OUT=$(BUILD_DIR)/bench/native \
+	$(MAKE) -i bench BENCH_DIR=$(BUILD_DIR)-bench-native BENCH_OUT=$(BUILD_DIR)/bench/native \
 		BENCH_FLAGS='-O3;-march=native'
 
 wheel: ## Build and check the Python wheel (VERSION=)
