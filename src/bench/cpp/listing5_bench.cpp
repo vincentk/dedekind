@@ -188,6 +188,50 @@ struct MasksPali6 {
            pair(m[i + 2], m[i + 3]);
   }
 };
+/** @brief Letters as they come, of any four, known only at run time as Python's
+ *  are: a byte's rank by comparing it with each, a hole 0x80, and reflection on
+ *  n letters as ranks that sum to n - 1. */
+struct GuardedPali6 {
+  const std::uint8_t* s;
+  std::array<std::uint8_t, 4> letters;
+  constexpr std::uint8_t rank(std::uint8_t c) const {
+    const std::uint8_t one = c == letters[1];
+    const std::uint8_t two = c == letters[2];
+    const std::uint8_t three = c == letters[3];
+    const std::uint8_t zero = c == letters[0];
+    const std::uint8_t known = zero | one | two | three;
+    return static_cast<std::uint8_t>(one + 2u * two + 3u * three +
+                                     (known ? 0u : 0x80u));
+  }
+  constexpr bool pair(std::uint8_t x, std::uint8_t y) const {
+    return static_cast<std::uint8_t>(rank(x) + rank(y)) == 3u;
+  }
+  constexpr bool operator()(std::size_t i) const {
+    return pair(s[i], s[i + 5]) & pair(s[i + 1], s[i + 4]) &
+           pair(s[i + 2], s[i + 3]);
+  }
+};
+/** @brief The count of a block of windows, in a counter the width of a lane:
+ *  240 positions fit a byte. */
+template <typename Window>
+struct BlockCount {
+  Window window;
+  std::size_t last;
+  constexpr std::uint64_t operator()(std::uint64_t total,
+                                     std::size_t block) const {
+    const std::size_t lo = block * 240uz;
+    const std::size_t hi = std::min(lo + 240uz, last);
+    return total + count<std::uint8_t>(std::views::iota(lo, hi) |
+                                       std::views::transform(window));
+  }
+};
+template <typename Window>
+std::uint64_t over_the_blocks(Window window, std::size_t n) {
+  const std::size_t last = n - 5;
+  return std::ranges::fold_left(std::views::iota(0uz, (last + 239uz) / 240uz),
+                                std::uint64_t{0},
+                                BlockCount<Window>{window, last});
+}
 template <typename Window>
 std::uint64_t over_the_windows(Window window, std::size_t n) {
   return count<std::uint64_t>(std::views::iota(0uz, n - 5) |
@@ -220,11 +264,41 @@ extern "C" std::uint64_t law_masks(const std::uint8_t* s, std::size_t n) {
   return over_the_windows(MasksPali6{s}, n);
 }
 
+extern "C" std::uint64_t law_guarded(const std::uint8_t* s, std::size_t n,
+                                     const std::uint8_t* letters) {
+  return over_the_windows(
+      GuardedPali6{s, {letters[0], letters[1], letters[2], letters[3]}}, n);
+}
+extern "C" std::uint64_t law_blocks(const std::uint8_t* s, std::size_t n) {
+  return over_the_blocks(RanksPali6{s}, n);
+}
+extern "C" std::uint64_t law_guarded_blocks(const std::uint8_t* s,
+                                            std::size_t n,
+                                            const std::uint8_t* letters) {
+  return over_the_blocks(
+      GuardedPali6{s, {letters[0], letters[1], letters[2], letters[3]}}, n);
+}
+
 namespace {
 using Bytes = std::span<const std::uint8_t>;
 std::uint64_t ascii_row(Bytes b) { return law_ascii(b.data(), b.size()); }
 std::uint64_t ranks_row(Bytes b) { return law_ranks(b.data(), b.size()); }
 std::uint64_t masks_row(Bytes b) { return law_masks(b.data(), b.size()); }
+// A string the optimiser cannot read, as a run-time alphabet would be: A T's
+// complement and C G's, in rank order.
+volatile std::uint8_t acgt_at_run_time[4] = {'A', 'C', 'G', 'T'};
+std::array<std::uint8_t, 4> letters_at_run_time() {
+  return {acgt_at_run_time[0], acgt_at_run_time[1], acgt_at_run_time[2],
+          acgt_at_run_time[3]};
+}
+const std::array<std::uint8_t, 4> run_time_letters = letters_at_run_time();
+std::uint64_t guarded_row(Bytes b) {
+  return law_guarded(b.data(), b.size(), run_time_letters.data());
+}
+std::uint64_t blocks_row(Bytes b) { return law_blocks(b.data(), b.size()); }
+std::uint64_t guarded_blocks_row(Bytes b) {
+  return law_guarded_blocks(b.data(), b.size(), run_time_letters.data());
+}
 
 /** @brief Stops the optimiser removing a result it can see is unused. */
 void keep(std::uint64_t x) { asm volatile("" : : "r"(x) : "memory"); }
@@ -275,7 +349,8 @@ int table() {
   // The full count, as the laws' plans must agree with the table on all of it.
   const std::uint64_t all = table_64(text);
   if (ascii_row(ascii) != all || ranks_row(ranks) != all ||
-      masks_row(masks) != all) {
+      masks_row(masks) != all || guarded_row(ascii) != all ||
+      blocks_row(ranks) != all || guarded_blocks_row(ascii) != all) {
     std::println(stderr, "the law's plans disagree with the table");
     return 1;
   }
@@ -306,6 +381,12 @@ int table() {
       draw);
   row("the law, sets of bases in bytes (IUPAC's code)",
       ns_per_letter(masks_row, Bytes{masks}, N), draw);
+  row("the law, letters as they come, four compared at run time",
+      ns_per_letter(guarded_row, ascii, N), draw);
+  row("the law, ranks in bytes, a byte counter per block",
+      ns_per_letter(blocks_row, Bytes{ranks}, N), draw);
+  row("the law, four compared at run time, a byte counter per block",
+      ns_per_letter(guarded_blocks_row, ascii, N), draw);
   row("hash alone", draw, draw);
   row("a letter, hash and mask", ns_per_letter(letter_masked, N, N), draw);
   row("a letter, the library's random_text",
