@@ -2,7 +2,7 @@
 \section{Featherweight Jlt syntax}
 \label{app:fjlt:syntax}
 
-FJlt is a subset of \Cpp{23}, parametric in a \emph{signature} $\Sigma$ of carriers, its base types.
+FJlt, the kernel of Figure~\ref{fig:arrows}, is a subset of \Cpp{23}, parametric in a \emph{signature} $\Sigma$ of carriers, its base types.
 A type is a carrier if it keeps \RuleOne, its operations are total, and it has an image in the target: a constant type with those operations as constants, and an iterator if it is inductive.
 Only totality is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operation defined on every input, Lemma~\ref{lem:progress} needs it, and it keeps \cppinline{int}'s overflow and division out.
 $\Sigma$ is not a list; the listings use \cppinline{bool}, \cppinline{size_t}, \cppinline{std::string} with concatenation and the comparisons, allocation failure aside, and finite enumerations such as \cppinline{Ternary}.
