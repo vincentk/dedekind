@@ -1,0 +1,78 @@
+# TEMPORARY, removed before this PR is ready: why the library's scans lose under
+# -O3 -march=native.  One benchmark build per flag set, with its timings, assembly,
+# LLVM IR and the compiler's remarks.
+name: bench probe
+on:
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/bench-probe.yml]
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+jobs:
+  probe:
+    name: flags ${{ matrix.name }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - { name: O2,          flags: "" }
+        - { name: O3,          flags: "-O3" }
+        - { name: O2-native,   flags: "-march=native" }
+        - { name: O3-native,   flags: "-O3;-march=native" }
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        submodules: recursive
+    - uses: actions/setup-python@v7
+      with:
+        python-version: "3.15"
+    - name: LLVM
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 23
+        sudo apt-get install -y clang-23 ninja-build
+    - name: Build, time, and keep what the compiler did
+      env:
+        FLAGS: ${{ matrix.flags }}
+        NAME: ${{ matrix.name }}
+      run: |
+        O=probe/$NAME; mkdir -p "$O"
+        lscpu | grep -E 'Model name' | tee "$O/machine.txt"
+        cmake -S . -B b -G Ninja -DCMAKE_C_COMPILER=clang-23 -DCMAKE_CXX_COMPILER=clang++-23 \
+          -DCMAKE_CXX_SCAN_FOR_MODULES=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+          -DDEDEKIND_COVERAGE=OFF -DDEDEKIND_BENCH=ON "-DDEDEKIND_BENCH_FLAGS=$FLAGS" > "$O/configure.txt"
+        cmake --build b --target bench_listing5 --parallel "$(nproc)" > "$O/build.txt"
+        for i in 1 2 3; do b/bench_listing5 quick; done | tee "$O/timings.txt"
+        objdump -d -C --no-show-raw-insn b/bench_listing5 > "$O/all.s"
+        awk '/^[0-9a-f]+ <scan_table>:/,/^$/' "$O/all.s" > "$O/scan_table.s"
+        awk '/^[0-9a-f]+ <.*(ReflectedBlock|MatchStep|Unfold|unfold_view|fold_left).*>:/,/^$/' "$O/all.s" > "$O/library.s"
+        rm "$O/all.s"
+        grep -c . "$O/scan_table.s" "$O/library.s"
+        grep -E '^[0-9a-f]+ <' "$O/library.s" | cut -c1-160 | head -20
+        printf 'zmm %s ymm %s xmm %s call %s\n' $(grep -c zmm "$O/library.s") $(grep -c ymm "$O/library.s") $(grep -c xmm "$O/library.s") $(grep -c -w call "$O/library.s")
+        # The bench's own compile, again, for the IR and the remarks.
+        python3 -I - "$NAME" <<'PY'
+        import json,shlex,subprocess,sys
+        o=f"probe/{sys.argv[1]}"
+        cc=[c for c in json.load(open("b/compile_commands.json")) if c["file"].endswith("listing5_bench.cpp")][0]
+        a=shlex.split(cc["command"]); i=a.index("-o"); out=a[i+1]; a=a[:i]+a[i+2:]
+        a=[x for x in a if not x.startswith("-MD") and x not in ("-MT","-MF") ]
+        def run(extra,to):
+            r=subprocess.run(a+extra,cwd=cc["directory"],capture_output=True,text=True)
+            open(to,"w").write(r.stdout+r.stderr); print(to,r.returncode)
+        run(["-S","-emit-llvm","-o",f"{cc['directory']}/../{o}/bench.ll".replace("b/../","")],f"{o}/ir-log.txt")
+        run(["-c","-o","/dev/null","-Rpass-missed=inline","-Rpass-missed=loop-vectorize","-Rpass-analysis=loop-vectorize"],f"{o}/remarks.txt")
+        PY
+        ls -la "$O" | cut -c30-
+        grep -c 'remark' "$O/remarks.txt" || true
+        grep -E 'automaton.cppm|periodic.cppm|comprehension.cppm' "$O/remarks.txt" | grep -E 'not inlined|too costly|cost=' | cut -c1-200 | sort | uniq -c | sort -rn | head -15 || true
+    - uses: actions/upload-artifact@v7
+      if: ${{ !cancelled() }}
+      with:
+        name: probe-${{ matrix.name }}
+        path: probe/

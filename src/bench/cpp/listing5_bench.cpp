@@ -622,7 +622,23 @@ int memory(std::string_view letters) {
 }
 }  // namespace
 
+/** @brief The rows a look at the compiler needs, and no others: the library's
+ *  table, its yardstick and the law, each as a ratio within this run. */
+int quick() {
+  constexpr std::size_t N = 100'000'000;
+  const auto stored = random_text(bases, N) | std::ranges::to<std::vector>();
+  const Text text{stored};
+  keep(table_64(text));
+  const double table_time = ns_per_letter(table_64, text, N);
+  const double yardstick = ns_per_letter(holes_64, text, N);
+  const double law = ns_per_letter(by_the_law, text, N);
+  std::println("table {:.3f} hand {:.3f} law {:.3f} table/hand {:.2f}",
+               table_time, yardstick, law, table_time / yardstick);
+  return 0;
+}
+
 int main(int argc, char** argv) {
+  if (argc == 2 && std::string_view{argv[1]} == "quick") return quick();
   if (argc == 3 && std::string_view{argv[1]} == "memory")
     return memory(argv[2]);
   return table();
