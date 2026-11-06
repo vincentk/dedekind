@@ -911,6 +911,12 @@ void namedConcepts(const clang::Expr* e,
     namedConcepts(u->getSubExpr(), out);
 }
 
+/// The requires clause written after a template's head, `template <...>
+/// requires C<T>`, which is not the trailing clause after its declarator.
+const clang::Expr* contextOf(const clang::FunctionTemplateDecl* ft) {
+  return ft->getTemplateParameters()->getRequiresClause();
+}
+
 /// The check: for every trait of the scope, a deleted primary function
 /// template, each other function template of the same name with a requires
 /// clause and an unstructured head names in that clause only concepts
@@ -927,6 +933,7 @@ class ContextOrder : public clang::ASTConsumer,
       const auto primary = primaries.find(f->getNameAsString());
       if (primary == primaries.end()) continue;
       std::vector<const clang::ConceptSpecializationExpr*> named;
+      namedConcepts(contextOf(ft), named);
       namedConcepts(f->getTrailingRequiresClause().ConstraintExpr, named);
       for (const auto* cs : named) {
         const clang::ConceptDecl* c = cs->getNamedConcept();
@@ -949,7 +956,8 @@ class ContextOrder : public clang::ASTConsumer,
     if (f->isDeleted()) {
       primaries.emplace(f->getNameAsString(),
                         sm->getExpansionLoc(ft->getLocation()));
-    } else if (f->getTrailingRequiresClause().ConstraintExpr &&
+    } else if ((contextOf(ft) ||
+                f->getTrailingRequiresClause().ConstraintExpr) &&
                unstructuredHead(f)) {
       instances.push_back(ft);
     }
