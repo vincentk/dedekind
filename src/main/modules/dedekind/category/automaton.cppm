@@ -903,9 +903,10 @@ constexpr std::array<std::byte, 4> four_of(
  * asking each window: the law says a window is independent pairs, so no
  * position depends on another.  The overload is narrow, and in practice it is
  * DNA's and RNA's: exactly four letters, a reflection, a word of even length up
- * to 16.  The alphabet and the length are values, here as in a binding.  Any
- * other section takes the plain fold, whose answer this one must equal.  @param
- * q the query.  @return how many of its windows hold. */
+ * to 16.  It names a law of biochemistry and no
+ *  instruction of any machine.  The alphabet and the length are values, here as
+ * in a binding.  Any other section takes the plain fold, whose answer this one
+ * must equal.  @param q the query.  @return how many of its windows hold. */
 export template <IsCountWord W = std::size_t, IsByteText R, IsCountWord N>
 constexpr W count(const ReflectedWindows<R, N>& q) {
   const auto length = static_cast<std::size_t>(q.section.power.length);
