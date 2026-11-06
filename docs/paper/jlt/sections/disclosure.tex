@@ -1,0 +1,21 @@
+% !TEX root = ../jlt.tex
+\section*{Use of Agentic Systems and AI-Assistance Disclosure}
+
+This paper, its appendix and the code it reports on relied substantively on AI assistance, disclosed here as the journal's policy asks: assistance, not authorship.
+The author is a single human person, named in the byline, who bears full responsibility for content, scope, correctness and editorial judgement; every mistake that remains is the author's.
+
+\emph{Tools, and how each was gated.}
+Anthropic's Claude, the Opus and Fable models through the Claude Code CLI, did most of the work, including cold reads of the draft in sessions without the writing session's context.
+It worked largely autonomously, in issues, pull requests, slices and commits, in an environment made deliberately constrained and antagonistic: strong type checking, substantial test coverage, formatters, Doxygen and the linter of Section~\ref{sec:limits}; every pull request was gated by continuous integration and by review, usually one by the author and several by Copilot, and merged by hand.
+GitHub Copilot's reviewer was used for pull-request review only, in the deepest mode available, with the draft paper as context; its findings on the metatheory of Appendix~\ref{app:fjlt} led to the declaration order, the restriction to total primitives, the small-step evaluation and the present order of the proofs.
+Google's Gemini answered quick questions of the research kind, proofread, and read the appendix's proof sketches; its reviews needed heavy discounting, gave a few serendipitous finds, and were fed back to Claude with the author's opinion of them.
+The bibliography was used to attune the context and as a source of authority, and builds were offloaded to continuous integration to keep them reproducible, visible and on the record.
+
+\emph{Modes.}
+The assistants were used in agreement, to help structure a hypothesis, and in opposition, asked to refute or weaken one; the cold reads, the review threads and the second opinions were of the second kind, and the author decided what survived them.
+
+\emph{Tasks and places.}
+Draft generation of prose, listings, tables and figures; the appendix's statements and proofs, drafted from the design decisions recorded in discussion and revised by the author; the test that holds the listings; verification of every citation against its source; and responses in review threads.
+Every section and the appendix: no part was written without assistance, and none accepted without the author's reading.
+The repository~\cite{Krautler_dedekind_2026} and its pull requests hold the record: commit messages, review threads and, while GitHub keeps them, build logs.
+

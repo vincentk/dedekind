@@ -16,7 +16,7 @@ import pynzli.jlt
 ROOT = Path(__file__).resolve().parents[3]
 README = ROOT / "README.md"
 CPP = ROOT / "src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp"
-PAPER = ROOT / "docs/paper/jlt/jlt.tex"
+PAPER = ROOT / "docs/paper/jlt/sections/6-partial-evaluation.tex"
 PANELS = ["all-genomes", "one-genome"]
 
 # The host language's own words, not the library's.

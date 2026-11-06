@@ -1,0 +1,96 @@
+% !TEX root = ../jlt.tex
+\section{Introduction}
+\label{sec:intro}
+
+The case for functional programming has been made the same way for decades, and it is a good case; even a compiler's own intermediate form, static single assignment, is a functional language~\cite{appel1998ssa}.
+A function that depends on its arguments alone can be replaced by its value: programs can be read as equations, rewritten by them, and reasoned about by them~\cite{backus1978can}.
+A function that is polymorphic in a type cannot inspect that type, so its type alone says a great deal about what it does~\cite{wadler1989theorems}.
+A class of types with operations and laws lets generic code be written once against the operations and reasoned about by the laws~\cite{wadler1989adhoc}.
+The two are one mechanism with two sources of equations: a free theorem is proved from the type alone, for every term, and a law is declared of an instance.
+Either becomes a rewrite by Leibniz's law, which Rule~1 conserves (Section~\ref{sec:posture}).
+For the declared laws Birkhoff's theorem makes the reasoning complete: an equation follows from the laws by equational reasoning exactly when it holds in every model of them~\cite{birkhoff1935structure,burris1981universalalgebra}.
+A class with laws is an equational theory and its instances the models, a variety, and a stronger class has fewer instances, so the constraints describe the structure and the structure licenses the optimisation.
+The goal is correctness by construction in Dijkstra's sense~\cite{dijkstra1976discipline}.
+
+The case is usually made in a language built around it.
+This paper makes it in a mainstream systems language instead, \Cpp{23}.
+Much of machine learning and most embedded devices run on \Cpp{}, and a growing number of the people who write it arrive from Python with a functional vocabulary.
+For them the repository binds the library's combinators into Python as handles to the compiled core, so the laws declared in \Cpp{} hold in an interactive session: the specialisations they license run there at run time, and only what the compiler evaluates of them is fixed when the bindings are built (Section~\ref{sec:binding}).
+The most widely written functional language may well be SQL's \texttt{SELECT}, a declarative query over relations~\cite{iso9075sql}, whose algebra is Codd's~\cite{codd1970relational}, with Tarski's calculus of relations~\cite{tarski1941calculus} its older relative.
+A functional fragment of \Cpp{23} is worth drawing because the whole is too large to work in with confidence, and worth drawing now because \Cpp{23} is the first standard with every ingredient: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
+Performance is why one comes to such a language in the first place, by its zero-overhead principle~\cite{stroustrup2005abstraction},\footnote{Stroustrup has since called the phrase an understatement: ``It's compiled away. This is why I talk about zero overhead abstraction, and people are beginning to take me to task for that because that's understating and underestimating the ability of the \Cpp{} compiler. We can do negative overhead abstraction''~\cite{stroustrup2026peterman}.
+Listing~\ref{lst:sites} is a case: a count over all sequences compiles away to a constant, a matcher's construction to its table.} and the posture does not affect it: an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point.
+What the posture addresses is the other cost, the language's size.
+Alignment with the posture is easier to check than a decade ago: for example, a language model of code~\cite{chen2021evaluating} reads every change against its rules.
+And while this is not a hard proof but only a read, it is often a thorough read (Section~\ref{sec:limits}).
+
+\Cpp{} is not a theorem prover, but its compiler performs checks of the same kind: a compile-time check is a claim the compiler verifies, and the worth of such a checker when the author is not the one trusted had a recent highlight, machine-generated proofs~\cite{hubert2025olympiad} in Lean~\cite{demoura2021lean} whose correctness rests on the checker, not the author, although even such a checker can have loopholes~\cite{demoura2026postmortem}.
+The search that found those proofs is a black box, and a language model's account of its own reasoning need not be the reasoning it did: its chain of thought can leave out what drove the answer, and circuit tracing finds computations its explanation misdescribes~\cite{turpin2023unfaithful,lindsey2025biology}.
+What makes the output usable is that it is no black box but an artefact a small checker verifies, an interpretable model in place of an explained one, and a registry of Lean-verified mathematics is arranged that way: a short statement a human reads, checked against a proof of any length, which a machine may find correct and still unreadable~\cite{rudin2019stop,tao2026palomar}.
+A program is such an artefact too: a machine runs an executable with no interpretation, so every claim about it is a claim about something formal, regardless of whether that actually is what its author intended.
+For generic code, \Cpp{} lacks just such a check.
+\cppinline{concept}s as proposed for \Cpp{0x} checked a template's definition against its constraints~\cite{gregor2006concepts,dosreis2006specifying}, but as standardised in \Cpp{20} they check only its uses~\cite{stroustrup2020thriving}, so a template's body may use operations its constraints do not name.
+The designers named the problem at the outset, in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
+\Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary, and this paper documents a discipline that does, recovering some of what a functional language guarantees at the cost of three rules.
+The cost is paid once, in how a program is written, and what it buys is paid back at every use: a law holds in every model of it, a specialisation it licenses pays on every call, and a checked statement serves every reader.
+
+The fragment is the \emph{Juliet Posture}, or Jlt, and it has two boundaries, both drawn here.
+The outer boundary is drawn by the three rules: Jlt is a proper subset of \Cpp{23} defined by these three rules.
+We call it a posture because it asks only for a style of programming: every ingredient is in the ISO standard~\cite{cpp23standard}, implemented by toolchains in wide use, and what Jlt adds is the programmer's discipline.
+The compiler holds some of the rules and the programmer the rest, and a linter helps but is not required (Table~\ref{tab:posture}).
+The inner boundary is drawn by the translation: the \emph{kernel}, Featherweight Jlt (FJlt), is the part of Jlt on which a translation to System~F ($\llbracket\cdot\rrbracket$) is defined, and it inherits from System~F termination, parametricity and a value.
+Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, which this paper names and characterises without proof (Appendix~\ref{app:fjlt:closure}), the arrangement being the Haskell Report's, a kernel and the translations into it~\cite{marlow2010haskell}.
+
+Jlt is thus an embedded domain-specific language in Hudak's sense~\cite{hudak1996building}, whose domain is System~F and whose host is \Cpp{23}.
+Its programs are ordinary \Cpp{23} programs, type-checked and compiled by an unmodified toolchain, Clang~23 in this case (Section~\ref{sec:limits}).
+Being a strict subset of \Cpp{23}, it is not a language this paper designs and develops as an architect might develop a house.
+Instead it characterises a fragment of a pre-existing ecosystem, as a traveller might discover a city.
+The claim here is one of existence: \Cpp{23} contains an embedding of a sizeable fragment of System~F, and the listings exhibit it.
+No claim is made that Jlt is unique or canonical, although it seems likely that another fragment drawn to the same ends would look much like it.
+As in the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}, the embedded terms are generic code over an interface, here a \cppinline{concept}, and their interpretations are its models.
+The posture's name is a nod to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: in \Cpp{23} a \cppinline{concept} is a predicate on a type's structure, not its lineage, and so a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}.
+Figure~\ref{fig:arrows} sketches the arrows between these pieces.
+
+\begin{figure}[tb]
+\centering
+\begin{tikzcd}[column sep=2.4em, row sep=2.2em]
+  & \text{Jlt} \arrow[dr, hook, "{-}\,\text{rules}"] \arrow[dl, dashed, bend right=25, "{-}\,\text{sugar}"'] \\[-0.8em]
+\text{FJlt} \arrow[ur, hook, bend right=25, "{+}\,\text{sugar}"'] \arrow[d, bend right=25, "\llbracket\cdot\rrbracket"']
+  &
+  & \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
+\text{System~F} \arrow[u, hook, bend right=25, "\text{embed}"'] \arrow[d, "\text{eval}"']
+  &
+  & \text{LLVM IR} \arrow[d, "\text{run}"] \\
+\text{value} \arrow[rr, equal]
+  &
+  & \text{value}
+\end{tikzcd}
+\caption{The arrows of the paper.
+The inclusions of FJlt in Jlt and of Jlt in \Cpp{23} are proper, and each is labelled with what it adds: Jlt is the kernel and the sugar, \Cpp{23} is Jlt without the rules.
+The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}), and $\mathit{embed}$, defined on its image, a non-empty part of System~F, is a section of it~\cite{nlab:retract}.
+Its composite with the two inclusions is a partial map from System~F, the embedding that makes Jlt an embedded language: for every closed $t$ of base type in the image, $\mathit{eval}\,t = \mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$, by Theorem~\ref{thm:simulation} inside the calculus and the argument of Section~\ref{sec:binding} for the program the compiler emits.
+\texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits (Sections~\ref{sec:binding} and~\ref{sec:limits}).
+Solid arrows are established: for a kernel program the two readings agree on the value, by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}) and by an argument for the program the compiler emits (Section~\ref{sec:binding}, Appendix~\ref{app:fjlt:ssa}).
+The dashed arrow is the working hypothesis of Section~\ref{sec:translation:adequacy}: $\mathit{desugar}$ is total on Jlt and a retraction of the inclusion, $\mathit{desugar} \circ \mathit{incl} = \mathit{id}$ exactly, by construction, and $\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ up to the value a program computes, so that the bottom edge holds for every Jlt program $p$, $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.}
+\label{fig:arrows}
+\end{figure}
+
+\paragraph{Contributions.}
+The contribution is a map from a known discipline onto existing mainstream functionality, not a piece of software.
+\begin{enumerate}
+\item The posture: three rules on standard \Cpp{23}, each with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:posture}).
+\item Featherweight Jlt, the kernel: a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F. Three theorems about the translation and three corollaries, with proof sketches (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt}).
+\item An adequacy argument from \Cpp{} to the calculus, which states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}), and the sugar, named with its desugaring (Appendix~\ref{app:fjlt:closure}).
+\item An observation about \Cpp{20} concepts: with overlapping constrained overloads, a generic function's behaviour can depend on a constraint it never declared, which is GHC's incoherent instance resolution, by default and silently.
+Jlt adopts GHC's rule, and the repository's tool reports a call at a value of parameter type that breaks it (Appendix~\ref{app:fjlt:typing}, Section~\ref{sec:limits}).
+\item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mandatory review against them and by a mechanical linter in the same repository: that is what compliance means here.
+\end{enumerate}
+Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989adhoc}; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and complete definition checking: Section~\ref{sec:limits} says what the repository's linter reads and what it misses.
+
+\paragraph{How to read this paper.}
+The paper is written for authors of generic \Cpp{} libraries first, with System~F as the warranty and a rule for their overloads; for those who audit \Cpp{} against a policy and need to know what a tool checks; for readers of programming languages in the line of concepts and type classes; and for researchers who arrive from Python and want the performance of \Cpp{} with a guard rail.
+The sections follow the arrows of Figure~\ref{fig:arrows}, one each.
+Section~\ref{sec:posture} is the right hook, the rules that carve Jlt out of \Cpp{23}; Section~\ref{sec:translation:adequacy} is the left hook, the sugar: which Jlt programs are kernel programs; Section~\ref{sec:translation} is $\llbracket\cdot\rrbracket$, the translation of Featherweight Jlt into System~F; Section~\ref{sec:guarantees} is \emph{eval}, the theorems read back from System~F; Section~\ref{sec:binding} is \texttt{clang++} and \emph{run}, one program at both binding times, and how instantiation relates to the translation.
+The listings follow one example through the paper, and Figure~\ref{fig:structures} shows where its structures live: \cppinline{concat}, a monoid at the lengths that need no recursion, then the fold over the chain of a count under an arrow, then Fibonacci's matrix chain, which two declared laws fold in logarithmically many steps, then restriction sites, where the compiler partially evaluates a matcher in its pattern.
+Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
+
