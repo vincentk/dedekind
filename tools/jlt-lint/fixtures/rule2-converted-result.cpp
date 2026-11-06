@@ -40,6 +40,40 @@ constexpr T called(const T& a) {
   return f(a) + a;  // converted-result 6: f's result at its own type
 }
 
+template <typename T>
+concept Membered = requires(const T a) {
+  { a.value } -> std::convertible_to<T>;
+  { a.next() } -> std::convertible_to<T>;
+};
+template <Membered T>
+constexpr T field(const T& a) {
+  const auto x = a.value;  // converted-result 7: a data member's result
+  return x;
+}
+template <Membered T>
+constexpr T stepped(const T& a) {
+  const auto x = a.next();  // converted-result 8: a member call's result
+  return x;
+}
+template <typename T>
+concept Shaped = requires(const T a, const T b) {
+  { a + b } -> std::convertible_to<T>;
+  { a + b } -> std::semiregular;
+};
+template <Shaped T>
+constexpr T shaped(const T& a, const T& b) {
+  return a + b + a;  // converted-result 9: a shape is not the exact type
+}
+template <typename T, typename R>
+concept EqAs = requires(const T a, const T b) {
+  { a == b } -> std::convertible_to<R>;
+};
+template <typename T>
+  requires EqAs<T, bool>
+constexpr bool as_bool(const T& a, const T& b) {  // fine: R is bool here
+  return !(a == b);
+}
+
 template <Loose T>
 constexpr T at_type(const T& a, const T& b) {  // fine: returned at T
   return a + b;

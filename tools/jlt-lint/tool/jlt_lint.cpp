@@ -911,6 +911,10 @@ std::string outerOperation(const clang::Expr* e) {
       return m->getMemberNameInfo().getAsString();
     return "()";
   }
+  if (const auto* m = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(e))
+    return m->getMember().getAsString();
+  if (const auto* m = llvm::dyn_cast<clang::MemberExpr>(e))
+    return m->getMemberNameInfo().getAsString();
   return "";
 }
 
@@ -919,21 +923,41 @@ std::string outerOperation(const clang::Expr* e) {
 struct ResultTypes {
   std::map<std::string, bool> converted;  // name -> converted to bool
   std::set<std::string> exact;
-  std::set<const clang::ConceptDecl*> seen;
 };
 
-void gatherResults(const clang::Expr* e, ResultTypes& r) {
+/// A type as the enclosing concept's applied arguments make it: a concept's
+/// parameter is read as what the concept was applied to, defaults included.
+clang::QualType applied(clang::QualType t,
+                        llvm::ArrayRef<clang::TemplateArgument> args) {
+  const auto* p = t.getCanonicalType()->getAs<clang::TemplateTypeParmType>();
+  if (p && p->getIndex() < args.size() &&
+      args[p->getIndex()].getKind() == clang::TemplateArgument::Type)
+    return args[p->getIndex()].getAsType();
+  return t;
+}
+
+/// `args` are the applied arguments of the concept whose body `e` is; empty
+/// at a function template's own constraints.  Concepts cannot recurse, so no
+/// visited set is needed, and each application is read with its own arguments.
+void gatherResults(const clang::Expr* e, ResultTypes& r,
+                   llvm::ArrayRef<clang::TemplateArgument> args = {}) {
   if (!e) return;
   e = e->IgnoreParenImpCasts();
   if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e)) {
     const clang::ConceptDecl* c = cs->getNamedConcept();
-    if (c && !inStd(c) && r.seen.insert(c).second)
-      gatherResults(c->getConstraintExpr(), r);
+    if (!c || inStd(c)) return;
+    llvm::SmallVector<clang::TemplateArgument, 4> inner;
+    for (const clang::TemplateArgument& a : cs->getTemplateArguments())
+      inner.push_back(
+          a.getKind() == clang::TemplateArgument::Type
+              ? clang::TemplateArgument(applied(a.getAsType(), args))
+              : a);
+    gatherResults(c->getConstraintExpr(), r, inner);
     return;
   }
   if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {
-    gatherResults(b->getLHS(), r);
-    gatherResults(b->getRHS(), r);
+    gatherResults(b->getLHS(), r, args);
+    gatherResults(b->getRHS(), r, args);
     return;
   }
   const auto* q = llvm::dyn_cast<clang::RequiresExpr>(e);
@@ -941,7 +965,8 @@ void gatherResults(const clang::Expr* e, ResultTypes& r) {
   for (const clang::concepts::Requirement* req : q->getRequirements()) {
     if (const auto* n =
             llvm::dyn_cast<clang::concepts::NestedRequirement>(req)) {
-      if (!n->hasInvalidConstraint()) gatherResults(n->getConstraintExpr(), r);
+      if (!n->hasInvalidConstraint())
+        gatherResults(n->getConstraintExpr(), r, args);
       continue;
     }
     const auto* er = llvm::dyn_cast<clang::concepts::ExprRequirement>(req);
@@ -951,15 +976,15 @@ void gatherResults(const clang::Expr* e, ResultTypes& r) {
     const auto& ret = er->getReturnTypeRequirement();
     const clang::TypeConstraint* tc =
         ret.isTypeConstraint() ? ret.getTypeConstraint() : nullptr;
-    if (!tc || tc->getNamedConcept()->getName() != "convertible_to") {
-      if (tc) r.exact.insert(name);  // same_as, or a shape of the result
-      continue;
-    }
+    if (!tc) continue;
+    const llvm::StringRef concept_name = tc->getNamedConcept()->getName();
+    if (concept_name == "same_as") r.exact.insert(name);
+    if (concept_name != "convertible_to") continue;  // a shape of the result
     bool toBool = false;
     if (const auto* w = tc->getTemplateArgsAsWritten())
       for (const clang::TemplateArgumentLoc& a : w->arguments())
         if (a.getArgument().getKind() == clang::TemplateArgument::Type)
-          toBool = a.getArgument().getAsType()->isBooleanType();
+          toBool = applied(a.getArgument().getAsType(), args)->isBooleanType();
     r.converted.emplace(name, toBool);
   }
 }
@@ -989,6 +1014,7 @@ class ConvertedResult : public clang::ASTConsumer,
     gatherResults(ft->getTemplateParameters()->getRequiresClause(), results);
     gatherResults(f->getTrailingRequiresClause().ConstraintExpr, results);
     if (!results.converted.empty()) TraverseStmt(f->getBody());
+    results = ResultTypes{};  // only this body is judged by these constraints
     return true;
   }
   bool VisitBinaryOperator(clang::BinaryOperator* e) {
@@ -1034,6 +1060,11 @@ class ConvertedResult : public clang::ASTConsumer,
     for (const clang::Stmt* child : operand->children())
       if (const auto* x = llvm::dyn_cast_or_null<clang::Expr>(child))
         onParameter |= isParameterTyped(x->IgnoreParenImpCasts());
+    if (const auto* c = llvm::dyn_cast<clang::CallExpr>(operand))
+      if (const auto* m = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(
+              c->getCallee()->IgnoreParenImpCasts()))
+        if (!m->isImplicitAccess())
+          onParameter |= isParameterTyped(m->getBase()->IgnoreParenImpCasts());
     if (!onParameter) return;
     const clang::SourceLocation loc =
         sm->getExpansionLoc(operand->getBeginLoc());
