@@ -22,11 +22,11 @@ endif()
 project(Dedekind VERSION ${DEDEKIND_VERSION} LANGUAGES CXX)
 
 # --- The compiler ---
-# LLVM's own clang, which is what CI builds and tests with.  Said here, as pip
-# shows this to whoever builds the sdist.
-if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_VERSION VERSION_LESS 23)
+# LLVM's own clang: CI builds and tests with 23, and 22 has built the wheel.
+# Said here, as pip shows this to whoever builds the sdist.
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_VERSION VERSION_LESS 22)
     message(FATAL_ERROR
-        "Dedekind builds with LLVM clang 23 or later, not "
+        "Dedekind builds with LLVM clang 22 or later, not "
         "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}.  "
         "Set CC and CXX to LLVM's clang and clang++.")
 endif()
