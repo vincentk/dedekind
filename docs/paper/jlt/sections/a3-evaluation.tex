@@ -40,6 +40,8 @@ The context grammar picks one redex per non-value term, so the relation is deter
 \normalsize
 \caption{Evaluation.
 \textsc{S-Call} covers specialisations and generic functions alike, since resolution has already chosen the body; for a generic function the explicit type arguments are substituted first.
+\textsc{S-Range} is total: on the empty range the head is $\mathit{default}_\tau$ and the tail the range itself, values \textsc{S-Fold} never reaches, since it runs $|r|$ times.
+The default value of a type is given by its structure, not by \cppinline{T{}}: a carrier's own default, a pair of defaults, the empty optional, the first injection of a default, a fieldless function object, and for a box a box of its content's default, so that no term of the kernel holds a null box.
 \textsc{S-Fold} consumes the head of the range, so a fold takes as many steps as the range has elements.
 \textsc{S-Cata} unfolds one node, passing the node itself beside its legs' folds; a leaf has no legs and the algebra is applied to it alone.
 \textsc{S-Prim} and \textsc{S-Std} are total because the admitted operations are, which is what Lemma~\ref{lem:progress} needs.
