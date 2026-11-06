@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <charconv>
 #include <chrono>
 #include <cstddef>
@@ -232,6 +233,44 @@ std::uint64_t over_the_blocks(Window window, std::size_t n) {
                                 std::uint64_t{0},
                                 BlockCount<Window>{window, last});
 }
+// Two bits a base: the rank.  The encoding is a homomorphism, carrying the
+// alphabet's reflection to the machine's ~, which is why the word below can
+// compare complements at all.
+constexpr std::size_t two_bits(char letter) {
+  return *rank(bases)(static_cast<std::byte>(letter));
+}
+static_assert((~two_bits('A') & 3uz) == two_bits('T') &&
+              (~two_bits('T') & 3uz) == two_bits('A') &&
+              (~two_bits('C') & 3uz) == two_bits('G') &&
+              (~two_bits('G') & 3uz) == two_bits('C'));
+
+/** @brief A word's bases at distance @c d: bit @c 2j set where base @c j and
+ * base
+ *  @c j+d are complements, which xor to 11 under ~. */
+constexpr std::uint64_t complements_at(std::uint64_t x, unsigned d) {
+  const std::uint64_t y = x ^ (x >> (2u * d));
+  return y & (y >> 1) & 0x5555555555555555u;
+}
+/** @brief One step of the fold: a word's 27 windows at once, each a site where
+ * its three pairs are complements. */
+struct WordCount {
+  const std::uint64_t* words;
+  std::size_t last;
+  constexpr std::uint64_t operator()(std::uint64_t total,
+                                     std::size_t step) const {
+    const std::size_t start = step * 27uz;
+    const std::size_t k = start / 32uz;
+    const unsigned at = 2u * static_cast<unsigned>(start % 32uz);
+    const std::uint64_t x =
+        (words[k] >> at) | ((words[k + 1] << 1) << (63u - at));
+    const std::size_t windows = std::min(27uz, last - start);
+    const std::uint64_t sites = complements_at(x, 5) &
+                                (complements_at(x, 3) >> 2) &
+                                (complements_at(x, 1) >> 4);
+    return total + static_cast<std::uint64_t>(std::popcount(
+                       sites & ((std::uint64_t{1} << (2uz * windows)) - 1u)));
+  }
+};
 template <typename Window>
 std::uint64_t over_the_windows(Window window, std::size_t n) {
   return count<std::uint64_t>(std::views::iota(0uz, n - 5) |
@@ -279,6 +318,12 @@ extern "C" std::uint64_t law_guarded_blocks(const std::uint8_t* s,
       GuardedPali6{s, {letters[0], letters[1], letters[2], letters[3]}}, n);
 }
 
+extern "C" std::uint64_t law_words(const std::uint64_t* words, std::size_t n) {
+  const std::size_t last = n - 5;
+  return std::ranges::fold_left(std::views::iota(0uz, (last + 26uz) / 27uz),
+                                std::uint64_t{0}, WordCount{words, last});
+}
+
 namespace {
 using Bytes = std::span<const std::uint8_t>;
 std::uint64_t ascii_row(Bytes b) { return law_ascii(b.data(), b.size()); }
@@ -294,6 +339,19 @@ std::array<std::uint8_t, 4> letters_at_run_time() {
 const std::array<std::uint8_t, 4> run_time_letters = letters_at_run_time();
 std::uint64_t guarded_row(Bytes b) {
   return law_guarded(b.data(), b.size(), run_time_letters.data());
+}
+struct Packed {
+  std::vector<std::uint64_t> words;
+  std::size_t letters;
+};
+Packed packed_from(Bytes ranks) {
+  Packed p{std::vector<std::uint64_t>(ranks.size() / 32uz + 2uz), ranks.size()};
+  for (std::size_t i = 0; i < ranks.size(); ++i)
+    p.words[i / 32uz] |= std::uint64_t{ranks[i]} << (2uz * (i % 32uz));
+  return p;
+}
+std::uint64_t words_row(const Packed* p) {
+  return law_words(p->words.data(), p->letters);
 }
 std::uint64_t blocks_row(Bytes b) { return law_blocks(b.data(), b.size()); }
 std::uint64_t guarded_blocks_row(Bytes b) {
@@ -346,11 +404,13 @@ int table() {
   const auto masks =
       text | std::views::transform(MaskByte{}) | std::ranges::to<std::vector>();
   const Bytes ascii{reinterpret_cast<const std::uint8_t*>(stored.data()), N};
+  const Packed packed = packed_from(Bytes{ranks});
   // The full count, as the laws' plans must agree with the table on all of it.
   const std::uint64_t all = table_64(text);
   if (ascii_row(ascii) != all || ranks_row(ranks) != all ||
       masks_row(masks) != all || guarded_row(ascii) != all ||
-      blocks_row(ranks) != all || guarded_blocks_row(ascii) != all) {
+      blocks_row(ranks) != all || guarded_blocks_row(ascii) != all ||
+      words_row(&packed) != all) {
     std::println(stderr, "the law's plans disagree with the table");
     return 1;
   }
@@ -387,6 +447,8 @@ int table() {
       ns_per_letter(blocks_row, Bytes{ranks}, N), draw);
   row("the law, four compared at run time, a byte counter per block",
       ns_per_letter(guarded_blocks_row, ascii, N), draw);
+  row("the law, two bits a base, 27 windows a word",
+      ns_per_letter(words_row, &packed, N), draw);
   row("hash alone", draw, draw);
   row("a letter, hash and mask", ns_per_letter(letter_masked, N, N), draw);
   row("a letter, the library's random_text",
