@@ -908,7 +908,8 @@ constexpr std::array<std::byte, 4> four_of(
 export template <IsCountWord W = std::size_t, IsByteText R, IsCountWord N>
 constexpr W count(const ReflectedWindows<R, N>& q) {
   const auto length = static_cast<std::size_t>(q.section.power.length);
-  const AtMost<std::byte, 257> alphabet = letters_of(q.section.power);
+  const AtMost<std::byte, 257> alphabet =
+      detail_automaton::letters_of(q.section.power);
   const std::size_t text = std::ranges::size(q.text);
   if (alphabet.size() != 4uz || length == 0uz || length % 2uz != 0uz ||
       length > detail_automaton::longest_word) {
