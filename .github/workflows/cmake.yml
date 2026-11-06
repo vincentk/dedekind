@@ -418,4 +418,31 @@ jobs:
         TAG: v${{ needs.release-wheel.outputs.version }}
       run: gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" --generate-notes
 
-  # 8. PyPI, the same wheel (the next PR: environment pypi, main only).
+  # The same wheel, the release's, to PyPI, once the GitHub release stands.  The
+  # environment pypi admits main only.  A failed upload consumes no version:
+  # re-run this job from the run's page; skip-existing makes that safe, and the
+  # release's artifact is still there.
+  release-pypi:
+    needs: [release-wheel, release-github]
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pynzli
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ARTIFACT: release-dist
+      VERSION: ${{ needs.release-wheel.outputs.version }}
+      INDEX_HOST: pypi.org
+    steps: *upload  # 8. Publish to PyPI
+
+  release-pypi-install:
+    needs: [release-wheel, release-pypi]
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ needs.release-wheel.outputs.version }}
+      INDEX_HOST: pypi.org
+    steps: *install  # 9. The wheel from PyPI
