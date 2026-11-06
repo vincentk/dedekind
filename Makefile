@@ -170,6 +170,13 @@ wheel:
 wheel-verify:
 	bash .github/scripts/wheel-verify.sh $(VERSION) $(INDEX)
 
+# The Python API reference, from the installed wheel's docstrings, for Pages
+# beside the Doxygen: pdoc imports pynzli, so the wheel must be installed.
+python-api:
+	python -m pip install --quiet pdoc
+	python -m pdoc pynzli --output-directory $(BUILD_DIR)/python-api \
+		--footer-text "pynzli, the Python handles over dedekind"
+
 python-coverage:
 	bash .github/copilot/housekeeping/python-coverage.sh
 

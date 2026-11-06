@@ -441,8 +441,13 @@ if (DOXYGEN_FOUND)
     set(DOXYGEN_CITE_BIB_FILES ${CMAKE_CURRENT_SOURCE_DIR}/docs/paper/references.bib)
     
     # Use the FindDoxygen built-in macro to configure a Doxyfile automatically
+    # The front page: what the site is, and the way to the README, the paper
+    # and the Python reference.
+    set(DOXYGEN_MAINPAGE ${CMAKE_CURRENT_SOURCE_DIR}/docs/doxygen/mainpage.md)
+    set(DOXYGEN_USE_MDFILE_AS_MAINPAGE ${DOXYGEN_MAINPAGE})
     doxygen_add_docs(docs
         ${DOXYGEN_INPUT_DIR}
+        ${DOXYGEN_MAINPAGE}
         COMMENT "Generating API documentation with Doxygen"
     )
     

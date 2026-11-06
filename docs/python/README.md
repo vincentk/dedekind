@@ -1,5 +1,7 @@
 # Python User Guide
 
+The [API reference](https://vincentk.github.io/dedekind/python/) is generated from the docstrings below; the [C++ API reference](https://vincentk.github.io/dedekind/) is its counterpart.
+
 The C++ core owns the mathematics; Python holds handles to it.
 Each native extension (`nanobind_*.cpp`) binds the library's own types; nothing
 is decided in Python.
