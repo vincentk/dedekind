@@ -185,7 +185,7 @@ bench: ## Run the C++ benchmark, without coverage
 	{ echo; echo '| Letters | Found | Peak KiB |'; echo '|---:|---:|---:|'; \
 	  $(BENCH_DIR)/bench_listing5 memory 10000000; \
 	  $(BENCH_DIR)/bench_listing5 memory 10000000000; } | tee -a $(BUILD_DIR)/bench/scanner.md
-	-for f in law_ascii law_ranks law_masks law_guarded law_blocks law_guarded_blocks law_words; do \
+	-for f in law_ascii law_ranks law_masks law_guarded law_blocks law_guarded_blocks law_words law_columnar; do \
 	  objdump -d --no-show-raw-insn --disassemble=$$f $(BENCH_DIR)/bench_listing5; \
 	done | tee $(BUILD_DIR)/bench/law.s
 

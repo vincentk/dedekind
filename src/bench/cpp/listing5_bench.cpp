@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <functional>
 #include <print>
 #include <ranges>
 #include <span>
@@ -280,6 +281,71 @@ struct WordCount {
                        sites & ((std::uint64_t{1} << (2uz * windows)) - 1u)));
   }
 };
+// The candidate for the library: the alphabet and the length are values, as
+// they are in a plan and in Python, and a block goes through in stages small
+// enough for the compiler to see each as a loop: ranks, then one pass per pair,
+// then the count.  Fixed storage, so the text is still never stored.
+constexpr std::size_t block_windows = 240;
+constexpr std::size_t longest_word = 16;
+/** @brief A letter's rank by comparing it with each of four, a hole 0x80. */
+struct RankOf {
+  std::array<std::uint8_t, 4> letters;
+  constexpr std::uint8_t operator()(std::uint8_t c) const {
+    const std::uint8_t a = c == letters[0];
+    const std::uint8_t b = c == letters[1];
+    const std::uint8_t g = c == letters[2];
+    const std::uint8_t t = c == letters[3];
+    const auto known = static_cast<std::uint8_t>(a | b | g | t);
+    return static_cast<std::uint8_t>(
+        b | (g << 1) | (t * 3u) |
+        (static_cast<std::uint8_t>(known - 1u) & 0x80u));
+  }
+};
+/** @brief One position's verdict with one more pair: ranks that reflect sum to
+ *  n - 1, which a hole never does for two or more letters. */
+struct WithPair {
+  const std::uint8_t* verdict;
+  const std::uint8_t* left;
+  const std::uint8_t* right;
+  constexpr std::uint8_t operator()(std::size_t i) const {
+    return static_cast<std::uint8_t>(
+        verdict[i] & static_cast<std::uint8_t>(
+                         static_cast<std::uint8_t>(left[i] + right[i]) == 3u));
+  }
+};
+/** @brief A pass of the block for its @c k -th pair. */
+struct PairPass {
+  std::uint8_t* verdict;
+  const std::uint8_t* ranks;
+  std::size_t windows;
+  std::size_t length;
+  void operator()(std::size_t k) const {
+    std::ranges::transform(
+        std::views::iota(0uz, windows), verdict,
+        WithPair{verdict, ranks + k, ranks + (length - 1uz - k)});
+  }
+};
+struct ColumnarCount {
+  const std::uint8_t* s;
+  RankOf rank_of;
+  std::size_t last;
+  std::size_t length;
+  std::uint64_t operator()(std::uint64_t total, std::size_t block) const {
+    const std::size_t lo = block * block_windows;
+    const std::size_t windows = std::min(block_windows, last - lo);
+    std::array<std::uint8_t, block_windows + longest_word> ranks;
+    std::array<std::uint8_t, block_windows> verdict;
+    std::ranges::transform(s + lo, s + lo + windows + length - 1uz,
+                           ranks.begin(), rank_of);
+    std::ranges::fill(verdict, std::uint8_t{1});
+    std::ranges::for_each(
+        std::views::iota(0uz, length / 2uz),
+        PairPass{verdict.data(), ranks.data(), windows, length});
+    return total +
+           std::ranges::fold_left(verdict.begin(), verdict.begin() + windows,
+                                  std::uint32_t{0}, std::plus<std::uint32_t>{});
+  }
+};
 template <typename Window>
 std::uint64_t over_the_windows(Window window, std::size_t n) {
   return count<std::uint64_t>(std::views::iota(0uz, n - 5) |
@@ -333,6 +399,17 @@ extern "C" std::uint64_t law_words(const std::uint64_t* words, std::size_t n) {
                                 std::uint64_t{0}, WordCount{words, last});
 }
 
+extern "C" std::uint64_t law_columnar(const std::uint8_t* s, std::size_t n,
+                                      const std::uint8_t* letters,
+                                      std::size_t length) {
+  const std::size_t last = n - (length - 1uz);
+  return std::ranges::fold_left(
+      std::views::iota(0uz, (last + block_windows - 1uz) / block_windows),
+      std::uint64_t{0},
+      ColumnarCount{s, RankOf{{letters[0], letters[1], letters[2], letters[3]}},
+                    last, length});
+}
+
 namespace {
 using Bytes = std::span<const std::uint8_t>;
 std::uint64_t ascii_row(Bytes b) { return law_ascii(b.data(), b.size()); }
@@ -361,6 +438,12 @@ Packed packed_from(Bytes ranks) {
 }
 std::uint64_t words_row(const Packed* p) {
   return law_words(p->words.data(), p->letters);
+}
+volatile std::size_t six_at_run_time = 6;
+const std::size_t run_time_six = six_at_run_time;
+std::uint64_t columnar_row(Bytes b) {
+  return law_columnar(b.data(), b.size(), run_time_letters.data(),
+                      run_time_six);
 }
 std::uint64_t blocks_row(Bytes b) { return law_blocks(b.data(), b.size()); }
 std::uint64_t guarded_blocks_row(Bytes b) {
@@ -419,7 +502,7 @@ int table() {
   if (ascii_row(ascii) != all || ranks_row(ranks) != all ||
       masks_row(masks) != all || guarded_row(ascii) != all ||
       blocks_row(ranks) != all || guarded_blocks_row(ascii) != all ||
-      words_row(&packed) != all) {
+      words_row(&packed) != all || columnar_row(ascii) != all) {
     std::println(stderr, "the law's plans disagree with the table");
     return 1;
   }
@@ -458,6 +541,8 @@ int table() {
       ns_per_letter(guarded_blocks_row, ascii, N), draw);
   row("the law, two bits a base, 27 windows a word",
       ns_per_letter(words_row, &packed, N), draw);
+  row("the law, alphabet and length at run time, block by block in stages",
+      ns_per_letter(columnar_row, ascii, N), draw);
   row("hash alone", draw, draw);
   row("a letter, hash and mask", ns_per_letter(letter_masked, N, N), draw);
   row("a letter, the library's random_text",
