@@ -41,8 +41,17 @@ constexpr Words oligos = words(bases);
 constexpr auto pali6 = oligos & len(6) & fixed_by(~rev);
 constexpr auto sites = pali6 & prefix("GA");
 constexpr auto scanner_11 = *automaton(sites);
-// The 64 sites' plan is past the evaluator's budget, so planned at start-up.
-const auto scanner_64 = *automaton(pali6);
+// The 64 sites' plan is past the evaluator's budget, so planned at start-up,
+// where one that does not fit stops the program before any letter is read.
+auto planned_64() {
+  const auto plan = automaton(pali6);
+  if (!plan) {
+    std::println(stderr, "the 64 sites' plan does not fit its capacity");
+    std::exit(1);
+  }
+  return *plan;
+}
+const auto scanner_64 = planned_64();
 
 /** @brief The hand-written loop to hold the library's against: the same table,
  *  flattened, one load for the letter's column and one for the state's. */
@@ -136,8 +145,7 @@ void row(std::string_view name, double ns, double draw) {
 int table() {
   constexpr std::size_t N = 100'000'000;
   constexpr std::size_t N_windows = 2'000'000;  // tested one by one: slow
-  const auto drawn = random_text(bases, N);
-  const std::vector<std::byte> stored(drawn.begin(), drawn.end());
+  const auto stored = random_text(bases, N) | std::ranges::to<std::vector>();
   const Text text{stored};
   const Text few = text.first(N_windows);
 
