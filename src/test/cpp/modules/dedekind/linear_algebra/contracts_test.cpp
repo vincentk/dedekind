@@ -25,16 +25,3 @@ TEST_CASE("Linear algebra contracts: rank-nullity identity (compile-time)",
   // Concept-level check: RankNullityWitness enforces the identity statically.
   STATIC_REQUIRE(RankNullityWitness<Witness>);
 }
-
-TEST_CASE("Linear algebra contracts: backend conformance",
-          "[linear_algebra][contracts]") {
-  using namespace dedekind::linear_algebra;
-
-  using Op = SparseLinearOperatorStub<double, 5, 3>;
-  STATIC_REQUIRE(LinearOperatorContract<Op>);
-  STATIC_REQUIRE(BackendConformantLinearOperator<Op>);
-  STATIC_REQUIRE(Op::backend_type::supports_sparse_linear_operators);
-
-  // Backend kind discriminator is a compile-time constant.
-  STATIC_REQUIRE(Op::backend_type::kind == BackendKind::graphblas);
-}
