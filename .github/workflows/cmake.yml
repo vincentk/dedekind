@@ -443,6 +443,10 @@ jobs:
   main-status:
     if: >-
       !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    # One at a time: two red runs must not each find no issue and open one.
+    concurrency:
+      group: main-status
+      cancel-in-progress: false
     needs:
     - build-and-deploy
     - python-dist
