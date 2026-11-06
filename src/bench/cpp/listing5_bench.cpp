@@ -212,6 +212,14 @@ struct GuardedPali6 {
            pair(s[i + 2], s[i + 3]);
   }
 };
+/** @brief The fold's step in a byte, which @c count refuses: a byte's
+ * arithmetic promotes to @c int, and a block is what keeps this one in range.
+ */
+struct ByteStep {
+  constexpr std::uint8_t operator()(std::uint8_t m, bool b) const {
+    return static_cast<std::uint8_t>(m + (b ? 1 : 0));
+  }
+};
 /** @brief The count of a block of windows, in a counter the width of a lane:
  *  240 positions fit a byte. */
 template <typename Window>
@@ -222,8 +230,9 @@ struct BlockCount {
                                      std::size_t block) const {
     const std::size_t lo = block * 240uz;
     const std::size_t hi = std::min(lo + 240uz, last);
-    return total + count<std::uint8_t>(std::views::iota(lo, hi) |
-                                       std::views::transform(window));
+    return total + std::ranges::fold_left(
+                       std::views::iota(lo, hi) | std::views::transform(window),
+                       std::uint8_t{0}, ByteStep{});
   }
 };
 template <typename Window>
