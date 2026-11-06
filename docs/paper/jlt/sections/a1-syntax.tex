@@ -39,7 +39,7 @@ A range has a length and, when it is not empty, a head and a tail; a term type $
 \end{figure}
 
 FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}, under the three rules of Section~\ref{sec:posture}.
-Its base types are the carriers of a $\Sigma$-algebra, for $\Sigma$ a many-sorted \emph{signature} in universal algebra's sense: a sort per base type, an operation symbol with its arity per operation, and the \Cpp{} types with their \cppinline{constexpr} operations as the interpretation.
+Its base types are the carriers of a $\Sigma$-algebra, for $\Sigma$ a many-sorted \emph{signature}, in Pierce's sense~\cite{pierce1991basic}: a sort per base type, an operation symbol with its arity per operation, and the \Cpp{} types with their \cppinline{constexpr} operations as the interpretation.
 A type is a carrier if it keeps \RuleOne, its operations are total, and it has an image in the target (Appendix~\ref{app:fjlt:translation}).
 Only totality is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operation defined on every input, Lemma~\ref{lem:progress} needs it, and it keeps \cppinline{int}'s overflow and division out.
 $\Sigma$ is not a list; the listings use \cppinline{bool}, \cppinline{size_t}, \cppinline{std::string} with concatenation and the comparisons, allocation failure aside, and finite enumerations such as \cppinline{Ternary}.
