@@ -10,7 +10,7 @@ on:
   pull_request:
     # A stable branch takes PRs under the same required checks (its name, the
     # ruleset's); it builds no release, which is main's.
-    branches: [ "main", "programming-*" ]
+    branches: [ "main", "stable-*" ]
     # labeled: a label that builds more (`docs`, `wheel`, `testpypi`) runs
     # CI again
     types: [opened, synchronize, reopened, labeled]
