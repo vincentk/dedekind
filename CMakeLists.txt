@@ -22,8 +22,8 @@ endif()
 project(Dedekind VERSION ${DEDEKIND_VERSION} LANGUAGES CXX)
 
 # --- The compiler ---
-# The modules want LLVM's own clang (Apple's has no module scanner).  Said here,
-# as pip shows this to whoever builds the sdist.
+# LLVM's own clang, which is what CI builds and tests with.  Said here, as pip
+# shows this to whoever builds the sdist.
 if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_VERSION VERSION_LESS 23)
     message(FATAL_ERROR
         "Dedekind builds with LLVM clang 23 or later, not "
