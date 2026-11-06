@@ -65,7 +65,6 @@ $(BUILD_DIR)/CMakeCache.txt:
 		-DCMAKE_CXX_SCAN_FOR_MODULES=ON \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON \
-		-DDEDEKIND_COVERAGE=ON \
 		$(CMAKE_EXTRA_ARGS)
 
 compile: $(BUILD_DIR)/CMakeCache.txt ## Configure if needed and build all targets
@@ -491,7 +490,6 @@ doxygen: $(BUILD_DIR)/CMakeCache.txt ## The Doxygen API docs in build/docs
 		-DCMAKE_CXX_SCAN_FOR_MODULES=ON \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON \
-		-DDEDEKIND_COVERAGE=ON \
 		$(CMAKE_EXTRA_ARGS)
 	cmake --build $(BUILD_DIR) --target docs --parallel $(JOBS)
 

@@ -60,6 +60,7 @@ wheel.py-api = "cp315"
 [tool.scikit-build.cmake.define]
 DEDEKIND_BUILD_PYTHON_BINDINGS = "ON"
 DEDEKIND_ENABLE_DOUBLE_REAL_PROXY = "ON"
+DEDEKIND_COVERAGE = "OFF"
 
 [project.optional-dependencies]
 graphblas = [
