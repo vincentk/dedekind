@@ -1,0 +1,137 @@
+% !TEX root = ../jlt.tex
+\section{Partial Evaluation at Build Time}
+\label{sec:binding}
+
+Every function in this paper has run twice already.
+The test behind the listings calls the same functions at runtime, on values it did not have at compile time.
+Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own.\footnote{A \cppinline{consteval} function is evaluated only at compile time, so it has one binding time, which is why Rule~1 asks \cppinline{constexpr} and not \cppinline{consteval}.}
+Theorem~\ref{thm:simulation} says the two evaluations agree, which is the presumption of this section: moving a call from compile time to run time changes where it is evaluated, not what it evaluates to.
+Both are partial evaluation~\cite{jones1993partial} at build time: the compiler evaluates what it can and leaves the processor the rest.
+Listing~\ref{lst:sites} is the paper's exhibit on both of its panels, each followed through the translation.
+With the sequence free, the compiler evaluates what it can, the table, and keeps the fold over the sequence, which only the run time can finish.
+What remains is the loop the optimiser emits, read as a function after Appel~\cite{appel1998ssa}: at \texttt{-O2} it allocates nothing and calls nothing, and each letter is four loads, the letter, its column, the next state and whether that state accepts; each call first copies the table by value, as Rule~1 has it.
+With the sequence given and bound by \cppinline{constexpr}, the term evaluates to its count, and so does the code: Figure~\ref{fig:arrows}'s bottom edge on one program.
+Given but not bound, the optimiser keeps the loop, so the constant is the binding's and not the optimiser's.
+
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// Σ, the alphabet :
+constexpr Alphabet bases = abc("ACGT");
+// Σ* = ⊔ₙ Σⁿ :
+constexpr Words oligos = words(bases);
+// ~rev, the reverse complement: CCTA ↦ TAGG
+// { w ∈ Σ⁶ | ~rev w = w }, the palindromic hexamers :
+constexpr auto pali6 =
+  oligos & len(6) & fixed_by(~rev);
+// { (s, i) ∈ Σᴺ × ℕ | s[i, i+6) ∈ pali6 } :
+constexpr auto cuts(size_t N) {
+  return (oligos & len(N)) >> pali6;
+}
+
+static_assert(
+  count(cuts(12)) == 1'835'008uz &&
+  count(cuts(32)) == 27uz << 58);
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// those of pali6 beginning GA :
+constexpr auto sites =
+  pali6 & prefix("GA");
+
+// the table, computed once by the compiler,
+// a function of any s :
+constexpr auto scanner =
+  *automaton(sites);
+static_assert(states(scanner) == 11uz);
+
+// and only now a sequence :
+constexpr auto dna = bytes(
+  "GAATTCGAGCTCGGTACCCGGGGATCC"
+  "TCTAGAGTCGACCTGCAGGCATGCAAGCTT");
+
+// ten by definition, each window tested :
+static_assert(count(dna >> pali6) == 10uz);
+
+// two by the table, in one pass :
+// EcoRI's and SacI's
+static_assert(
+  count(dna >> scanner) == 2uz &&
+  sites(bytes("GAATTC")) &&
+  sites(bytes("GAGCTC")));
+\end{cpp}
+\end{minipage}
+\begin{minipage}[t]{0.49\linewidth}
+\begin{minted}{text}
+-- the right panel's query at every N-mer, the
+-- bind of the bag monad, counted by its laws:
+-- a cylinder per offset, 4^3 · 4^(N−6), N − 5 alike
+cuts N = Σ^N >>= (λ s. s >> pali6)
+count (cuts N)
+       = (N − 5) · 4^3 · 4^(N − 6)
+count (cuts 32) ~> 27 · 2^58
+         -- a constant; no sequence built
+\end{minted}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{minted}{text}
+-- the table is a closed term,
+-- the pass over the sequence is not
+automaton sites ~> (0, T, F)
+  -- static, 11 states: the compiler's
+count (s >> scanner) =       -- the residual
+  π₂ (fold (λ (q, c) a. (T q a, c + F (T q a)))
+           (0, 0) (map rank s))
+automaton pali6 ~> (0, T', F')
+  -- 277 states: past the budget, so
+  -- the same function runs at run time
+\end{minted}
+\end{minipage}
+\caption{Palindromic DNA restriction sites, counted two ways on one definition.
+A palindrome is a word equal to its reverse complement, as EcoRI's \texttt{GAATTC}; an enzyme cuts where one occurs.
+Left: how many cuts a cocktail of every six-cutter makes in all $4^N$ $N$-mers, each digested once.
+Right: the cuts of a smaller cocktail, the six-cutters beginning \texttt{GA}, in any one sequence, the caller's bytes read where they lie; here the polylinker of the plasmid pUC19.
+Below each: its translation (Section~\ref{sec:translation}), a closed term the compiler reduces and a residual for the run time.
+Without the count's laws, the left panel would build the $N$-mers and exhaust the step limit (Table~\ref{tab:binding}) before reaching its \cppinline{static_assert}.
+The table is Brzozowski's automaton~\cite{brzozowski1964derivatives}, for one site the matcher of Knuth, Morris and Pratt~\cite{knuth1977fast}, which partial evaluation derives~\cite{consel1989partial}.
+Its cost is moved to compile time where the budget admits: ``negative overhead abstraction''~\cite{stroustrup2026peterman}.}
+\label{lst:sites}
+\end{listing}
+The presumption holds where both evaluations finish and neither meets undefined behaviour.
+Table~\ref{tab:binding} lists where the two binding times part.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+& at compile time, in constant evaluation & at run time \\
+\midrule
+who evaluates & the front end's interpreter, one step at a time & the processor, after the optimiser \\
+a fold's length & at most 1\,048\,576 steps (\texttt{-fconstexpr-steps}), past which the program does not compile & the count alone \\
+a call's depth & at most 512 nested calls (\texttt{-fconstexpr-depth}) & the stack \\
+undefined behaviour & refused: the expression is not a constant, and the program does not compile & no diagnostic required and no guarantee: the optimiser may assume it never happens \\
+a shortcut & only by resolution, a declared law, as Listing~\ref{lst:laws}'s overloads & the optimiser's, as it fuses Listing~\ref{lst:sites}'s stages into one loop \\
+telling them apart & \texttt{if consteval} and \texttt{is\_constant\_evaluated()} say compile time & they say run time, and FJlt desugars it to the first where both agree \\
+\bottomrule
+\end{tabularx}
+\caption{Where the two binding times differ, for Clang~23 with its default limits.
+Each limit counts the evaluator's work, and can be raised.
+Apart from the last row, no difference is a different value: where both evaluations finish without undefined behaviour, they agree (Theorem~\ref{thm:simulation}).}
+\label{tab:binding}
+\end{table}
+
+\paragraph{The two evaluators are different programs.}
+In constant evaluation no optimiser runs: the front end interprets a fold one step at a time, and the optimiser that fuses Listing~\ref{lst:sites}'s stages into one residual pass sees only the code emitted for run time.
+So at compile time only a declared law shortens a fold, chosen by resolution, as for Listing~\ref{lst:laws}'s overloads: it buys at build time what the optimiser finds at run time by itself.
+
+Not every algorithm converges, so Jlt allows a \emph{budget}, a counter beside the structure's own count, as the compiler has one; exhausting the compiler's is not a value, and exhausting Jlt's is the empty optional, the third answer of Table~\ref{tab:posture} (Appendix~\ref{app:fjlt:ssa}).\footnote{The compiler's budgets apply at compile time only, Jlt's at both binding times, and they are the compiler's to set: raised, the refused fold of $10^8$ copies compiles and holds.}
+
+\paragraph{The same laws license parallelism.}
+A parallel \cppinline{concat} is one more overload, licensed by \cppinline{IsCommutativeMonoid}.
+The branch on the binding time that selects it desugars to its compile-time branch, because the same law proves the branches agree (Appendix~\ref{app:fjlt:consteval}).
+
+\Cpp{} passes no dictionaries but instantiates, so the translation models what a constrained call means, not what the compiler emits.
+Instantiation is partial evaluation of the dictionary-passing term at a static type, so the two agree on every closed term, and parametricity holds of every instantiation (Appendix~\ref{app:fjlt:ssa}).
+

@@ -1,0 +1,147 @@
+% !TEX root = ../jlt.tex
+\section{From System~F Back to Featherweight Jlt}
+\label{sec:guarantees}
+% The three theorems about the translation of Section~\ref{sec:translation}
+% and Appendix~\ref{app:fjlt}, stated after the exhibits so that each can
+% point at one.  Proof sketches in Appendix~\ref{app:fjlt:theorems}; the
+% adequacy argument (C++ -> FJlt) is Section~\ref{sec:translation:adequacy}
+% and is not a theorem.
+
+The theorems rest on FJlt alone.
+Their proofs (Appendix~\ref{app:fjlt:theorems}) are inductions over the grammar, the typing and the translation of FJlt, and never mention the three rules.
+The rules are not the hypotheses of the theorems.
+They are what makes a \Cpp{} program a term of the calculus the theorems are about, and that step is the argument of Section~\ref{sec:translation:adequacy}.
+
+\begin{theorem}[Type preservation]
+\label{thm:preservation}
+If $\Delta; \Gamma \vdash e : \tau$ in FJlt, then $\llbracket \Delta \rrbracket; \llbracket \Gamma \rrbracket \vdash \llbracket e \rrbracket : \llbracket \tau \rrbracket$ in the target, System~F with records and iterators (Appendix~\ref{app:fjlt:translation}).
+\end{theorem}
+
+Each \cppinline{requires} clause has become a record parameter.
+At each call, the instance the compiler resolved supplies a record of the type that parameter demands.
+
+\begin{theorem}[Simulation]
+\label{thm:simulation}
+If $e \longrightarrow e'$ in FJlt (Appendix~\ref{app:fjlt:evaluation}), then $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e' \rrbracket$ in the target, up to the reduction of a fold's count, a descending self-call's fuel and a node's reading (Appendix~\ref{app:fjlt:theorems}), and a value of base type translates to a constant.
+For closed terms of base type, $e$ evaluates to $v$ if and only if $\llbracket e \rrbracket$ reduces to $\llbracket v \rrbracket$.
+\end{theorem}
+
+What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the runtime computes.
+Section~\ref{sec:binding} is this theorem run twice.
+The theorem also fixes the notion of equality, which equational reasoning presupposes and which is a question of its own~\cite{mazur2008equal}: two closed terms of a carrier are equal when they evaluate to the same value, by behaviour and not by identity, and Leibniz's law of Rule~1 holds by substitution.
+That is why Rule~1 asks \cppinline{std::semiregular} and not \cppinline{std::regular}: no \cppinline{==} is asked of a value, a carrier's \cppinline{==} is one more operation of its signature where a shape asks for it, and a function object, a value under Rule~1, has none.
+
+\begin{theorem}[Coherence]
+\label{thm:coherence}
+The translation is a function of the program: two resolutions of the same constraint at the same concrete types yield the same record.
+\end{theorem}
+
+In \Cpp{} this is overload resolution together with the one-definition rule: at concrete types a specialisation is unique, or the program is ill-formed.
+It gives ``the unit of \cppinline{+} at \cppinline{size_t}'' one meaning in a program, so a law can be stated about it, and it lets laws compose: two overloads written apart are chosen the same way wherever they are called, as the two behind Listing~\ref{lst:laws} are.
+
+\begin{corollary}[Termination]
+\label{cor:termination}
+Every FJlt program terminates.
+\end{corollary}
+
+It follows from Theorem~\ref{thm:simulation} and strong normalisation of the target (Appendix~\ref{app:fjlt:translation}).
+Every step of the program is at least one step of its image, and the image cannot step forever.
+The count in Rule~3 is therefore not a guard against non-termination.
+It is how a bound is said.
+
+\begin{corollary}[Parametricity]
+\label{cor:parametricity}
+A generic FJlt function satisfies the free theorem of its System~F type.
+\end{corollary}
+
+By Theorem~\ref{thm:preservation} and Reynolds' abstraction theorem~\cite{reynolds1983types,wadler1989theorems}.
+\cppinline{concat} at a monoid can only combine the words by \texttt{op}, starting from \texttt{unit}, which is the free theorem of a fold.
+It is also why an instance with a context (Section~\ref{sec:translation:contexts}) can read a composite's law off its components' records.
+The composite cannot do anything the components' records do not provide.
+
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// the overload associativity licenses
+template <typename T, typename Op,
+          IsCountWord N>
+  requires IsMonoid<T, Op>
+constexpr T power(const T& x, N n, Op op) {
+  if (n == 0) {
+    return unit<T>(op);
+  } else {  // the halves are equal: one, twice
+    const T h = power(x, n / 2, op);
+    const T hh = op(h, h);
+    return n % 2 == 1 ? op(hh, x) : hh;
+  }
+}
+template <ranges::input_range R,
+          typename T = ranges::range_value_t<R>,
+          typename Op = plus<T>>
+  requires IsMonoid<T, Op> && IsCopies<R>
+constexpr T concat(R r, Op op = {}) {
+  const auto n = copies_count(r);
+  return n == 0 ? unit<T>(op)
+                : power(copies_value(r), n, op);
+}
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// the action law, declared
+using Act = remove_cvref_t<decltype(act)>;
+template <> struct acting_monoid<Act> {
+  using type = multiplies<M>;
+};
+// the overload it licenses
+template <ranges::input_range R,
+          semiregular M, typename H>
+  requires IsCopies<R> && IsRightAction<
+               H, M, ranges::range_value_t<R>>
+constexpr M fold(R r, M v, H h) {
+  using Op = acting_monoid<H>::type;
+  return h(v, concat(r, Op{}));
+}
+\end{cpp}
+\end{minipage}
+\begin{cpp}
+// Listing 3's fold, by the library: the laws choose how
+constexpr size_t fibonacci(size_t n) {
+  return fold(n >> chain<size_t>() >> constant<size_t>(fib), V{1, 0}, act)[1];
+}
+static_assert(fibonacci(10) == fs_10[1] &&
+              fibonacci(100'000'000) == 14'139'011'350'745'967'675uz);
+\end{cpp}
+\begin{minted}{text}
+fibonacci = λ n. π₂ (fold act (1, 0) ms)      -- ms = map (const M) (chain prior n)
+          = λ n. π₂ (act (1, 0) (concat (·) ms))      -- by the action law
+          = λ n. π₂ (act (1, 0) (Mⁿ))                 -- by associativity, squaring
+\end{minted}
+\caption{Laws composing, on Listing~\ref{lst:rule3}'s chain.
+Top left: the monoid concatenation $M \cdot M \cdots M$ is replaced by the power $M^n$, implemented by repeated squaring~\cite[\S 4.6.3]{knuth1997art2}.
+Top right: the type constraints license the power method (Rule~2 for the specialisation, Theorem~\ref{thm:coherence} for the composition).
+Middle: the power method keeps the $10^8$ terms of the Fibonacci sequence within the compile-time step limit (Table~\ref{tab:binding}).
+Bottom: the System~F translation closely resembles the \Cpp{} above (Figure~\ref{fig:arrows}).}
+\label{lst:laws}
+\end{listing}
+
+\begin{corollary}[Type soundness]
+\label{cor:soundness}
+A well-typed closed FJlt term of base type evaluates to a value.
+\end{corollary}
+
+This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweight} expects first, soundness, here stronger because every term ends, and cheap once the rest is in place.
+A closed well-typed term is a value or takes a step (progress, Lemma~\ref{lem:progress}), and it cannot step forever (Corollary~\ref{cor:termination}), so it reaches a value.
+What the translation adds is the second half of Theorem~\ref{thm:simulation}: the value reached is the value the System~F image computes.
+
+\paragraph{Certified and inferred laws.}
+A program declares few laws and infers the rest.
+A declared law is an axiom, its certificate evaluated where a record is built.
+A law at a construction is derived from the laws of its parts, through an instance with a context, by the entailment of qualified types~\cite{jones1994qualified}: that a finite power of a semiring is a semimodule over it is inferred, not declared (Appendix~\ref{app:fjlt:inferred}).
+The inference is local in Pierce and Turner's sense~\cite{pierce2000local}: information moves only between adjacent nodes, and here only upward, from a term's immediate parts to the term, a synthesized attribute~\cite{knuth1968semantics}.
+They infer type arguments and Jlt infers laws, so the likeness is in the flow of information, not in what is inferred.
+By Theorem~\ref{thm:coherence} each inferred law is unique, and the conditions on contexts that end instance search~\cite{sulzmann2007understanding} end the inference.
+As type checking rules out classes of errors without proving a program correct, law inference licenses classes of optimisations without deciding program equivalence, which stays undecidable where every program ends: a program testing whether a machine halts within $n$ steps equals the constant false exactly when that machine never halts~\cite{turing1936computable}.
+Each optimisation is local, a rewrite at the node whose law licenses it, and so mechanical; the global one, the best equivalent program, is the undecidable one.
+Since the laws are the application's, not the machine's, so are the optimisations they license.
+

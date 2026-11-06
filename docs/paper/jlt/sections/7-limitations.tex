@@ -1,0 +1,48 @@
+% !TEX root = ../jlt.tex
+\section{Known Limitations}
+\label{sec:limits}
+
+Table~\ref{tab:posture} says which instrument holds each rule at build time.
+
+\subsection{Limits of principle}
+
+\paragraph{The compiler does not check a template's body against its constraints.}
+Definition checking was the half of the \Cpp{0x} design~\cite{gregor2006concepts} that \Cpp{20} did not take up (Section~\ref{sec:intro}).
+So Rules~2 and~3 are posture: they are held outside the compiler, and no tool turns them into the compiler's verdict.
+
+\paragraph{Lookup stops at \cppinline{std}.}
+A name in a template is looked up twice: at the template's definition, among the declarations visible there, and at instantiation only by argument-dependent lookup, in the namespaces of the argument types, which for a standard type is \cppinline{std}, where no instance of ours lives.
+So an instance declared after the shape is found only as a specialisation of a primary template the shape names, as Listing~\ref{lst:rule2}'s deleted \cppinline{unit} is, and a constrained overload must precede the shape.
+This is a constraint on declaration order that the translation's instance resolution does not have, and FJlt resolves it by fiat: an instance is a specialisation of the trait, found by the trait's name.
+
+
+\paragraph{A shape knows the laws someone declared.}
+\Cpp{}'s own words are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not~\cite[{\texttt{res.on.requirements}}]{cpp23standard}, and the Core Guidelines ask that a concept carry meaningful semantics~\cite[T.20]{cppcoreguidelines}.\footnote{The standard calls the first kind of requirement syntactic and the second semantic.
+That split is between what the compiler decides and what it leaves to the programmer, and it does not coincide with the split of programming-language theory between static and dynamic semantics~\cite{pierce2002tapl}, whose static semantics, type checking, falls on the syntactic side here.}
+A law is what modelling asks beyond satisfying, and the posture makes it a declared certificate, a specialisation the compiler finds but does not check against the operation.
+So \cppinline{false} means \emph{not known}, not \emph{no}, and the same declaration is the only refusal available for a carrier that passes a shape by signature and breaks its law by value.\footnote{\cppinline{*} on \cppinline{size_t} is commutative, but nobody in the listings certifies it, so \cppinline{IsCommutativeMonoid<size_t, multiplies<size_t>>} is refused.
+\cppinline{double} under \cppinline{+} has the signature of a monoid, but \cppinline{+} is not associative and the unit law fails at NaN, and nobody certifies it.}
+
+\paragraph{Undefined behaviour has one binding time.}
+Constant evaluation refuses it and run time does not (Table~\ref{tab:binding}), the one way the two evaluations of Theorem~\ref{thm:simulation} can disagree in \Cpp{} where they cannot in FJlt, and the reason the listings' carriers are unsigned.
+A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cannot overflow, a fact no rule checks.\footnote{A signed integer is a chain under \cppinline{<} and a bounded lattice under \cppinline{min} and \cppinline{max}, but no monoid under \cppinline{+} or \cppinline{*}, since overflow is undefined.}
+
+\paragraph{The compiler has its own limits.}
+Table~\ref{tab:binding} lists two, steps and call depth, and the template instantiation depth bounds both binding times.
+Rule~3 keeps them predictable, because every fold's length is in the program: a count, which meets no depth limit, or the depth of a term, one instantiation or one call per nesting.
+
+\subsection{Limits of this presentation}
+
+\paragraph{The linter is sound and incomplete.}
+The repository's linter, run in continuous integration on the compiler's own front end and documented there, checks Rule~3 for every instantiated body, Rule~1's syntactic part, and Rule~2 at the level of names: a body may use, on a value of parameter type, only what a declared constraint names.
+A finding is a breach or a gap in its reading of the standard's concepts, and its silence is not a proof.
+Review complements it: an agentic reviewer reads every pull request against the three rules, and the listings and the library's core are held at zero on all three to the extent the two instruments reach.
+
+\paragraph{The adequacy argument covers part of the library.}
+Tables~\ref{tab:closure} and~\ref{tab:closure:decl} are measured complete for the \texttt{category} module and the listings only.
+Other modules are held by the same linter at a count that only goes down.
+
+
+\paragraph{The standard library is trusted.}
+The listings compile with Clang~23 against two standard libraries, trusted as every \Cpp{} program trusts them and its compiler~\cite{thompson1984reflections}; the youngest piece they use, the folds over ranges, is complete since libc++~23~\cite{libcxx2026status}.
+
