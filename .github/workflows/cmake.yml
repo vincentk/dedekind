@@ -21,6 +21,13 @@ on:
         type: boolean
         default: true
 
+# Main's builds queue, each to its end; a PR's runs do not wait for each other.
+# GitHub holds one run waiting and drops an older one, which loses nothing: the
+# newer holds its commits.
+concurrency:
+  group: ${{ github.ref == 'refs/heads/main' && 'main' || github.run_id }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -440,7 +447,6 @@ jobs:
   # main went red: one issue, assigned to the owner, which stays open while main
   # is red and is closed by the next green run.  So one notification an incident,
   # not one a run, and none for a PR.  A cancelled run says nothing either way.
-  # Runs may overlap: a second issue from two red runs closes with a later green.
   # Writes issues, and runs only gh: no checkout.
   main-status:
     if: >-
