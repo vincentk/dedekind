@@ -1,0 +1,61 @@
+# The wheel at a version on this runner: built, repaired, checked, installed
+# and used, and uploaded.  One definition for what a release and a PR labelled
+# `wheel` build, on each platform pip is offered.  The job checks out first,
+# with its submodules.
+name: The wheel
+description: Builds, verifies and uploads pynzli's wheel on this runner
+inputs:
+  version:
+    description: The version to build at
+    required: true
+  artifact:
+    description: The artifact to upload it as
+    required: true
+runs:
+  using: composite
+  steps:
+  - name: Set up Python
+    uses: actions/setup-python@v7
+    with:
+      python-version: ${{ env.PYTHON_VERSION }}
+
+  - name: Install clang build chain (Linux)
+    if: runner.os == 'Linux'
+    shell: bash
+    run: |
+      wget https://apt.llvm.org/llvm.sh
+      chmod +x llvm.sh
+      sudo ./llvm.sh 23
+      sudo apt-get install -y clang-23 ninja-build
+      { echo "CC=clang-23"; echo "CXX=clang++-23"; } >> "$GITHUB_ENV"
+
+  - name: Install clang build chain (macOS)
+    if: runner.os == 'macOS'
+    shell: bash
+    run: |
+      brew install llvm cmake ninja
+      root=$(brew --prefix llvm)
+      { echo "CC=$root/bin/clang"; echo "CXX=$root/bin/clang++"; } >> "$GITHUB_ENV"
+
+  - name: The wheel at ${{ inputs.version }}
+    shell: bash
+    env:
+      VERSION: ${{ inputs.version }}
+    run: make wheel VERSION="$VERSION"
+
+  - name: The wheel installed and used
+    shell: bash
+    env:
+      VERSION: ${{ inputs.version }}
+    run: make wheel-verify VERSION="$VERSION"
+
+  - name: Upload the wheel
+    uses: actions/upload-artifact@v7
+    with:
+      name: ${{ inputs.artifact }}
+      path: |
+        dist/*
+        build/python-docs/dist-manifest.txt
+        build/python-docs/dist-sha256.txt
+        build/python-docs/install-report.txt
+        build/python-docs/pydoc-pynzli.txt

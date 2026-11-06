@@ -55,46 +55,32 @@ jobs:
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: read  # checkout only; no PR write or pages needed
-    steps:
+    env:
+      ARTIFACT: python-dist
+    steps: &wheel
     - uses: actions/checkout@v7
       with:
         submodules: recursive
 
-    - name: Set up Python
-      uses: actions/setup-python@v7
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Install clang build chain
-      run: |
-        wget https://apt.llvm.org/llvm.sh
-        chmod +x llvm.sh
-        sudo ./llvm.sh 23
-        sudo apt-get install -y clang-23 ninja-build clang-format-23
-
     # A dev version: a release builds its own wheel, from its tag.
-    - name: The wheel at a dev version
-      env:
-        CC: clang-23
-        CXX: clang++-23
-        DEV: ${{ contains(github.event.pull_request.labels.*.name, 'testpypi') && github.run_id || '0' }}
-      run: |
-        echo "PYNZLI_VERSION=0.0.0.dev$DEV" >> "$GITHUB_ENV"
-        make wheel VERSION="0.0.0.dev$DEV"
-
-    - name: The wheel installed and used
-      run: make wheel-verify VERSION="$PYNZLI_VERSION"
-
-    - name: Upload Python Dist Artifacts
-      uses: actions/upload-artifact@v7
+    - uses: ./.github/actions/wheel
       with:
-        name: python-dist
-        path: |
-          dist/*
-          build/python-docs/dist-manifest.txt
-          build/python-docs/dist-sha256.txt
-          build/python-docs/install-report.txt
-          build/python-docs/pydoc-pynzli.txt
+        version: 0.0.0.dev${{ contains(github.event.pull_request.labels.*.name, 'testpypi') && github.run_id || '0' }}
+        artifact: ${{ env.ARTIFACT }}
+
+  # The same on macOS, for a PR that asks: main's CI is Ubuntu's (#1121), and a
+  # release builds both.
+  python-dist-macos:
+    if: >-
+      contains(github.event.pull_request.labels.*.name, 'wheel') ||
+      contains(github.event.pull_request.labels.*.name, 'testpypi')
+    needs: build-and-deploy
+    runs-on: macos-26  # the newest macOS, named: macos-latest lags it
+    permissions:
+      contents: read
+    env:
+      ARTIFACT: python-dist-macos
+    steps: *wheel
 
   # The docs and the papers; deployed to Pages from main.  A PR labelled
   # `docs` builds them too, to try a change to the toolchain before main.
@@ -191,9 +177,10 @@ jobs:
     # and a job downstream of a skipped one is skipped unless it says so.
     if: >-
       !cancelled() && needs.python-dist.result == 'success' &&
+      needs.python-dist-macos.result == 'success' &&
       contains(github.event.pull_request.labels.*.name, 'testpypi') &&
       github.event.pull_request.head.repo.full_name == github.repository
-    needs: python-dist
+    needs: [python-dist, python-dist-macos]
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     environment:
       name: testpypi
@@ -226,7 +213,10 @@ jobs:
   # on it, written once (the anchor) like the upload; it may write nothing.
   testpypi-dev-install:
     needs: testpypi-dev
-    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
+    strategy:
+      matrix: &platforms  # what pip is offered: what is built
+        runner: [ubuntu-26.04, macos-26]
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
     env:
@@ -244,6 +234,16 @@ jobs:
       env:
         HOST: ${{ env.INDEX_HOST || 'test.pypi.org' }}
       run: make wheel-verify VERSION="$VERSION" INDEX="$HOST"
+
+    # What a user types, from nowhere in particular.  PyPI only: TestPyPI's
+    # latest need not be a release for this platform.
+    - name: A plain pip install, in an empty directory
+      if: env.INDEX_HOST == 'pypi.org'
+      run: |
+        cd "$(mktemp -d)"
+        python -I -m venv venv
+        venv/bin/python -I -m pip --isolated install pynzli
+        venv/bin/python -I -c 'import pynzli; print("pynzli", pynzli.__version__)'
 
   # A release after a green build of main, at most once per 48 hours,
   # versioned 0.<YYYYMMDD>.<n>, PEP 440, the tag naming the commit (.github/scripts/release-version.sh).
@@ -338,7 +338,9 @@ jobs:
   release-wheel:
     needs: release-tag
     if: needs.release-tag.outputs.tag != ''
-    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
+    strategy:
+      matrix: *platforms
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
     outputs:
@@ -358,32 +360,11 @@ jobs:
         echo "PYNZLI_VERSION=$version" >> "$GITHUB_ENV"
         echo "version=$version" >> "$GITHUB_OUTPUT"
 
-    - name: Set up Python
-      uses: actions/setup-python@v7
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Install clang build chain
-      run: |
-        wget https://apt.llvm.org/llvm.sh
-        chmod +x llvm.sh
-        sudo ./llvm.sh 23
-        sudo apt-get install -y clang-23 ninja-build
-
     - name: 4. The wheel, from the tag
-      env:
-        CC: clang-23
-        CXX: clang++-23
-      run: make wheel VERSION="$PYNZLI_VERSION"
-
-    - name: The wheel installed and used
-      run: make wheel-verify VERSION="$PYNZLI_VERSION"
-
-    - name: Upload the release's wheel
-      uses: actions/upload-artifact@v7
+      uses: ./.github/actions/wheel
       with:
-        name: release-dist
-        path: dist/*
+        version: ${{ env.PYNZLI_VERSION }}
+        artifact: release-dist-${{ matrix.runner }}
 
   release-testpypi:
     needs: release-wheel
@@ -401,7 +382,9 @@ jobs:
 
   release-testpypi-install:
     needs: [release-wheel, release-testpypi]
-    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
+    strategy:
+      matrix: *platforms
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
     env:
@@ -443,7 +426,9 @@ jobs:
 
   release-pypi-install:
     needs: [release-wheel, release-pypi]
-    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
+    strategy:
+      matrix: *platforms
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
     env:
