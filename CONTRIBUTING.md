@@ -8,74 +8,51 @@ Thank you for your interest in contributing!
 2. **Pick an issue** from the [issue tracker](https://github.com/vincentk/dedekind/issues).
    If you have a new idea, open an issue first so scope and direction can be agreed on before
    you invest time in an implementation.
-3. **Create a branch** named after the issue(s) you are addressing, e.g.
-   `feat/issues-40-121`.
-   When work on a new branch is begun, all local edits SHOULD be triaged and
-   either pushed to a draft branch PR or discarded to prevent divergence.
-4. **Implement your changes** and push to a draft PR early and often — you do not need
-   to verify that the code compiles or tests pass locally before each push.  The CI build
-   is the reference build; offloading compilation and test execution to CI is explicitly
-   encouraged so local development is not blocked by slow or unavailable toolchains.
-   Use the `Makefile` targets when a local build is convenient:
-   ```bash
-   make compile   # configure (first run) and build everything
-   make test      # build then run the full CTest suite
-   ```
-   The `Makefile` selects the correct compiler (`clang++` from LLVM) and passes
-   all required CMake flags automatically, including `DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON`
-   which is needed for tests that use `double` as the scalar type.
-5. **Format** before committing — the CI will reject unformatted code:
-   ```bash
-   make format   # runs clang-format-21 on all *.cpp / *.cppm files
-   ```
-   To enforce this automatically before each push, install the repo-managed hook once:
-   ```bash
-   make install-hooks
-   ```
-   The `pre-push` hook runs `make format` and aborts the push if it had to rewrite files,
-   so you can review and commit the formatting changes explicitly.
-6. **Open a draft PR** against `main` early — even before the implementation is complete.
-   Push incremental checkpoints freely; the draft status signals work-in-progress.
-   Priority by PR state:
-   Draft PR: prioritize closing acceptance-criteria gaps checkpoint by checkpoint.
-   Near-Ready/Ready PR: prioritize polishing (clarity improvements,
-   documentation/report alignment, low-risk quality refinements, and review
-   thread closure).
-   Mark the PR **Ready for Review** only once **all CI checks are green**.
-   Before flagging a PR as ready, contributors SHOULD compare and contrast the
-   updated modules and the corresponding chapters in the report, and verify the
-   report documentation is up to date.
+3. **Create a branch** named after the issue(s) you are addressing, e.g. `feat/issues-40-121`
+   (`make pr-init ISSUES="40 121"` does this and opens the draft PR).
+4. **Open a draft PR** against `main` early, and push checkpoints freely.
+   CI rejects unformatted code; `make install-hooks` catches that before the push.
+5. **Let CI build it.** See [CI is the reference](#ci-is-the-reference).
+6. **Mark the PR Ready for Review** when two things hold: you judge it ready, and all CI checks are green.
+   CI can't tell whether the [paper](https://vincentk.github.io/dedekind/jlt.pdf) and [docs](https://vincentk.github.io/dedekind/) still hold; that part is yours.
 
-## Workflow at a glance
+While a PR is a draft, close its acceptance criteria checkpoint by checkpoint.
+Near Ready, polish: clarity, documentation, low-risk refinements and open review threads.
 
-The intended UX is:
+Run `make help` for the build and workflow targets.
 
-1. **Edit** source files locally — no local build required.
-2. **Format** with `make format` (or let the pre-push hook do it).
-3. **Push** — `git push` is the only command you strictly need to run.
-4. **CI takes over** — GitHub Actions compiles with clang-23, runs all tests,
-   collects coverage, builds Doxygen docs, and checks the LaTeX report.
-   Your workstation stays idle and cool.
-5. **Check progress** with `make pr-checks` or `make pr-watch` while CI runs.
-6. **Iterate** — if CI flags a failure, read the workflow logs, fix locally,
-   push again.  Repeat until green.
-7. **Mark ready** — once all CI checks are green, mark the PR ready for review.
+## CI is the reference
 
-**When local builds are needed:** non-trivial build failures or toolchain-specific
-issues that cannot be diagnosed from CI logs alone warrant a local `make compile`
-or `make test`.  This should be the exception, not the routine.
+[CI](https://github.com/vincentk/dedekind/actions/workflows/cmake.yml) runs the build, tests, coverage, linter, docs and papers through the same `make` targets you have locally.
+Its checks decide merge readiness, so `git push` is the only command you strictly need.
+A local `make compile` or `make test` is for failures you cannot diagnose from the CI logs.
+This also guards against "works on my laptop": CI is the reproducible baseline.
 
-The goal is to keep the contributor's focus on the mathematics and the code, not
-on build management.
+The workflow is deliberately optimistic: ship small checkpoints, let CI validate them in parallel, and converge on its feedback.
+If CI is red, on your PR or on `main`, fixing it comes before new work.
 
-For modeling decisions, prefer abstract/intensional carriers and symbolic types by
-default; choose a concrete runtime numeric representation only at realization points
-where concrete evaluation is intentionally required.
+## The Juliet Posture
+
+The library is written in a fragment of C++23, the Juliet Posture (Jlt), under three rules:
+
+| Rule | Statement |
+|---|---|
+| 1, values and pure functions | Every type passed around is `std::semiregular`, and every function is `constexpr` and depends on its arguments alone. |
+| 2, behaviour through concepts and traits | Generic code does with a `T` only what `T`'s declared constraints say it can. |
+| 3, recursion only folds | Recursion runs over a term, over a finite chain, or over an explicit budget. |
+
+The compiler holds parts of these, the [linter](tools/jlt-lint/README.md) more, and [review](.github/skills/jlt-review/SKILL.md) the rest; the [paper](https://vincentk.github.io/dedekind/jlt.pdf) states them in full.
+A fix is almost always a constraint stating what the body already does, not a cast or a workaround.
+
+For modeling decisions, prefer abstract/intensional carriers and symbolic types by default; choose a concrete runtime numeric representation only at realization points where concrete evaluation is intentionally required.
+
+[In Python](docs/python/README.md), the C++ core owns the mathematics and Python holds handles to it.
 
 ## Operating principles
 
-Two rules of thumb that shape how PRs are prepared and shipped in this repo. They
-interact: the second justifies the first.
+Two rules of thumb shape how PRs are prepared and shipped in this repo.
+They interact: the second justifies the first.
+Together they apply to PR content what CI applies to builds: the backlog need only converge, not be consistent at every moment, and conflicts are reconciled when they appear rather than locked against in advance.
 
 ### Boy-scout the surface you touch
 
@@ -117,72 +94,6 @@ Paired together, these rules pull the backlog toward consistency PR-by-PR rather
 than via dedicated refactor-burn sprints, at the cost of modest PR-body creep
 that is easy to justify to the reviewer.
 
-### The computational analogues
-
-Both rules are concrete instances of two distributed-systems concepts that
-already appear throughout this guide — spelling out the connection makes the
-underlying reasoning reusable:
-
-- **Eventual consistency** — the backlog does not need to be globally
-  consistent at every moment. It needs to *converge*. Boy-scouting accepts
-  temporary inconsistency (adjacent issues stay open while unrelated PRs
-  land) and commits to narrowing it one PR at a time. The alternative —
-  strong consistency, where every PR either leaves the backlog perfectly
-  aligned or doesn't ship — requires coordination we can't afford.
-- **Optimistic concurrency control** — proceed without pessimistic locking
-  against every possible conflict; detect and reconcile when they appear.
-  Under-promise/over-deliver is its contributor-level analogue: take on a
-  bit more than the minimum because the cost of over-delivery is
-  amortized by the speed of continued progress, and the cost of
-  under-delivery compounds into coordination debt.
-
-The CI workflow (`Development workflow` below) runs on the same two
-principles for the same reasons; the operating-principles layer just
-projects them onto PR content rather than build mechanics.
-
-## Development workflow
-
-- The `Makefile` is the **preferred** build interface; use `make <target>` rather than
-   raw `cmake`/`ninja`/`ctest` commands whenever an equivalent target exists.
-   Available targets: `compile`, `test-compile`, `test`, `format`, `format-check`, `coverage`, `doxygen`, `paper`,
-   `clean`, `install-hooks`, `ci-history`, `ci-main`, `pr-init`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`, `pr-review-comments`, `pr-review-unresolved`.
-- Contributor workflow helper targets:
-  `make ci-history BRANCH=<name> [LIMIT=<n>]` checks recent CI runs for a specific branch.
-  `make ci-main` checks recent `main` branch CI runs.
-  `make pr-init ISSUES="234 236" [TYPE=feat] [BASE=main]` creates the issue-scoped branch, makes an empty initialization commit, pushes it, and opens the draft PR.
-  `make pr-status` shows PR metadata for the current branch.
-  `make pr-checks` snapshots current PR check state.
-  `make pr-watch` blocks until PR checks complete.
-   `make pr-sync` runs fetch/status/PR-check snapshot before a push and fails fast if the PR has merge conflicts (`mergeStateStatus` is `DIRTY`/`CONFLICTING`).
-   `make pr-review-comments` lists inline review comments on the current PR (or `PR=<number>`).
-   `make pr-review-unresolved` scans unresolved review threads on the current PR (or `make pr-review-unresolved PR=<number>`) and prints thread IDs.
-   `make pr-resolve-thread THREAD_ID=<thread_id> REASON="<resolution note>"` resolves exactly one review thread and requires a reason.
-- Treat the GitHub CI build as the reference build for the project.  Local builds are useful,
-   but merge readiness is determined by the PR checks.
-- **Net result:** the CI pipeline uses the same `make` targets as contributors do locally
-   (`make test`, `make coverage`, `make doxygen`, `make paper`).  For routine development,
-   the only thing a contributor strictly needs to run locally is `git push`; GitHub Actions
-   handles the heavy compilation, test execution, coverage processing, and documentation
-   builds on every push.  Local builds remain necessary when debugging non-trivial build
-   failures or investigating toolchain-specific issues that cannot be diagnosed from CI logs
-   alone.
-- Workflow model note: this project intentionally uses an optimistic concurrency
-   model rather than a pessimistic one. In practice, CI is more authoritative
-   than local builds, and a small temporary divergence between local and CI
-   status is acceptable while iterating on draft PR checkpoints.
-- Operational consistency note: this workflow is intentionally asynchronous and
-   eventually consistent. Contributors should ship small checkpoints promptly,
-   let CI validate in parallel, and converge based on CI feedback.
-- Practical intent: during active PR development, temporary local/remote status
-   skew is expected; the team should optimize for fast convergence back to green
-   CI rather than for lock-step local synchronization at every step.
-- Motivation: this model is not only about throughput; it also mitigates
-   "works on my laptop" failures by treating CI as the reproducible baseline
-   and local environments as potentially non-reproducible.
-- RFC 2119 usage note (Section 6): use imperative terms proportionally.
-   Reserve `MUST` / `MUST NOT` for hard governance or safety constraints,
-   and prefer `SHOULD` / `SHOULD NOT` for routine workflow guidance.
-
 ## Module placement and build-order discipline
 
 The build DAG is not merely a compilation convenience — it is a semantic
@@ -208,137 +119,17 @@ definition should be expressed in more primitive terms without relying on the
 downstream concept.  Introducing a circular or inverted dependency to work
 around this is not permitted.
 
-This discipline mirrors the pedagogical progression described in the report
-(§2): foundational axioms reside upstream; theorems and derived constructions
-appear downstream, in the same order a textbook would present them.
-- Before starting new work, check that the most recent `main` branch CI run is green.
-- For backlog grooming, run a short preflight in this order: check `main` CI health, then list
-   open issues, then list open fork PRs, then classify each item as actionable / ambiguous /
-   already resolved / exact duplicate.
-- If the latest `main` CI run is red, prioritize stabilization before starting unrelated new work.
-- Keep the README small and stable.  Only update it when something is plainly wrong or deeply
-   misleading; routine progress belongs in the report and inline documentation.
-- Prefer plain `gh` CLI commands when working with issues, pull requests, and CI.
-- Open a draft PR early, even before the implementation is complete.  Push checkpoints
-   freely — you do not need to confirm that the code compiles or tests pass locally before
-   pushing.  The CI build is the authoritative reference; use it to offload compilation and
-   test validation so local development stays unblocked.
-- This project intentionally follows an optimistic concurrency model: contributors can
-   continue shipping small draft-PR checkpoints while CI validates correctness in parallel,
-   which improves overall throughput and reduces workstation idle/blocking time.
-- Before pushing, run `make format` or install the managed hook with `make install-hooks`.
-- Check the PR's CI status before each push to keep optimistic concurrency tight:
-   push small checkpoints, but verify the reference build state first so failures do not
-   compound into large divergences. If a check fails, read the workflow logs and address
-   the failure before continuing with unrelated work.
-   Suggested command flow:
-   `make pr-sync` (refresh branch + current PR state), then push, then `make pr-watch`.
-- After a green CI run, also check the Codecov report for regressions before marking the PR ready.
-- Mark the PR **Ready for Review** only once **all CI checks show green**.  A draft PR
-   with failing CI should never be marked ready.
-
-### Make Target Quick Reference
-
-| Target | Description |
-|---|---|
-| `make clean` | Remove the `build/` directory |
-| `make compile` | Configure (if needed) and build all targets |
-| `make test-compile` | `make compile` + build IR-fixture showcases; type-checks every C++ TU without running tests (fast local sanity gate) |
-| `make test` | Build then run the full test suite via CTest |
-| `make clean compile test` | Clean, rebuild, and run the verification suite |
-| `make format` | Auto-format all `*.cpp` / `*.cppm` sources with `clang-format` |
-| `make format-check` | Verify formatting without modifying files |
-| `make coverage` | Build, run tests, and produce an LLVM coverage report |
-| `make python-coverage` | Run Python tests and generate `build/python-coverage.xml` |
-| `make doxygen` | Build Doxygen API docs into `build/docs/` |
-| `make paper` | Fast paper compile check (`docs/paper` `ci-check`) |
-| `make install-hooks` | Install the pre-push git hook |
-
-### Backlog Grooming And CI Health Quick Loop
-
-1. Check CI health for `main`:
-   - `make ci-history BRANCH=main LIMIT=3`
-2. Collect backlog inputs:
-   - `gh issue list --state open --limit 50 --json number,title,body,labels,comments`
-   - `gh pr list --state open --json number,title,body,headRepositoryOwner --jq '.[] | select(.headRepositoryOwner.login != "vincentk")'`
-3. Classify each item:
-   - Actionable: clear scope and no blocking ambiguity; include in current plan.
-   - Ambiguous: add a clarifying issue/PR comment and defer implementation.
-   - Already resolved: close with a note referencing the resolving PR.
-   - Exact duplicate: keep one canonical issue open and close duplicates with a cross-reference comment.
-4. Pick a focused batch:
-   - Prefer exactly two actionable items in parallel when feasible.
-
-### Backlog Prioritization Matrix (Correlation x Causality)
-
-When selecting from the backlog, use the quadrant labels to separate broad thematic correlation from likely enabling/causal force:
-
-- `priority:q1-high-corr-high-causal`:
-   High cross-cluster leverage and likely enabling effect. Default first-pick lane.
-- `priority:q2-high-corr-low-causal`:
-   Strong bridge/correlation, but usually not a strict prerequisite.
-- `priority:q3-low-corr-high-causal`:
-   Narrow scope, but locally blocking/enabling for a concrete chain.
-- `priority:q4-low-corr-low-causal`:
-   Exploratory or lower immediate leverage.
-
-Selection heuristic:
-
-1. Prefer Q1 issues for primary execution.
-2. Pull one Q2 issue in parallel when bridge visibility is useful.
-3. Use Q3 issues to unblock local chains when blocked.
-4. Batch or defer Q4 unless it unlocks a near-term objective.
-
-Operational note:
-
-- Treat quadrant labels as best-effort, revisable metadata rather than permanent truth.
-- When new evidence appears, relabel and add a short rationale comment on the issue.
-- Keep native parent-child links for causal decomposition; use cross-references/comments for correlation edges.
-
-### Coverage Verification
-
-The project collects both C++ (via LCOV) and Python (via pytest-cov) coverage on every CI run.
-Both reports are uploaded to Codecov for centralized visibility.
-
-**Verifying Python coverage presence (for reviewers):**
-
-1. Open the PR's Codecov report link (available in PR checks or at `https://app.codecov.io/gh/vincentk/dedekind`).
-2. In the "Files" tab, verify that Python source files are listed alongside C++ files:
-   - Look for entries like `python/pynzli/__init__.py`, `python/pynzli/sequences.py`, etc.
-   - These indicate Python code is being tracked for coverage.
-3. Each file shows line-by-line coverage: green for covered, red for uncovered, gray for non-executable.
-
-**Collecting coverage locally (for contributors):**
-
-- **C++ coverage**: `make coverage` generates `build/coverage.info` (LCOV format).
-- **Python coverage**: `make python-coverage` generates `build/python-coverage.xml` (pytest-cov XML).
-- Both can be run and inspected before pushing to verify coverage baseline.
-
-**Why both C++ and Python coverage matter:**
-
-- C++ modules define the core mathematical operations and data structures.
-- Python bindings (via nanobind) provide the public API and integration points.
-- Full project coverage requires both layers; Python-only or C++-only coverage leaves integration
-  blind spots.
-
-## Review workflow
-
-- Resolve review comments and threads explicitly; do not leave unresolved conversations behind
-   when preparing a PR for merge.
-- Run `make pr-review-unresolved` before marking a PR ready; this target exits non-zero when unresolved
-  review threads are found.
-- For low-risk mechanical fixes, batching routine changes is acceptable; for semantic or API
-   changes, prefer manual edits so the trade-offs remain explicit.
-- After pushing follow-up commits, re-request review so the latest state is reviewed.
+Foundational axioms reside upstream; theorems and derived constructions appear
+downstream, in the same order a textbook would present them.
 
 ## Alignment with the codebase
 
-- Follow the module/partition layout described in `CMakeLists.txt` and the existing
+- Follow the module/partition layout described in [`CMakeLists.txt`](CMakeLists.txt) and the existing
   `main` partitions.
 - Mirror the doxygen header style used in neighbouring files — see
   `Doxygen header convention` below for the full shape.
 - Keep concepts and naming aligned with the textbook literature cited in
-  `docs/paper/references.bib`.  UTF-8 mathematical symbols (ℤ, ℝ, …) are preferred
+  [`docs/paper/references.bib`](docs/paper/references.bib).  UTF-8 mathematical symbols (ℤ, ℝ, …) are preferred
   over verbose ASCII alternatives.
 - Add or extend tests in the corresponding `src/test/cpp/modules/…` file.
 
@@ -372,6 +163,18 @@ code into the broader mathematical tradition and signals the care taken in
 the work's intellectual lineage. New files SHOULD adopt it; existing files
 missing it SHOULD acquire one as part of the touching PR (boy-scouting
 applies).
+
+## Review
+
+- A PR gets a Copilot review when it is marked Ready; after pushing follow-up commits, re-request review so the latest state is reviewed.
+- Resolve review threads explicitly, each with a reason (`make pr-resolve-thread`).
+- For low-risk mechanical fixes, batching routine changes is acceptable; for semantic or API changes, prefer manual edits so the trade-offs remain explicit.
+
+## Conventions
+
+- Use [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) terms proportionally: `MUST` for hard governance or safety constraints, `SHOULD` for routine guidance.
+- Keep the [README](README.md) small and stable; routine progress belongs in the [paper](https://vincentk.github.io/dedekind/jlt.pdf) and the [C++](https://vincentk.github.io/dedekind/) and [Python](https://vincentk.github.io/dedekind/python/) references.
+- The maintainer's [backlog process](docs/backlog.md) is separate.
 
 ## Questions
 
