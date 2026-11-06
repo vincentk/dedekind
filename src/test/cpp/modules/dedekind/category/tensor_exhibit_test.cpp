@@ -565,8 +565,8 @@ static_assert(count(bytes("GAATTCNGAANTTC") >> listing5::pali6) == 1uz);
 static_assert(count(bytes("GAATT") >> listing5::pali6) == 0uz);
 struct LawAgreesWithFold {
   std::span<const std::byte> text;
-  constexpr bool operator()(std::size_t n) const {
-    const auto t = text.first(n);
+  constexpr bool operator()(std::size_t length) const {
+    const auto t = text.first(length);
     return count(t >> listing5::pali6) ==
            count(t >> dedekind::category::windows(6uz) >>
                  dedekind::category::where(listing5::pali6));

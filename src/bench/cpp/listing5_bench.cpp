@@ -477,6 +477,39 @@ void row(std::string_view name, double ns, double draw) {
   std::println("| {} | {:.3f} | {:.2f} |", name, ns, ns / draw);
 }
 
+/** @brief A word of the text read, and nothing else done with it. */
+struct ReadWord {
+  constexpr std::uint64_t operator()(std::uint64_t total,
+                                     std::uint64_t word) const {
+    return total ^ word;
+  }
+};
+std::uint64_t read_all(Text t) {
+  const std::span<const std::uint64_t> words{
+      reinterpret_cast<const std::uint64_t*>(t.data()), t.size() / 8uz};
+  return std::ranges::fold_left(words, std::uint64_t{0}, ReadWord{});
+}
+
+/** @brief The same scans on a text too long for the cache to hold, against this
+ *  machine's own plain read of it: the bus, as measured here. */
+void past_the_cache() {
+  constexpr std::size_t N = 2'000'000'000;
+  const auto stored = random_text(bases, N) | std::ranges::to<std::vector>();
+  const Text text{stored};
+  const double read = ns_per_letter(read_all, text, N);
+  const double law = ns_per_letter(by_the_law, text, N);
+  const double scan = ns_per_letter(table_64, text, N);
+  std::println("\n{} letters, past the cache.\n", N);
+  std::println("| Row | GB/s | Share of a plain read |");
+  std::println("|---|---:|---:|");
+  std::println("| a plain read of every word | {:.2f} | 1.00 |", 1.0 / read);
+  std::println(
+      "| the library's count(text >> pali6), by the law | {:.2f} | {:.2f} |",
+      1.0 / law, read / law);
+  std::println("| the 64 sites' table | {:.2f} | {:.2f} |", 1.0 / scan,
+               read / scan);
+}
+
 int table() {
   constexpr std::size_t N = 100'000'000;
   constexpr std::size_t N_windows = 2'000'000;  // tested one by one: slow
@@ -557,6 +590,7 @@ int table() {
       ns_per_letter(drawn_table_64, N, N), draw);
   row("drawn and scanned, the 11-state table",
       ns_per_letter(drawn_table_11, N, N), draw);
+  past_the_cache();
   return 0;
 }
 
