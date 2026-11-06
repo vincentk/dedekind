@@ -428,7 +428,7 @@ Preservation along a step, that $e \longrightarrow e'$ keeps the type, is the us
 \end{proof}
 
 Three reductions of the target run ahead of the source: the fuel of a descending self-call, the count of a fold and the reading of a node into its constructor.
-Write $t \sqsupseteq e$ when $t$ is $\llbracket e \rrbracket$ with some occurrences of the name $f$ of a function of the one exception, applied to an argument whose value is $w$, replaced by $F^{m}\,d$ with $m \geq w + 1$, some counts $\mathit{toNat}\,|\llbracket r \rrbracket|$ replaced by their numerals, and some readings $\mathit{node}_{O}\,\llbracket t \rrbracket$ of a node replaced by their reducts; in particular $\llbracket e \rrbracket \sqsupseteq e$, and $t \sqsupseteq c$ only for $t = c$, a constant holding neither a name nor a count.
+Write $t \sqsupseteq e$ when $t$ is $\llbracket e \rrbracket$ with some occurrences of the name $f$ of a function of the one exception, applied to an argument whose value is $w$, replaced by $F^{m}\,d$ with $m \geq w + 1$, some counts $\mathit{toNat}\,|\llbracket r \rrbracket|$ replaced by their numerals, and some readings $\mathit{node}_{O}\,\llbracket v \rrbracket$ of a node that is already a value replaced by their reducts, so that no pending source step is erased or anticipated; in particular $\llbracket e \rrbracket \sqsupseteq e$, and $t \sqsupseteq c$ only for $t = c$, a constant holding neither a name nor a count.
 
 \begin{lemma}[Forward simulation]
 \label{lem:forward}
