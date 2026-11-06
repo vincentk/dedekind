@@ -499,7 +499,7 @@ std::uint64_t read_all(Text t) {
 /** @brief The same scans on a text too long for the cache to hold, against this
  *  machine's own plain read of it: the bus, as measured here. */
 void past_the_cache() {
-  constexpr std::size_t N = 2'000'000'000;
+  constexpr std::size_t N = 3'100'000'000;  // a human genome's bases, about
   const auto stored = random_text(bases, N) | std::ranges::to<std::vector>();
   const Text text{stored};
   const double read = ns_per_letter(read_all, text, N);

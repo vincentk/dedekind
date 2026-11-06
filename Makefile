@@ -42,7 +42,7 @@ _HOST_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || ech
 JOBS ?= $(shell j=$$(( $(_HOST_CORES) - 2 )); [ $$j -lt 2 ] && j=2; echo $$j)
 
 .PHONY: help python-api jlt-lint jlt-lint-tool
-.PHONY: bench all clean compile test-compile test integration-test coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-paper-deps doxygen paper paper-jlt \
+.PHONY: bench bench-native all clean compile test-compile test integration-test coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-paper-deps doxygen paper paper-jlt \
 	ci-history ci-main pr-init pr-status pr-status-all pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list jupyter
 
@@ -171,7 +171,9 @@ coverage: compile ## Build, run tests, and produce the LLVM coverage report
 # The Listing 5 benchmark, in its own build directory, without coverage.  It fails
 # if the ways of counting disagree or the library falls far behind.  Results in
 # build/bench.
-BENCH_DIR := $(BUILD_DIR)-bench
+BENCH_DIR ?= $(BUILD_DIR)-bench
+BENCH_OUT ?= $(BUILD_DIR)/bench
+BENCH_FLAGS ?=
 bench: ## Run the C++ benchmark, without coverage
 	cmake -S . -B $(BENCH_DIR) -G Ninja \
 		-DCMAKE_CXX_COMPILER=$(CXX) \
@@ -179,18 +181,25 @@ bench: ## Run the C++ benchmark, without coverage
 		-DCMAKE_CXX_SCAN_FOR_MODULES=ON \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DDEDEKIND_COVERAGE=OFF \
+		-DDEDEKIND_BENCH_FLAGS='$(BENCH_FLAGS)' \
 		-DDEDEKIND_BENCH=ON
 	cmake --build $(BENCH_DIR) --target bench_listing5 --parallel $(JOBS)
-	mkdir -p $(BUILD_DIR)/bench
-	bash -o pipefail -c '$(BENCH_DIR)/bench_listing5 | tee $(BUILD_DIR)/bench/scanner.md'
+	mkdir -p $(BENCH_OUT)
+	bash -o pipefail -c '$(BENCH_DIR)/bench_listing5 | tee $(BENCH_OUT)/scanner.md'
 	{ echo; echo '| Letters | Found | Peak KiB |'; echo '|---:|---:|---:|'; \
 	  $(BENCH_DIR)/bench_listing5 memory 10000000; \
-	  $(BENCH_DIR)/bench_listing5 memory 10000000000; } | tee -a $(BUILD_DIR)/bench/scanner.md
+	  $(BENCH_DIR)/bench_listing5 memory 10000000000; } | tee -a $(BENCH_OUT)/scanner.md
 	-for f in scan_definition scan_table law_ascii law_ranks law_masks law_guarded law_blocks law_guarded_blocks law_words law_columnar; do \
 	  objdump -d --no-show-raw-insn --disassemble=$$f $(BENCH_DIR)/bench_listing5; \
-	done | tee $(BUILD_DIR)/bench/law.s
+	done | tee $(BENCH_OUT)/law.s
 	-objdump -d -C --no-show-raw-insn $(BENCH_DIR)/bench_listing5 | \
-	  awk '/^[0-9a-f]+ <.*ReflectedBlock.*>:/,/^$$/' > $(BUILD_DIR)/bench/library.s
+	  awk '/^[0-9a-f]+ <.*ReflectedBlock.*>:/,/^$$/' > $(BENCH_OUT)/library.s
+
+# The same at -O3 for this machine's own instructions: what the hardware can do,
+# where `bench` is what a wheel ships.
+bench-native: ## Run the C++ benchmark at -O3 -march=native
+	$(MAKE) bench BENCH_DIR=$(BUILD_DIR)-bench-native BENCH_OUT=$(BUILD_DIR)/bench/native \
+		BENCH_FLAGS='-O3;-march=native'
 
 wheel: ## Build and check the Python wheel (VERSION=)
 	bash .github/scripts/wheel.sh $(VERSION)

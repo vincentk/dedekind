@@ -57,6 +57,11 @@ set(DEDEKIND_WARNING_FLAGS
 )
 
 # --- Instrumentation ---
+# Flags for a benchmark on the machine that runs it (`make bench-native`), after
+# the build's own, so they win, and on every target, so modules share them.
+set(DEDEKIND_BENCH_FLAGS "" CACHE STRING "Extra flags for a benchmark build")
+add_compile_options(${DEDEKIND_BENCH_FLAGS})
+
 # On in a developer's build; a wheel turns it off (pyproject.toml), and carries
 # none.
 option(DEDEKIND_COVERAGE "Instrument every target for LLVM coverage" ON)

@@ -114,13 +114,15 @@ jobs:
         { git rev-parse HEAD; lscpu | grep -E 'Model name|^CPU\(s\)'; "$CXX" --version | head -1; } | tee build/bench/machine.txt
     - name: C++
       run: make bench CXX="$CXX" CC="$CC" JOBS="$(nproc)"
+    - name: C++, for this machine
+      run: make bench-native CXX="$CXX" CC="$CC" JOBS="$(nproc)"
     - name: Python, on the wheel without coverage
       run: build/venv-wheel-verify/bin/python -I src/bench/python/listing5_bench.py | tee build/bench/python.md
     - name: Upload the results
       uses: actions/upload-artifact@v7
       with:
         name: benchmark
-        path: build/bench/*
+        path: build/bench/
 
   # The docs and the papers; deployed to Pages from main.  A PR labelled
   # `docs` builds them too, to try a change to the toolchain before main.
