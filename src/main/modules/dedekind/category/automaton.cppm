@@ -816,14 +816,13 @@ using BlockVerdicts = std::array<std::uint8_t, block_windows>;
 struct RankOfFour {
   std::array<std::byte, 4> letters;
   constexpr std::uint8_t operator()(std::byte c) const {
-    const std::uint8_t a = c == letters[0];
-    const std::uint8_t b = c == letters[1];
-    const std::uint8_t g = c == letters[2];
-    const std::uint8_t t = c == letters[3];
-    const auto known = static_cast<std::uint8_t>(a | b | g | t);
-    return static_cast<std::uint8_t>(
-        b | (g << 1) | (t * 3u) |
-        (static_cast<std::uint8_t>(known - 1u) & 0x80u));
+    const unsigned a = c == letters[0];
+    const unsigned b = c == letters[1];
+    const unsigned g = c == letters[2];
+    const unsigned t = c == letters[3];
+    const unsigned known = a | b | g | t;
+    return static_cast<std::uint8_t>(b | (g << 1u) | (t * 3u) |
+                                     ((known - 1u) & 0x80u));
   }
 };
 /** @brief A position's verdict with one more pair.  The reflection on four
