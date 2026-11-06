@@ -99,7 +99,7 @@ In Listing~\ref{lst:rule1}, \cppinline{const T} and \cppinline{const T&} are one
 An arrow is a function made a value, and its laws are equations between values, so \cppinline{==} is where Leibniz's law meets the program: the kernel asks it of no type, the listings of every carrier a law is stated on.
 The properties a law singles out, mono, epi and iso by cancellation~\cite{pierce1991basic}, involution, the variances, are certificates declared or derived on the arrow, whose type names carrier and operation, so a certificate is about the signature.
 Two consequences keep that exact: a function returns a value, never a reference, and every member function, a call operator included, is \cppinline{const}.
-The grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, and the linter of Section~\ref{sec:limits} holds \Cpp{} to the same.
+The grammar of Appendix~\ref{app:fjlt:syntax} has neither a reference type nor a non-\cppinline{const} member, and the linter of Section~\ref{sec:limits} holds \Cpp{} to the same.
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.
 
 \paragraph{Rule 2, Abstraction: a type varies behaviour only through its concepts and traits.}

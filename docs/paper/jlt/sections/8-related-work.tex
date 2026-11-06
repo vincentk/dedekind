@@ -13,7 +13,7 @@ Rust and Swift also check a generic body against its bounds: a comparison on an 
 That is Rule~2 as a compiler check, the half \Cpp{20} dropped, and the posture, together with the linter of Section~\ref{sec:limits}, is what recovering it by hand costs.
 
 \paragraph{Concepts, and the calculus next door.}
-The nearest neighbour of Appendix~\ref{app:fjlt} is Siek and Lumsdaine's $F^G$~\cite{siek2005essential,siek2004formalization}: System~F with concepts and models, translated into System~F by dictionary passing, with the translation proved sound in Isabelle.
+The nearest neighbour of FJlt is Siek and Lumsdaine's $F^G$~\cite{siek2005essential,siek2004formalization}: System~F with concepts and models, translated into System~F by dictionary passing, with the translation proved sound in Isabelle.
 It grew from the same work as the concepts then proposed for \Cpp{0x}~\cite{gregor2006concepts,dosreis2006specifying}, which checked template bodies and were removed~\cite{stroustrup2009remove}, leaving the gap Rule~2 names.
 $F^G$'s models are nominal and can be declared for whole families of types, which is what the library behind this paper's listings needs after its shapes, where FJlt's function-specialisation instances are not found (Section~\ref{sec:limits}).
 FJlt is the smaller calculus, and the price of being a subset of a shipped language.
@@ -29,7 +29,7 @@ CoreC++~\cite{wasserrab2006operational} gives an operational semantics and a mac
 These formalise the part of \Cpp{} that Rule~1 excludes, objects with identity and lifetime, and none covers templates, concepts or constant evaluation, so FJlt is a fragment with its own grammar rather than a subset of a formalised \Cpp{}.
 
 \paragraph{What System~F supplies.}
-Strong normalisation is Girard's \cite{girard1989proofs}, with inductive types Matthes' \cite{matthes1999extensions}, and parametricity Reynolds' \cite{reynolds1983types}: the appendix uses both as black boxes, which is the point of translating into System~F; data types as their own folds is B\"ohm and Berarducci's reading \cite{bohm1985automatic}, which the appendix takes with iterators in place of Church encodings.
+Strong normalisation is Girard's \cite{girard1989proofs}, with inductive types Matthes' \cite{matthes1999extensions}, and parametricity Reynolds' \cite{reynolds1983types}: the appendix uses both as black boxes, which is the point of translating into System~F; data types as their own folds is B\"ohm and Berarducci's reading \cite{bohm1985automatic}, which the translation takes with iterators in place of Church encodings.
 
 \paragraph{Functional programming in \Cpp{}, and the other direction.}
 Functional programming in \Cpp{} is practised and taught: in a book~\cite{cukic2018functional}, in a metaprogramming library~\cite{chagnon2016hana}, and in category theory with examples in \Cpp{}~\cite{milewski2019category}; none states a fragment or proves anything of it.
