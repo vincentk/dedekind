@@ -934,6 +934,10 @@ class ContextOrder : public clang::ASTConsumer,
       if (primary == primaries.end()) continue;
       std::vector<const clang::ConceptSpecializationExpr*> named;
       namedConcepts(contextOf(ft), named);
+      for (const clang::NamedDecl* p : *ft->getTemplateParameters())
+        if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
+          if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
+            namedConcepts(tc->getImmediatelyDeclaredConstraint(), named);
       namedConcepts(f->getTrailingRequiresClause().ConstraintExpr, named);
       for (const auto* cs : named) {
         const clang::ConceptDecl* c = cs->getNamedConcept();
@@ -956,9 +960,7 @@ class ContextOrder : public clang::ASTConsumer,
     if (f->isDeleted()) {
       primaries.emplace(f->getNameAsString(),
                         sm->getExpansionLoc(ft->getLocation()));
-    } else if ((contextOf(ft) ||
-                f->getTrailingRequiresClause().ConstraintExpr) &&
-               unstructuredHead(f)) {
+    } else if (constrained(ft) && unstructuredHead(f)) {
       instances.push_back(ft);
     }
     return true;

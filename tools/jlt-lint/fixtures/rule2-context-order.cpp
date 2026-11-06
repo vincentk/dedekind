@@ -21,6 +21,18 @@ constexpr std::size_t g(T) {  // context-order 1: C follows g's primary
 }
 
 template <typename T>
+constexpr std::size_t k(T) = delete;
+template <typename T>
+concept K = requires(const T a) {
+  { k(a) } -> std::same_as<std::size_t>;
+};
+template <K T>  // context-order 2: a constrained parameter, K follows k's
+                // primary
+                constexpr std::size_t k(T) {
+  return 0;
+}
+
+template <typename T>
 concept D = std::integral<T>;  // before the primary it serves
 template <typename T>
 constexpr std::size_t h(T) = delete;
