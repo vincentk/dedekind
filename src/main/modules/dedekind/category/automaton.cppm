@@ -764,6 +764,169 @@ constexpr auto operator>>(R r, const Prefixed<P, S, T>& s) {
          where(arrow<std::span<const Dom<T>>, bool>(s));
 }
 
+/** @concept IsByteText
+ *  @brief A text of bytes that can be read at any position, from a const
+ *  value, as a block of a scan reads it.  @tparam R the view. */
+export template <typename R>
+concept IsByteText = detail_comprehension::IsForeignView<R> &&
+                     std::ranges::random_access_range<const R> &&
+                     std::ranges::sized_range<const R> &&
+                     std::same_as<std::ranges::range_value_t<R>, std::byte>;
+
+/** @brief @c r @c >> @c s for a section fixed by reversal and the alphabet's
+ *  reflection: the same query, kept beside what it was built from, for
+ *  @c count below to read the law from.  @tparam R the text.  @tparam N the
+ *  section's counts. */
+export template <IsByteText R, IsCountWord N>
+struct ReflectedWindows {
+  using Section = Symmetric<Power<std::byte, Letters, N>, Reverse, Reflection>;
+  using Query = decltype(std::declval<R>() >> windows(1uz) >>
+                         where(std::declval<const Section&>()));
+  R text;
+  Section section;
+  Query query;
+  constexpr auto begin() const { return query.begin(); }
+  constexpr auto end() const { return query.end(); }
+};
+}  // namespace dedekind::category
+template <typename R, typename N>
+inline constexpr bool
+    std::ranges::enable_view<dedekind::category::ReflectedWindows<R, N>> = true;
+namespace dedekind::category {
+/** @brief @c r @c >> @c s, where the law is in the section's type.  @param r
+ * the text.  @param s the section.  @return the query, as the general one. */
+export template <IsByteText R, IsCountWord N>
+constexpr ReflectedWindows<R, N> operator>>(
+    R r,
+    const Symmetric<Power<std::byte, Letters, N>, Reverse, Reflection>& s) {
+  return {r, s,
+          r >> windows(static_cast<std::size_t>(s.power.length)) >> where(s)};
+}
+
+namespace detail_automaton {
+/** @brief How many windows a block holds: their verdicts sum in a byte, the
+ *  width of a vector's lane.  @c longest_word bounds a word, for the block's
+ *  fixed storage. */
+inline constexpr std::size_t block_windows = 240;
+inline constexpr std::size_t longest_word = 16;
+using BlockRanks = std::array<std::uint8_t, block_windows + longest_word>;
+using BlockVerdicts = std::array<std::uint8_t, block_windows>;
+/** @brief A letter's rank among four, by comparing it with each, a hole 0x80:
+ *  no table, so nothing here stops the compiler reading a block in a batch. */
+struct RankOfFour {
+  std::array<std::byte, 4> letters;
+  constexpr std::uint8_t operator()(std::byte c) const {
+    const std::uint8_t a = c == letters[0];
+    const std::uint8_t b = c == letters[1];
+    const std::uint8_t g = c == letters[2];
+    const std::uint8_t t = c == letters[3];
+    const auto known = static_cast<std::uint8_t>(a | b | g | t);
+    return static_cast<std::uint8_t>(
+        b | (g << 1) | (t * 3u) |
+        (static_cast<std::uint8_t>(known - 1u) & 0x80u));
+  }
+};
+/** @brief A position's verdict with one more pair.  The reflection on four
+ *  ranks is @f$3 - r@f$, so a pair's ranks sum to three, which a hole never
+ *  does: this is the law, in the operators the machine has. */
+struct WithPair {
+  const std::uint8_t* verdict;
+  const std::uint8_t* left;
+  const std::uint8_t* right;
+  constexpr std::uint8_t operator()(std::size_t i) const {
+    const auto sum = static_cast<std::uint8_t>(left[i] + right[i]);
+    return static_cast<std::uint8_t>(verdict[i] &
+                                     static_cast<std::uint8_t>(sum == 3u));
+  }
+};
+/** @brief The block's verdicts after the @c k -th pair: no position depends on
+ *  another, so one pass is a loop the compiler may batch. */
+struct PairPass {
+  const std::uint8_t* ranks;
+  std::size_t windows;
+  std::size_t length;
+  constexpr BlockVerdicts operator()(const BlockVerdicts& verdict,
+                                     std::size_t k) const {
+    BlockVerdicts next{};
+    std::ranges::transform(
+        std::views::iota(0uz, windows), next.begin(),
+        WithPair{verdict.data(), ranks + k, ranks + (length - 1uz - k)});
+    return next;
+  }
+};
+/** @brief A verdict added in a byte, which @c count refuses as a byte's
+ *  arithmetic promotes; a block keeps this one in range. */
+struct AddVerdict {
+  constexpr std::uint8_t operator()(std::uint8_t total,
+                                    std::uint8_t verdict) const {
+    return static_cast<std::uint8_t>(total + verdict);
+  }
+};
+/** @brief One block of the count: its ranks, a pass per pair, its sum.  Fixed
+ *  storage, so the text is read where it is and never stored. */
+template <IsCountWord W, IsByteText R>
+struct ReflectedBlock {
+  R text;
+  RankOfFour rank;
+  std::size_t all_windows;
+  std::size_t length;
+  constexpr W operator()(W total, std::size_t block) const {
+    using D = std::ranges::range_difference_t<const R>;
+    const std::size_t lo = block * block_windows;
+    const std::size_t windows = std::min(block_windows, all_windows - lo);
+    const auto first = std::ranges::begin(text) + static_cast<D>(lo);
+    BlockRanks ranks{};
+    std::ranges::transform(first,
+                           first + static_cast<D>(windows + length - 1uz),
+                           ranks.begin(), rank);
+    BlockVerdicts ones{};
+    std::ranges::fill(ones, std::uint8_t{1});
+    const BlockVerdicts verdict =
+        std::ranges::fold_left(std::views::iota(0uz, length / 2uz), ones,
+                               PairPass{ranks.data(), windows, length});
+    return static_cast<W>(
+        total + std::ranges::fold_left(
+                    verdict.begin(),
+                    verdict.begin() + static_cast<std::ptrdiff_t>(windows),
+                    std::uint8_t{0}, AddVerdict{}));
+  }
+};
+/** @param alphabet at most 257 letters, in rank order.  @return its first
+ *  four, for an alphabet known to have them. */
+constexpr std::array<std::byte, 4> four_of(
+    const AtMost<std::byte, 257>& alphabet) {
+  return {alphabet.items[0], alphabet.items[1], alphabet.items[2],
+          alphabet.items[3]};
+}
+}  // namespace detail_automaton
+/** @brief The count of a section fixed by reversal and reflection, without
+ *  asking each window: the law says a window is independent pairs, so
+ *  no position depends on another, and the alphabet's four letters and the
+ *  length are values, here as in a binding.  Another shape of section, or a
+ *  word too long for a block, takes the plain fold, whose answer this one
+ *  must equal.  @param q the query.  @return how many of its windows hold. */
+export template <IsCountWord W = std::size_t, IsByteText R, IsCountWord N>
+constexpr W count(const ReflectedWindows<R, N>& q) {
+  const auto length = static_cast<std::size_t>(q.section.power.length);
+  const AtMost<std::byte, 257> alphabet = letters_of(q.section.power);
+  const std::size_t text = std::ranges::size(q.text);
+  if (alphabet.size() != 4uz || length == 0uz || length % 2uz != 0uz ||
+      length > detail_automaton::longest_word) {
+    return count<W>(q.query);
+  }
+  if (text < length) return W{0};
+  const std::size_t all_windows = text - length + 1uz;
+  return std::ranges::fold_left(
+      std::views::iota(0uz,
+                       (all_windows + detail_automaton::block_windows - 1uz) /
+                           detail_automaton::block_windows),
+      W{0},
+      detail_automaton::ReflectedBlock<W, R>{
+          q.text,
+          detail_automaton::RankOfFour{detail_automaton::four_of(alphabet)},
+          all_windows, length});
+}
+
 // The rank of a byte in an alphabet is a Kleisli arrow into Maybe: a
 // letter's rank, or nothing.
 template <>

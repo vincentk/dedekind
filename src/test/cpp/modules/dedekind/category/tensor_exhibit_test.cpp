@@ -559,6 +559,30 @@ struct AddLetter {
     return c;
   }
 };
+// The count by the law against the plain fold over the windows, each read as
+// defined.  A hole breaks a window under both.  Over a block's edge too.
+static_assert(count(bytes("GAATTCNGAANTTC") >> listing5::pali6) == 1uz);
+static_assert(count(bytes("GAATT") >> listing5::pali6) == 0uz);
+struct LawAgreesWithFold {
+  std::span<const std::byte> text;
+  constexpr bool operator()(std::size_t n) const {
+    const auto t = text.first(n);
+    return count(t >> listing5::pali6) ==
+           count(t >> dedekind::category::windows(6uz) >>
+                 dedekind::category::where(listing5::pali6));
+  }
+};
+TEST_CASE("Category: the count by the law is the plain fold's",
+          "[category][tensor][listing5]") {
+  const auto stored = dedekind::category::random_text(
+                          dedekind::category::abc("ACGTN"), 5'000uz) |
+                      std::ranges::to<std::vector>();
+  constexpr std::array<std::size_t, 8> lengths{6,   7,   239, 240,
+                                               245, 246, 247, 5'000};
+  CHECK(std::ranges::all_of(
+      lengths, LawAgreesWithFold{std::span<const std::byte>{stored}}));
+}
+
 TEST_CASE("Category: Listing 5's scanner on ten million random bases",
           "[category][tensor][listing5][smoke]") {
   constexpr size_t N = 10'000'000;

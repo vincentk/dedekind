@@ -130,7 +130,10 @@ std::uint64_t letter_of_the_library(std::size_t n) {
   return x;
 }
 
-std::uint64_t each_window(Text t) { return count(t >> pali6); }
+std::uint64_t each_window(Text t) {
+  return count(t >> windows(6uz) >> where(pali6));
+}
+std::uint64_t by_the_law(Text t) { return count<std::uint64_t>(t >> pali6); }
 std::uint64_t table_64(Text t) { return count(t >> scanner_64); }
 std::uint64_t table_11(Text t) { return count(t >> scanner_11); }
 std::uint64_t by_hand_64(Text t) { return by_hand(hand_64, t); }
@@ -502,7 +505,8 @@ int table() {
   if (ascii_row(ascii) != all || ranks_row(ranks) != all ||
       masks_row(masks) != all || guarded_row(ascii) != all ||
       blocks_row(ranks) != all || guarded_blocks_row(ascii) != all ||
-      words_row(&packed) != all || columnar_row(ascii) != all) {
+      words_row(&packed) != all || columnar_row(ascii) != all ||
+      by_the_law(text) != all) {
     std::println(stderr, "the law's plans disagree with the table");
     return 1;
   }
@@ -527,6 +531,8 @@ int table() {
       ns_per_letter(holes_11, text, N), draw);
   row("the same table, hand-written, no holes",
       ns_per_letter(by_hand_11, text, N), draw);
+  row("the library's count(text >> pali6), by the law",
+      ns_per_letter(by_the_law, text, N), draw);
   row("the law, letters as they come (ACGT only)",
       ns_per_letter(ascii_row, ascii, N), draw);
   row("the law, ranks in bytes", ns_per_letter(ranks_row, Bytes{ranks}, N),
