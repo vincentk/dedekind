@@ -64,7 +64,7 @@ if(DEDEKIND_COVERAGE)
     add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
     add_link_options(-fprofile-instr-generate)
 endif()
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 # One optimisation level for every target, -O2, the level the Jlt paper reads
 # its IR at: a module's consumers then share its flags, and CMake reuses its
 # BMI instead of synthesising another copy of every module library for the
@@ -296,7 +296,7 @@ add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
     src/test/cpp/modules/dedekind/python/showcase_alpha_prime.cpp)
 
 set_target_properties(set-pruning-ir-fixture PROPERTIES
-    CXX_STANDARD 23
+    CXX_STANDARD 26
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
     CXX_SCAN_FOR_MODULES ON)
