@@ -1059,7 +1059,12 @@ class ConvertedResult : public clang::ASTConsumer,
   }
   bool VisitCallExpr(clang::CallExpr* e) {
     // The result called through its own type; the arguments are not judged.
-    if (!llvm::isa<clang::CXXOperatorCallExpr>(e)) judge(e->getCallee(), false);
+    // A member callee, a.next in a.next(), names the operation, not a result.
+    const clang::Expr* callee = e->getCallee()->IgnoreParenImpCasts();
+    if (!llvm::isa<clang::CXXOperatorCallExpr>(e) &&
+        !llvm::isa<clang::CXXDependentScopeMemberExpr>(callee) &&
+        !llvm::isa<clang::MemberExpr>(callee))
+      judge(callee, false);
     return true;
   }
   bool VisitIfStmt(clang::IfStmt* s) {

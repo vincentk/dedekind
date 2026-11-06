@@ -118,6 +118,10 @@ constexpr bool as_bool(const T& a, const T& b) {  // fine: R is bool here
   return !(a == b);
 }
 
+template <Membered T>
+constexpr T returned(const T& a) {  // fine: a member call's result at T
+  return a.next();
+}
 template <Loose T>
 constexpr T at_type(const T& a, const T& b) {  // fine: returned at T
   return a + b;
