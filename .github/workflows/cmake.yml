@@ -214,7 +214,8 @@ jobs:
   testpypi-dev-install:
     needs: testpypi-dev
     strategy:
-      matrix: &platforms  # what pip is offered: what is built
+      # What pip is offered: what is built.
+      matrix: &platforms
         runner: [ubuntu-26.04, macos-26]
     runs-on: ${{ matrix.runner }}
     permissions:
