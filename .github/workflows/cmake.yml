@@ -435,3 +435,42 @@ jobs:
       VERSION: ${{ needs.release-wheel.outputs.version }}
       INDEX_HOST: pypi.org
     steps: *install  # 9. The wheel from PyPI
+
+  # main went red: one issue, assigned to the owner, which stays open while main
+  # is red and is closed by the next green run.  So one notification an incident,
+  # not one a run, and none for a PR.  A cancelled run says nothing either way.
+  # Writes issues, and runs only gh: no checkout.
+  main-status:
+    if: >-
+      !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs:
+    - build-and-deploy
+    - python-dist
+    - docs-and-pages
+    - release-plan
+    - build-macos
+    - release-tag
+    - release-wheel
+    - release-testpypi
+    - release-testpypi-install
+    - release-github
+    - release-pypi
+    - release-pypi-install
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      FAILED: ${{ contains(needs.*.result, 'failure') }}
+      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      TITLE: main is red
+    steps:
+    - name: One issue while main is red
+      run: |
+        open=$(gh issue list --state open --author app/github-actions --search "\"$TITLE\" in:title" --json number --jq '.[0].number // empty')
+        if [ "$FAILED" = true ]; then
+          [ -n "$open" ] || gh issue create --title "$TITLE" --assignee "$GITHUB_REPOSITORY_OWNER" --body "$RUN"
+        elif [ -n "$open" ]; then
+          gh issue close "$open" --comment "Green again: $RUN"
+        fi
