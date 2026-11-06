@@ -2,37 +2,6 @@
 \section{Featherweight Jlt syntax}
 \label{app:fjlt:syntax}
 
-FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}, under the three rules of Section~\ref{sec:posture}.
-Its base types form a \emph{signature} $\Sigma$ of carriers: a type is a carrier if it keeps \RuleOne, its operations are total, and it has an image in the target (Appendix~\ref{app:fjlt:translation}).
-Only totality is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operation defined on every input, Lemma~\ref{lem:progress} needs it, and it keeps \cppinline{int}'s overflow and division out.
-$\Sigma$ is not a list; the listings use \cppinline{bool}, \cppinline{size_t}, \cppinline{std::string} with concatenation and the comparisons, allocation failure aside, and finite enumerations such as \cppinline{Ternary}.
-
-Metavariables: $\alpha, \beta$ range over type variables, $b$ over the carriers of $\Sigma$, $O$ over the function-object types, standard (\cppinline{std::plus}, \cppinline{std::logical_and}, \ldots) or declared, $r$ over ranges, $\oplus$ over the operations of $\Sigma$, $C$ over concept names, the standard ones included, $S$ over the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ over function names, $x$ over term variables and $c$ over constants.
-The total operations are, on unsigned carriers, addition, subtraction, multiplication and the bitwise operations, which wrap, the comparisons, and division, remainder and the shifts by a literal the carrier can take; on \cppinline{bool}, the logical operations.
-By a variable, division, remainder and the shifts are partial and not admitted.
-
-\paragraph{How \Cpp{} spells it.}
-A trait is a deleted function template; an instance with a context is a generic function whose \cppinline{requires} clause is the context.
-\cppinline{auto} in a listing names the type the body has, and a parameter written \cppinline{const τ} or \cppinline{const τ&} is the parameter $\tau\; x$, since a value is immutable and a reference to one denotes it.
-An operation is a struct with fields and a \cppinline{const} call operator; the standard function objects and the library's formers, \cppinline{Compose} among them, are operations, and a term applies one by constructing it with its fields.
-\cppinline{optional<τ>} is $1 + \tau$, with $\iota_1$ = \cppinline{nullopt}, $\iota_2\,e$ = \cppinline{optional\{e\}} and the case \cppinline{s.transform(g).value_or(f)}, $f$ the value for the empty one.
-\cppinline{variant<τ₁, τ₂>} is $\tau_1 + \tau_2$, with $\iota_i\,e$ = \cppinline{variant<τ₁, τ₂>(in_place_index<i-1>, e)} and the case dispatched on the index, as the library's \cppinline{Copairing} writes it; \cppinline{std::visit} is the case whose two branches are one operation.
-\cppinline{*} on an optional and \cppinline{std::get} on a variant are partial and are not terms; Appendix~\ref{app:fjlt:closure} says where they are admitted.
-A box is built by \cppinline{make_shared} and read by \cppinline{*}, and nothing else is a term: no \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes, so no program can ask which box holds a value.
-\cppinline{e.first} and \cppinline{e.second} read as $\pi_1$ and $\pi_2$~\cite{pierce1991basic}; the library's \cppinline{π_1} and \cppinline{π_2} are the same projections as function objects.
-
-\paragraph{Ranges and terms.}
-A range $r$ is an instance of a family $\mathcal{R}$ defined by conditions: a length $|r| \in \mathbb{N}$, fixed before a fold starts, and, when $|r| > 0$, a head and a tail $\mathit{next}\,r$ with $|\mathit{next}\,r| = |r| - 1$.
-The kernel has three.
-\cppinline{n >> chain(prior)} is the chain of a count under Figure~\ref{fig:structures}'s $\mathit{prior}$: head \cppinline{prior(n)}, tail \cppinline{prior(n) >> chain(prior)}, empty where \cppinline{prior(n)} is nothing, finite because the step descends.
-\cppinline{transform(r, g)} is Listing~\ref{lst:rule3}'s \cppinline{r >> g}: head \cppinline{g(head r)}, tail \cppinline{transform(next r, g)}, length $|r|$.
-\cppinline{iota(i, j)}, with $i \le j$, as reversed endpoints are undefined behaviour and not an empty range, has head $i$ and tail \cppinline{iota(i + 1, j)}.
-In \Cpp{} the length is \cppinline{ranges::size} and the head \cppinline{*ranges::begin} under a guard on the length; the tail has no standard spelling at the same type, so it is the instance's own.
-A range may also be a type variable $R$ under $\mathit{IsRange}\texttt{<}R\texttt{, }T\texttt{>}$ $=$ \cppinline{requires (const R r) { { size(r) } -> same_as<size_t>; { head(r) } -> same_as<T>; { next(r) } -> same_as<R>; }}, which the instances of $\mathcal{R}$ over $\tau$, and only they, satisfy at $T = \tau$ (Appendix~\ref{app:fjlt:typing}).
-Listing~\ref{lst:rule3}'s \cppinline{concat} writes the weaker \cppinline{std::ranges::input_range<R>}, which the kernel reads as $\mathit{IsRange}$ with $T$ the deduced \cppinline{ranges::range_value_t<R>}; a standard range outside $\mathcal{R}$, an unsized view, is not in the kernel.
-A term of type $\mu F$ is a finite composition of nodes, a node an operation whose fields are terms; \cppinline{cata(alg, t)} applies the algebra to each node and the folded values of its legs.
-The type formers are productions, not members of $\Sigma$, because the translation acts on them structurally (Appendix~\ref{app:fjlt:translation}); a former enters when it has such an image, as \cppinline{std::vector} would as lists with their fold, absent because no listing needs it.
-
 \begin{figure}[htbp]
 \[
 \begin{array}{lcl@{\hspace{0.4em}}l}
@@ -68,3 +37,34 @@ $\tau\texttt{(}e\texttt{)}$ converts between carriers.
 A range has a length and, when it is not empty, a head and a tail; a term type $\mu F$ is built from the nodes $O\texttt{<}\overline{\tau}\texttt{>}$ whose fields are terms; a box is a \cppinline{shared_ptr<const τ>}.}
 \label{fig:fjlt-syntax}
 \end{figure}
+
+FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}, under the three rules of Section~\ref{sec:posture}.
+Its base types form a \emph{signature} $\Sigma$ of carriers: a type is a carrier if it keeps \RuleOne, its operations are total, and it has an image in the target (Appendix~\ref{app:fjlt:translation}).
+Only totality is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operation defined on every input, Lemma~\ref{lem:progress} needs it, and it keeps \cppinline{int}'s overflow and division out.
+$\Sigma$ is not a list; the listings use \cppinline{bool}, \cppinline{size_t}, \cppinline{std::string} with concatenation and the comparisons, allocation failure aside, and finite enumerations such as \cppinline{Ternary}.
+
+Metavariables: $\alpha, \beta$ range over type variables, $b$ over the carriers of $\Sigma$, $O$ over the function-object types, standard (\cppinline{std::plus}, \cppinline{std::logical_and}, \ldots) or declared, $r$ over ranges, $\oplus$ over the operations of $\Sigma$, $C$ over concept names, the standard ones included, $S$ over the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ over function names, $x$ over term variables and $c$ over constants.
+The total operations are, on unsigned carriers, addition, subtraction, multiplication and the bitwise operations, which wrap, the comparisons, and division, remainder and the shifts by a literal the carrier can take; on \cppinline{bool}, the logical operations.
+By a variable, division, remainder and the shifts are partial and not admitted.
+
+\paragraph{How \Cpp{} spells it.}
+A trait is a deleted function template; an instance with a context is a generic function whose \cppinline{requires} clause is the context.
+\cppinline{auto} in a listing names the type the body has, and a parameter written \cppinline{const τ} or \cppinline{const τ&} is the parameter $\tau\; x$, since a value is immutable and a reference to one denotes it.
+An operation is a struct with fields and a \cppinline{const} call operator; the standard function objects and the library's formers, \cppinline{Compose} among them, are operations, and a term applies one by constructing it with its fields.
+\cppinline{optional<τ>} is $1 + \tau$, with $\iota_1$ = \cppinline{nullopt}, $\iota_2\,e$ = \cppinline{optional\{e\}} and the case \cppinline{s.transform(g).value_or(f)}, $f$ the value for the empty one.
+\cppinline{variant<τ₁, τ₂>} is $\tau_1 + \tau_2$, with $\iota_i\,e$ = \cppinline{variant<τ₁, τ₂>(in_place_index<i-1>, e)} and the case dispatched on the index, as the library's \cppinline{Copairing} writes it; \cppinline{std::visit} is the case whose two branches are one operation.
+\cppinline{*} on an optional and \cppinline{std::get} on a variant are partial and are not terms; Appendix~\ref{app:fjlt:closure} says where they are admitted.
+A box is built by \cppinline{make_shared} and read by \cppinline{*}, and nothing else is a term: no \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes, so no program can ask which box holds a value.
+\cppinline{e.first} and \cppinline{e.second} read as $\pi_1$ and $\pi_2$~\cite{pierce1991basic}; the library's \cppinline{π_1} and \cppinline{π_2} are the same projections as function objects.
+
+\paragraph{Ranges and terms.}
+A range $r$ is an instance of a family $\mathcal{R}$ defined by conditions: a length $|r| \in \mathbb{N}$, fixed before a fold starts, and, when $|r| > 0$, a head and a tail $\mathit{next}\,r$ with $|\mathit{next}\,r| = |r| - 1$.
+The kernel has three.
+\cppinline{n >> chain(prior)} is the chain of a count under Figure~\ref{fig:structures}'s $\mathit{prior}$: head \cppinline{prior(n)}, tail \cppinline{prior(n) >> chain(prior)}, empty where \cppinline{prior(n)} is nothing, finite because the step descends.
+\cppinline{transform(r, g)} is Listing~\ref{lst:rule3}'s \cppinline{r >> g}: head \cppinline{g(head r)}, tail \cppinline{transform(next r, g)}, length $|r|$.
+\cppinline{iota(i, j)}, with $i \le j$, as reversed endpoints are undefined behaviour and not an empty range, has head $i$ and tail \cppinline{iota(i + 1, j)}.
+In \Cpp{} the length is \cppinline{ranges::size} and the head \cppinline{*ranges::begin} under a guard on the length; the tail has no standard spelling at the same type, so it is the instance's own.
+A range may also be a type variable $R$ under $\mathit{IsRange}\texttt{<}R\texttt{, }T\texttt{>}$ $=$ \cppinline{requires (const R r) { { size(r) } -> same_as<size_t>; { head(r) } -> same_as<T>; { next(r) } -> same_as<R>; }}, which the instances of $\mathcal{R}$ over $\tau$, and only they, satisfy at $T = \tau$ (Appendix~\ref{app:fjlt:typing}).
+Listing~\ref{lst:rule3}'s \cppinline{concat} writes the weaker \cppinline{std::ranges::input_range<R>}, which the kernel reads as $\mathit{IsRange}$ with $T$ the deduced \cppinline{ranges::range_value_t<R>}; a standard range outside $\mathcal{R}$, an unsized view, is not in the kernel.
+A term of type $\mu F$ is a finite composition of nodes, a node an operation whose fields are terms; \cppinline{cata(alg, t)} applies the algebra to each node and the folded values of its legs.
+The type formers are productions, not members of $\Sigma$, because the translation acts on them structurally (Appendix~\ref{app:fjlt:translation}); a former enters when it has such an image, as \cppinline{std::vector} would as lists with their fold, absent because no listing needs it.
