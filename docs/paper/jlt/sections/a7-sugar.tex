@@ -100,7 +100,7 @@ The price is in the free theorem, which now ranges over that parameter.
 Written by hand, the same thing is to decide the constraint in the clause, by requiring it or by splitting on it.
 
 \paragraph{Sums.}
-The kernel has the case form (Appendix~\ref{app:fjlt:syntax}), so given FJlt terms \cppinline{f} and \cppinline{g} on the two summands their copairing is an FJlt term, \texttt{case(}$s$\texttt{, }$f$\texttt{, }$g$\texttt{)}.
+The kernel has the case form (Table~\ref{tab:conventions}), so given FJlt terms \cppinline{f} and \cppinline{g} on the two summands their copairing is an FJlt term, \texttt{case(}$s$\texttt{, }$f$\texttt{, }$g$\texttt{)}.
 \cppinline{has_value} and \cppinline{value_or} on an optional are that case on $1 + T$, and \cppinline{std::visit(O{}, v)} is the case whose branches are one generic call operator entailed at each summand.
 \cppinline{*} on an optional is partial, undefined on the empty one, and is admitted under a \cppinline{has_value} guard, which desugars to the case form, as the head of a range is admitted only when its length is positive, or in a constant initialiser, where constant evaluation refuses the empty case and the compiler holds the guard, as for Listing~\ref{lst:sites}'s \cppinline{*automaton(sites)}.
 
