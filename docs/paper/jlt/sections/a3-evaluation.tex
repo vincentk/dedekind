@@ -45,7 +45,9 @@ The default value of a type is given by its structure, not by \cppinline{T{}}: a
 \textsc{S-Fold} consumes the head of the range, so a fold takes as many steps as the range has elements.
 \textsc{S-Cata} unfolds one node, passing the node itself beside its legs' folds; a leaf has no legs and the algebra is applied to it alone.
 \textsc{S-Prim} and \textsc{S-Std} are total because the admitted operations are, which is what Lemma~\ref{lem:progress} needs.
-\textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a constant evaluator rejects a term that builds a box, and a law or a \cppinline{static_assert} premise contains no \cppinline{make_shared}, which is the condition under which every FJlt program is a Jlt program.}
+\textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a constant evaluator rejects a term that builds a box.
+A law or a \cppinline{static_assert} premise therefore contains no \cppinline{make_shared}, the condition under which every FJlt program is a Jlt program.
+\Cpp{26} retires that condition~\cite{keir2025constexprsharedptr}.}
 \label{fig:fjlt-eval}
 \end{figure}
 
