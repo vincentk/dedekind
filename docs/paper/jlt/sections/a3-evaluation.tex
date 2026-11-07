@@ -50,7 +50,9 @@ That totality is a reading: neither \cppinline{constexpr} nor a successful evalu
 On unsigned carriers the operations are addition, subtraction, multiplication and the bitwise operations, which wrap, the comparisons, and division, remainder and the shifts by a literal the carrier can take (a nonzero divisor, a shift below the width); by a variable, those three are partial and not admitted.
 On \cppinline{bool} they are the logical operations.
 $\Sigma$ is not a list; the listings also use \cppinline{std::string} with concatenation and the comparisons, allocation failure aside, and finite enumerations such as \cppinline{Ternary}.
-\textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a constant evaluator rejects a term that builds a box, and a law or a \cppinline{static_assert} premise contains no \cppinline{make_shared}, which is the condition under which every FJlt program is a Jlt program.}
+\textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a constant evaluator rejects a term that builds a box.
+A law or a \cppinline{static_assert} premise therefore contains no \cppinline{make_shared}, the condition under which every FJlt program is a Jlt program.
+\Cpp{26} retires that condition~\cite{keir2025constexprsharedptr}.}
 \label{fig:fjlt-eval}
 \end{figure}
 
