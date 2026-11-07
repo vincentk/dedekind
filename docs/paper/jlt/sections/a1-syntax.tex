@@ -26,20 +26,25 @@ e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\o
   & \mid & \texttt{*}e & \text{unbox} \\
 \end{array}
 \]
-\caption{The abstract grammar~\cite{pierce2002tapl} of FJlt, a subset of \Cpp{23}.
-Namespace qualifiers elided.
-Terminals are printed in monospace.
-An overbar abbreviates a sequence; it reads a parameter pack and a fold expression at each arity, and says nothing of all arities at once.
-A program $P$ is a sequence of declarations $D$ and a closed term $e$, which is what is evaluated.
-$\tau\texttt{(}e\texttt{)}$ converts between carriers.
-Metavariables: $\alpha, \beta$ type variables, $b$ base types, $O$ function-object types, standard (\cppinline{std::plus}, \ldots) or declared, $y$ their fields, $\oplus$ the operations of $\Sigma$, $C$ concept names, the standard ones included, $S$ the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ function names, $x$ term variables, $c$ constants.
-A term type $\mu F$ is built from the nodes $O\texttt{<}\overline{\tau}\texttt{>}$ whose fields are terms; a box is a \cppinline{shared_ptr<const τ>}.}
+\caption{The abstract grammar~\cite{pierce2002tapl} of FJlt, a subset of \Cpp{23}, namespace qualifiers elided.
+Terminals are in monospace, and an overbar abbreviates a sequence.
+$P$ is a program.
+$D$ is a declaration.
+$R$ is a requirement.
+$Q$ is a constraint.
+$\tau$ is a type.
+$e$ is a term.}
 \label{fig:fjlt-syntax}
 \end{figure}
 
 FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}, under the three rules of Section~\ref{sec:posture}.
 Its base types are the carriers of a $\Sigma$-algebra, for $\Sigma$ a many-sorted \emph{signature}, Birkhoff and Lipson's heterogeneous algebra~\cite{birkhoff1970heterogeneous} in Pierce's words~\cite{pierce1991basic}: a sort per base type, an operation symbol with its arity per operation, and the \Cpp{} types with their \cppinline{constexpr} operations as the interpretation.
 A type is a carrier if it keeps \RuleOne, its operations are total, and it has an image in the target (Appendix~\ref{app:fjlt:translation}).
+
+A program is its declarations and a closed term, which is what is evaluated.
+In Figure~\ref{fig:fjlt-syntax}, $\alpha, \beta$ range over type variables, $b$ over base types, $O$ over function-object types, standard (\cppinline{std::plus}, \ldots) or declared, $y$ over their fields, $\oplus$ over the operations of $\Sigma$, $C$ over concept names, the standard ones included, $S$ over the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ over function names, $x$ over term variables and $c$ over constants.
+The overbar reads a parameter pack and a fold expression at each arity, and says nothing of all arities at once.
+$\tau\texttt{(}e\texttt{)}$ converts between carriers.
 
 \paragraph{What a reader of \Cpp{} would not assume.}
 Some of the figure's calls and fields are conventions, which Table~\ref{tab:conventions} in Appendix~\ref{app:fjlt:translation} lists with their \Cpp{} spellings: they read as helpers on standard types and have rules of their own.
