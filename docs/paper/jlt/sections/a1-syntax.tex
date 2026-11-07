@@ -37,9 +37,11 @@ $e$ is a term.}
 
 FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}.
 As it is a subset of Jlt, it respects the three rules of Section~\ref{sec:posture}.
-Its base types and their \cppinline{constexpr} operations form a many-sorted algebra~\cite{birkhoff1970heterogeneous,sannella2012foundations}, $\Sigma$: one carrier per type, and a total function per operation, which may cross between carriers, as \cppinline{==} goes to \cppinline{bool}.
-A type is a carrier if it keeps \RuleOne{} and has an image in the target (Appendix~\ref{app:fjlt:translation}).
-Listing~\ref{lst:fjlt-reading} is a small program, its names made up, read in the figure's terms.
+Its base types and their \cppinline{constexpr} operations form a many-sorted algebra~\cite{birkhoff1970heterogeneous,sannella2012foundations} over a signature $\Sigma$.
+In that vocabulary, a type such as \cppinline{bool} or \cppinline{size_t} is a \emph{carrier set} if it keeps \RuleOne{} and has an image in the target (Appendix~\ref{app:fjlt:translation}).
+A function on such types, $\oplus$ in the figure, is an \emph{operation} on carrier sets if it is \cppinline{constexpr}, as \RuleOne{} requires, and total, which Lemma~\ref{lem:progress} needs.
+An operation may cross between carrier sets, as \cppinline{==} on \cppinline{size_t} gives a \cppinline{bool}.
+Listing~\ref{lst:fjlt-reading} is a valid example snippet, read in the figure's terms.
 
 \begin{listing}[htbp]
 \begin{cpp}
@@ -61,15 +63,14 @@ concept IsMagma = requires(const T a, const T b) {
 template <typename T> requires IsMagma<T>
 constexpr T twice(T x) { return op(x, x); }
 
-// D: an operation, with a field y; U(y) converts between carriers
-template <typename T> struct AddTo {
-  T y;
+// D: an operation
+template <typename T> struct Plus {
   template <typename U> requires IsMagma<U>
-  constexpr U operator()(U x) const { return op(x, U(y)); }
+  constexpr U operator()(U a, U b) const { return op(a, b); }
 };
 
 // the closed term e, which the program evaluates
-AddTo<unsigned>{1u}(twice(21u))
+Plus<unsigned>{}(twice(21u), 1u)
 \end{cpp}
 \caption{A small program, each declaration labelled with its form in Figure~\ref{fig:fjlt-syntax}.}
 \label{lst:fjlt-reading}
