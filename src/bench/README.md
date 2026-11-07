@@ -4,6 +4,24 @@ How fast is the scan of [Listing 5](../../README.md), and why? This counts the p
 
 Figures are to one significant digit, from one run on one shared GitHub runner, an AMD EPYC 9V74, Clang 23, `-O2`, unless a row says otherwise. Benchmarks are fickle, and shared runners more so: the orders of magnitude are the result, and the digits are not.
 
+## The ladder
+
+Nanoseconds per letter on one core, on a log scale. Each bar is the whole range over a day's runs on shared runners of five CPU models, at `-O2`, and a 2020 laptop, so read the decades and not the digits.
+
+```
+                               0.01      0.1       1         10        100       1000
+                               |         |         |         |         |         |
+plain memory read                  |--|
+2 bits a base, word at a time          |---|
+the law: count(text >> pali6)                |--|
+the table: dna >> scanner                            |-|
+each window asked, as defined                                 |--|
+a Python loop over a set                                               |-|
+Python re                                                                |-|
+```
+
+Each rung is what one idea buys: compiling the combinators, about 100×; pre-computing the table, about 10×; a law that removes the state, about 5×. There is a rung above this figure and off its scale: a text known at build time is a constant in the binary, no letter is read at run time, within the compiler's step limit. So it is no rival for a text that arrives at run time.
+
 ## Kick the tyres
 
 From Python, with nothing to build where a wheel fits:
@@ -100,6 +118,7 @@ Each is one `make bench` away. Pull requests welcome.
 - A bare hash falls to 0.19 ns with native flags, as the multiplies vectorise, while `random_text` stays at 2.45 ns.
 - A set of bases per byte goes from the slowest law row to a fast one with native flags, 3.6 to 0.20 ns.
 - Two bits a base, one word holding 27 windows, reaches 0.06 ns per base at native flags and isn't in the library.
+- **The law doesn't reach the bus: about a tenth of a plain read.** Ranks already in bytes reach about a third, so most of the cost is getting to ranks and copying a block's verdicts between passes. Nothing in principle stops it: the comparisons take a few operations per 16 bytes.
 - [ ] `llvm-mca` on the hot loops, and full `lscpu` with each run.
 - [ ] A real assembly, with the file named and its lowercase and `N` runs handled.
 
