@@ -20,7 +20,7 @@ A &::=& Q \;\mid\; e & \text{nested shape, law} \\
 Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
 \tau &::=& \alpha \;\mid\; b \;\mid\; T\texttt{<}\overline{\tau}\texttt{>} & \text{type} \\[3pt]
 e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} & \text{term} \\
-  & \mid & \ominus e \;\mid\; \texttt{*}e \;\mid\; e\texttt{.}y \;\mid\; \tau\texttt{(}e\texttt{)} \;\mid\; e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e & \text{operators, by arity} \\
+  & \mid & \ominus e \;\mid\; \texttt{*}e \;\mid\; e\texttt{.}y \;\mid\; \tau\texttt{(}e\texttt{)} \;\mid\; e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e & \text{built-ins, by arity} \\
 \end{array}
 \]
 \caption{The abstract grammar~\cite{pierce2002tapl} of FJlt, a subset of \Cpp{23}, namespace qualifiers elided.
