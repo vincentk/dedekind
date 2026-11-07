@@ -1,6 +1,7 @@
 % !TEX root = ../jlt.tex
 \section{Translation into System F}
 \label{app:fjlt:translation}
+\newcommand{\note}[1]{\parbox[t]{0.27\linewidth}{\raggedright\footnotesize #1}}
 
 This appendix defines in full the arrow $\llbracket\cdot\rrbracket$ of Figure~\ref{fig:arrows} and Section~\ref{sec:translation} on the programs of Appendix~\ref{app:fjlt:typing}, by dictionary passing~\cite{wadler1989adhoc}: a constraint becomes a record type, an entailment derivation a record, and a generic function a function of those records.
 The target is System~F with products, sums, the sorts of $\Sigma$ as constant types with its operators as constants, and the iterators of inductive types: $\mathit{iter} : \forall\sigma.\,\mathbb{N} \to (\sigma \to \sigma) \to \sigma \to \sigma$ and, for each term type $\mu F$, $\mathit{fold}_F : \forall\sigma.\,(F(\sigma) \to \sigma) \to \mu F \to \sigma$, each reducing one constructor at a time.
@@ -8,28 +9,27 @@ Its iterative fragment embeds into System~F by an encoding that preserves reduct
 Records are nested pairs.
 
 \begin{figure}[htbp]
-\scriptsize
 \[
-\resizebox{\linewidth}{!}{$\begin{array}{l@{\quad}l}
+\begin{array}{@{}l@{\quad}l@{}}
 \multicolumn{2}{l}{\textit{types}} \\
 \llbracket \alpha \rrbracket = \alpha \qquad \llbracket b \rrbracket = b & \\
-\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \overline{\llbracket \tau_y \rrbracket} \times (\forall\overline{\beta}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket) & \text{a function object: its fields and its call function} \\
-\llbracket R\texttt{<}\tau\texttt{>} \rrbracket = \llbracket R \rrbracket \qquad \llbracket \mu F \rrbracket = \mu F \text{ with } F\,X = \textstyle\sum_{O} \prod \overline{\llbracket \tau_y \rrbracket}[X / \text{the leg types}] & \text{a range's state; a term type, the sum of its nodes' fields, a leg's type replaced by } X \\[6pt]
+\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \overline{\llbracket \tau_y \rrbracket} \times (\forall\overline{\beta}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket) & \note{a function object: its fields and its call function} \\
+\llbracket R\texttt{<}\tau\texttt{>} \rrbracket = \llbracket R \rrbracket \qquad \llbracket \mu F \rrbracket = \mu F & \\
+\qquad \text{with } F\,X = \textstyle\sum_{O} \prod \overline{\llbracket \tau_y \rrbracket}[X / \text{the leg types}] & \note{a range's state; a term type, the sum of its nodes' fields, a leg's type replaced by $X$} \\[6pt]
 \multicolumn{2}{l}{\textit{constraints, as record types}} \\
-\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i : \llbracket A_i \rrbracket[\overline{\tau}/\overline{\alpha}]}\,\} \text{ where } \texttt{concept } C \texttt{ = } \overline{A} & \text{one field per requirement} \\
-\llbracket Q \rrbracket \text{ for a nested shape } Q & \text{its record type} \\
-\llbracket \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = 1 & \text{a negation carries no evidence} \\
+\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i : \llbracket A_i \rrbracket[\overline{\tau}/\overline{\alpha}]}\,\} \text{ where } \texttt{concept } C \texttt{ = } \overline{A} & \note{one field per requirement} \\
+\llbracket Q \rrbracket \text{ for a nested shape } Q & \note{its record type} \\
+\llbracket \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = 1 & \note{a negation carries no evidence} \\
 \llbracket e \rrbracket = \mathit{Bool} \text{ for a law } e & \\
-\llbracket \texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket & \text{an operation on parameters } \overline{x : \tau_x} \\[6pt]
+\llbracket \texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket & \note{an operation on parameters $\overline{x : \tau_x}$} \\[6pt]
 \multicolumn{2}{l}{\textit{dictionaries, from entailment derivations}} \\
-\llbracket \Delta \Vdash Q \rrbracket = q \text{ if } Q \in \Delta \text{ with record variable } q & \text{\textsc{E-Assume}} \\
-\llbracket \Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i = \llbracket \Delta \Vdash A_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\} & \text{\textsc{E-Shape}} \\
-\llbracket \Delta \Vdash e \rrbracket = \mathit{true} & \text{\textsc{E-Law}, \textsc{E-Law-Assumed}} \\
-\llbracket \Delta \Vdash \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = () & \text{\textsc{E-Not}} \\
-\llbracket \Delta \Vdash \texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \lambda\overline{a}.\,\llbracket \tau^{S}\texttt{(}e_r\texttt{)} \rrbracket & \text{\textsc{E-Op}, over the requirement's parameters, the conversion in the field} \\[6pt]
-\end{array}$}
+\llbracket \Delta \Vdash Q \rrbracket = q \text{ if } Q \in \Delta \text{ with record variable } q & \note{\textsc{E-Assume}} \\
+\llbracket \Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i = \llbracket \Delta \Vdash A_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\} & \note{\textsc{E-Shape}} \\
+\llbracket \Delta \Vdash e \rrbracket = \mathit{true} & \note{\textsc{E-Law}, \textsc{E-Law-Assumed}} \\
+\llbracket \Delta \Vdash \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = () & \note{\textsc{E-Not}} \\
+\llbracket \Delta \Vdash \texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \lambda\overline{a}.\,\llbracket \tau^{S}\texttt{(}e_r\texttt{)} \rrbracket & \note{\textsc{E-Op}, over the requirement's parameters, the conversion in the field} \\[6pt]
+\end{array}
 \]
-\normalsize
 \caption{The translation of types, constraints and entailment derivations; pairs, sums and boxes are the target's own (Table~\ref{tab:conventions}).
 A constraint becomes a record type and a derivation a record.}
 \label{fig:fjlt-dictionaries}
@@ -41,42 +41,30 @@ A dictionary projects along the path of nested fields, $q_C.m.r$ for a requireme
 A converted result is used only at its declared type (Appendix~\ref{app:fjlt:typing}), so the conversion the dictionary makes once, in the field, is the conversion the source would make at every use.
 
 \begin{figure}[htbp]
-\scriptsize
 \[
-\resizebox{\linewidth}{!}{$\begin{array}{l@{\quad}l}
+\begin{array}{@{}l@{\quad}l@{}}
 \multicolumn{2}{l}{\textit{declarations}} \\
-\texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{x}\texttt{) ... } e \;\mapsto\; f_{\overline{\tau}} = \lambda\overline{x}.\,\llbracket e \rrbracket & \text{an instance} \\
-\texttt{template <}\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ ... } f\texttt{(}\overline{x}\texttt{) ... } e \;\mapsto\; f = \Lambda\overline{\alpha}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \text{a generic function} \\
-\text{the same with a descending self-call on } p \in \overline{x} \;\mapsto\; f = \Lambda\overline{\alpha}.\,\lambda\overline{q}.\,\lambda\overline{x}.\,(\mathit{iter}\,(\mathit{toNat}\,p + 1)\,F\,d)\,\overline{x} & \text{the one exception, } F = \lambda f.\,\lambda\overline{x}.\,\llbracket e \rrbracket \\
-\texttt{struct } O \texttt{ \{ } \overline{y}\texttt{; ... operator()(}\overline{x}\texttt{) ... } e \texttt{ ... \};} & \text{an operation's call function:} \\
+\texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{x}\texttt{) ... } e & \note{an instance} \\
+\qquad \mapsto\; f_{\overline{\tau}} = \lambda\overline{x}.\,\llbracket e \rrbracket & \\
+\texttt{template <}\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ ... } f\texttt{(}\overline{x}\texttt{) ... } e & \note{a generic function} \\
+\qquad \mapsto\; f = \Lambda\overline{\alpha}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \\
+\text{the same with a descending self-call on } p \in \overline{x} & \\
+\qquad \mapsto\; f = \Lambda\overline{\alpha}.\,\lambda\overline{q}.\,\lambda\overline{x}.\,(\mathit{iter}\,(\mathit{toNat}\,p + 1)\,F\,d)\,\overline{x} & \note{the one exception, $F = \lambda f.\,\lambda\overline{x}.\,\llbracket e \rrbracket$} \\
+\texttt{struct } O \texttt{ \{ } \overline{y}\texttt{; ... operator()(}\overline{x}\texttt{) ... } e \texttt{ ... \};} & \note{an operation's call function:} \\
 \qquad \mapsto\; O_{\mathrm{call}} = \lambda\overline{y}.\,\Lambda\overline{\beta}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \\
-O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \text{the standard's function } o \text{ as a constant} \\
+O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \note{the standard's function $o$  as a constant} \\
 \texttt{concept}, \texttt{= delete} \;\mapsto\; \text{nothing} & \\[6pt]
 \multicolumn{2}{l}{\textit{terms}} \\
-\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_i\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket}\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Call}, $f_i$ the declaration it resolves to} \\
-\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_{\overline{\sigma}}\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Trait}, resolved to a specialisation} \\
-\llbracket \tau^{S}\texttt{(}e_r[\overline{e}/\overline{a}]\texttt{)} \rrbracket = q_C.\pi.r\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Req-Assumed}, } \pi \text{ the path through nested shapes} \\
-\llbracket O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e_y}\texttt{\}} \rrbracket = (\overline{\llbracket e_y \rrbracket},\; O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket}) & \text{construction; a fieldless } O \text{ has the empty tuple of fields} \\
-\llbracket e\texttt{(}\overline{e'}\texttt{)} \rrbracket = (\pi_2\,\llbracket e \rrbracket)\,[\overline{\llbracket \sigma \rrbracket}]\,\overline{d}\,\overline{\llbracket e' \rrbracket} & \text{\textsc{T-Op}, \textsc{T-App}: application,} \\
-\qquad \text{with } \overline{d} = \overline{\llbracket \Delta \Vdash Q[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}] \rrbracket} \text{ the call operator's dictionaries} & \\
-\llbracket e\texttt{.}y_i \rrbracket = \pi_i\,(\pi_1\,\llbracket e \rrbracket) & \text{a field, through the fields' pair} \\
-\llbracket \tau\texttt{(}e\texttt{)} \rrbracket = \mathit{conv}_{\tau',\tau}\,\llbracket e \rrbracket & \text{a conversion, a constant of type } \llbracket \tau' \rrbracket \to \llbracket \tau \rrbracket \text{, the identity's } \delta\text{-step included at } \tau' = \tau \\
-\llbracket f\texttt{<}\overline{\sigma}\texttt{>} \rrbracket^{\!\circ} = f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d} & \text{the callable of a step: a function name,} \\
-\llbracket e \rrbracket^{\!\circ} = (\pi_2\,\llbracket e \rrbracket)\,[\overline{\llbracket \sigma \rrbracket}]\,\overline{d} & \text{a function object; elaborated at the fold's types,} \\
-\qquad \text{with } \overline{d} \text{ the dictionaries of its constraints at } \overline{\sigma} & \text{its dictionaries supplied} \\
-\llbracket e \rrbracket^{\!\circ} = \lambda\overline{a}.\,q_C.\pi.r\,\overline{a} & \text{a step typed by \textsc{T-Req-Assumed}: the requirement's field} \\
-\llbracket \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} \rrbracket = \pi_2\,(\mathit{iter}\,[\llbracket R \rrbracket \times \sigma]\,(\mathit{toNat}\,|\llbracket r \rrbracket|)\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket)) & \text{the iterator, over the range's length read as a natural} \\
-\qquad \text{where } \mathit{step} = \lambda p.\,(\mathit{next}\,(\pi_1 p),\; \llbracket f \rrbracket^{\!\circ}\,(\pi_2 p)\,(\mathit{head}\,(\pi_1 p))) & \text{the position carried beside the state} \\
-\qquad \text{with } |\cdot|, \mathit{head}, \mathit{next} \text{ the operations of } R & \\
-\qquad \text{at a type variable } R \text{ (\textsc{T-Fold-R}): } \mathit{toNat} \circ q.\mathit{size}, q.\mathit{head}, q.\mathit{next} \text{ in their place} & q \text{ the record of } \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \text{ in } \Delta \\
-\llbracket \texttt{cata(}\mathit{alg}\texttt{, }t\texttt{)} \rrbracket = \pi_2\,(\mathit{fold}_F\,[\mu F \times \sigma]\,\beta\,\llbracket t \rrbracket) & \text{a fold over a term} \\
-\qquad \text{where } \beta = \lambda n'.\,(\mathrm{in}\,(F\,\pi_1\,n'),\; \llbracket \mathit{alg} \rrbracket^{\!\circ}\,(\mathrm{in}\,(F\,\pi_1\,n'))\,(F\,\pi_2\,n')) & \\
-\qquad & \text{the node rebuilt beside its result} \\
-\llbracket t \rrbracket_{\mu F} = \mathit{node}_{O\texttt{<}\overline{\tau}\texttt{>}}\,\llbracket t \rrbracket & \text{\textsc{T-Node}: any term of node type read where } \mu F \text{ is expected} \\
-\qquad \text{where } \mathit{node}_{O} = \lambda o.\,\mathrm{in}_O\,(\overline{\mathit{node}_{O_l}\,(\pi_l\,(\pi_1\,o))}, \overline{\pi_y\,(\pi_1\,o)}) & \text{its legs, of node types } O_l \text{ smaller than } O\text{, read the same way, its other fields as they are} \\
-\end{array}$}
+\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_i\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket}\,\overline{\llbracket e \rrbracket} & \note{\textsc{T-Call}, $f_i$ the declaration it resolves to} \\
+\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_{\overline{\sigma}}\,\overline{\llbracket e \rrbracket} & \note{\textsc{T-Trait}, resolved to a specialisation} \\
+\llbracket \tau^{S}\texttt{(}e_r[\overline{e}/\overline{a}]\texttt{)} \rrbracket = q_C.\pi.r\,\overline{\llbracket e \rrbracket} & \note{\textsc{T-Req-Assumed}, $\pi$  the path through nested shapes} \\
+\llbracket O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e_y}\texttt{\}} \rrbracket = (\overline{\llbracket e_y \rrbracket},\; O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket}) & \note{construction; a fieldless $O$  has the empty tuple of fields} \\
+\llbracket e\texttt{(}\overline{e'}\texttt{)} \rrbracket = (\pi_2\,\llbracket e \rrbracket)\,[\overline{\llbracket \sigma \rrbracket}]\,\overline{d}\,\overline{\llbracket e' \rrbracket} & \note{\textsc{T-Op}, \textsc{T-App}: application,} \\
+\qquad \text{with } \overline{d} = \overline{\llbracket \Delta \Vdash Q[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}] \rrbracket} & \note{the call operator's dictionaries} \\
+\llbracket e\texttt{.}y_i \rrbracket = \pi_i\,(\pi_1\,\llbracket e \rrbracket) & \note{a field, through the fields' pair} \\
+\llbracket \tau\texttt{(}e\texttt{)} \rrbracket = \mathit{conv}_{\tau',\tau}\,\llbracket e \rrbracket & \note{a conversion, a constant of type $\llbracket \tau' \rrbracket \to \llbracket \tau \rrbracket$ , the identity's $\delta$-step included at $\tau' = \tau$} \\
+\end{array}
 \]
-\normalsize
 \caption{The translation of declarations and terms; pairs, sums, boxes and conditionals are the target's own (Table~\ref{tab:conventions}).
 The right-hand column says which case a line is.}
 \label{fig:fjlt-translation}
@@ -95,6 +83,34 @@ So $f = \lambda\overline{x}.\, (\mathit{iter}\; (\mathit{toNat}\,p + 1)\; F\; d)
 $F = \lambda f.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ is the body abstracted over the function its self-call names, a self-call at the same instantiation translating to $f\,\overline{\llbracket e \rrbracket}$ on that binder, with no type arguments and no dictionaries, which are those of the enclosing abstraction.
 $d$ is the constant function to $\mathit{default}$ of the result type (Figure~\ref{fig:fjlt-eval}), which at a type variable is the one field of \cppinline{std::semiregular}'s record that the translation uses, and which no evaluation reaches.
 So the translation needs no recursive binding, and the only recursion in a program is that of the two folds.
+
+\begin{figure}[htbp]
+\[
+\begin{array}{@{}l@{\quad}l@{}}
+\multicolumn{2}{l}{\textit{a step's callable}} \\
+\llbracket f\texttt{<}\overline{\sigma}\texttt{>} \rrbracket^{\!\circ} = f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d} & \note{the callable of a step: a function name,} \\
+\llbracket e \rrbracket^{\!\circ} = (\pi_2\,\llbracket e \rrbracket)\,[\overline{\llbracket \sigma \rrbracket}]\,\overline{d} & \note{a function object; elaborated at the fold's types,} \\
+\qquad \text{with } \overline{d} \text{ the dictionaries of its constraints at } \overline{\sigma} & \note{its dictionaries supplied} \\
+\llbracket e \rrbracket^{\!\circ} = \lambda\overline{a}.\,q_C.\pi.r\,\overline{a} & \note{a step typed by \textsc{T-Req-Assumed}: the requirement's field} \\
+\multicolumn{2}{l}{\textit{recursion on a count, and on a term}} \\
+\llbracket \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} \rrbracket = {} & \\
+\qquad \pi_2\,(\mathit{iter}\,[\llbracket R \rrbracket \times \sigma]\,(\mathit{toNat}\,|\llbracket r \rrbracket|)\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket)) & \note{the iterator, over the range's length read as a natural} \\
+\qquad \text{where } \mathit{step} = \lambda p.\,(\mathit{next}\,(\pi_1 p),\; \llbracket f \rrbracket^{\!\circ}\,(\pi_2 p)\,(\mathit{head}\,(\pi_1 p))) & \note{the position carried beside the state} \\
+\qquad \text{with } |\cdot|, \mathit{head}, \mathit{next} \text{ the operations of } R & \\
+\qquad \text{at a type variable } R \text{ (\textsc{T-Fold-R}):} & \\
+\qquad\quad \mathit{toNat} \circ q.\mathit{size}, q.\mathit{head}, q.\mathit{next} \text{ in their place} & \note{$q$  the record of $\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$  in $\Delta$} \\
+\llbracket \texttt{cata(}\mathit{alg}\texttt{, }t\texttt{)} \rrbracket = \pi_2\,(\mathit{fold}_F\,[\mu F \times \sigma]\,\beta\,\llbracket t \rrbracket) & \note{a fold over a term} \\
+\qquad \text{where } \beta = \lambda n'.\,(\mathrm{in}\,(F\,\pi_1\,n'), & \\
+\qquad\qquad \llbracket \mathit{alg} \rrbracket^{\!\circ}\,(\mathrm{in}\,(F\,\pi_1\,n'))\,(F\,\pi_2\,n')) & \\
+\qquad & \note{the node rebuilt beside its result} \\
+\llbracket t \rrbracket_{\mu F} = \mathit{node}_{O\texttt{<}\overline{\tau}\texttt{>}}\,\llbracket t \rrbracket & \note{\textsc{T-Node}: any term of node type read where $\mu F$  is expected} \\
+\qquad \text{where } \mathit{node}_{O} = \lambda o.\,\mathrm{in}_O\,(\overline{\mathit{node}_{O_l}\,(\pi_l\,(\pi_1\,o))}, \overline{\pi_y\,(\pi_1\,o)}) & \note{its legs, of node types $O_l$  smaller than $O$, read the same way, its other fields as they are} \\
+\end{array}
+\]
+\caption{The translation of a step's callable, of a fold and of a term's fold.
+A term is read into its inductive type where one is expected.}
+\label{fig:fjlt-recursion}
+\end{figure}
 
 \paragraph{Folds and ranges.}
 The iterator is the catamorphism of the chain of a natural number, a fold over any range of $\mathcal{R}$ is that catamorphism at the range's length with the range's position carried beside the state, and \cppinline{cata} is the catamorphism of a term's inductive type.
