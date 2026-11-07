@@ -80,7 +80,8 @@ Python's \texttt{re}, a lookahead of 64 alternatives & & & 254 \\
 \end{tabular}
 \caption{The two conditions, one failing at a time.
 One core of a shared AMD EPYC 7763, Clang~23 at \texttt{-O2}, baseline SSE2, $10^8$ letters.
-Past the cache, on 3.1 billion letters, the law runs at 2.0\,GB/s against 21\,GB/s for a plain read of the same memory, so the scan is bound by the core; peak memory is flat from $10^7$ to $10^{10}$ letters.}
+Past the cache, on 3.1 billion letters, the law runs at 2.0\,GB/s against 21\,GB/s for a plain read of the same memory, so the scan is bound by the core.
+A text drawn and not stored, by the table, keeps peak memory flat from $10^7$ to $10^{10}$ letters; the law's own storage is a fixed block.}
 \label{tab:batch}
 \end{table}
 

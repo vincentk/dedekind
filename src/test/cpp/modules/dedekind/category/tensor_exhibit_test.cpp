@@ -563,6 +563,12 @@ struct AddLetter {
 // defined.  A hole breaks a window under both.  Over a block's edge too.
 static_assert(count(bytes("GAATTCNGAANTTC") >> listing5::pali6) == 1uz);
 static_assert(count(bytes("GAATT") >> listing5::pali6) == 0uz);
+// A reflection that is not the alphabet's own takes the plain fold: the default
+// is the identity, under which AA is fixed.
+constexpr auto fixed_by_identity =
+    dedekind::category::Symmetric{listing5::pali6.power, listing5::pali6.sigma,
+                                  dedekind::category::Reflection{}};
+static_assert(count(bytes("AAAAAA") >> fixed_by_identity) == 1uz);
 struct LawAgreesWithFold {
   std::span<const std::byte> text;
   constexpr bool operator()(std::size_t length) const {

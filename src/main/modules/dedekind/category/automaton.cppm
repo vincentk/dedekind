@@ -768,10 +768,11 @@ constexpr auto operator>>(R r, const Prefixed<P, S, T>& s) {
  *  @brief A text of bytes that can be read at any position, from a const
  *  value, as a block of a scan reads it.  @tparam R the view. */
 export template <typename R>
-concept IsByteText = detail_comprehension::IsForeignView<R> &&
-                     std::ranges::random_access_range<const R> &&
-                     std::ranges::sized_range<const R> &&
-                     std::same_as<std::ranges::range_value_t<R>, std::byte>;
+concept IsByteText =
+    detail_comprehension::IsForeignView<R> && std::copyable<R> &&
+    std::ranges::random_access_range<const R> &&
+    std::ranges::sized_range<const R> &&
+    std::same_as<std::ranges::range_value_t<R>, std::byte>;
 
 /** @brief @c r @c >> @c s for a section fixed by reversal and the alphabet's
  *  reflection: the same query, kept beside what it was built from, for
@@ -902,11 +903,11 @@ constexpr std::array<std::byte, 4> four_of(
 /** @brief The count of a section fixed by reversal and reflection, without
  * asking each window: the law says a window is independent pairs, so no
  * position depends on another.  The overload is narrow, and in practice it is
- * DNA's and RNA's: exactly four letters, a reflection, a word of even length up
- * to 16.  It names a law of biochemistry and no
- *  instruction of any machine.  The alphabet and the length are values, here as
- * in a binding.  Any other section takes the plain fold, whose answer this one
- * must equal.  @param q the query.  @return how many of its windows hold. */
+ * DNA's and RNA's: exactly four letters, their own reflection, a word of even
+ * length up to 16.  It names a law of biochemistry and no instruction of any
+ * machine.  The alphabet and the length are values, here as in a binding.  Any
+ * other section takes the plain fold, whose answer this one must equal.  @param
+ * q the query.  @return how many of its windows hold. */
 export template <IsCountWord W = std::size_t, IsByteText R, IsCountWord N>
 constexpr W count(const ReflectedWindows<R, N>& q) {
   const auto length = static_cast<std::size_t>(q.section.power.length);
@@ -914,7 +915,9 @@ constexpr W count(const ReflectedWindows<R, N>& q) {
       detail_automaton::letters_of(q.section.power);
   const std::size_t text = std::ranges::size(q.text);
   if (alphabet.size() != 4uz || length == 0uz || length % 2uz != 0uz ||
-      length > detail_automaton::longest_word) {
+      length > detail_automaton::longest_word ||
+      q.section.tau !=
+          refl(detail_automaton::effective_letters(q.section.power))) {
     return count<W>(q.query);
   }
   if (text < length) return W{0};

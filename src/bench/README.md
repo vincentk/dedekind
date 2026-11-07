@@ -49,7 +49,7 @@ One core, baseline SSE2, from raw ASCII. *The table* is Knuth, Morris and Pratt'
 | Python, a loop over a set | 155 | 350× |
 | Python, `re` with 64 alternatives in a lookahead | 254 | 580× |
 
-On 3.1 billion letters, about a human genome, past the cache: a plain read of the same memory at 21 GB/s, the law at 2.0 GB/s (2.9 at `-O3 -march=native`), the table at 0.46. So about 1.6 seconds, by calculation, and the scan is bound by the core and not by memory. Peak memory stays at about 10.8 MB from 10^7 to 10^10 letters, as the text is read where it lies. All rows count the same number of sites, and the job fails if they do not.
+On 3.1 billion letters, about a human genome, past the cache: a plain read of the same memory at 21 GB/s, the law at 2.0 GB/s (2.9 at `-O3 -march=native`), the table at 0.46. So about 1.6 seconds, by calculation, and the scan is bound by the core and not by memory. The scan's own storage is fixed, a block's worth for the law and one state for the table, and the text is read where it lies. Drawn rather than stored, by the table, peak memory for the whole process stays at about 10.8 MB from 10^7 to 10^10 letters. All rows count the same number of sites, and the job fails if they do not.
 
 Drawing a letter from `random_text` costs 2.8 ns, and drawing and scanning it by the table 2.95: the scan adds about 5% to making its own input.
 
