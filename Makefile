@@ -530,6 +530,11 @@ doxygen: $(BUILD_DIR)/CMakeCache.txt ## The Doxygen API docs in build/docs
 paper: ## Fast compile check of the older paper
 	$(MAKE) -C docs/paper ci-check
 
+papers: ## Both papers with their bibliographies, as CI builds them
+	$(MAKE) paper
+	$(MAKE) -C docs/paper doc
+	$(MAKE) paper-jlt
+
 # The Jlt paper, full build with bibliography: docs/paper/jlt/jlt.pdf.
 paper-jlt: ## The Jlt paper with its bibliography
 	$(MAKE) -C docs/paper jlt

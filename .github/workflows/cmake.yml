@@ -54,7 +54,7 @@ jobs:
   # (make wheel), installed and used (make wheel-verify).  A PR labelled
   # `wheel` builds it too; one labelled `testpypi` at 0.0.0.dev<run id>, and
   # publishes it (testpypi-dev).  A release builds its own, from its tag.
-  # Whether a PR changes docs/, which is what builds the docs and the papers.
+  # Whether a PR changes docs/ beyond the papers, which papers.yml builds.
   changes:
     runs-on: ubuntu-26.04
     permissions:
@@ -71,7 +71,7 @@ jobs:
         run: |
           gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" \
             --jq '.[] | .filename, .previous_filename // empty' > changed
-          if grep -q '^docs/' changed; then
+          if awk '/^docs\// && !/^docs\/paper\// { found = 1 } END { exit !found }' changed; then
             echo "docs=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -193,11 +193,7 @@ jobs:
         ) &
         DOXYGEN_BUILD_PID=$!
 
-        (
-          make paper
-          make -C docs/paper doc
-          make paper-jlt
-        ) &
+        make papers &
         PAPER_BUILD_PID=$!
 
         wait "$DOXYGEN_BUILD_PID"

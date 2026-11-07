@@ -1,0 +1,50 @@
+# The papers, on a machine of their own: TeX and its packages, and no compiler.
+# A PR that changes them gets its answer in minutes, and the PDFs to read.
+# Main builds and deploys them with the other docs, in cmake.yml.
+#
+# The path filter means a PR may have no such run, so this can't be a required
+# check; a red one is visible on the PR.
+name: Papers
+
+on:
+  push:
+    branches: [ "stable-*" ]
+  pull_request:
+    branches: [ "main", "stable-*" ]
+    paths:
+    - "docs/paper/**"
+    - "Makefile"  # ci-install-paper-deps
+    - ".github/workflows/papers.yml"
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PYTHON_VERSION: "3.15"  # the latest stable, and the floor (pyproject.toml)
+
+jobs:
+  papers:
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Set up Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install the paper toolchain
+      run: make ci-install-paper-deps
+
+    - name: Build the papers
+      run: make papers
+
+    - name: Keep the PDFs
+      uses: actions/upload-artifact@v7
+      with:
+        name: papers
+        path: |
+          docs/paper/paper.pdf
+          docs/paper/jlt/jlt.pdf
+        retention-days: 7  # to read a PR's papers; main's are on Pages
