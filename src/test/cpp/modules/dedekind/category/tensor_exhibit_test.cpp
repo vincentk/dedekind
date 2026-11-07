@@ -17,6 +17,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <optional>
 #include <ranges>
@@ -612,6 +613,39 @@ TEST_CASE("Category: the count by the law is the plain fold's",
   CHECK(law_agrees(abc("ACGT"), 7, dna));
   CHECK(law_agrees(abc("ACGT"), 18, dna));
   CHECK(law_agrees(abc("AT"), 6, dna));
+}
+
+// A text the overload cannot read in place takes the general query.
+static_assert(dedekind::category::IsByteText<std::span<const std::byte>>);
+static_assert(!dedekind::category::IsByteText<
+              std::ranges::ref_view<const std::deque<std::byte>>>);
+
+/** @brief A word of the longest length at a position, in letters that hold
+ *  nothing else.  @param word the word.  @param at its position.
+ *  @return the text. */
+inline std::vector<std::byte> text_with_word_at(std::string_view word,
+                                                std::size_t at) {
+  std::vector<std::byte> text(at + word.size() + 400uz, std::byte{'A'});
+  for (std::size_t i = 0uz; i != word.size(); ++i) {
+    text[at + i] = static_cast<std::byte>(word[i]);
+  }
+  return text;
+}
+TEST_CASE("Category: a reflected word of the longest length, around a block",
+          "[category][tensor][listing5]") {
+  using namespace dedekind::category;
+  const auto section = words(abc("ACGT")) & len(16uz) & fixed_by(~rev);
+  // Its two ends, and either side of the first block's last window, 191.
+  for (const std::size_t at :
+       {0uz, 1uz, 176uz, 190uz, 191uz, 192uz, 193uz, 383uz, 384uz}) {
+    const auto hit = text_with_word_at("ACGTACGTACGTACGT", at);
+    const auto first_pair = text_with_word_at("CCGTACGTACGTACGT", at);
+    const auto last_pair = text_with_word_at("ACGTACGTCCGTACGT", at);
+    CHECK(count(std::span<const std::byte>{hit} >> section) == 1uz);
+    CHECK(count(std::span<const std::byte>{first_pair} >> section) == 0uz);
+    CHECK(count(std::span<const std::byte>{last_pair} >> section) == 0uz);
+    CHECK(LawAgreesWithFold<decltype(section)>{hit, section, 16uz}(hit.size()));
+  }
 }
 
 TEST_CASE("Category: Listing 5's scanner on ten million random bases",

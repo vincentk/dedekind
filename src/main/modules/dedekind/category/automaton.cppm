@@ -765,12 +765,12 @@ constexpr auto operator>>(R r, const Prefixed<P, S, T>& s) {
 }
 
 /** @concept IsByteText
- *  @brief A text of bytes that can be read at any position, from a const
- *  value, as a block of a scan reads it.  @tparam R the view. */
+ *  @brief A contiguous text of bytes, from a const value, as a block of a scan
+ *  reads it and as @c where reads a window.  @tparam R the view. */
 export template <typename R>
 concept IsByteText =
     detail_comprehension::IsForeignView<R> && std::copyable<R> &&
-    std::ranges::random_access_range<const R> &&
+    std::ranges::contiguous_range<const R> &&
     std::ranges::sized_range<const R> &&
     std::same_as<std::ranges::range_value_t<R>, std::byte>;
 
