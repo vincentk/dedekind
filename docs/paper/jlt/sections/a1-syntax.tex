@@ -30,7 +30,6 @@ e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\o
 An overbar abbreviates a sequence; it reads a parameter pack and a fold expression at each arity, and says nothing of all arities at once.
 $\tau\texttt{(}e\texttt{)}$ converts between carriers.
 Metavariables: $\alpha, \beta$ type variables, $b$ base types, $O$ function-object types, standard (\cppinline{std::plus}, \ldots) or declared, $y$ their fields, $\oplus$ the operations of $\Sigma$, $C$ concept names, the standard ones included, $S$ the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ function names, $x$ term variables, $c$ constants.
-Calls and fields include the prelude, which the text spells out.
 A term type $\mu F$ is built from the nodes $O\texttt{<}\overline{\tau}\texttt{>}$ whose fields are terms; a box is a \cppinline{shared_ptr<const τ>}.}
 \label{fig:fjlt-syntax}
 \end{figure}
@@ -39,47 +38,16 @@ FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figu
 Its base types are the carriers of a $\Sigma$-algebra, for $\Sigma$ a many-sorted \emph{signature}, Birkhoff and Lipson's heterogeneous algebra~\cite{birkhoff1970heterogeneous} in Pierce's words~\cite{pierce1991basic}: a sort per base type, an operation symbol with its arity per operation, and the \Cpp{} types with their \cppinline{constexpr} operations as the interpretation.
 A type is a carrier if it keeps \RuleOne, its operations are total, and it has an image in the target (Appendix~\ref{app:fjlt:translation}).
 
-\paragraph{The happy case.}
-Listing~\ref{lst:rule2} has most of the declarations.
-\cppinline{IsMonoid} is a shape: nested shapes such as \cppinline{semiregular<T>}, operations with their result types, and a law, \cppinline{associative<T>(Op{})}.
-\cppinline{unit} is a trait, a deleted function template, and \cppinline{unit(plus<T>)} an instance of it.
-That instance has a context, \cppinline{unsigned_integral<T>}, which makes it a generic function whose \cppinline{requires} clause is the context.
-\cppinline{concat} is a generic function: a \cppinline{requires} clause and one \cppinline{return}.
-\cppinline{plus} and \cppinline{compose} are operations, structs with fields and a \cppinline{const} call operator, and a term applies one by constructing it, as in \cppinline{Op{}(v, w)}.
-Listing~\ref{lst:rule3} has the recursion: \cppinline{fold_left(r, unit<T>(op), op)} over a range, here the chain \cppinline{10uz >> chain<size_t>()}.
-Two spellings are read through: \cppinline{auto} names the type the body has, and a parameter written \cppinline{const τ} or \cppinline{const τ&} is the parameter $\tau\; x$, since a value is immutable and a reference to one denotes it.
-
-\paragraph{The prelude.}
-The figure's calls and fields include a prelude of helpers on standard types: they read as ordinary functions, but each has rules of its own in Appendices~\ref{app:fjlt:typing} and~\ref{app:fjlt:evaluation} and an image of its own in Appendix~\ref{app:fjlt:translation}, for one of three reasons.
-Products, \texttt{pair\{a, b\}}, \texttt{.first} and \texttt{.second}, could be declared as a struct of two fields, and are given so that the translation sends them to the target's products, $\pi_1$ and $\pi_2$~\cite{pierce1991basic}.
-Coproducts, $\iota_1$, $\iota_2$ and \texttt{case(s, f, g)}, could only be encoded, as a tag beside both fields, and the field not in use is junk, which breaks the universal property; so they are given.
-Folds, \texttt{fold\_left(r, a, f)} and \texttt{cata(alg, t)}, with a range's \texttt{size}, \texttt{head} and \texttt{next}, cannot be defined at all: they are the recursion of the fragment, which the descending self-call of Appendix~\ref{app:fjlt:typing} translates to.
-
-\paragraph{Total operations.}
+\paragraph{What a reader of \Cpp{} would not assume.}
+Some of the figure's calls and fields are conventions, which Table~\ref{tab:conventions} in Appendix~\ref{app:fjlt:translation} lists with their \Cpp{} spellings: they read as helpers on standard types and have rules of their own.
+The rest is what is excluded.
 Totality is the one condition above that is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operation defined on every input.
 Lemma~\ref{lem:progress} needs it, and it keeps \cppinline{int}'s overflow and division out.
 On unsigned carriers the operations are addition, subtraction, multiplication and the bitwise operations, which wrap, the comparisons, and division, remainder and the shifts by a literal the carrier can take (a nonzero divisor, a shift below the width); by a variable, those three are partial and not admitted.
 On \cppinline{bool} they are the logical operations.
 $\Sigma$ is not a list; the listings also use \cppinline{std::string} with concatenation and the comparisons, allocation failure aside, and finite enumerations such as \cppinline{Ternary}.
-
-\paragraph{How sums and boxes are spelled.}
-\cppinline{optional<τ>} is $1 + \tau$, with $\iota_1$ = \cppinline{nullopt}, $\iota_2\,e$ = \cppinline{optional\{e\}} and the case \cppinline{s.transform(g).value_or(f)}, $f$ the value for the empty one.
-\cppinline{variant<τ₁, τ₂>} is $\tau_1 + \tau_2$, with $\iota_i\,e$ = \cppinline{variant<τ₁, τ₂>(in_place_index<i-1>, e)} and the case dispatched on the index, as the library's \cppinline{Copairing} writes it; \cppinline{std::visit} is the case whose two branches are one operation.
 \cppinline{*} on an optional and \cppinline{std::get} on a variant are partial and are not terms; Appendix~\ref{app:fjlt:closure} says where they are admitted.
-A box is built by \cppinline{make_shared} and read by \cppinline{*}, and nothing else is a term: no \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes, so no program can ask which box holds a value.
-
-\paragraph{Ranges.}
-A range $r$ is an instance of a family $\mathcal{R}$ defined by conditions: a length $|r| \in \mathbb{N}$, fixed before a fold starts, and, when $|r| > 0$, a head and a tail $\mathit{next}\,r$ with $|\mathit{next}\,r| = |r| - 1$.
-The kernel has three.
-\cppinline{n >> chain(prior)} is the chain of a count under Figure~\ref{fig:structures}'s $\mathit{prior}$: head \cppinline{prior(n)}, tail \cppinline{prior(n) >> chain(prior)}, empty where \cppinline{prior(n)} is nothing, finite because the step descends (Section~\ref{sec:posture}).
-\cppinline{transform(r, g)} is Listing~\ref{lst:rule3}'s \cppinline{r >> g}: head \cppinline{g(head r)}, tail \cppinline{transform(next r, g)}, length $|r|$.
-\cppinline{iota(i, j)}, with $i \le j$, as reversed endpoints are undefined behaviour and not an empty range, has head $i$ and tail \cppinline{iota(i + 1, j)}.
-In \Cpp{} the length is \cppinline{ranges::size} and the head \cppinline{*ranges::begin} under a guard on the length; the tail has no standard spelling at the same type, so it is the instance's own.
-
-A range may also be a type variable $R$ under $\mathit{IsRange}\texttt{<}R\texttt{, }T\texttt{>}$ $=$ \cppinline{requires (const R r) { { size(r) } -> same_as<size_t>; { head(r) } -> same_as<T>; { next(r) } -> same_as<R>; }}.
-The instances of $\mathcal{R}$ over $\tau$, and only they, satisfy it at $T = \tau$ (Appendix~\ref{app:fjlt:typing}): membership in $\mathcal{R}$, with its falling length, is a premise, so three operations without that law do not suffice.
-Listing~\ref{lst:rule3}'s \cppinline{concat} writes the weaker \cppinline{std::ranges::input_range<R>}, which the kernel reads as $\mathit{IsRange}$ with $T$ the deduced \cppinline{ranges::range_value_t<R>}; a standard range outside $\mathcal{R}$, an unsized view, is not in the kernel.
-
-\paragraph{Terms and type formers.}
-A term of type $\mu F$ is a finite composition of nodes, a node an operation whose fields are terms; \cppinline{cata(alg, t)} applies the algebra to each node and the folded values of its legs.
-The type formers are productions, not sorts of $\Sigma$, because the translation acts on them structurally (Appendix~\ref{app:fjlt:translation}); a former enters when it has such an image, as \cppinline{std::vector} would as lists with their fold, absent because no listing needs it.
+A box is built and read, and nothing else is a term: no \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes, so no program can ask which box holds a value.
+\cppinline{auto} in a listing names the type the body has, and a parameter written \cppinline{const τ} or \cppinline{const τ&} is the parameter $\tau\; x$, since a value is immutable and a reference to one denotes it.
+A type $R\texttt{<}\tau\texttt{>}$ is a range: an instance of a family $\mathcal{R}$ defined by conditions, a length $|r| \in \mathbb{N}$, fixed before a fold starts, and, when $|r| > 0$, a head and a tail $\mathit{next}\,r$ with $|\mathit{next}\,r| = |r| - 1$.
+A term type $\mu F$ is a finite composition of nodes, a node an operation whose fields are terms.
