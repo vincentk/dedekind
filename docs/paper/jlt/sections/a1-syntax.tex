@@ -12,11 +12,11 @@ D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \text
   &   & \qquad \texttt{\{ return } e\texttt{; \}} & \\
   & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} & \text{generic function} \\
   &   & \qquad \texttt{constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \\
-  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau\; y}\texttt{;} & \text{operation} \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau\; y}\texttt{;} & \text{function object} \\
   &   & \qquad \texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q} & \\
   &   & \qquad \texttt{constexpr } \tau \texttt{ operator()(}\overline{\tau\; x}\texttt{) const \{ return } e\texttt{; \} \};} & \\[3pt]
 A &::=& Q \;\mid\; e & \text{nested shape, law} \\
-  & \mid & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>;}} \texttt{ \}} & \text{operations} \\[3pt]
+  & \mid & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>;}} \texttt{ \}} & \text{required calls} \\[3pt]
 Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
 \tau &::=& \alpha \;\mid\; b \;\mid\; T\texttt{<}\overline{\tau}\texttt{>} & \text{type} \\[3pt]
 e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
@@ -38,9 +38,9 @@ $e$ is a term.}
 
 FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}.
 As it is a subset of Jlt, it respects the three rules of Section~\ref{sec:posture}.
-Its base types and their \cppinline{constexpr} operations form a many-sorted algebra~\cite{birkhoff1970heterogeneous,sannella2012foundations} over a signature $\Sigma$.
-Loosely speaking, a type such as \cppinline{bool} or \cppinline{size_t} is a \emph{carrier set} if it keeps \RuleOne{} and has an image in the target (Appendix~\ref{app:fjlt:translation}), and an operator on such types, $\oplus$ in the figure, is an \emph{operation} if it is total, which Lemma~\ref{lem:progress} needs.
-An operation may cross between carrier sets, as \cppinline{==} on \cppinline{size_t} gives a \cppinline{bool}.
+Its base types and their \cppinline{constexpr} operators form a many-sorted algebra~\cite{birkhoff1970heterogeneous,sannella2012foundations} over a signature $\Sigma$.
+Loosely speaking, a type such as \cppinline{bool} or \cppinline{size_t} is a \emph{carrier set} if it keeps \RuleOne{} and has an image in the target (Appendix~\ref{app:fjlt:translation}), and an operator on such types, $\oplus$ in the figure, is a \emph{function} between them if it is total, which Lemma~\ref{lem:progress} needs.
+It need not stay on one carrier set, as \cppinline{==} on \cppinline{size_t} gives a \cppinline{bool}.
 Listing~\ref{lst:fjlt-reading} is a valid example snippet, read in the figure's terms.
 
 \begin{listing}[htbp]
@@ -48,12 +48,12 @@ Listing~\ref{lst:fjlt-reading} is a valid example snippet, read in the figure's 
 // a declaration D: a trait, deleted until an instance gives it
 template <typename T> constexpr T op(T, T) = delete;
 
-// D: an instance, whose + is one of the operations of Sigma
+// D: an instance, whose + is one of the operators of Sigma
 template <> constexpr unsigned op<unsigned>(unsigned a, unsigned b) {
   return a + b;
 }
 
-// D: a shape, its requirement A one of operations
+// D: a shape, its requirement A a list of required calls
 template <typename T>
 concept IsMagma = requires(const T a, const T b) {
   { op(a, b) } -> std::same_as<T>;
@@ -63,7 +63,7 @@ concept IsMagma = requires(const T a, const T b) {
 template <typename T> requires IsMagma<T>
 constexpr T twice(T x) { return op(x, x); }
 
-// D: an operation
+// D: a function object
 template <typename T> struct Plus {
   template <typename U> requires IsMagma<U>
   constexpr U operator()(U a, U b) const { return op(a, b); }
@@ -76,7 +76,7 @@ Plus<unsigned>{}(twice(21u), 1u)
 \label{lst:fjlt-reading}
 \end{listing}
 
-In Figure~\ref{fig:fjlt-syntax}, $\alpha, \beta$ range over type variables, $b$ over base types, $T$ over type constructors, declared or adopted (Table~\ref{tab:conventions}), $O$ over the function-object types among them, standard (\cppinline{std::plus}, \ldots) or declared, $y$ over their fields, $\oplus$ over the operations of $\Sigma$, $C$ over concept names, the standard ones included, $S$ over the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ over function names, $x$ over term variables and $c$ over constants.
+In Figure~\ref{fig:fjlt-syntax}, $\alpha, \beta$ range over type variables, $b$ over base types, $T$ over type constructors, declared or adopted (Table~\ref{tab:conventions}), $O$ over the function-object types among them, standard (\cppinline{std::plus}, \ldots) or declared, $y$ over their fields, $\oplus$ over the operators of $\Sigma$, $C$ over concept names, the standard ones included, $S$ over the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ over function names, $x$ over term variables and $c$ over constants.
 A template is always fully applied: $\alpha$ ranges over types, and there is no template template parameter, so the target needs no type operators.
 The overbar reads a parameter pack and a fold expression at each arity, and says nothing of all arities at once.
 
