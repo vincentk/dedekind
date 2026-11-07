@@ -108,13 +108,13 @@ static_assert(count(dna >> scanner) == 2uz && sites(bytes("GAATTC")) &&
 
 The table exists before any sequence does, and what remains is one pass over the caller's bytes; here the sequence is the polylinker of the plasmid pUC19.
 
-Scanning random DNA for the palindromic sites, on one core ([how, and what did not work](src/bench/README.md)):
+Scanning random DNA for the palindromic sites, on one core, to one significant digit, as benchmarks are fickle ([how, and what did not work](src/bench/README.md)):
 
 | | ns per letter | Relative |
 |---|---:|---:|
-| `pynzli`, by the law | 0.38 | 1 |
-| `pynzli`, by the table | 1.9 | 5× |
-| Python `re` | 173 | 450× |
+| `pynzli`, by the law | 0.4 | 1 |
+| `pynzli`, by the table | 2 | 5× |
+| Python `re` | 200 | 500× |
 
 The C++ compiles in [a test](src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp), the Python runs as [a doctest](python/pynzli/jlt.py), and [another test](src/test/python/test_readme_listing5.py) holds this page and the paper to them.
 

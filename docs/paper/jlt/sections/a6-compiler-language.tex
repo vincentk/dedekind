@@ -68,19 +68,19 @@ The times, the disassembly and what else was tried are in the repository's \text
 \toprule
 Counting the sites of \texttt{pali6} & independent & batchable & ns a letter \\
 \midrule
-each window asked, as defined & yes & no & 21 \\
-the table & no & yes & 1.9 \\
-\quad the same table, a hand-written loop & no & yes & 1.8 \\
-the law, in one predicate, not inlined & yes & no & 10.5 \\
-the law, a set of bases a byte & yes & yes, dearly & 3.6 \\
-\textbf{the law, in the library} & yes & yes & \textbf{0.39} \\
-\quad the same, from Python & yes & yes & 0.38 \\
-Python's \texttt{re}, a lookahead of 64 alternatives & & & 173 \\
+each window asked, as defined & yes & no & 20 \\
+the table & no & yes & 2 \\
+\quad the same table, a hand-written loop & no & yes & 2 \\
+the law, in one predicate, not inlined & yes & no & 10 \\
+the law, a set of bases a byte & yes & yes, dearly & 4 \\
+\textbf{the law, in the library} & yes & yes & \textbf{0.4} \\
+\quad the same, from Python & yes & yes & 0.4 \\
+Python's \texttt{re}, a lookahead of 64 alternatives & & & 200 \\
 \bottomrule
 \end{tabular}
 \caption{The two conditions, one failing at a time.
-One core of a shared AMD EPYC 9V74, Clang~23 at \texttt{-O2}, baseline SSE2, $10^8$ letters.
-Past the cache, on 3.1 billion letters, the law runs at 2.6\,GB/s against 33\,GB/s for a plain read of the same memory, so the scan is bound by the core.
+One core of a shared AMD EPYC 9V74, Clang~23 at \texttt{-O2}, baseline SSE2, $10^8$ letters, to one significant digit: benchmarks are fickle, and the orders of magnitude are the result.
+Past the cache, on 3.1 billion letters, the law runs at 3\,GB/s against 30\,GB/s for a plain read of the same memory, so the scan is bound by the core.
 A text drawn and not stored, by the table, keeps peak memory flat from $10^7$ to $10^{10}$ letters; the law's own storage is a fixed block.}
 \label{tab:batch}
 \end{table}

@@ -2,7 +2,7 @@
 
 How fast is the scan of [Listing 5](../../README.md), and why? This counts the palindromic hexamers in a text of DNA, four ways, and keeps the compiler's output beside the times. Tracked in [#1154](https://github.com/vincentk/dedekind/issues/1154).
 
-Figures are from one run on one shared GitHub runner, an AMD EPYC 9V74, Clang 23, `-O2`, unless a row says otherwise. Absolute numbers move between runners; ratios within a run are what to quote.
+Figures are to one significant digit, from one run on one shared GitHub runner, an AMD EPYC 9V74, Clang 23, `-O2`, unless a row says otherwise. Benchmarks are fickle, and shared runners more so: the orders of magnitude are the result, and the digits are not.
 
 ## Kick the tyres
 
@@ -41,17 +41,19 @@ One core, baseline SSE2, from raw ASCII. *The table* is Knuth, Morris and Pratt'
 
 | Counting the sites | ns per letter | Relative |
 |---|---:|---:|
-| The library, `count(text >> pali6)`, by the law | 0.39 | 1 |
-| `pynzli`, by the law, the same | 0.38 | 1 |
-| The library or `pynzli`, by the table | 1.9 | 5× |
-| The same table, a hand-written loop, for reference | 1.8 | 4.6× |
-| Each window asked, as defined | 21 | 54× |
-| Python, a loop over a set | 121 | 310× |
-| Python, `re` with 64 alternatives in a lookahead | 173 | 450× |
+| The library, `count(text >> pali6)`, by the law | 0.4 | 1 |
+| `pynzli`, by the law, the same | 0.4 | 1 |
+| The library or `pynzli`, by the table | 2 | 5× |
+| The same table, a hand-written loop, for reference | 2 | 5× |
+| Each window asked, as defined | 20 | 50× |
+| Python, a loop over a set | 100 | 300× |
+| Python, `re` with 64 alternatives in a lookahead | 200 | 500× |
 
-On 3.1 billion letters, about a human genome, past the cache: a plain read of the same memory at 33 GB/s, the law at 2.6 GB/s, the table at 0.52. So about 1.2 seconds, by calculation, and the scan is bound by the core and not by memory. The scan's own storage is fixed, a block's worth for the law and one state for the table, and the text is read where it lies. Drawn rather than stored, by the table, peak memory for the whole process stays at about 10.7 MB from 10^7 to 10^10 letters. All rows count the same number of sites, and the job fails if they do not.
+So the same count on the same core takes between a five-hundredth and a fifth of the CPU time, depending only on how much of the work the law and the build have already done.
 
-Drawing a letter from `random_text` costs 2.45 ns, and drawing and scanning it by the table 2.58: the scan adds about 5% to making its own input.
+On 3.1 billion letters, about a human genome, past the cache: a plain read of the same memory at 30 GB/s, the law at 3 GB/s, the table at 0.5. So about a second, by calculation, and the scan is bound by the core and not by memory. The scan's own storage is fixed, a block's worth for the law and one state for the table, and the text is read where it lies. Drawn rather than stored, by the table, peak memory for the whole process stays at about 10 MB from 10^7 to 10^10 letters. All rows count the same number of sites, and the job fails if they do not.
+
+Drawing a letter from `random_text` and scanning it by the table costs about 5% more than drawing it alone.
 
 `re` is a backtracking engine, here as what a Python user reaches for and not as regular expressions at large; RE2 and Hyperscan are not measured.
 
