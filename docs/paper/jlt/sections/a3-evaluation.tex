@@ -14,6 +14,7 @@ E &::=& [\,] \mid f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{, }
 where the elided contexts are the remaining argument positions of pairs, optionals, boxes, projections, constructions, folds and the two branches of a case, each evaluated left to right.
 It is \Cpp{}'s constant evaluation restricted to the grammar, extended by \textsc{S-Unbox} at run time, and Figure~\ref{fig:fjlt-eval} gives the rules; $e \Downarrow v$ abbreviates $e \longrightarrow^{*} v$.
 The context grammar picks one redex per non-value term, so the relation is deterministic.
+A value is immutable and a reference to one denotes it, which is why a parameter written \cppinline{const τ&} is the parameter $\tau\; x$.
 
 \begin{figure}[htbp]
 \footnotesize
@@ -45,6 +46,10 @@ The default value of a type is given by its structure, not by \cppinline{T{}}: a
 \textsc{S-Fold} consumes the head of the range, so a fold takes as many steps as the range has elements.
 \textsc{S-Cata} unfolds one node, passing the node itself beside its legs' folds; a leaf has no legs and the algebra is applied to it alone.
 \textsc{S-Prim} and \textsc{S-Std} are total because the admitted operations are, which is what Lemma~\ref{lem:progress} needs.
+That totality is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operation defined on every input, and it keeps \cppinline{int}'s overflow and division out.
+On unsigned carriers the operations are addition, subtraction, multiplication and the bitwise operations, which wrap, the comparisons, and division, remainder and the shifts by a literal the carrier can take (a nonzero divisor, a shift below the width); by a variable, those three are partial and not admitted.
+On \cppinline{bool} they are the logical operations.
+$\Sigma$ is not a list; the listings also use \cppinline{std::string} with concatenation and the comparisons, allocation failure aside, and finite enumerations such as \cppinline{Ternary}.
 \textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a constant evaluator rejects a term that builds a box, and a law or a \cppinline{static_assert} premise contains no \cppinline{make_shared}, which is the condition under which every FJlt program is a Jlt program.}
 \label{fig:fjlt-eval}
 \end{figure}

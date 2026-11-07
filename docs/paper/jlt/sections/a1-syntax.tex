@@ -81,14 +81,6 @@ The overbar reads a parameter pack and a fold expression at each arity, and says
 
 \paragraph{What a reader of \Cpp{} would not assume.}
 The standard library is not syntax, so the figure leaves it to a convention: Table~\ref{tab:conventions} in Appendix~\ref{app:fjlt:translation} says which library types and helpers the fragment adopts, for what, and with rules of their own.
-The rest is what is excluded.
-Totality is the one condition above that is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operation defined on every input.
-Lemma~\ref{lem:progress} needs it, and it keeps \cppinline{int}'s overflow and division out.
-On unsigned carriers the operations are addition, subtraction, multiplication and the bitwise operations, which wrap, the comparisons, and division, remainder and the shifts by a literal the carrier can take (a nonzero divisor, a shift below the width); by a variable, those three are partial and not admitted.
-On \cppinline{bool} they are the logical operations.
-$\Sigma$ is not a list; the listings also use \cppinline{std::string} with concatenation and the comparisons, allocation failure aside, and finite enumerations such as \cppinline{Ternary}.
 \cppinline{*} on an optional and \cppinline{std::get} on a variant are partial and are not terms; Appendix~\ref{app:fjlt:closure} says where they are admitted.
-A box is built and read, and nothing else is a term: no \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes, so no program can ask which box holds a value.
-\cppinline{auto} in a listing names the type the body has, and a parameter written \cppinline{const τ} or \cppinline{const τ&} is the parameter $\tau\; x$, since a value is immutable and a reference to one denotes it.
-A range $R\texttt{<}\tau\texttt{>}$ is an instance of a family $\mathcal{R}$ defined by conditions, a length $|r| \in \mathbb{N}$, fixed before a fold starts, and, when $|r| > 0$, a head and a tail $\mathit{next}\,r$ with $|\mathit{next}\,r| = |r| - 1$.
-The rules write $\mu F$ for the type of a term: a finite composition of nodes, a node an operation whose fields are terms.
+A box is built and read, and nothing else is a term: no \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes.
+\cppinline{auto} in a listing names the type the body has, and a parameter written \cppinline{const τ} or \cppinline{const τ&} is the parameter $\tau\; x$.
