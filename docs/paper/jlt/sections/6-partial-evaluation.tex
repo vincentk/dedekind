@@ -84,7 +84,7 @@ count (s >> scanner) =       -- the residual
   π₂ (fold (λ (q, c) a. (T q a, c + F (T q a)))
            (0, 0) (map rank s))
 automaton pali6 ~> (0, T', F')
-  -- 277 states: past the budget, so
+  -- 277 states: past the step limit, so
   -- the same function runs at run time
 \end{minted}
 \end{minipage}
@@ -95,7 +95,7 @@ Right: the cuts of a smaller cocktail, the six-cutters beginning \texttt{GA}, in
 Below each: its translation (Section~\ref{sec:translation}), a closed term the compiler reduces and a residual for the run time.
 Without the count's laws, the left panel would build the $N$-mers and exhaust the step limit (Table~\ref{tab:binding}) before reaching its \cppinline{static_assert}.
 The table is Brzozowski's automaton~\cite{brzozowski1964derivatives}, for one site the matcher of Knuth, Morris and Pratt~\cite{knuth1977fast}, which partial evaluation derives~\cite{consel1989partial}.
-Its cost is moved to compile time where the budget admits: ``negative overhead abstraction''~\cite{stroustrup2026peterman}.}
+Its cost is moved to compile time where the step limit admits: ``negative overhead abstraction''~\cite{stroustrup2026peterman}.}
 \label{lst:sites}
 \end{listing}
 The presumption holds where both evaluations finish and neither meets undefined behaviour.
