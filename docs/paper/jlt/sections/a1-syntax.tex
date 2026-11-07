@@ -35,7 +35,7 @@ $e$ is a term.}
 \label{fig:fjlt-syntax}
 \end{figure}
 
-FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}.
+FJlt, the kernel of Figure~\ref{fig:arrows} and what Section~\ref{sec:translation:adequacy} desugars to, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}.
 Its base types and their \cppinline{constexpr} operators form a many-sorted algebra~\cite{birkhoff1970heterogeneous,sannella2012foundations} over a signature $\Sigma$.
 Loosely speaking, a type such as \cppinline{bool} or \cppinline{size_t} is a \emph{carrier set} if it keeps \RuleOne{}, and an operator on such types, $\ominus$ or $\oplus$ in the figure, is a \emph{function} between them if it is total.
 It need not stay on one carrier set, as \cppinline{==} on \cppinline{std::string} gives a \cppinline{bool}.
