@@ -50,3 +50,4 @@ jobs:
         path: |
           docs/paper/paper.pdf
           docs/paper/jlt/jlt.pdf
+        retention-days: 7  # to read a PR's papers; main's are on Pages
