@@ -79,8 +79,3 @@ Plus<unsigned>{}(twice(21u), 1u)
 In Figure~\ref{fig:fjlt-syntax}, $\alpha, \beta$ range over type variables, $b$ over base types, $T$ over type constructors, declared or adopted (Table~\ref{tab:conventions}), $O$ over the function-object types among them, standard (\cppinline{std::plus}, \ldots) or declared, $y$ over their fields, $\oplus$ over the operators of $\Sigma$, $C$ over concept names, the standard ones included, $S$ over the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ over function names, $x$ over term variables and $c$ over constants.
 A template is always fully applied: $\alpha$ ranges over types, and there is no template template parameter, so the target needs no type operators.
 The overbar reads a parameter pack and a fold expression at each arity, and says nothing of all arities at once.
-
-\paragraph{Reading the listings.}
-\cppinline{*} on an optional and \cppinline{std::get} on a variant are partial and are not terms; Appendix~\ref{app:fjlt:closure} says where they are admitted.
-A box is built and read, and nothing else is a term: no \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes.
-\cppinline{auto} in a listing names the type the body has, and a parameter written \cppinline{const τ} or \cppinline{const τ&} is the parameter $\tau\; x$.
