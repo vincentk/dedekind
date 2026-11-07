@@ -186,9 +186,9 @@ bench: ## Run the C++ benchmark, without coverage
 	cmake --build $(BENCH_DIR) --target bench_listing5 --parallel $(JOBS)
 	mkdir -p $(BENCH_OUT)
 	bash -o pipefail -c '$(BENCH_DIR)/bench_listing5 | tee $(BENCH_OUT)/scanner.md'
-	{ echo; echo '| Letters | Found | Peak KiB |'; echo '|---:|---:|---:|'; \
+	bash -e -o pipefail -c "{ echo; echo '| Letters | Found | Peak KiB |'; echo '|---:|---:|---:|'; \
 	  $(BENCH_DIR)/bench_listing5 memory 10000000; \
-	  $(BENCH_DIR)/bench_listing5 memory 10000000000; } | tee -a $(BENCH_OUT)/scanner.md
+	  $(BENCH_DIR)/bench_listing5 memory 10000000000; } | tee -a $(BENCH_OUT)/scanner.md"
 	-for f in scan_definition scan_table law_ascii law_ranks law_masks law_guarded law_blocks law_guarded_blocks law_words law_columnar; do \
 	  objdump -d --no-show-raw-insn --disassemble=$$f $(BENCH_DIR)/bench_listing5; \
 	done | tee $(BENCH_OUT)/law.s

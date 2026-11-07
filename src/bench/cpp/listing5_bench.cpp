@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <functional>
 #include <print>
 #include <ranges>
@@ -483,17 +484,19 @@ void row(std::string_view name, double ns, double draw) {
   std::println("| {} | {:.3f} | {:.2f} |", name, ns, ns / draw);
 }
 
-/** @brief A word of the text read, and nothing else done with it. */
+/** @brief A word of the text read at a position, and nothing else done with it.
+ *  Through memcpy, as the storage holds bytes, which compiles to one load. */
 struct ReadWord {
-  constexpr std::uint64_t operator()(std::uint64_t total,
-                                     std::uint64_t word) const {
-    return total ^ word;
+  const std::byte* text;
+  std::uint64_t operator()(std::uint64_t total, std::size_t word) const {
+    std::uint64_t x;
+    std::memcpy(&x, text + word * sizeof x, sizeof x);
+    return total ^ x;
   }
 };
 std::uint64_t read_all(Text t) {
-  const std::span<const std::uint64_t> words{
-      reinterpret_cast<const std::uint64_t*>(t.data()), t.size() / 8uz};
-  return std::ranges::fold_left(words, std::uint64_t{0}, ReadWord{});
+  return std::ranges::fold_left(std::views::iota(0uz, t.size() / 8uz),
+                                std::uint64_t{0}, ReadWord{t.data()});
 }
 
 /** @brief The same scans on a text too long for the cache to hold, against this

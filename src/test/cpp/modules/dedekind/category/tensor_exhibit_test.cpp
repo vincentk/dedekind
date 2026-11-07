@@ -569,24 +569,49 @@ constexpr auto fixed_by_identity =
     dedekind::category::Symmetric{listing5::pali6.power, listing5::pali6.sigma,
                                   dedekind::category::Reflection{}};
 static_assert(count(bytes("AAAAAA") >> fixed_by_identity) == 1uz);
+/** @brief The count of a section against the plain fold, at a prefix of a text.
+ */
+template <typename S>
 struct LawAgreesWithFold {
   std::span<const std::byte> text;
-  constexpr bool operator()(std::size_t length) const {
+  S section;
+  std::size_t window;
+  bool operator()(std::size_t length) const {
     const auto t = text.first(length);
-    return count(t >> listing5::pali6) ==
-           count(t >> dedekind::category::windows(6uz) >>
-                 dedekind::category::where(listing5::pali6));
+    return count(t >> section) ==
+           count(t >> dedekind::category::windows(window) >>
+                 dedekind::category::where(section));
   }
 };
+/** @brief That, for a word length over an alphabet, around the block's edge. */
+inline bool law_agrees(dedekind::category::Alphabet alphabet, std::size_t word,
+                       std::span<const std::byte> text) {
+  using namespace dedekind::category;
+  const auto section = words(alphabet) & len(word) & fixed_by(~rev);
+  const std::array<std::size_t, 9> lengths{0,          word - 1,   word,
+                                           word + 1,   191 + word, 192 + word,
+                                           193 + word, 400,        5'000};
+  return std::ranges::all_of(
+      lengths, LawAgreesWithFold<decltype(section)>{text, section, word});
+}
 TEST_CASE("Category: the count by the law is the plain fold's",
           "[category][tensor][listing5]") {
-  const auto stored = dedekind::category::random_text(
-                          dedekind::category::abc("ACGTN"), 5'000uz) |
-                      std::ranges::to<std::vector>();
-  constexpr std::array<std::size_t, 8> lengths{6,   7,   191, 192,
-                                               197, 198, 199, 5'000};
-  CHECK(std::ranges::all_of(
-      lengths, LawAgreesWithFold{std::span<const std::byte>{stored}}));
+  using dedekind::category::abc;
+  using dedekind::category::random_text;
+  const auto dna =
+      random_text(abc("ACGTN"), 5'000uz) | std::ranges::to<std::vector>();
+  // the even lengths the overload takes, at its two ends
+  CHECK(law_agrees(abc("ACGT"), 2, dna));
+  CHECK(law_agrees(abc("ACGT"), 6, dna));
+  CHECK(law_agrees(abc("ACGT"), 16, dna));
+  // another four letters: the overload is not DNA's by name
+  const auto wxyz =
+      random_text(abc("WXYZ!"), 5'000uz) | std::ranges::to<std::vector>();
+  CHECK(law_agrees(abc("WXYZ"), 6, wxyz));
+  // what must fall back: odd, too long, and not four letters
+  CHECK(law_agrees(abc("ACGT"), 7, dna));
+  CHECK(law_agrees(abc("ACGT"), 18, dna));
+  CHECK(law_agrees(abc("AT"), 6, dna));
 }
 
 TEST_CASE("Category: Listing 5's scanner on ten million random bases",

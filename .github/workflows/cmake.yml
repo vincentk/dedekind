@@ -121,6 +121,7 @@ jobs:
       continue-on-error: true
       run: make bench-native CXX="$CXX" CC="$CC" JOBS="$(nproc)"
     - name: Python, on the wheel without coverage
+      shell: bash  # with pipefail, so a failure is not lost to tee
       run: build/venv-wheel-verify/bin/python -I src/bench/python/listing5_bench.py | tee build/bench/python.md
     - name: Upload the results
       if: ${{ !cancelled() }}
