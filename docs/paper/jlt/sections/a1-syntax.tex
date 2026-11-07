@@ -26,8 +26,11 @@ e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\o
   & \mid & \texttt{*}e & \text{unbox} \\
 \end{array}
 \]
-\caption{The syntax of FJlt, a subset of \Cpp{23}, namespace qualifiers elided.
+\caption{The abstract grammar~\cite{pierce2002tapl} of FJlt, a subset of \Cpp{23}.
+Namespace qualifiers elided.
+Terminals are printed in monospace.
 An overbar abbreviates a sequence; it reads a parameter pack and a fold expression at each arity, and says nothing of all arities at once.
+A program $P$ is a sequence of declarations $D$ and a closed term $e$, which is what is evaluated.
 $\tau\texttt{(}e\texttt{)}$ converts between carriers.
 Metavariables: $\alpha, \beta$ type variables, $b$ base types, $O$ function-object types, standard (\cppinline{std::plus}, \ldots) or declared, $y$ their fields, $\oplus$ the operations of $\Sigma$, $C$ concept names, the standard ones included, $S$ the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ function names, $x$ term variables, $c$ constants.
 A term type $\mu F$ is built from the nodes $O\texttt{<}\overline{\tau}\texttt{>}$ whose fields are terms; a box is a \cppinline{shared_ptr<const τ>}.}
