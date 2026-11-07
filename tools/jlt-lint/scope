@@ -303,9 +303,9 @@ rule1-constexpr              src/main/modules/dedekind/ieee/*.cppm  ieee  report
 rule1-const-call-operator    src/main/modules/dedekind/ieee/*.cppm  ieee  report
 rule1-no-throw               src/main/modules/dedekind/ieee/*.cppm  ieee  report
 rule1-no-static-locals       src/main/modules/dedekind/ieee/*.cppm  ieee  report
-rule1-lvalue-reference-paramssrc/main/modules/dedekind/ieee/*.cppm  ieee  report
-rule1-rvalue-reference-paramssrc/main/modules/dedekind/ieee/*.cppm  ieee  report
-rule1-forwarding-reference-paramssrc/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-lvalue-reference-params src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-rvalue-reference-params src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-forwarding-reference-params src/main/modules/dedekind/ieee/*.cppm  ieee  report
 rule1-boxed-mutable-pointee  src/main/modules/dedekind/ieee/*.cppm  ieee  report
 rule1-boxed-identity         src/main/modules/dedekind/ieee/*.cppm  ieee  report
 rule1-no-volatile            src/main/modules/dedekind/ieee/*.cppm  ieee  report
@@ -326,9 +326,9 @@ rule1-constexpr              src/main/modules/dedekind/topology/*.cppm  topology
 rule1-const-call-operator    src/main/modules/dedekind/topology/*.cppm  topology  report
 rule1-no-throw               src/main/modules/dedekind/topology/*.cppm  topology  report
 rule1-no-static-locals       src/main/modules/dedekind/topology/*.cppm  topology  report
-rule1-lvalue-reference-paramssrc/main/modules/dedekind/topology/*.cppm  topology  report
-rule1-rvalue-reference-paramssrc/main/modules/dedekind/topology/*.cppm  topology  report
-rule1-forwarding-reference-paramssrc/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-lvalue-reference-params src/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-rvalue-reference-params src/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-forwarding-reference-params src/main/modules/dedekind/topology/*.cppm  topology  report
 rule1-boxed-mutable-pointee  src/main/modules/dedekind/topology/*.cppm  topology  report
 rule1-boxed-identity         src/main/modules/dedekind/topology/*.cppm  topology  report
 rule1-no-volatile            src/main/modules/dedekind/topology/*.cppm  topology  report
@@ -349,9 +349,9 @@ rule1-constexpr              src/main/modules/dedekind/sequences/*.cppm  sequenc
 rule1-const-call-operator    src/main/modules/dedekind/sequences/*.cppm  sequences  report
 rule1-no-throw               src/main/modules/dedekind/sequences/*.cppm  sequences  report
 rule1-no-static-locals       src/main/modules/dedekind/sequences/*.cppm  sequences  report
-rule1-lvalue-reference-paramssrc/main/modules/dedekind/sequences/*.cppm  sequences  report
-rule1-rvalue-reference-paramssrc/main/modules/dedekind/sequences/*.cppm  sequences  report
-rule1-forwarding-reference-paramssrc/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-lvalue-reference-params src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-rvalue-reference-params src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-forwarding-reference-params src/main/modules/dedekind/sequences/*.cppm  sequences  report
 rule1-boxed-mutable-pointee  src/main/modules/dedekind/sequences/*.cppm  sequences  report
 rule1-boxed-identity         src/main/modules/dedekind/sequences/*.cppm  sequences  report
 rule1-no-volatile            src/main/modules/dedekind/sequences/*.cppm  sequences  report
