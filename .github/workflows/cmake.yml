@@ -11,7 +11,7 @@ on:
     # A stable branch takes PRs under the same required checks (its name, the
     # ruleset's); it builds no release, which is main's.
     branches: [ "main", "stable-*" ]
-    # labeled: a label that builds more (`docs`, `wheel`, `testpypi`) runs
+    # labeled: a label that builds more (`wheel`, `testpypi`) runs
     # CI again
     types: [opened, synchronize, reopened, labeled]
   # A manual release is this whole pipeline on main, the 48 hours lifted:
@@ -54,13 +54,33 @@ jobs:
   # (make wheel), installed and used (make wheel-verify).  A PR labelled
   # `wheel` builds it too; one labelled `testpypi` at 0.0.0.dev<run id>, and
   # publishes it (testpypi-dev).  A release builds its own, from its tag.
+  # Whether a PR changes docs/, which is what builds the docs and the papers.
+  changes:
+    runs-on: ubuntu-26.04
+    permissions:
+      pull-requests: read
+    outputs:
+      docs: ${{ steps.diff.outputs.docs }}
+    steps:
+      - id: diff
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr diff "$PR" --repo "$GITHUB_REPOSITORY" --name-only > changed
+          if grep -q '^docs/' changed; then
+            echo "docs=true" >> "$GITHUB_OUTPUT"
+          fi
+
   python-dist:
     if: >-
       ((github.ref == 'refs/heads/main' && github.event_name != 'pull_request') ||
        contains(github.event.pull_request.labels.*.name, 'wheel') ||
-       contains(github.event.pull_request.labels.*.name, 'docs') ||
+       needs.changes.outputs.docs == 'true' ||
        contains(github.event.pull_request.labels.*.name, 'testpypi'))
-    needs: build-and-deploy
+    needs: [build-and-deploy, changes]
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: read  # checkout only; no PR write or pages needed
@@ -136,8 +156,8 @@ jobs:
   docs-and-pages:
     if: >-
       (github.ref == 'refs/heads/main' && github.event_name != 'pull_request') ||
-      contains(github.event.pull_request.labels.*.name, 'docs')
-    needs: [build-and-deploy, python-dist]
+      needs.changes.outputs.docs == 'true'
+    needs: [build-and-deploy, changes, python-dist]
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: read
