@@ -14,9 +14,6 @@ Records are nested pairs.
 \multicolumn{2}{l}{\textit{types}} \\
 \llbracket \alpha \rrbracket = \alpha \qquad \llbracket b \rrbracket = b & \\
 \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \overline{\llbracket \tau_y \rrbracket} \times (\forall\overline{\beta}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket) & \text{a function object: its fields and its call function} \\
-\llbracket \texttt{std::pair<}\tau_1\texttt{, }\tau_2\texttt{>} \rrbracket = \llbracket \tau_1 \rrbracket \times \llbracket \tau_2 \rrbracket & \\
-\llbracket \texttt{std::optional<}\tau\texttt{>} \rrbracket = 1 + \llbracket \tau \rrbracket \qquad \llbracket \texttt{std::variant<}\tau_1\texttt{, }\tau_2\texttt{>} \rrbracket = \llbracket \tau_1 \rrbracket + \llbracket \tau_2 \rrbracket & \\
-\llbracket \texttt{std::shared\_ptr<const }\tau\texttt{>} \rrbracket = 1 \times \llbracket \tau \rrbracket & \text{a box is a unary product} \\
 \llbracket R\texttt{<}\tau\texttt{>} \rrbracket = \llbracket R \rrbracket \qquad \llbracket \mu F \rrbracket = \mu F \text{ with } F\,X = \textstyle\sum_{O} \prod \overline{\llbracket \tau_y \rrbracket}[X / \text{the leg types}] & \text{a range's state; a term type, the sum of its nodes' fields, a leg's type replaced by } X \\[6pt]
 \multicolumn{2}{l}{\textit{constraints, as record types}} \\
 \llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i : \llbracket A_i \rrbracket[\overline{\tau}/\overline{\alpha}]}\,\} \text{ where } \texttt{concept } C \texttt{ = } \overline{A} & \text{one field per requirement} \\
@@ -33,7 +30,7 @@ Records are nested pairs.
 \end{array}$}
 \]
 \normalsize
-\caption{The translation of types, constraints and entailment derivations.
+\caption{The translation of types, constraints and entailment derivations; pairs, sums and boxes are the target's own (Table~\ref{tab:conventions}).
 A constraint becomes a record type and a derivation a record.}
 \label{fig:fjlt-dictionaries}
 \end{figure}
@@ -62,15 +59,12 @@ O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \text{the sta
 \llbracket O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e_y}\texttt{\}} \rrbracket = (\overline{\llbracket e_y \rrbracket},\; O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket}) & \text{construction; a fieldless } O \text{ has the empty tuple of fields} \\
 \llbracket e\texttt{(}\overline{e'}\texttt{)} \rrbracket = (\pi_2\,\llbracket e \rrbracket)\,[\overline{\llbracket \sigma \rrbracket}]\,\overline{d}\,\overline{\llbracket e' \rrbracket} & \text{\textsc{T-Op}, \textsc{T-App}: application,} \\
 \qquad \text{with } \overline{d} = \overline{\llbracket \Delta \Vdash Q[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}] \rrbracket} \text{ the call operator's dictionaries} & \\
-\llbracket e\texttt{.first} \rrbracket = \pi_1\,\llbracket e \rrbracket \qquad \llbracket e\texttt{.second} \rrbracket = \pi_2\,\llbracket e \rrbracket & \text{a pair's projections} \\
 \llbracket e\texttt{.}y_i \rrbracket = \pi_i\,(\pi_1\,\llbracket e \rrbracket) & \text{a field, through the fields' pair} \\
 \llbracket \tau\texttt{(}e\texttt{)} \rrbracket = \mathit{conv}_{\tau',\tau}\,\llbracket e \rrbracket & \text{a conversion, a constant of type } \llbracket \tau' \rrbracket \to \llbracket \tau \rrbracket \text{, the identity's } \delta\text{-step included at } \tau' = \tau \\
 \llbracket f\texttt{<}\overline{\sigma}\texttt{>} \rrbracket^{\!\circ} = f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d} & \text{the callable of a step: a function name,} \\
 \llbracket e \rrbracket^{\!\circ} = (\pi_2\,\llbracket e \rrbracket)\,[\overline{\llbracket \sigma \rrbracket}]\,\overline{d} & \text{a function object; elaborated at the fold's types,} \\
 \qquad \text{with } \overline{d} \text{ the dictionaries of its constraints at } \overline{\sigma} & \text{its dictionaries supplied} \\
 \llbracket e \rrbracket^{\!\circ} = \lambda\overline{a}.\,q_C.\pi.r\,\overline{a} & \text{a step typed by \textsc{T-Req-Assumed}: the requirement's field} \\
-\llbracket r \rrbracket = c_R\,\overline{\llbracket e \rrbracket} & \text{a range of instance } R \text{ with arguments } \overline{e} \\
-\llbracket \texttt{size(}r\texttt{)} \rrbracket = |\llbracket r \rrbracket| \qquad \llbracket \texttt{head(}r\texttt{)} \rrbracket = \mathit{head}\,\llbracket r \rrbracket \qquad \llbracket \texttt{next(}r\texttt{)} \rrbracket = \mathit{next}\,\llbracket r \rrbracket & \text{a range's operations} \\
 \llbracket \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} \rrbracket = \pi_2\,(\mathit{iter}\,[\llbracket R \rrbracket \times \sigma]\,(\mathit{toNat}\,|\llbracket r \rrbracket|)\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket)) & \text{the iterator, over the range's length read as a natural} \\
 \qquad \text{where } \mathit{step} = \lambda p.\,(\mathit{next}\,(\pi_1 p),\; \llbracket f \rrbracket^{\!\circ}\,(\pi_2 p)\,(\mathit{head}\,(\pi_1 p))) & \text{the position carried beside the state} \\
 \qquad \text{with } |\cdot|, \mathit{head}, \mathit{next} \text{ the operations of } R & \\
@@ -80,14 +74,10 @@ O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \text{the sta
 \qquad & \text{the node rebuilt beside its result} \\
 \llbracket t \rrbracket_{\mu F} = \mathit{node}_{O\texttt{<}\overline{\tau}\texttt{>}}\,\llbracket t \rrbracket & \text{\textsc{T-Node}: any term of node type read where } \mu F \text{ is expected} \\
 \qquad \text{where } \mathit{node}_{O} = \lambda o.\,\mathrm{in}_O\,(\overline{\mathit{node}_{O_l}\,(\pi_l\,(\pi_1\,o))}, \overline{\pi_y\,(\pi_1\,o)}) & \text{its legs, of node types } O_l \text{ smaller than } O\text{, read the same way, its other fields as they are} \\
-\llbracket e_1 \texttt{ ? } e_2 \texttt{ : } e_3 \rrbracket = \mathbf{if}\ \llbracket e_1 \rrbracket\ \mathbf{then}\ \llbracket e_2 \rrbracket\ \mathbf{else}\ \llbracket e_3 \rrbracket & \text{case on } \mathit{Bool} \\
-\llbracket \iota_1\,e \rrbracket = \mathrm{inl}\,\llbracket e \rrbracket \qquad \llbracket \iota_2\,e \rrbracket = \mathrm{inr}\,\llbracket e \rrbracket & \text{\cppinline{nullopt} is $\iota_1$ of $()$} \\
-\llbracket \texttt{case(}s\texttt{, }f\texttt{, }g\texttt{)} \rrbracket = \mathbf{case}\ \llbracket s \rrbracket\ \mathbf{of}\ \mathrm{inl}\,x \Rightarrow \llbracket f \rrbracket^{\!\circ}\,x \mid \mathrm{inr}\,y \Rightarrow \llbracket g \rrbracket^{\!\circ}\,y & \text{case on a sum, each branch elaborated at its summand} \\
-\llbracket \texttt{std::make\_shared<const }\tau\texttt{>(}e\texttt{)} \rrbracket = ((), \llbracket e \rrbracket) \qquad \llbracket \texttt{*}e \rrbracket = \pi_2\,\llbracket e \rrbracket & \text{nothing observes which box} \\
 \end{array}$}
 \]
 \normalsize
-\caption{The translation of declarations and terms.
+\caption{The translation of declarations and terms; pairs, sums, boxes and conditionals are the target's own (Table~\ref{tab:conventions}).
 The right-hand column says which case a line is.}
 \label{fig:fjlt-translation}
 \end{figure}
@@ -115,10 +105,11 @@ The kernel's ranges are library adapters, and any instance of $\mathcal{R}$ woul
 \cppinline{transform(r, g)} is Listing~\ref{lst:rule3}'s \cppinline{r >> g}: head \cppinline{g(head r)}, tail \cppinline{transform(next r, g)}, length $|r|$.
 \cppinline{iota(i, j)}, with $i \le j$, as reversed endpoints are undefined behaviour and not an empty range, has head $i$ and tail \cppinline{iota(i + 1, j)}.
 Each instance $R$ of $\mathcal{R}$ over $\tau$ contributes a state type $\llbracket R \rrbracket$, a constructor constant $c_R$, and $|\cdot| : \llbracket R \rrbracket \to \llbracket \texttt{size\_t} \rrbracket$, $\mathit{head} : \llbracket R \rrbracket \to \llbracket \tau \rrbracket$ and $\mathit{next} : \llbracket R \rrbracket \to \llbracket R \rrbracket$, constants for a base range and terms over the parts for a range built on another.
+A range translates to $c_R\,\overline{\llbracket e \rrbracket}$ on its arguments, and \cppinline{size}, \cppinline{head} and \cppinline{next} to those three.
 The state of \cppinline{n >> chain(prior)} is $\llbracket N \rrbracket$, that of \cppinline{transform(r, g)} is $\llbracket R \rrbracket \times \llbracket g \rrbracket$, the arrow carried so that $\mathit{head}$ applies it and $\mathit{next}$ keeps it, and that of \cppinline{iota(i, j)} is $\mathbb{N} \times \mathbb{N}$.
 
 \paragraph{Boxes.}
-A box translates to a unary product rather than to nothing, on purpose: a box's only observable is its content, as no \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes is a term, so which box holds it is erased, and the unit component keeps unboxing a step on both sides, which Lemma~\ref{lem:forward} needs.
+A box translates to a unary product rather than to nothing, on purpose, \cppinline{make_shared} to $((), \llbracket e \rrbracket)$ and $\texttt{*}e$ to $\pi_2\,\llbracket e \rrbracket$: a box's only observable is its content, as no \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes is a term, so which box holds it is erased, and the unit component keeps unboxing a step on both sides, which Lemma~\ref{lem:forward} needs.
 
 \paragraph{Conventions.}
 Table~\ref{tab:conventions} is the fragment's convention on the standard library: each type and helper, adopted by opinion, has rules of its own in Appendices~\ref{app:fjlt:typing} and~\ref{app:fjlt:evaluation}.
