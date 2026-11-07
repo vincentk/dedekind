@@ -4,6 +4,7 @@
 
 The statements are in Section~\ref{sec:guarantees}; the proofs are here as sketches, relative to the rules of Figures~\ref{fig:fjlt-typing} to~\ref{fig:fjlt-translation}, whose omitted cases (constants, pairs, boxes, conditionals, the arithmetic of base types) are the textbook ones; what the sketches leave open is listed after them.
 Throughout, $\Sigma$ is any signature whose carriers meet the conditions of Appendix~\ref{app:fjlt:syntax}, used only as constants and total operations, and the translation $\llbracket \cdot \rrbracket$ is the one of Appendix~\ref{app:fjlt:translation}, into System~F with products, sums, the carriers of $\Sigma$ as constants and the iterators.
+Its carriers are non-empty, since \RuleOne{} makes them default constructible, so the usual equational calculus stays sound and complete in the many-sorted case~\cite{goguen1985completeness}.
 A context translates pointwise: $\llbracket \Delta \rrbracket$ has a type variable for each $\alpha \in \Delta$ and a record variable $q_Q : \llbracket Q \rrbracket$ for each assumed constraint $Q \in \Delta$, and $\llbracket \Gamma \rrbracket = \overline{x : \llbracket \tau \rrbracket}$.
 Three facts about the target are used without proof: it is strongly normalising and confluent, as above, and substitution of types for type variables preserves typing.
 
