@@ -72,11 +72,12 @@ set(CMAKE_CXX_STANDARD 23)
 # CI, #1121).  The tests run at compile time, so -O3 bought them nothing.
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# Position-independent code for every target.  The static libraries link into the
-# Python modules, where they need it; and a consumer whose flags differ from a
-# module's makes CMake 4 compile a second copy of that module, so the tests and the
-# libraries must agree.
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# A consumer whose flags differ from a module's makes CMake 4 compile a second copy of
+# that module, 7 minutes of CI.  nanobind's static library hands its consumers these
+# two publicly off macOS, so every target takes them.
+if(NOT APPLE)
+    add_compile_options(-ffunction-sections -fdata-sections)
+endif()
 # For clangd:
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -155,7 +156,15 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
 
     add_library(${LIB_TARGET} STATIC)
     set_target_properties(${LIB_TARGET} PROPERTIES
-        CXX_SCAN_FOR_MODULES ON)
+        CXX_SCAN_FOR_MODULES ON
+        # The dedekind_* static libs are linked into the Python bindings .so
+        # (the _jlt / _pst targets).  Without -fPIC, COMDAT-emitted
+        # symbols from inline-variable dynamic-init (esp. closures large
+        # enough to defeat std::function SBO, where the Path destructor is
+        # not inlined) produce non-PIC relocations that fail the .so link.
+        # POSITION_INDEPENDENT_CODE ON makes the static libs PIC-compatible
+        # for both shared-library linkage and the test executables.
+        POSITION_INDEPENDENT_CODE ON)
     target_sources(${LIB_TARGET} PUBLIC FILE_SET CXX_MODULES BASE_DIRS src/main/modules FILES ${MODULE_SOURCES})
     
     if(DEPENDS_ON)
