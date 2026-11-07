@@ -49,7 +49,7 @@ One core, baseline SSE2, from raw ASCII. *The table* is Knuth, Morris and Pratt'
 | Python, a loop over a set | 100 | 300× |
 | Python, `re` with 64 alternatives in a lookahead | 200 | 500× |
 
-So the same count on the same core takes between a five-hundredth and a fifth of the CPU time, depending only on how much of the work the law and the build have already done.
+So the law does the same count in a fifth of the table's CPU time and a five-hundredth of `re`'s, on the same core. That is the case for it, and fewer cycles for the same answer is what sustainable computing asks. Energy itself isn't measured here.
 
 On 3.1 billion letters, about a human genome, past the cache: a plain read of the same memory at 30 GB/s, the law at 3 GB/s, the table at 0.5. So about a second, by calculation, and the scan is bound by the core and not by memory. The scan's own storage is fixed, a block's worth for the law and one state for the table, and the text is read where it lies. Drawn rather than stored, by the table, peak memory for the whole process stays at about 10 MB from 10^7 to 10^10 letters. All rows count the same number of sites, and the job fails if they do not.
 
