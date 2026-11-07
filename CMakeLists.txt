@@ -77,6 +77,12 @@ set(CMAKE_CXX_STANDARD 23)
 # CI, #1121).  The tests run at compile time, so -O3 bought them nothing.
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# A consumer whose flags differ from a module's makes CMake 4 compile a second copy of
+# that module, 7 minutes of CI.  nanobind's static library hands its consumers these
+# two publicly off macOS, so every target takes them.
+if(NOT APPLE)
+    add_compile_options(-ffunction-sections -fdata-sections)
+endif()
 # For clangd:
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
