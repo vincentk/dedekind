@@ -486,17 +486,19 @@ void row(std::string_view name, double ns, double draw) {
 
 /** @brief A word of the text read at a position, and nothing else done with it.
  *  Through memcpy, as the storage holds bytes, which compiles to one load. */
+inline constexpr std::size_t word_bytes = sizeof(std::uint64_t);
 struct ReadWord {
-  const std::byte* text;
+  Text text;
   std::uint64_t operator()(std::uint64_t total, std::size_t word) const {
     std::uint64_t x;
-    std::memcpy(&x, text + word * sizeof x, sizeof x);
+    std::memcpy(&x, text.subspan(word * word_bytes, word_bytes).data(),
+                word_bytes);
     return total ^ x;
   }
 };
 std::uint64_t read_all(Text t) {
-  return std::ranges::fold_left(std::views::iota(0uz, t.size() / 8uz),
-                                std::uint64_t{0}, ReadWord{t.data()});
+  return std::ranges::fold_left(std::views::iota(0uz, t.size() / word_bytes),
+                                std::uint64_t{0}, ReadWord{t});
 }
 
 /** @brief The same scans on a text too long for the cache to hold, against this
