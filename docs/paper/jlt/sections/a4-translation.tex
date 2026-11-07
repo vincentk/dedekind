@@ -61,14 +61,14 @@ Its one non-local ingredient is the \emph{dictionary} of an entailment: $\llbrac
 \llbracket \texttt{std::shared\_ptr<const }\tau\texttt{>} \rrbracket = 1 \times \llbracket \tau \rrbracket & \text{a box is a unary product} \\
 \llbracket R\texttt{<}\tau\texttt{>} \rrbracket = \llbracket R \rrbracket \qquad \llbracket \mu F \rrbracket = \mu F \text{ with } F\,X = \textstyle\sum_{O} \prod \overline{\llbracket \tau_y \rrbracket}[X / \text{the leg types}] & \text{a range's state; a term type, the sum of its nodes' fields, a leg's type replaced by } X \\[6pt]
 \multicolumn{2}{l}{\textit{constraints, as record types}} \\
-\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i : \llbracket R_i \rrbracket[\overline{\tau}/\overline{\alpha}]}\,\} \text{ where } \texttt{concept } C \texttt{ = } \overline{R} & \text{one field per requirement} \\
+\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i : \llbracket A_i \rrbracket[\overline{\tau}/\overline{\alpha}]}\,\} \text{ where } \texttt{concept } C \texttt{ = } \overline{A} & \text{one field per requirement} \\
 \llbracket Q \rrbracket \text{ for a nested shape } Q & \text{its record type} \\
 \llbracket \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = 1 & \text{a negation carries no evidence} \\
 \llbracket e \rrbracket = \mathit{Bool} \text{ for a law } e & \\
 \llbracket \texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket & \text{an operation on parameters } \overline{x : \tau_x} \\[6pt]
 \multicolumn{2}{l}{\textit{dictionaries, from entailment derivations}} \\
 \llbracket \Delta \Vdash Q \rrbracket = q \text{ if } Q \in \Delta \text{ with record variable } q & \text{\textsc{E-Assume}} \\
-\llbracket \Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i = \llbracket \Delta \Vdash R_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\} & \text{\textsc{E-Shape}} \\
+\llbracket \Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i = \llbracket \Delta \Vdash A_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\} & \text{\textsc{E-Shape}} \\
 \llbracket \Delta \Vdash e \rrbracket = \mathit{true} & \text{\textsc{E-Law}, \textsc{E-Law-Assumed}} \\
 \llbracket \Delta \Vdash \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = () & \text{\textsc{E-Not}} \\
 \llbracket \Delta \Vdash \texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \lambda\overline{a}.\,\llbracket \tau^{S}\texttt{(}e_r\texttt{)} \rrbracket & \text{\textsc{E-Op}, over the requirement's parameters, the conversion in the field} \\[6pt]

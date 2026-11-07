@@ -6,7 +6,7 @@
 \[
 \begin{array}{lcl@{\hspace{0.2em}}l}
 P &::=& \overline{D}\; e & \text{program} \\[3pt]
-D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \texttt{ = } \overline{R}\texttt{;} & \text{shape} \\
+D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \texttt{ = } \overline{A}\texttt{;} & \text{shape} \\
   & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> constexpr } \tau\; f\texttt{(}\overline{\tau}\texttt{) = delete;} & \text{trait} \\
   & \mid & \texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{\tau\; x}\texttt{)} & \text{instance} \\
   &   & \qquad \texttt{\{ return } e\texttt{; \}} & \\
@@ -15,7 +15,7 @@ D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \text
   & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau\; y}\texttt{;} & \text{operation} \\
   &   & \qquad \texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q} & \\
   &   & \qquad \texttt{constexpr } \tau \texttt{ operator()(}\overline{\tau\; x}\texttt{) const \{ return } e\texttt{; \} \};} & \\[3pt]
-R &::=& Q \;\mid\; e & \text{nested shape, law} \\
+A &::=& Q \;\mid\; e & \text{nested shape, law} \\
   & \mid & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>;}} \texttt{ \}} & \text{operations} \\[3pt]
 Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
 \tau &::=& \alpha \;\mid\; b \;\mid\; O\texttt{<}\overline{\tau}\texttt{>} & \text{type} \\
@@ -30,7 +30,7 @@ e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\o
 Terminals are in monospace, and an overbar abbreviates a sequence.
 $P$ is a program.
 $D$ is a declaration.
-$R$ is a requirement.
+$A$ is a requirement.
 $Q$ is a constraint.
 $\tau$ is a type.
 $e$ is a term.}

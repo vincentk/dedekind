@@ -65,9 +65,9 @@ Each step reads the laws of a term's immediate parts only, so the inference is l
 \qquad
 \textsc{(E-Law)}\quad \dfrac{\varnothing; \varnothing \vdash e : \texttt{bool} \qquad e \Downarrow \texttt{true}}{\Delta \Vdash e}
 \\[12pt]
-\textsc{(E-Law-Assumed)}\quad \dfrac{\texttt{concept } C \texttt{ = } \overline{R} \qquad C\texttt{<}\overline{\tau}\texttt{>} \in \Delta \qquad e = R_i[\overline{\tau}/\overline{\alpha}] \text{ a law}}{\Delta \Vdash e}
+\textsc{(E-Law-Assumed)}\quad \dfrac{\texttt{concept } C \texttt{ = } \overline{A} \qquad C\texttt{<}\overline{\tau}\texttt{>} \in \Delta \qquad e = A_i[\overline{\tau}/\overline{\alpha}] \text{ a law}}{\Delta \Vdash e}
 \\[12pt]
-\textsc{(E-Shape)}\quad \dfrac{\texttt{concept } C \texttt{ = } \overline{R} \qquad C\texttt{<}\overline{\tau}\texttt{>} \notin \Delta \qquad \Delta \Vdash R_i[\overline{\tau}/\overline{\alpha}] \text{ for each } i}{\Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>}}
+\textsc{(E-Shape)}\quad \dfrac{\texttt{concept } C \texttt{ = } \overline{A} \qquad C\texttt{<}\overline{\tau}\texttt{>} \notin \Delta \qquad \Delta \Vdash A_i[\overline{\tau}/\overline{\alpha}] \text{ for each } i}{\Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>}}
 \\[12pt]
 \textsc{(E-Op)}\quad \dfrac{\Delta; \overline{x : \tau_x} \vdash e : \tau' \qquad \tau' \mathrel{S} \tau}{\Delta \Vdash \texttt{requires (}\overline{\texttt{const }\tau_x\; x}\texttt{) \{ \{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>; \}}}
 \qquad
