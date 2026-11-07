@@ -2,6 +2,15 @@
 \section{Featherweight Jlt typing}
 \label{app:fjlt:typing}
 
+Figures~\ref{fig:fjlt-entailment} and~\ref{fig:fjlt-typing} say which FJlt programs are well formed, the domain of $\llbracket\cdot\rrbracket$ in Figure~\ref{fig:arrows}.
+As Appendix~\ref{app:fjlt:syntax}'s carrier sets keep \RuleOne{}, their rules hold a program to \RuleTwo{}, through the definition check and resolution, and to \RuleThree{}, through well-founded declarations and ranges.
+There are three judgments.
+$\Delta \Vdash Q$ says that the constraint $Q$ is \emph{entailed} in the context $\Delta$, which holds type variables and assumed constraints.
+$\Delta; \Gamma \vdash e : \tau$ types a term.
+$\vdash D$ says a declaration is well formed, and a program is well formed when its declarations are and its closed term has a type.
+The compiler holds a program to most of this.
+It does not hold a generic body to its constraints (Section~\ref{sec:limits}), a call at a type variable to the resolution below, a body to the declared type of a converted result, or a range to its conditions, and those rest on the programmer's discipline.
+
 \begin{figure}[htbp]
 \scriptsize
 \[
@@ -20,9 +29,17 @@
 \end{array}
 \]
 \normalsize
-\caption{Entailment: when a type satisfies a constraint.}
+\caption{The rules of entailment, $\Delta \Vdash Q$.
+Six rules: an assumption, two for laws, a shape, a requirement and a negation.}
 \label{fig:fjlt-entailment}
 \end{figure}
+
+\paragraph{Entailment and laws.}
+\textsc{E-Law} is where a law is a value: entailment evaluates it, so a shape with a law is satisfied only at instances whose certificate holds.
+Laws are closed terms of base type, which keeps typing and evaluation from chasing each other.
+A law is evaluated where a record is built, at concrete types; at a type variable it is entailed only through an assumed shape that lists it, by \textsc{E-Law-Assumed}, as a call is through \textsc{T-Req-Assumed}.
+A negated constraint \cppinline{!C<T>} carries no evidence: \textsc{E-Not} holds at concrete types where $C$ does not, and the well-founded order below makes its negative premise decidable.
+The side condition of \textsc{E-Shape} makes entailment syntax-directed: an assumed shape is its record variable and is never rebuilt field by field, which is what Theorem~\ref{thm:coherence} needs.
 
 \begin{figure}[htbp]
 \scriptsize
@@ -58,26 +75,11 @@
 \end{array}
 \]
 \normalsize
-\caption{Typing and well-formedness: what a body may do.
-The textbook rules are omitted: \textsc{T-Var} for variables, \textsc{T-Construct} and \textsc{T-Field} for function objects, \textsc{T-Inj} and \textsc{T-Case} for sums, and those for constants, pairs, boxes, conditionals and the arithmetic of base types.}
+\caption{The rules for terms, $\Delta; \Gamma \vdash e : \tau$, and for generic functions, $\vdash D$.
+They come in three groups: calls, the definition check and recursion.
+Omitted as textbook: \textsc{T-Var}, \textsc{T-Construct}, \textsc{T-Field}, \textsc{T-Inj}, \textsc{T-Case}, and the rules for constants, pairs, boxes, conditionals and the arithmetic of base types.}
 \label{fig:fjlt-typing}
 \end{figure}
-
-Figures~\ref{fig:fjlt-entailment} and~\ref{fig:fjlt-typing} say which FJlt programs are well formed, the domain of $\llbracket\cdot\rrbracket$ in Figure~\ref{fig:arrows}.
-As Appendix~\ref{app:fjlt:syntax}'s carrier sets keep \RuleOne{}, their rules hold a program to \RuleTwo{}, through the definition check and resolution, and to \RuleThree{}, through well-founded declarations and ranges.
-There are three judgments.
-$\Delta \Vdash Q$ says that the constraint $Q$ is \emph{entailed} in the context $\Delta$, which holds type variables and assumed constraints.
-$\Delta; \Gamma \vdash e : \tau$ types a term.
-$\vdash D$ says a declaration is well formed, and a program is well formed when its declarations are and its closed term has a type.
-The compiler holds a program to most of this.
-It does not hold a generic body to its constraints (Section~\ref{sec:limits}), a call at a type variable to the resolution below, a body to the declared type of a converted result, or a range to its conditions, and those rest on the programmer's discipline.
-
-\paragraph{Entailment and laws.}
-\textsc{E-Law} is where a law is a value: entailment evaluates it, so a shape with a law is satisfied only at instances whose certificate holds.
-Laws are closed terms of base type, which keeps typing and evaluation from chasing each other.
-A law is evaluated where a record is built, at concrete types; at a type variable it is entailed only through an assumed shape that lists it, by \textsc{E-Law-Assumed}, as a call is through \textsc{T-Req-Assumed}.
-A negated constraint \cppinline{!C<T>} carries no evidence: \textsc{E-Not} holds at concrete types where $C$ does not, and the well-founded order below makes its negative premise decidable.
-The side condition of \textsc{E-Shape} makes entailment syntax-directed: an assumed shape is its record variable and is never rebuilt field by field, which is what Theorem~\ref{thm:coherence} needs.
 
 \paragraph{The definition check.}
 \textsc{D-Generic} types a generic body under its constraints, and \textsc{T-Req-Assumed} is what makes that a check.
