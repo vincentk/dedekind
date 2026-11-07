@@ -38,8 +38,7 @@ $e$ is a term.}
 FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}.
 As it is a subset of Jlt, it respects the three rules of Section~\ref{sec:posture}.
 Its base types and their \cppinline{constexpr} operations form a many-sorted algebra~\cite{birkhoff1970heterogeneous,sannella2012foundations} over a signature $\Sigma$.
-In that vocabulary, a type such as \cppinline{bool} or \cppinline{size_t} is a \emph{carrier set} if it keeps \RuleOne{} and has an image in the target (Appendix~\ref{app:fjlt:translation}).
-A function on such types, $\oplus$ in the figure, is an \emph{operation} on carrier sets if it is \cppinline{constexpr}, as \RuleOne{} requires, and total, which Lemma~\ref{lem:progress} needs.
+Loosely speaking, a type such as \cppinline{bool} or \cppinline{size_t} is a \emph{carrier set} if it keeps \RuleOne{} and has an image in the target (Appendix~\ref{app:fjlt:translation}), and an operator on such types, $\oplus$ in the figure, is an \emph{operation} if it is total, which Lemma~\ref{lem:progress} needs.
 An operation may cross between carrier sets, as \cppinline{==} on \cppinline{size_t} gives a \cppinline{bool}.
 Listing~\ref{lst:fjlt-reading} is a valid example snippet, read in the figure's terms.
 
