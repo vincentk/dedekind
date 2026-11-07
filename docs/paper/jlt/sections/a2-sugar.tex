@@ -5,7 +5,7 @@
 This appendix is the $-$sugar arrow of Figure~\ref{fig:arrows}, which Section~\ref{sec:translation:adequacy} only outlines: each construction of \Cpp{} that a Jlt program writes beyond the grammar of Appendix~\ref{app:fjlt:syntax}, with its desugaring into the kernel and its condition, and no proof.
 A condition is on how a term is built, never on inspecting it afterwards, and the rules are asked of the kernel term.
 Three reasons cover the constructions: one is only a spelling, one keeps its state private, or one is a choice.
-In that order the condition passes, on the whole, from the compiler to the repository's tool to a reader.
+In that order the condition passes, on the whole, from the compiler to the repository's linter to a reader.
 The listings are FJlt up to this sugar, reading \cppinline{static_assert(e)} as the claim that $e$ evaluates to \cppinline{true}, with two exceptions: Listing~\ref{lst:rule3}'s Collatz chain is finite by fact, not by a condition on $\mathcal{R}$, and Listing~\ref{lst:sites} dereferences an optional in a constant initialiser, admitted under \emph{A choice} below.
 An FJlt program is a Jlt program with the same meaning, provided no law and no \cppinline{static_assert} builds a box (Appendix~\ref{app:fjlt:evaluation}).
 
@@ -19,15 +19,15 @@ construction & FJlt, provided & image & the condition held by \\
 \texttt{auto}, \texttt{decltype}, argument deduction & nothing & the type the compiler deduces & the compiler \\
 alias, \texttt{tuple}, \texttt{array} & the parts FJlt & substitution, nested pairs, a range of $\mathcal{R}$ & the compiler \\
 variable or class template & each member of the family an FJlt instance & instance with a context, a default beside families resolved by specificity & the compiler, by lookup \\
-const member function & \texttt{const}, FJlt body & generic function with the object as first parameter & the tool \\
-constructor, conversion operator, default argument, designated initialiser & \texttt{constexpr}, FJlt body & a function returning the struct; a declared conversion; an overload with the argument supplied; the fields in order & the tool for \texttt{constexpr}, a reader \\
+const member function & \texttt{const}, FJlt body & generic function with the object as first parameter & the linter \\
+constructor, conversion operator, default argument, designated initialiser & \texttt{constexpr}, FJlt body & a function returning the struct; a declared conversion; an overload with the argument supplied; the fields in order & the linter for \texttt{constexpr}, a reader \\
 explicit conversion & a total conversion between carriers & a declared function & a reader \\
-an operator on a constrained type & a constraint names the standard function object the standard defines by it, \texttt{plus<T>} for \texttt{+}, and the operator has type \texttt{T} there (\texttt{true + true} is the \texttt{int} 2) & that object's call & the tool for the name, a reader for the type \\
+an operator on a constrained type & a constraint names the standard function object the standard defines by it, \texttt{plus<T>} for \texttt{+}, and the operator has type \texttt{T} there (\texttt{true + true} is the \texttt{int} 2) & that object's call & the linter for the name, a reader for the type \\
 operator overloading, user-defined literal & FJlt body & a named function call & the compiler \\
 non-type template parameter & the value a constant of a carrier & a type per value, as \texttt{integral\_constant} spells it & the compiler \\
 overloading & distinct carriers, or constraints ordered by specificity & specialisations of one trait, or generic functions & the compiler, by ambiguity \\
 \texttt{friend}, access specifier & a friend an FJlt function & a free function; nothing & the compiler \\
-inheritance & every base an empty class, no virtual function & a registration, read as the fact it states & the tool \\
+inheritance & every base an empty class, no virtual function & a registration, read as the fact it states & the linter \\
 generic \texttt{cata} over a term type & algebra and term FJlt & the kernel's primitive \texttt{cata} & the compiler \\
 \bottomrule
 \end{tabularx}
@@ -47,7 +47,7 @@ A static member function is a generic function.
 A struct with fields and no call operator is a product, nested pairs.
 \cppinline{std::array<T, n>} is a product of $n$ copies and also a member of $\mathcal{R}$, with length $n$, a head and a tail, so a fold over it is already in the grammar.
 Constrained overloads are generic functions, and where their heads both match, resolution by specificity orders them, as for Listing~\ref{lst:laws}'s overloads of \cppinline{fold} and \cppinline{concat}.
-Jlt has no subtyping: the grammar has no base clause and no derived-to-base conversion, a class with a base that holds state or a virtual function is outside the posture, and the tool's \texttt{inheritance} check holds the module at zero.
+Jlt has no subtyping: the grammar has no base clause and no derived-to-base conversion, a class with a base that holds state or a virtual function is outside the posture, and the linter's \texttt{inheritance} check holds the module at zero.
 A base clause on an empty class, such as \cppinline{std::true_type}, is a registration: the family row spelled by inheritance, read as the fact it states.
 
 \begin{table}[tbp]
@@ -57,9 +57,9 @@ A base clause on an empty class, such as \cppinline{std::true_type}, is a regist
 \toprule
 construction & FJlt, provided & image & the condition held by \\
 \midrule
-lambda & captures by copy of FJlt values, FJlt body & function object, captures as fields & the tool for the captures, a reader for the image \\
-local constant, structured binding & the initialiser FJlt, the name bound once & a $\beta$-redex; a binding as \texttt{.first}, \texttt{.second} & the tool \\
-local state that does not escape & assignments only to locals, by-value parameters, elements of a local array, or a builtin's out-parameter that is a local; nothing written observable after the call & the state threaded as values, one binding per assignment, as \texttt{runST} encapsulates it & the tool for escape, a reader for the rest \\
+lambda & captures by copy of FJlt values, FJlt body & function object, captures as fields & the linter for the captures, a reader for the image \\
+local constant, structured binding & the initialiser FJlt, the name bound once & a $\beta$-redex; a binding as \texttt{.first}, \texttt{.second} & the linter \\
+local state that does not escape & assignments only to locals, by-value parameters, elements of a local array, or a builtin's out-parameter that is a local; nothing written observable after the call & the state threaded as values, one binding per assignment, as \texttt{runST} encapsulates it & the linter for escape, a reader for the rest \\
 \bottomrule
 \end{tabularx}
 \caption{Constructions whose state stays inside a call, read as Table~\ref{tab:closure}.}
@@ -86,8 +86,8 @@ construction & FJlt, provided & image & the condition held by \\
 \texttt{if constexpr} on a value & condition a closed \texttt{bool} term, both branches FJlt of one type under the same constraints & \texttt{p ? A : B} & a reader, by the rewrite \\
 enumeration, \texttt{switch} & every enumerator handled, each case an FJlt term of one type & a finite sum of units and its nested case & the compiler, by its switch warning \\
 sum & branches FJlt on the summands & the case form & the kernel, a reader for a guard \\
-\texttt{if constexpr} on a constraint & then-branch FJlt under the constraint, else-branch under its negation & an instance chain, the more constrained generic function preferred & the compiler at concrete types, the tool at a type variable \\
-a call its clause does not decide & the caller instantiates at a concrete type & constraint inference: the call's resolution a parameter the caller supplies & the tool reports it \\
+\texttt{if constexpr} on a constraint & then-branch FJlt under the constraint, else-branch under its negation & an instance chain, the more constrained generic function preferred & the compiler at concrete types, the linter at a type variable \\
+a call its clause does not decide & the caller instantiates at a concrete type & constraint inference: the call's resolution a parameter the caller supplies & the linter reports it \\
 \texttt{if consteval}, or an \texttt{if} on \texttt{is\_constant\_evaluated()} & both branches compute the same value on every input & the compile-time branch & the declared law that licenses the other branch, or a reader \\
 \bottomrule
 \end{tabularx}
@@ -115,7 +115,7 @@ A body \cppinline{if constexpr (C<T>) return A; else return B;} in a generic fun
 The pair plays the role of a two-clause instance chain of Morris and Jones~\cite{morris2010instance}, an explicit alternation decided by one constraint, though resolution by specificity (Appendix~\ref{app:fjlt:typing}) rather than clause order picks its branch.
 At a concrete type the compiler decides $C\texttt{<T>}$, and at a type variable the call resolves only where the enclosing context decides it.
 When the test is \cppinline{std::same_as<T, X>} at a concrete \cppinline{X} and \cppinline{T} is the whole head, the first function is an explicit specialisation at \cppinline{X}.
-A test of a \cppinline{requires} expression written in the body is not a declared constraint under Rule~2, and the tool's \texttt{inline-requires} check holds the module at zero.
+A test of a \cppinline{requires} expression written in the body is not a declared constraint under Rule~2, and the linter's \texttt{inline-requires} check holds the module at zero.
 This split and the next desugaring add declarations, so they are not local in Felleisen's sense~\cite{felleisen1991expressive}.
 
 \paragraph{A call its clause does not decide.}
@@ -137,6 +137,6 @@ For an arbitrary branch the condition is semantic, and a reader holds it, as for
 
 \paragraph{Why that is all of it.}
 The tables are complete by measurement, not by argument, at the resolution of a syntax node's kind.
-The repository's tool lists every kind the \texttt{category} module and the listings write, leaving out the compiler's implicit wrappers, and each is the kernel's or a row, with \texttt{if consteval} added for the parallel \cppinline{concat}.
+The repository's linter lists every kind the \texttt{category} module and the listings write, leaving out the compiler's implicit wrappers, and each is the kernel's or a row, with \texttt{if consteval} added for the parallel \cppinline{concat}.
 A kind does not tell every use apart: a binary operator is arithmetic or an assignment, and the assignments are the row of local state, which Rule~1's footnote admits and which reading, not counting, finds.
 With the tables closed, the second direction of Section~\ref{sec:translation:adequacy} reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.

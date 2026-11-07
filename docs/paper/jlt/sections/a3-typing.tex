@@ -96,7 +96,7 @@ Well-formedness requires resolution to be a function, in two cases.
 At concrete types, no two specialisations share a head, and among the generic functions whose head matches and whose context is entailed there is a unique most specific one, by head and then by context, as \Cpp{} orders constrained templates; \Cpp{} rejects the program where there is none.
 At a type variable, in a body with context $\Delta$, a call resolves only when its choice survives every instantiation of the body: every candidate, explicit specialisations included, whose head unifies with the call's types and that would be more specific than the chosen one is excluded by a constraint $\Delta$ decides, entailing it or its negation.
 That refines GHC's rule for overlapping instances~\cite{ghc2024overlapping}, which looks at instance heads only and refuses to commit to an instance the types do not yet decide.
-\Cpp{} does not hold it: a call it would refuse is a body that varies with a type through a constraint it did not declare, a breach of Rule~2, which the repository's tool reports where it can see one (Section~\ref{sec:limits}).
+\Cpp{} does not hold it: a call it would refuse is a body that varies with a type through a constraint it did not declare, a breach of Rule~2, which the repository's linter reports where it can see one (Section~\ref{sec:limits}).
 
 \paragraph{Well-founded declarations.}
 Well-formedness also requires that the declarations, taken at their type arguments, be well founded under \emph{depends on}.
@@ -107,7 +107,7 @@ The relation is on instantiations and not on bare declarations, since a structur
 The measure that falls is the pair of depth of the type arguments and declaration position.
 Resolution, entailment, \textsc{E-Not}'s negative premise and \textsc{E-Law}'s evaluation all recurse along that relation, so its being well founded makes the rules define one relation and makes resolution terminate.
 \Cpp{} has a rule of its own for a satisfaction that depends on itself, which the condition makes unnecessary.
-Two syntactic conditions suffice, and the repository's tool reads the second.
+Two syntactic conditions suffice, and the repository's linter reads the second.
 A context on a structured head mentions only proper parts of its type arguments, so that each step descends by the head; compare the Paterson conditions~\cite{sulzmann2007understanding}.
 The context of an instance whose head has no proper part at a slot, a type variable or a concrete type there, mentions only shapes declared before the trait's primary, so that a shape calling the trait is never asked for while the trait is resolved.
 A trait's specialisations may follow the shapes that call it, as Listing~\ref{lst:rule2}'s do, since a specialisation depends on the shape only through its body or its context.
@@ -126,7 +126,7 @@ The library's \cppinline{cata} over typed terms is not this exception, as its re
 \textsc{E-Op} reads $S$ as equality for \cppinline{std::same_as} and as conversion for \cppinline{std::convertible_to}.
 Write $\tau^{S}\texttt{(}e\texttt{)}$ for $e$ when $S$ is \cppinline{std::same_as} and for $\tau\texttt{(}e\texttt{)}$ when it is \cppinline{std::convertible_to}, so that \textsc{T-Req-Assumed} types $\tau^{S}$ of the pattern and a use of the requirement keeps its declared type when \textsc{S-Call} substitutes the instance (\textsc{S-Conv}).
 A body may therefore use a converted result only at the declared $\tau$.
-A body that used the unconverted result, say to compare two of them at their own type, would be using an operation the constraint did not name, which the typing refuses and \Cpp{} accepts, and which the repository's tool reports where it can see it.
+A body that used the unconverted result, say to compare two of them at their own type, would be using an operation the constraint did not name, which the typing refuses and \Cpp{} accepts, and which the repository's linter reports where it can see it.
 The library needs the conversion form where a requirement's expression is an lvalue of the wanted type (\cppinline{const T&} is not \cppinline{same_as<T>}; \cppinline{IsPointed}'s unit), where a step returns a proxy for the carrier (\cppinline{HasNNOStep}'s successor), or where an object is presented by another type (\cppinline{Presents}).
 
 \paragraph{Ranges and terms.}
