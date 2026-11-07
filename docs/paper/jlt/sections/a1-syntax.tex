@@ -36,16 +36,15 @@ $e$ is a term.}
 \end{figure}
 
 FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}.
-As it is a subset of Jlt, it respects the three rules of Section~\ref{sec:posture}.
 Its base types and their \cppinline{constexpr} operators form a many-sorted algebra~\cite{birkhoff1970heterogeneous,sannella2012foundations} over a signature $\Sigma$.
-Loosely speaking, a type such as \cppinline{bool} or \cppinline{size_t} is a \emph{carrier set} if it keeps \RuleOne{} and has an image in the target (Appendix~\ref{app:fjlt:translation}), and an operator on such types, $\ominus$ or $\oplus$ in the figure, is a \emph{function} between them if it is total, which Lemma~\ref{lem:progress} needs.
+Loosely speaking, a type such as \cppinline{bool} or \cppinline{size_t} is a \emph{carrier set} if it keeps \RuleOne{}, and an operator on such types, $\ominus$ or $\oplus$ in the figure, is a \emph{function} between them if it is total.
 It need not stay on one carrier set, as \cppinline{==} on \cppinline{std::string} gives a \cppinline{bool}.
 Listing~\ref{lst:fjlt-reading} is a valid example snippet, read in the figure's terms.
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-// D: a trait, deleted until an instance
+// D: a trait; its primary stays deleted
 template <typename T>
 constexpr T op(T, T) = delete;
 
@@ -85,10 +84,9 @@ template <typename T> struct Plus {
 twice("ab"s) + "c"s == "ababc"s
 \end{cpp}
 \end{minipage}
-\caption{A small program, each declaration labelled with its form in Figure~\ref{fig:fjlt-syntax}.}
+\caption{A small program, each declaration labelled with its form in Figure~\ref{fig:fjlt-syntax}; its \texttt{\"\"s} literals are sugar.}
 \label{lst:fjlt-reading}
 \end{listing}
 
 In Figure~\ref{fig:fjlt-syntax}, $\alpha, \beta$ range over type variables, $b$ over base types, $T$ over type constructors, declared or adopted (Table~\ref{tab:conventions}), $O$ over the function-object types among them, standard (\cppinline{std::plus}, \ldots) or declared, $y$ over their fields, $\ominus$ and $\oplus$ over the unary and binary operators of $\Sigma$, $C$ over concept names, the standard ones included, $S$ over the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ over function names, $x$ over term variables and $c$ over constants.
-A template is always fully applied: $\alpha$ ranges over types, and there is no template template parameter, so the target needs no type operators.
-The overbar reads a parameter pack and a fold expression at each arity, and says nothing of all arities at once.
+A template is always fully applied: $\alpha$ ranges over types, and there is no template template parameter, so System~F suffices.

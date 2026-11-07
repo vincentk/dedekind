@@ -46,7 +46,7 @@ The default value of a type is given by its structure, not by \cppinline{T{}}: a
 \textsc{S-Fold} consumes the head of the range, so a fold takes as many steps as the range has elements.
 \textsc{S-Cata} unfolds one node, passing the node itself beside its legs' folds; a leaf has no legs and the algebra is applied to it alone.
 \textsc{S-Prim} and \textsc{S-Std} are total because the admitted operations are, which is what Lemma~\ref{lem:progress} needs.
-That totality is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operation defined on every input, and it keeps \cppinline{int}'s overflow and division out.
+That totality, the condition of Appendix~\ref{app:fjlt:syntax}, is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operation defined on every input, and it keeps \cppinline{int}'s overflow and division out.
 On unsigned carriers the operations are addition, subtraction, multiplication and the bitwise operations, which wrap, the comparisons, and division, remainder and the shifts by a literal the carrier can take (a nonzero divisor, a shift below the width); by a variable, those three are partial and not admitted.
 On \cppinline{bool} they are the logical operations.
 $\Sigma$ is not a list; the listings also use \cppinline{std::string} with concatenation and the comparisons, allocation failure aside, and finite enumerations such as \cppinline{Ternary}.
