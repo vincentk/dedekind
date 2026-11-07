@@ -69,7 +69,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          gh pr diff "$PR" --repo "$GITHUB_REPOSITORY" --name-only > changed
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" \
+            --jq '.[] | .filename, .previous_filename // empty' > changed
           if grep -q '^docs/' changed; then
             echo "docs=true" >> "$GITHUB_OUTPUT"
           fi
