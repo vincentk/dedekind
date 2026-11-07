@@ -3,7 +3,8 @@
 \label{app:fjlt:theorems}
 
 The statements are in Section~\ref{sec:guarantees}; the proofs are here as sketches, relative to the rules of Figures~\ref{fig:fjlt-typing} to~\ref{fig:fjlt-translation}, whose omitted cases (constants, pairs, boxes, conditionals, the arithmetic of base types) are the textbook ones; what the sketches leave open is listed after them.
-Throughout, $\Sigma$ is any signature whose carriers meet the three conditions of Appendix~\ref{app:fjlt:syntax}, used only as constants and total operations, and the translation $\llbracket \cdot \rrbracket$ is the one of Appendix~\ref{app:fjlt:translation}, into System~F with products, sums, the carriers of $\Sigma$ as constants and the iterators.
+Throughout, $\Sigma$ is any signature whose carriers meet the conditions of Appendix~\ref{app:fjlt:syntax}, used only as constants and total operations, and the translation $\llbracket \cdot \rrbracket$ is the one of Appendix~\ref{app:fjlt:translation}, into System~F with products, sums, the carriers of $\Sigma$ as constants and the iterators.
+Its carriers are non-empty, since \RuleOne{} makes them default constructible, so the usual equational calculus stays sound and complete in the many-sorted case~\cite{goguen1985completeness}.
 A context translates pointwise: $\llbracket \Delta \rrbracket$ has a type variable for each $\alpha \in \Delta$ and a record variable $q_Q : \llbracket Q \rrbracket$ for each assumed constraint $Q \in \Delta$, and $\llbracket \Gamma \rrbracket = \overline{x : \llbracket \tau \rrbracket}$.
 Three facts about the target are used without proof: it is strongly normalising and confluent, as above, and substitution of types for type variables preserves typing.
 
@@ -15,7 +16,7 @@ If $\Delta \Vdash Q$, then $\llbracket \Delta \rrbracket; \varnothing \vdash \ll
 \begin{proof}
 By induction on the entailment derivation, mutually with Theorem~\ref{thm:preservation}, the induction being on the size of the derivation.
 \textsc{E-Assume}: the dictionary is the variable $q_Q$, which $\llbracket \Delta \rrbracket$ types at $\llbracket Q \rrbracket$.
-\textsc{E-Shape}: $Q = C\texttt{<}\overline{\tau}\texttt{>}$, the dictionary is the record $\{\,\overline{r_i = \llbracket \Delta \Vdash R_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\}$, each field has type $\llbracket R_i \rrbracket[\overline{\tau}/\overline{\alpha}]$ by the induction hypothesis, and that is the field type of $\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket$ by definition.
+\textsc{E-Shape}: $Q = C\texttt{<}\overline{\tau}\texttt{>}$, the dictionary is the record $\{\,\overline{r_i = \llbracket \Delta \Vdash A_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\}$, each field has type $\llbracket A_i \rrbracket[\overline{\tau}/\overline{\alpha}]$ by the induction hypothesis, and that is the field type of $\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket$ by definition.
 \textsc{E-Law} and \textsc{E-Law-Assumed}: the dictionary is $\mathit{true} : \mathit{Bool}$.
 \textsc{E-Not}: the dictionary is $() : 1$.
 \textsc{E-Op}: the premise types $e$ at $\tau'$ under $\overline{x : \tau_x}$, so by Theorem~\ref{thm:preservation} on a smaller derivation $\llbracket e \rrbracket : \llbracket \tau' \rrbracket$ under $\overline{x : \llbracket \tau_x \rrbracket}$, and $\lambda\overline{x}.\,\llbracket e \rrbracket : \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau' \rrbracket$; for \cppinline{std::same_as} there is no conversion, and for \cppinline{std::convertible_to} the field applies the conversion constant $\mathit{conv}_{\tau',\tau} : \llbracket \tau' \rrbracket \to \llbracket \tau \rrbracket$ (\textsc{T-Conv}), so the field has type $\overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$ in both cases.
@@ -84,7 +85,7 @@ If some proper subterm in an evaluation position is not a value, the leftmost su
 Otherwise the term is a value, or a redex of one of the following shapes, each of which steps.
 A call $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)}$ typed by \textsc{T-Call} or \textsc{T-Trait}: the premise says the call resolves (for \textsc{T-Call}, the constraints are entailed, so resolution finds the generic function or, through its context, a specialisation), so \textsc{S-Call} applies; \textsc{T-Req-Assumed} cannot occur in a closed term, since $\Delta$ is empty.
 An application $O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)}$: \textsc{S-Op} for a declared operation, \textsc{S-Std} for a standard one, whose operations are total by the choice of $O$.
-A primitive $c_1 \oplus c_2$: \textsc{S-Prim}, total by the choice of $\oplus$.
+A primitive $\ominus c$ or $c_1 \oplus c_2$: \textsc{S-Prim}, total by the choice of $\ominus$ and $\oplus$.
 A conversion $\tau\texttt{(}c\texttt{)}$: \textsc{S-Conv}, total by the condition on conversions.
 A range's operation on a value of a range: \textsc{S-Range}, total by its extension to the empty range.
 A conditional on a constant of type \cppinline{bool}, a case on a value of a sum, which by \textsc{T-Case} and canonical forms is an injection, a projection of a pair or of a constructed object, an unbox of a box, a fold whose count is a constant, and a \cppinline{cata} on a node: \textsc{S-If}, \textsc{S-Case}, \textsc{S-Proj}, \textsc{S-Unbox}, \textsc{S-Fold}, \textsc{S-Cata}, with \textsc{S-Fold}'s two cases covering every constant and \textsc{S-Cata} covering every node, leaves included.
