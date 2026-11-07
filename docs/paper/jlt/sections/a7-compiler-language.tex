@@ -2,7 +2,7 @@
 \section{The compiler's own functional language}
 \label{app:fjlt:ssa}
 
-This appendix is the argument Figure~\ref{fig:arrows} cites for its right-hand leg: that for a closed term $t$ of base type, $\mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$ is $\mathit{eval}\,t$.
+This appendix is the argument Figure~\ref{fig:arrows} cites for its right-hand leg: that for a closed term $t$ of base type in the image of $\llbracket\cdot\rrbracket$, $\mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$ is $\mathit{eval}\,t$.
 Theorem~\ref{thm:simulation} gives that inside the calculus; here the program the compiler emits is read as the same term, in three steps: instantiation is partial evaluation of the dictionary-passing term, what remains is a first-order term, and the compiler's intermediate representation is that term as a functional program.
 It is a reason, not a theorem: the compiler is not among the hypotheses, its lowering is trusted, as every \Cpp{} program trusts it, and the reading of SSA as iterator terms is Appel's, which this paper uses and does not prove.
 
@@ -85,13 +85,12 @@ the law, letters as they come, four compared at run time & yes & no & 10 \\
 the law, sets of bases in bytes (IUPAC's code) & yes & yes, with dear operations & 4 \\
 \textbf{the library's \texttt{count(text >> pali6)}, by the law} & yes & yes & \textbf{0.4} \\
 \quad \texttt{pynzli}, by the law, from bytes & yes & yes & 0.4 \\
-\texttt{re}, 64 alternatives in a lookahead & & & 200 \\
+\texttt{re}, 64 alternatives in a lookahead & & & 300 \\
 \bottomrule
 \end{tabular}
 \caption{The two conditions, one failing at a time.
-Each row is named as \texttt{make bench} prints it, and the figures are those of the results table in \texttt{src/bench/README.md}: one core of a shared AMD EPYC 9V74, Clang~23 at \texttt{-O2}, baseline SSE2, $10^8$ letters, to one significant digit, as benchmarks are fickle and the orders of magnitude are the result.
-Main's CI uploads a fresh run as its \texttt{benchmark} artifact.
-Past the cache, on 3.1 billion letters, the law runs at 3\,GB/s against 30\,GB/s for a plain read of the same memory, so the scan is bound by the core.
+Each row is named as \texttt{make bench} prints it, and the figures are one recorded run, in full under \emph{One run in full} in \texttt{src/bench/README.md}: one core of a shared AMD EPYC 7763, Clang~23 at \texttt{-O2}, baseline SSE2, $10^8$ letters, to one significant digit, as benchmarks are fickle and the orders of magnitude are the result.
+Past the cache, on 3.1 billion letters, the law runs at 2\,GB/s against 20\,GB/s for a plain read of the same memory, so the scan is bound by the core.
 A text drawn and not stored, by the table, keeps peak memory flat from $10^7$ to $10^{10}$ letters; the law's own storage is a fixed block.}
 \label{tab:batch}
 \end{table}
