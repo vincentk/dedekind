@@ -12,6 +12,7 @@ E &::=& [\,] \mid f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{, }
 \end{array}
 \]
 where the elided contexts are the remaining argument positions of pairs, optionals, boxes, projections, constructions, folds and the two branches of a case, each evaluated left to right.
+This is FJlt's own evaluation, the calculus's stand-in for \texttt{clang++} and $\mathit{run}$ in Figure~\ref{fig:arrows}, which Appendix~\ref{app:fjlt:theorems} shows agrees with $\mathit{eval}$ across $\llbracket\cdot\rrbracket$.
 It is \Cpp{}'s constant evaluation restricted to the grammar, extended by \textsc{S-Unbox} at run time, and Figure~\ref{fig:fjlt-eval} gives the rules; $e \Downarrow v$ abbreviates $e \longrightarrow^{*} v$.
 The context grammar picks one redex per non-value term, so the relation is deterministic.
 A value is immutable and a reference to one denotes it, which is why a parameter written \cppinline{const τ&} is the parameter $\tau\; x$.

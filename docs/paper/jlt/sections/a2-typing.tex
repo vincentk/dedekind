@@ -84,7 +84,6 @@ Inside a constrained body, a call on a constrained type is typed only as an inst
 \cppinline{Op{}(x, x)} is the pattern \cppinline{{ Op{}(a, b) }} at $a, b := x$, and \cppinline{unit<T>(Op{})} is the pattern \cppinline{{ unit<T>(Op{}) }}, whose parameters are the variables of the \cppinline{requires} clause free in it, here none; a trait is reachable the same way.
 A variable of a fieldless function-object type denotes that type's one value, so \cppinline{op} of type \cppinline{Op} is \cppinline{Op{}}, which is how Listing~\ref{lst:rule3}'s \cppinline{concat} applies its \cppinline{op}.
 The requirements of a shape, in \textsc{T-Req-Assumed} and \textsc{E-Law-Assumed}, are its own and, transitively, those of its nested shapes: an assumed \cppinline{IsCommutativeMonoid<T, Op>} yields the operations and the associativity law of \cppinline{IsMonoid<T, Op>}.
-The dictionary projects along the path of nested fields, $q_C.m.r$ for a requirement $r$ of the nested shape held in field $m$.
 Where more than one assumed requirement matches, the rules take the leftmost shape of the \cppinline{requires} clause and, within it, the first matching requirement in declaration order, so both rules are functions of the body; once instantiated the candidates denote one operation, by Lemma~\ref{lem:resolve}.
 A premise $f : \sigma \times \tau \to \sigma$ in \textsc{T-Fold} and \textsc{T-Case} says that $f$ is a function name or a function object whose application to arguments of those types is typed at $\sigma$ by \textsc{T-Call}, \textsc{T-Trait}, \textsc{T-Op}, \textsc{T-App} or, at a type variable, \textsc{T-Req-Assumed}.
 
@@ -112,8 +111,8 @@ Two syntactic conditions suffice, and the repository's tool reads the second.
 A context on a structured head mentions only proper parts of its type arguments, so that each step descends by the head; compare the Paterson conditions~\cite{sulzmann2007understanding}.
 The context of an instance whose head has no proper part at a slot, a type variable or a concrete type there, mentions only shapes declared before the trait's primary, so that a shape calling the trait is never asked for while the trait is resolved.
 A trait's specialisations may follow the shapes that call it, as Listing~\ref{lst:rule2}'s do, since a specialisation depends on the shape only through its body or its context.
-A term type is required strictly positive: in the translated field types of its nodes the type occurs only directly, never under the domain of a function type, which the iterator and the normalisation results need.
-With one exception, a body calls only declarations it depends on, so the defined names of the translation are acyclic.
+A term type is required strictly positive: in the translated field types of its nodes the type occurs only directly, never under the domain of a function type.
+With one exception, a body calls only declarations it depends on.
 
 \paragraph{The one exception.}
 A function may call itself at the same instantiation on a value that visibly descends, Rule~3's step down.
@@ -126,7 +125,7 @@ The library's \cppinline{cata} over typed terms is not this exception, as its re
 \textsc{T-Conv} types the conversion between carriers that \Cpp{} inserts implicitly and the kernel term writes, $\tau\texttt{(}e\texttt{)}$, total by the condition on conversions of Table~\ref{tab:closure:decl}.
 \textsc{E-Op} reads $S$ as equality for \cppinline{std::same_as} and as conversion for \cppinline{std::convertible_to}.
 Write $\tau^{S}\texttt{(}e\texttt{)}$ for $e$ when $S$ is \cppinline{std::same_as} and for $\tau\texttt{(}e\texttt{)}$ when it is \cppinline{std::convertible_to}, so that \textsc{T-Req-Assumed} types $\tau^{S}$ of the pattern and a use of the requirement keeps its declared type when \textsc{S-Call} substitutes the instance (\textsc{S-Conv}).
-A body may therefore use a converted result only at the declared $\tau$, so the conversion the dictionary makes once, in the field, is the conversion the source would make at every use.
+A body may therefore use a converted result only at the declared $\tau$.
 A body that used the unconverted result, say to compare two of them at their own type, would be using an operation the constraint did not name, which the typing refuses and \Cpp{} accepts, and which the repository's tool reports where it can see it.
 The library needs the conversion form where a requirement's expression is an lvalue of the wanted type (\cppinline{const T&} is not \cppinline{same_as<T>}; \cppinline{IsPointed}'s unit), where a step returns a proxy for the carrier (\cppinline{HasNNOStep}'s successor), or where an object is presented by another type (\cppinline{Presents}).
 
