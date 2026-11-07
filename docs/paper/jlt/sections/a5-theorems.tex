@@ -84,7 +84,7 @@ If some proper subterm in an evaluation position is not a value, the leftmost su
 Otherwise the term is a value, or a redex of one of the following shapes, each of which steps.
 A call $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)}$ typed by \textsc{T-Call} or \textsc{T-Trait}: the premise says the call resolves (for \textsc{T-Call}, the constraints are entailed, so resolution finds the generic function or, through its context, a specialisation), so \textsc{S-Call} applies; \textsc{T-Req-Assumed} cannot occur in a closed term, since $\Delta$ is empty.
 An application $O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)}$: \textsc{S-Op} for a declared operation, \textsc{S-Std} for a standard one, whose operations are total by the choice of $O$.
-A primitive $c_1 \oplus c_2$: \textsc{S-Prim}, total by the choice of $\oplus$.
+A primitive $\ominus c$ or $c_1 \oplus c_2$: \textsc{S-Prim}, total by the choice of $\ominus$ and $\oplus$.
 A conversion $\tau\texttt{(}c\texttt{)}$: \textsc{S-Conv}, total by the condition on conversions.
 A range's operation on a value of a range: \textsc{S-Range}, total by its extension to the empty range.
 A conditional on a constant of type \cppinline{bool}, a case on a value of a sum, which by \textsc{T-Case} and canonical forms is an injection, a projection of a pair or of a constructed object, an unbox of a box, a fold whose count is a constant, and a \cppinline{cata} on a node: \textsc{S-If}, \textsc{S-Case}, \textsc{S-Proj}, \textsc{S-Unbox}, \textsc{S-Fold}, \textsc{S-Cata}, with \textsc{S-Fold}'s two cases covering every constant and \textsc{S-Cata} covering every node, leaves included.

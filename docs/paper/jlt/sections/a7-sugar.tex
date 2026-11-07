@@ -73,7 +73,7 @@ inheritance & every base an empty class, no virtual function & a registration, r
 \paragraph{Lambdas.}
 A lambda \cppinline{[c...](const τ x...) { return e; }} whose captures are FJlt values taken by copy and whose body is an FJlt term under those captures and parameters is the operation struct with the captures as fields and \cppinline{e} as the body of its call operator.
 A generic lambda written with a template head and a \cppinline{requires} clause is the operation with a generic call operator.
-The reason is the standard's own definition of the closure type: a class with the copied captures as members and a \cppinline{const} call operator, which is the operation production of Figure~\ref{fig:fjlt-syntax} to the letter.
+The reason is the standard's own definition of the closure type: a class with the copied captures as members and a \cppinline{const} call operator, which is the function object production of Figure~\ref{fig:fjlt-syntax} to the letter.
 Capture by reference is excluded by Rule~1 before this lemma is reached.
 A capturing closure type is copy constructible and neither default constructible nor assignable, so it is not \cppinline{std::semiregular} and Rule~1 does not admit it as a value; it is admitted as sugar, judged through its image, which is semiregular when its captures are.
 That is the general rule for sugar: the rules are asked of the kernel term.

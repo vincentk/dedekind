@@ -7,7 +7,7 @@ Evaluation is small-step and call-by-value on closed terms, $e \longrightarrow e
 \begin{array}{rcl}
 v &::=& c \mid f \mid O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}} \mid \texttt{std::pair\{}v\texttt{, }v\texttt{\}} \mid \iota_1\,v \mid \iota_2\,v \mid \texttt{std::optional\{}v\texttt{\}} \mid \texttt{std::nullopt} \\
   &\mid& \texttt{std::make\_shared<const }\tau\texttt{>(}v\texttt{)} \\
-E &::=& [\,] \mid f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid E\texttt{(}\overline{e}\texttt{)} \mid v\texttt{(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid E \oplus e \mid v \oplus E \mid \tau\texttt{(}E\texttt{)} \mid E \texttt{ ? } e \texttt{ : } e \\
+E &::=& [\,] \mid f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid E\texttt{(}\overline{e}\texttt{)} \mid v\texttt{(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid \ominus E \mid E \oplus e \mid v \oplus E \mid \tau\texttt{(}E\texttt{)} \mid E \texttt{ ? } e \texttt{ : } e \\
   &\mid& \iota_i\,E \mid \texttt{case(}E\texttt{, }e\texttt{, }e\texttt{)} \mid \texttt{case(}v\texttt{, }E\texttt{, }e\texttt{)} \mid \texttt{case(}v\texttt{, }v\texttt{, }E\texttt{)} \mid \ldots
 \end{array}
 \]
@@ -24,7 +24,7 @@ A value is immutable and a reference to one denotes it, which is why a parameter
  & \qquad \text{where } f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to a declaration with parameters } \overline{x} \text{ and body } e \\[3pt]
 \textsc{(S-Op)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)} \longrightarrow e[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}][\overline{v_y}/\overline{y}][\overline{v}/\overline{x}] \quad \text{for a declared operation with body } e\text{, } \overline{\sigma} \text{ deduced} \\[3pt]
 \textsc{(S-Std)} & O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{c}\texttt{)} \longrightarrow c \quad \text{for a standard function object, } c \text{ the value the standard assigns} \\[3pt]
-\textsc{(S-Prim)} & c_1 \oplus c_2 \longrightarrow c \quad \text{the base type's operation, total by the choice of } \oplus \\[3pt]
+\textsc{(S-Prim)} & \ominus c \longrightarrow c' \qquad c_1 \oplus c_2 \longrightarrow c \quad \text{the base type's operator, total by the choice of } \ominus, \oplus \\[3pt]
 \textsc{(S-Conv)} & \tau\texttt{(}c\texttt{)} \longrightarrow c' \quad \text{the conversion between distinct carriers the standard or the declaration assigns} \qquad \tau\texttt{(}v\texttt{)} \longrightarrow v \quad \text{at } v\text{'s own type, any value} \\[3pt]
 \textsc{(S-If)} & \texttt{true ? } e_1 \texttt{ : } e_2 \longrightarrow e_1 \qquad \texttt{false ? } e_1 \texttt{ : } e_2 \longrightarrow e_2 \\[3pt]
 \textsc{(S-Proj)} & \texttt{std::pair\{}v_1\texttt{, }v_2\texttt{\}.first} \longrightarrow v_1 \qquad \texttt{std::pair\{}v_1\texttt{, }v_2\texttt{\}.second} \longrightarrow v_2 \qquad O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}.}y_i \longrightarrow v_i \\[3pt]
