@@ -45,7 +45,7 @@ static_assert(std::ranges::fold_left(chain(size_t{3}, Prior<size_t>{}) |
                                      size_t{0}, std::plus<>{}) == 21);
 
 // A coalgebra whose element is not its state: the parity of each count on
-// the way down.  The iterator compares states, so the element need not.
+// the way down.  The iterator compares steps, so the element need not.
 struct Parity {
   constexpr std::optional<std::pair<bool, size_t>> operator()(
       const size_t& n) const {
@@ -57,6 +57,34 @@ static_assert(std::ranges::distance(unfold(size_t{4}, Parity{})) == 4);
 constexpr size_t count_true(size_t a, bool b) { return a + (b ? 1 : 0); }
 static_assert(std::ranges::fold_left(unfold(size_t{5}, Parity{}), size_t{0},
                                      count_true) == 3);
+
+// A walk that revisits its state, at another position.
+struct Flip {
+  constexpr std::optional<std::pair<bool, bool>> operator()(
+      const bool& state) const {
+    return std::pair<bool, bool>{state, !state};
+  }
+};
+/** @return whether two positions of a walk coincide exactly when they are as
+ *  many steps from the seed, copied or advanced apart, a state revisited. */
+constexpr bool positions_compare_by_steps() {
+  auto walk = unfold(false, Flip{});
+  auto a = walk.begin();
+  auto b = a;
+  const bool copied = a == b;
+  ++b;
+  const bool one_apart = a != b;
+  ++b;
+  const bool revisited = a != b;
+  ++a;
+  ++a;
+  return copied && one_apart && revisited && a == b;
+}
+static_assert(positions_compare_by_steps());
+TEST_CASE("unfold's positions compare by steps, not by state",
+          "[category][nno]") {
+  CHECK(positions_compare_by_steps());
+}
 
 std::vector<size_t> collect(auto&& view) {
   std::vector<size_t> out;
