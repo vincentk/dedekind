@@ -24,24 +24,22 @@ Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\over
 e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
   & \mid & e \oplus e \;\mid\; \tau\texttt{(}e\texttt{)} \;\mid\; e \texttt{ ? } e \texttt{ : } e & \text{arithmetic, conditional} \\
   & \mid & \texttt{pair\{}e\texttt{, }e\texttt{\}} \;\mid\; e\texttt{.first} \;\mid\; e\texttt{.second} & \text{pair, projections} \\
-  & \mid & \iota_1\,e \;\mid\; \iota_2\,e \;\mid\; \texttt{case(}e\texttt{, }e\texttt{, }e\texttt{)} & \text{sum} \\
-  & \mid & \texttt{make\_shared<const }\tau\texttt{>(}e\texttt{)} \;\mid\; \texttt{*}e & \text{box, unbox} \\
-  & \mid & \texttt{fold\_left(}r\texttt{, }e\texttt{, }e\texttt{)} \;\mid\; \texttt{size(}r\texttt{)} \;\mid\; \texttt{head(}r\texttt{)} \;\mid\; \texttt{next(}r\texttt{)} & \text{fold, range operations} \\
-  & \mid & \texttt{cata(}e\texttt{, }e\texttt{)} & \text{fold over term} \\[3pt]
-r &::=& \text{an instance of } \mathcal{R} & \text{range} \\
+  & \mid & \texttt{*}e & \text{unbox} \\
 \end{array}
 \]
 \caption{The syntax of FJlt, a subset of \Cpp{23}, namespace qualifiers elided.
 An overbar abbreviates a sequence; it reads a parameter pack and a fold expression at each arity, and says nothing of all arities at once.
 $\tau\texttt{(}e\texttt{)}$ converts between carriers.
-Metavariables: $\alpha, \beta$ type variables, $b$ base types, $O$ function-object types, standard (\cppinline{std::plus}, \ldots) or declared, $y$ their fields, $r$ ranges, $\oplus$ the operations of $\Sigma$, $C$ concept names, the standard ones included, $S$ the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ function names, $x$ term variables, $c$ constants.
-A range has a length and, when it is not empty, a head and a tail; a term type $\mu F$ is built from the nodes $O\texttt{<}\overline{\tau}\texttt{>}$ whose fields are terms; a box is a \cppinline{shared_ptr<const τ>}.}
+Metavariables: $\alpha, \beta$ type variables, $b$ base types, $O$ function-object types, standard (\cppinline{std::plus}, \ldots) or declared, $y$ their fields, $\oplus$ the operations of $\Sigma$, $C$ concept names, the standard ones included, $S$ the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ function names, $x$ term variables, $c$ constants.
+$f$ includes the prelude: $\iota_1$, $\iota_2$, \texttt{case}, \texttt{make\_shared}, \texttt{fold\_left}, \texttt{size}, \texttt{head}, \texttt{next} and \texttt{cata}.
+A term type $\mu F$ is built from the nodes $O\texttt{<}\overline{\tau}\texttt{>}$ whose fields are terms; a box is a \cppinline{shared_ptr<const τ>}.}
 \label{fig:fjlt-syntax}
 \end{figure}
 
 FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}, under the three rules of Section~\ref{sec:posture}.
 Its base types are the carriers of a $\Sigma$-algebra, for $\Sigma$ a many-sorted \emph{signature}, Birkhoff and Lipson's heterogeneous algebra~\cite{birkhoff1970heterogeneous} in Pierce's words~\cite{pierce1991basic}: a sort per base type, an operation symbol with its arity per operation, and the \Cpp{} types with their \cppinline{constexpr} operations as the interpretation.
 A type is a carrier if it keeps \RuleOne, its operations are total, and it has an image in the target (Appendix~\ref{app:fjlt:translation}).
+The figure's calls include a small prelude of helper functions on standard types, spelled below; they read as helpers, but the recursion and the sums cannot be defined in the fragment, so each has its own rules in Appendices~\ref{app:fjlt:typing} and~\ref{app:fjlt:evaluation}.
 
 \paragraph{The happy case.}
 Listing~\ref{lst:rule2} has most of the declarations.
