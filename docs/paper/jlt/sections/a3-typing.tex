@@ -122,7 +122,7 @@ This admits the binary method of Listing~\ref{lst:laws}, whose \cppinline{power}
 The library's \cppinline{cata} over typed terms is not this exception, as its recursion is on the type of the term and not on a value: it is the kernel's primitive \cppinline{cata} spelled as a generic function, which is sugar (Appendix~\ref{app:fjlt:closure}).
 
 \paragraph{Conversions.}
-\textsc{T-Conv} types the conversion between carriers that \Cpp{} inserts implicitly and the kernel term writes, $\tau\texttt{(}e\texttt{)}$, total by the condition on conversions of Table~\ref{tab:closure:decl}.
+\textsc{T-Conv} types the conversion between carriers that \Cpp{} inserts implicitly and the kernel term writes, $\tau\texttt{(}e\texttt{)}$, total by the condition on conversions of Table~\ref{tab:closure}.
 \textsc{E-Op} reads $S$ as equality for \cppinline{std::same_as} and as conversion for \cppinline{std::convertible_to}.
 Write $\tau^{S}\texttt{(}e\texttt{)}$ for $e$ when $S$ is \cppinline{std::same_as} and for $\tau\texttt{(}e\texttt{)}$ when it is \cppinline{std::convertible_to}, so that \textsc{T-Req-Assumed} types $\tau^{S}$ of the pattern and a use of the requirement keeps its declared type when \textsc{S-Call} substitutes the instance (\textsc{S-Conv}).
 A body may therefore use a converted result only at the declared $\tau$.
