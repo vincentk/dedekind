@@ -79,8 +79,7 @@ In Figure~\ref{fig:fjlt-syntax}, $\alpha, \beta$ range over type variables, $b$ 
 A template is always fully applied: $\alpha$ ranges over types, and there is no template template parameter, so the target needs no type operators.
 The overbar reads a parameter pack and a fold expression at each arity, and says nothing of all arities at once.
 
-\paragraph{What a reader of \Cpp{} would not assume.}
-The standard library is not syntax, so the figure leaves it to a convention: Table~\ref{tab:conventions} in Appendix~\ref{app:fjlt:translation} says which library types and helpers the fragment adopts, for what, and with rules of their own.
+\paragraph{Reading the listings.}
 \cppinline{*} on an optional and \cppinline{std::get} on a variant are partial and are not terms; Appendix~\ref{app:fjlt:closure} says where they are admitted.
 A box is built and read, and nothing else is a term: no \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes.
 \cppinline{auto} in a listing names the type the body has, and a parameter written \cppinline{const τ} or \cppinline{const τ&} is the parameter $\tau\; x$.
