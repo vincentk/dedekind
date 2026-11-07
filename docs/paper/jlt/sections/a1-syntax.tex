@@ -18,9 +18,7 @@ D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \text
 A &::=& Q \;\mid\; e & \text{nested shape, law} \\
   & \mid & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>;}} \texttt{ \}} & \text{operations} \\[3pt]
 Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
-\tau &::=& \alpha \;\mid\; b \;\mid\; O\texttt{<}\overline{\tau}\texttt{>} & \text{type} \\
-  & \mid & \texttt{pair<}\tau\texttt{, }\tau\texttt{>} \;\mid\; \texttt{optional<}\tau\texttt{>} \;\mid\; \texttt{variant<}\tau\texttt{, }\tau\texttt{>} & \text{product, sums} \\
-  & \mid & \texttt{shared\_ptr<const }\tau\texttt{>} \;\mid\; \mu F \;\mid\; R\texttt{<}\tau\texttt{>} & \text{box, term, range} \\[3pt]
+\tau &::=& \alpha \;\mid\; b \;\mid\; O\texttt{<}\overline{\tau}\texttt{>} \;\mid\; L\texttt{<}\overline{\tau}\texttt{>} & \text{type} \\[3pt]
 e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
   & \mid & e \oplus e \;\mid\; \tau\texttt{(}e\texttt{)} \;\mid\; e \texttt{ ? } e \texttt{ : } e & \text{arithmetic, conditional} \\
   & \mid & \texttt{*}e & \text{unbox} \\
@@ -42,12 +40,12 @@ Its base types are the carriers of a $\Sigma$-algebra, for $\Sigma$ a many-sorte
 A type is a carrier if it keeps \RuleOne, its operations are total, and it has an image in the target (Appendix~\ref{app:fjlt:translation}).
 
 A program is its declarations and a closed term, which is what is evaluated.
-In Figure~\ref{fig:fjlt-syntax}, $\alpha, \beta$ range over type variables, $b$ over base types, $O$ over function-object types, standard (\cppinline{std::plus}, \ldots) or declared, $y$ over their fields, $\oplus$ over the operations of $\Sigma$, $C$ over concept names, the standard ones included, $S$ over the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ over function names, $x$ over term variables and $c$ over constants.
+In Figure~\ref{fig:fjlt-syntax}, $\alpha, \beta$ range over type variables, $b$ over base types, $O$ over function-object types, standard (\cppinline{std::plus}, \ldots) or declared, $y$ over their fields, $L$ over the library's type templates of Table~\ref{tab:conventions}, $\oplus$ over the operations of $\Sigma$, $C$ over concept names, the standard ones included, $S$ over the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ over function names, $x$ over term variables and $c$ over constants.
 The overbar reads a parameter pack and a fold expression at each arity, and says nothing of all arities at once.
 $\tau\texttt{(}e\texttt{)}$ converts between carriers.
 
 \paragraph{What a reader of \Cpp{} would not assume.}
-Some of the figure's calls and fields are conventions, which Table~\ref{tab:conventions} in Appendix~\ref{app:fjlt:translation} lists with their \Cpp{} spellings: they read as helpers on standard types and have rules of their own.
+The standard library is not syntax, so the figure leaves it to a convention: Table~\ref{tab:conventions} in Appendix~\ref{app:fjlt:translation} says which library types and helpers the fragment adopts, for what, and with rules of their own.
 The rest is what is excluded.
 Totality is the one condition above that is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operation defined on every input.
 Lemma~\ref{lem:progress} needs it, and it keeps \cppinline{int}'s overflow and division out.
@@ -57,5 +55,5 @@ $\Sigma$ is not a list; the listings also use \cppinline{std::string} with conca
 \cppinline{*} on an optional and \cppinline{std::get} on a variant are partial and are not terms; Appendix~\ref{app:fjlt:closure} says where they are admitted.
 A box is built and read, and nothing else is a term: no \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes, so no program can ask which box holds a value.
 \cppinline{auto} in a listing names the type the body has, and a parameter written \cppinline{const τ} or \cppinline{const τ&} is the parameter $\tau\; x$, since a value is immutable and a reference to one denotes it.
-A type $R\texttt{<}\tau\texttt{>}$ is a range: an instance of a family $\mathcal{R}$ defined by conditions, a length $|r| \in \mathbb{N}$, fixed before a fold starts, and, when $|r| > 0$, a head and a tail $\mathit{next}\,r$ with $|\mathit{next}\,r| = |r| - 1$.
-A term type $\mu F$ is a finite composition of nodes, a node an operation whose fields are terms.
+A range $R\texttt{<}\tau\texttt{>}$ is an instance of a family $\mathcal{R}$ defined by conditions, a length $|r| \in \mathbb{N}$, fixed before a fold starts, and, when $|r| > 0$, a head and a tail $\mathit{next}\,r$ with $|\mathit{next}\,r| = |r| - 1$.
+The rules write $\mu F$ for the type of a term: a finite composition of nodes, a node an operation whose fields are terms.
