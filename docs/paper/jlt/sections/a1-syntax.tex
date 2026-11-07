@@ -35,9 +35,10 @@ $e$ is a term.}
 \label{fig:fjlt-syntax}
 \end{figure}
 
-FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}, under the three rules of Section~\ref{sec:posture}.
-Its base types are the carriers of a $\Sigma$-algebra, for $\Sigma$ a many-sorted \emph{signature}, Birkhoff and Lipson's heterogeneous algebra~\cite{birkhoff1970heterogeneous}: a sort per base type, an operation symbol with its arity per operation, and the \Cpp{} types with their \cppinline{constexpr} operations as the interpretation.
-A type is a carrier if it keeps \RuleOne, its operations are total, and it has an image in the target (Appendix~\ref{app:fjlt:translation}).
+FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes in the style of Featherweight Java~\cite{igarashi2001featherweight}.
+As it is a subset of Jlt, it respects the three rules of Section~\ref{sec:posture}.
+Its base types and their \cppinline{constexpr} operations form a many-sorted algebra~\cite{birkhoff1970heterogeneous}, $\Sigma$: one carrier per type, and a total function per operation, which may cross between carriers, as \cppinline{==} goes to \cppinline{bool}.
+A type is a carrier if it keeps \RuleOne{} and has an image in the target (Appendix~\ref{app:fjlt:translation}).
 
 A program is its declarations and a closed term, which is what is evaluated.
 In Figure~\ref{fig:fjlt-syntax}, $\alpha, \beta$ range over type variables, $b$ over base types, $T$ over type constructors, declared or adopted (Table~\ref{tab:conventions}), $O$ over the function-object types among them, standard (\cppinline{std::plus}, \ldots) or declared, $y$ over their fields, $\oplus$ over the operations of $\Sigma$, $C$ over concept names, the standard ones included, $S$ over the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ over function names, $x$ over term variables and $c$ over constants.
