@@ -94,6 +94,11 @@ SOURCES = [
         _PYTHON_DIR / "showcase_14_ecori_table.cpp",
         _PYTHON_DIR / "showcase_14_ecori_table.ll",
     ),
+    # showcase_15 is Listing 3 at run time, the loop Appendix G reads.
+    (
+        _PYTHON_DIR / "showcase_15_listing3_fibonacci.cpp",
+        _PYTHON_DIR / "showcase_15_listing3_fibonacci.ll",
+    ),
 ]
 
 # Keep single-source aliases for backward compatibility with any callers.
@@ -472,6 +477,25 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
         if heap:
             raise AssertionError(
                 f"Expected no heap allocation in the scan, found {sorted(heap)}."
+            )
+    elif "showcase_15_listing3_fibonacci" in name:
+        # Listing 3 at run time: the fold is the function's one loop, its
+        # header's phi-nodes the fold's state, and nothing is called.
+        block = extract_function_block(ir_text, "listing3_fibonacci")
+        if block is None:
+            raise AssertionError("IR missing listing3_fibonacci symbol.")
+        print(f"--- listing3_fibonacci: {len(block.splitlines())} lines\n{block}")
+        phis = re.findall(r"^\s*%\S+ = phi ", block, re.MULTILINE)
+        if len(phis) < 3:
+            raise AssertionError(
+                f"Expected the fold's state as phi-nodes, found {len(phis)}."
+            )
+        if re.search(r"^\s*(%\S+ = )?(tail )?call ", block, re.MULTILINE):
+            raise AssertionError("Expected no call in the fold's loop.")
+        heap = heap_calls(ir_text)
+        if heap:
+            raise AssertionError(
+                f"Expected no heap allocation, found {sorted(heap)}."
             )
     else:
         raise AssertionError(f"No semantic checks defined for {name}.")
