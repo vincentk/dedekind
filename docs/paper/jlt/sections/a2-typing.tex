@@ -43,31 +43,31 @@ The side condition of \textsc{E-Shape} makes entailment syntax-directed: an assu
 \[
 \begin{array}{@{}l@{\quad}l@{}}
 \multicolumn{2}{@{}l}{\text{\textit{Calls}}}
-\\[12pt]
+\\[7pt]
 \textsc{(T-Op)} & \dfrac{\begin{array}{c} O\texttt{<}\overline{\tau}\texttt{>} : \overline{\sigma} \to \sigma \text{ (the standard's signature)} \\ \Delta; \Gamma \vdash \overline{e : \sigma} \end{array}}{\Delta; \Gamma \vdash O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{e}\texttt{)} : \sigma}
-\\[12pt]
+\\[7pt]
 \textsc{(T-Conv)} & \dfrac{\Delta; \Gamma \vdash e : \tau' \qquad \tau' \text{ converts to } \tau}{\Delta; \Gamma \vdash \tau\texttt{(}e\texttt{)} : \tau}
-\\[12pt]
+\\[7pt]
 \textsc{(T-App)} & \dfrac{\begin{array}{c} \Delta; \Gamma \vdash e : O\texttt{<}\overline{\tau}\texttt{>} \qquad O\text{'s call operator is } \forall\overline{\beta}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau_r \\ \Delta \Vdash \overline{Q}[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}] \qquad \Delta; \Gamma \vdash \overline{e' : \tau_x[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}]} \end{array}}{\Delta; \Gamma \vdash e\texttt{(}\overline{e'}\texttt{)} : \tau_r[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}]}
-\\[12pt]
+\\[7pt]
 \textsc{(T-Call)} & \dfrac{\begin{array}{c} f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to } f_i : \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau \\ \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \qquad \Delta; \Gamma \vdash \overline{e : \tau_x[\overline{\sigma}/\overline{\alpha}]} \end{array}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau[\overline{\sigma}/\overline{\alpha}]}
-\\[12pt]
+\\[7pt]
 \textsc{(T-Trait)} & \dfrac{\begin{array}{c} f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to a declaration of type } \overline{\tau_x} \to \tau \\ \Delta; \Gamma \vdash \overline{e : \tau_x} \end{array}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau}
-\\[12pt]
+\\[7pt]
 \multicolumn{2}{@{}l}{\text{\textit{The definition check}}}
-\\[12pt]
+\\[7pt]
 \textsc{(T-Req-Assumed)} & \dfrac{\begin{array}{c} C\texttt{<}\overline{\tau}\texttt{>} \in \Delta \\ \texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \text{ is a requirement of } C \text{ with parameters } \overline{a : \tau_a} \\ \Delta; \Gamma \vdash \overline{e : \tau_a} \end{array}}{\Delta; \Gamma \vdash \tau^{S}\texttt{(}e_r[\overline{e}/\overline{a}]\texttt{)} : \tau}
-\\[12pt]
+\\[7pt]
 \textsc{(D-Generic)} & \dfrac{\overline{\alpha}, \overline{Q};\; \overline{x : \tau_x} \vdash e : \tau}{\begin{array}{c}\vdash \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} \\ \texttt{constexpr } \tau\; f\texttt{(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}\end{array}}
-\\[12pt]
+\\[7pt]
 \multicolumn{2}{@{}l}{\text{\textit{Recursion, from the adopted library}}}
-\\[12pt]
+\\[7pt]
 \textsc{(T-Fold)} & \dfrac{\begin{array}{c} \Delta; \Gamma \vdash r : R\texttt{<}\tau\texttt{>} \text{, } R \in \mathcal{R} \\ \Delta; \Gamma \vdash a : \sigma \qquad \Delta; \Gamma \vdash f : \sigma \times \tau \to \sigma \end{array}}{\Delta; \Gamma \vdash \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} : \sigma}
-\\[12pt]
+\\[7pt]
 \textsc{(T-Fold-R)} & \dfrac{\begin{array}{c} \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \in \Delta \qquad \Delta; \Gamma \vdash r : R \\ \Delta; \Gamma \vdash a : \sigma \qquad \Delta; \Gamma \vdash f : \sigma \times \tau \to \sigma \end{array}}{\Delta; \Gamma \vdash \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} : \sigma}
-\\[12pt]
-\textsc{(T-Cata)} & \dfrac{\Delta; \Gamma \vdash t : \mu F \qquad \Delta; \Gamma \vdash \mathit{alg} : \mu F \times \sigma^{k} \to \sigma \text{ at each node of arity } k}{\Delta; \Gamma \vdash \texttt{cata(}\mathit{alg}\texttt{, }t\texttt{)} : \sigma}
-\\[12pt]
+\\[7pt]
+\textsc{(T-Cata)} & \dfrac{\begin{array}{c} \Delta; \Gamma \vdash t : \mu F \\ \Delta; \Gamma \vdash \mathit{alg} : \mu F \times \sigma^{k} \to \sigma \text{ at each node of arity } k \end{array}}{\Delta; \Gamma \vdash \texttt{cata(}\mathit{alg}\texttt{, }t\texttt{)} : \sigma}
+\\[7pt]
 \textsc{(T-Node)} & \dfrac{\Delta; \Gamma \vdash t : O\texttt{<}\overline{\tau}\texttt{>} \qquad O \text{ a node of } F}{\Delta; \Gamma \vdash t : \mu F}
 \end{array}
 \]
