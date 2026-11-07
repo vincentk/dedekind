@@ -43,34 +43,48 @@ It need not stay on one carrier set, as \cppinline{==} on \cppinline{size_t} giv
 Listing~\ref{lst:fjlt-reading} is a valid example snippet, read in the figure's terms.
 
 \begin{listing}[htbp]
+\begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-// a declaration D: a trait, deleted until an instance gives it
-template <typename T> constexpr T op(T, T) = delete;
+// D: a trait, deleted until an instance
+template <typename T>
+constexpr T op(T, T) = delete;
 
-// D: an instance, whose + is one of the operators of Sigma
-template <> constexpr unsigned op<unsigned>(unsigned a, unsigned b) {
+// D: an instance; + an operator of Sigma
+template <>
+constexpr unsigned
+op<unsigned>(unsigned a, unsigned b) {
   return a + b;
 }
 
-// D: a shape, its requirement A a list of required calls
+// D: a shape; A its required calls
 template <typename T>
-concept IsMagma = requires(const T a, const T b) {
-  { op(a, b) } -> std::same_as<T>;
-};
-
-// D: a generic function, IsMagma<T> its constraint Q
+concept IsMagma =
+    requires(const T a, const T b) {
+      { op(a, b) } -> std::same_as<T>;
+    };
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+// D: a generic function; Q its constraint
 template <typename T> requires IsMagma<T>
-constexpr T twice(T x) { return op(x, x); }
+constexpr T twice(T x) {
+  return op(x, x);
+}
 
 // D: a function object
 template <typename T> struct Plus {
-  template <typename U> requires IsMagma<U>
-  constexpr U operator()(U a, U b) const { return op(a, b); }
+  template <typename U>
+    requires IsMagma<U>
+  constexpr U operator()(U a, U b) const {
+    return op(a, b);
+  }
 };
 
-// the closed term e, which the program evaluates
+// e: the closed term the program evaluates
 Plus<unsigned>{}(twice(21u), 1u)
 \end{cpp}
+\end{minipage}
 \caption{A small program, each declaration labelled with its form in Figure~\ref{fig:fjlt-syntax}.}
 \label{lst:fjlt-reading}
 \end{listing}
