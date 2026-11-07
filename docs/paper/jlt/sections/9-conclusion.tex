@@ -16,7 +16,8 @@ And laws that are computed with rather than only declared, which needs terms and
 Declared laws, and the laws inferred from them, license optimisations of the application's own algebra, as types rule out errors: by a sound check, not a decision of equivalence.
 The same laws are those a query optimiser applies to relational algebra~\cite[Chapter~6]{abiteboul1995foundations}, so the posture reads, the other way round, as an intensional SQL: queries over relations given by their laws, not by their rows.
 Where that reading should pay most is a hint, not a claim.
-Constant evaluation may allocate, but nothing allocated during it outlives it, so the persistent structures of functional programming, built on the heap as they usually are, do not cross to run time.
+In \Cpp{23} nothing allocated during constant evaluation outlives it, so the persistent structures of functional programming, built on the heap, do not cross to run time.
+\Cpp{26} lets an array through~\cite{childers2025static}.
 What crosses is state whose size is fixed at compile time, and the computations that specialise well across it may be those that run in small state over an unbounded input, the streaming algorithms~\cite{alon1999space}: Listing~\ref{lst:sites}'s matcher is one, a table that crosses and a pass that keeps a state and a count.
 Streaming queries, and the plans an optimiser chooses for them, are where an intensional SQL in this posture would be tried first.
 The laws survive the trip into Python, up to the compile-time evaluation: a session that composes and counts through the bindings runs the overloads the laws license, for those who would rather tinker than compile.
