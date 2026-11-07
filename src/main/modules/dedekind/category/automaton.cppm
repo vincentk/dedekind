@@ -899,6 +899,15 @@ constexpr std::array<std::byte, 4> four_of(
   return {alphabet.items[0], alphabet.items[1], alphabet.items[2],
           alphabet.items[3]};
 }
+/** @param tau a reflection, perhaps of another alphabet.  @param four the
+ * letters in rank order.  @return whether it takes rank @f$r@f$ to @f$3 - r@f$,
+ * which is what the pairs' sum assumes: four comparisons, as a count may run at
+ * compile time. */
+constexpr bool reflects_ranks(const Reflection& tau,
+                              const std::array<std::byte, 4>& four) {
+  return tau(four[0]) == four[3] && tau(four[1]) == four[2] &&
+         tau(four[2]) == four[1] && tau(four[3]) == four[0];
+}
 }  // namespace detail_automaton
 /** @brief The count of a section fixed by reversal and reflection, without
  * asking each window: the law says a window is independent pairs, so no
@@ -916,8 +925,8 @@ constexpr W count(const ReflectedWindows<R, N>& q) {
   const std::size_t text = std::ranges::size(q.text);
   if (alphabet.size() != 4uz || length == 0uz || length % 2uz != 0uz ||
       length > detail_automaton::longest_word ||
-      q.section.tau !=
-          refl(detail_automaton::effective_letters(q.section.power))) {
+      !detail_automaton::reflects_ranks(q.section.tau,
+                                        detail_automaton::four_of(alphabet))) {
     return count<W>(q.query);
   }
   if (text < length) return W{0};
