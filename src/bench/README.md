@@ -2,7 +2,7 @@
 
 How fast is the scan of [Listing 5](../../README.md), and why? This counts the palindromic hexamers in a text of DNA, four ways, and keeps the compiler's output beside the times. Tracked in [#1154](https://github.com/vincentk/dedekind/issues/1154).
 
-Figures are from one run on one shared GitHub runner, an AMD EPYC 7763, Clang 23, `-O2`, unless a row says otherwise. Absolute numbers move between runners; ratios within a run are what to quote.
+Figures are from one run on one shared GitHub runner, an AMD EPYC 9V74, Clang 23, `-O2`, unless a row says otherwise. Absolute numbers move between runners; ratios within a run are what to quote.
 
 ## Kick the tyres
 
@@ -41,17 +41,17 @@ One core, baseline SSE2, from raw ASCII. *The table* is Knuth, Morris and Pratt'
 
 | Counting the sites | ns per letter | Relative |
 |---|---:|---:|
-| The library, `count(text >> pali6)`, by the law | 0.44 | 1 |
-| `pynzli`, by the law, the same | 0.44 | 1 |
-| The library or `pynzli`, by the table | 2.2 | 5× |
-| The same table, a hand-written loop, for reference | 2.0 | 4.6× |
-| Each window asked, as defined | 22 | 51× |
-| Python, a loop over a set | 155 | 350× |
-| Python, `re` with 64 alternatives in a lookahead | 254 | 580× |
+| The library, `count(text >> pali6)`, by the law | 0.39 | 1 |
+| `pynzli`, by the law, the same | 0.38 | 1 |
+| The library or `pynzli`, by the table | 1.9 | 5× |
+| The same table, a hand-written loop, for reference | 1.8 | 4.6× |
+| Each window asked, as defined | 21 | 54× |
+| Python, a loop over a set | 121 | 310× |
+| Python, `re` with 64 alternatives in a lookahead | 173 | 450× |
 
-On 3.1 billion letters, about a human genome, past the cache: a plain read of the same memory at 21 GB/s, the law at 2.0 GB/s (2.9 at `-O3 -march=native`), the table at 0.46. So about 1.6 seconds, by calculation, and the scan is bound by the core and not by memory. The scan's own storage is fixed, a block's worth for the law and one state for the table, and the text is read where it lies. Drawn rather than stored, by the table, peak memory for the whole process stays at about 10.8 MB from 10^7 to 10^10 letters. All rows count the same number of sites, and the job fails if they do not.
+On 3.1 billion letters, about a human genome, past the cache: a plain read of the same memory at 33 GB/s, the law at 2.6 GB/s, the table at 0.52. So about 1.2 seconds, by calculation, and the scan is bound by the core and not by memory. The scan's own storage is fixed, a block's worth for the law and one state for the table, and the text is read where it lies. Drawn rather than stored, by the table, peak memory for the whole process stays at about 10.7 MB from 10^7 to 10^10 letters. All rows count the same number of sites, and the job fails if they do not.
 
-Drawing a letter from `random_text` costs 2.8 ns, and drawing and scanning it by the table 2.95: the scan adds about 5% to making its own input.
+Drawing a letter from `random_text` costs 2.45 ns, and drawing and scanning it by the table 2.58: the scan adds about 5% to making its own input.
 
 `re` is a backtracking engine, here as what a Python user reaches for and not as regular expressions at large; RE2 and Hyperscan are not measured.
 
@@ -93,11 +93,11 @@ A load spanning two earlier stores can't be forwarded, so it waits for them, on 
 
 Each is one `make bench` away. Pull requests welcome.
 
-- Why does `random_text` get slower with native flags, 2.80 to 3.61 ns, while the bare hash gets faster, 1.57 to 0.65?
-- Why is a hash and a mask cheaper than the hash alone at baseline, 1.26 against 1.57 ns?
-- A set of bases per byte goes from the slowest law row to a fast one with native flags, 4.06 to 0.76 ns.
-- The law gains 1.3× from native flags on AVX2, while the unblocked fold gains 2×. What is the block's stages' limit?
-- Two bits a base, one word holding 27 windows, reaches 0.07 ns per base at native flags and isn't in the library.
+- The law's gain from `-O3 -march=native` depends on the CPU: 1.3× on an AVX2 EPYC 7763, while on an AVX-512 EPYC 9V74 it gets slower, 0.39 to 0.44 ns, though it does use the wider registers. The unblocked fold on ranks gains 4× there, 0.76 to 0.18. What limits the block's stages?
+- Why is a hash and a mask cheaper than the hash alone at baseline, 1.06 against 1.36 ns?
+- A bare hash falls to 0.19 ns with native flags, as the multiplies vectorise, while `random_text` stays at 2.45 ns.
+- A set of bases per byte goes from the slowest law row to a fast one with native flags, 3.6 to 0.20 ns.
+- Two bits a base, one word holding 27 windows, reaches 0.06 ns per base at native flags and isn't in the library.
 - [ ] `llvm-mca` on the hot loops, and full `lscpu` with each run.
 - [ ] A real assembly, with the file named and its lowercase and `N` runs handled.
 
