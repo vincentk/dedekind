@@ -51,6 +51,40 @@ define { i64, i8 } @first_rt(i64 %0) {
 \label{lst:ssa}
 \end{listing}
 
+\paragraph{Into the vector unit.}
+A vector register is a direct product of lanes, and its operations act pointwise, so a computation fits it when two things hold: no position depends on another, and the values are contiguous and small, under operations the unit has.
+Either can fail alone, as Table~\ref{tab:batch} shows.
+The table of Listing~\ref{lst:sites}, Knuth, Morris and Pratt's and for many words Aho and Corasick's~\cite{aho1975efficient}, is generic over the alphabet and fails the first, as each state needs the last.
+\cppinline{fixed_by(~rev)} gives the first: the ranks embed the alphabet with its hole in a byte and carry the reflection to $3 - r$, so a pair is a sum compared with three.
+\cppinline{count} has an overload keyed on the section's type: a block goes through in stages, ranks, a pass per pair and a sum, each a fold small enough to be seen as a loop.
+It is an exhibit for this compiler and these flags: a specialisation is keyed on a law or a data shape, never on a particular problem or compiler, and it guarantees the answer, while vectorising stays the compiler's choice.
+Generating such code from algebra is old~\cite{frigo2005fftw,puschel2005spiral}, as is separating an algorithm from its schedule~\cite{ragankelley2013halide} and matching many patterns in lanes~\cite{wang2019hyperscan}; what is shown here is that standard \Cpp{23} gets there from laws its types already carry.
+The times, the disassembly and what else was tried are in the repository's \texttt{src/bench}, and \texttt{make bench} reproduces them.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}lccr@{}}
+\toprule
+Counting the sites of \texttt{pali6} & independent & batchable & ns a letter \\
+\midrule
+each window asked, as defined & yes & no & 20 \\
+the table & no & yes & 2 \\
+\quad the same table, a hand-written loop & no & yes & 2 \\
+the law, in one predicate, not inlined & yes & no & 10 \\
+the law, a set of bases a byte & yes & yes, dearly & 4 \\
+\textbf{the law, in the library} & yes & yes & \textbf{0.4} \\
+\quad the same, from Python & yes & yes & 0.4 \\
+Python's \texttt{re}, a lookahead of 64 alternatives & & & 200 \\
+\bottomrule
+\end{tabular}
+\caption{The two conditions, one failing at a time.
+One core of a shared AMD EPYC 9V74, Clang~23 at \texttt{-O2}, baseline SSE2, $10^8$ letters, to one significant digit: benchmarks are fickle, and the orders of magnitude are the result.
+Past the cache, on 3.1 billion letters, the law runs at 3\,GB/s against 30\,GB/s for a plain read of the same memory, so the scan is bound by the core.
+A text drawn and not stored, by the table, keeps peak memory flat from $10^7$ to $10^{10}$ letters; the law's own storage is a fixed block.}
+\label{tab:batch}
+\end{table}
+
 This is a reason, not a theorem: the compiler is not among the hypotheses, its lowering is trusted, as every \Cpp{} program trusts it, and the reading of SSA as iterator terms is Appel's, which this paper uses and does not prove.
 Since both targets make the loop's state a parameter, the sentence of Section~\ref{sec:binding}, that the discipline costs nothing at run time, has a structural ground: a Jlt fold names in the source the parameter the compiler would otherwise recover from assignments.
 One seam shows here too: SSA's values are the scalars in registers, and a value that lives in memory, a boxed value in particular, is read and written through a pointer that no $\phi$-node carries, which is the same line between a value and a cell that Rule~1 draws.

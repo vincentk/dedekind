@@ -57,6 +57,11 @@ set(DEDEKIND_WARNING_FLAGS
 )
 
 # --- Instrumentation ---
+# Flags for a benchmark on the machine that runs it (`make bench-native`), after
+# the build's own, so they win, and on every target, so modules share them.
+set(DEDEKIND_BENCH_FLAGS "" CACHE STRING "Extra flags for a benchmark build")
+add_compile_options(${DEDEKIND_BENCH_FLAGS})
+
 # On in a developer's build; a wheel turns it off (pyproject.toml), and carries
 # none.
 option(DEDEKIND_COVERAGE "Instrument every target for LLVM coverage" ON)
@@ -467,6 +472,14 @@ if (DOXYGEN_FOUND)
         COMMENT "Generating API documentation with Doxygen"
     )
     
+endif()
+
+# The Listing 5 benchmark (#1154), which `make bench` configures on its own.
+option(DEDEKIND_BENCH "Build the benchmark" OFF)
+if(DEDEKIND_BENCH)
+    add_executable(bench_listing5 src/bench/cpp/listing5_bench.cpp)
+    set_target_properties(bench_listing5 PROPERTIES CXX_SCAN_FOR_MODULES ON)
+    target_link_libraries(bench_listing5 PRIVATE dedekind_category)
 endif()
 
 get_property(ALL_TESTS GLOBAL PROPERTY DEDEKIND_ALL_TEST_BINARIES)

@@ -80,7 +80,7 @@ static_assert(states(scanner) == 11uz);
 constexpr auto dna = bytes(
     "GAATTCGAGCTCGGTACCCGGGGATCC"
     "TCTAGAGTCGACCTGCAGGCATGCAAGCTT");
-// ten by definition, each window tested :
+// ten by definition, in windows of six :
 static_assert(count(dna >> pali6) == 10uz);
 // two by the table, in one pass : EcoRI's and SacI's
 static_assert(count(dna >> scanner) == 2uz && sites(bytes("GAATTC")) &&
@@ -107,6 +107,14 @@ static_assert(count(dna >> scanner) == 2uz && sites(bytes("GAATTC")) &&
 </details>
 
 The table exists before any sequence does, and what remains is one pass over the caller's bytes; here the sequence is the polylinker of the plasmid pUC19.
+
+Scanning random DNA for the palindromic sites, on one core, to one significant digit, as benchmarks are fickle ([how, and what did not work](src/bench/README.md)):
+
+| | ns per letter | Relative |
+|---|---:|---:|
+| `pynzli`, by the law | 0.4 | 1 |
+| `pynzli`, by the table | 2 | 5× |
+| Python `re` | 200 | 500× |
 
 The C++ compiles in [a test](src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp), the Python runs as [a doctest](python/pynzli/jlt.py), and [another test](src/test/python/test_readme_listing5.py) holds this page and the paper to them.
 

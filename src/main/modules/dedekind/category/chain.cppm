@@ -89,10 +89,11 @@ concept IsCountWord =
  *  A fold over the chain is the Church-encoded finite sequence, the list
  *  as its fold (#1133).
  *
- *  A forward view, O(1) state: the element, its source state, the next state,
- *  and whether the walk is live.  The coalgebra is a value (Rule 1:
- * semiregular), and two positions of one walk compare by state, so the element
- * need not be comparable.
+ *  A forward view, O(1) state: the element, the next state, how many steps it
+ *  has taken, and whether the walk is live.  The coalgebra is a value (Rule 1:
+ *  semiregular), and two positions of one walk compare by their steps, so the
+ *  element need not be comparable, and no state is copied to be compared: on a
+ *  scan, that copy of a state just written stalled every letter at -O3 (#1154).
  *  @tparam S the state.  @tparam Coalg the coalgebra, @c S to
  *  @c optional<pair<A, S>>. */
 export template <std::regular S, std::semiregular Coalg>
@@ -133,13 +134,12 @@ class unfold_view : public std::ranges::view_interface<unfold_view<S, Coalg>> {
       ++*this;
       return before;
     }
-    /** @return whether two positions of one walk coincide: the same source
-     *  state, so, the coalgebra being a function, the same element and the
-     *  same next state; the element need not be comparable.  (The next state
-     *  alone would not do: a step that is not injective reaches one state
-     *  from two, whose elements differ.) */
+    /** @return whether two positions of one walk coincide: as many steps
+     *  from the seed, so, the coalgebra being a function, the same element and
+     *  the same next state; the element need not be comparable.  (A state
+     *  would not do: a walk may revisit one, at another position.) */
     friend constexpr bool operator==(const iterator& a, const iterator& b) {
-      return a.live_ == b.live_ && (!a.live_ || a.state_ == b.state_);
+      return a.live_ == b.live_ && (!a.live_ || a.steps_ == b.steps_);
     }
     /** @return whether the walk has ended. */
     friend constexpr bool operator==(const iterator& it,
@@ -150,7 +150,7 @@ class unfold_view : public std::ranges::view_interface<unfold_view<S, Coalg>> {
    private:
     constexpr void unfold_one(const S& state) {
       if (const Yield y = std::invoke(step_, state); y.has_value()) {
-        state_ = state;
+        ++steps_;
         current_ = y->first;
         next_ = y->second;
         live_ = true;
@@ -159,7 +159,7 @@ class unfold_view : public std::ranges::view_interface<unfold_view<S, Coalg>> {
       }
     }
     value_type current_{};
-    S state_{};  ///< the source of the element: positions compare by it
+    std::size_t steps_{0};  ///< how far along: positions compare by it
     S next_{};
     Coalg step_{};
     bool live_ = false;
