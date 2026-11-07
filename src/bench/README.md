@@ -6,7 +6,7 @@ Figures are to one significant digit, from one run on one shared GitHub runner, 
 
 ## The ladder
 
-Nanoseconds per letter on one core, on a log scale. Each bar is the whole range over a day's runs on shared runners of five CPU models, at `-O2`, and a 2020 laptop, so read the decades and not the digits.
+Nanoseconds per letter on one core, on a log scale. Each bar is the whole range over a day's runs on shared runners of several CPU models, at `-O2`, and a 2020 laptop, so read the decades and not the digits.
 
 ```
                                0.01      0.1       1         10        100       1000
