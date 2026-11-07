@@ -114,7 +114,7 @@ Scanning random DNA for the palindromic sites, on one core, to one significant d
 |---|---:|---:|
 | `pynzli`, by the law | 0.4 | 1 |
 | `pynzli`, by the table | 2 | 5× |
-| Python `re` | 200 | 500× |
+| Python `re` | 300 | 600× |
 
 The C++ compiles in [a test](src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp), the Python runs as [a doctest](python/pynzli/jlt.py), and [another test](src/test/python/test_readme_listing5.py) holds this page and the paper to them.
 
