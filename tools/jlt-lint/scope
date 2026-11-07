@@ -312,7 +312,7 @@ rule1-no-volatile            src/main/modules/dedekind/ieee/*.cppm  ieee  report
 rule1-no-reference-returns   src/main/modules/dedekind/ieee/*.cppm  ieee  report
 rule1-const-member-functions src/main/modules/dedekind/ieee/*.cppm  ieee  report
 rule1-no-mutable-globals     src/main/modules/dedekind/ieee/*.cppm  ieee  report
-rule1-no-escaping-reference-capturessrc/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-no-escaping-reference-captures src/main/modules/dedekind/ieee/*.cppm  ieee  report
 inventory                    src/main/modules/dedekind/ieee/*.cppm  ieee  report
 rule3-no-loops               src/main/modules/dedekind/topology/*.cppm  topology  report
 rule3-no-self-recursion      src/main/modules/dedekind/topology/*.cppm  topology  report
@@ -335,7 +335,7 @@ rule1-no-volatile            src/main/modules/dedekind/topology/*.cppm  topology
 rule1-no-reference-returns   src/main/modules/dedekind/topology/*.cppm  topology  report
 rule1-const-member-functions src/main/modules/dedekind/topology/*.cppm  topology  report
 rule1-no-mutable-globals     src/main/modules/dedekind/topology/*.cppm  topology  report
-rule1-no-escaping-reference-capturessrc/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-no-escaping-reference-captures src/main/modules/dedekind/topology/*.cppm  topology  report
 inventory                    src/main/modules/dedekind/topology/*.cppm  topology  report
 rule3-no-loops               src/main/modules/dedekind/sequences/*.cppm  sequences  report
 rule3-no-self-recursion      src/main/modules/dedekind/sequences/*.cppm  sequences  report
@@ -358,5 +358,5 @@ rule1-no-volatile            src/main/modules/dedekind/sequences/*.cppm  sequenc
 rule1-no-reference-returns   src/main/modules/dedekind/sequences/*.cppm  sequences  report
 rule1-const-member-functions src/main/modules/dedekind/sequences/*.cppm  sequences  report
 rule1-no-mutable-globals     src/main/modules/dedekind/sequences/*.cppm  sequences  report
-rule1-no-escaping-reference-capturessrc/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-no-escaping-reference-captures src/main/modules/dedekind/sequences/*.cppm  sequences  report
 inventory                    src/main/modules/dedekind/sequences/*.cppm  sequences  report
