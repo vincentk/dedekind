@@ -123,6 +123,62 @@ Each is one `make bench` away. Pull requests welcome.
 - [ ] `llvm-mca` on the hot loops, and full `lscpu` with each run.
 - [ ] A real assembly, with the file named and its lowercase and `N` runs handled.
 
+## One run in full
+
+Every row `make bench` prints, from one run of main's `benchmark` job at commit `8507f613`: AMD EPYC 7763 64-Core Processor, Ubuntu clang version 23.1.6, `-O2`. The paper's Appendix G quotes it to one significant digit.
+
+100000000 letters, median of 5 (2000000 for the windows).
+Draws: the row's time over one SplitMix64 hash.
+
+| Row | ns a letter | draws |
+|---|---:|---:|
+| each of the 64 sites' windows tested, stored text | 21.981 | 14.01 |
+| the 64 sites' table (277 states), stored text | 2.194 | 1.40 |
+| the same table, hand-written, holes as the library | 2.027 | 1.29 |
+| the same table, hand-written, no holes | 1.956 | 1.25 |
+| the 11-state table, stored text | 2.197 | 1.40 |
+| the same table, hand-written, holes as the library | 2.032 | 1.29 |
+| the same table, hand-written, no holes | 1.956 | 1.25 |
+| the library's count(text >> pali6), by the law | 0.438 | 0.28 |
+| the law, letters as they come (ACGT only) | 0.893 | 0.57 |
+| the law, ranks in bytes | 0.806 | 0.51 |
+| the law, sets of bases in bytes (IUPAC's code) | 4.067 | 2.59 |
+| the law, letters as they come, four compared at run time | 12.002 | 7.65 |
+| the law, ranks in bytes, a byte counter per block | 0.130 | 0.08 |
+| the law, four compared at run time, a byte counter per block | 11.936 | 7.61 |
+| the law, two bits a base, 27 windows a word | 0.172 | 0.11 |
+| the law, alphabet and length at run time, block by block in stages | 0.360 | 0.23 |
+| hash alone | 1.569 | 1.00 |
+| a letter, hash and mask | 1.256 | 0.80 |
+| a letter, the library's random_text | 2.798 | 1.78 |
+| drawn and scanned, the 64 sites' table | 2.950 | 1.88 |
+| drawn and scanned, the 11-state table | 2.950 | 1.88 |
+
+3100000000 letters, past the cache.
+
+| Row | GB/s | Share of a plain read |
+|---|---:|---:|
+| a plain read of every word | 20.82 | 1.00 |
+| the library's count(text >> pali6), by the law | 2.28 | 0.11 |
+| the 64 sites' table | 0.45 | 0.02 |
+
+| Letters | Found | Peak KiB |
+|---:|---:|---:|
+| 10000000 | 156645 | 10800 |
+| 10000000000 | 156231994 | 10700 |
+
+From Python, the same run:
+
+10000000 letters, median of 5 (1000000 for the loop).
+
+| Row | ns a letter |
+|---|---:|
+| pynzli, by the law, from bytes | 0.44 |
+| pynzli, the table, from bytes | 2.21 |
+| pynzli, drawn and scanned | 2.96 |
+| re, 64 alternatives in a lookahead | 253.06 |
+| a Python loop over a set | 156.86 |
+
 ## Machines
 
 Shared runners vary: a plain read ranged from 19 to 42 GB/s across runs. Quote ratios within a run, name the CPU, and take absolute figures from one known machine.
