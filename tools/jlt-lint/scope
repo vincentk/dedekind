@@ -288,3 +288,75 @@ rule3-no-loops               src/main/modules/dedekind/order/halfspace.cppm  ord
 rule3-no-loops               src/main/modules/dedekind/order/runs.cppm  order  6
 rule3-no-mutual-recursion    src/main/modules/dedekind/order/[!o]*.cppm  order  0
 rule3-no-self-recursion      src/main/modules/dedekind/order/[!o]*.cppm  order  0
+
+# ieee, topology and sequences, the layers between category and algebra:
+# reported first, to be gated at their measured counts once known.
+rule3-no-loops               src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule3-no-self-recursion      src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule3-no-mutual-recursion    src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule2-definition             src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule2-constrained-templates  src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule2-no-inline-requires     src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule2-decided-resolution     src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-no-inheritance         src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-constexpr              src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-const-call-operator    src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-no-throw               src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-no-static-locals       src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-lvalue-reference-paramssrc/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-rvalue-reference-paramssrc/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-forwarding-reference-paramssrc/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-boxed-mutable-pointee  src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-boxed-identity         src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-no-volatile            src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-no-reference-returns   src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-const-member-functions src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-no-mutable-globals     src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule1-no-escaping-reference-capturessrc/main/modules/dedekind/ieee/*.cppm  ieee  report
+inventory                    src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule3-no-loops               src/main/modules/dedekind/topology/*.cppm  topology  report
+rule3-no-self-recursion      src/main/modules/dedekind/topology/*.cppm  topology  report
+rule3-no-mutual-recursion    src/main/modules/dedekind/topology/*.cppm  topology  report
+rule2-definition             src/main/modules/dedekind/topology/*.cppm  topology  report
+rule2-constrained-templates  src/main/modules/dedekind/topology/*.cppm  topology  report
+rule2-no-inline-requires     src/main/modules/dedekind/topology/*.cppm  topology  report
+rule2-decided-resolution     src/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-no-inheritance         src/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-constexpr              src/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-const-call-operator    src/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-no-throw               src/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-no-static-locals       src/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-lvalue-reference-paramssrc/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-rvalue-reference-paramssrc/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-forwarding-reference-paramssrc/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-boxed-mutable-pointee  src/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-boxed-identity         src/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-no-volatile            src/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-no-reference-returns   src/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-const-member-functions src/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-no-mutable-globals     src/main/modules/dedekind/topology/*.cppm  topology  report
+rule1-no-escaping-reference-capturessrc/main/modules/dedekind/topology/*.cppm  topology  report
+inventory                    src/main/modules/dedekind/topology/*.cppm  topology  report
+rule3-no-loops               src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule3-no-self-recursion      src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule3-no-mutual-recursion    src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule2-definition             src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule2-constrained-templates  src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule2-no-inline-requires     src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule2-decided-resolution     src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-no-inheritance         src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-constexpr              src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-const-call-operator    src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-no-throw               src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-no-static-locals       src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-lvalue-reference-paramssrc/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-rvalue-reference-paramssrc/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-forwarding-reference-paramssrc/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-boxed-mutable-pointee  src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-boxed-identity         src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-no-volatile            src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-no-reference-returns   src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-const-member-functions src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-no-mutable-globals     src/main/modules/dedekind/sequences/*.cppm  sequences  report
+rule1-no-escaping-reference-capturessrc/main/modules/dedekind/sequences/*.cppm  sequences  report
+inventory                    src/main/modules/dedekind/sequences/*.cppm  sequences  report
