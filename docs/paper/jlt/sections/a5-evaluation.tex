@@ -1,6 +1,9 @@
 % !TEX root = ../jlt.tex
-\section{Evaluation}
+\section{Featherweight Jlt evaluation}
 \label{app:fjlt:evaluation}
+
+This is FJlt's own evaluation, the calculus's stand-in for \texttt{clang++} and $\mathit{run}$ in Figure~\ref{fig:arrows}, which Appendix~\ref{app:fjlt:theorems} shows agrees with $\mathit{eval}$ across $\llbracket\cdot\rrbracket$.
+It is \Cpp{}'s constant evaluation restricted to the grammar, extended by \textsc{S-Unbox} at run time, and Figure~\ref{fig:fjlt-eval} gives the rules; $e \Downarrow v$ abbreviates $e \longrightarrow^{*} v$.
 
 Evaluation is small-step and call-by-value on closed terms, $e \longrightarrow e'$, with values and evaluation contexts
 \[
@@ -12,8 +15,6 @@ E &::=& [\,] \mid f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{, }
 \end{array}
 \]
 where the elided contexts are the remaining argument positions of pairs, optionals, boxes, projections, constructions, folds and the two branches of a case, each evaluated left to right.
-This is FJlt's own evaluation, the calculus's stand-in for \texttt{clang++} and $\mathit{run}$ in Figure~\ref{fig:arrows}, which Appendix~\ref{app:fjlt:theorems} shows agrees with $\mathit{eval}$ across $\llbracket\cdot\rrbracket$.
-It is \Cpp{}'s constant evaluation restricted to the grammar, extended by \textsc{S-Unbox} at run time, and Figure~\ref{fig:fjlt-eval} gives the rules; $e \Downarrow v$ abbreviates $e \longrightarrow^{*} v$.
 The context grammar picks one redex per non-value term, so the relation is deterministic.
 A value is immutable and a reference to one denotes it, which is why a parameter written \cppinline{const τ&} is the parameter $\tau\; x$.
 
@@ -23,7 +24,7 @@ A value is immutable and a reference to one denotes it, which is why a parameter
 \begin{array}{ll}
 \textsc{(S-Call)} & f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)} \longrightarrow e[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \\
  & \qquad \text{where } f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to a declaration with parameters } \overline{x} \text{ and body } e \\[3pt]
-\textsc{(S-Op)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)} \longrightarrow e[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}][\overline{v_y}/\overline{y}][\overline{v}/\overline{x}] \quad \text{for a declared operation with body } e\text{, } \overline{\sigma} \text{ deduced} \\[3pt]
+\textsc{(S-Op)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)} \longrightarrow e[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}][\overline{v_y}/\overline{y}][\overline{v}/\overline{x}] \quad \text{for a declared function object with body } e\text{, } \overline{\sigma} \text{ deduced} \\[3pt]
 \textsc{(S-Std)} & O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{c}\texttt{)} \longrightarrow c \quad \text{for a standard function object, } c \text{ the value the standard assigns} \\[3pt]
 \textsc{(S-Prim)} & \ominus c \longrightarrow c' \qquad c_1 \oplus c_2 \longrightarrow c \quad \text{the base type's operator, total by the choice of } \ominus, \oplus \\[3pt]
 \textsc{(S-Conv)} & \tau\texttt{(}c\texttt{)} \longrightarrow c' \quad \text{the conversion between distinct carriers the standard or the declaration assigns} \qquad \tau\texttt{(}v\texttt{)} \longrightarrow v \quad \text{at } v\text{'s own type, any value} \\[3pt]
@@ -40,20 +41,25 @@ A value is immutable and a reference to one denotes it, which is why a parameter
 \end{array}
 \]
 \normalsize
-\caption{Evaluation.
+\caption{The rules of evaluation, $e \longrightarrow e'$, on closed terms.}
+\label{fig:fjlt-eval}
+\end{figure}
+
+\paragraph{Calls, folds and terms.}
 \textsc{S-Call} covers specialisations and generic functions alike, since resolution has already chosen the body; for a generic function the explicit type arguments are substituted first.
 \textsc{S-Range} is total: on the empty range the head is $\mathit{default}_\tau$ and the tail the range itself, values \textsc{S-Fold} never reaches, since it runs $|r|$ times.
 The default value of a type is given by its structure, not by \cppinline{T{}}: a carrier's own default, a pair of defaults, the empty optional, the first injection of a default, a fieldless function object, and for a box a box of its content's default, so that no term of the kernel holds a null box.
 \textsc{S-Fold} consumes the head of the range, so a fold takes as many steps as the range has elements.
 \textsc{S-Cata} unfolds one node, passing the node itself beside its legs' folds; a leaf has no legs and the algebra is applied to it alone.
-\textsc{S-Prim} and \textsc{S-Std} are total because the admitted operations are, which is what Lemma~\ref{lem:progress} needs.
-That totality, the condition of Appendix~\ref{app:fjlt:syntax}, is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operation defined on every input, and it keeps \cppinline{int}'s overflow and division out.
-On unsigned carriers the operations are addition, subtraction, multiplication and the bitwise operations, which wrap, the comparisons, and division, remainder and the shifts by a literal the carrier can take (a nonzero divisor, a shift below the width); by a variable, those three are partial and not admitted.
-On \cppinline{bool} they are the logical operations.
+
+\paragraph{Totality.}
+\textsc{S-Prim} and \textsc{S-Std} are total because the admitted operators are, which is what Lemma~\ref{lem:progress} needs.
+That totality, the condition of Appendix~\ref{app:fjlt:syntax}, is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operator defined on every input, and it keeps \cppinline{int}'s overflow and division out.
+On unsigned carriers the operators are addition, subtraction, multiplication and the bitwise operators, which wrap, the comparisons, and division, remainder and the shifts by a literal the carrier can take (a nonzero divisor, a shift below the width); by a variable, those three are partial and not admitted.
+On \cppinline{bool} they are the logical operators.
 $\Sigma$ is not a list; the listings also use \cppinline{std::string} with concatenation and the comparisons, allocation failure aside, and finite enumerations such as \cppinline{Ternary}.
+
+\paragraph{Boxes.}
 \textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a constant evaluator rejects a term that builds a box.
 A law or a \cppinline{static_assert} premise therefore contains no \cppinline{make_shared}, the condition under which every FJlt program is a Jlt program.
-\Cpp{26} retires that condition~\cite{keir2025constexprsharedptr}.}
-\label{fig:fjlt-eval}
-\end{figure}
-
+\Cpp{26} retires that condition~\cite{keir2025constexprsharedptr}.
