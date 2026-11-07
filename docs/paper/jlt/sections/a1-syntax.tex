@@ -54,31 +54,22 @@ constexpr std::string
 op<std::string>(std::string a, std::string b) {
   return a + b;
 }
-
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
 // D: a shape; A its required calls
 template <typename T>
 concept IsMagma =
     requires(const T a, const T b) {
       { op(a, b) } -> std::same_as<T>;
     };
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.48\linewidth}
-\begin{cpp}
+
 // D: a generic function; Q its constraint
 template <typename T> requires IsMagma<T>
 constexpr T twice(T x) {
   return op(x, x);
 }
-
-// D: a function object
-template <typename T> struct Plus {
-  template <typename U>
-    requires IsMagma<U>
-  constexpr U operator()(U a, U b) const {
-    return op(a, b);
-  }
-};
 
 // e: the closed term the program evaluates
 twice("ab"s) + "c"s == "ababc"s
