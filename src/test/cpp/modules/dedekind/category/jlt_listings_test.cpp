@@ -577,6 +577,32 @@ static_assert(monotone(cata(LawAlgebra<>{}, Compose<Negation, Negation>{})) ==
               Ternary::True);
 static_assert(IsMonotone<Compose<Negation, Negation>>);
 
+// Appendix A's listing, read in the terms of the grammar's figure.
+namespace reading {
+template <typename T>
+constexpr T op(T, T) = delete;
+
+template <>
+constexpr std::string op<std::string>(std::string a, std::string b) {
+  return a + b;
+}
+
+template <typename T>
+concept IsMagma = requires(const T a, const T b) {
+  { op(a, b) } -> std::same_as<T>;
+};
+
+template <typename T>
+  requires IsMagma<T>
+constexpr T twice(T x) {
+  return op(x, x);
+}
+
+/** @return the listing's closed term. */
+constexpr bool closed_term() { return twice("ab"s) + "c"s == "ababc"s; }
+static_assert(closed_term());
+static_assert(IsMagma<std::string> && !IsMagma<int>);
+}  // namespace reading
 }  // namespace jlt_listing
 
 TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
@@ -677,4 +703,9 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
         C::IsSemimodule<size_t, size_t, std::plus<size_t>, std::plus<size_t>,
                         std::multiplies<size_t>, std::multiplies<>>);
   }
+}
+
+TEST_CASE("Jlt paper listings: Appendix A's small program, read at runtime",
+          "[category][jlt][listings]") {
+  CHECK(jlt_listing::reading::closed_term());
 }

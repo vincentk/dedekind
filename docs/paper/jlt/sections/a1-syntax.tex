@@ -6,66 +6,78 @@
 \[
 \begin{array}{lcl@{\hspace{0.2em}}l}
 P &::=& \overline{D}\; e & \text{program} \\[3pt]
-D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \texttt{ = } \overline{R}\texttt{;} & \text{shape} \\
+D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \texttt{ = } \overline{A}\texttt{;} & \text{shape} \\
   & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> constexpr } \tau\; f\texttt{(}\overline{\tau}\texttt{) = delete;} & \text{trait} \\
   & \mid & \texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{\tau\; x}\texttt{)} & \text{instance} \\
   &   & \qquad \texttt{\{ return } e\texttt{; \}} & \\
   & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} & \text{generic function} \\
   &   & \qquad \texttt{constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \\
-  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau\; y}\texttt{;} & \text{operation} \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau\; y}\texttt{;} & \text{function object} \\
   &   & \qquad \texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q} & \\
   &   & \qquad \texttt{constexpr } \tau \texttt{ operator()(}\overline{\tau\; x}\texttt{) const \{ return } e\texttt{; \} \};} & \\[3pt]
-R &::=& Q \;\mid\; e & \text{nested shape, law} \\
-  & \mid & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>;}} \texttt{ \}} & \text{operations} \\[3pt]
+A &::=& Q \;\mid\; e & \text{nested shape, law} \\
+  & \mid & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>;}} \texttt{ \}} & \text{required calls} \\[3pt]
 Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
-\tau &::=& \alpha \;\mid\; b \;\mid\; O\texttt{<}\overline{\tau}\texttt{>} & \text{type} \\
-  & \mid & \texttt{pair<}\tau\texttt{, }\tau\texttt{>} \;\mid\; \texttt{optional<}\tau\texttt{>} \;\mid\; \texttt{variant<}\tau\texttt{, }\tau\texttt{>} & \text{product, sums} \\
-  & \mid & \texttt{shared\_ptr<const }\tau\texttt{>} \;\mid\; \mu F \;\mid\; R\texttt{<}\tau\texttt{>} & \text{box, term, range} \\[3pt]
-e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
-  & \mid & e \oplus e \;\mid\; \tau\texttt{(}e\texttt{)} \;\mid\; e \texttt{ ? } e \texttt{ : } e & \text{arithmetic, conditional} \\
-  & \mid & \texttt{pair\{}e\texttt{, }e\texttt{\}} \;\mid\; e\texttt{.first} \;\mid\; e\texttt{.second} & \text{pair, projections} \\
-  & \mid & \iota_1\,e \;\mid\; \iota_2\,e \;\mid\; \texttt{case(}e\texttt{, }e\texttt{, }e\texttt{)} & \text{sum} \\
-  & \mid & \texttt{make\_shared<const }\tau\texttt{>(}e\texttt{)} \;\mid\; \texttt{*}e & \text{box, unbox} \\
-  & \mid & \texttt{fold\_left(}r\texttt{, }e\texttt{, }e\texttt{)} \;\mid\; \texttt{size(}r\texttt{)} \;\mid\; \texttt{head(}r\texttt{)} \;\mid\; \texttt{next(}r\texttt{)} & \text{fold, range operations} \\
-  & \mid & \texttt{cata(}e\texttt{, }e\texttt{)} & \text{fold over term} \\[3pt]
-r &::=& \text{an instance of } \mathcal{R} & \text{range} \\
+\tau &::=& \alpha \;\mid\; b \;\mid\; T\texttt{<}\overline{\tau}\texttt{>} & \text{type} \\[3pt]
+e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} & \text{term} \\
+  & \mid & \ominus e \;\mid\; \texttt{*}e \;\mid\; e\texttt{.}y \;\mid\; \tau\texttt{(}e\texttt{)} \;\mid\; e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e & \text{built-ins, by arity} \\
 \end{array}
 \]
-\caption{The syntax of FJlt, a subset of \Cpp{23}, namespace qualifiers elided.
-An overbar abbreviates a sequence; it reads a parameter pack and a fold expression at each arity, and says nothing of all arities at once.
-$\tau\texttt{(}e\texttt{)}$ converts between carriers.
-A range has a length and, when it is not empty, a head and a tail; a term type $\mu F$ is built from the nodes $O\texttt{<}\overline{\tau}\texttt{>}$ whose fields are terms; a box is a \cppinline{shared_ptr<const τ>}.}
+\caption{The abstract grammar~\cite{pierce2002tapl} of FJlt, a subset of \Cpp{23}, namespace qualifiers elided.
+Terminals are in monospace, and an overbar abbreviates a sequence.
+A letter with a row has the structure the row gives; a letter with no row is a name or a symbol, listed below.
+$P$ is a program.
+$D$ is a declaration.
+$A$ is a requirement.
+$Q$ is a constraint.
+$\tau$ is a type.
+$e$ is a term.}
 \label{fig:fjlt-syntax}
 \end{figure}
 
-FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}, under the three rules of Section~\ref{sec:posture}.
-Its base types are the carriers of a $\Sigma$-algebra, for $\Sigma$ a many-sorted \emph{signature}, Birkhoff and Lipson's heterogeneous algebra~\cite{birkhoff1970heterogeneous} in Pierce's words~\cite{pierce1991basic}: a sort per base type, an operation symbol with its arity per operation, and the \Cpp{} types with their \cppinline{constexpr} operations as the interpretation.
-A type is a carrier if it keeps \RuleOne, its operations are total, and it has an image in the target (Appendix~\ref{app:fjlt:translation}).
-Only totality is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operation defined on every input, Lemma~\ref{lem:progress} needs it, and it keeps \cppinline{int}'s overflow and division out.
-$\Sigma$ is not a list; the listings use \cppinline{bool}, \cppinline{size_t}, \cppinline{std::string} with concatenation and the comparisons, allocation failure aside, and finite enumerations such as \cppinline{Ternary}.
+FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}.
+Its base types and their \cppinline{constexpr} operators form a many-sorted algebra~\cite{birkhoff1970heterogeneous,sannella2012foundations} over a signature $\Sigma$.
+Loosely speaking, a type such as \cppinline{bool} or \cppinline{size_t} is a \emph{carrier set} if it keeps \RuleOne{}, and an operator on such types, $\ominus$ or $\oplus$ in the figure, is a \emph{function} between them if it is total.
+It need not stay on one carrier set, as \cppinline{==} on \cppinline{std::string} gives a \cppinline{bool}.
+Listing~\ref{lst:fjlt-reading} is a valid example snippet, read in the figure's terms.
 
-Metavariables: $\alpha, \beta$ range over type variables, $b$ over the carriers, the sorts of $\Sigma$, $O$ over the function-object types, standard (\cppinline{std::plus}, \cppinline{std::logical_and}, \ldots) or declared, $r$ over ranges, $\oplus$ over the operations of $\Sigma$, $C$ over concept names, the standard ones included, $S$ over the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ over function names, $x$ over term variables and $c$ over constants.
-The total operations are, on unsigned carriers, addition, subtraction, multiplication and the bitwise operations, which wrap, the comparisons, and division, remainder and the shifts by a literal the carrier can take (a nonzero divisor, a shift below the width); on \cppinline{bool}, the logical operations.
-By a variable, division, remainder and the shifts are partial and not admitted.
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+// D: a trait; its primary stays deleted
+template <typename T>
+constexpr T op(T, T) = delete;
 
-\paragraph{How \Cpp{} spells it.}
-A trait is a deleted function template; an instance with a context is a generic function whose \cppinline{requires} clause is the context.
-\cppinline{auto} in a listing names the type the body has, and a parameter written \cppinline{const τ} or \cppinline{const τ&} is the parameter $\tau\; x$, since a value is immutable and a reference to one denotes it.
-An operation is a struct with fields and a \cppinline{const} call operator; the standard function objects and the library's formers, \cppinline{Compose} among them, are operations, and a term applies one by constructing it with its fields.
-\cppinline{optional<τ>} is $1 + \tau$, with $\iota_1$ = \cppinline{nullopt}, $\iota_2\,e$ = \cppinline{optional\{e\}} and the case \cppinline{s.transform(g).value_or(f)}, $f$ the value for the empty one.
-\cppinline{variant<τ₁, τ₂>} is $\tau_1 + \tau_2$, with $\iota_i\,e$ = \cppinline{variant<τ₁, τ₂>(in_place_index<i-1>, e)} and the case dispatched on the index, as the library's \cppinline{Copairing} writes it; \cppinline{std::visit} is the case whose two branches are one operation.
-\cppinline{*} on an optional and \cppinline{std::get} on a variant are partial and are not terms; Appendix~\ref{app:fjlt:closure} says where they are admitted.
-A box is built by \cppinline{make_shared} and read by \cppinline{*}, and nothing else is a term: no \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes, so no program can ask which box holds a value.
-\cppinline{e.first} and \cppinline{e.second} read as $\pi_1$ and $\pi_2$~\cite{pierce1991basic}; the library's \cppinline{π_1} and \cppinline{π_2} are the same projections as function objects.
+// D: an instance; + an operator of Sigma
+template <>
+constexpr std::string
+op<std::string>(std::string a, std::string b) {
+  return a + b;
+}
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+// D: a shape; A its required calls
+template <typename T>
+concept IsMagma =
+    requires(const T a, const T b) {
+      { op(a, b) } -> std::same_as<T>;
+    };
 
-\paragraph{Ranges and terms.}
-A range $r$ is an instance of a family $\mathcal{R}$ defined by conditions: a length $|r| \in \mathbb{N}$, fixed before a fold starts, and, when $|r| > 0$, a head and a tail $\mathit{next}\,r$ with $|\mathit{next}\,r| = |r| - 1$.
-The kernel has three.
-\cppinline{n >> chain(prior)} is the chain of a count under Figure~\ref{fig:structures}'s $\mathit{prior}$: head \cppinline{prior(n)}, tail \cppinline{prior(n) >> chain(prior)}, empty where \cppinline{prior(n)} is nothing, finite because the step descends.
-\cppinline{transform(r, g)} is Listing~\ref{lst:rule3}'s \cppinline{r >> g}: head \cppinline{g(head r)}, tail \cppinline{transform(next r, g)}, length $|r|$.
-\cppinline{iota(i, j)}, with $i \le j$, as reversed endpoints are undefined behaviour and not an empty range, has head $i$ and tail \cppinline{iota(i + 1, j)}.
-In \Cpp{} the length is \cppinline{ranges::size} and the head \cppinline{*ranges::begin} under a guard on the length; the tail has no standard spelling at the same type, so it is the instance's own.
-A range may also be a type variable $R$ under $\mathit{IsRange}\texttt{<}R\texttt{, }T\texttt{>}$ $=$ \cppinline{requires (const R r) { { size(r) } -> same_as<size_t>; { head(r) } -> same_as<T>; { next(r) } -> same_as<R>; }}, which the instances of $\mathcal{R}$ over $\tau$, and only they, satisfy at $T = \tau$ (Appendix~\ref{app:fjlt:typing}): membership in $\mathcal{R}$, with its falling length, is a premise, so three operations without that law do not suffice.
-Listing~\ref{lst:rule3}'s \cppinline{concat} writes the weaker \cppinline{std::ranges::input_range<R>}, which the kernel reads as $\mathit{IsRange}$ with $T$ the deduced \cppinline{ranges::range_value_t<R>}; a standard range outside $\mathcal{R}$, an unsized view, is not in the kernel.
-A term of type $\mu F$ is a finite composition of nodes, a node an operation whose fields are terms; \cppinline{cata(alg, t)} applies the algebra to each node and the folded values of its legs.
-The type formers are productions, not sorts of $\Sigma$, because the translation acts on them structurally (Appendix~\ref{app:fjlt:translation}); a former enters when it has such an image, as \cppinline{std::vector} would as lists with their fold, absent because no listing needs it.
+// D: a generic function; Q its constraint
+template <typename T> requires IsMagma<T>
+constexpr T twice(T x) {
+  return op(x, x);
+}
+
+// e: the closed term the program evaluates
+twice("ab"s) + "c"s == "ababc"s
+\end{cpp}
+\end{minipage}
+\caption{A small program, each declaration labelled with its form in Figure~\ref{fig:fjlt-syntax}; its \texttt{\"\"s} literals are sugar.}
+\label{lst:fjlt-reading}
+\end{listing}
+
+In Figure~\ref{fig:fjlt-syntax}, $\alpha, \beta$ range over type variables, $b$ over base types, $T$ over type constructors, declared or adopted (Table~\ref{tab:conventions}), $O$ over the structs among them, function objects, standard (\cppinline{std::plus}, \ldots) or declared, \cppinline{std::pair} and \cppinline{std::optional}, $y$ over their fields, $\ominus$ and $\oplus$ over the unary and binary operators of $\Sigma$, $C$ over concept names, the standard ones included, $S$ over the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}, $f$ over function names, $x$ over term variables and $c$ over constants.
+A template is always fully applied: $\alpha$ ranges over types, and there is no template template parameter, so System~F suffices.

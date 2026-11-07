@@ -73,7 +73,7 @@ inheritance & every base an empty class, no virtual function & a registration, r
 \paragraph{Lambdas.}
 A lambda \cppinline{[c...](const τ x...) { return e; }} whose captures are FJlt values taken by copy and whose body is an FJlt term under those captures and parameters is the operation struct with the captures as fields and \cppinline{e} as the body of its call operator.
 A generic lambda written with a template head and a \cppinline{requires} clause is the operation with a generic call operator.
-The reason is the standard's own definition of the closure type: a class with the copied captures as members and a \cppinline{const} call operator, which is the operation production of Figure~\ref{fig:fjlt-syntax} to the letter.
+The reason is the standard's own definition of the closure type: a class with the copied captures as members and a \cppinline{const} call operator, which is the function object production of Figure~\ref{fig:fjlt-syntax} to the letter.
 Capture by reference is excluded by Rule~1 before this lemma is reached.
 A capturing closure type is copy constructible and neither default constructible nor assignable, so it is not \cppinline{std::semiregular} and Rule~1 does not admit it as a value; it is admitted as sugar, judged through its image, which is semiregular when its captures are.
 That is the general rule for sugar: the rules are asked of the kernel term.
@@ -100,9 +100,10 @@ The price is in the free theorem, which now ranges over that parameter.
 Written by hand, the same thing is to decide the constraint in the clause, by requiring it or by splitting on it.
 
 \paragraph{Sums.}
-The kernel has the case form (Appendix~\ref{app:fjlt:syntax}), so given FJlt terms \cppinline{f} and \cppinline{g} on the two summands their copairing is an FJlt term, \texttt{case(}$s$\texttt{, }$f$\texttt{, }$g$\texttt{)}.
+The kernel has the case form (Table~\ref{tab:conventions}), so given FJlt terms \cppinline{f} and \cppinline{g} on the two summands their copairing is an FJlt term, \texttt{case(}$s$\texttt{, }$f$\texttt{, }$g$\texttt{)}.
 \cppinline{has_value} and \cppinline{value_or} on an optional are that case on $1 + T$, and \cppinline{std::visit(O{}, v)} is the case whose branches are one generic call operator entailed at each summand.
 \cppinline{*} on an optional is partial, undefined on the empty one, and is admitted under a \cppinline{has_value} guard, which desugars to the case form, as the head of a range is admitted only when its length is positive, or in a constant initialiser, where constant evaluation refuses the empty case and the compiler holds the guard, as for Listing~\ref{lst:sites}'s \cppinline{*automaton(sites)}.
+\cppinline{std::get} on a variant is partial too and is not admitted: a variant is read by the case form.
 
 \paragraph{Variable and class templates.}
 A variable template \cppinline{v<T...> = e} is the nullary function template \cppinline{v<T...>() { return e; }}, and a class template with a static constant member is the same, since constant evaluation of the three agrees.
