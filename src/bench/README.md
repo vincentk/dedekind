@@ -119,6 +119,7 @@ Each is one `make bench` away. Pull requests welcome.
 - A set of bases per byte goes from the slowest law row to a fast one with native flags, 3.6 to 0.20 ns.
 - Two bits a base, one word holding 27 windows, reaches 0.06 ns per base at native flags and isn't in the library.
 - **The law doesn't reach the bus: about a tenth of a plain read.** Ranks already in bytes reach about a third, so most of the cost is getting to ranks and copying a block's verdicts between passes. Nothing in principle stops it: the comparisons take a few operations per 16 bytes.
+- **This is where it stops working out of the box.** The law reads 3.1 GB at 2.6 GB/s against 33 GB/s for a plain read, and rewriting the block as bitwise joins, per-length passes or two-bit words didn't beat it on text in bytes. That's as far as we got, not a limit. Getting closer under the same rules would be interesting: no intrinsics and no inner loop written for this problem, with specialisations keyed on a law or a data shape, and the compiler doing the vectorising.
 - [ ] `llvm-mca` on the hot loops, and full `lscpu` with each run.
 - [ ] A real assembly, with the file named and its lowercase and `N` runs handled.
 
