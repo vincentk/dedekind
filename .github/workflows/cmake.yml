@@ -193,11 +193,7 @@ jobs:
         ) &
         DOXYGEN_BUILD_PID=$!
 
-        (
-          make paper
-          make -C docs/paper doc
-          make paper-jlt
-        ) &
+        make papers &
         PAPER_BUILD_PID=$!
 
         wait "$DOXYGEN_BUILD_PID"

@@ -38,10 +38,7 @@ jobs:
       run: make ci-install-paper-deps
 
     - name: Build the papers
-      run: |
-        make paper
-        make -C docs/paper doc
-        make paper-jlt
+      run: make papers
 
     - name: Keep the PDFs
       uses: actions/upload-artifact@v7
