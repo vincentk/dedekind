@@ -39,7 +39,7 @@ FJlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figu
 As it is a subset of Jlt, it respects the three rules of Section~\ref{sec:posture}.
 Its base types and their \cppinline{constexpr} operators form a many-sorted algebra~\cite{birkhoff1970heterogeneous,sannella2012foundations} over a signature $\Sigma$.
 Loosely speaking, a type such as \cppinline{bool} or \cppinline{size_t} is a \emph{carrier set} if it keeps \RuleOne{} and has an image in the target (Appendix~\ref{app:fjlt:translation}), and an operator on such types, $\ominus$ or $\oplus$ in the figure, is a \emph{function} between them if it is total, which Lemma~\ref{lem:progress} needs.
-It need not stay on one carrier set, as \cppinline{==} on \cppinline{size_t} gives a \cppinline{bool}.
+It need not stay on one carrier set, as \cppinline{==} on \cppinline{std::string} gives a \cppinline{bool}.
 Listing~\ref{lst:fjlt-reading} is a valid example snippet, read in the figure's terms.
 
 \begin{listing}[htbp]
@@ -51,8 +51,8 @@ constexpr T op(T, T) = delete;
 
 // D: an instance; + an operator of Sigma
 template <>
-constexpr unsigned
-op<unsigned>(unsigned a, unsigned b) {
+constexpr std::string
+op<std::string>(std::string a, std::string b) {
   return a + b;
 }
 
@@ -82,7 +82,7 @@ template <typename T> struct Plus {
 };
 
 // e: the closed term the program evaluates
-Plus<unsigned>{}(twice(21u), 1u)
+twice("ab"s) + "c"s == "ababc"s
 \end{cpp}
 \end{minipage}
 \caption{A small program, each declaration labelled with its form in Figure~\ref{fig:fjlt-syntax}.}
