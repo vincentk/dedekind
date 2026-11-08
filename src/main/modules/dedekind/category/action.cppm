@@ -183,8 +183,7 @@ concept HasCountingAction =
  *  semimodule, @c x under an idempotent operation.  The same signature as the
  *  binary method of @c :total and a stronger constraint, so resolution
  *  prefers it.  @param r the copies.  @param op the operation. */
-export template <std::ranges::input_range R,
-                 typename T = std::ranges::range_value_t<R>,
+export template <IsBoundedRange R, typename T = std::ranges::range_value_t<R>,
                  typename Op = std::plus<T>>
   requires IsMonoid<T, Op> && IsCopies<R> && HasCountingAction<T, Op>
 constexpr T concat(R r, Op op = {}) {
