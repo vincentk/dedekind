@@ -72,12 +72,12 @@ Hence $\llbracket \Delta \Vdash Q \rrbracket$ depends only on $\Delta$ and $Q$, 
 \begin{lemma}[Translation commutes with substitution]
 \label{lem:subst}
 (i) $\llbracket \tau[\overline{\sigma}/\overline{\alpha}] \rrbracket = \llbracket \tau \rrbracket[\overline{\llbracket \sigma \rrbracket}/\overline{\alpha}]$.
-(ii) For a term typed at concrete types, $\llbracket e[\overline{v}/\overline{x}] \rrbracket = \llbracket e \rrbracket[\overline{\llbracket v \rrbracket}/\overline{x}]$.
+(ii) For a term $e$ typed at concrete types and terms $\overline{e'}$ of the variables' types, values or not, $\llbracket e[\overline{e'}/\overline{x}] \rrbracket = \llbracket e \rrbracket[\overline{\llbracket e' \rrbracket}/\overline{x}]$.
 \end{lemma}
 
 \begin{proof}
 (i) By induction on $\tau$: every row of the type translation is structural in the subterms.
-(ii) By induction on $e$: every row of the term translation is structural in the subterms, and a variable translates to itself.
+(ii) By induction on $e$: every row of the term translation is structural in the subterms, and a variable translates to itself; nothing in the induction asks the substituted terms to be values.
 \end{proof}
 
 \begin{lemma}[Dictionaries are well typed]
