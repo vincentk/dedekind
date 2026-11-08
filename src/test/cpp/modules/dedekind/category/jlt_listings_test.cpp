@@ -326,17 +326,19 @@ static_assert(IsMonoid<Sections<size_t>, compose> &&
 // Listing 3: Figure 2 in code, four panels.  Top left: the counts, a finite
 // chain, so the type supplies its prior and the chain is a default; top
 // right: Collatz's step, guarded by until(equals(1), ...), a chain finite by
-// fact and not by Rule 3; bottom left: the fold on a monoid, homogeneous,
-// Listing 2's concat at a range, one chain under two operations; bottom
-// right: the fold on an action M × S → M, heterogeneous, the standard's
-// fold_left as it stands.  Both chains are input ranges, which is what ties
-// them to fold_left.  chain, until, equals, arrow, IsFinite, IsTotalOrder and
-// HasNNOStep are the library's.
+// fact, bounded by a budget declared with it; bottom left: the fold on a
+// monoid, homogeneous, Listing 2's concat at a range, one chain under two
+// operations; bottom right: the fold on an action M × S → M, heterogeneous, the
+// standard's fold_left as it stands.  Both chains are bounded ranges, which is
+// what ties them to the library's folds.  chain, until, equals, arrow, bound,
+// IsBoundedRange, IsFinite, IsTotalOrder and HasNNOStep are the library's.
 namespace listing3 {
 using dedekind::category::arrow;
+using dedekind::category::bound;
 using dedekind::category::chain;
 using dedekind::category::equals;
 using dedekind::category::HasNNOStep;
+using dedekind::category::IsBoundedRange;
 using dedekind::category::IsFinite;
 using dedekind::category::IsTotalOrder;
 using dedekind::category::until;
@@ -356,9 +358,10 @@ static_assert(std::ranges::input_range<decltype(ns)> &&
 constexpr auto prior =
     until(equals(1uz),
           arrow<size_t>([](size_t n) { return n % 2 ? 3 * n + 1 : n / 2; }));
-constexpr auto cs = 1'000uz >> chain(prior);  // 500, 250, …, 1
-static_assert(std::ranges::input_range<decltype(cs)> &&
-              std::ranges::distance(cs) == 111 && std::ranges::max(cs) == 9232);
+constexpr IsBoundedRange auto cs =  // 500, 250, …, 1
+    1'000uz >> chain(prior, 200uz);
+static_assert(bound(cs) == 200 && std::ranges::distance(cs) == 111 &&
+              std::ranges::max(cs) == 9232);
 
 // bottom left: the fold on a monoid, one chain under two operations: the
 // tree's concat (:total), Listing 2's at a range

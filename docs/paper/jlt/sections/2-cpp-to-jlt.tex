@@ -272,10 +272,10 @@ constexpr auto prior = until(equals(1uz),
     arrow<size_t>([](size_t n) {
       return n % 2 ? 3 * n + 1 : n / 2;
     }));
-constexpr auto cs =        // 500, 250, …, 1
-    1'000uz >> chain(prior);
+constexpr IsBoundedRange auto cs = // 500, 250, …, 1
+    1'000uz >> chain(prior, 200uz);
 static_assert(
-    ranges::input_range<decltype(cs)> &&
+    bound(cs) == 200 &&
     ranges::distance(cs) == 111 &&
     ranges::max(cs) == 9232);
 \end{cpp}
@@ -283,7 +283,7 @@ static_assert(
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 // the fold on a monoid: the library's concat
-template <ranges::input_range R,
+template <IsBoundedRange R,
           typename T = ranges::range_value_t<R>,
           typename Op = plus<T>>
   requires IsMonoid<T, Op>
@@ -318,11 +318,12 @@ static_assert(fs_10 == V{89, 55});
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in code.
 Top. Left: counting down, a finite chain, whose type supplies $\mathit{prior}$.
 Right: a chaotic path, Collatz's step from $1000$.
-It is finite by fact, not by Rule~3: that every natural reaches $1$ is an open problem~\cite{lagarias1985collatz}.
+It is finite by fact, as far as anyone knows: that every natural reaches $1$ is an open problem~\cite{lagarias1985collatz}.
+So its chain declares a budget, and is bounded by it.
 Bottom. Left: a closed operation, \cppinline{concat} on any monoid, generically, Listing~\ref{lst:rule2}'s at a range.
 Right: a general fold is a heterogeneous action, here matrices on vectors, Fibonacci's.
 In the standard's ranges library~\cite{cpp23standard}, Figure~\ref{fig:structures}'s chain is an \cppinline{input_range}.
-The arrow $f$ along it is \cppinline{views::transform}, and the fold with the action $h$ is \cppinline{ranges::fold_left}.}
+The arrow $f$ along it is \cppinline{views::transform}, and the fold with the action $h$ is \cppinline{ranges::fold_left}, the native fold, bounds-checked before it starts.}
 \label{lst:rule3}
 \end{listing}
 
@@ -338,7 +339,7 @@ rule & archetype & keeps out of \Cpp{} & buys & costs \\
 \midrule
 1 Substitution & \texttt{id}, the identity arrow & state, pointers, exceptions & one program, two binding times & no state beyond a call's own locals, no I/O \\
 2 Abstraction & \texttt{concat}, a monoid's fold at a length in its type & a body using what its constraints do not name & the System~F reading & no ad hoc use of a type \\
-3 Descent & \texttt{concat} over a chain, a fold over structure in a value & unbounded loops, general recursion & termination & none, for a chain that is finite by fact \\
+3 Descent & \texttt{concat} over a chain, a fold over structure in a value & unbounded loops, general recursion & termination & a declared budget, for a chain finite only by fact \\
 \bottomrule
 \end{tabularx}
 \caption{The posture at a glance, each rule named for what it conserves, with what it keeps out of \Cpp{}: the filtration from \Cpp{} to Jlt.
