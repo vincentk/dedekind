@@ -203,6 +203,14 @@ concept IsNNO = requires(Z z, S s, N n) {
  *  monus, 0 a fixpoint dual to @c ℵ_0 under successor).  Callers spell the
  *  two-step (@c using @c dedekind::category::successor; then an unqualified
  *  call) so both the generic defaults and the ADL overloads compete. */
+/** @section nno__Builtin_Steps  The built-in carriers' steps
+ *  @c HasNNOStep finds a carrier's step by argument-dependent lookup beside
+ *  the carrier, or by ordinary lookup where the concept is defined.  The
+ *  standard's integral types and @c bool are fundamental types with no
+ *  associated namespace, and @c std::byte's is @c std, where no overload may
+ *  be added: their steps are declared here, before the concept.  A closed,
+ *  small set, the same the Python bindings name; every other carrier
+ *  provides its step beside its type. */
 export template <std::integral T>
 constexpr T successor(T n) noexcept {
   return static_cast<T>(n + 1);
@@ -417,52 +425,5 @@ static_assert(Prior<Ternary>{}(In<Ternary>{}(std::optional<Ternary>{
                   !IsIsomorphism<Successor<Ternary>>,
               "Lambek fails on K₃: a bounded chain is not an NNO, and its step "
               "is no bijection.");
-
-/**
- * @brief Recursion-via-universal-property (operational discharge).
- *
- * @details Given an NNO witness @c (N, Z, S), an initial value @c a₀
- * of type @c A, and a step function @c g : A → A, materialises the
- * unique morphism @c f : N → A in its iterated presentation:
- *
- *   @c f(0) @c = @c a₀
- *   @c f(n+1) @c = @c g(f(n))
- *
- * Operationally, this is bounded count-driven iteration: the caller
- * supplies a count @c n (machine @c std::size_t) and gets back
- * @c f(n) by composing @c g with itself @c n times starting from
- * @c a₀.  The count is the iteration driver — not the NNO element
- * itself, since materialising a transfinite NNO element through
- * machine-bounded iteration is structurally impossible.  The
- * universal-property claim that @c f exists and is unique remains
- * the honesty obligation; what this combinator does is realise @c f
- * @b at @b a @b finite @b index.
- *
- * For NNO carriers like @c Cardinality that admit a transfinite
- * @c ℵ_0 element, the recursion at the transfinite index is
- * deliberately not provided by this combinator — callers needing
- * that case state their own saturating semantics explicitly (a
- * proof obligation discharge separate from the count-bounded
- * recursion below).
- *
- * @tparam A The recursion target type.
- * @tparam G A unary callable @c G : A → A (the step function).
- *
- * @param a0  The initial value @c f(0).
- * @param g   The step function.
- * @param n   The count of iterations (the index into the NNO at
- *            which to evaluate @c f).
- *
- * @return @c f(n) — the result of applying @c g to @c a₀ exactly
- *         @c n times.
- */
-export template <typename A, typename G>
-  requires std::regular_invocable<const G&, const A&> &&
-           std::convertible_to<std::invoke_result_t<const G&, const A&>, A> &&
-           std::copyable<A>
-constexpr A nno_iterate(A a0, G g, std::size_t n) {
-  // The NNO's face of iterate (:morphism): n applications of g to a0.
-  return iterate(g, a0, n);
-}
 
 }  // namespace dedekind::category

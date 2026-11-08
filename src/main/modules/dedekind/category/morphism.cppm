@@ -1455,7 +1455,7 @@ static_assert(HasArrowComposeOperators<Identity<int>, Identity<int>>,
  *  Its readings: @f$f^n@f$ is the power of @c f in the monoid of
  *  endomorphisms, on which @f$(\mathbb{N}, +)@f$ acts; @f$n \mapsto f^n(x)@f$
  *  is the arrow out of the natural numbers object that its universal property
- *  gives for @c x and @c f (@c nno_iterate in @c :nno is that face); and it is
+ *  gives for @c x and @c f; and it is
  *  the catamorphism of the algebra @f$[x, f]@f$ of @f$1 + X@f$ at @c n.  Its
  *  intent is a fixed point: from @f$x = \bot@f$ it is the n-th Kleene
  *  approximation of the least fixed point, PCF's @c fix with a budget
