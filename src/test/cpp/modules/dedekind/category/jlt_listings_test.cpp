@@ -326,11 +326,11 @@ static_assert(IsMonoid<Sections<size_t>, compose> &&
 // Listing 3: Figure 2 in code, four panels.  Top left: the counts, a finite
 // chain, so the type supplies its prior and the chain is a default; top
 // right: Collatz's step, guarded by until(equals(1), ...), a chain finite by
-// fact, bounded by a budget declared with it; bottom left: the fold on a monoid, homogeneous,
-// Listing 2's concat at a range, one chain under two operations; bottom
-// right: the fold on an action M × S → M, heterogeneous, the standard's
-// fold_left as it stands.  Both chains are bounded ranges, which is what ties
-// them to the library's folds.  chain, until, equals, arrow, bound,
+// fact, bounded by a budget declared with it; bottom left: the fold on a
+// monoid, homogeneous, Listing 2's concat at a range, one chain under two
+// operations; bottom right: the fold on an action M × S → M, heterogeneous, the
+// standard's fold_left as it stands.  Both chains are bounded ranges, which is
+// what ties them to the library's folds.  chain, until, equals, arrow, bound,
 // IsBoundedRange, IsFinite, IsTotalOrder and HasNNOStep are the library's.
 namespace listing3 {
 using dedekind::category::arrow;
