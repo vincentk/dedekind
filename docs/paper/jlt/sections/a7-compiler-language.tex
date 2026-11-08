@@ -54,7 +54,7 @@ That is the line between a value and a cell that Rule~1 draws.
 A vector register is a direct product of lanes, and its operations act pointwise.
 A computation fits it when two conditions hold: no position depends on another, and the values are contiguous and small, under operations the unit has.
 Either can fail alone, as Table~\ref{tab:batch} shows.
-Listing~\ref{lst:sites}'s table is Knuth, Morris and Pratt's automaton~\cite{knuth1977fast}, and for many words Aho and Corasick's~\cite{aho1975efficient}.
+Listing~\ref{lst:sites}'s table is Brzozowski's automaton~\cite{brzozowski1964derivatives}: for one word the matcher of Knuth, Morris and Pratt~\cite{knuth1977fast}, for many Aho and Corasick's~\cite{aho1975efficient}.
 It is generic over the alphabet, and it fails the first condition, as each state needs the last.
 \cppinline{fixed_by(~rev)} meets it: the ranks embed the alphabet with its hole in a byte and carry the reflection to $3 - r$, so a pair is a sum compared with three.
 \cppinline{count} has an overload keyed on the section's type.
