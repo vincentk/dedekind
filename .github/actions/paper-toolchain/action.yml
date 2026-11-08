@@ -1,0 +1,52 @@
+# The papers' toolchain on an Ubuntu runner: TeX Live from the distribution,
+# minted's matching pair at its latest, and the JuliaMono font.  A local build
+# takes these as installed (CONTRIBUTING.md); the Makefile installs nothing.
+# The job sets up Python first, for latexminted.
+name: The papers' toolchain
+description: Installs TeX Live, minted and JuliaMono for make papers
+runs:
+  using: composite
+  steps:
+  - name: TeX Live and the tools the build calls
+    shell: bash
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended texlive-fonts-extra texlive-luatex texlive-lang-greek texlive-science python3-pygments curl unzip fontconfig
+
+  # minted as a matching pair at its latest, ahead of TeX Live's: the LaTeX
+  # packages from CTAN, each .sty generated from its .ins, into TEXMFHOME,
+  # which TeX searches first, and minted's Python half, latexminted, from
+  # PyPI onto PATH.  TeX Live's own pair (ubuntu-26.04) is minted.sty 3.7
+  # with latexminted 0.6.0, which passes argparse a keyword newer Pythons
+  # refuse; latexminted 0.7 asks minted.sty 3.8, and that a newer fvextra.
+  # One more package is one more name in the list.
+  - name: minted, ahead of TeX Live's
+    shell: bash
+    run: |
+      set -e
+      for p in minted fvextra latex2pydata; do
+        cd /tmp && curl -fsSL --connect-timeout 20 --retry 5 --retry-all-errors -o "$p.zip" "https://mirrors.ctan.org/macros/latex/contrib/$p.zip" \
+          && rm -rf "$p" && unzip -q -o "$p.zip" \
+          && (cd "$p" && for ins in *.ins; do latex -interaction=nonstopmode "$ins" >/dev/null; done) \
+          && dest="$(kpsewhich -var-value TEXMFHOME)/tex/latex/$p" \
+          && mkdir -p "$dest" && cp "$p"/*.sty "$dest"/ \
+          && rm -rf "$p" "$p.zip" \
+          && kpsewhich "$p.sty" \
+          || { echo "ERROR: $p from CTAN did not install"; exit 1; }
+      done
+      python -m pip install --upgrade latexminted
+      command -v latexminted
+
+  # JuliaMono from its releases, as Ubuntu has no package for it, at a pinned
+  # version for reproducibility; fontconfig's cache refreshed so luaotfload
+  # finds it.  Retried, as a release asset can answer 504.
+  - name: JuliaMono
+    shell: bash
+    env:
+      JULIAMONO_VERSION: "0.062"
+    run: |
+      cd /tmp && curl -fsSL --connect-timeout 20 --retry 5 --retry-all-errors -o JuliaMono.zip "https://github.com/cormullion/juliamono/releases/download/v$JULIAMONO_VERSION/JuliaMono-ttf.zip" \
+        && sudo mkdir -p /usr/local/share/fonts/juliamono \
+        && sudo unzip -o JuliaMono.zip -d /usr/local/share/fonts/juliamono \
+        && sudo fc-cache -f /usr/local/share/fonts/juliamono \
+        && rm -f JuliaMono.zip

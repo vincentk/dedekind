@@ -71,7 +71,8 @@ jobs:
         run: |
           gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" \
             --jq '.[] | .filename, .previous_filename // empty' > changed
-          if awk '/^docs\// && !/^docs\/paper\// { found = 1 } END { exit !found }' changed; then
+          # The papers alone are papers.yml's; the docs' toolchain is this job's too.
+          if awk '(/^docs\// && !/^docs\/paper\//) || /^\.github\/actions\/paper-toolchain\// { found = 1 } END { exit !found }' changed; then
             echo "docs=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -181,10 +182,12 @@ jobs:
         sudo ./llvm.sh 23
         sudo apt-get install -y clang-23 ninja-build clang-format-23
 
-    - name: Install docs toolchains
+    - name: Install Doxygen
       run: |
-        make ci-install-doxygen-deps
-        make ci-install-paper-deps
+        sudo apt-get update
+        sudo apt-get install -y doxygen graphviz
+
+    - uses: ./.github/actions/paper-toolchain
 
     - name: Build Doxygen and the papers in parallel
       run: |

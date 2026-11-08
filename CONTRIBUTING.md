@@ -26,6 +26,7 @@ Run `make help` for the build and workflow targets.
 [CI](https://github.com/vincentk/dedekind/actions/workflows/cmake.yml) runs the build, tests, coverage, linter, docs and papers through the same `make` targets you have locally.
 Its checks decide merge readiness, so `git push` is the only command you strictly need.
 A local `make compile` or `make test` is for failures you cannot diagnose from the CI logs.
+It expects its tools installed: the build, LLVM's clang 22 or later with CMake and Ninja; `make doxygen`, Doxygen and Graphviz; `make papers`, the TeX, minted and font that [CI installs](.github/actions/paper-toolchain/action.yml), which on macOS MacTeX provides but for the font.
 This also guards against "works on my laptop": CI is the reproducible baseline.
 
 The workflow is deliberately optimistic: ship small checkpoints, let CI validate them in parallel, and converge on its feedback.
