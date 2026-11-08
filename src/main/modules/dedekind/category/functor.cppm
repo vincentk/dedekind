@@ -500,11 +500,18 @@ concept IsIterativeEndomorphism =
 // precondition for both concepts below.
 // The functor is shaped, not literally an endofunctor: in the single-species
 // encoding, Maybe is Set<T> -> Set<optional<T>>, and the endofunctor on types
-// is its Shape, U |-> optional<U>.  An F-algebra asks only F(A) -> A with
+// is its Shape, U |-> optional<U>.  An F-algebra asks F(A) -> A with
 // F(A) = Shape<A>, so (N, In) is a Maybe-algebra as the textbook says (#1007).
+// Endo is asked of the objects, F(F(A)) = Shape<Shape<A>>; of the arrows,
+// F(alpha) needs the functor at F(A), a rebind no trait spells yet: it
+// comes with the first code that needs F(h) for a homomorphism (#1175).
 export template <typename Carrier, typename Structure, typename Functor>
 concept IsFAlgebra =
     IsShapedFunctor<Functor> && IsArrow<Structure> &&
+    requires {  // endo on objects: F(F(A)) exists
+      typename Functor::template Shape<
+          typename Functor::template Shape<Carrier>>;
+    } &&
     std::same_as<Dom<Structure>, typename Functor::template Shape<Carrier>> &&
     std::same_as<Cod<Structure>, Carrier>;
 
@@ -515,7 +522,10 @@ concept IsFAlgebra =
 export template <typename Carrier, typename Structure, typename Functor>
 concept IsFCoalgebra =
     IsShapedFunctor<Functor> && IsArrow<Structure> &&
-    std::same_as<Dom<Structure>, Carrier> &&
+    requires {  // endo on objects: F(F(A)) exists
+      typename Functor::template Shape<
+          typename Functor::template Shape<Carrier>>;
+    } && std::same_as<Dom<Structure>, Carrier> &&
     std::same_as<Cod<Structure>, typename Functor::template Shape<Carrier>>;
 
 /**
