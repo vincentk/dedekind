@@ -1210,7 +1210,7 @@ concept IsClosureForcing =
  * squaring per bit of @c n (Knuth, TAOCP 2 §4.6.3).  Resolution picks it over
  * the plain fold, its parameter being the more specific.  @param r the range.
  * @param op the operation. */
-export template <std::ranges::input_range R,
+export template <IsBoundedRange R,
                  typename T = std::ranges::range_value_t<R>,
                  typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
@@ -1278,7 +1278,7 @@ constexpr T power(const T& x, N n, Op op) {
  * the plain fold and a stronger constraint, so resolution prefers it wherever
  *  @c IsCopies holds.  The value is read only where there is a copy, as a
  *  model promises it.  @param r the copies.  @param op the operation. */
-export template <std::ranges::input_range R,
+export template <IsBoundedRange R,
                  typename T = std::ranges::range_value_t<R>,
                  typename Op = std::plus<T>>
   requires IsMonoid<T, Op> && IsCopies<R>
