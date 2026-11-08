@@ -26,7 +26,7 @@ runs:
       wget https://apt.llvm.org/llvm.sh
       chmod +x llvm.sh
       sudo ./llvm.sh 23
-      sudo apt-get install -y clang-23 ninja-build
+      sudo apt-get install -y clang-23 ninja-build libstdc++-16-dev
       { echo "CC=clang-23"; echo "CXX=clang++-23"; } >> "$GITHUB_ENV"
 
   - name: Install clang build chain (macOS)

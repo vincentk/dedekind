@@ -49,6 +49,7 @@ module;
 #include <functional>
 #include <iterator>  // std::permutable: the words a symmetry reorders
 #include <limits>    // the extent of a law that holds on the whole word
+#include <mdspan>    // std::dextents: a box's index space
 #include <numeric>
 #include <optional>  // std::lcm: the period of a join or a meet
 #include <ranges>
@@ -652,8 +653,18 @@ struct box_legs<Compose<Tensor<A, B>, Both>>
 export template <IsArrow T, std::size_t K, IsCountWord N = std::size_t>
 struct Box {
   T entry;
-  std::array<N, K> sides;
+  std::dextents<N, K> sides;  ///< the index space, the standard's extents
 };
+namespace detail_periodic {
+/** @brief Extents with one more side, @c n, after @c e's.  @param e the
+ *  extents.  @param n the new side.  @return the extents of one more rank.
+ *  Deduced from @c std::extents itself: its alias @c dextents is not. */
+template <IsCountWord N, std::size_t... E, std::size_t... I>
+constexpr std::dextents<N, sizeof...(E) + 1> extended(
+    const std::extents<N, E...>& e, const N n, std::index_sequence<I...>) {
+  return std::dextents<N, sizeof...(E) + 1>(e.extent(I)..., n);
+}
+}  // namespace detail_periodic
 /** @param a @param b two chains under predicates.  @return their outer
  *  product. */
 export template <IsCountWord N, IsArrow F, IsArrow G>
@@ -663,7 +674,7 @@ constexpr auto operator*(const FiniteChainSequence<N, F>& a,
   using E = Compose<Tensor<F, G>, detail_periodic::Both>;
   return Box<E, 2, N>{E{Tensor<F, G>{a.coalgebra().f, b.coalgebra().f},
                         detail_periodic::Both{}},
-                      {a.seed(), b.seed()}};
+                      std::dextents<N, 2>(a.seed(), b.seed())};
 }
 /** @param x an outer product.  @param b one more chain under a predicate.
  *  @return their outer product. */
@@ -672,12 +683,10 @@ export template <IsArrow T, std::size_t K, IsCountWord N, IsArrow G>
 constexpr auto operator*(const Box<T, K, N>& x,
                          const FiniteChainSequence<N, G>& b) {
   using E = Compose<Tensor<T, G>, detail_periodic::Both>;
-  std::array<N, K + 1> sides{};
-  std::ranges::copy(x.sides, sides.begin());
-  sides[K] = b.seed();
   return Box<E, K + 1, N>{
       E{Tensor<T, G>{x.entry, b.coalgebra().f}, detail_periodic::Both{}},
-      sides};
+      detail_periodic::extended(x.sides, b.seed(),
+                                std::make_index_sequence<K>{})};
 }
 
 namespace detail_periodic {
@@ -691,15 +700,15 @@ constexpr std::array<N, A + B> join_arrays(const std::array<N, A>& a,
   return out;
 }
 /** @brief Each leg's count, the legs read left to right from @c at. */
-template <IsArrow T, std::size_t K, IsCountWord N>
+template <IsArrow T, IsCountWord N, std::size_t... E>
 constexpr std::array<N, box_legs<T>::value> counts_of(
-    const T& t, const std::array<N, K>& sides, std::size_t at) {
+    const T& t, const std::extents<N, E...>& sides, std::size_t at) {
   if constexpr (box_node<T>::value) {
     using L = typename box_node<T>::left;
     return join_arrays(counts_of(t.f.r, sides, at),
                        counts_of(t.f.s, sides, at + box_legs<L>::value));
   } else {
-    return {count<N>(sides[at] >> chain<N>() >> t)};
+    return {count<N>(sides.extent(at) >> chain<N>() >> t)};
   }
 }
 /** @brief One residue's count on a leg, appended to its histogram. */
@@ -716,10 +725,9 @@ struct Residue {
 };
 /** @brief Each leg's histogram over the residues modulo @c m, the legs read
  *  left to right from @c at. */
-template <IsArrow T, std::size_t K, IsCountWord N>
-constexpr std::vector<std::vector<N>> residues_of(const T& t,
-                                                  const std::array<N, K>& sides,
-                                                  std::size_t at, N m) {
+template <IsArrow T, IsCountWord N, std::size_t... E>
+constexpr std::vector<std::vector<N>> residues_of(
+    const T& t, const std::extents<N, E...>& sides, std::size_t at, N m) {
   if constexpr (box_node<T>::value) {
     using L = typename box_node<T>::left;
     auto hs = residues_of(t.f.r, sides, at, m);
@@ -728,7 +736,7 @@ constexpr std::vector<std::vector<N>> residues_of(const T& t,
     return hs;
   } else {
     return {std::ranges::fold_left(std::views::iota(N{0}, m), std::vector<N>{},
-                                   Residue<T, N>{t, sides[at], m})};
+                                   Residue<T, N>{t, sides.extent(at), m})};
   }
 }
 /** @brief One term of a cyclic convolution: the residues @c i and @c j of

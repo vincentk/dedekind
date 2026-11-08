@@ -80,8 +80,8 @@ struct Rows {
 template <typename B>
 constexpr size_t brute(const B& b, size_t m, size_t r) {
   return std::ranges::fold_left(
-      std::views::iota(size_t{0}, b.sides[0]), size_t{0},
-      Rows<decltype(b.entry)>{b.entry, b.sides[1], m, r});
+      std::views::iota(size_t{0}, b.sides.extent(0)), size_t{0},
+      Rows<decltype(b.entry)>{b.entry, b.sides.extent(1), m, r});
 }
 
 // The laws, checked against the brute force where both can run: the box, its

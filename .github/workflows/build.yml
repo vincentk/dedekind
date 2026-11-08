@@ -73,7 +73,7 @@ jobs:
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
         sudo ./llvm.sh 23
-        sudo apt-get install -y clang-23 ninja-build clang-format-23 llvm-23 clang-tools-23 libclang-23-dev libclang-cpp23-dev
+        sudo apt-get install -y clang-23 ninja-build clang-format-23 libstdc++-16-dev llvm-23 clang-tools-23 libclang-23-dev libclang-cpp23-dev
         {
           echo "CXX=clang++-23"
           echo "CC=clang-23"
