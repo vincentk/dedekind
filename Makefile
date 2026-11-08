@@ -304,7 +304,7 @@ ci-install-paper-deps:
 	# fontconfig cache refreshed so lualatex/luaotfload finds it.  `curl -fsSL`
 	# fails fast on HTTP errors (e.g. a missing release asset) rather than
 	# producing a confusing unzip failure later in the && chain.
-	cd /tmp && curl -fsSL -o JuliaMono.zip "https://github.com/cormullion/juliamono/releases/download/v$(JULIAMONO_VERSION)/JuliaMono-ttf.zip" \
+	cd /tmp && curl -fsSL --connect-timeout 20 --retry 5 --retry-all-errors -o JuliaMono.zip "https://github.com/cormullion/juliamono/releases/download/v$(JULIAMONO_VERSION)/JuliaMono-ttf.zip" \
 		&& sudo mkdir -p /usr/local/share/fonts/juliamono \
 		&& sudo unzip -o JuliaMono.zip -d /usr/local/share/fonts/juliamono \
 		&& sudo fc-cache -f /usr/local/share/fonts/juliamono \
