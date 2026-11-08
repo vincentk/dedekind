@@ -263,9 +263,13 @@ struct maybe_functor {
   template <typename U>
   using Shape = std::optional<U>;
 
-  /** @brief The action on arrows, F(f), short-circuiting on the empty value. */
+  /** @brief The action on arrows, F(f), short-circuiting on the empty value.
+   *  The arrow starts at this functor's object @c T: an arrow out of another
+   *  object, @c optional<T> say, is not mapped here by an implicit
+   *  conversion into its domain, but by the functor at that object. */
   template <typename 𝗳>
-    requires IsArrow<std::remove_cvref_t<𝗳>>
+    requires IsArrow<std::remove_cvref_t<𝗳>> &&
+             std::same_as<Dom<std::remove_cvref_t<𝗳>>, T>
   constexpr MaybeMap<T, std::remove_cvref_t<𝗳>> operator()(𝗳 f) const {
     return {std::move(f)};
   }

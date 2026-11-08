@@ -211,6 +211,12 @@ static_assert(
     "In is a Maybe-algebra and Prior a Maybe-coalgebra; K3 is the "
     "non-example, an algebra but not initial, and the word is not initial "
     "either");
+static_assert(
+    !std::invocable<maybe_functor<std::size_t>, In<std::size_t>> &&
+        std::invocable<maybe_functor<std::optional<std::size_t>>,
+                       In<std::size_t>>,
+    "F(In) is taken by the functor at F(A) = optional<A>, never by the one "
+    "at A through an implicit conversion into In's domain");
 
 /**
  * @concept IsTerminalFCoalgebra
