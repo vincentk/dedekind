@@ -491,8 +491,8 @@ struct is_counting_coalgebra<Mapped<S, Coalg, F>>
 template <typename R>
 struct is_counting_walk : std::false_type {};
 template <IsCountWord N, typename Coalg>
-struct is_counting_walk<unfold_view<N, Coalg>>
-    : is_counting_coalgebra<Coalg> {};
+struct is_counting_walk<unfold_view<N, Coalg>> : is_counting_coalgebra<Coalg> {
+};
 }  // namespace detail_chain
 
 /** @concept IsBoundedRange
