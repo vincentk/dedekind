@@ -1,144 +1,159 @@
 % !TEX root = ../jlt.tex
-\section{From Jlt to Featherweight Jlt}
+\section{Desugaring Jlt into Featherweight Jlt}
 \label{app:fjlt:closure}
 
-This appendix is the $-$sugar arrow of Figure~\ref{fig:arrows}, which Section~\ref{sec:translation:adequacy} only outlines: each construction of \Cpp{} that a Jlt program writes beyond the grammar of Appendix~\ref{app:fjlt:syntax}, with its desugaring into the kernel and its condition, and no proof.
-A condition is on how a term is built, never on inspecting it afterwards, and the rules are asked of the kernel term.
-Three reasons cover the constructions: one is only a spelling, one keeps its state private, or one is a choice.
-In that order the condition passes, on the whole, from the compiler to the repository's linter to a reader.
-The listings are FJlt up to this sugar, reading \cppinline{static_assert(e)} as the claim that $e$ evaluates to \cppinline{true}, with two exceptions: Listing~\ref{lst:rule3}'s Collatz chain is finite by fact, not by a condition on $\mathcal{R}$, and Listing~\ref{lst:sites} dereferences an optional in a constant initialiser, admitted under \emph{A choice} below.
-An FJlt program is a Jlt program with the same meaning, provided no law and no \cppinline{static_assert} builds a box (Appendix~\ref{app:fjlt:evaluation}).
+This appendix describes the desugaring of Jlt into FJlt.
+It corresponds to the $-$sugar arrow of Figure~\ref{fig:arrows}, and complements Section~\ref{sec:translation:adequacy}.
+It covers the constructions of \Cpp{23} that a Jlt program may write beyond the grammar of Appendix~\ref{app:fjlt:syntax}, each with its desugaring and its condition.
+No proof of correctness is provided.
+Three reasons cover the constructions: i)~a spelling, syntactic sugar in Landin's sense~\cite{landin1964mechanical}, when the construction writes a kernel term another way; ii)~local state, when it keeps state that never leaves the call; iii)~branching, which only the kernel's own forms of choice may do.
+Across the three tables, the condition passes from the compiler to the repository's linter to a reader, and each row's mark says who holds it.
 
 \begin{table}[tbp]
 \centering
-\footnotesize
-\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.2\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=.85\hsize\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
 \toprule
-construction & FJlt, provided & image & the condition held by \\
+construction & FJlt, provided & image \\
 \midrule
-\texttt{auto}, \texttt{decltype}, argument deduction & nothing & the type the compiler deduces & the compiler \\
-alias, \texttt{tuple}, \texttt{array} & the parts FJlt & substitution, nested pairs, a range of $\mathcal{R}$ & the compiler \\
-variable or class template & each member of the family an FJlt instance & instance with a context, a default beside families resolved by specificity & the compiler, by lookup \\
-const member function & \texttt{const}, FJlt body & generic function with the object as first parameter & the linter \\
-constructor, conversion operator, default argument, designated initialiser & \texttt{constexpr}, FJlt body & a function returning the struct; a declared conversion; an overload with the argument supplied; the fields in order & the linter for \texttt{constexpr}, a reader \\
-explicit conversion & a total conversion between carriers & a declared function & a reader \\
-an operator on a constrained type & a constraint names the standard function object the standard defines by it, \texttt{plus<T>} for \texttt{+}, and the operator has type \texttt{T} there (\texttt{true + true} is the \texttt{int} 2) & that object's call & the linter for the name, a reader for the type \\
-operator overloading, user-defined literal & FJlt body & a named function call & the compiler \\
-non-type template parameter & the value a constant of a carrier & a type per value, as \texttt{integral\_constant} spells it & the compiler \\
-overloading & distinct carriers, or constraints ordered by specificity & specialisations of one trait, or generic functions & the compiler, by ambiguity \\
-\texttt{friend}, access specifier & a friend an FJlt function & a free function; nothing & the compiler \\
-inheritance & every base an empty class, no virtual function & a registration, read as the fact it states & the linter \\
-generic \texttt{cata} over a term type & algebra and term FJlt & the kernel's primitive \texttt{cata} & the compiler \\
+\texttt{auto}, \texttt{decltype}, argument deduction$^{\ast}$ & nothing & the type the compiler deduces \\
+\texttt{static\_assert(e)}$^{\ast}$ & \texttt{e} a closed \texttt{bool} term & the claim that \texttt{e} evaluates to \texttt{true} \\
+alias, \texttt{tuple}, \texttt{array}$^{\ast}$ & the parts FJlt & substitution, nested pairs, a range of $\mathcal{R}$ \\
+variable or class template$^{\ast}$ & each member of the family an FJlt instance & instance with a context, a default beside families resolved by specificity \\
+const member function$^{\dagger}$ & \texttt{const}, FJlt body & generic function with the object as first parameter \\
+constructor, conversion operator, default argument, designated initialiser$^{\dagger\ddagger}$ & \texttt{constexpr}, FJlt body & a function returning the struct; a declared conversion; an overload with the argument supplied; the fields in order \\
+explicit conversion$^{\ddagger}$ & a total conversion between carriers & a declared function \\
+an operator on a constrained type$^{\dagger\ddagger}$ & a constraint names the standard function object the standard defines by it, \texttt{plus<T>} for \texttt{+}, and the operator has type \texttt{T} there (\texttt{true + true} is the \texttt{int} 2) & that object's call \\
+operator overloading, user-defined literal$^{\ast}$ & FJlt body & a named function call \\
+non-type template parameter$^{\ast}$ & the value a constant of a carrier & a type per value, as \texttt{integral\_constant} spells it \\
+overloading$^{\ast}$ & distinct carriers, or constraints ordered by specificity & specialisations of one trait, or generic functions \\
+\texttt{friend}, access specifier$^{\ast}$ & a friend an FJlt function & a free function; nothing \\
+inheritance$^{\dagger}$ & every base an empty class, no virtual function & a registration, read as the fact it states \\
+generic \texttt{cata} over a term type$^{\ast}$ & algebra and term FJlt & the kernel's primitive \texttt{cata} \\
 \bottomrule
 \end{tabularx}
 \caption{Constructions that are another spelling of a kernel term.
-In each row, a term built by the construction from FJlt terms, under the condition, is the FJlt term in the image column.}
+In each row, a term built by the construction from FJlt terms, under the condition, is the FJlt term in the image column.
+A mark says who holds the condition: $\ast$ the compiler, $\dagger$ the repository's linter, $\ddagger$ a reader; two marks share it.}
 \label{tab:closure}
 \end{table}
 
-\paragraph{Only a spelling.}
-Most of what a program writes beyond the grammar is a kernel term spelt another way, and most of Table~\ref{tab:closure} needs no further word.
-A variable template \cppinline{v<T...> = e} is the nullary function template \cppinline{v<T...>() { return e; }}, and a class template with a static constant member is the same, since constant evaluation of the three agrees.
-A partial specialisation over a family is an instance with a context, in the grammar.
-A primary that answers \cppinline{false} beside families that answer \cppinline{true} is two generic functions whose heads both match, which resolution by specificity orders.
-Where lookup (Section~\ref{sec:limits}) leaves the FJlt spelling unwritable, the host's spelling is FJlt by this statement.
-A \cppinline{const} member function \cppinline{τ m(τ x...) const { return e; }} of a function object is the generic function \cppinline{m(O self, τ x...)} whose body reads the fields of \cppinline{self} where the member read \cppinline{this}; Rule~1 supplies the \cppinline{const}.
+\paragraph{Spellings.}
+Most of what a program writes beyond the grammar is a kernel term spelt another way, and Table~\ref{tab:closure} gives its image.
+A variable template \cppinline{v<T...> = e} is the nullary function template \cppinline{v<T...>() { return e; }}.
+So is a class template with a static constant member, and constant evaluation of the three agrees.
+A primary that answers \cppinline{false} beside partial specialisations that answer \cppinline{true} is two generic functions whose heads both match.
+Resolution by specificity orders them, as it orders constrained overloads such as Listing~\ref{lst:laws}'s \cppinline{fold} and \cppinline{concat}.
+Lookup leaves some FJlt spellings unwritable (Section~\ref{sec:limits}), and there the host's spelling stands for it.
+A \cppinline{const} member function is the generic function with the object as its first parameter, reading its fields where the member read \cppinline{this}.
 A static member function is a generic function.
 A struct with fields and no call operator is a product, nested pairs.
-\cppinline{std::array<T, n>} is a product of $n$ copies and also a member of $\mathcal{R}$, with length $n$, a head and a tail, so a fold over it is already in the grammar.
-Constrained overloads are generic functions, and where their heads both match, resolution by specificity orders them, as for Listing~\ref{lst:laws}'s overloads of \cppinline{fold} and \cppinline{concat}.
-Jlt has no subtyping: the grammar has no base clause and no derived-to-base conversion, a class with a base that holds state or a virtual function is outside the posture, and the linter's \texttt{inheritance} check holds the module at zero.
-A base clause on an empty class, such as \cppinline{std::true_type}, is a registration: the family row spelled by inheritance, read as the fact it states.
+\cppinline{std::array<T, n>} is both a product of $n$ copies and a member of $\mathcal{R}$ with length $n$, so a fold over it is already in the grammar.
+Jlt has no subtyping.
+A class with a base that holds state or a virtual function is outside the posture, and the linter's \texttt{inheritance} check holds the module at zero.
+A base clause on an empty class, such as \cppinline{std::true_type}, is a registration, read as the fact it states.
 
 \begin{table}[tbp]
 \centering
-\footnotesize
-\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.2\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=.85\hsize\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
 \toprule
-construction & FJlt, provided & image & the condition held by \\
+construction & FJlt, provided & image \\
 \midrule
-lambda & captures by copy of FJlt values, FJlt body & function object, captures as fields & the linter for the captures, a reader for the image \\
-local constant, structured binding & the initialiser FJlt, the name bound once & a $\beta$-redex; a binding as \texttt{.first}, \texttt{.second} & the linter \\
-local state that does not escape & assignments only to locals, by-value parameters, elements of a local array, or a builtin's out-parameter that is a local; nothing written observable after the call & the state threaded as values, one binding per assignment, as \texttt{runST} encapsulates it & the linter for escape, a reader for the rest \\
+lambda$^{\dagger\ddagger}$ & captures by copy of FJlt values, FJlt body & function object, captures as fields \\
+local constant, structured binding$^{\dagger}$ & the initialiser FJlt, the name bound once & a $\beta$-redex; a binding as \texttt{.first}, \texttt{.second} \\
+local state that does not escape$^{\dagger\ddagger}$ & assignments only to locals, by-value parameters, elements of a local array, or a builtin's out-parameter that is a local; nothing written observable after the call & the state threaded as values, one binding per assignment, as \texttt{runST} encapsulates it \\
 \bottomrule
 \end{tabularx}
 \caption{Constructions whose state stays inside a call, read as Table~\ref{tab:closure}.}
 \label{tab:closure:private}
 \end{table}
 
-\paragraph{Private state.}
+\paragraph{Local state.}
 A capture or a local stays inside the call, so nothing outside can tell it from a value passed along.
-A lambda \cppinline{[c...](const τ x...) { return e; }} whose captures are FJlt values taken by copy and whose body is an FJlt term under those captures and parameters is the function object with the captures as fields and \cppinline{e} as the body of its call operator.
-A generic lambda written with a template head and a \cppinline{requires} clause is the function object with a generic call operator.
-That is the standard's own definition of the closure type: a class with the copied captures as members and a \cppinline{const} call operator, the function object production of Figure~\ref{fig:fjlt-syntax} to the letter.
+A lambda's image is the standard's own definition of its closure type: a class with the copied captures as members and a \cppinline{const} call operator.
+That is the function object production of Figure~\ref{fig:fjlt-syntax} to the letter, with a generic call operator where the lambda has a template head.
 Rule~1 excludes capture by reference.
-A capturing closure type is copy constructible and neither default constructible nor assignable, so it is not \cppinline{std::semiregular} and Rule~1 does not admit it as a value; it is admitted as sugar, judged through its image, which is semiregular when its captures are.
-A closure type has no name, so a lambda is never a carrier and never the head of an instance, and nothing in the statement asks to look inside it once built.
+A capturing closure type is neither default constructible nor assignable, so it is not \cppinline{std::semiregular}, and Rule~1 does not admit it as a value.
+It is admitted as sugar instead, judged through its image, which is semiregular since its captures are values.
+A closure type has no name, so a lambda is never a carrier and never the head of an instance.
 
 \begin{table}[tbp]
 \centering
-\footnotesize
-\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.2\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=.85\hsize\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
 \toprule
-construction & FJlt, provided & image & the condition held by \\
+construction & FJlt, provided & image \\
 \midrule
-\texttt{if} and \texttt{else} on a value & both branches return FJlt terms of one type & \texttt{p ? A : B} & a reader \\
-\texttt{if constexpr} on a value & condition a closed \texttt{bool} term, both branches FJlt of one type under the same constraints & \texttt{p ? A : B} & a reader, by the rewrite \\
-enumeration, \texttt{switch} & every enumerator handled, each case an FJlt term of one type & a finite sum of units and its nested case & the compiler, by its switch warning \\
-sum & branches FJlt on the summands & the case form & the kernel, a reader for a guard \\
-\texttt{if constexpr} on a constraint & then-branch FJlt under the constraint, else-branch under its negation & an instance chain, the more constrained generic function preferred & the compiler at concrete types, the linter at a type variable \\
-a call its clause does not decide & the caller instantiates at a concrete type & constraint inference: the call's resolution a parameter the caller supplies & the linter reports it \\
-\texttt{if consteval}, or an \texttt{if} on \texttt{is\_constant\_evaluated()} & both branches compute the same value on every input & the compile-time branch & the declared law that licenses the other branch, or a reader \\
+\texttt{if} and \texttt{else} on a value$^{\ddagger}$ & both branches return FJlt terms of one type & \texttt{p ? A : B} \\
+\texttt{if constexpr} on a value$^{\ddagger}$ & condition a closed \texttt{bool} term, both branches FJlt of one type under the same constraints & \texttt{p ? A : B} \\
+enumeration, \texttt{switch}$^{\ast}$ & every enumerator handled, each case an FJlt term of one type & a finite sum of units and its nested case \\
+sum$^{\ast\ddagger}$ & branches FJlt on the summands & the case form \\
+\texttt{if constexpr} on a constraint$^{\ast\dagger}$ & then-branch FJlt under the constraint, else-branch under its negation & an instance chain, the more constrained generic function preferred \\
+a call its clause does not decide$^{\dagger}$ & the caller instantiates at a concrete type & constraint inference: the call's resolution a parameter the caller supplies \\
+\texttt{if consteval}, or an \texttt{if} on \texttt{is\_constant\_evaluated()}$^{\ddagger}$ & both branches compute the same value on every input & the compile-time branch \\
 \bottomrule
 \end{tabularx}
-\caption{Constructions that choose, read as Table~\ref{tab:closure}.}
+\caption{Constructions that branch, read as Table~\ref{tab:closure}.}
 \label{tab:closure:choice}
 \end{table}
 
-\paragraph{A choice.}
-A branch is what a spelling cannot hide, and it needs one of the kernel's own forms: \cppinline{?:}, the case form, or generic functions ordered by specificity.
-A body \cppinline{if constexpr (p) return A; else return B;} with \cppinline{p} a closed \cppinline{bool} term, a law or a trait read, and \cppinline{A}, \cppinline{B} FJlt terms of one type under the same context, is the term \cppinline{p ? A : B}.
-The condition is stronger than \Cpp{} asks, since \Cpp{} does not instantiate the discarded branch and FJlt types both, and the compiler decides it: the rewritten body compiles or it does not.
-Constant evaluation of the two spellings agrees because both evaluate \cppinline{p} first and then one branch.
-Whether the two branches share a type is decided per site by the rewrite.
+\paragraph{Branching.}
+A branch is what a spelling cannot hide.
+It needs one of the kernel's own forms: \cppinline{?:}, the case form, or generic functions ordered by specificity.
+An \cppinline{if constexpr} on a closed \cppinline{bool} term, a law or a trait read, is the term \cppinline{p ? A : B}.
+Both spellings evaluate \cppinline{p} first and then one branch, so constant evaluation agrees.
+The condition is stronger than \Cpp{} asks: \Cpp{} does not instantiate the discarded branch, and FJlt types both.
+The compiler decides it per site, as the rewritten body compiles or it does not.
 A site whose branches differ in type is a branch on types in a value's clothing.
 
-The kernel has the case form (Table~\ref{tab:conventions}), so given FJlt terms \cppinline{f} and \cppinline{g} on the two summands their copairing is an FJlt term, \texttt{case(}$s$\texttt{, }$f$\texttt{, }$g$\texttt{)}.
-\cppinline{has_value} and \cppinline{value_or} on an optional are that case on $1 + T$, and \cppinline{std::visit(O{}, v)} is the case whose branches are one generic call operator entailed at each summand.
-\cppinline{*} on an optional is partial, undefined on the empty one.
-It is admitted under a \cppinline{has_value} guard, which desugars to the case form, as the head of a range is admitted only when its length is positive.
-It is also admitted in a constant initialiser, where constant evaluation refuses the empty case and the compiler holds the guard, as for Listing~\ref{lst:sites}'s \cppinline{*automaton(sites)}.
-\cppinline{std::get} on a variant is partial too and is not admitted: a variant is read by the case form.
+\paragraph{Sums.}
+The kernel's case form copairs FJlt terms \cppinline{f} and \cppinline{g} on the two summands into \texttt{case(}$s$\texttt{, }$f$\texttt{, }$g$\texttt{)}.
+\cppinline{has_value} and \cppinline{value_or} on an optional are that case on $1 + T$.
+\cppinline{std::visit(O{}, v)} is the case whose branches are one generic call operator, entailed at each summand.
+\cppinline{*} on an optional is partial.
+Under a \cppinline{has_value} guard it desugars to the case form, as the head of a range is admitted only at positive length.
+In a constant initialiser, constant evaluation refuses the empty case, so the compiler holds the guard, as for Listing~\ref{lst:sites}'s \cppinline{*automaton(sites)}.
+\cppinline{std::get} on a variant is partial too and is not admitted, as a variant is read by the case form.
 
-\paragraph{A choice on a constraint.}
-A body \cppinline{if constexpr (C<T>) return A; else return B;} in a generic function with head $\overline{Q}$, where \cppinline{A} is an FJlt term under $\overline{Q}, C\texttt{<T>}$ and \cppinline{B} one under $\overline{Q}, \texttt{!}C\texttt{<T>}$, is the pair of generic functions with those two heads.
-The pair plays the role of a two-clause instance chain of Morris and Jones~\cite{morris2010instance}, an explicit alternation decided by one constraint, though resolution by specificity (Appendix~\ref{app:fjlt:typing}) rather than clause order picks its branch.
-At a concrete type the compiler decides $C\texttt{<T>}$, and at a type variable the call resolves only where the enclosing context decides it.
-When the test is \cppinline{std::same_as<T, X>} at a concrete \cppinline{X} and \cppinline{T} is the whole head, the first function is an explicit specialisation at \cppinline{X}.
-A test of a \cppinline{requires} expression written in the body is not a declared constraint under Rule~2, and the linter's \texttt{inline-requires} check holds the module at zero.
-This split and the next desugaring add declarations, so they are not local in Felleisen's sense~\cite{felleisen1991expressive}.
+\paragraph{Branching on a constraint.}
+A body \cppinline{if constexpr (C<T>) return A; else return B;} in a generic function with head $\overline{Q}$ is a pair of generic functions.
+Their heads are $\overline{Q}, C\texttt{<T>}$ and $\overline{Q}, \texttt{!}C\texttt{<T>}$, and their bodies \cppinline{A} and \cppinline{B}.
+The pair plays the role of a two-clause instance chain of Morris and Jones~\cite{morris2010instance}, an explicit alternation decided by one constraint.
+Resolution by specificity picks its branch, not clause order.
+At a concrete type the compiler decides $C\texttt{<T>}$.
+At a type variable the call resolves only where the enclosing context decides it.
+A test \cppinline{std::same_as<T, X>} at a concrete \cppinline{X}, with \cppinline{T} the whole head, makes the first function an explicit specialisation at \cppinline{X}.
+A \cppinline{requires} expression tested in the body is not a declared constraint under Rule~2, and the linter's \texttt{inline-requires} check holds the module at zero.
 
-\paragraph{A call its clause does not decide.}
-A generic function whose body calls a chain at its own type variable, without a clause that entails the chain's constraint or its negation, varies with the type through a constraint it did not declare.
-\Cpp{} accepts it and resolves the call at each instantiation; the kernel refuses it, by GHC's rule.
-Its desugaring is constraint inference: the call's resolution becomes a parameter of the enclosing function, which each caller supplies after resolving it at a concrete type, where resolution is a function, so the kernel term agrees with what \Cpp{} instantiates.
+\paragraph{Undecided calls.}
+A generic function may call a chain at its own type variable with no clause that entails the chain's constraint or its negation.
+It then varies with the type through a constraint it did not declare.
+\Cpp{} accepts it and resolves the call at each instantiation.
+The kernel refuses it, as GHC refuses to commit to an overlapping instance that the types do not yet decide~\cite{ghc2024overlapping}.
+Its desugaring is constraint inference: the call's resolution becomes a parameter of the enclosing function.
+Each caller supplies it after resolving the call at a concrete type, where resolution is a function, so the kernel term agrees with what \Cpp{} instantiates.
 The price is in the free theorem, which now ranges over that parameter.
-Written by hand, the same thing decides the constraint in the clause, by requiring it or by splitting on it.
+By hand, the clause decides the constraint, by requiring it or by splitting on it.
+Both this desugaring and the branch on a constraint add declarations, so neither is local in Felleisen's sense~\cite{felleisen1991expressive}.
 
-\paragraph{A choice on the binding time.}
+\paragraph{The binding time.}
 \label{app:fjlt:consteval}
-\cppinline{if consteval}, and an \cppinline{if} on \cppinline{std::is_constant_evaluated()}, are how a program can observe its binding time, and FJlt need not have them.
-\cppinline|if consteval { A } else { B }| desugars to \cppinline{A}, provided \cppinline{B} computes the same value as \cppinline{A} on every input, so that the program cannot observe the difference after all (Table~\ref{tab:closure:choice}).\footnote{The choice of \cppinline{A} is not arbitrary: it is the branch constant evaluation takes, which is FJlt's evaluation, while \cppinline{B} is typically not constant-evaluable, which is why the program branches at all.}
-A parallel \cppinline{concat} is the case in point: it is one more overload, a run-time one, since the policies' overloads are not \cppinline{constexpr}.
-\cppinline{std::reduce} may regroup and reorder its operands, so its result is determined only for an operation that \cppinline{IsCommutativeMonoid} certifies, and Rule~1 gives the absence of data races its parallel policies ask.
-For the parallel \cppinline{concat} the condition is the free monoid's universal property: a fold over a concatenation is the operation applied to the folds of the parts, by associativity, and commutativity lets the parts come in any order.
+\cppinline{if consteval}, and an \cppinline{if} on \cppinline{std::is_constant_evaluated()}, let a program observe its binding time, and FJlt does not have them.
+\cppinline|if consteval { A } else { B }| desugars to \cppinline{A}, the branch constant evaluation takes.
+Its condition is that \cppinline{B} computes the same value as \cppinline{A} on every input, so the program cannot observe the difference after all.
+\cppinline{B} is where the program does what constant evaluation cannot, which is why it branches at all.
+A parallel \cppinline{concat} is the case in point: one more overload of Listing~\ref{lst:laws}'s \cppinline{concat}, a run-time one, since the policies' overloads are not \cppinline{constexpr}.
+\cppinline{std::reduce} may regroup and reorder its operands, so its result is determined only for a binary function that \cppinline{IsCommutativeMonoid} certifies.
+Rule~1 gives the absence of data races its parallel policies ask.
+The condition is then the free monoid's universal property: a fold over a concatenation is the monoid's product of the folds of the parts, by associativity, and commutativity lets the parts come in any order.
 So the law that licenses the shortcut also proves that the branches agree.
 For an arbitrary branch the condition is semantic, and a reader holds it, as for the part of Rule~2 the linter does not reach.
 
-\paragraph{Why that is all of it.}
+\paragraph{Completeness.}
 The tables are complete by measurement, not by argument, at the resolution of a syntax node's kind.
 The repository's linter lists every kind of syntax node a file writes, leaving out the compiler's implicit wrappers.
-For the \texttt{category} module and the listings, each kind is the kernel's or a row, with \texttt{if consteval} added for the parallel \cppinline{concat}.
-Loosely speaking, the rest of the library it reads, some twenty further files, writes about a hundred kinds, and only half a dozen beyond these, loops and \cppinline{throw} among them: outside the posture, and not sugar; the linter reports the inventory and holds each rule's findings at its count (\texttt{tools/jlt-lint/scope} in the repository).
-A kind does not tell every use apart: a binary operator is arithmetic or an assignment, and the assignments are the row of local state, which Rule~1's footnote admits and which reading, not counting, finds.
+In the \texttt{category} module and the listings, each kind is the kernel's or a row, with \texttt{if consteval} for the parallel \cppinline{concat}.
+The rest of the library it reads, some twenty further files, writes about a hundred kinds.
+Half a dozen are beyond these, loops and \cppinline{throw} among them, outside the posture and not sugar.
+The linter reports the inventory and holds each rule's findings at its count (\texttt{tools/jlt-lint/scope} in the repository).
+A kind does not tell every use apart.
+A binary operator is arithmetic or an assignment, and the assignments are the row of local state, which Rule~1's footnote admits and which reading, not counting, finds.
 With the tables closed, the second direction of Section~\ref{sec:translation:adequacy} reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.

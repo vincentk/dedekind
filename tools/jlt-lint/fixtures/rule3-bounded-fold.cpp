@@ -1,12 +1,15 @@
-// Negative control for rules/rule3-bounded-fold.query: the gate must flag the
-// four standard folds called directly inside the jlt_listing namespace, one
-// of them in a function whose range is not IsBoundedRange, and neither the
-// one in a function whose range is, nor the one outside the namespace.
+// Negative control for rules/rule3-bounded-fold.query: the gate must flag
+// seven standard folds inside the jlt_listing namespace: three at namespace
+// scope, one with no bound stated, one folding a range other than the bounded
+// parameter, one under a negation, one under a disjunction; and none of the
+// three that fold a bounded parameter (type constraint, requires clause,
+// trailing clause), nor the one outside the namespace.
 // Standalone, no imports, so it is checked without the build.
 #include <algorithm>
 #include <array>
 #include <functional>
 #include <ranges>
+#include <utility>
 
 namespace jlt_listing {
 
@@ -30,6 +33,32 @@ constexpr M fold(const R& r, const M v, const H h) {
 template <std::ranges::input_range R, typename M, typename H>
 constexpr M loose(const R& r, const M v, const H h) {
   return std::ranges::fold_left(r, v, h);  // finding 4: no bound stated
+}
+template <typename R, typename M, typename H>
+  requires IsBoundedRange<R> && std::ranges::input_range<R>
+constexpr M by_clause(const R& r, const M v, const H h) {
+  return std::ranges::fold_left(r, v, h);  // exempt: a conjunct states it
+}
+template <typename R, typename M, typename H>
+constexpr M by_trailing(R r, const M v, const H h)
+  requires IsBoundedRange<R>
+{
+  return std::ranges::fold_left(std::move(r), v, h);  // exempt: trailing
+}
+template <IsBoundedRange B, std::ranges::input_range R, typename M,
+          typename H>
+constexpr M other_range(const B&, const R& r, const M v, const H h) {
+  return std::ranges::fold_left(r, v, h);  // finding 5: R is not bounded
+}
+template <typename R, typename M, typename H>
+  requires(!IsBoundedRange<R>)
+constexpr M negated(const R& r, const M v, const H h) {
+  return std::ranges::fold_left(r, v, h);  // finding 6: under a negation
+}
+template <typename R, typename M, typename H>
+  requires IsBoundedRange<R> || std::ranges::input_range<R>
+constexpr M disjoint(const R& r, const M v, const H h) {
+  return std::ranges::fold_left(r, v, h);  // finding 7: under a disjunction
 }
 constexpr int through_fold = fold(xs, 0, std::plus<>{});
 }  // namespace category
