@@ -15,12 +15,14 @@
 module;
 
 #include <algorithm>  // std::ranges::fold_left: the witnesses' folds
+#include <array>      // a sized range, bounded by its size
 #include <concepts>
 #include <cstddef>
 #include <functional>  // std::invoke
 #include <iterator>    // std::default_sentinel_t: where chain_view's walk ends
 #include <optional>    // std::optional = 1 + N, the NNO's functor
 #include <ranges>      // std::ranges::view_interface: the views are ranges
+#include <string>      // a state that is not a word, in a witness
 #include <type_traits>
 #include <utility>  // std::pair: what a coalgebra yields
 
@@ -96,6 +98,10 @@ concept IsCountWord =
  *  scan, that copy of a state just written stalled every letter at -O3 (#1154).
  *  @tparam S the state.  @tparam Coalg the coalgebra, @c S to
  *  @c optional<pair<A, S>>. */
+/** @brief Where a walk's bound is read from its seed (@ref walk_bound
+ *  below), declared here so that the view reads it in place. */
+export template <typename S, typename Coalg>
+struct walk_bound;
 export template <std::regular S, std::semiregular Coalg>
   requires std::regular_invocable<const Coalg&, const S&> &&
            requires(std::invoke_result_t<const Coalg&, const S&> y) {
@@ -175,6 +181,15 @@ class unfold_view : public std::ranges::view_interface<unfold_view<S, Coalg>> {
   constexpr S seed() const { return seed_; }
   /** @return the coalgebra. */
   constexpr Coalg coalgebra() const { return step_; }
+  /** @brief The bound the seed holds, read in place, never copying the
+   *  state: O(1) whatever the state's size (#1172).  @return the bound. */
+  template <typename B = walk_bound<S, Coalg>>
+    requires requires(const S& s) {
+      { B::of(s) } -> std::same_as<std::size_t>;
+    }
+  constexpr std::size_t bound() const {
+    return B::of(seed_);
+  }
 
  private:
   S seed_{};
@@ -467,5 +482,179 @@ static_assert(IsFiniteChainSequence<Successor<std::size_t>> &&
 export template <IsCountWord N, IsFiniteChainSequence F>
 using FiniteChainSequence =
     unfold_view<N, Mapped<N, StepCoalgebra<N, Prior<N>>, F>>;
+
+/** @section chain__Bounded
+ *  A range is @b bounded when a fold over it takes at most a count known
+ *  before the fold starts (#1172): Rule 3's descent, read once at the seed as
+ *  a ranking function (Turing's decreasing quantity @cite turing1949checking,
+ *  corrected in @cite morris1984early; general in @cite floyd1967assigning),
+ *  not checked at every step.  The type says that there
+ *  is a bound, the value holds it, as a sized range holds its size.  A sized
+ *  range is bounded by its size.  The chain of Figure 2 is bounded by its
+ *  seed: @c n names its cardinality.  Any other chain is bounded by a budget
+ *  declared with it, @c x >> chain(step, budget): the walk ends where the
+ *  step has nothing or the budget is spent, so a chain finite only by fact,
+ *  Collatz's, is bounded by fiat.  The library's folds require it, and the
+ *  linter's @c rule3-bounded-fold holds every other fold to them. */
+
+/** @brief The coalgebra of a chain under a budget: the step's chain, one
+ *  step of the budget spent per element, ending where the step has nothing
+ *  or the budget is spent.  The state is the element and what is left.
+ *  @tparam X the carrier.  @tparam Step the partial step. */
+export template <std::regular X, std::semiregular Step>
+  requires std::regular_invocable<const Step&, const X&> &&
+           std::same_as<std::invoke_result_t<const Step&, const X&>,
+                        std::optional<X>>
+struct Budgeted {
+  Step step{};
+  /** @param s the element and the budget left.  @return the next element,
+   *  as element and with the budget less one, or nothing. */
+  constexpr std::optional<std::pair<X, std::pair<X, std::size_t>>> operator()(
+      const std::pair<X, std::size_t>& s) const {
+    if (s.second == 0) return std::nullopt;
+    if (const std::optional<X> next = std::invoke(step, s.first);
+        next.has_value())
+      return std::pair<X, std::pair<X, std::size_t>>{*next,
+                                                     {*next, s.second - 1}};
+    return std::nullopt;
+  }
+  constexpr bool operator==(const Budgeted&) const = default;
+};
+/** @brief The chain under a budget as an arrow from the seeds:
+ *  @c x >> chain(step, budget).  @tparam Step the partial step. */
+export template <IsArrow Step>
+  requires std::regular<Dom<Step>> && std::semiregular<Step>
+struct BudgetedChain {
+  using Domain = Dom<Step>;
+  using Codomain =
+      unfold_view<std::pair<Domain, std::size_t>, Budgeted<Domain, Step>>;
+  Step step;
+  std::size_t budget;
+  /** @param x the seed.  @return its chain, at most @c budget elements. */
+  constexpr Codomain operator()(const Domain& x) const {
+    return unfold(std::pair<Domain, std::size_t>{x, budget},
+                  Budgeted<Domain, Step>{step});
+  }
+  constexpr bool operator==(const BudgetedChain&) const = default;
+};
+/** @brief The chain of a partial step, bounded by a budget declared with
+ *  it.  @param step the partial step.  @param budget the most elements.
+ *  @return the arrow from the seeds. */
+export template <IsArrow Step>
+  requires std::regular<Dom<Step>> && std::semiregular<Step>
+constexpr BudgetedChain<Step> chain(Step step, std::size_t budget) {
+  return {std::move(step), budget};
+}
+
+/** @brief Where a walk's bound is read: from its seed, without walking.
+ *  Specialised for Figure 2's counting chain (the seed itself) and for a
+ *  chain under a budget (the budget); a walk read by arrows keeps its
+ *  coalgebra's bound.  @tparam S the state.  @tparam Coalg the coalgebra. */
+export template <typename S, typename Coalg>
+struct walk_bound {};
+template <IsCountWord N>
+struct walk_bound<N, StepCoalgebra<N, Prior<N>>> {
+  static constexpr std::size_t of(const N& n) {
+    return static_cast<std::size_t>(n);
+  }
+};
+template <typename X, typename Step>
+struct walk_bound<std::pair<X, std::size_t>, Budgeted<X, Step>> {
+  static constexpr std::size_t of(const std::pair<X, std::size_t>& s) {
+    return s.second;
+  }
+};
+template <typename S, typename Coalg, typename F>
+struct walk_bound<S, Mapped<S, Coalg, F>> : walk_bound<S, Coalg> {};
+
+namespace detail_chain {
+/** @brief Is @c R a walk whose seed holds its bound? */
+template <typename R>
+struct is_bounded_walk : std::false_type {};
+template <typename S, typename Coalg>
+  requires requires(const S& s) {
+    { walk_bound<S, Coalg>::of(s) } -> std::same_as<std::size_t>;
+  }
+struct is_bounded_walk<unfold_view<S, Coalg>> : std::true_type {};
+}  // namespace detail_chain
+
+/** @concept IsBoundedRange
+ *  @brief A range a fold over which takes at most @c bound(r) steps, a count
+ *  known before the fold starts: a sized range, or a walk whose seed holds
+ *  its bound (@c walk_bound).
+ *  @par Guarantee: ultra-light, by contract.
+ *  Checking the concept costs two standard concepts and one partial
+ *  specialisation match per arrow the walk is read by; it never instantiates
+ *  the walk.  @c bound(r) is O(1): the standard's @c ranges::size, which a
+ *  sized range must answer in amortised constant time ([range.sized]), or
+ *  @c walk_bound's read of the seed in place, the state never copied.  It never
+ * iterates, never allocates and never throws on the library's ranges.  A
+ * witness below holds it: @c bound of a walk of @f$2^{62}@f$ steps is a
+ * constant expression, which a bound that walked could not be within the
+ * compiler's step limit.  A change that breaks this contract is a breaking
+ * change of Rule 3's reading, not an optimisation to revisit.
+ *  @tparam R the range. */
+export template <typename R>
+concept IsBoundedRange =
+    std::ranges::input_range<R> &&
+    (std::ranges::sized_range<const R> ||
+     detail_chain::is_bounded_walk<std::remove_cvref_t<R>>::value);
+
+/** @brief The bound: the size, or the seed of the chain below it.
+ *  @tparam R the range.  @param r the range.
+ *  @return the count a fold over @c r takes at most. */
+export template <IsBoundedRange R>
+constexpr std::size_t bound(const R& r) {
+  if constexpr (std::ranges::sized_range<const R>)
+    return static_cast<std::size_t>(std::ranges::size(r));
+  else
+    return r.bound();
+}
+namespace detail_chain_bounded {
+constexpr std::size_t three = 3;
+constexpr std::array<int, 2> pair{1, 2};
+static_assert(IsBoundedRange<std::array<int, 2>> && bound(pair) == 2 &&
+                  bound(std::views::iota(0, 5)) == 5 &&
+                  !IsBoundedRange<decltype(std::views::iota(0))>,
+              "a sized range is bounded by its size; iota(a) is not bounded");
+static_assert(bound(three >> chain<std::size_t>()) == 3 &&
+                  bound(three >> chain<std::size_t>() >>
+                        Successor<std::size_t>{}) == 3 &&
+                  std::ranges::distance(three >> chain<std::size_t>()) == 3,
+              "the chain below n is bounded by n, read by arrows or not, and "
+              "takes exactly n steps");
+constexpr std::size_t huge = std::size_t{1} << 62;
+static_assert(bound(huge >> chain<std::size_t>() >> Successor<std::size_t>{}) ==
+                      huge &&
+                  bound(std::views::iota(std::size_t{0}, huge)) == huge,
+              "the guarantee: bound never walks, or this would exceed the "
+              "compiler's step limit");
+/** @brief A step on a state that is not a word: the string less its first
+ *  letter. */
+struct DropFirst {
+  using Domain = std::string;
+  using Codomain = std::optional<std::string>;
+  constexpr std::optional<std::string> operator()(const std::string& w) const {
+    if (w.empty()) return std::nullopt;
+    return w.substr(1);
+  }
+  constexpr bool operator==(const DropFirst&) const = default;
+};
+static_assert(bound(std::string{"abc"} >> chain(DropFirst{}, 10)) == 10 &&
+                  std::ranges::distance(std::string{"abc"} >>
+                                        chain(DropFirst{}, 10)) == 3,
+              "a budget beside a state that is not a word: the bound is read "
+              "in place, the string never copied");
+static_assert(!IsBoundedRange<decltype(detail_chain_arrows::ns)>,
+              "a chain that ends by a test is finite by fact, not bounded");
+constexpr auto to_zero =
+    until(detail_chain_arrows::IsZero{}, Predecessor<unsigned>{});
+constexpr IsBoundedRange auto by_fiat = 3u >> chain(to_zero, 10);
+static_assert(bound(by_fiat) == 10 && std::ranges::distance(by_fiat) == 3 &&
+                  std::ranges::distance(3u >> chain(to_zero, 2)) == 2 &&
+                  bound(by_fiat >> Successor<unsigned>{}) == 10,
+              "a chain finite by fact is bounded by a budget declared with "
+              "it: it ends where the step has nothing or the budget is spent");
+}  // namespace detail_chain_bounded
 
 }  // namespace dedekind::category

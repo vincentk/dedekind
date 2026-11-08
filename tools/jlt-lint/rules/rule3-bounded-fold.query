@@ -1,0 +1,7 @@
+# Rule 3: a fold is over a bounded range, a count known before the fold
+# starts (IsBoundedRange, :chain, #1172).  A standard fold is called only
+# inside a function whose range parameter is constrained by IsBoundedRange:
+# the bound is then in the signature, and the compiler checks it at every
+# call.  Any other call is a finding, the iterator-pair form included.  A
+# type constraint has no clang-query matcher, hence the tool.
+tool bounded-fold
