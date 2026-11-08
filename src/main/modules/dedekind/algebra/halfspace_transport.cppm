@@ -49,7 +49,7 @@ module;
 export module dedekind.algebra:halfspace_transport;
 
 import dedekind.category; // IsAbelianGroup, is_left_total_v (the trait primary)
-import dedekind.sets;     // Set, 𝔸, Singleton, Cardinality, SignedCardinality
+import dedekind.sets;     // Set, 𝔸, Singleton, Numeral, SignedCardinality
 import dedekind.order;    // Translation / Scaling, ProductRestrict, rays
 import dedekind.relational; // ComposePred (Tarski :dyadic), the >> trait NODE (#792)
 import :ordered_algebra;  // IsOrderedAdditiveGroup (the canonical gate)
@@ -114,7 +114,7 @@ constexpr auto image(
 export template <IsTotallyOrdered T, typename K, Rel R, typename V,
                  IsOckhamAlgebra L, IsCardinality C>
   requires(is_order_rel(R) && (dedekind::algebra::IsOrderedAdditiveGroup<T> ||
-                               std::same_as<T, dedekind::sets::Cardinality>))
+                               std::same_as<T, dedekind::sets::Numeral>))
 constexpr auto image(
     const Comprehension<𝔸<std::pair<T, T>, L, C>,
                         ProductRestrict<Translation<K>, Cylinder<R, 1, V>>>&

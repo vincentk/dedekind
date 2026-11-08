@@ -33,8 +33,7 @@ export import dedekind.topology;  // Rays, half-spaces, intervals, convex shapes
 
 /** @section numbers__Discrete_Foundations */
 export import :boolean;  // Truth<L> and Ω
-export import :natural;  // Cardinality partition (carrier:
-                         // dedekind::sets::Cardinality)
+export import :natural;  // ℕ (carrier: dedekind::sets::Numeral)
 export import :integer;  // ℤ = 𝔸<SignedCardinality> (saturating variant
                          // ℤ-proxy, post-#670); default_integer alias also
                          // anchored on SignedCardinality (post-PR #676).

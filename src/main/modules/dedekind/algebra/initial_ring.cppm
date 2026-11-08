@@ -31,9 +31,8 @@
  *
  *   * The initial-object reading is what justifies @c χ_{Modular<n>}
  *     as a unique ring homomorphism (the mod-@c n reduction).
- *   * The Grothendieck reading is what the closure-forcing operator
- *     @c Cardinality @c - @c Cardinality @c → @c SignedCardinality
- *     (PR #433) realises operationally.
+ *   * The Grothendieck reading is what a closure-forcing operator
+ *     @c ℕ @c - @c ℕ @c → @c ℤ would realise operationally.
  *
  * No carrier inhabits either yet.  A machine word wraps, so it is
  * @c ℤ/2^w, not @c ℤ; the honest carrier follows ℕ's (#1035), whose
@@ -172,9 +171,8 @@ concept IsInitialRing =
  * @brief Opt-in trait: @c G is the Grothendieck group of the
  *        commutative monoid @c M.
  *
- * @details Default: @c false.  Specialised to @c true on the
- * canonical pair @c (SignedCardinality, Cardinality), registered
- * downstream where both carrier types are visible.
+ * @details Default: @c false.  No pair is registered: ℤ's honest carrier
+ * is pending (#1035).
  *
  * Universal-property content (existence + uniqueness of the
  * extension @c φ̂ @c : @c G @c → @c A for every abelian group @c A
@@ -205,8 +203,7 @@ inline constexpr bool is_grothendieck_group_v = false;
  * extension @c φ̂) is the engineer's honesty obligation.  Operational
  * realisation: the closure-forcing operator @c M @c - @c M @c →
  * @c G implements the Grothendieck construction at the operator
- * level; the project's @c Cardinality @c - @c Cardinality @c →
- * @c SignedCardinality is the canonical instance.
+ * level.
  *
  * @tparam G The carrier type claimed to be the Grothendieck group.
  * @tparam M The commutative monoid being completed.

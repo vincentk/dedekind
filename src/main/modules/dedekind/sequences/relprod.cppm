@@ -41,14 +41,14 @@ module;
 
 export module dedekind.sequences:relprod;
 
-import dedekind.sets;  // Comprehension / 𝔸, finite_cardinality
+import dedekind.sets;  // Comprehension / 𝔸, Numeral
 import dedekind.order; // ProductRestrict, IsRelPredicate
 
 namespace dedekind::sequences {
 using dedekind::order::IsRelPredicate;
 using dedekind::sets::Comprehension;
-using dedekind::sets::finite_cardinality;
 using dedekind::sets::IsCardinality;
+using dedekind::sets::Numeral;
 using dedekind::sets::𝔸;
 
 /** @brief The composed predicate for @f$R;S@f$ over the finite ℕ-prefix
@@ -69,7 +69,7 @@ struct IsMiddle {
   const PS& s;
   const Pair& ac;
   constexpr bool operator()(std::size_t i) const {
-    const auto b = finite_cardinality(i);
+    const auto b = Numeral{i};
     return static_cast<bool>(r(std::pair{ac.first, b})) &&
            static_cast<bool>(s(std::pair{b, ac.second}));
   }

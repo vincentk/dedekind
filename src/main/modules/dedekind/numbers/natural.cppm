@@ -55,7 +55,6 @@ module;
 #include <concepts>
 #include <cstddef>  // std::size_t (residue loop)
 #include <functional>
-#include <limits>     // the largest finite cardinal (the Lambek collision)
 #include <optional>   // std::nullopt (the cover at ℵ₀)
 #include <stdexcept>  // std::domain_error (a non-positive modulus)
 #include <utility>    // std::forward (used in embed_𝔹_ℕ's set-level lift)
@@ -67,7 +66,7 @@ import dedekind.category;
 import dedekind.morphologies; // Modular<N> / Congruence<N,R> — the finite quotient the ℕ quantifier factors through
 import dedekind.order;        // HasLatticeOperators (canonical-spine witnesses)
 import dedekind.relational;   // graph / dagger: the step in the allegory
-import dedekind.sequences; // IsFiniteSequence (canonical-spine witnesses on FinitePath<Cardinality>)
+import dedekind.sequences; // IsFiniteSequence (canonical-spine witnesses on FinitePath<Numeral>)
 import dedekind.sets;
 import :scalars;
 import :boolean;
@@ -105,21 +104,18 @@ concept IsNatural = dedekind::algebra::HasSemiringOperators<N> &&
                     dedekind::order::IsTotallyOrdered<N>;
 
 /**
- * @brief Canonical embedding 𝔹 ↪ ℕ: bool → Cardinality.
- * @details False maps to @c finite_cardinality(0), True to
- *          @c finite_cardinality(1).
+ * @brief Canonical embedding 𝔹 ↪ ℕ: bool → Numeral.
+ * @details False maps to @c Numeral{0u}, True to @c Numeral{1u}.
  *
  * Sister arrow to @c embed_𝔹_uint_ above; this one lands in the
- * @c Cardinality carrier (the canonical @c IsNatural witness of
+ * @c Numeral carrier (the canonical @c IsNatural witness of
  * @c ℕ in the set-builder layer) directly, without routing through
  * the machine-width @c unsigned proxy.  Filed against #602 layer 1
  * (the set-level lift @c embed_𝔹_ℕ below uses this arrow to delegate
  * through the existing @c sets::image dispatch).
  */
-export inline constexpr auto embed_𝔹_ℕ_ =
-    arrow<bool, Cardinality>([](const bool& b) noexcept -> Cardinality {
-      return finite_cardinality(b ? 1 : 0);
-    });
+export inline constexpr auto embed_𝔹_ℕ_ = arrow<bool, Numeral>(
+    [](const bool& b) noexcept -> Numeral { return Numeral{b ? 1u : 0u}; });
 
 /**
  * @brief Set-level lift of @c embed_𝔹_ℕ_: image of a Boolean set
@@ -169,7 +165,7 @@ constexpr N embed_unsigned_integral(U v) {
 
 /** @section natural__Canonical_Species_Spine
  *
- * The canonical natural-numbers universe @c ℕ @c = @c 𝔸<Cardinality>{} is
+ * The canonical natural-numbers universe @c ℕ @c = @c 𝔸<Numeral>{} is
  * defined and witnessed upstream in @c dedekind.sets:boundaries.  This
  * partition adds the @c numbers-/@c order-/@c algebra-layer witnesses on top
  * and provides the embedding chain arrows @c 𝔹 ↪ ℕ ↪ ℤ that the upstream
@@ -181,17 +177,16 @@ using ::dedekind::sets::ℕ;
 /** @section natural__Formal_Verification */
 
 // (0a′) ℕ inhabits Ddk: it is an algebraic set.  The universe ℕ is an
-//     IsSet over the Cardinality carrier, and Cardinality is closed under
-//     its rig operations +, * (but @b not under unary -, since ℕ carries
-//     no additive inverses --- see the deliberate
-//     !IsClosedUnderUnary<Cardinality, std::negate<>> in :sets:cardinality).
+//     IsSet over the Numeral carrier, and Numeral is closed under its rig
+//     operations +, * (but @b not under unary -, since ℕ carries no
+//     additive inverses).
 //     So IsAlgebraOnSet fires: the same witness 𝔹 carries in :algebra:boolean,
 //     now on ℕ.  This is the mechanical reading of ℕ as an object of
 //     Ddk = Trsk ∩ Alg (Figure 1): a rig, closed under + and × but not −.
 static_assert(dedekind::algebra::IsAlgebraOnSet<decltype(dedekind::sets::ℕ),
-                                                std::plus<Cardinality>,
-                                                std::multiplies<Cardinality>>,
-              "ℕ is an algebraic set (Ddk): a set whose carrier Cardinality is "
+                                                std::plus<Numeral>,
+                                                std::multiplies<Numeral>>,
+              "ℕ is an algebraic set (Ddk): a set whose carrier Numeral is "
               "closed under the rig operations +, *.");
 
 // (2) Syntax (the C++ operator surface that maps to ℕ's algebra).
@@ -232,8 +227,8 @@ static_assert(
     "the literal C++ operators (+, binary -, unary -, *) agree --- the "
     "canonical machine arithmetic ring under modular wrap.  Under the "
     "math-wins-over-C++ stance, this is the closest strict-ring carrier "
-    "ℕ has at the machine level (the unbounded ℕ proxy lives in "
-    "`Cardinality` from sets:cardinality, with ℵ_0 escalation).");
+    "ℕ has at the machine level (ℕ itself is `Numeral` from "
+    "sets:cardinality, exact above the word).");
 // IsRig witness on the canonical machine carrier.  Pinned at @c
 // unsigned @c int so the weaker @b semiring/rig claim is visible as a
 // single static_assert alongside the stronger @c IsArithmeticRing
@@ -253,94 +248,75 @@ static_assert(dedekind::category::IsRig<unsigned int, std::plus<unsigned int>,
               "(no idempotency claim; modular-wrap inverses exist for "
               "every element).");
 
-// The variant ℕ carrier @c Cardinality is a strict @c IsSemiring (= @c IsRig):
-// a commutative monoid under +, a monoid under *, distributive --- but @b NOT a
-// ring, since ℕ has no additive inverse.  Totality holds via the carrier's
-// @b saturating discipline (@c is_saturating<Card,+/*> in @c :cardinality ---
-// overflow escalates to @f$\aleph_0@f$), which passes the @c IsTotal gate. Pins
-// the strict textbook reading of ℕ as a rig, alongside ℤ (ring) and ℚ (field).
-static_assert(
-    dedekind::category::IsSemiring<
-        dedekind::sets::Cardinality, std::plus<dedekind::sets::Cardinality>,
-        std::multiplies<dedekind::sets::Cardinality>>,
-    "ℕ = Cardinality is a strict category::IsSemiring (rig).");
-static_assert(
-    !dedekind::category::IsRing<dedekind::sets::Cardinality,
-                                std::plus<dedekind::sets::Cardinality>,
-                                std::multiplies<dedekind::sets::Cardinality>>,
-    "ℕ = Cardinality is NOT a ring --- no additive inverse (unlike ℤ).");
+// ℕ's carrier @c Numeral is a strict @c IsSemiring (= @c IsRig): a
+// commutative monoid under +, a monoid under *, distributive --- but @b NOT a
+// ring, since ℕ has no additive inverse.  Totality holds exactly
+// (@c is_exact_total in @c :cardinality: no overflow, memory the boundary).
+// Pins the strict textbook reading of ℕ as a rig, alongside ℤ (ring) and ℚ
+// (field).
+static_assert(dedekind::category::IsSemiring<Numeral, std::plus<Numeral>,
+                                             std::multiplies<Numeral>>,
+              "ℕ = Numeral is a strict category::IsSemiring (rig).");
+static_assert(!dedekind::category::IsRing<Numeral, std::plus<Numeral>,
+                                          std::multiplies<Numeral>>,
+              "ℕ = Numeral is NOT a ring --- no additive inverse (unlike ℤ).");
 // Order witnesses (explicit, for documentation purposes).  ℕ is the
 // canonical totally-ordered chain 0 ≤ 1 ≤ 2 ≤ ... at the literal
 // level; the spaceship and the four partial-order operators all
 // fire on the carrier.  Mirrors the @b shape vs.\ @b axiom split of
 // HasRingOperators / IsRing from PR #394.
-static_assert(dedekind::order::HasPartialOrderOperators<Cardinality>,
+static_assert(dedekind::order::HasPartialOrderOperators<Numeral>,
               "ℕ carries the partial-order operator surface "
               "(<, <=, >, >=).");
-static_assert(dedekind::order::HasTotalOrderOperators<Cardinality>,
+static_assert(dedekind::order::HasTotalOrderOperators<Numeral>,
               "ℕ carries the total-order operator surface "
               "(spaceship + the four partial-order operators).");
-static_assert(dedekind::order::IsTotallyOrdered<Cardinality>,
+static_assert(dedekind::order::IsTotallyOrdered<Numeral>,
               "ℕ is axiomatically totally ordered (the chain "
               "0 ≤ 1 ≤ 2 ≤ ...).");
-// Order-domain witnesses: ℕ is a directed set (every finite subset has
-// an upper bound) and a directed poset (directed + antisymmetric).
-// These pin ℕ as a valid @b net-domain in the Munkres / Kelley sense:
-// a net is a function from a directed set, and ℕ is the prototypical
-// directed set (sequences are nets indexed by ℕ).
-static_assert(dedekind::order::IsDirectedSet<Cardinality>,
-              "ℕ is a directed set — the prototypical net domain.");
-static_assert(dedekind::order::IsDirectedPoset<Cardinality>,
-              "ℕ is a directed poset (directed + antisymmetric).");
 // Sequence witness: FinitePath<ℕ> is a finite sequence enumerating
 // a ℕ-prefix.  Pins ℕ as a valid @b sequence codomain: any finite
 // sub-sequence of natural numbers presents as IsFiniteSequence.
 static_assert(dedekind::sequences::IsFiniteSequence<
-                  dedekind::sequences::FinitePath<Cardinality>>,
-              "FinitePath<Cardinality> is a bona-fide finite sequence; the "
-              "Cardinality carrier (carrier of the ℕ universe post-#559) is a "
-              "valid sequence codomain.");
+                  dedekind::sequences::FinitePath<Numeral>>,
+              "FinitePath<Numeral> is a bona-fide finite sequence; the "
+              "Numeral carrier (carrier of the ℕ universe) is a valid "
+              "sequence codomain.");
 
 // (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_uint_ above; registered
 // monic at the bottom of this partition.  The machine-layer sign
 // reinterpretation @c unsigned @c → @c int lives in @c :integer
-// (downstream), as @c embed_uint_sint_; the canonical variant-layer
-// ℕ @c ↪ @c ℤ embedding is @c lift_ℕ_ℤ_ (also in @c :integer).
+// (downstream), as @c embed_uint_sint_.
 
-// (5a) Value- and set-level witnesses for @c embed_𝔹_ℕ_ — the variant-
-// layer canonical mono 𝔹 ↪ ℕ landing directly in @c Cardinality.
+// (5a) Value- and set-level witnesses for @c embed_𝔹_ℕ_ — the canonical
+// mono 𝔹 ↪ ℕ landing directly in @c Numeral.
 // Filed against #602 layer 1: the set-level lift is the entry-point
 // example called out in the issue's acceptance criteria.
-static_assert(embed_𝔹_ℕ_(false) == finite_cardinality(0),
-              "embed_𝔹_ℕ_(false) = 0 in the variant ℕ-proxy carrier.");
-static_assert(embed_𝔹_ℕ_(true) == finite_cardinality(1),
-              "embed_𝔹_ℕ_(true)  = 1 in the variant ℕ-proxy carrier.");
+static_assert(embed_𝔹_ℕ_(false) == Numeral{0u}, "embed_𝔹_ℕ_(false) = 0 in ℕ.");
+static_assert(embed_𝔹_ℕ_(true) == Numeral{1u}, "embed_𝔹_ℕ_(true)  = 1 in ℕ.");
 
 // Set-level lift witnesses: @c embed_𝔹_ℕ on @c η(true)
-// lands at @c finite_cardinality(1), and on @c η(false)
-// at @c finite_cardinality(0).  Both pinned at the @b value level so
-// the pivot equality is constant-evaluated, not just the codomain
-// type (the type-only form would only check that we land in some
-// @c Singleton<Cardinality>, not which inhabitant).  Uses the
+// lands at @c Numeral{1u}, and on @c η(false) at @c Numeral{0u}.  Both pinned
+// at the @b value level so the pivot equality is constant-evaluated, not just
+// the codomain type (the type-only form would only check that we land in some
+// @c Singleton<Numeral>, not which inhabitant).  Uses the
 // existing @c image(F, Singleton) overload from
 // @c sets:singleton; the named @c embed_𝔹_ℕ surface delegates
 // through it.  Sister anchor to PR #626's @c embed_𝔹_𝕂3 witness in
 // @c :boolean --- same shape, different codomain.
-static_assert(origin(embed_𝔹_ℕ(η(true))) == finite_cardinality(1),
-              "embed_𝔹_ℕ(η(true)) lands at finite_cardinality(1) on the "
-              "Cardinality carrier.");
-static_assert(origin(embed_𝔹_ℕ(η(false))) == finite_cardinality(0),
-              "embed_𝔹_ℕ(η(false)) lands at finite_cardinality(0) on the "
-              "Cardinality carrier.");
+static_assert(origin(embed_𝔹_ℕ(η(true))) == Numeral{1u},
+              "embed_𝔹_ℕ(η(true)) lands at 1 on the Numeral carrier.");
+static_assert(origin(embed_𝔹_ℕ(η(false))) == Numeral{0u},
+              "embed_𝔹_ℕ(η(false)) lands at 0 on the Numeral carrier.");
 
 // Concept-level witness: the result of @c embed_𝔹_ℕ realises the
 // categorical image of the source set under the canonical mono
-// 𝔹 ↪ ℕ — i.e. it is a Subobject of @c Cod<embed_𝔹_ℕ_> = Cardinality
+// 𝔹 ↪ ℕ — i.e. it is a Subobject of @c Cod<embed_𝔹_ℕ_> = Numeral
 // (smallest-such-subobject reading per @c :category:image).
 static_assert(
     IsImageOf<decltype(embed_𝔹_ℕ(η(true))), decltype(embed_𝔹_ℕ_)>,
     "embed_𝔹_ℕ(S) realises IsImageOf<result, embed_𝔹_ℕ_>: result is a "
-    "Subobject of Cod<embed_𝔹_ℕ_> = Cardinality, witnessing the "
+    "Subobject of Cod<embed_𝔹_ℕ_> = Numeral, witnessing the "
     "categorical image of S under the canonical mono 𝔹 ↪ ℕ.");
 
 // (6) The @c std::unsigned_integral family classification (textbook
@@ -352,61 +328,37 @@ static_assert(
 //     in one place.
 
 // ---------------------------------------------------------------------------
-// (7) NNO witness: @c Cardinality is the canonical inhabitant of the
-//     Natural Numbers Object (ETCS Axiom 9; @c
-//     dedekind.category:nno).  Closes part of #445.
+// (7) NNO witness: @c Numeral is the canonical inhabitant of the Natural
+//     Numbers Object (ETCS Axiom 9; @c dedekind.category:nno).  Closes part
+//     of #445.
 // ---------------------------------------------------------------------------
 //
-// Architecture: NNO  →  Cardinality  →  ℕ.
+// Architecture: NNO  →  Numeral  →  ℕ.
 //   * NNO is the Form (universal property defined in @c :nno).
-//   * @c Cardinality is the canonical carrier witnessing the NNO,
-//     certified below by @c IsNNO<Cardinality, ZeroElement<Cardinality>,
-//     Successor<Cardinality>> --- the :nno arrows over the carrier's own
-//     @c successor (saturating at @c ℵ_0, the carrier's honest sentinel
-//     beyond the textbook NNO).
-//   * @c ℕ is the name pointing to @c Cardinality (this partition's
-//     @c using ℕ alias, post-#427).
+//   * @c Numeral is the canonical carrier witnessing the NNO, certified below
+//     by @c IsNNO<Numeral, ZeroElement<Numeral>, Successor<Numeral>> ---
+//     the :nno arrows over the carrier's own @c successor.  Lambek holds:
+//     @c [Z, S] is an isomorphism (witnessed in @c :sets:cardinality).
+//   * @c ℕ is the universe @c 𝔸<Numeral>.
 
-static_assert(
-    IsNNO<Cardinality, ZeroElement<Cardinality>, Successor<Cardinality>>,
-    "Cardinality is the canonical NNO witness: Z = ZeroElement, S = "
-    "Successor, saturating at ℵ_0.");
-static_assert(ZeroElement<Cardinality>{}() == finite_cardinality(0),
+static_assert(IsNNO<Numeral, ZeroElement<Numeral>, Successor<Numeral>>,
+              "Numeral is the canonical NNO witness: Z = ZeroElement, S = "
+              "Successor.");
+static_assert(ZeroElement<Numeral>{}() == Numeral{},
               "the carrier's default value is the NNO's zero.");
-// Lambek on the finite fragment: the round trips hold there, and ℕ's proxy IS
-// ℕ there.  The carrier is ℕ ∪ {ℵ₀}, a bounded chain like K₃, and at the top S
-// is not injective --- the largest finite cardinal and ℵ₀ both step to ℵ₀ ---
-// so [Z, S] is no isomorphism of the carrier and nothing declares it one: the
-// memory boundary is where the carrier stops being the NNO.
-namespace detail_lambek_witness {
-inline constexpr Cardinality largest_finite =
-    finite_cardinality(std::numeric_limits<std::size_t>::max());
-}  // namespace detail_lambek_witness
 // std::optional's own == throughout: the point datum's == (sets:singleton) is
 // still found by ADL here, but its head no longer probes equality on the
 // deduced T, so it is rejected as non-viable without re-entering itself.
-static_assert(Prior<Cardinality>{}(In<Cardinality>{}(std::optional<Cardinality>{
-                  finite_cardinality(3)})) ==
-                      std::optional<Cardinality>{finite_cardinality(3)} &&
-                  In<Cardinality>{}(Prior<Cardinality>{}(
-                      finite_cardinality(0))) == finite_cardinality(0),
-              "out ∘ in = id and in ∘ out = id on ℕ's finite fragment.");
-static_assert(
-    In<Cardinality>{}(std::optional<Cardinality>{
-        detail_lambek_witness::largest_finite}) ==
-            In<Cardinality>{}(std::optional<Cardinality>{Cardinality{ℵ_0{}}}) &&
-        !IsIsomorphism<In<Cardinality>>,
-    "[Z, S] is not injective at the top: S(largest finite) = S(ℵ₀) = ℵ₀, so "
-    "Lambek fails on the carrier and the concept says so.");
-static_assert(!cover(Cardinality{ℵ_0{}}).has_value() &&
-                  cover(finite_cardinality(3)) == finite_cardinality(4),
-              "the cover is partial at ℵ₀: the top has no cover.");
+static_assert(Prior<Numeral>{}(In<Numeral>{}(std::optional<Numeral>{
+                  Numeral{3u}})) == std::optional<Numeral>{Numeral{3u}} &&
+                  In<Numeral>{}(Prior<Numeral>{}(Numeral{})) == Numeral{},
+              "out ∘ in = id and in ∘ out = id on ℕ.");
 // P only RETRACTS S on ℕ: P ∘ S = id, but S ∘ P ≠ id at 0 (the monus), so the
 // pair is not an adjunction here --- contrast ℤ (numbers:integer).
-static_assert(Predecessor<Cardinality>{}(Successor<Cardinality>{}(
-                  finite_cardinality(7))) == finite_cardinality(7) &&
-                  Successor<Cardinality>{}(Predecessor<Cardinality>{}(
-                      finite_cardinality(0))) == finite_cardinality(1),
+static_assert(Predecessor<Numeral>{}(Successor<Numeral>{}(Numeral{7u})) ==
+                      Numeral{7u} &&
+                  Successor<Numeral>{}(Predecessor<Numeral>{}(Numeral{})) ==
+                      Numeral{1u},
               "P ∘ S = id; S ∘ P moves 0 to 1: a retraction, not an iso.");
 using dedekind::relational::dagger;
 using dedekind::relational::graph;
@@ -414,18 +366,10 @@ using dedekind::relational::graph;
 // converse of the successor's graph is NOT the predecessor's graph: 0 has no
 // S-preimage, while the monus sends 0 to 0.  P is the saturating totalisation
 // of S°, which is what the monus is.
-static_assert(!dagger(graph(Successor<Cardinality>{}))(std::pair{
-                  finite_cardinality(0), finite_cardinality(0)}) &&
-                  graph(Predecessor<Cardinality>{})(std::pair{
-                      finite_cardinality(0), finite_cardinality(0)}),
-              "Γ_S° ≠ Γ_P on ℕ: (0, 0) is in Γ_P, not in Γ_S°.");
-
-/** @brief The countably-infinite cardinal @f$\aleph_0@f$ as a @c Cardinality
- *         @b value: the saturation point, and the unique fixpoint of
- *         @c Successor<Cardinality> (@c succ(ℵ₀) @c = @c ℵ₀).  A readable
- *         spelling of
- *         @c Cardinality{ℵ_0{}}, sibling to @c finite_cardinality(n). */
-export inline constexpr Cardinality aleph_0 = Cardinality{ℵ_0{}};
+static_assert(
+    !dagger(graph(Successor<Numeral>{}))(std::pair{Numeral{}, Numeral{}}) &&
+        graph(Predecessor<Numeral>{})(std::pair{Numeral{}, Numeral{}}),
+    "Γ_S° ≠ Γ_P on ℕ: (0, 0) is in Γ_P, not in Γ_S°.");
 
 }  // namespace dedekind::numbers
 
@@ -437,13 +381,13 @@ inline constexpr bool
         true;
 static_assert(
     IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>>,
-    "embed_𝔹_ℕ_ (𝔹 ↪ ℕ via Cardinality) is registered injective.");
+    "embed_𝔹_ℕ_ (𝔹 ↪ ℕ via Numeral) is registered injective.");
 
 // IsEmbeddingFunctor witness (#633 refinement quartet): @c embed_𝔹_ℕ_ is
 // fully faithful (source is a discrete category, so faithfulness is
 // trivial) + injective on objects (the underlying function on the two
-// 𝔹-objects {false, true} maps to the two distinct Cardinality witnesses
-// {finite_cardinality(0), finite_cardinality(1)}).  Refines @c IsMonicArrow
+// 𝔹-objects {false, true} maps to the two distinct Numeral witnesses
+// {0, 1}).  Refines @c IsMonicArrow
 // at the functor level.
 template <>
 inline constexpr bool is_embedding_functor_v<
@@ -453,16 +397,15 @@ static_assert(
     "embed_𝔹_ℕ_ realises IsEmbeddingFunctor: fully faithful + injective on "
     "objects per #633's Mac Lane CWM §IV.4 reading.");
 
-// IsMonotone witness (#664 morphism vocabulary): @c false @c ↦
-// @c finite_cardinality(0), @c true @c ↦ @c finite_cardinality(1); the
-// embedding preserves the canonical Boolean order under @c
-// Cardinality 's @c <=>.
+// IsMonotone witness (#664 morphism vocabulary): @c false @c ↦ @c 0,
+// @c true @c ↦ @c 1; the embedding preserves the canonical Boolean order
+// under @c Numeral 's @c <=>.
 template <>
 inline constexpr bool is_monotone_v<
     std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>, std::less_equal<>> =
     true;
 static_assert(IsMonotone<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ_)>>,
-              "embed_𝔹_ℕ_ (𝔹 ↪ ℕ via Cardinality) is monotone — preserves the "
+              "embed_𝔹_ℕ_ (𝔹 ↪ ℕ via Numeral) is monotone — preserves the "
               "Boolean / cardinality order.");
 }  // namespace dedekind::category
 
@@ -471,9 +414,9 @@ static_assert(IsMonotone<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ
 //
 // A predicate that factors through the FINITE quotient Modular<N> (a
 // morphologies::Congruence<N,R>) reduces ∃/∀ over the INFINITE carrier
-// Cardinality to exhausting the N residues.  This lives at :natural because it
+// Numeral to exhausting the N residues.  This lives at :natural because it
 // is the lowest rung where both dependency branches resolve: sets
-// (𝔸<Cardinality>, Ø, the exists/forall primaries) and morphologies (Modular,
+// (𝔸<Numeral>, Ø, the exists/forall primaries) and morphologies (Modular,
 // Congruence), which are parallel branches meeting first at numbers.  The
 // overloads sit in namespace dedekind::sets so ADL on the Universe operand
 // finds them (FIXME(#798): a generic finite-carrier materialisation).
@@ -504,19 +447,17 @@ struct ResidueClass {
   std::size_t modulus;
   bool inhabited;  // the residue lies in [0, modulus)
 
-  constexpr bool operator==(const Ø<Cardinality, L>&) const {
-    return !inhabited;
-  }
+  constexpr bool operator==(const Ø<Numeral, L>&) const { return !inhabited; }
   template <typename C>
-  constexpr bool operator==(const 𝔸<Cardinality, L, C>&) const {
+  constexpr bool operator==(const 𝔸<Numeral, L, C>&) const {
     return inhabited && modulus == 1;
   }
-  friend constexpr bool operator==(const Ø<Cardinality, L>& e,
+  friend constexpr bool operator==(const Ø<Numeral, L>& e,
                                    const ResidueClass& s) {
     return s == e;
   }
   template <typename C>
-  friend constexpr bool operator==(const 𝔸<Cardinality, L, C>& u,
+  friend constexpr bool operator==(const 𝔸<Numeral, L, C>& u,
                                    const ResidueClass& s) {
     return s == u;
   }
@@ -525,11 +466,11 @@ struct ResidueClass {
 /** @brief @c ℕ @c & @c (π @c % @c n @c == @c r): the residue class, decided
  *  analytically.  A residue outside @f$[0, n)@f$ is never met, so
  *  @c π @c % @c 3 @c == @c 3 is empty.  ADL finds it through the
- *  @c 𝔸<Cardinality> operand.
+ *  @c 𝔸<Numeral> operand.
  *  @tparam K1 the modulus's type.  @tparam K2 the residue's type. */
 export template <typename L, typename C, std::integral K1, std::integral K2>
 constexpr ResidueClass<L> operator&(
-    const 𝔸<Cardinality, L, C>&,
+    const 𝔸<Numeral, L, C>&,
     const Cmp<Rel::Eq, BinOp<std::modulus<>, Projection<0>, Const<K1>>,
               Const<K2>>& c) {
   const std::size_t n = carrier_cast<std::size_t>(c.a.b.value);
@@ -538,7 +479,7 @@ constexpr ResidueClass<L> operator&(
                          std::cmp_greater_equal(r, 0) && std::cmp_less(r, n)};
 }
 
-// ∃ / ∀ over 𝔸<Cardinality> are the generic structural quantifiers of
+// ∃ / ∀ over 𝔸<Numeral> are the generic structural quantifiers of
 // :quantifier (template <IsSet S, typename P> with !IsSet<P>, folded onto s |
 // p; the point-free fragment is NOT an IsPredicate): the congruence fragment
 // π % n == r materialises through the operator| above into a ResidueClass,
@@ -561,17 +502,17 @@ static_assert(dedekind::sets::exists(𝔹, π == true),
 static_assert(!dedekind::sets::forall(𝔹, π == true),
               "¬∀b∈𝔹. b — false is a counterexample.");
 
-// ℕ = 𝔸<Cardinality>, infinite: the point-free congruence fragment
+// ℕ = 𝔸<Numeral>, infinite: the point-free congruence fragment
 // π % 3 == 0 (≡ 0 mod 3).  ∃/∀ are decided without enumeration: the class is
 // never empty, and it is not all of ℕ since 3 ≠ 1.
 static_assert(dedekind::sets::exists(
-                  dedekind::sets::𝔸<dedekind::sets::Cardinality>{}, π % 3 == 0),
+                  dedekind::sets::𝔸<dedekind::sets::Numeral>{}, π % 3 == 0),
               "∃x∈ℕ. 3∣x — residue 0 is divisible by 3.");
 static_assert(!dedekind::sets::forall(
-                  dedekind::sets::𝔸<dedekind::sets::Cardinality>{}, π % 3 == 0),
+                  dedekind::sets::𝔸<dedekind::sets::Numeral>{}, π % 3 == 0),
               "¬∀x∈ℕ. 3∣x — residues 1,2 are counterexamples.");
 static_assert(!dedekind::sets::exists(
-                  dedekind::sets::𝔸<dedekind::sets::Cardinality>{}, π % 3 == 3),
+                  dedekind::sets::𝔸<dedekind::sets::Numeral>{}, π % 3 == 3),
               "¬∃x∈ℕ. x mod 3 = 3 — a residue is below its modulus.");
 
 }  // namespace dedekind::numbers

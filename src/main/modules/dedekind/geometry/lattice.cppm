@@ -66,7 +66,7 @@ export module dedekind.geometry:lattice;
 
 import :affine;  // for Vector<F, N>
 import dedekind.category;
-import dedekind.sets; // for Set, element, 𝔸, Cardinality, N, cartesian_product
+import dedekind.sets; // for Set, element, 𝔸, Numeral, N, cartesian_product
 
 namespace dedekind::geometry {
 
@@ -76,16 +76,15 @@ using namespace dedekind::category;
 // Canonical lattice species in the geometry layer: the universes ℕ and ℤ as
 // types (the factory below is keyed on the set type; the values are @c ℕ and
 // @c 𝔸<int>{}).
-export using NaturalLatticeSet = 𝔸<Cardinality>;
+export using NaturalLatticeSet = 𝔸<Numeral>;
 export using IntegerLatticeSet = 𝔸<int>;
 export using IntegerLatticeScalar = typename IntegerLatticeSet::Domain;
 export using IntegerLatticePoint2D =
     std::pair<IntegerLatticeScalar, IntegerLatticeScalar>;
-// Natural-lattice scalar is the Cardinality carrier — the variant ℕ-proxy
-// (post-#402; supersedes the post-#401 unsigned-int reading).  Post-#559,
-// ℕ is the universe value 𝔸<Cardinality>; the carrier in concept gates
-// and template-type-parameter positions is Cardinality directly.
-export using NaturalLatticeScalar = Cardinality;
+// Natural-lattice scalar is ℕ's carrier, Numeral.  ℕ is the universe value
+// 𝔸<Numeral>; the carrier in concept gates and template-type-parameter
+// positions is Numeral directly.
+export using NaturalLatticeScalar = Numeral;
 export using NaturalLatticePoint2D =
     std::pair<NaturalLatticeScalar, NaturalLatticeScalar>;
 
@@ -119,8 +118,8 @@ struct LatticeFactory;
 template <>
 struct LatticeFactory<NaturalLatticeSet> {
   constexpr auto line() const {
-    // Every Cardinality value is in ℕ by construction (post-#402);
-    // the universe value @c ℕ (= @c 𝔸<Cardinality>, post-#559) IS the line ---
+    // Every Numeral is in ℕ by construction; the universe value @c ℕ
+    // (= @c 𝔸<Numeral>) IS the line ---
     // an ambient set needs no @c Set{...} wrapper.
     return ℕ;
   }
@@ -166,9 +165,8 @@ export constexpr auto integer_lattice_2d() {
  *
  * @details Built as the cartesian product of two finite bounded naturals using
  *          the set-builder DSL. This is the lattice domain before any
- *          continuous embedding.  Post-#401 the grid coordinates are
- *          @c NaturalLatticePoint2D @c = @c pair<unsigned, unsigned>
- *          to match the @c ℕ carrier reading.
+ *          continuous embedding.  The grid coordinates are
+ *          @c NaturalLatticePoint2D @c = @c pair<Numeral, Numeral>.
  *
  * @param n  Side length of the grid (number of points per axis).
  * @return A Set<NaturalLatticePoint2D, Kleene, ...>.
@@ -177,7 +175,7 @@ export constexpr auto square_natural_grid(unsigned int n) {
   const auto unbounded = natural_lattice_2d();
   // Runtime window @c n: a NAMED local predicate over the unbounded lattice.
   const auto in_window = [n](const NaturalLatticePoint2D& q) {
-    return (q.first < n) && (q.second < n);
+    return (q.first < Numeral{n}) && (q.second < Numeral{n});
   };
   return Comprehension{unbounded, in_window};
 }

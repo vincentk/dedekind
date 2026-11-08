@@ -65,8 +65,8 @@ using namespace dedekind::sets;
 /** @brief The recurrence, spelled out @b explicitly as a named function (not a
  *         lambda): @c n even @c ↦ @c n/2, @c n odd @c ↦ @c 3n+1.  Computed on
  * the native @c size_t shadow, which @b saturates where @c 3n+1 would leave
- * the word, the posture of ℕ's proxy (the point-free relation on
- * @c Cardinality saturates to ℵ₀ the same way).  The word's top is odd, so it
+ * the word (the point-free relation on ℕ's @c Numeral is exact).  The word's
+ * top is odd, so it
  * is a fixpoint of the rule: an orbit that reaches it never reaches 1, and the
  * verdict below stays @c Unknown rather than wrapping into a false @c True. */
 export constexpr std::size_t collatz_rule(std::size_t n) {
@@ -86,12 +86,12 @@ static_assert(collatz_rule(std::numeric_limits<std::size_t>::max()) ==
  * 2@f$ test.  Its complement @f$\sim@f$@c n_even is @f$\{n \text{ odd}\}@f$ (on
  * ℕ the two parities exhaust and are disjoint), which makes the case split
  *  @b structural rather than two independent guards. */
-constexpr auto n_even = ℕ * ℕ & π_1 % 2 == 0;
+constexpr auto n_even = ℕ * ℕ & π_1 % 2u == 0u;
 /** @brief The even step @f$m = n/2@f$, spelled without division as
  *  @f$2\pi_2 = \pi_1@f$ (the doubling graph read backwards). */
-constexpr auto halve = ℕ * ℕ & π_2 * 2 == π_1;
+constexpr auto halve = ℕ * ℕ & π_2 * 2u == π_1;
 /** @brief The odd step @f$m = 3n+1@f$ --- the affine graph (@c :order). */
-constexpr auto triple_plus_1 = ℕ * ℕ & π_1 * 3 + 1 == π_2;
+constexpr auto triple_plus_1 = ℕ * ℕ & π_1 * 3u + 1u == π_2;
 
 /** @brief The Trsk relation @f$T \subseteq \mathbb{N}\times\mathbb{N}@f$,
  *  spelled @b point-free as the McCarthy conditional
@@ -111,14 +111,13 @@ static_assert(dedekind::sets::IsSetObject<decltype(collatz)>,
               "the point-free recurrence is a set object on ℕ × ℕ (a lattice "
               "node over set objects, structurally)");
 static_assert(
-    IsRelation<decltype(collatz), Cardinality, Cardinality>,
+    IsRelation<decltype(collatz), Numeral, Numeral>,
     "T ⊆ ℕ × ℕ is an IsRelation (IsFunction is the next investigation)");
-static_assert(collatz(std::pair{finite_cardinality(6), finite_cardinality(3)}),
+static_assert(collatz(std::pair{Numeral{6u}, Numeral{3u}}),
               "6 is even: 2·3 == 6, so 6 ↦ 3");
-static_assert(collatz(std::pair{finite_cardinality(7), finite_cardinality(22)}),
+static_assert(collatz(std::pair{Numeral{7u}, Numeral{22u}}),
               "7 is odd: 3·7+1 == 22, so 7 ↦ 22");
-static_assert(!collatz(std::pair{finite_cardinality(6), finite_cardinality(4)}),
-              "6 ↦ 3, not 4");
+static_assert(!collatz(std::pair{Numeral{6u}, Numeral{4u}}), "6 ↦ 3, not 4");
 
 // ─── Backward reachability, relationally (no shadow, no graph) ─────────────
 //
@@ -137,13 +136,13 @@ static_assert(!collatz(std::pair{finite_cardinality(6), finite_cardinality(4)}),
 // pair-relational entry points (`converse`, `fibre`, `| relpred`) take it as
 // is.
 export inline constexpr auto converges_in_1 =
-    fibre(converse(collatz), finite_cardinality(1));
+    fibre(converse(collatz), Numeral{1u});
 
-static_assert(converges_in_1(finite_cardinality(2)),
+static_assert(converges_in_1(Numeral{2u}),
               "2 is even, 2/2 = 1: 2 → 1 in one step (2 ∈ collatz°(1))");
-static_assert(!converges_in_1(finite_cardinality(1)),
+static_assert(!converges_in_1(Numeral{1u}),
               "1 is odd, 3·1+1 = 4: 1 does NOT reach 1 in one step");
-static_assert(!converges_in_1(finite_cardinality(4)),
+static_assert(!converges_in_1(Numeral{4u}),
               "4 is even, 4/2 = 2 ≠ 1: 4 ∉ collatz°(1)");
 
 // ─── Two steps: the relative product over a finite ℕ-prefix middle (#795) ──
@@ -161,22 +160,20 @@ static_assert(!converges_in_1(finite_cardinality(4)),
 /** @brief @c collatz restricted to the finite ℕ-prefix @f$[0,64)@f$ by a
  *  half-space domain cut --- the bound @c 64 rides in the pivot VALUE, so @c >>
  *  recovers it. */
-constexpr auto collatzM = collatz & (π_1 < 64);
+constexpr auto collatzM = collatz & (π_1 < 64u);
 
 /** @brief @c collatz2 @f$= \mathrm{collatz};\mathrm{collatz}@f$ over the finite
  *  @f$[0,64)@f$ middle --- two steps, the bare relative product, middle
  * inferred from the bound (no argument, no shadow, no graph, no array). */
 export inline constexpr auto collatz2 = collatzM >> collatzM;
 
-static_assert(collatz2(std::pair{finite_cardinality(4), finite_cardinality(1)}),
+static_assert(collatz2(std::pair{Numeral{4u}, Numeral{1u}}),
               "4 → 2 → 1: (4,1) ∈ collatz;collatz (middle b=2)");
-static_assert(collatz2(std::pair{finite_cardinality(8), finite_cardinality(2)}),
+static_assert(collatz2(std::pair{Numeral{8u}, Numeral{2u}}),
               "8 → 4 → 2: (8,2) ∈ collatz2 (middle b=4)");
-static_assert(collatz2(std::pair{finite_cardinality(6),
-                                 finite_cardinality(10)}),
+static_assert(collatz2(std::pair{Numeral{6u}, Numeral{10u}}),
               "6 → 3 → 10: (6,10) ∈ collatz2 (middle b=3)");
-static_assert(!collatz2(std::pair{finite_cardinality(6),
-                                  finite_cardinality(5)}),
+static_assert(!collatz2(std::pair{Numeral{6u}, Numeral{5u}}),
               "6 → 3 → 10 ≠ 5: (6,5) ∉ collatz2");
 
 // ─── Who has converged?  The pre-image of the attractor (#795) ─────────────
@@ -201,25 +198,21 @@ static_assert(!collatz2(std::pair{finite_cardinality(6),
  *  over the three cycle points), which distributes to the union of the
  *  point-fibres. */
 constexpr auto back2 = converse(collatz2);
-export inline constexpr auto converged_2 = fibre(
-    back2, finite_cardinality(1), finite_cardinality(2), finite_cardinality(4));
+export inline constexpr auto converged_2 =
+    fibre(back2, Numeral{1u}, Numeral{2u}, Numeral{4u});
 
 /** @brief @c pending_2 @f$= \sim@f$@c converged_2 --- the naturals @b not yet
  *  captured within two steps: the honest "Unknown", complemented on the domain
  *  (unary), not on the pair universe. */
 export inline constexpr auto pending_2 = ~converged_2;
 
-static_assert(converged_2(finite_cardinality(4)),
-              "4 → 2 → 1: captured within two steps");
-static_assert(converged_2(finite_cardinality(8)),
-              "8 → 4 → 2: captured within two steps");
-static_assert(converged_2(finite_cardinality(1)),
-              "1 → 4 → 2: already inside the cycle");
-static_assert(!converged_2(finite_cardinality(3)),
+static_assert(converged_2(Numeral{4u}), "4 → 2 → 1: captured within two steps");
+static_assert(converged_2(Numeral{8u}), "8 → 4 → 2: captured within two steps");
+static_assert(converged_2(Numeral{1u}), "1 → 4 → 2: already inside the cycle");
+static_assert(!converged_2(Numeral{3u}),
               "3 → 10 → 5: not captured within two steps");
-static_assert(pending_2(finite_cardinality(3)), "3 is still pending at step 2");
-static_assert(!pending_2(finite_cardinality(4)),
-              "4 has converged, so it is not pending");
+static_assert(pending_2(Numeral{3u}), "3 is still pending at step 2");
+static_assert(!pending_2(Numeral{4u}), "4 has converged, so it is not pending");
 
 // ─── Squaring stops here: the relational form is exponential (#795) ────────
 //

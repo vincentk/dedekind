@@ -62,7 +62,7 @@ import dedekind.morphologies; // 𝔽ₚ, the canonical prime field
 import dedekind.order;        // IsDense
 import dedekind.relational;   // Table: a relation of any arity (:rows)
 import dedekind.sequences;    // the chains' orbit
-import dedekind.sets;         // Cardinality, finite_cardinality
+import dedekind.sets;         // the universes and their species
 
 namespace nb = nanobind;
 
@@ -91,8 +91,6 @@ using dedekind::order::Runs;
 using dedekind::order::steps;
 // The product former 𝔸<A×B> & rel is order's, not found by ADL on sets types.
 using dedekind::order::operator&;
-using dedekind::sets::Cardinality;
-using dedekind::sets::finite_cardinality;
 using dedekind::sets::𝔸;
 
 // ── Pst: the bounded chains (#1001, paper §3) ────────────────────────────────
@@ -114,14 +112,14 @@ struct Chain<bool> {
   static constexpr const char* name = "𝔹";
   static constexpr bool bottom = unit<bool>(Sup{});
   static constexpr bool top = unit<bool>(Inf{});
-  static constexpr Cardinality cardinality = finite_cardinality(2);
+  static constexpr std::size_t cardinality = 2;
 };
 template <>
 struct Chain<Ternary> {
   static constexpr const char* name = "K₃";
   static constexpr Ternary bottom = unit<Ternary>(Sup{});
   static constexpr Ternary top = unit<Ternary>(Inf{});
-  static constexpr Cardinality cardinality = finite_cardinality(3);
+  static constexpr std::size_t cardinality = 3;
 };
 
 /** @brief Whether @f$S(\top) = \top@f$: the step's posture at the top.
@@ -162,10 +160,6 @@ Set<C, Boole> cut(const Set<C, L>& s, typename L::Ω level) {
 
 }  // namespace pst
 
-/** @brief A finite chain's size as a Python @c int. */
-nb::object to_py_cardinality(const Cardinality& c) {
-  return nb::int_(std::get<dedekind::sets::ExtensionalCardinal<>>(c).value);
-}
 template <typename C>
 nb::object to_py(const C& x) {
   return nb::cast(x);
@@ -265,15 +259,12 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_ m, const char* cls,
           "_saturates", [](const Ch&) { return pst::saturates<C>(); },
           "Whether S(⊤) = ⊤: the successor's posture at the top.")
       .def_prop_ro(
-          "_cardinality",
-          [](const Ch&) { return to_py_cardinality(Ch::cardinality); },
-          "The number of elements: 2, 3, or ℵ₀.")
+          "_cardinality", [](const Ch&) { return nb::int_(Ch::cardinality); },
+          "The number of elements: 2 or 3.")
       .def(
           "__getitem__",
           [](const Ch&, long long i) {
-            const auto n = static_cast<long long>(
-                std::get<dedekind::sets::ExtensionalCardinal<>>(Ch::cardinality)
-                    .value);
+            const auto n = static_cast<long long>(Ch::cardinality);
             if (i < 0) i += n;
             if (i < 0 || i >= n)
               throw nb::index_error("position outside the chain");
@@ -285,12 +276,7 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_ m, const char* cls,
           "U[i]: the element at position i from ⊥, the universe as its own "
           "enumeration (pandas' .iloc, not .loc): K3[1] is UNKNOWN.")
       .def(
-          "__len__",
-          [](const Ch&) -> std::size_t {
-            return std::get<dedekind::sets::ExtensionalCardinal<>>(
-                       Ch::cardinality)
-                .value;
-          },
+          "__len__", [](const Ch&) -> std::size_t { return Ch::cardinality; },
           "The number of elements of a finite chain.")
       .def(
           "__eq__", [](const Ch&, const Ch&) { return true; },

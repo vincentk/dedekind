@@ -31,7 +31,7 @@
  * downstream @b witness @b sites where the carrier-level
  * @c successor member API is named on a specific carrier
  * (@c morphologies:archimedean for the @c IsCyclic shape;
- * @c numbers:natural for @c Cardinality's NNO witness).  See the
+ * @c numbers:natural for @c Numeral's NNO witness).  See the
  * layering note in §nno__Layering_audit.
  *
  * @section nno__NNO_Universal_Property
@@ -68,7 +68,7 @@
  *     API on @c IsCyclic carriers (@c Modular<N> etc.).  The
  *     numerically-coinciding-with @f$S(x) = x + 1@f$ remark there is
  *     about the @b carrier's API, not about NNO universality.
- *   - @c numbers:natural — registers @c Cardinality as the canonical
+ *   - @c numbers:natural — registers @c Numeral as the canonical
  *     @c IsNNO witness.  This is a (@c z, @c s) pair on a specific
  *     carrier; the universal property it claims-to-witness is what
  *     this partition defines.
@@ -83,32 +83,25 @@
  * Lifts ETCS Axiom 9 from the @c :etcs facade-level mention (where it
  * was previously cross-referenced as @c SpeciesTraits<unsigned>) to a
  * first-class @b concept that any carrier can witness.  Closes part of
- * #445.  Concrete carrier witnesses ( @c Cardinality from @c
+ * #445.  Concrete carrier witnesses ( @c Numeral from @c
  * sets:cardinality, @c Modular<N> from @c morphologies:cyclic) are
  * registered downstream where the carriers are available.
  * Dedekind's chain over the step, as a range, is @c :chain's.
  *
- * @section nno__Form_Bias_NNO_Cardinality_ℕ
+ *
+ * @section nno__Form_Bias_NNO_Numeral_ℕ
  * Per the project's Platonist stance ("Forms precede carriers"), the
  * architecture is a three-layer chain:
  *
- *   @c NNO  →  @c Cardinality  →  @c ℕ
+ *   @c NNO  →  @c Numeral  →  @c ℕ
  *
  * @li @b NNO is the @b Form — the universal property defined in this
  *     partition.  Multiple carriers may witness it.
- * @li @b Cardinality (variant @c ℕ-proxy in @c sets:cardinality) is
- *     the @b canonical @b carrier inhabiting the NNO Form, certified
- *     by the @c IsNNO witness in @c numbers:natural.  Saturating
- *     semantics ( @c ℵ_0 escalation) is the @b carrier's extra
- *     behaviour beyond the textbook NNO — the abstract NNO is
- *     purely the Peano-style universal property over a bounded /
- *     finite presentation; @c Cardinality adds @c ℵ_0 as an
- *     overflow sentinel so a machine implementation can stay
- *     honest about values that exceed its representable range.
- * @li @b ℕ (textbook symbol, in @c sets:boundaries post-#427) is an
- *     alias that @b refers to @c Cardinality — the @b symbol
- *     practitioners use.  The chain reads "NNO supplies the Form;
- *     Cardinality is the canonical witness; ℕ is the name."
+ * @li @b Numeral (in @c sets:cardinality) is the @b canonical @b carrier
+ *     inhabiting the NNO Form, certified by the @c IsNNO witness in
+ *     @c numbers:natural: exact, arbitrarily large but bounded by memory.
+ * @li @b ℕ (textbook symbol, in @c sets:boundaries) is the universe
+ *     @c 𝔸<Numeral> --- the @b symbol practitioners use.
  *
  * Sibling carrier witnesses ( @c Modular<2^w> as the @b bounded NNO,
  * the textbook ℤ/2^wℤ; @c unsigned @c int with the bounded-NNO
@@ -193,7 +186,7 @@ concept IsNNO = requires(Z z, S s, N n) {
  *  per-carrier flag.  So the order layer's value-determined point collapse of
  *  a bounded meet (@c {x : lo < x < hi} is the single point @c succ(lo) when
  *  @c succ(lo) @c == @c pred(hi)) gates on these, @b not on @c std::integral,
- *  which is a C++ accident that would exclude the ℕ proxy @c Cardinality ---
+ *  which is a C++ accident that would exclude ℕ's carrier @c Numeral ---
  *  itself the canonical NNO witness.
  *
  *  Built-in integral carriers step by @c ±1.  A carrier with the
@@ -230,12 +223,11 @@ constexpr T successor(const T& n) {
 
 /** @section nno__Pst_Chains  The step on the truth chains
  *  @f$\mathbf{Pst} = \mathbf{Jlt} \cap \mathbf{Chain}@f$: a bounded chain's
- *  cover saturates at ⊤ and its dual at ⊥, the posture @c Cardinality takes at
- *  ℵ₀.  So the shipped truth chains 𝔹 and K₃ have the NNO step (a dense Pst
- *  carrier such as the unit interval has none: density is the absence of a
- *  cover), and the order layer's point collapse reads @c {x : ⊥ < x < ⊤} on K₃
- *  as @c {Unknown}.  @c bool is
- *  integral, so its successor already saturates (@c true + 1 narrows to
+ *  cover saturates at ⊤ and its dual at ⊥.  So the shipped truth chains 𝔹 and
+ * K₃ have the NNO step (a dense Pst carrier such as the unit interval has none:
+ * density is the absence of a cover), and the order layer's point collapse
+ * reads @c {x : ⊥ < x < ⊤} on K₃ as @c {Unknown}.  @c bool is integral, so its
+ * successor already saturates (@c true + 1 narrows to
  *  @c true); its predecessor must not wrap. */
 export constexpr bool predecessor(bool) noexcept { return false; }
 /** @brief The octets' covering step: @c std::byte's order read as a chain,
@@ -278,7 +270,7 @@ struct Successor {
 
 /** @brief The zero element @f$Z : 1 \to N@f$, the nullary @c IsNNO witness: the
  *  carrier's default value, which is the NNO's zero for the integrals and for
- *  @c Cardinality.  Nullary, so not an @c IsArrow (that concept asks for a
+ *  @c Numeral.  Nullary, so not an @c IsArrow (that concept asks for a
  *  @c Domain); a composable @f$1 \to N@f$ arrow is not needed here.
  *  @tparam N the carrier. */
 export template <std::default_initializable N>
@@ -315,7 +307,7 @@ struct Predecessor {
  *  between, Davey and Priestley @cite davey2002lattices, ch.\ 1): the
  *  successor read partially,
  *  @c nullopt at a fixpoint of @c S, which on a saturating bounded chain is its
- *  top (ℵ₀ on @c Cardinality, @c True on K₃), and at a machine word's greatest
+ *  top (@c True on K₃), and at a machine word's greatest
  *  value, where @c S has no value (signed) or wraps (unsigned: the ring ℤ/2^w
  *  under @c S, the chain 0 < 1 < … < 2^w − 1 under its cover); total on an
  *  unbounded chain.  Whether the step itself is monotone is the arrow's fact

@@ -395,7 +395,7 @@ concept IsSubobject = IsCharacteristic<S> && std::same_as<Dom<S>, A> &&
  *  none) is that witness, so the fragment is gated on @ref IsFiniteChain: a
  *  totally ordered carrier that is finite by its representation --- a machine
  *  integer or an enumeration.  @c bool, @c Ternary (@f$K_3@f$) and @c int are
- *  the shipped witnesses; ℕ's @c Cardinality (a variant, unbounded) and the
+ *  the shipped witnesses; ℕ's @c Numeral (unbounded) and the
  *  dense carriers are not.  Products of finite chains follow with
  *  @c IsProduct.
  */
@@ -427,7 +427,7 @@ concept IsLSet =
 
 /** @brief A carrier that is a @b finite chain by its representation: totally
  *  ordered and either a machine integer or an enumeration (both finite by
- *  construction).  @c bool, @c Ternary, @c int qualify; @c Cardinality and
+ *  construction).  @c bool, @c Ternary, @c int qualify; @c Numeral and
  *  the dense carriers do not.
  *  @tparam T the carrier. */
 export template <typename T>

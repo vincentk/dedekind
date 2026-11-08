@@ -15,9 +15,9 @@
  *
  * @section halfspace__DSL_Surface
  *
- *     constexpr auto big   = ℕ & (π > 5);
- *     constexpr auto small = ℕ & (π < 3);
- *     static_assert((big & small) == Ø<Cardinality>{});
+ *     constexpr auto big   = ℕ & (π > 5u);
+ *     constexpr auto small = ℕ & (π < 3u);
+ *     static_assert((big & small) == Ø<Numeral>{});
  *
  * Wikipedia: Half-space (geometry), Separating hyperplane theorem,
  *
@@ -107,17 +107,17 @@ export constexpr bool is_order_rel(Rel r) {
 
 // The NNO steps (@c category:nno) as customization points: the two-step brings
 // the generic defaults into scope so an unqualified call also admits a
-// carrier's own ADL overload (the ℕ proxy's, in @c :sets:cardinality).
+// carrier's own ADL overload (ℕ's, in @c :sets:cardinality).
 using dedekind::category::HasNNOStep;
 using dedekind::category::IsPst;
 using dedekind::category::predecessor;
 using dedekind::category::successor;
-// The gate is TRUE on both the machine integers and the ℕ proxy: the latter's
+// The gate is TRUE on both the machine integers and ℕ's Numeral: the latter's
 // steps are found by ADL in :sets:cardinality.  This is what restores the ℕ
 // point collapse ({x>5} ∩ {x<7} = {6}) that a std::integral gate excluded.
 static_assert(HasNNOStep<int>, "machine integers step by ±1.");
-static_assert(HasNNOStep<dedekind::sets::Cardinality>,
-              "the ℕ proxy steps through its NNO successor / predecessor "
+static_assert(HasNNOStep<dedekind::sets::Numeral>,
+              "ℕ steps through its NNO successor / predecessor "
               "(the canonical NNO witness, found by ADL).");
 static_assert(HasNNOStep<dedekind::sets::SignedCardinality>,
               "the ℤ proxy steps by ±1 through the same customization points, "
@@ -154,8 +154,8 @@ struct Interval : dedekind::sets::SetExpr<Interval<V, L>, V, L> {
    *  @details The two DECIDED cases (⊥ / ⊤) need no carrier comparison, so
    *  they are answered in this small front and the carrier comparisons live in
    *  @c contains_bounded behind it.  The split is load-bearing for the IR
-   *  exhibits: on a variant carrier (ℕ = @c Cardinality) the comparisons are
-   *  heavy enough that the inliner declines a single fat function, and a
+   *  exhibits: on a variant carrier (ℤ = @c SignedCardinality) the comparisons
+   * are heavy enough that the inliner declines a single fat function, and a
    *  constant @c Interval then stays a call instead of folding to @c ret @c i1
    *  @c false.  A small front inlines, the loads from the constant fold, and
    *  the bounded call is dead code. */
@@ -201,7 +201,7 @@ struct Interval : dedekind::sets::SetExpr<Interval<V, L>, V, L> {
    *  empty if the bounds cross, the single point where the chain admits exactly
    *  one element, else the interval.  The ONE collapse law every meet rides.
    *  The point collapse gates on the NNO steps (@c HasNNOStep: successor /
-   *  predecessor, an axiom of the category), so the ℕ proxy @c Cardinality
+   *  predecessor, an axiom of the category), so ℕ's @c Numeral
    *  collapses to its point exactly as a machine integer does. */
   static constexpr Interval bounded(V lo, Strictness sl, V hi, Strictness su) {
     const bool either_strict =
@@ -550,8 +550,6 @@ constexpr auto operator==(const S& s, const 𝔸<T, L, CU>& u) {
 }
 namespace detail_interval_witness {
 using dedekind::category::Ternary;
-using dedekind::sets::Cardinality;
-using dedekind::sets::ℵ_0;
 static_assert(
     Interval<int>::bounded(0, Strictness::Strict, 3, Strictness::Strict) ==
         Interval<int>::bounded(1, Strictness::NonStrict, 3, Strictness::Strict),
@@ -563,17 +561,10 @@ static_assert(
                               Strictness::NonStrict)),
     "{x > ⊤} is not {x ≥ ⊤}: at a saturating end a strict bound has no closed "
     "form.");
-static_assert(
-    Ø<int>{} == Interval<int>::half(std::numeric_limits<int>::max(),
-                                    Direction::Upward, Strictness::Strict) &&
-        𝔸<Cardinality>{} ==
-            Interval<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
-                                        Strictness::NonStrict) &&
-        !(𝔸<Cardinality>{} == Interval<Cardinality>::half(Cardinality{ℵ_0{}},
-                                                          Direction::Downward,
-                                                          Strictness::Strict)),
-    "the carrier's ends: {x > max} is Ø, {n ≤ ℵ₀} is 𝔸, and the "
-    "finite fragment {n < ℵ₀} is not.");
+static_assert(Ø<int>{} == Interval<int>::half(std::numeric_limits<int>::max(),
+                                              Direction::Upward,
+                                              Strictness::Strict),
+              "the carrier's end: {x > max} is Ø.");
 }  // namespace detail_interval_witness
 
 /** @section halfspace__Halfspace_Structural_Algebra — ADL hooks for operator&&.
@@ -620,8 +611,8 @@ constexpr auto intervals(const S& s) {
  * @c Halfspace, whose species is the universe's (@c Boole): decidable
  * membership, with no carrier-axis resolver in between. */
 namespace detail_pointfree_decidability {
-using PointFree = decltype(ℕ & (π > 5));
-static_assert(HasDecidableMembership<decltype(ℕ & (π > 5))>,
+using PointFree = decltype(ℕ & (π > 5u));
+static_assert(HasDecidableMembership<decltype(ℕ & (π > 5u))>,
               "ℕ | x>5 is a decidable (Boole) set.");
 }  // namespace detail_pointfree_decidability
 
@@ -890,95 +881,69 @@ static_assert((𝔹 * 𝔹 & (𝑦 == ap(dedekind::category::Identity<bool>{},
                                      𝑥)))(std::pair{true, false}),
               "𝑦 == ap(id, 𝑥) is the diagonal.");
 
-// successor graph: {(a,b) | b = a + 1} = ℕ * ℕ & π_1 + 1 == π_2.
-static_assert((ℕ * ℕ & π_1 + 1 == π_2)(std::pair{finite_cardinality(4),
-                                                 finite_cardinality(5)}),
+// successor graph: {(a,b) | b = a + 1} = ℕ * ℕ & π_1 + 1u == π_2 (ℕ takes
+// unsigned constants).
+static_assert((ℕ * ℕ & π_1 + 1u == π_2)(std::pair{Numeral{4u}, Numeral{5u}}),
               "4 + 1 == 5: (4,5) ∈ the successor graph.");
-static_assert(!(ℕ * ℕ & π_1 + 1 == π_2)(std::pair{finite_cardinality(4),
-                                                  finite_cardinality(6)}),
+static_assert(!(ℕ * ℕ & π_1 + 1u == π_2)(std::pair{Numeral{4u}, Numeral{6u}}),
               "4 + 1 != 6: (4,6) ∉ the successor graph.");
 // A RESTRICTED domain: the successor graph over {x ≤ 5} × ℕ.  operator* keeps
 // the ≤5 bound by lifting it to the π_1 cylinder, so x = 7 is excluded even
 // though 8 = 7+1: the factor predicate is not dropped.
-static_assert(((ℕ & (π <= 5)) * ℕ & π_1 + 1 == π_2)(std::pair{
-                  finite_cardinality(4), finite_cardinality(5)}),
+static_assert(((ℕ & (π <= 5u)) * ℕ &
+               π_1 + 1u == π_2)(std::pair{Numeral{4u}, Numeral{5u}}),
               "(4,5): 4 ≤ 5 ∧ 5 = 4+1, in the restricted successor graph.");
-static_assert(!((ℕ & (π <= 5)) * ℕ & π_1 + 1 == π_2)(std::pair{
-                  finite_cardinality(7), finite_cardinality(8)}),
+static_assert(!((ℕ & (π <= 5u)) * ℕ &
+                π_1 + 1u == π_2)(std::pair{Numeral{7u}, Numeral{8u}}),
               "(7,8): 7 ≰ 5, excluded though 8 = 7+1.");
-// doubling graph: {(a,b) | b = 2a} = ℕ * ℕ & π_1 * 2 == π_2.
-static_assert((ℕ * ℕ & π_1 * 2 == π_2)(std::pair{finite_cardinality(3),
-                                                 finite_cardinality(6)}),
+// doubling graph: {(a,b) | b = 2a} = ℕ * ℕ & π_1 * 2u == π_2.
+static_assert((ℕ * ℕ & π_1 * 2u == π_2)(std::pair{Numeral{3u}, Numeral{6u}}),
               "3 * 2 == 6: (3,6) ∈ the doubling graph.");
-static_assert(!(ℕ * ℕ & π_1 * 2 == π_2)(std::pair{finite_cardinality(3),
-                                                  finite_cardinality(7)}),
+static_assert(!(ℕ * ℕ & π_1 * 2u == π_2)(std::pair{Numeral{3u}, Numeral{7u}}),
               "3 * 2 != 7: (3,7) ∉ the doubling graph.");
-// affine graph: {(a,b) | b = 3a+1} = ℕ * ℕ & π_1 * 3 + 1 == π_2
+// affine graph: {(a,b) | b = 3a+1} = ℕ * ℕ & π_1 * 3u + 1u == π_2
 // (the Collatz odd branch, :collatz).
-static_assert((ℕ * ℕ & π_1 * 3 + 1 == π_2)(std::pair{finite_cardinality(7),
-                                                     finite_cardinality(22)}),
+static_assert((ℕ * ℕ &
+               π_1 * 3u + 1u == π_2)(std::pair{Numeral{7u}, Numeral{22u}}),
               "3·7+1 == 22: (7,22) ∈ the affine graph.");
-static_assert(!(ℕ * ℕ & π_1 * 3 + 1 == π_2)(std::pair{finite_cardinality(7),
-                                                      finite_cardinality(21)}),
+static_assert(!(ℕ * ℕ &
+                π_1 * 3u + 1u == π_2)(std::pair{Numeral{7u}, Numeral{21u}}),
               "3·7+1 != 21: (7,21) ∉ the affine graph.");
 
 // dom / cod are the projections π_A / π_B (Table 3), recovered from the graph's
 // STRUCTURE: they return the DECLARED domain/codomain, not the effective image.
-// The residue graph has no axis cylinder, so both recover the declared universe
-// ℕ (unqualified so ADL finds the order-layer recovery).  cod is thus the
-// declared ℕ --- its EFFECTIVE second projection is only the residue class
-// {0,…,16}, but reading that off is the ∃-elimination behind the Rice wall
-// (§3.3), so cod does not claim surjectivity here.
-static_assert(dom(ℕ * ℕ & π_1 % 17 == π_2)(finite_cardinality(100)),
-              "π_A of the residue graph = declared ℕ (entire), contains 100.");
-static_assert(cod(ℕ * ℕ & π_1 % 17 == π_2)(finite_cardinality(3)),
-              "π_B = declared codomain ℕ, contains 3 (NOT the effective "
-              "{0,…,16} residue image, which would need the ∃-projection).");
-
 // With a RESTRICTED factor, dom recovers the halfspace off the π_1 cylinder:
 // π_A((ℕ|≤5)*ℕ) = {a ≤ 5}, while cod stays the unrestricted ℕ.
-static_assert(dom((ℕ & (π <= 5)) * ℕ)(finite_cardinality(4)),
+static_assert(dom((ℕ & (π <= 5u)) * ℕ)(Numeral{4u}),
               "π_A recovers {a ≤ 5}: 4 ≤ 5.");
-static_assert(!dom((ℕ & (π <= 5)) * ℕ)(finite_cardinality(7)),
+static_assert(!dom((ℕ & (π <= 5u)) * ℕ)(Numeral{7u}),
               "π_A recovers {a ≤ 5}: 7 ≰ 5.");
-static_assert(cod((ℕ & (π <= 5)) * ℕ)(finite_cardinality(99)),
+static_assert(cod((ℕ & (π <= 5u)) * ℕ)(Numeral{99u}),
               "π_B is unrestricted ℕ: contains 99.");
 // The restriction survives a graph refinement (dom digs through
 // ProductRestrict).
-static_assert(dom((ℕ & (π <= 5)) * ℕ & π_1 + 1 == π_2)(finite_cardinality(4)),
+static_assert(dom((ℕ & (π <= 5u)) * ℕ & π_1 + 1u == π_2)(Numeral{4u}),
               "π_A of the restricted successor still recovers {a ≤ 5}.");
 
 // TWO bounds on the SAME axis: dom recovers the TIGHTER halfspace (their meet),
 // not either bound alone.  Guards axis_factor's both-branch: the factors are
 // recovered Halfspace SETS, so their meet is the set-level & collapse; the
 // predicate-level && would build a categorical Morphism and lose dom/cod.
-static_assert(dom(ℕ * ℕ & (π_1 <= 5 && π_1 <= 3))(finite_cardinality(3)),
+static_assert(dom(ℕ * ℕ & (π_1 <= 5u && π_1 <= 3u))(Numeral{3u}),
               "π_A of {a ≤ 5 ∧ a ≤ 3} recovers the tighter {a ≤ 3}: 3 ≤ 3.");
-static_assert(!dom(ℕ * ℕ & (π_1 <= 5 && π_1 <= 3))(finite_cardinality(4)),
+static_assert(!dom(ℕ * ℕ & (π_1 <= 5u && π_1 <= 3u))(Numeral{4u}),
               "π_A recovers the TIGHTER bound: 4 ≤ 5 but 4 ≰ 3, so excluded.");
 // Three same-axis bounds reduce to one factor whatever the association: the
 // meet lattice is closed over its own outputs (#872).
-static_assert(dom(ℕ * ℕ & ((π_1 >= 1 && π_1 <= 5) && π_1 >= 2)) ==
-                  Interval<Cardinality>::bounded(finite_cardinality(2),
-                                                 Strictness::NonStrict,
-                                                 finite_cardinality(5),
-                                                 Strictness::NonStrict),
+static_assert(dom(ℕ * ℕ & ((π_1 >= 1u && π_1 <= 5u) && π_1 >= 2u)) ==
+                  Interval<Numeral>::bounded(Numeral{2u}, Strictness::NonStrict,
+                                             Numeral{5u},
+                                             Strictness::NonStrict),
               "π_A of {1 ≤ a ≤ 5 ∧ a ≥ 2} is the interval [2, 5].");
 static_assert(
-    dom(ℕ * ℕ & ((π_1 >= 1 && π_1 <= 5) && π_1 >= 2)) ==
-        dom(ℕ * ℕ & (π_1 >= 1 && (π_1 <= 5 && π_1 >= 2))),
+    dom(ℕ * ℕ & ((π_1 >= 1u && π_1 <= 5u) && π_1 >= 2u)) ==
+        dom(ℕ * ℕ & (π_1 >= 1u && (π_1 <= 5u && π_1 >= 2u))),
     "the factor is independent of the association of the three bounds.");
-
-// relational application: apply(R, a) is the fibre {b | (a,b) ∈ R}.  For the
-// residue graph (a function) it is the singleton {a % 17}: apply(R,20) = {3}.
-static_assert(
-    dedekind::relational::apply(ℕ * ℕ & π_1 % 17 == π_2,
-                                finite_cardinality(20))(finite_cardinality(3)),
-    "apply(R,20) = {3}: (20,3) ∈ R since 20 % 17 == 3.");
-static_assert(
-    !dedekind::relational::apply(ℕ * ℕ & π_1 % 17 == π_2,
-                                 finite_cardinality(20))(finite_cardinality(4)),
-    "apply(R,20) does not contain 4.");
 
 /** @brief @c upperbounds(S) --- the @f$\forall@f$-projection @f$R/\ni@f$: the
  *  region dominating all of @c S, and the pluggable point of the extremum
@@ -1037,7 +1002,7 @@ constexpr auto lowerbounds(const 𝔸<bool, L, C>&) {
 }
 
 // #895/#932: a disjoint bare halfspace-meet collapses to the empty set.
-static_assert(((ℕ & (π > 5)) & (ℕ & (π < 3))) == Ø<Cardinality>{},
+static_assert(((ℕ & (π > 5u)) & (ℕ & (π < 3u))) == Ø<Numeral>{},
               "bare {x>5} ∩ {x<3} collapses to the empty set (#895 / #932).");
 
 /** @brief @c max(S) --- the generic extremum: @c S met (@c ∩) with its own
@@ -1068,21 +1033,22 @@ constexpr auto min(const S& s) {
 
 inline constexpr auto ℤ =
     𝔸<SignedCardinality>{};  // local alias (:integer is downstream)
-// Exhibit (intensional, infinite case) over ℕ = @c 𝔸<Cardinality> and ℤ =
+// Exhibit (intensional, infinite case) over ℕ = @c 𝔸<Numeral> and ℤ =
 // @c 𝔸<SignedCardinality>, both registered chains (ℤ under the posture that
 // its sentinels ±ℵ_0 / NaZ are the memory boundary, not points of ℤ).
-inline constexpr auto le5 = ℕ & (π <= 5);  // {x ∈ ℕ | x ≤ 5}
-inline constexpr auto ge5 = ℕ & (π >= 5);  // {x ∈ ℕ | x ≥ 5}
-static_assert(max(le5)(5), "5 = max {x ≤ 5} (read off the pivot).");
-static_assert(!max(le5)(3), "3 is not the greatest element of {x ≤ 5}.");
-static_assert(min(ge5)(5), "5 = min {x ≥ 5}.");
-static_assert(!min(ge5)(7), "7 is not the least element of {x ≥ 5}.");
+inline constexpr auto le5 = ℕ & (π <= 5u);  // {x ∈ ℕ | x ≤ 5}
+inline constexpr auto ge5 = ℕ & (π >= 5u);  // {x ∈ ℕ | x ≥ 5}
+static_assert(max(le5)(Numeral{5u}), "5 = max {x ≤ 5} (read off the pivot).");
+static_assert(!max(le5)(Numeral{3u}),
+              "3 is not the greatest element of {x ≤ 5}.");
+static_assert(min(ge5)(Numeral{5u}), "5 = min {x ≥ 5}.");
+static_assert(!min(ge5)(Numeral{7u}), "7 is not the least element of {x ≥ 5}.");
 // DISCRETE strict: {x<5} on ℕ has attained max 4 (the predecessor), NOT ∅; the
-// bound is reached through the NNO's step on the Cardinality proxy, exactly as
-// on a machine integer.
-static_assert(max(ℕ&(π < 5))(4), "4 = max {x < 5} on ℕ.");
-static_assert(!max(ℕ & (π < 5))(5), "5 ∉ {x < 5}, so not its max.");
-static_assert(min(ℕ&(π > 5))(6), "6 = min {x > 5} on ℕ.");
+// bound is reached through the NNO's step on Numeral, exactly as on a machine
+// integer.
+static_assert(max(ℕ&(π < 5u))(Numeral{4u}), "4 = max {x < 5} on ℕ.");
+static_assert(!max(ℕ & (π < 5u))(Numeral{5u}), "5 ∉ {x < 5}, so not its max.");
+static_assert(min(ℕ&(π > 5u))(Numeral{6u}), "6 = min {x > 5} on ℕ.");
 // ℤ: the same extrema, and the negative side ℕ cannot spell.
 static_assert(max(ℤ&(π <= 5))(5), "5 = max {x ≤ 5} on ℤ.");
 static_assert(!max(ℤ & (π <= 5))(3), "3 is not the greatest element.");
@@ -1184,12 +1150,10 @@ static_assert(Interval<int>::bounded(3, Strictness::Strict, 5,
                                      Strictness::Strict) ==
                   Interval<int>::point(4),
               "(3, S(S(3))) is the point S(3) = 4.");
-static_assert(Interval<Cardinality>::bounded(finite_cardinality(3),
-                                             Strictness::Strict,
-                                             finite_cardinality(4),
-                                             Strictness::Strict) ==
-                  Interval<Cardinality>::empty(),
-              "…and on the ℕ proxy, through its own successor.");
+static_assert(Interval<Numeral>::bounded(Numeral{3u}, Strictness::Strict,
+                                         Numeral{4u}, Strictness::Strict) ==
+                  Interval<Numeral>::empty(),
+              "…and on ℕ, through its own successor.");
 static_assert(Interval<Ternary>::bounded(Ternary::False, Strictness::Strict,
                                          Ternary::True, Strictness::Strict) ==
                   Interval<Ternary>::point(Ternary::Unknown),
@@ -1208,11 +1172,11 @@ static_assert(detail_cover_witness::order_is_cover_star(8),
 // (the R/∋ division) decided by the counterexample set {x≤5} ∩ {x>5} collapsing
 // to ∅ via the complement-pair meet.  So the specialisation is checked against
 // the general law, not merely trusted (the Wadler free theorem, mechanised).
-static_assert(max(le5)(5) ==
-                  (le5(5) && (le5 & (ℕ & (π > 5))) == Ø<Cardinality>{}),
+static_assert(max(le5)(Numeral{5u}) ==
+                  (le5(Numeral{5u}) && (le5 & (ℕ & (π > 5u))) == Ø<Numeral>{}),
               "specific max(le5) models (∈) ∩ (R/∋) at the pivot.");
-static_assert(min(ge5)(5) ==
-                  (ge5(5) && (ge5 & (ℕ & (π < 5))) == Ø<Cardinality>{}),
+static_assert(min(ge5)(Numeral{5u}) ==
+                  (ge5(Numeral{5u}) && (ge5 & (ℕ & (π < 5u))) == Ø<Numeral>{}),
               "specific min(ge5) models (∈) ∩ (R/∋) at the pivot.");
 
 // Exhibit (finite case): max 𝔹 = {true}, min 𝔹 = {false} --- the SAME generic

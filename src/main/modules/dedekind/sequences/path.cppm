@@ -71,11 +71,7 @@ using namespace dedekind::order;
  *               with all existing call sites.  The Form-shaped choices
  *               are @c dedekind::sets::ExtensionalCardinal<> (the
  *               algebraically-certified finite ℕ carrier) and
- *               @c dedekind::sets::Cardinality (the variant ℕ Form).
- *               Closes the Sollbruchstelle documented on this struct
- *               historically (@c "Path::Domain currently @c std::size_t —
- *               once generalised, @c Cardinality is what makes the
- *               @c size_t choice principled rather than accidental").
+ *               @c dedekind::sets::SignedCardinality (the variant ℤ Form).
  */
 export template <typename T, typename Cardinality = ℵ_0,
                  dedekind::sets::IsRingIntegral Index = std::size_t>
@@ -1033,7 +1029,7 @@ static_assert(
 // IsSequence (above, in :net) now requires its @c Domain to satisfy
 // @c IsRingIntegral — the algebraic concept certified for the operational
 // carriers (std::size_t, unsigned, etc.) AND the project's Form-shaped
-// carriers (Cardinality, SignedCardinality) at :sets:cardinality.  This
+// carrier (SignedCardinality) at :sets:cardinality.  This
 // pins the Form-before-Carrier discipline at the type level: the choice of
 // std::size_t for Path::Domain is principled (satisfies the algebraic
 // concept) rather than ad-hoc, and the same algebraic concept gates the
@@ -1041,7 +1037,7 @@ static_assert(
 static_assert(
     dedekind::sets::IsRingIntegral<typename Path<int>::Domain>,
     "Path::Domain must satisfy IsRingIntegral — the algebraic concept "
-    "shared by std::size_t (operational) and Cardinality (Form).");
+    "shared by std::size_t (operational) and SignedCardinality (Form).");
 static_assert(dedekind::sets::IsRingIntegral<typename FinitePath<int>::Domain>,
               "FinitePath::Domain must satisfy IsRingIntegral.");
 

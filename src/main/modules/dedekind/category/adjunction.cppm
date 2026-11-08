@@ -24,8 +24,7 @@
  *
  * Concrete carrier-side instances:
  *   * @c F : @c Rig @c → @c Ring (the Grothendieck construction):
- *     @c SignedCardinality @c = @c F(Cardinality), @c Cardinality @c
- *     = @c U(SignedCardinality).
+ *     ℤ @c = @c F(ℕ), ℕ @c = @c U(ℤ).
  *   * @c F : @c IntegralDomain @c → @c Field (the field of fractions):
  *     @c Rational<Z> @c = @c F(Z) for @c Z @c = @c
  *     SignedExtensionalCardinal<>.
@@ -35,9 +34,7 @@
  *     closure): @c Complex @c = @c F(Real).
  *
  * Each step in the carrier lattice ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ is a free
- * construction in its respective category.  The closure-forcing
- * operators (@c -Cardinality @c → @c SignedCardinality, etc.) are the
- * unit's components made operational at the operator level — see
+ * construction in its respective category; see
  * @c docs/design/carrier-lattice.md.
  *
  * @section adjunction__Two_concept_tiers

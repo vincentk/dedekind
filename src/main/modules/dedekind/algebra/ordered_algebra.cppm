@@ -85,14 +85,11 @@ namespace dedekind::algebra {
  *       they fail the marker by default.
  *
  * @note The project put deliberate effort into the saturating
- *       variants (@c sets::SignedCardinality, @c sets::Cardinality)
- *       precisely so they would be bona-fide proxies for
- *       @f$\mathbb{Z}@f$ / @f$\mathbb{N}@f$ rather than cyclic
- *       (cf.\ @c cardinality.cppm:878-967 --- "@c SignedCardinality
- *       is the signed counterpart of @c Cardinality (the ℕ ∪ ℵ_0
- *       variant): ... saturating ... not periodic ... the library's
- *       bona-fide proxy for ℤ modulo physical limits").  The marker
- *       opt-in below honours that effort: it is specialised for
+ *       variant @c sets::SignedCardinality precisely so it would be a
+ *       bona-fide proxy for @f$\mathbb{Z}@f$ rather than cyclic
+ *       (cf.\ @c cardinality.cppm --- "saturating ... not periodic ...
+ *       the library's bona-fide proxy for ℤ modulo physical limits").  The
+ * marker opt-in below honours that effort: it is specialised for
  *       @c SignedCardinality, @b not for the cyclic finite-fragment
  *       @c SignedExtensionalCardinal<S>.
  */
