@@ -133,8 +133,8 @@ A chain under a step that does not descend is therefore ill-typed, and the termi
 A range may be a type variable $R$ under $\mathit{IsRange}\texttt{<}R\texttt{, }T\texttt{>}$ $=$ \cppinline{requires (const R r) { { size(r) } -> same_as<size_t>; { head(r) } -> same_as<T>; { next(r) } -> same_as<R>; }}.
 The instances of $\mathcal{R}$ over $\tau$, and only they, satisfy it at $T = \tau$.
 Membership in $\mathcal{R}$, with its falling length, is a premise, so three operations without that law do not suffice.
-Listing~\ref{lst:rule3}'s \cppinline{concat} writes the weaker \cppinline{std::ranges::input_range<R>}, which the kernel reads as $\mathit{IsRange}$ with $T$ the deduced \cppinline{ranges::range_value_t<R>}.
-A standard range outside $\mathcal{R}$, an unsized view, is not in the kernel.
+Listing~\ref{lst:rule3}'s \cppinline{concat} writes \cppinline{IsBoundedRange<R>}, a range with a count known before the fold starts, which the kernel reads as $\mathit{IsRange}$ with $T$ the deduced \cppinline{ranges::range_value_t<R>}.
+A standard range with no such count, such as \cppinline{views::iota(a)}, is not in the kernel.
 \textsc{T-Fold-R} types a fold at a type variable $R$ through the assumed shape $\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$.
 The length, head and tail are its three requirements, read from the record, and a caller's concrete range supplies the record by \textsc{E-Shape} at instantiation.
 In \textsc{T-Cata}, $\mu F$ is a term type, the inductive type of the nodes that build it.

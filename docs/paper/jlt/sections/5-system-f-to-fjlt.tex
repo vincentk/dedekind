@@ -75,7 +75,7 @@ constexpr T power(const T& x, N n, Op op) {
     return n % 2 == 1 ? op(hh, x) : hh;
   }
 }
-template <ranges::input_range R,
+template <IsBoundedRange R,
           typename T = ranges::range_value_t<R>,
           typename Op = plus<T>>
   requires IsMonoid<T, Op> && IsCopies<R>
@@ -94,7 +94,7 @@ template <> struct acting_monoid<Act> {
   using type = multiplies<M>;
 };
 // the overload it licenses
-template <ranges::input_range R,
+template <IsBoundedRange R,
           semiregular M, typename H>
   requires IsCopies<R> && IsRightAction<
                H, M, ranges::range_value_t<R>>
