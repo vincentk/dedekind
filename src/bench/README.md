@@ -2,7 +2,7 @@
 
 How fast is the scan of [Listing 5](../../README.md), and why? This counts the palindromic hexamers in a text of DNA, four ways, and keeps the compiler's output beside the times. Tracked in [#1154](https://github.com/vincentk/dedekind/issues/1154).
 
-Figures are to one significant digit, from one run on one shared GitHub runner, main's `benchmark` job at commit `8507f613` on an AMD EPYC 7763, Clang 23, `-O2`, unless a row says otherwise; [One run in full](#one-run-in-full) has every row. Benchmarks are fickle, and shared runners more so: the orders of magnitude are the result, and the digits are not.
+The figures in [The result](#the-result) are to one significant digit, from one run on one shared GitHub runner, main's `benchmark` job at commit `8507f613` on an AMD EPYC 7763, Clang 23, `-O2`; [One run in full](#one-run-in-full) has every row. The oddities below are observations across earlier runs and machines, each naming its own where it matters. Benchmarks are fickle, and shared runners more so: the orders of magnitude are the result, and the digits are not.
 
 ## The ladder
 
