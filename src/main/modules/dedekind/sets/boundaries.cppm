@@ -624,9 +624,9 @@ static_assert(IsSet<Ø<int>> && !IsSet<𝔸<int, Kleene>>,
               "only a Boolean boundary object is an ETCS set: a Kleene-valued "
               "one lives in the Sierpiński topos, which is not well-pointed.");
 static_assert(IsFiniteLSet<Ø<bool>> && IsFiniteLSet<Ø<Ternary>> &&
-                  IsFiniteLSet<Ø<int>> && !IsFiniteLSet<Ø<Cardinality>>,
+                  IsFiniteLSet<Ø<int>> && !IsFiniteLSet<Ø<Numeral>>,
               "bool, K₃ and the machine integers are finite chain carriers "
-              "(Pst); ℕ's Cardinality is not.");
+              "(Pst); ℕ's Numeral is not.");
 static_assert(Is𝔸<𝔸<int>> && !Is𝔸<Ø<int>>,
               "𝔸 is the universe (terminal in Sub(T)); Ø is not.");
 static_assert(IsSetObject<Ø<int>>,
@@ -949,43 +949,24 @@ static_assert(IsSet<decltype(Ø<int>{})>,
 static_assert(IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
               "The empty boundary must lift to an ETCS set object.");
 
-/** @brief The canonical Natural-numbers universe @c ℕ = @c 𝔸<Cardinality>
- *  (post-#559).
+/** @brief The canonical natural-numbers universe @c ℕ = @c 𝔸<Numeral>.
  *
- *  @details Per #559's chosen direction (option A): the named species
- *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
- *  @b universe values (constexpr instances of @c 𝔸 over the
- *  carrier), not carrier @b types.  Carrier types are spelled directly
- *  (@c bool, @c Cardinality, @c SignedExtensionalCardinal<>, ...) in
- *  template-type-parameter positions; the math symbols denote the sets.
- *
- *  This makes @c ℕ @c | @c (π @c ⋈ @c c) the canonical spelling for a
- *  subset of the natural-numbers universe, close to textbook notation.
- *
- *  Pre-#559 the spelling was @c using @c ℕ @c = @c
- *  dedekind::sets::Cardinality (carrier-type alias, post-#402); the
- *  ~110 type-context sites of @c ℕ in concept gates and static_asserts
- *  were migrated to @c Cardinality directly in step 1 of the ℕ slice.
- *
- *  Carrier reading retained: @c Cardinality is the variant ℕ-proxy
- *  (= @c std::variant<ExtensionalCardinal<>, ℵ_0>) — saturating to
- *  @c ℵ_0 on overflow rather than wrapping the way @c unsigned @c int
- *  would.  The structural advantage: the variant honestly models ℕ
- *  (no additive inverses; rig-not-ring), whereas @c unsigned @c int
- *  is structurally @b more than ℕ (modular ring with additive
- *  inverses).  Witnesses (@c IsRig, @c IsCommutativeMonoid,
- *  @c IsTotallyOrdered, @c IsDirectedSet, @c IsDirectedPoset, ...)
- *  are now expressed against @c Cardinality directly.
+ *  @details Per #559 the named species symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ /
+ *  @c ℝ / @c ℂ / @c 𝔻) denote the @b universe values (constexpr instances of
+ *  @c 𝔸 over the carrier), not carrier @b types; carrier types are spelled
+ *  directly (@c bool, @c Numeral, ...) in type positions.  So @c ℕ @c | @c (π
+ *  @c ⋈ @c c) is the spelling of a subset of the natural numbers, close to
+ *  textbook notation.  The carrier is @c Numeral, ℕ exact above the word.
  */
-export inline constexpr auto ℕ = 𝔸<Cardinality>{};
+export inline constexpr auto ℕ = 𝔸<Numeral>{};
 
 // The canonical witnesses for ℕ; downstream partitions build on these.  The
 // subobject "ℕ ⊂ ℤ" over a signed carrier is not a second ℕ: it is the
 // halfspace 𝔸<int>{} & (π >= 0) in :order.
-static_assert(std::same_as<std::remove_cvref_t<decltype(ℕ)>, 𝔸<Cardinality>> &&
-                  std::same_as<𝔸<Cardinality>::Domain, Cardinality> &&
-                  IsSet<𝔸<Cardinality>>,
-              "ℕ is the universe over the Cardinality carrier, an ETCS set.");
+static_assert(std::same_as<std::remove_cvref_t<decltype(ℕ)>, 𝔸<Numeral>> &&
+                  std::same_as<𝔸<Numeral>::Domain, Numeral> &&
+                  IsSet<𝔸<Numeral>>,
+              "ℕ is the universe over the Numeral carrier, an ETCS set.");
 
 /** @brief @c 𝔹 --- the canonical Boolean universe @c 𝔸<bool>{}, the finite
  *  set @f$\{\mathtt{false},\mathtt{true}\}@f$.  This is the one symbol

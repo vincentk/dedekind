@@ -58,8 +58,7 @@ export module dedekind.sets:expressions;
 
 import dedekind.category;
 import :boundaries;     // For 𝔸, Ø
-import :cardinality;    // For Cardinality / SignedCardinality (cross-carrier
-                        // meet)
+import :cardinality;    // Numeral / SignedCardinality: the ℕ / ℤ carriers
 import :computability;  // HasDecidableMembership
 import :terms;          // the term grammar: projections, atoms, RelAnd / RelOr
 
@@ -524,7 +523,7 @@ export struct SetCombine {
 //
 // A comprehension's universe is its BASE's universe: the mereological whole is
 // what the base is a part of, restriction only shrinks the part.  So `ℕ | P`
-// has universe 𝔸<Cardinality>, and `(ℕ | P) | Q` the same --- the recursion
+// has universe 𝔸<Numeral>, and `(ℕ | P) | Q` the same --- the recursion
 // bottoms out at the universe, which is its own universe.
 export template <typename Base, typename Predicate>
 constexpr auto universe(const Comprehension<Base, Predicate>&) {

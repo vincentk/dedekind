@@ -276,7 +276,7 @@ rule3-bounded-fold           src/main/modules/dedekind/sets/terms.cppm  sets  1
 rule1-no-throw               src/main/modules/dedekind/sets/[!crst]*.cppm  sets  0
 rule1-no-throw               src/main/modules/dedekind/sets/si*.cppm  sets  0
 rule1-no-throw               src/main/modules/dedekind/sets/computability.cppm  sets  0
-rule1-no-throw               src/main/modules/dedekind/sets/cardinality.cppm  sets  1
+rule1-no-throw               src/main/modules/dedekind/sets/cardinality.cppm  sets  0
 rule1-no-throw               src/main/modules/dedekind/sets/recursion.cppm  sets  1
 rule1-no-throw               src/main/modules/dedekind/sets/terms.cppm  sets  38
 rule1-lvalue-reference-params src/main/modules/dedekind/sets/[!cst]*.cppm  sets  0

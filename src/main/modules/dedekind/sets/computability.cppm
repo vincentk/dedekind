@@ -62,7 +62,7 @@ using namespace dedekind::category;
  *  There is no carrier-axis species resolver: a universe over a regular
  *  carrier answers in @c Boole (its equality is decidable), and a set's species
  *  is read off its classifier (@c category::classifier_logic_t, joined along
- *  the dominance in @c :expressions).  Cardinality stays a cardinality
+ *  the dominance in @c :expressions).  A cardinality stays a cardinality
  *  (@c IsCountable) and picks no logic. */
 
 /**
