@@ -141,7 +141,9 @@ import :posetal;    // ArrowLaws, arrow_node, arrow_laws_v: the law engine
                     // LawAlgebra folds
 import :cartesian;  // the formers ⟨,⟩ [,] and the defining forms of × +
 import :morphism;   // IsArrow, Compose, π_1 / π_2: the first concrete term
-                    // functor
+import :logic;      // Ternary: the bounded chain, the non-example
+import :nno;  // In = [Z, S] and Prior, its inverse: the NNO's structure maps
+              // functor
 
 namespace dedekind::category {
 
@@ -192,6 +194,23 @@ inline constexpr bool is_terminal_f_coalgebra_v = false;
 export template <typename F, typename A, typename α>
 concept IsInitialFAlgebra =
     IsFAlgebra<A, α, F> && is_initial_f_algebra_v<F, A, α>;
+/** @brief The NNO's structure maps are Maybe's (#1007): @c In @c = @c [Z, S]
+ *  @c : @c 1 @c + @c N @c → @c N an algebra, @c Prior its inverse a
+ *  coalgebra.  None of the shipped carriers is the initial one (the
+ *  Lambek section of @c :nno): a word wraps, @c Ternary saturates, so
+ *  @c succ has a fixed point there, and no carrier opts in; the initial
+ *  Maybe-algebra is the rig's numerals (#1035). */
+static_assert(
+    IsFAlgebra<std::size_t, In<std::size_t>, maybe_functor<std::size_t>> &&
+        IsFCoalgebra<std::size_t, Prior<std::size_t>,
+                     maybe_functor<std::size_t>> &&
+        IsFAlgebra<Ternary, In<Ternary>, maybe_functor<Ternary>> &&
+        !IsInitialFAlgebra<maybe_functor<Ternary>, Ternary, In<Ternary>> &&
+        !IsInitialFAlgebra<maybe_functor<std::size_t>, std::size_t,
+                           In<std::size_t>>,
+    "In is a Maybe-algebra and Prior a Maybe-coalgebra; K3 is the "
+    "non-example, an algebra but not initial, and the word is not initial "
+    "either");
 
 /**
  * @concept IsTerminalFCoalgebra

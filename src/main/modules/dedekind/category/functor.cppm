@@ -498,9 +498,13 @@ concept IsIterativeEndomorphism =
 // Per the picking policy in :morphism (#411): use Dom / Cod in
 // IsArrow-strict contexts; the IsArrow<Structure> guards cover the
 // precondition for both concepts below.
+// The functor is shaped, not literally an endofunctor: in the single-species
+// encoding, Maybe is Set<T> -> Set<optional<T>>, and the endofunctor on types
+// is its Shape, U |-> optional<U>.  An F-algebra asks only F(A) -> A with
+// F(A) = Shape<A>, so (N, In) is a Maybe-algebra as the textbook says (#1007).
 export template <typename Carrier, typename Structure, typename Functor>
 concept IsFAlgebra =
-    IsEndofunctor<Functor> && IsArrow<Structure> &&
+    IsShapedFunctor<Functor> && IsArrow<Structure> &&
     std::same_as<Dom<Structure>, typename Functor::template Shape<Carrier>> &&
     std::same_as<Cod<Structure>, Carrier>;
 
@@ -510,7 +514,7 @@ concept IsFAlgebra =
  */
 export template <typename Carrier, typename Structure, typename Functor>
 concept IsFCoalgebra =
-    IsEndofunctor<Functor> && IsArrow<Structure> &&
+    IsShapedFunctor<Functor> && IsArrow<Structure> &&
     std::same_as<Dom<Structure>, Carrier> &&
     std::same_as<Cod<Structure>, typename Functor::template Shape<Carrier>>;
 
