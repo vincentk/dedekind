@@ -917,7 +917,7 @@ bool statesBound(const clang::FunctionDecl* f) {
   for (const clang::NamedDecl* p : *t->getTemplateParameters()) {
     const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p);
     if (!tp || !tp->getTypeConstraint()) continue;
-    const clang::ConceptDecl* c = tp->getTypeConstraint()->getNamedConcept();
+    const clang::NamedDecl* c = tp->getTypeConstraint()->getNamedConcept();
     if (c->getName() != "IsBoundedRange") continue;
     if (const auto* ns =
             llvm::dyn_cast<clang::NamespaceDecl>(c->getDeclContext()))
