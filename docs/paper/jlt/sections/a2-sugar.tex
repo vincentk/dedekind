@@ -139,6 +139,6 @@ For an arbitrary branch the condition is semantic, and a reader holds it, as for
 The tables are complete by measurement, not by argument, at the resolution of a syntax node's kind.
 The repository's linter lists every kind of syntax node a file writes, leaving out the compiler's implicit wrappers.
 For the \texttt{category} module and the listings, each kind is the kernel's or a row, with \texttt{if consteval} added for the parallel \cppinline{concat}.
-Loosely speaking, the rest of the library it reads, some twenty further files, writes about a hundred kinds, and only half a dozen beyond these, loops and \cppinline{throw} among them: outside the posture, and not sugar, so the linter counts them and holds them at their number (\texttt{tools/jlt-lint/scope} in the repository).
+Loosely speaking, the rest of the library it reads, some twenty further files, writes about a hundred kinds, and only half a dozen beyond these, loops and \cppinline{throw} among them: outside the posture, and not sugar; the linter reports the inventory and holds each rule's findings at its count (\texttt{tools/jlt-lint/scope} in the repository).
 A kind does not tell every use apart: a binary operator is arithmetic or an assignment, and the assignments are the row of local state, which Rule~1's footnote admits and which reading, not counting, finds.
 With the tables closed, the second direction of Section~\ref{sec:translation:adequacy} reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.

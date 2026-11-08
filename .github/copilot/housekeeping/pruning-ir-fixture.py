@@ -485,12 +485,23 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
         if block is None:
             raise AssertionError("IR missing listing3_fibonacci symbol.")
         print(f"--- listing3_fibonacci: {len(block.splitlines())} lines\n{block}")
-        phis = re.findall(r"^\s*%\S+ = phi ", block, re.MULTILINE)
-        if len(phis) < 3:
+        # The loop is the block that branches to itself; there is one, and its
+        # header carries the fold's state as three phi-nodes: the count and the
+        # vector's two components.
+        blocks = re.split(r"^(?=\d+:)", block, flags=re.MULTILINE)
+        loops = [
+            b for b in blocks
+            if (m := re.match(r"(\d+):", b))
+            and re.search(rf"\bbr\b[^\n]*\blabel %{m.group(1)}\b", b)
+        ]
+        if len(loops) != 1:
+            raise AssertionError(f"Expected one loop, found {len(loops)}.")
+        phis = re.findall(r"^\s*%\S+ = phi ", loops[0], re.MULTILINE)
+        if len(phis) != 3:
             raise AssertionError(
-                f"Expected the fold's state as phi-nodes, found {len(phis)}."
+                f"Expected the loop header to carry three phi-nodes, found {len(phis)}."
             )
-        if re.search(r"^\s*(%\S+ = )?(tail )?call ", block, re.MULTILINE):
+        if re.search(r"^\s*(%\S+ = )?((must|no)?tail )?(call|invoke|callbr)\b", block, re.MULTILINE):
             raise AssertionError("Expected no call in the fold's loop.")
         heap = heap_calls(ir_text)
         if heap:

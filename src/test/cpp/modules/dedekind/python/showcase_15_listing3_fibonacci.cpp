@@ -1,6 +1,6 @@
 /**
  * @file src/test/cpp/modules/dedekind/python/showcase_15_listing3_fibonacci.cpp
- * @brief Showcase 15 — the Jlt paper's Listing 3 at run time: Fibonacci as a
+ * @brief Showcase 15: the Jlt paper's Listing 3 at run time, Fibonacci as a
  *        fold over a chain, the count known only when the program runs.
  *
  * Listing 3 folds the matrix action over @c n @c >> @c chain<size_t>(), a
