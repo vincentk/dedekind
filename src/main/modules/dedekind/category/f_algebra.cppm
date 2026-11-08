@@ -129,6 +129,7 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <functional>  // std::less_equal: LawAlgebra's default order
+#include <optional>    // F(A) = optional<A>: Maybe's object map, in a witness
 #include <tuple>
 #include <type_traits>
 #include <utility>
