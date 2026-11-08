@@ -322,8 +322,8 @@ It is finite by fact, as far as anyone knows: that every natural reaches $1$ is 
 So its chain declares a budget, and is bounded by it.
 Bottom. Left: a closed operation, \cppinline{concat} on any monoid, generically, Listing~\ref{lst:rule2}'s at a range.
 Right: a general fold is a heterogeneous action, here matrices on vectors, Fibonacci's.
-In the standard's ranges library~\cite{cpp23standard}, Figure~\ref{fig:structures}'s chain is an \cppinline{input_range}, and \cppinline{IsBoundedRange} one with a count known before the fold starts.
-The arrow $f$ along it is \cppinline{views::transform}, and the fold with the action $h$ is \cppinline{ranges::fold_left}.}
+In the standard's ranges library~\cite{cpp23standard}, Figure~\ref{fig:structures}'s chain is an \cppinline{input_range}.
+The arrow $f$ along it is \cppinline{views::transform}, and the fold with the action $h$ is \cppinline{ranges::fold_left}, the native fold, bounds-checked before it starts.}
 \label{lst:rule3}
 \end{listing}
 
