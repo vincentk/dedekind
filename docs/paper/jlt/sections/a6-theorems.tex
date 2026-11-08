@@ -4,11 +4,11 @@
 
 This appendix proves the theorems Section~\ref{sec:guarantees} states, relative to the rules of Figures~\ref{fig:fjlt-entailment} to~\ref{fig:fjlt-eval} and to the assumptions below.
 The plan is short: the translation into System~F is a function (coherence) and preserves types; evaluation agrees across it (simulation); the rest are corollaries.
-Each result uses only those before it, except that the lemma on dictionaries and type preservation are proved together, by mutual induction; parametricity stands alone.
+Each result uses only those before it, except that the lemma on dictionaries and type preservation are proved together, by mutual induction.
 Throughout, $\Sigma$ is a signature whose carriers meet the conditions of Appendix~\ref{app:fjlt:syntax}, used only as constants and total operators, and $\llbracket \cdot \rrbracket$ is the translation of Appendix~\ref{app:fjlt:translation}.
 A context translates pointwise: $\llbracket \Delta \rrbracket$ has a type variable for each $\alpha \in \Delta$ and a record variable $q_Q : \llbracket Q \rrbracket$ for each assumed constraint $Q \in \Delta$, and $\llbracket \Gamma \rrbracket = \overline{x : \llbracket \tau \rrbracket}$.
 
-\paragraph{Assumptions.}
+\subsection{Assumptions}
 The assumptions are where the ground may be soft.
 They are taken for granted in what follows, and the proofs are proofs relative to them.
 
@@ -50,6 +50,8 @@ The conditions of \textsc{T-Range} are semantic, so the termination of a fold is
 \end{assumption}
 
 The omitted cases are the textbook ones, and the inductions are on paper, with no mechanisation; their mechanisation is future work.
+
+\subsection{Coherence of the translation}
 
 \begin{restated}{Theorem~\ref{thm:coherence} (Coherence)}
 The translation is a function of the program: two resolutions of the same constraint at the same concrete types yield the same record.
@@ -117,6 +119,16 @@ $(\llbracket r \rrbracket, \llbracket a \rrbracket)$ has the pair type, and $\pi
 \textsc{D-Instance}: the same with an empty $\Delta$; the declaration order makes the induction on declarations well founded, a self-call of the one exception being typed by the declared signature of $f$, at the enclosing type variables and dictionaries, so that the binder of $F$ has the monomorphic type $\overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$ at which the iterator runs, and its body checked once.
 The omitted rules are the textbook cases for pairs, sums and conditionals.
 \end{proof}
+
+\begin{restated}{Corollary~\ref{cor:parametricity} (Parametricity)}
+A generic FJlt function satisfies the free theorem of its System~F type.
+\end{restated}
+\begin{proof}
+By Theorem~\ref{thm:preservation}, a generic FJlt function translates to a closed System~F term of type $\forall\overline{\alpha}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$; Reynolds' abstraction theorem~\cite{reynolds1983types,wadler1989theorems} gives its free theorem, in which the record parameters are ordinary term parameters, so the theorem relates behaviour at two instantiations through the relation between their records.
+The target's constants are interpreted by the identity relation at their base types and its iterators by the least relations closed under $\mathrm{in}$, so the abstraction theorem extends to it, and the term is closed once the defined names are expanded.
+\end{proof}
+
+\subsection{Simulation of evaluation}
 
 \begin{lemma}[Dictionaries agree with resolution]
 \label{lem:resolve}
@@ -216,10 +228,3 @@ For the converse at a base type: if $e \Downarrow v$ then $\llbracket e \rrbrack
 Conversely, if $\llbracket e \rrbracket \longrightarrow^{*} c$ for a constant $c$: by Corollary~\ref{cor:soundness} $e \Downarrow v$ for some $v$, so $\llbracket e \rrbracket \longrightarrow^{*} \llbracket v \rrbracket$ by the half just proved, and $c = \llbracket v \rrbracket$ since the target is confluent (Assumption~\ref{ass:sn}) and both are normal forms, the translation being injective on constants.
 \end{proof}
 
-\begin{restated}{Corollary~\ref{cor:parametricity} (Parametricity)}
-A generic FJlt function satisfies the free theorem of its System~F type.
-\end{restated}
-\begin{proof}
-By Theorem~\ref{thm:preservation}, a generic FJlt function translates to a closed System~F term of type $\forall\overline{\alpha}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$; Reynolds' abstraction theorem~\cite{reynolds1983types,wadler1989theorems} gives its free theorem, in which the record parameters are ordinary term parameters, so the theorem relates behaviour at two instantiations through the relation between their records.
-The target's constants are interpreted by the identity relation at their base types and its iterators by the least relations closed under $\mathrm{in}$, so the abstraction theorem extends to it, and the term is closed once the defined names are expanded.
-\end{proof}
