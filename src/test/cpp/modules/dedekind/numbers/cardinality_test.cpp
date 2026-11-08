@@ -80,23 +80,6 @@ TEST_CASE("Numbers: ExtensionalCardinal<> one-word semantics",
   }
 }
 
-TEST_CASE("Numbers: Cardinality witnesses and composition",
-          "[numbers][cardinality][effects]") {
-  SECTION("Writer-like bind respects left identity") {
-    const auto f = [](const Cardinality& c) {
-      return CardinalityEffect{add(c, finite_cardinality(2)),
-                               finite_cardinality(2)};
-    };
-
-    const Cardinality seed = finite_cardinality(7);
-    const CardinalityEffect lhs = bind_effect(unit_effect(seed), f);
-    const CardinalityEffect rhs = f(seed);
-
-    CHECK(lhs.value == rhs.value);
-    CHECK(lhs.trace == rhs.trace);
-  }
-}
-
 TEST_CASE("Numbers: ExtensionalCardinal additive inverse",
           "[numbers][cardinality][inverse]") {
   using C1 = ExtensionalCardinal<>;

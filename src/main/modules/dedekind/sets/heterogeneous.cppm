@@ -203,12 +203,12 @@ constexpr ProductMembership<A, B> product_membership(const A& a, const B& b) {
 }
 
 // The cartesian-product cardinality is the JOIN of the factors on the lattice
-// Finite < ℵ<0> < ℵ<1> < …: |A×B| = |A|·|B| = max(|A|,|B|) for infinite
-// factors, Finite only when both are finite.  The primary is left INCOMPLETE
-// (no @c type): a cardinality pair outside the known lattice (Finite / ℵ<N>) is
-// HONESTLY REJECTED at compile time rather than silently downgraded to ℵ_0 ---
-// a blanket fallback would misclassify e.g. a custom uncountable tag × Finite
-// as countable.
+// Finite < ℵ<0> < ℵ<1> < … (ℶ_1 beside it, below): |A×B| = |A|·|B| =
+// max(|A|,|B|) for infinite factors, Finite only when both are finite.  The
+// primary is left INCOMPLETE (no @c type): a cardinality pair outside the known
+// lattice (Finite / ℵ<N>) is HONESTLY REJECTED at compile time rather than
+// silently downgraded to ℵ_0 --- a blanket fallback would misclassify e.g. a
+// custom uncountable tag × Finite as countable.
 /** @brief The cardinality class of a set object's universe. */
 template <typename U>
 struct universe_cardinality;
@@ -234,6 +234,46 @@ template <std::size_t M, std::size_t N>
 struct product_cardinality<ℵ<M>, ℵ<N>> {
   using type = ℵ<(M > N ? M : N)>;
 };
+// The continuum beside the ℵ ladder: what ZFC decides, and nothing more.
+// ℵ_0 < ℶ_1 and ℵ_1 ≤ ℶ_1 are theorems; ℵ_n × ℶ_1 for n ≥ 2 stays rejected.
+template <>
+struct product_cardinality<ℶ_1, ℶ_1> {
+  using type = ℶ_1;
+};
+template <>
+struct product_cardinality<Finite, ℶ_1> {
+  using type = ℶ_1;
+};
+template <>
+struct product_cardinality<ℶ_1, Finite> {
+  using type = ℶ_1;
+};
+template <std::size_t N>
+  requires(N <= 1)
+struct product_cardinality<ℵ<N>, ℶ_1> {
+  using type = ℶ_1;
+};
+template <std::size_t N>
+  requires(N <= 1)
+struct product_cardinality<ℶ_1, ℵ<N>> {
+  using type = ℶ_1;
+};
+/** @brief Whether ZFC decides the product's cardinality: a row exists. */
+template <typename CA, typename CB>
+concept HasProductCardinality =
+    requires { typename product_cardinality<CA, CB>::type; };
+static_assert(
+    std::same_as<product_cardinality<ℵ<0>, ℶ_1>::type, ℶ_1> &&
+        std::same_as<product_cardinality<ℶ_1, ℵ<0>>::type, ℶ_1> &&
+        std::same_as<product_cardinality<ℵ<1>, ℶ_1>::type, ℶ_1> &&
+        std::same_as<product_cardinality<ℶ_1, ℵ<1>>::type, ℶ_1> &&
+        std::same_as<product_cardinality<Finite, ℶ_1>::type, ℶ_1> &&
+        std::same_as<product_cardinality<ℶ_1, ℶ_1>::type, ℶ_1>,
+    "ℵ_0 < ℶ_1 and ℵ_1 ≤ ℶ_1 are theorems: the product is the continuum");
+static_assert(!HasProductCardinality<ℵ<2>, ℶ_1> &&
+                  !HasProductCardinality<ℶ_1, ℵ<2>>,
+              "ℵ_2 against ℶ_1 is not decided by ZFC: no row, a compile-time "
+              "rejection");
 
 /**
  * @brief Cartesian product of two sets: {(a,b) | a ∈ A, b ∈ B}.
