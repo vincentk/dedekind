@@ -19,8 +19,10 @@ constexpr int pair_of_iterators =
     std::ranges::fold_left(xs.begin(), xs.end(), 0, std::plus<>{});  // finding 3
 
 namespace category {
+extern "C++" {  // a transparent context, as a module's export is
 template <typename R>
 concept IsBoundedRange = std::ranges::sized_range<const R>;
+}
 template <IsBoundedRange R, typename M, typename H>
 constexpr M fold(const R& r, const M v, const H h) {
   return std::ranges::fold_left(r, v, h);  // exempt: the bound is stated

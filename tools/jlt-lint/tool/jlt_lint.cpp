@@ -919,8 +919,8 @@ bool statesBound(const clang::FunctionDecl* f) {
     if (!tp || !tp->getTypeConstraint()) continue;
     const clang::NamedDecl* c = tp->getTypeConstraint()->getNamedConcept();
     if (c->getName() != "IsBoundedRange") continue;
-    if (const auto* ns =
-            llvm::dyn_cast<clang::NamespaceDecl>(c->getDeclContext()))
+    if (const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(
+            c->getDeclContext()->getRedeclContext()))
       if (ns->getName() == "category") return true;
   }
   return false;
