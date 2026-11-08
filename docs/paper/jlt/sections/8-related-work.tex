@@ -12,6 +12,12 @@ Instance resolution is the inference half of type classes, Hindley--Milner's~\ci
 Rust and Swift also check a generic body against its bounds: a comparison on an unconstrained type parameter is a compile error in both, and Rust's message names the missing bound~\cite{klabnik2023rust,swift2026generics}.
 That is Rule~2 as a compiler check, the half \Cpp{20} dropped, and the posture, together with the linter of Section~\ref{sec:limits}, is what recovering it by hand costs.
 
+\paragraph{Rewrite rules and fusion.}
+GHC lets a library declare equations the optimiser rewrites by~\cite{peytonjones2001rules}, wherever their pattern matches and unchecked.
+A law in Jlt is as unchecked, a certificate the compiler finds but does not prove (Section~\ref{sec:limits}); the difference is where it lives and what it does: a declared instance, so what a program assumes is in its types, licensing one overload that resolution chooses once.
+Fusion, from Wadler's deforestation~\cite{wadler1990deforestation} through shortcut fusion~\cite{gill1993shortcut} to stream fusion~\cite{coutts2007stream}, removes the lists a pipeline would build between its stages, by rewriting it to a stream and inlining.
+A pipeline of \Cpp{} ranges builds none: a range already is the stream, so inlining alone fuses Listing~\ref{lst:sites}'s stages into one loop (Table~\ref{tab:binding}), and the posture adds nothing there.
+
 \paragraph{Concepts, and the calculus next door.}
 The nearest neighbour of FJlt is Siek and Lumsdaine's $F^G$~\cite{siek2005essential,siek2004formalization}: System~F with concepts and models, translated into System~F by dictionary passing, with the translation proved sound in Isabelle.
 It grew from the same work as the concepts then proposed for \Cpp{0x}~\cite{gregor2006concepts,dosreis2006specifying}, which checked template bodies and were removed~\cite{stroustrup2009remove}, leaving the gap Rule~2 names.
