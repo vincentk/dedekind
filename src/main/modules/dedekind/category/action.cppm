@@ -285,9 +285,10 @@ concept IsRightAction =
       { h(std::move(v), std::move(s)) } -> std::convertible_to<M>;
     } && requires { typename acting_monoid<std::remove_cvref_t<H>>::type; } &&
     IsMonoid<S, typename acting_monoid<std::remove_cvref_t<H>>::type>;
-/** @brief The fold along the walk: the standard's @c fold_left.
+/** @brief The fold along the walk: the standard's @c fold_left, over a
+ *  bounded range (@c IsBoundedRange).
  *  @param r the range.  @param v the start.  @param h the action. */
-export template <std::ranges::input_range R, std::semiregular M, typename H>
+export template <IsBoundedRange R, std::semiregular M, typename H>
   requires std::invocable<const H&, M, std::ranges::range_value_t<R>>
 constexpr M fold(R r, M v, H h) {
   return std::ranges::fold_left(std::move(r), std::move(v), h);
@@ -302,7 +303,7 @@ constexpr M fold(R r, M v, H h) {
  *  are the natural next one.  The same signature as the plain fold and a
  *  stronger constraint, so resolution prefers it.  @param r the copies.
  *  @param v the start.  @param h the action. */
-export template <std::ranges::input_range R, std::semiregular M, typename H>
+export template <IsBoundedRange R, std::semiregular M, typename H>
   requires IsCopies<R> && IsRightAction<H, M, std::ranges::range_value_t<R>>
 constexpr M fold(R r, M v, H h) {
   using Op = typename acting_monoid<std::remove_cvref_t<H>>::type;

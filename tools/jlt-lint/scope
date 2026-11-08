@@ -8,6 +8,7 @@
 rule3-no-loops               tools/jlt-lint/fixtures/rule3-loops.cpp  jlt_listing  4
 rule3-no-self-recursion      tools/jlt-lint/fixtures/rule3-recursion.cpp  jlt_listing  11
 rule3-no-mutual-recursion    tools/jlt-lint/fixtures/rule3-mutual.cpp  jlt_listing  5
+rule3-bounded-fold           tools/jlt-lint/fixtures/rule3-bounded-fold.cpp  jlt_listing  3
 rule2-definition             tools/jlt-lint/fixtures/rule2-definition.cpp  jlt_listing  16
 rule2-constrained-templates  tools/jlt-lint/fixtures/rule2-constraints.cpp  jlt_listing  2
 rule2-no-inline-requires     tools/jlt-lint/fixtures/rule2-inline-requires.cpp  jlt_listing  4
@@ -34,6 +35,7 @@ rule1-boxed-identity          tools/jlt-lint/fixtures/boxed.cpp  jlt_listing  5
 # The paper's listings: gated.
 rule3-no-loops               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule3-no-self-recursion      src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
+rule3-bounded-fold           src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
 rule3-no-mutual-recursion    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule2-definition             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule2-constrained-templates  src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
@@ -62,6 +64,7 @@ rule1-no-escaping-reference-captures src/test/cpp/modules/dedekind/category/jlt_
 # the panel having reported clean; the proxy and the inventory are reported.
 rule3-no-loops               src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
 rule3-no-self-recursion      src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
+rule3-bounded-fold           src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
 rule3-no-mutual-recursion    src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
 rule2-definition             src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  0
 rule2-constrained-templates  src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp  listing5  report
@@ -90,6 +93,7 @@ inventory                    src/test/cpp/modules/dedekind/category/tensor_exhib
 # under it; the rest are reported, not gated.
 rule3-no-loops               src/main/modules/dedekind/category/*.cppm  category  0
 rule3-no-self-recursion      src/main/modules/dedekind/category/*.cppm  category  0
+rule3-bounded-fold           src/main/modules/dedekind/category/*.cppm  category  report
 rule3-no-mutual-recursion    src/main/modules/dedekind/category/*.cppm  category  0
 rule2-definition             src/main/modules/dedekind/category/*.cppm  category  0
 rule2-constrained-templates  src/main/modules/dedekind/category/*.cppm  category  report
@@ -130,7 +134,9 @@ inventory                    src/main/modules/dedekind/sets/si*.cppm  sets  repo
 rule3-no-loops               src/main/modules/dedekind/relational/[!r]*.cppm  relational  0
 rule3-no-loops               src/main/modules/dedekind/relational/rows.cppm  relational  0
 rule3-no-self-recursion      src/main/modules/dedekind/relational/[!r]*.cppm  relational  0
+rule3-bounded-fold           src/main/modules/dedekind/relational/[!r]*.cppm  relational  report
 rule3-no-self-recursion      src/main/modules/dedekind/relational/rows.cppm  relational  0
+rule3-bounded-fold           src/main/modules/dedekind/relational/rows.cppm  relational  report
 rule3-no-mutual-recursion    src/main/modules/dedekind/relational/[!r]*.cppm  relational  0
 rule3-no-mutual-recursion    src/main/modules/dedekind/relational/rows.cppm  relational  5
 rule2-definition             src/main/modules/dedekind/relational/[!r]*.cppm  relational  0
@@ -216,8 +222,11 @@ rule3-no-loops               src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
 rule3-no-loops               src/main/modules/dedekind/sets/si*.cppm  sets  0
 rule3-no-loops               src/main/modules/dedekind/sets/terms.cppm  sets  9
 rule3-no-self-recursion      src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
+rule3-bounded-fold           src/main/modules/dedekind/sets/[!st]*.cppm  sets  report
 rule3-no-self-recursion      src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule3-bounded-fold           src/main/modules/dedekind/sets/si*.cppm  sets  report
 rule3-no-self-recursion      src/main/modules/dedekind/sets/terms.cppm  sets  3
+rule3-bounded-fold           src/main/modules/dedekind/sets/terms.cppm  sets  report
 rule1-no-throw               src/main/modules/dedekind/sets/[!crst]*.cppm  sets  0
 rule1-no-throw               src/main/modules/dedekind/sets/si*.cppm  sets  0
 rule1-no-throw               src/main/modules/dedekind/sets/computability.cppm  sets  0
@@ -286,12 +295,14 @@ rule3-no-loops               src/main/modules/dedekind/order/halfspace.cppm  ord
 rule3-no-loops               src/main/modules/dedekind/order/runs.cppm  order  6
 rule3-no-mutual-recursion    src/main/modules/dedekind/order/[!o]*.cppm  order  0
 rule3-no-self-recursion      src/main/modules/dedekind/order/[!o]*.cppm  order  0
+rule3-bounded-fold           src/main/modules/dedekind/order/[!o]*.cppm  order  report
 
 # The layers between category and algebra: ieee, topology and sequences.
 # Each module's primary interface file is left out, as above.  A number holds
 # a file at the findings it has today, so a change shows; `report` only counts.
 rule3-no-loops                       src/main/modules/dedekind/ieee/*.cppm  ieee  0
 rule3-no-self-recursion              src/main/modules/dedekind/ieee/*.cppm  ieee  0
+rule3-bounded-fold           src/main/modules/dedekind/ieee/*.cppm  ieee  report
 rule3-no-mutual-recursion            src/main/modules/dedekind/ieee/*.cppm  ieee  0
 rule2-definition                     src/main/modules/dedekind/ieee/approx.cppm  ieee  0
 rule2-definition                     src/main/modules/dedekind/ieee/ieee.cppm  ieee  2
@@ -318,6 +329,7 @@ rule1-no-escaping-reference-captures src/main/modules/dedekind/ieee/*.cppm  ieee
 inventory                            src/main/modules/dedekind/ieee/*.cppm  ieee  report
 rule3-no-loops                       src/main/modules/dedekind/topology/neighborhood.cppm  topology  1
 rule3-no-self-recursion              src/main/modules/dedekind/topology/[!t]*.cppm  topology  0
+rule3-bounded-fold           src/main/modules/dedekind/topology/[!t]*.cppm  topology  report
 rule3-no-mutual-recursion            src/main/modules/dedekind/topology/[!t]*.cppm  topology  0
 rule2-definition                     src/main/modules/dedekind/topology/[!t]*.cppm  topology  0
 rule2-constrained-templates          src/main/modules/dedekind/topology/[!t]*.cppm  topology  report
@@ -352,7 +364,9 @@ rule3-no-loops                       src/main/modules/dedekind/sequences/relprod
 rule3-no-loops                       src/main/modules/dedekind/sequences/tail_equivalence.cppm  sequences  2
 rule3-no-loops                       src/main/modules/dedekind/sequences/samples.cppm  sequences  0
 rule3-no-self-recursion              src/main/modules/dedekind/sequences/[!s]*.cppm  sequences  0
+rule3-bounded-fold           src/main/modules/dedekind/sequences/[!s]*.cppm  sequences  report
 rule3-no-self-recursion              src/main/modules/dedekind/sequences/samples.cppm  sequences  0
+rule3-bounded-fold           src/main/modules/dedekind/sequences/samples.cppm  sequences  report
 rule3-no-mutual-recursion            src/main/modules/dedekind/sequences/[!s]*.cppm  sequences  0
 rule3-no-mutual-recursion            src/main/modules/dedekind/sequences/samples.cppm  sequences  0
 rule2-definition                     src/main/modules/dedekind/sequences/convergence.cppm  sequences  0

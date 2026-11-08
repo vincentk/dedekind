@@ -368,8 +368,9 @@ concept IsKleisliStep =
         TA>;
 }  // namespace detail_kleisli
 /** @param r the range.  @param ta the start, in the monad.  @param step a
- *  step that may fail.  @return the fold in the Kleisli category. */
-export template <std::ranges::input_range R, typename TA, typename Step>
+ *  step that may fail.  @return the fold in the Kleisli category, over a
+ *  bounded range (@c IsBoundedRange). */
+export template <IsBoundedRange R, typename TA, typename Step>
   requires detail_kleisli::IsKleisliStep<Step, TA,
                                          std::ranges::range_value_t<R>>
 constexpr TA fold(R r, TA ta, Step step) {

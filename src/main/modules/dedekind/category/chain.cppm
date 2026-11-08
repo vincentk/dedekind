@@ -15,6 +15,7 @@
 module;
 
 #include <algorithm>  // std::ranges::fold_left: the witnesses' folds
+#include <array>      // a sized range, bounded by its size
 #include <concepts>
 #include <cstddef>
 #include <functional>  // std::invoke
@@ -467,5 +468,68 @@ static_assert(IsFiniteChainSequence<Successor<std::size_t>> &&
 export template <IsCountWord N, IsFiniteChainSequence F>
 using FiniteChainSequence =
     unfold_view<N, Mapped<N, StepCoalgebra<N, Prior<N>>, F>>;
+
+/** @section chain__Bounded
+ *  A range is @b bounded when a fold over it takes at most a count known
+ *  before the fold starts (#1172): Rule 3's descent, read once at the seed as
+ *  a ranking function, not checked at every step.  A sized range is bounded
+ *  by its size.  The chain of Figure 2 is bounded by its seed: @c n names its
+ *  cardinality, so the walk below @c n, read by any arrows, is bounded by
+ *  @c n, held in the value and read without walking.  The library's @c fold
+ *  requires it, and the linter's @c rule3-bounded-fold holds every other fold
+ *  to that one. */
+namespace detail_chain {
+/** @brief Is @c Coalg the counting chain's step, read by arrows? */
+template <typename Coalg>
+struct is_counting_coalgebra : std::false_type {};
+template <IsCountWord N>
+struct is_counting_coalgebra<StepCoalgebra<N, Prior<N>>> : std::true_type {};
+template <typename S, typename Coalg, typename F>
+struct is_counting_coalgebra<Mapped<S, Coalg, F>>
+    : is_counting_coalgebra<Coalg> {};
+/** @brief Is @c R the walk below a count, Figure 2's chain? */
+template <typename R>
+struct is_counting_walk : std::false_type {};
+template <IsCountWord N, typename Coalg>
+struct is_counting_walk<unfold_view<N, Coalg>>
+    : is_counting_coalgebra<Coalg> {};
+}  // namespace detail_chain
+
+/** @concept IsBoundedRange
+ *  @brief A range a fold over which takes at most @c bound(r) steps, a count
+ *  known before the fold starts: a sized range, or the chain below a count.
+ *  @tparam R the range. */
+export template <typename R>
+concept IsBoundedRange =
+    std::ranges::input_range<R> &&
+    (std::ranges::sized_range<const R> ||
+     detail_chain::is_counting_walk<std::remove_cvref_t<R>>::value);
+
+/** @brief The bound: the size, or the seed of the chain below it.
+ *  @tparam R the range.  @param r the range.
+ *  @return the count a fold over @c r takes at most. */
+export template <IsBoundedRange R>
+constexpr std::size_t bound(const R& r) {
+  if constexpr (std::ranges::sized_range<const R>)
+    return static_cast<std::size_t>(std::ranges::size(r));
+  else
+    return static_cast<std::size_t>(r.seed());
+}
+namespace detail_chain_bounded {
+constexpr std::size_t three = 3;
+constexpr std::array<int, 2> pair{1, 2};
+static_assert(IsBoundedRange<std::array<int, 2>> && bound(pair) == 2 &&
+                  bound(std::views::iota(0, 5)) == 5 &&
+                  !IsBoundedRange<decltype(std::views::iota(0))>,
+              "a sized range is bounded by its size; iota(a) is not bounded");
+static_assert(bound(three >> chain<std::size_t>()) == 3 &&
+                  bound(three >> chain<std::size_t>() >>
+                        Successor<std::size_t>{}) == 3 &&
+                  std::ranges::distance(three >> chain<std::size_t>()) == 3,
+              "the chain below n is bounded by n, read by arrows or not, and "
+              "takes exactly n steps");
+static_assert(!IsBoundedRange<decltype(detail_chain_arrows::ns)>,
+              "a chain that ends by a test is finite by fact, not bounded");
+}  // namespace detail_chain_bounded
 
 }  // namespace dedekind::category
