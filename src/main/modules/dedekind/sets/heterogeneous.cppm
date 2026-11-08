@@ -258,6 +258,22 @@ template <std::size_t N>
 struct product_cardinality<ℶ_1, ℵ<N>> {
   using type = ℶ_1;
 };
+/** @brief Whether ZFC decides the product's cardinality: a row exists. */
+template <typename CA, typename CB>
+concept HasProductCardinality =
+    requires { typename product_cardinality<CA, CB>::type; };
+static_assert(
+    std::same_as<product_cardinality<ℵ<0>, ℶ_1>::type, ℶ_1> &&
+        std::same_as<product_cardinality<ℶ_1, ℵ<0>>::type, ℶ_1> &&
+        std::same_as<product_cardinality<ℵ<1>, ℶ_1>::type, ℶ_1> &&
+        std::same_as<product_cardinality<ℶ_1, ℵ<1>>::type, ℶ_1> &&
+        std::same_as<product_cardinality<Finite, ℶ_1>::type, ℶ_1> &&
+        std::same_as<product_cardinality<ℶ_1, ℶ_1>::type, ℶ_1>,
+    "ℵ_0 < ℶ_1 and ℵ_1 ≤ ℶ_1 are theorems: the product is the continuum");
+static_assert(!HasProductCardinality<ℵ<2>, ℶ_1> &&
+                  !HasProductCardinality<ℶ_1, ℵ<2>>,
+              "ℵ_2 against ℶ_1 is not decided by ZFC: no row, a compile-time "
+              "rejection");
 
 /**
  * @brief Cartesian product of two sets: {(a,b) | a ∈ A, b ∈ B}.
