@@ -9,7 +9,7 @@
  * (Eqn 2): exists tests against ∅ (scheme A), forall against the input set S
  * (scheme B).  On a finite quotient both bounds are decided BY TYPE:
  *   - 𝔹 = 𝔸<bool>       finite carrier, materialised over {false, true};
- *   - ℕ = 𝔸<Cardinality> infinite, but π % 3 == 0 binds to a residue class,
+ *   - ℕ = 𝔸<Numeral> infinite, but π % 3 == 0 binds to a residue class,
  *     whose == Ø and == 𝔸 are decided from the modulus.
  */
 #include <catch2/catch_test_macros.hpp>
@@ -40,12 +40,12 @@ TEST_CASE("finite-quotient quantifiers decide exists/forall by type on 𝔹 and 
                        π == true));  // (B) ≠ S — false a counterexample
   }
 
-  SECTION("ℕ = 𝔸<Cardinality>: infinite carrier, factored through ℤ/3ℤ") {
+  SECTION("ℕ = 𝔸<Numeral>: infinite carrier, factored through ℤ/3ℤ") {
     // The congruence π % 3 == 0 binds to the residue class of 0 mod 3.
-    CHECK(exists(𝔸<Cardinality>{},
+    CHECK(exists(𝔸<Numeral>{},
                  π % 3 == 0));  // (A) ∃ x ≡ 0 (residue 0 vs ∅)
-    CHECK_FALSE(forall(𝔸<Cardinality>{},
+    CHECK_FALSE(forall(𝔸<Numeral>{},
                        π % 3 == 0));  // (B) residues 1,2 vs S
-    CHECK_THROWS_AS(𝔸<Cardinality>{} & (π % -3 == -1), std::domain_error);
+    CHECK_THROWS_AS(𝔸<Numeral>{} & (π % -3 == -1), std::domain_error);
   }
 }

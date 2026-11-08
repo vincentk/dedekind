@@ -39,7 +39,7 @@ TEST_CASE("sets:computability — HasDecidableMembership on Ø",
     // from the carrier axis, not the predicate shape --- so NOT a structured
     // point-free halfspace).  @c :sets tests may not import @c :order, so
     // @c π/fix is unavailable here anyway.
-    constexpr auto gt_five = [](const auto& v) { return v > 5u; };
+    constexpr auto gt_five = [](const auto& v) { return v > Numeral{5u}; };
     constexpr auto s = Comprehension{ℕ, gt_five};
     // ℕ answers in Boole, so the comprehension does.  Rice's theorem caps
     // further promotion of the opaque predicate, but the carrier-axis witness
@@ -57,7 +57,7 @@ TEST_CASE("sets:cardinality — IsExtensional on Ø",
   }
 
   SECTION("Intensional Set over a transfinite carrier is not extensional") {
-    constexpr auto gt_five = [](const auto& v) { return v > 5u; };
+    constexpr auto gt_five = [](const auto& v) { return v > Numeral{5u}; };
     constexpr auto s = Comprehension{ℕ, gt_five};
     STATIC_CHECK_FALSE(IsExtensional<decltype(s)>);
   }

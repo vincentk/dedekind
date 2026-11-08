@@ -32,7 +32,7 @@ using namespace dedekind::order;
 
 namespace {
 inline constexpr auto ℤ = 𝔸<SignedCardinality>{};
-inline constexpr auto ℕ = 𝔸<Cardinality>{};
+inline constexpr auto ℕ = 𝔸<Numeral>{};
 using dedekind::algebra::𝔽64;  // GF(2⁶): operator+ is XOR (characteristic 2)
 
 // ── #876 finding 2: the translation graph IS a categorical equalizer ─────────
@@ -83,10 +83,10 @@ static_assert(image(ℤ * ℤ & π_1 * -1 == π_2 & π_1 < 0)(3),
               "3 ∈ image(negate branch) via −3 (the canonical +3 ∉ {x<0}).");
 static_assert(!image(ℤ * ℤ & π_1 * -1 == π_2 & π_1 < 0)(-2),
               "the branch image is non-negative: −2 ∉ it.");
-// The successor graph over ℕ (the SATURATING carrier admitted for K≥0): the
-// image the OPAQUE arrow leaves Unknown is DECIDED by the pushforward.
+// The successor graph over ℕ (the carrier admitted for K≥0): the image the
+// OPAQUE arrow leaves Unknown is DECIDED by the pushforward.
 static_assert(
-    image((ℕ * ℕ & π_1 + 1 == π_2) & π_1 > 5) == (ℕ & (π > 6)),
+    image((ℕ * ℕ & π_1 + 1u == π_2) & π_1 > 5u) == (ℕ & (π > 6u)),
     "image(succ, {n>5}) = {n>6}: the graph decides where opacity walls.");
 
 // Constrained image of a COMPOSITE folds to ∅: hc = T₂∘T₃ pushes {x≤1} to
@@ -254,7 +254,7 @@ TEST_CASE(
   STATIC_CHECK(is_function(f));
   // A shift ℕ cannot hold is refused when the graph is built, so the
   // entireness certificate only ever meets a bound constant.
-  constexpr auto N = 𝔸<dedekind::sets::Cardinality>{};
+  constexpr auto N = 𝔸<dedekind::sets::Numeral>{};
   CHECK_THROWS_AS(N * N & (π_1 + -1 == π_2), std::domain_error);
 
   volatile int ten = 10;

@@ -30,11 +30,11 @@ TEST_CASE("Quantifier machinery: Ø == comprehension, folded at compile time",
   //     collapse).  This is the counterexample set of ∀x>5. x≥3, namely
   //     {x>5 ∧ x<3}, decided empty at compile time on the bare point-free
   //     grammar; no `Set{}` wrap is involved.
-  constexpr auto gt5 = ℕ & (π > 5);
-  constexpr auto lt3 = ℕ & (π < 3);
-  static_assert((gt5 & lt3) == Ø<Cardinality>{},
+  constexpr auto gt5 = ℕ & (π > 5u);
+  constexpr auto lt3 = ℕ & (π < 3u);
+  static_assert((gt5 & lt3) == Ø<Numeral>{},
                 "{x>5 ∧ x<3} folds to the empty set at compile time.");
-  CHECK((gt5 & lt3) == Ø<Cardinality>{});  // runtime (Codecov)
+  CHECK((gt5 & lt3) == Ø<Numeral>{});  // runtime (Codecov)
 }
 
 namespace {

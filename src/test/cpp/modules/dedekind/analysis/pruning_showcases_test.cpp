@@ -84,12 +84,12 @@ TEST_CASE("Pruning showcase 2: {0..3}² lattice × [½,1½]² in ℝ² = {(1,1)}
 
 TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
           "[analysis][pruning][showcase][showcase03]") {
-  constexpr auto gt_five = ℕ & (π > 5);
-  constexpr auto lt_three = ℕ & (π < 3);
+  constexpr auto gt_five = ℕ & (π > 5u);
+  constexpr auto lt_three = ℕ & (π < 3u);
 
   // The contradiction folds value-first to the empty Interval (kind Empty).
   constexpr auto empty_meet = gt_five & lt_three;
-  STATIC_CHECK(empty_meet == Ø<Cardinality>{});
+  STATIC_CHECK(empty_meet == Ø<Numeral>{});
 
   SECTION("Reduction folds an intensional pair to a finite value") {
     // gt_five is an intensional predicate on ℕ (no materialised members); the
@@ -97,7 +97,8 @@ TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
     // The extensionality tightening is now witnessed by the folded kind, not a
     // type-level IsExtensional tag.
     STATIC_CHECK(HasDecidableMembership<decltype(gt_five)>);
-    STATIC_CHECK(!static_cast<bool>(empty_meet(4u)));  // empty: no inhabitant
+    STATIC_CHECK(
+        !static_cast<bool>(empty_meet(Numeral{4u})));  // empty: no inhabitant
   }
 }
 
@@ -106,18 +107,18 @@ TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
   // Canonical point-free grammar (the paper form): the canonical set ℕ, the
   // sole projection χ (the element scout, reads as x), and a compile-time bound
   // spelled 3.  No Set{} wrapper.
-  constexpr auto gt_3 = ℕ & (π > 3);
-  constexpr auto lt_5 = ℕ & (π < 5);
+  constexpr auto gt_3 = ℕ & (π > 3u);
+  constexpr auto lt_5 = ℕ & (π < 5u);
 
   // The punch line: the meet COLLAPSES to the point {4} at compile time.  The
   // collapse gates on the NNO's successor / predecessor --- an axiom of the
-  // category, which the ℕ proxy witnesses --- so ℕ folds exactly as a machine
+  // category, which ℕ's Numeral witnesses --- so ℕ folds exactly as a machine
   // integer does; the point is a constexpr VALUE, not a distinct type.
   constexpr auto in_between = gt_3 & lt_5;
-  STATIC_CHECK(in_between ==
-               Interval<Cardinality>::point(finite_cardinality(4)));
-  STATIC_CHECK(bool(in_between(4)) && !bool(in_between(3)) &&
-               !bool(in_between(5)));
+  STATIC_CHECK(in_between == Interval<Numeral>::point(Numeral{4u}));
+  STATIC_CHECK(bool(in_between(Numeral{4u})) &&
+               !bool(in_between(Numeral{3u})) &&
+               !bool(in_between(Numeral{5u})));
 
   SECTION("An intensional meet folds to a finite value") {
     // A halfspace on ℕ decides membership by comparison, so parents and result
@@ -125,7 +126,7 @@ TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
     // parents to the point value {4} --- the extensionality gain, witnessed
     // value-first by the folded kind + point.
     STATIC_CHECK(HasDecidableMembership<decltype(gt_3)>);
-    STATIC_CHECK(bool(in_between(4)));
+    STATIC_CHECK(bool(in_between(Numeral{4u})));
   }
 }
 

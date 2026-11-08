@@ -31,10 +31,10 @@
 //        `banded_entry` helper gates the dyad by the band, ⊕-zero off-band).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import dedekind.category; // IsArrow, unit_v
-import dedekind.algebra;  // MaxPlus, semiring_ops
-import dedekind.sets;     // ℕ, Cardinality, finite_cardinality, the product (*)
-import dedekind.order;    // the relational-predicate DSL
+import dedekind.category;   // IsArrow, unit_v
+import dedekind.algebra;    // MaxPlus, semiring_ops
+import dedekind.sets;       // ℕ, Numeral, the product (*)
+import dedekind.order;      // the relational-predicate DSL
 import dedekind.relational; // the relational-predicate machinery (converse, …)
 import dedekind.linear_algebra; // OuterProduct — the rank-1 dyad carrier
 
@@ -69,13 +69,13 @@ constexpr OuterProduct<LogWeight, LogWeight, TropMult> kValue{LogWeight{},
 
 // (S1) The band SUPPORT |y−x| ≤ 1 as the DISJUNCTION of three adjacency graphs,
 //   point-free over ℕ×ℕ — intensional, infinite basis:
-const auto kBand = (ℕ * ℕ & π_1 == π_2)         // y = x       (main diagonal)
-                   | (ℕ * ℕ & π_1 + 1 == π_2)   // y = x + 1 (super-diagonal)
-                   | (ℕ * ℕ & π_2 + 1 == π_1);  // x = y + 1 (sub-diagonal)
+const auto kBand = (ℕ * ℕ & π_1 == π_2)          // y = x       (main diagonal)
+                   | (ℕ * ℕ & π_1 + 1u == π_2)   // y = x + 1 (super-diagonal)
+                   | (ℕ * ℕ & π_2 + 1u == π_1);  // x = y + 1 (sub-diagonal)
 
 // Named helpers (no lambdas): the ℕ×ℕ index pair, and the masked band entry.
-constexpr std::pair<Cardinality, Cardinality> at(std::size_t x, std::size_t y) {
-  return {finite_cardinality(x), finite_cardinality(y)};
+constexpr std::pair<Numeral, Numeral> at(std::size_t x, std::size_t y) {
+  return {Numeral{x}, Numeral{y}};
 }
 // (S3) The banded operator = kValue MASKED by kBand (no masked-matrix
 // combinator

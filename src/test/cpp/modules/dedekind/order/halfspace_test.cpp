@@ -82,12 +82,10 @@ TEST_CASE("order:halfspace — excluded middle B ∪ ¬B covers the plane (#365)
           "[order][halfspace][set][complement]") {
   // A set unioned with its complement covers the ambient, the dual of the
   // contradiction B ∩ ¬B = Ø; decided by membership.
-  constexpr auto B = ℕ * ℕ & π_1 > 5;
+  constexpr auto B = ℕ * ℕ & π_1 > 5u;
   constexpr auto cover = B | ~B;
-  CHECK(static_cast<bool>(
-      cover(std::pair{finite_cardinality(6), finite_cardinality(0)})));
-  CHECK(static_cast<bool>(
-      cover(std::pair{finite_cardinality(0), finite_cardinality(0)})));
+  CHECK(static_cast<bool>(cover(std::pair{Numeral{6u}, Numeral{0u}})));
+  CHECK(static_cast<bool>(cover(std::pair{Numeral{0u}, Numeral{0u}})));
 }
 
 TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
@@ -125,8 +123,8 @@ TEST_CASE(
     // stay IsRelPredicate (so the result can feed the 𝔸<pair> | relpred
     // comprehension) --- unlike the generic AndPredicate / OrPredicate, which
     // would drop the marker (#824).
-    constexpr auto p = π_1 > 5;
-    constexpr auto q = π_2 > 3;
+    constexpr auto p = π_1 > 5u;
+    constexpr auto q = π_2 > 3u;
     using AndP = std::decay_t<decltype(p && q)>;
     using OrP = std::decay_t<decltype(p || q)>;
     STATIC_CHECK(
@@ -139,10 +137,9 @@ TEST_CASE(
                                                  std::decay_t<decltype(q)>>>);
     STATIC_CHECK(IsRelPredicate<AndP>);  // the marker is preserved through &&
     STATIC_CHECK(IsRelPredicate<OrP>);   // ... and through ||
-    CHECK((p || q)(std::pair{finite_cardinality(6), finite_cardinality(0)}));
-    CHECK_FALSE(
-        (p && q)(std::pair{finite_cardinality(6), finite_cardinality(0)}));
-    CHECK((p && q)(std::pair{finite_cardinality(6), finite_cardinality(4)}));
+    CHECK((p || q)(std::pair{Numeral{6u}, Numeral{0u}}));
+    CHECK_FALSE((p && q)(std::pair{Numeral{6u}, Numeral{0u}}));
+    CHECK((p && q)(std::pair{Numeral{6u}, Numeral{4u}}));
   }
 }
 
@@ -194,13 +191,13 @@ TEST_CASE("order:halfspace: point-free ℕ|pred is carrier-axis decidable (#848)
   // Halfspace in the universe's species, Boole: decidable membership.  Pairs
   // the module-level static_assert witness with a Codecov-visible runtime
   // membership exercise.
-  constexpr auto point_free = ℕ & (π > 5);
+  constexpr auto point_free = ℕ & (π > 5u);
   STATIC_CHECK(HasDecidableMembership<decltype(point_free)>);
 
   // Runtime membership on {x ∈ ℕ | x > 5}: 6 ∈, 5 ∉ --- exercises operator()
   // for coverage (static_asserts are invisible to Codecov).
-  CHECK(static_cast<bool>(point_free(finite_cardinality(6))));
-  CHECK_FALSE(static_cast<bool>(point_free(finite_cardinality(5))));
+  CHECK(static_cast<bool>(point_free(Numeral{6u})));
+  CHECK_FALSE(static_cast<bool>(point_free(Numeral{5u})));
 }
 
 TEST_CASE(
@@ -231,21 +228,16 @@ TEST_CASE(
 // coords force the predicate bodies to actually execute at run time.
 TEST_CASE("order:halfspace — projection-arithmetic functional graphs (runtime)",
           "[order][relation][projection-arithmetic]") {
-  volatile std::size_t a = 4, m = 20;
-  const auto A = finite_cardinality(std::size_t(a));  // 4
-  const auto M = finite_cardinality(std::size_t(m));  // 20
+  volatile std::size_t a = 4;
+  const auto A = Numeral{std::size_t(a)};  // 4
 
-  const auto succ = ℕ * ℕ & π_1 + 1 == π_2;  // b = a + 1
-  CHECK(succ(std::pair{A, finite_cardinality(5)}));
-  CHECK_FALSE(succ(std::pair{A, finite_cardinality(6)}));
+  const auto succ = ℕ * ℕ & π_1 + 1u == π_2;  // b = a + 1
+  CHECK(succ(std::pair{A, Numeral{5u}}));
+  CHECK_FALSE(succ(std::pair{A, Numeral{6u}}));
 
-  const auto dbl = ℕ * ℕ & π_1 * 2 == π_2;  // b = 2a
-  CHECK(dbl(std::pair{finite_cardinality(3), finite_cardinality(6)}));
-  CHECK_FALSE(dbl(std::pair{finite_cardinality(3), finite_cardinality(7)}));
-
-  const auto res = ℕ * ℕ & π_1 % 17 == π_2;  // b = a % 17
-  CHECK(res(std::pair{M, finite_cardinality(3)}));
-  CHECK_FALSE(res(std::pair{M, finite_cardinality(4)}));
+  const auto dbl = ℕ * ℕ & π_1 * 2u == π_2;  // b = 2a
+  CHECK(dbl(std::pair{Numeral{3u}, Numeral{6u}}));
+  CHECK_FALSE(dbl(std::pair{Numeral{3u}, Numeral{7u}}));
 }
 
 TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
@@ -344,7 +336,7 @@ TEST_CASE("order:halfspace — a ray at the carrier's end is a value fact",
           "[order][halfspace][boundary]") {
   // The pivot is a value: {x ≥ 0} on ℕ is all of ℕ, {x > INT_MAX} is empty,
   // and on ℤ (no floor) {z < 0} is neither.
-  STATIC_CHECK((ℕ & (π >= 0)) == ℕ);
+  STATIC_CHECK((ℕ & (π >= 0u)) == ℕ);
   STATIC_CHECK((𝔸<int>{} & (π > std::numeric_limits<int>::max())) == Ø<int>{});
   STATIC_CHECK(!((𝔸<SignedCardinality>{} & (π < 0)) == Ø<SignedCardinality>{}));
   STATIC_CHECK(

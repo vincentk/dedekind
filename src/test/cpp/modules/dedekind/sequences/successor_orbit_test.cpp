@@ -59,9 +59,7 @@ TEST_CASE("sequences — the orbit's shape is the carrier's posture at the bound
   CHECK(k3.at(1) == Ternary::Unknown);
   CHECK(k3.at(2) == Ternary::True);
   CHECK(k3.at(7) == Ternary::True);
-  // ℕ's proxy: the finite fragment walks, the top absorbs.
-  const SuccessorOrbit<Cardinality> nat{finite_cardinality(40)};
-  CHECK(nat.at(2) == finite_cardinality(42));
-  const SuccessorOrbit<Cardinality> top{Cardinality{ℵ_0{}}};
-  CHECK(top.at(5) == Cardinality{ℵ_0{}});
+  // ℕ: the orbit walks, with no top to absorb it.
+  const SuccessorOrbit<Numeral> nat{Numeral{40u}};
+  CHECK(nat.at(2) == Numeral{42u});
 }

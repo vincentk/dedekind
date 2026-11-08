@@ -30,22 +30,19 @@ using dedekind::morphologies::IsCyclic;
 using dedekind::morphologies::Modular;
 
 // ===========================================================================
-// (1) The universal lift arrow: std::unsigned_integral → Cardinality
+// (1) The universal lift arrow: std::unsigned_integral → Numeral
 // ===========================================================================
 
 TEST_CASE("uint: embed_uint_ℕ across canonical widths",
           "[numbers][uint][lift][carrier-lattice]") {
   // Function-template form covers any std::unsigned_integral width.
-  CHECK(embed_uint_ℕ(0u) == finite_cardinality(0));
-  CHECK(embed_uint_ℕ(1u) == finite_cardinality(1));
-  CHECK(embed_uint_ℕ(42u) == finite_cardinality(42));
-  CHECK(embed_uint_ℕ(static_cast<unsigned long>(1000)) ==
-        finite_cardinality(1000));
-  CHECK(embed_uint_ℕ(static_cast<std::size_t>(7)) == finite_cardinality(7));
-  CHECK(embed_uint_ℕ(static_cast<unsigned char>(255)) ==
-        finite_cardinality(255));
-  CHECK(embed_uint_ℕ(static_cast<unsigned short>(0xFFFF)) ==
-        finite_cardinality(0xFFFF));
+  CHECK(embed_uint_ℕ(0u) == Numeral{0u});
+  CHECK(embed_uint_ℕ(1u) == Numeral{1u});
+  CHECK(embed_uint_ℕ(42u) == Numeral{42u});
+  CHECK(embed_uint_ℕ(static_cast<unsigned long>(1000)) == Numeral{1000u});
+  CHECK(embed_uint_ℕ(static_cast<std::size_t>(7)) == Numeral{7u});
+  CHECK(embed_uint_ℕ(static_cast<unsigned char>(255)) == Numeral{255u});
+  CHECK(embed_uint_ℕ(static_cast<unsigned short>(0xFFFF)) == Numeral{0xFFFFu});
 }
 
 TEST_CASE("uint: embed_uint_ℕ_ named-arrow form",
@@ -55,16 +52,15 @@ TEST_CASE("uint: embed_uint_ℕ_ named-arrow form",
   STATIC_CHECK(
       std::same_as<Dom<std::decay_t<decltype(embed_uint_ℕ_)>>, unsigned>);
   STATIC_CHECK(
-      std::same_as<Cod<std::decay_t<decltype(embed_uint_ℕ_)>>, Cardinality>);
+      std::same_as<Cod<std::decay_t<decltype(embed_uint_ℕ_)>>, Numeral>);
 
-  CHECK(embed_uint_ℕ_(0u) == finite_cardinality(0));
-  CHECK(embed_uint_ℕ_(42u) == finite_cardinality(42));
-  CHECK(embed_uint_ℕ_(1000u) == finite_cardinality(1000));
+  CHECK(embed_uint_ℕ_(0u) == Numeral{0u});
+  CHECK(embed_uint_ℕ_(42u) == Numeral{42u});
+  CHECK(embed_uint_ℕ_(1000u) == Numeral{1000u});
 }
 
-TEST_CASE("uint: lift is injective on the finite fragment",
-          "[numbers][uint][lift][injective]") {
-  // Distinct unsigned values yield distinct Cardinality values
+TEST_CASE("uint: lift is injective", "[numbers][uint][lift][injective]") {
+  // Distinct unsigned values yield distinct Numeral values
   // (witnesses the monic claim).
   CHECK(embed_uint_ℕ(0u) != embed_uint_ℕ(1u));
   CHECK(embed_uint_ℕ(41u) != embed_uint_ℕ(42u));
@@ -125,12 +121,12 @@ TEST_CASE("uint: Modular<N> as the structural cyclic-ring sibling",
 // ===========================================================================
 
 TEST_CASE(
-    "uint: width-ladder + lift compose into a Cardinality value (no overflow "
+    "uint: width-ladder + lift compose into a Numeral value (no overflow "
     "below the ladder)",
     "[numbers][uint][width-ladder][carrier-lattice]") {
-  // unsigned char ↪ unsigned short ↪ unsigned int ↪ Cardinality.
+  // unsigned char ↪ unsigned short ↪ unsigned int ↪ Numeral.
   // On the non-overflow fragment, all four values represent the same
-  // textbook integer; the lift lands them as identical Cardinality
+  // textbook integer; the lift lands them as identical Numeral
   // values.
   const unsigned char uc = 42;
   const unsigned short us = 42;
@@ -140,7 +136,7 @@ TEST_CASE(
   CHECK(embed_uint_ℕ(uc) == embed_uint_ℕ(ui));
   CHECK(embed_uint_ℕ(us) == embed_uint_ℕ(ui));
   CHECK(embed_uint_ℕ(uz) == embed_uint_ℕ(ui));
-  CHECK(embed_uint_ℕ(ui) == finite_cardinality(42));
+  CHECK(embed_uint_ℕ(ui) == Numeral{42u});
 }
 
 TEST_CASE("uint: lift composes with the bool→unsigned arrow (𝔹 → uint → ℕ)",
@@ -148,38 +144,37 @@ TEST_CASE("uint: lift composes with the bool→unsigned arrow (𝔹 → uint →
   // The composition embed_𝔹_uint_ >> embed_uint_ℕ_ realises
   // the embedding chain 𝔹 → std::unsigned_integral → ℕ documented in
   // the carrier-lattice section of paper.tex / report.tex.
-  CHECK(embed_uint_ℕ_(embed_𝔹_uint_(false)) == finite_cardinality(0));
-  CHECK(embed_uint_ℕ_(embed_𝔹_uint_(true)) == finite_cardinality(1));
+  CHECK(embed_uint_ℕ_(embed_𝔹_uint_(false)) == Numeral{0u});
+  CHECK(embed_uint_ℕ_(embed_𝔹_uint_(true)) == Numeral{1u});
 }
 
-TEST_CASE("uint: Fibonacci on Cardinality — the canonical intensional ℕ-series",
+TEST_CASE("uint: Fibonacci on Numeral — the canonical intensional ℕ-series",
           "[numbers][uint][ergonomics][intensional-first][fibonacci]") {
   // Fibonacci is the textbook intensional ℕ-series — defined inductively
   // by F_0 = 0, F_1 = 1, F_{n+1} = F_n + F_{n-1}.  The recurrence uses
   // only addition; the sequence stays in ℕ throughout.  Computing it on
-  // @c Cardinality keeps the practitioner in the canonical mathematical
+  // @c Numeral keeps the practitioner in the canonical mathematical
   // carrier the whole way through (no machine-int arithmetic; no
-  // overflow risk; saturation to @c ℵ_0 if a value were to exceed the
-  // finite fragment, honestly).  Sibling to the negafibonacci-on-
-  // SignedCardinality test in @c sint_test.cpp.
-  auto f_prev = finite_cardinality(0);  // F_0
-  auto f_curr = finite_cardinality(1);  // F_1
+  // overflow: the numeral grows a limb where the word would wrap).  Sibling to
+  // the negafibonacci-on- SignedCardinality test in @c sint_test.cpp.
+  auto f_prev = Numeral{0u};  // F_0
+  auto f_curr = Numeral{1u};  // F_1
 
   // Compute F_2 .. F_10: the textbook 1, 2, 3, 5, 8, 13, 21, 34, 55.
-  std::array<Cardinality, 9> fibs;
+  std::array<Numeral, 9> fibs;
   for (std::size_t i = 0; i < 9; ++i) {
     auto next = f_prev + f_curr;
     fibs[i] = next;
     f_prev = f_curr;
     f_curr = next;
   }
-  CHECK(fibs[0] == finite_cardinality(1));   // F_2
-  CHECK(fibs[1] == finite_cardinality(2));   // F_3
-  CHECK(fibs[2] == finite_cardinality(3));   // F_4
-  CHECK(fibs[3] == finite_cardinality(5));   // F_5
-  CHECK(fibs[4] == finite_cardinality(8));   // F_6
-  CHECK(fibs[5] == finite_cardinality(13));  // F_7
-  CHECK(fibs[6] == finite_cardinality(21));  // F_8
-  CHECK(fibs[7] == finite_cardinality(34));  // F_9
-  CHECK(fibs[8] == finite_cardinality(55));  // F_10
+  CHECK(fibs[0] == Numeral{1u});   // F_2
+  CHECK(fibs[1] == Numeral{2u});   // F_3
+  CHECK(fibs[2] == Numeral{3u});   // F_4
+  CHECK(fibs[3] == Numeral{5u});   // F_5
+  CHECK(fibs[4] == Numeral{8u});   // F_6
+  CHECK(fibs[5] == Numeral{13u});  // F_7
+  CHECK(fibs[6] == Numeral{21u});  // F_8
+  CHECK(fibs[7] == Numeral{34u});  // F_9
+  CHECK(fibs[8] == Numeral{55u});  // F_10
 }

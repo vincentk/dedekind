@@ -31,21 +31,22 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-// Point-free halfspaces over the natural-numbers universe ℕ (= 𝔸<Cardinality>),
+// Point-free halfspaces over the natural-numbers universe ℕ (= 𝔸<Numeral>),
 // with the pivots 5 and 3 carried as values in the terms.  A halfspace IS a
 // set, so no Set{} wrapper.
-constexpr auto gt_5 = ℕ & (π > 5);
-constexpr auto lt_3 = ℕ & (π < 3);
+constexpr auto gt_5 = ℕ & (π > 5u);
+constexpr auto lt_3 = ℕ & (π < 3u);
 
 // Compile-time theorem: the meet folds value-first to the empty Interval on ℕ.
 constexpr auto empty_meet = gt_5 & lt_3;
-static_assert(empty_meet == Ø<Cardinality>{});
+static_assert(empty_meet == Ø<Numeral>{});
 
 // gt_5 is an intensional predicate on ℕ (decidable membership, no materialised
 // members); the meet folds it value-first to the empty set --- witnessed by the
 // folded kind and by membership.
 static_assert(HasDecidableMembership<decltype(gt_5)>);
-static_assert(!static_cast<bool>(empty_meet(4u)));  // empty: no inhabitant
+static_assert(!static_cast<bool>(empty_meet(Numeral{
+    4u})));  // empty: no inhabitant
 
 /**
  * @brief Showcase 3: halfspace contradiction on ℕ.
@@ -57,5 +58,5 @@ static_assert(!static_cast<bool>(empty_meet(4u)));  // empty: no inhabitant
  */
 extern "C" __attribute__((noinline)) bool witness_empty_halfspace_meet() {
   using Logic = typename decltype(empty_meet)::logic_species;
-  return empty_meet(42u) == Logic::True;
+  return empty_meet(Numeral{42u}) == Logic::True;
 }

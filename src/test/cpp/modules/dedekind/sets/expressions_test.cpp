@@ -178,14 +178,12 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   }
 
   SECTION("Natural-numbers membership") {
-    // Post-#559, ℕ is the universe value 𝔸<Cardinality>; the underlying
-    // carrier is Cardinality (the variant ℕ-proxy from #402, which
-    // accepts unsigned literals via implicit construction).  Callsites
-    // here use unsigned values that lift into Cardinality.
-    constexpr auto gt_zero = [](const auto& v) { return v > 0u; };
+    // ℕ is the universe value 𝔸<Numeral>; its elements are numerals,
+    // built from unsigned words.
+    constexpr auto gt_zero = [](const auto& v) { return v > Numeral{0u}; };
     auto infinite = Comprehension{ℕ, gt_zero};
-    REQUIRE(infinite(5u));
-    REQUIRE_FALSE(infinite(0u));
+    REQUIRE(infinite(Numeral{5u}));
+    REQUIRE_FALSE(infinite(Numeral{0u}));
   }
 }
 
@@ -195,9 +193,9 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   // built from NAMED opaque predicates (comprehension) rather than the
   // point-free χ/fix halfspace grammar; this also preserves the capturing-
   // predicate Set shape these structural (^ / & / !) collapse tests exercise.
-  constexpr auto gt_10 = [](const auto& v) { return v > 10u; };
-  constexpr auto lt_5 = [](const auto& v) { return v < 5u; };
-  constexpr auto lt_100 = [](const auto& v) { return v < 100u; };
+  constexpr auto gt_10 = [](const auto& v) { return v > Numeral{10u}; };
+  constexpr auto lt_5 = [](const auto& v) { return v < Numeral{5u}; };
+  constexpr auto lt_100 = [](const auto& v) { return v < Numeral{100u}; };
 
   SECTION(
       "Singleton ^ Singleton — equal pivots empty, distinct pivots union "
@@ -250,8 +248,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
                   "S ^ Ø collapses structurally to the same Set type as S.");
     static_assert(std::is_same_v<decltype(left_collapse), decltype(S)>,
                   "Ø ^ S collapses structurally to the same Set type as S.");
-    REQUIRE(right_collapse(50u));
-    REQUIRE_FALSE(right_collapse(5u));
+    REQUIRE(right_collapse(Numeral{50u}));
+    REQUIRE_FALSE(right_collapse(Numeral{5u}));
   }
 
   SECTION("Boundary collapses: A ^ 𝔸 = ¬A, 𝔸 ^ A = ¬A (#469)") {
@@ -259,12 +257,12 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     using SDomain = decltype(S)::Domain;
     using SLogic = decltype(S)::logic_species;
     𝔸<SDomain, SLogic> universe{};
-    auto right_collapse = S ^ universe;  // type: !S
-    auto left_collapse = universe ^ S;   // type: !S
-    REQUIRE_FALSE(right_collapse(50u));  // 50 ∈ S → ∉ !S
-    REQUIRE(right_collapse(5u));         // 5 ∉ S  → ∈ !S
-    REQUIRE_FALSE(left_collapse(50u));
-    REQUIRE(left_collapse(5u));
+    auto right_collapse = S ^ universe;           // type: !S
+    auto left_collapse = universe ^ S;            // type: !S
+    REQUIRE_FALSE(right_collapse(Numeral{50u}));  // 50 ∈ S → ∉ !S
+    REQUIRE(right_collapse(Numeral{5u}));         // 5 ∉ S  → ∈ !S
+    REQUIRE_FALSE(left_collapse(Numeral{50u}));
+    REQUIRE(left_collapse(Numeral{5u}));
   }
 
   SECTION("Self-XOR is empty at every input: A ^ A is ∅ pointwise") {
@@ -276,9 +274,9 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // for any Set S, S ^ S evaluates to false at every input.
     auto S = Comprehension{ℕ, gt_10};
     auto S_xor_S = S ^ S;
-    REQUIRE_FALSE(S_xor_S(5u));
-    REQUIRE_FALSE(S_xor_S(50u));
-    REQUIRE_FALSE(S_xor_S(200u));
+    REQUIRE_FALSE(S_xor_S(Numeral{5u}));
+    REQUIRE_FALSE(S_xor_S(Numeral{50u}));
+    REQUIRE_FALSE(S_xor_S(Numeral{200u}));
   }
 
   SECTION(
@@ -312,15 +310,15 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto union_disjoint = A | B;
     // Membership matches the union (since the intersection is empty,
     // every element in either is in exactly one).
-    REQUIRE(sym_diff_disjoint(3u) == union_disjoint(3u));
-    REQUIRE(sym_diff_disjoint(7u) == union_disjoint(7u));
-    REQUIRE(sym_diff_disjoint(20u) == union_disjoint(20u));
+    REQUIRE(sym_diff_disjoint(Numeral{3u}) == union_disjoint(Numeral{3u}));
+    REQUIRE(sym_diff_disjoint(Numeral{7u}) == union_disjoint(Numeral{7u}));
+    REQUIRE(sym_diff_disjoint(Numeral{20u}) == union_disjoint(Numeral{20u}));
     // 3 < 5 → in B → in symmetric difference / union.
-    REQUIRE(sym_diff_disjoint(3u));
+    REQUIRE(sym_diff_disjoint(Numeral{3u}));
     // 7 is in neither (7 < 5 false, 7 > 10 false).
-    REQUIRE_FALSE(sym_diff_disjoint(7u));
+    REQUIRE_FALSE(sym_diff_disjoint(Numeral{7u}));
     // 20 > 10 → in A → in symmetric difference / union.
-    REQUIRE(sym_diff_disjoint(20u));
+    REQUIRE(sym_diff_disjoint(Numeral{20u}));
   }
 
   SECTION("De Morgan: A ^ ~B = ~(A ^ B) (#469)") {
@@ -332,15 +330,15 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto sym_diff_neg = A ^ ~B;
     auto biconditional = ~(A ^ B);
     // Both should agree pointwise: A ^ ¬B = ¬(A ^ B).
-    REQUIRE(sym_diff_neg(5u) == biconditional(5u));
-    REQUIRE(sym_diff_neg(50u) == biconditional(50u));
-    REQUIRE(sym_diff_neg(200u) == biconditional(200u));
+    REQUIRE(sym_diff_neg(Numeral{5u}) == biconditional(Numeral{5u}));
+    REQUIRE(sym_diff_neg(Numeral{50u}) == biconditional(Numeral{50u}));
+    REQUIRE(sym_diff_neg(Numeral{200u}) == biconditional(Numeral{200u}));
     // Concrete values:
     // 5: ∈ B (5 < 100), ∉ A (5 ≯ 10) → A ^ B classifies True at 5
     //   → ¬(A ^ B) classifies False at 5 → A ^ ¬B = False.
-    REQUIRE_FALSE(sym_diff_neg(5u));
+    REQUIRE_FALSE(sym_diff_neg(Numeral{5u}));
     // 50: ∈ both A and B → A ^ B classifies False → ¬(A ^ B) = True.
-    REQUIRE(sym_diff_neg(50u));
+    REQUIRE(sym_diff_neg(Numeral{50u}));
   }
 
   SECTION("Complementary-pair XOR — A ^ ~A is the universe at every input") {
@@ -351,9 +349,9 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // runtime semantics rather than the structural type.
     auto S = Comprehension{ℕ, gt_10};
     auto S_xor_notS = S ^ ~S;
-    REQUIRE(S_xor_notS(5u));
-    REQUIRE(S_xor_notS(50u));
-    REQUIRE(S_xor_notS(200u));
+    REQUIRE(S_xor_notS(Numeral{5u}));
+    REQUIRE(S_xor_notS(Numeral{50u}));
+    REQUIRE(S_xor_notS(Numeral{200u}));
   }
 
   SECTION("Membership: x ∈ A ^ B iff x is in exactly one") {
@@ -361,11 +359,11 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto B = Comprehension{ℕ, lt_100};
     auto sym_diff = A ^ B;
     // 5: in B only (5 < 100, 5 ≯ 10) → in symmetric difference
-    REQUIRE(sym_diff(5u));
+    REQUIRE(sym_diff(Numeral{5u}));
     // 50: in both (50 > 10 AND 50 < 100) → NOT in symmetric difference
-    REQUIRE_FALSE(sym_diff(50u));
+    REQUIRE_FALSE(sym_diff(Numeral{50u}));
     // 200: in A only (200 > 10, 200 ≮ 100) → in symmetric difference
-    REQUIRE(sym_diff(200u));
+    REQUIRE(sym_diff(Numeral{200u}));
   }
 
   SECTION("Textbook identity: A ^ B == (A | B) & ~(A & B)") {
@@ -373,9 +371,9 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto B = Comprehension{ℕ, lt_100};
     auto sym_diff = A ^ B;
     auto union_minus_inter = (A | B) & ~(A & B);
-    REQUIRE(sym_diff(5u) == union_minus_inter(5u));
-    REQUIRE(sym_diff(50u) == union_minus_inter(50u));
-    REQUIRE(sym_diff(200u) == union_minus_inter(200u));
+    REQUIRE(sym_diff(Numeral{5u}) == union_minus_inter(Numeral{5u}));
+    REQUIRE(sym_diff(Numeral{50u}) == union_minus_inter(Numeral{50u}));
+    REQUIRE(sym_diff(Numeral{200u}) == union_minus_inter(Numeral{200u}));
   }
 }
 
@@ -383,22 +381,22 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
   SECTION("Contradiction: {x ∈ ℕ | x > 10 ∧ x < 5} is ∅") {
     // Here we combine the symbolic predicates
     constexpr auto gt10_and_lt5 = [](const auto& v) {
-      return (v > 10u) && (v < 5u);
+      return (v > Numeral{10u}) && (v < Numeral{5u});
     };
     auto S = Comprehension{ℕ, gt10_and_lt5};
 
     // For a non-trivial polish, we verify it is 'Total Absence'
-    REQUIRE_FALSE(S(0u));
-    REQUIRE_FALSE(S(7u));
-    REQUIRE_FALSE(S(12u));
+    REQUIRE_FALSE(S(Numeral{0u}));
+    REQUIRE_FALSE(S(Numeral{7u}));
+    REQUIRE_FALSE(S(Numeral{12u}));
   }
 
   SECTION("Tautology: {x ∈ ℕ | x > 10 ∨ x <= 10} is 𝔸") {
     constexpr auto gt10_or_le10 = [](const auto& v) {
-      return (v > 10u) || (v <= 10u);
+      return (v > Numeral{10u}) || (v <= Numeral{10u});
     };
     auto S = Comprehension{ℕ, gt10_or_le10};
-    REQUIRE(S(7u));
+    REQUIRE(S(Numeral{7u}));
   }
 }
 

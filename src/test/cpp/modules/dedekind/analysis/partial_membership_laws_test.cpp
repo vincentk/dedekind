@@ -47,26 +47,16 @@ TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
     static_assert(!Ternary::True == Ternary::False);       // no fixpoint on Σ
     static_assert(!Ternary::False == Ternary::True);
   }
-  // ── fix(succ): the DOMAIN decides: ℵ₀ is a fixpoint, the finite fragment
-  //    has none.  Whether the successor closes on itself (hence whether the
-  //    normal form / membership is decided) is a property of the carrier, not
-  //    of the arrow, the Galois-specialisation axis. ──
-  {
-    constexpr Successor<Cardinality> succ{};
-    static_assert(succ(finite_cardinality(3)) !=
-                  finite_cardinality(3));     // none finite
-    static_assert(succ(aleph_0) == aleph_0);  // fix(succ) = ℵ₀ (saturation)
-  }
   // ── membership RETURNS Unknown: the intensional image of a set ──
   {
-    constexpr auto gt5 = ℕ & (π > 5);  // {n ∈ ℕ | n > 5} : decidable (ℵ₀)
+    constexpr auto gt5 = ℕ & (π > 5u);  // {n ∈ ℕ | n > 5} : decidable (ℵ₀)
     static_assert(HasDecidableMembership<decltype(gt5)>);
-    constexpr Successor<Cardinality> succ;  // ℕ → ℕ, an arrow as it stands
+    constexpr Successor<Numeral> succ;      // ℕ → ℕ, an arrow as it stands
     constexpr auto img = image(succ, gt5);  // {y | ∃n. n>5 ∧ y=n+1} : Ω
     static_assert(std::same_as<typename decltype(img)::logic_species, Kleene>);
     static_assert(!HasDecidableMembership<decltype(img)>);
     // honestly Unknown, though set-theoretically 7 ∈ image(succ, {n>5})
-    static_assert(img(finite_cardinality(7)) == Ternary::Unknown);
+    static_assert(img(Numeral{7u}) == Ternary::Unknown);
   }
   CHECK(true);  // runtime anchor for coverage
 }
