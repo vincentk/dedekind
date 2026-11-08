@@ -2,7 +2,7 @@
 
 How fast is the scan of [Listing 5](../../README.md), and why? This counts the palindromic hexamers in a text of DNA, four ways, and keeps the compiler's output beside the times. Tracked in [#1154](https://github.com/vincentk/dedekind/issues/1154).
 
-Figures are to one significant digit, from one run on one shared GitHub runner, an AMD EPYC 9V74, Clang 23, `-O2`, unless a row says otherwise. Benchmarks are fickle, and shared runners more so: the orders of magnitude are the result, and the digits are not.
+The figures in [The result](#the-result) are to one significant digit, from one run on one shared GitHub runner, main's `benchmark` job at commit `8507f613` on an AMD EPYC 7763, Clang 23, `-O2`; [One run in full](#one-run-in-full) has every row. The oddities below are observations across earlier runs and machines, each naming its own where it matters. Benchmarks are fickle, and shared runners more so: the orders of magnitude are the result, and the digits are not.
 
 ## The ladder
 
@@ -64,12 +64,12 @@ One core, baseline SSE2, from raw ASCII. *The table* is Knuth, Morris and Pratt'
 | The library or `pynzli`, by the table | 2 | 5× |
 | The same table, a hand-written loop, for reference | 2 | 5× |
 | Each window asked, as defined | 20 | 50× |
-| Python, a loop over a set | 100 | 300× |
-| Python, `re` with 64 alternatives in a lookahead | 200 | 500× |
+| Python, a loop over a set | 200 | 400× |
+| Python, `re` with 64 alternatives in a lookahead | 300 | 600× |
 
-So the law does the same count in a fifth of the table's CPU time and a five-hundredth of `re`'s, on the same core. That is the case for it, and fewer cycles for the same answer is what sustainable computing asks. Energy itself isn't measured here.
+So the law does the same count in a fifth of the table's CPU time and a six-hundredth of `re`'s, on the same core. That is the case for it, and fewer cycles for the same answer is what sustainable computing asks. Energy itself isn't measured here.
 
-On 3.1 billion letters, about a human genome, past the cache: a plain read of the same memory at 30 GB/s, the law at 3 GB/s, the table at 0.5. So about a second, by calculation, and the scan is bound by the core and not by memory. The scan's own storage is fixed, a block's worth for the law and one state for the table, and the text is read where it lies. Drawn rather than stored, by the table, peak memory for the whole process stays at about 10 MB from 10^7 to 10^10 letters. All rows count the same number of sites, and the job fails if they do not.
+On 3.1 billion letters, about a human genome, past the cache: a plain read of the same memory at 20 GB/s, the law at 2 GB/s, the table at 0.5. So about a second, by calculation, and the scan is bound by the core and not by memory. The scan's own storage is fixed, a block's worth for the law and one state for the table, and the text is read where it lies. Drawn rather than stored, by the table, peak memory for the whole process stays at about 10 MB from 10^7 to 10^10 letters. All rows count the same number of sites, and the job fails if they do not.
 
 Drawing a letter from `random_text` and scanning it by the table costs about 5% more than drawing it alone.
 
@@ -119,7 +119,7 @@ Each is one `make bench` away. Pull requests welcome.
 - A set of bases per byte goes from the slowest law row to a fast one with native flags, 3.6 to 0.20 ns.
 - Two bits a base, one word holding 27 windows, reaches 0.06 ns per base at native flags and isn't in the library.
 - **The law doesn't reach the bus: about a tenth of a plain read.** Ranks already in bytes reach about a third, so most of the cost is getting to ranks and copying a block's verdicts between passes. Nothing in principle stops it: the comparisons take a few operations per 16 bytes.
-- **This is where it stops working out of the box.** The law reads 3.1 GB at 2.6 GB/s against 33 GB/s for a plain read, and rewriting the block as bitwise joins, per-length passes or two-bit words didn't beat it on text in bytes. That's as far as we got, not a limit. Getting closer under the same rules would be interesting: no intrinsics and no inner loop written for this problem, with specialisations keyed on a law or a data shape, and the compiler doing the vectorising.
+- **This is where it stops working out of the box.** The law reads 3.1 GB at about 2 GB/s against 20 GB/s for a plain read, and rewriting the block as bitwise joins, per-length passes or two-bit words didn't beat it on text in bytes. That's as far as we got, not a limit. Getting closer under the same rules would be interesting: no intrinsics and no inner loop written for this problem, with specialisations keyed on a law or a data shape, and the compiler doing the vectorising.
 - [ ] `llvm-mca` on the hot loops, and full `lscpu` with each run.
 - [ ] A real assembly, with the file named and its lowercase and `N` runs handled.
 
