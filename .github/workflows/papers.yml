@@ -13,7 +13,8 @@ on:
     branches: [ "main", "stable-*" ]
     paths:
     - "docs/paper/**"
-    - "Makefile"  # ci-install-paper-deps
+    - "Makefile"  # make papers
+    - ".github/actions/paper-toolchain/**"
     - ".github/workflows/papers.yml"
 
 permissions:
@@ -34,8 +35,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
-    - name: Install the paper toolchain
-      run: make ci-install-paper-deps
+    - uses: ./.github/actions/paper-toolchain
 
     - name: Build the papers
       run: make papers

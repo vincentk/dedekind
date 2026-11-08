@@ -42,7 +42,7 @@ _HOST_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || ech
 JOBS ?= $(shell j=$$(( $(_HOST_CORES) - 2 )); [ $$j -lt 2 ] && j=2; echo $$j)
 
 .PHONY: help python-api jlt-lint jlt-lint-tool
-.PHONY: bench bench-native all clean compile test-compile test integration-test coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-paper-deps doxygen paper paper-jlt \
+.PHONY: bench bench-native all clean compile test-compile test integration-test coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks doxygen paper paper-jlt \
 	ci-history ci-main pr-init pr-status pr-status-all pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list jupyter
 
@@ -249,66 +249,6 @@ install-hooks: ## Install the pre-push git hook
 	git config core.hooksPath .githooks
 	chmod +x .githooks/pre-push
 	@echo "Installed repo hooks from .githooks/"
-
-# CI-only helper: install packages required for Doxygen generation.
-ci-install-doxygen-deps:
-	@if ! command -v apt-get >/dev/null 2>&1; then \
-		echo "ERROR: ci-install-doxygen-deps requires apt-get (intended for Ubuntu CI runners)."; \
-		exit 2; \
-	fi
-	sudo apt-get update
-	sudo apt-get install -y doxygen graphviz
-
-# CI-only helper: install packages required for the paper LaTeX build.
-# Includes texlive-luatex since docs/paper builds with LuaLaTeX for
-# native UTF-8 support, and python3-pygments for the `minted` package
-# (per #557 — minted shells out to Pygments for native UTF-8 in code
-# listings; see lualatex -shell-escape in docs/paper/Makefile).
-#
-# JuliaMono is downloaded from upstream releases since Ubuntu doesn't ship
-# it as an apt package (`fonts-juliamono` does not exist).  Pinned version
-# for reproducibility; bump as needed.
-JULIAMONO_VERSION := 0.062
-# The LaTeX packages taken from CTAN at their latest, ahead of the
-# distribution's TeX Live: minted 3.8 (beside latexminted 0.7 from PyPI) and
-# the two it asks newer than ubuntu-26.04 has, both by minted's author (its
-# other packages it asks at no version).  One more is one more name here.
-CTAN_LATEX_PACKAGES := minted fvextra latex2pydata
-ci-install-paper-deps:
-	@if ! command -v apt-get >/dev/null 2>&1; then \
-		echo "ERROR: ci-install-paper-deps requires apt-get (intended for Ubuntu CI runners)."; \
-		exit 2; \
-	fi
-	sudo apt-get update
-	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended texlive-fonts-extra texlive-luatex texlive-lang-greek texlive-science python3-pygments curl unzip fontconfig
-	# minted as a matching pair at its latest, ahead of TeX Live's: the LaTeX
-	# packages from CTAN (CTAN_LATEX_PACKAGES, each .sty generated from its
-	# .ins) into TEXMFHOME, which TeX searches first, and minted's Python
-	# half, latexminted, from PyPI onto PATH.  TeX Live's own pair
-	# (ubuntu-26.04) is minted.sty 3.7 with latexminted 0.6.0, which passes
-	# argparse a keyword newer Pythons refuse; latexminted 0.7 asks
-	# minted.sty 3.8, and that a newer fvextra.
-	set -e; for p in $(CTAN_LATEX_PACKAGES); do \
-		cd /tmp && curl -fsSL --connect-timeout 20 --retry 5 --retry-all-errors -o $$p.zip https://mirrors.ctan.org/macros/latex/contrib/$$p.zip \
-			&& rm -rf $$p && unzip -q -o $$p.zip \
-			&& (cd $$p && for ins in *.ins; do latex -interaction=nonstopmode $$ins >/dev/null; done) \
-			&& dest="$$(kpsewhich -var-value TEXMFHOME)/tex/latex/$$p" \
-			&& mkdir -p "$$dest" && cp $$p/*.sty "$$dest"/ \
-			&& rm -rf $$p $$p.zip \
-			&& kpsewhich $$p.sty \
-			|| { echo "ERROR: $$p from CTAN did not install"; exit 1; }; \
-	done
-	python -m pip install --upgrade latexminted
-	command -v latexminted
-	# JuliaMono — downloaded from GitHub releases, installed system-wide,
-	# fontconfig cache refreshed so lualatex/luaotfload finds it.  `curl -fsSL`
-	# fails fast on HTTP errors (e.g. a missing release asset) rather than
-	# producing a confusing unzip failure later in the && chain.
-	cd /tmp && curl -fsSL -o JuliaMono.zip "https://github.com/cormullion/juliamono/releases/download/v$(JULIAMONO_VERSION)/JuliaMono-ttf.zip" \
-		&& sudo mkdir -p /usr/local/share/fonts/juliamono \
-		&& sudo unzip -o JuliaMono.zip -d /usr/local/share/fonts/juliamono \
-		&& sudo fc-cache -f /usr/local/share/fonts/juliamono \
-		&& rm -f JuliaMono.zip
 
 # CI/PR workflow helpers (optimistic concurrency loop)
 
