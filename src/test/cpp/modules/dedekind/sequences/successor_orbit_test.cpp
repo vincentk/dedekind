@@ -2,7 +2,7 @@
  * @file dedekind/sequences/successor_orbit_test.cpp
  * @brief The unfold lives in @c sequences: @c SuccessorOrbit<N> is
  *        @c iterate(a, Successor<N>{}), the NNO's universal morphism as a
- *        sequence; @c nno_iterate samples it; its finite prefix is the interval
+ *        sequence; @c iterate samples it; its finite prefix is the interval
  *        read as @c iota_view (#1001, slice B).
  *
  * @copyright 2026 The Dedekind Authors
@@ -30,7 +30,7 @@ TEST_CASE("sequences — the successor orbit is the one unfold, three spellings"
   for (std::size_t n = 0; n < 6; ++n) {
     CHECK(orbit.at(n) == 3 + static_cast<int>(n));
     CHECK(orbit.at(n) == stream.at(n));
-    CHECK(orbit.at(n) == nno_iterate(3, Successor<int>{}, n));
+    CHECK(orbit.at(n) == dedekind::category::iterate(Successor<int>{}, 3, n));
   }
 }
 

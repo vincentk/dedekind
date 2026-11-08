@@ -5,7 +5,7 @@
  * @section Scope
  * Exercises the Natural Numbers Object reification (closes part of
  * #445): the @c IsNNO concept's structural shape, the @c
- * nno_iterate operational discharge of the universal property, and
+ * iterate operational discharge of the universal property, and
  * the canonical @c Cardinality witness registered in @c
  * numbers:natural.
  *
@@ -81,27 +81,27 @@ TEST_CASE(
 }
 
 // ===========================================================================
-// (3) nno_iterate discharges the universal property at finite indices
+// (3) iterate discharges the universal property at finite indices
 // ===========================================================================
 
 TEST_CASE(
-    "category:nno — nno_iterate(a₀, g, n) realises f(n) for the "
+    "category:nno — iterate(g, a₀, n) realises f(n) for the "
     "induced morphism f : ℕ → A",
     "[category][nno][universal-property][iterate]") {
   // Identity recursion: a₀ = 0, g = succ.  The unique f : ℕ → ℕ
   // produced by the universal property is the identity, materialised
-  // at finite indices via nno_iterate.
+  // at finite indices via iterate.
   const auto zero = ZeroElement<Cardinality>{}();
   const auto step = Successor<Cardinality>{};
-  CHECK(nno_iterate(zero, step, 0u) == finite_cardinality(0));
-  CHECK(nno_iterate(zero, step, 1u) == finite_cardinality(1));
-  CHECK(nno_iterate(zero, step, 5u) == finite_cardinality(5));
-  CHECK(nno_iterate(zero, step, 42u) == finite_cardinality(42));
+  CHECK(dedekind::category::iterate(step, zero, 0u) == finite_cardinality(0));
+  CHECK(dedekind::category::iterate(step, zero, 1u) == finite_cardinality(1));
+  CHECK(dedekind::category::iterate(step, zero, 5u) == finite_cardinality(5));
+  CHECK(dedekind::category::iterate(step, zero, 42u) == finite_cardinality(42));
 }
 
 TEST_CASE(
     "category:nno — Fibonacci as a coalgebra for F(X) = ℕ × X via "
-    "nno_iterate",
+    "iterate",
     "[category][nno][universal-property][iterate][fibonacci][coalgebra]") {
   // The proper categorical framing of two-term recurrences (per the
   // Gemini exchange in PR #444): Fibonacci is a coalgebra for the
@@ -109,7 +109,7 @@ TEST_CASE(
   //   (a, b) ↦ (a + b, a).
   // The unique morphism f : ℕ → A produced by the NNO universal
   // property over this coalgebra is the Fibonacci sequence;
-  // nno_iterate materialises f(n) for finite n.
+  // iterate materialises f(n) for finite n.
   using State = std::pair<Cardinality, Cardinality>;
   // Initial state (F_1, F_0) = (1, 0); we step n times to get
   // (F_{n+1}, F_n), then read off the second component for F_n.
@@ -118,12 +118,13 @@ TEST_CASE(
     return {s.first + s.second, s.first};
   };
   // F_0 .. F_10 = 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55.
-  CHECK(nno_iterate(a0, g, 0u).second == finite_cardinality(0));
-  CHECK(nno_iterate(a0, g, 1u).second == finite_cardinality(1));
-  CHECK(nno_iterate(a0, g, 2u).second == finite_cardinality(1));
-  CHECK(nno_iterate(a0, g, 3u).second == finite_cardinality(2));
-  CHECK(nno_iterate(a0, g, 5u).second == finite_cardinality(5));
-  CHECK(nno_iterate(a0, g, 10u).second == finite_cardinality(55));
+  CHECK(dedekind::category::iterate(g, a0, 0u).second == finite_cardinality(0));
+  CHECK(dedekind::category::iterate(g, a0, 1u).second == finite_cardinality(1));
+  CHECK(dedekind::category::iterate(g, a0, 2u).second == finite_cardinality(1));
+  CHECK(dedekind::category::iterate(g, a0, 3u).second == finite_cardinality(2));
+  CHECK(dedekind::category::iterate(g, a0, 5u).second == finite_cardinality(5));
+  CHECK(dedekind::category::iterate(g, a0, 10u).second ==
+        finite_cardinality(55));
 }
 
 // ===========================================================================
