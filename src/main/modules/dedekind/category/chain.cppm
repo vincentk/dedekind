@@ -486,7 +486,9 @@ using FiniteChainSequence =
 /** @section chain__Bounded
  *  A range is @b bounded when a fold over it takes at most a count known
  *  before the fold starts (#1172): Rule 3's descent, read once at the seed as
- *  a ranking function, not checked at every step.  The type says that there
+ *  a ranking function (Turing's decreasing quantity @cite turing1949checking,
+ *  corrected in @cite morris1984early; general in @cite floyd1967assigning),
+ *  not checked at every step.  The type says that there
  *  is a bound, the value holds it, as a sized range holds its size.  A sized
  *  range is bounded by its size.  The chain of Figure 2 is bounded by its
  *  seed: @c n names its cardinality.  Any other chain is bounded by a budget
