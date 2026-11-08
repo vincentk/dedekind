@@ -36,13 +36,18 @@ struct M {
 };
 constexpr auto act = [](V v, M a) { return v * a; };
 constexpr M fib{{1, 1}, {1, 0}};
-}  // namespace
 
-/** @return F(n), the fold of Listing 3 over a count known at run time. */
-extern "C" __attribute__((noinline)) constexpr std::size_t listing3_fibonacci(
-    std::size_t n) {
+/** @return F(n), the fold of Listing 3 over a chain of n counts. */
+constexpr std::size_t fibonacci(std::size_t n) {
   return fold(n >> chain<std::size_t>() >> constant<std::size_t>(fib), V{1, 0},
               act)[1];
 }
+static_assert(fibonacci(0) == 0 && fibonacci(10) == 55);
+}  // namespace
 
-static_assert(listing3_fibonacci(0) == 0 && listing3_fibonacci(10) == 55);
+/** @return the same fold, its count known only at run time: an emitted
+ *  symbol, since a constexpr function is inline and would not be. */
+extern "C" __attribute__((noinline)) std::size_t listing3_fibonacci(
+    std::size_t n) {
+  return fibonacci(n);
+}
