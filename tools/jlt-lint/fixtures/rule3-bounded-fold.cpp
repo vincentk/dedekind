@@ -16,8 +16,8 @@ namespace jlt_listing {
 constexpr std::array<int, 3> xs{1, 2, 3};
 
 constexpr int left = std::ranges::fold_left(xs, 0, std::plus<>{});  // finding 1
-constexpr int right =
-    std::ranges::fold_right(xs, 0, std::plus<>{});  // finding 2
+constexpr int twice =  // fold_right would do, but libc++ has none yet
+    std::ranges::fold_left(xs, 1, std::multiplies<>{});  // finding 2
 constexpr int pair_of_iterators =
     std::ranges::fold_left(xs.begin(), xs.end(), 0, std::plus<>{});  // finding 3
 
