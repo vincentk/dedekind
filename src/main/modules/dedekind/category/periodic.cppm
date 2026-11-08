@@ -657,12 +657,12 @@ struct Box {
 };
 namespace detail_periodic {
 /** @brief Extents with one more side, @c n, after @c e's.  @param e the
- *  extents.  @param n the new side.  @return the extents of rank @c K + 1. */
-template <IsCountWord N, std::size_t K, std::size_t... I>
-constexpr std::dextents<N, K + 1> extended(const std::dextents<N, K>& e,
-                                           const N n,
-                                           std::index_sequence<I...>) {
-  return std::dextents<N, K + 1>(e.extent(I)..., n);
+ *  extents.  @param n the new side.  @return the extents of one more rank.
+ *  Deduced from @c std::extents itself: its alias @c dextents is not. */
+template <IsCountWord N, std::size_t... E, std::size_t... I>
+constexpr std::dextents<N, sizeof...(E) + 1> extended(
+    const std::extents<N, E...>& e, const N n, std::index_sequence<I...>) {
+  return std::dextents<N, sizeof...(E) + 1>(e.extent(I)..., n);
 }
 }  // namespace detail_periodic
 /** @param a @param b two chains under predicates.  @return their outer
@@ -700,9 +700,9 @@ constexpr std::array<N, A + B> join_arrays(const std::array<N, A>& a,
   return out;
 }
 /** @brief Each leg's count, the legs read left to right from @c at. */
-template <IsArrow T, std::size_t K, IsCountWord N>
+template <IsArrow T, IsCountWord N, std::size_t... E>
 constexpr std::array<N, box_legs<T>::value> counts_of(
-    const T& t, const std::dextents<N, K>& sides, std::size_t at) {
+    const T& t, const std::extents<N, E...>& sides, std::size_t at) {
   if constexpr (box_node<T>::value) {
     using L = typename box_node<T>::left;
     return join_arrays(counts_of(t.f.r, sides, at),
@@ -725,9 +725,9 @@ struct Residue {
 };
 /** @brief Each leg's histogram over the residues modulo @c m, the legs read
  *  left to right from @c at. */
-template <IsArrow T, std::size_t K, IsCountWord N>
+template <IsArrow T, IsCountWord N, std::size_t... E>
 constexpr std::vector<std::vector<N>> residues_of(
-    const T& t, const std::dextents<N, K>& sides, std::size_t at, N m) {
+    const T& t, const std::extents<N, E...>& sides, std::size_t at, N m) {
   if constexpr (box_node<T>::value) {
     using L = typename box_node<T>::left;
     auto hs = residues_of(t.f.r, sides, at, m);
