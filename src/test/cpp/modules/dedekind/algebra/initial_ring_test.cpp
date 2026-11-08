@@ -3,25 +3,11 @@
  * @brief Test suite for the @c algebra:initial_ring partition.
  *
  * @section Scope
- * Exercises the dual universal-property reification of @c ℤ
- * (closes part of #446):
- *
- *   1. @c IsInitialRing<SignedCardinality> — for every ring @c R
- *      there exists a unique ring homomorphism
- *      @c SignedCardinality → @c R.  The test exercises the universal
- *      property at @c R = @c Modular<n>, where the unique
- *      homomorphism is the mod-@c n reduction.
- *
- *   2. @c IsGrothendieckGroup<SignedCardinality, Cardinality> —
- *      @c SignedCardinality is the free abelian group on the
- *      commutative monoid @c (Cardinality, +, 0).  The test
- *      exercises the closure-forcing operator
- *      @c Cardinality - Cardinality → SignedCardinality as the
- *      operator-level realisation of the Grothendieck construction.
- *
- * Both Forms anchor the same carrier; this test suite is the
- * @b formal, @b type-checked @b documentation that the dual
- * inhabitance holds operationally.
+ * Exercises the initial rig, ℕ, as @c IsInitialRig<Numeral>, and that no
+ * machine word claims ℤ's universal properties (a word wraps); ℤ's honest
+ * carrier follows ℕ's (#1035).  The Grothendieck construction's operator
+ * @c Cardinality - Cardinality → SignedCardinality is exercised on small
+ * values.
  *
  *   3. Carrier-lattice arrows (Figure 1 in @c paper.tex /
  *      @c report.tex) — the labelled arrows are mechanically
@@ -49,17 +35,11 @@ using dedekind::algebra::IsInitialRing;
 // (1) Concept fires on the canonical witnesses
 // ===========================================================================
 
-TEST_CASE("initial_ring: IsInitialRing<SignedCardinality> fires",
+TEST_CASE("initial_ring: IsInitialRig<Numeral> fires; no word is initial",
           "[algebra][initial_ring][witness]") {
-  STATIC_CHECK(IsInitialRing<SignedCardinality>);
-  STATIC_CHECK(is_initial_ring_v<SignedCardinality>);
-}
-
-TEST_CASE(
-    "initial_ring: IsGrothendieckGroup<SignedCardinality, Cardinality> fires",
-    "[algebra][grothendieck][witness]") {
-  STATIC_CHECK(IsGrothendieckGroup<SignedCardinality, Cardinality>);
-  STATIC_CHECK((is_grothendieck_group_v<SignedCardinality, Cardinality>));
+  STATIC_CHECK(dedekind::algebra::IsInitialRig<dedekind::sets::Numeral>);
+  STATIC_CHECK(!is_initial_ring_v<SignedCardinality>);
+  STATIC_CHECK(!(is_grothendieck_group_v<SignedCardinality, Cardinality>));
 }
 
 TEST_CASE(
@@ -137,29 +117,6 @@ TEST_CASE(
   auto const neg_z = -z;                                         // = -2
   CHECK((z + neg_z) == finite_signed_cardinality(0));
   CHECK(neg_z == finite_signed_cardinality(-2));
-}
-
-// ===========================================================================
-// (4) The dual reification holds: same carrier inhabits both Forms
-// ===========================================================================
-
-TEST_CASE(
-    "initial_ring: SignedCardinality inhabits BOTH IsInitialRing AND "
-    "IsGrothendieckGroup — formal type-checked documentation of the dual "
-    "universal-property reading",
-    "[algebra][initial_ring][grothendieck][duality]") {
-  // The load-bearing structural claim of #446: the same carrier
-  // simultaneously witnesses two distinct universal properties.
-  STATIC_CHECK(IsInitialRing<SignedCardinality>);
-  STATIC_CHECK(IsGrothendieckGroup<SignedCardinality, Cardinality>);
-
-  // The two readings agree up to canonical isomorphism on the
-  // operational level: a value constructed via the closure-forcing
-  // operator (Grothendieck side) equals the same value constructed
-  // directly (initial-ring side).
-  auto const via_grothendieck = finite_cardinality(7) - finite_cardinality(0);
-  auto const via_initial_ring = finite_signed_cardinality(7);
-  CHECK(via_grothendieck == via_initial_ring);
 }
 
 TEST_CASE(

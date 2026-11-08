@@ -26,7 +26,6 @@ import dedekind.morphologies;
 import dedekind.sets;
 
 using dedekind::algebra::is_galois_field_v;
-using dedekind::algebra::IsInitialRing;
 using dedekind::category::cyclic_order_v;
 using dedekind::category::IsCyclicGroup;
 using dedekind::morphologies::is_prime;
@@ -177,10 +176,9 @@ TEST_CASE("Modular<N> — Peano successor / generator coherence (#388)",
 }
 
 // ===========================================================================
-// (4) Universal property of ℤ: @c χ_{Modular<n>} as the unique ring
-//     homomorphism @c SignedCardinality → @c Modular<n> (closes part
-//     of #446).  Exercises @c IsInitialRing<SignedCardinality>
-//     operationally at a concrete target ring.
+// (4) The reduction mod n of a finite SignedCardinality, on small values.
+//     A word wraps, so this is not ℤ's unique ring homomorphism (2^64 is
+//     not 0 mod 5); that waits for ℤ's honest carrier (#1035).
 // ===========================================================================
 
 namespace {
@@ -210,10 +208,9 @@ constexpr Modular<N> χ_to_modular(SignedCardinality const& z) noexcept {
 }  // namespace
 
 TEST_CASE(
-    "initial_ring: χ_{Modular<5>} is the unique ring homomorphism — sends "
-    "1 to 1, preserves +, *, zero",
+    "modular: the reduction mod 5 sends 1 to 1 and 0 to 0, small integers to "
+    "their residues",
     "[algebra][initial_ring][modular][universal-property]") {
-  STATIC_CHECK(IsInitialRing<SignedCardinality>);
   // Sends 1_ℤ to 1_M (the load-bearing universal-property clause).
   CHECK(χ_to_modular<5>(finite_signed_cardinality(1)).value == 1);
   CHECK(χ_to_modular<5>(finite_signed_cardinality(0)).value == 0);
@@ -228,10 +225,8 @@ TEST_CASE(
   CHECK(χ_to_modular<5>(finite_signed_cardinality(-7)).value == 3);
 }
 
-TEST_CASE(
-    "initial_ring: χ_{Modular<n>} is a ring homomorphism — preserves + and "
-    "* on representative values",
-    "[algebra][initial_ring][modular][ring-homomorphism]") {
+TEST_CASE("modular: the reduction mod n preserves + and * on small values",
+          "[algebra][initial_ring][modular][ring-homomorphism]") {
   auto const z2 = finite_signed_cardinality(2);
   auto const z3 = finite_signed_cardinality(3);
   auto const z5 = finite_signed_cardinality(5);

@@ -35,10 +35,9 @@
  *     @c Cardinality @c - @c Cardinality @c → @c SignedCardinality
  *     (PR #433) realises operationally.
  *
- * Reifying both as separate concepts gives the practitioner @b
- * formal, @b type-checked @b documentation that @c SignedCardinality
- * inhabits both Forms; downstream generic code can bind to whichever
- * universal property is relevant for its argument.
+ * No carrier inhabits either yet.  A machine word wraps, so it is
+ * @c ℤ/2^w, not @c ℤ; the honest carrier follows ℕ's (#1035), whose
+ * initial rig, @c IsInitialRig, @c Numeral inhabits.
  *
  * @section initial_ring__Honesty_Obligation
  * Existence and uniqueness of the canonical homomorphisms remain the
@@ -47,21 +46,15 @@
  * target abelian group (in @c IsGrothendieckGroup).  What the type
  * system pins is the @b structural shape — the carrier is a ring /
  * abelian group of the appropriate kind, plus the opt-in trait that
- * names it as the universal one.  Witnesses on @c SignedCardinality
- * exercise the universal property at one concrete target each
- * (@c Modular<n> for the initial-ring side; @c Cardinality for the
- * Grothendieck side) — the static_asserts pin the shape, the test
- * suite pins the operational behaviour.
+ * names it as the universal one.
  *
  * @section initial_ring__Architecture
  * Three-layer chain mirroring the NNO story (PR #447):
  *
- *   @c IsInitialRing  →  @c SignedCardinality  →  @c ℤ
- *   @c IsGrothendieckGroup<·, Cardinality>  →  @c SignedCardinality  →  @c ℤ
+ *   @c IsInitialRig  →  @c Numeral  →  @c ℕ
+ *   @c IsInitialRing, @c IsGrothendieckGroup<·, ℕ>  →  (pending)  →  @c ℤ
  *
- * The first chain anchors the ring-side universal property; the
- * second anchors the abelian-group-side universal property.  Both
- * land on the same carrier.
+ * ℕ's chain is complete; ℤ's waits for a carrier that does not wrap.
  *
  * @section initial_ring__Bridge_to_Limit
  * @c IsInitialRing instantiates the @b same universal-property
@@ -223,19 +216,6 @@ concept IsGrothendieckGroup =
     dedekind::category::IsAbelianGroup<G, std::plus<G>> &&
     dedekind::category::IsCommutativeMonoid<M, std::plus<M>> &&
     is_grothendieck_group_v<G, M>;
-
-// A word's claim (#1035, slice 3): SignedExtensionalCardinal wraps, so this
-// certificate is the ℤ/2^w reading of ℤ, pending the honest carrier that
-// follows ℕ's.
-template <>
-inline constexpr bool is_initial_ring_v<SignedCardinality> = true;
-
-template <>
-inline constexpr bool is_grothendieck_group_v<SignedCardinality, Cardinality> =
-    true;
-
-static_assert(IsInitialRing<SignedCardinality>);
-static_assert(IsGrothendieckGroup<SignedCardinality, Cardinality>);
 
 // ── ℕ's witnesses: the initial rig, the initial Maybe-algebra, ℕ[π] ────────
 namespace detail_initial_rig_witness {
