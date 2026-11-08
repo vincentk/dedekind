@@ -130,7 +130,7 @@ A \cppinline{requires} expression tested in the body is not a declared constrain
 A generic function may call a chain at its own type variable with no clause that entails the chain's constraint or its negation.
 It then varies with the type through a constraint it did not declare.
 \Cpp{} accepts it and resolves the call at each instantiation.
-The kernel refuses it, as GHC refuses a call whose instance the signature does not supply.
+The kernel refuses it, as GHC refuses to commit to an overlapping instance that the types do not yet decide~\cite{ghc2024overlapping}.
 Its desugaring is constraint inference: the call's resolution becomes a parameter of the enclosing function.
 Each caller supplies it after resolving the call at a concrete type, where resolution is a function, so the kernel term agrees with what \Cpp{} instantiates.
 The price is in the free theorem, which now ranges over that parameter.
