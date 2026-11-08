@@ -204,12 +204,13 @@ concept IsNNO = requires(Z z, S s, N n) {
  *  two-step (@c using @c dedekind::category::successor; then an unqualified
  *  call) so both the generic defaults and the ADL overloads compete. */
 /** @section nno__Builtin_Steps  The built-in carriers' steps
- *  The standard's integral types, @c bool and @c std::byte have no namespace
- *  for argument-dependent lookup to search, so @c HasNNOStep finds their
- *  steps only by ordinary lookup where the concept is defined: they are
- *  declared here, before it, and not with their carriers.  A closed, small
- *  set, the same the Python bindings name; every other carrier provides its
- *  step beside its type, found by ADL. */
+ *  @c HasNNOStep finds a carrier's step by argument-dependent lookup beside
+ *  the carrier, or by ordinary lookup where the concept is defined.  The
+ *  standard's integral types and @c bool are fundamental types with no
+ *  associated namespace, and @c std::byte's is @c std, where no overload may
+ *  be added: their steps are declared here, before the concept.  A closed,
+ *  small set, the same the Python bindings name; every other carrier
+ *  provides its step beside its type. */
 export template <std::integral T>
 constexpr T successor(T n) noexcept {
   return static_cast<T>(n + 1);
