@@ -498,6 +498,17 @@ struct is_counting_walk<unfold_view<N, Coalg>> : is_counting_coalgebra<Coalg> {
 /** @concept IsBoundedRange
  *  @brief A range a fold over which takes at most @c bound(r) steps, a count
  *  known before the fold starts: a sized range, or the chain below a count.
+ *  @par Guarantee: ultra-light, by contract.
+ *  Checking the concept costs two standard concepts and one partial
+ *  specialisation match per arrow the walk is read by; it never instantiates
+ *  the walk.  @c bound(r) is O(1): the standard's @c ranges::size, which a
+ *  sized range must answer in amortised constant time ([range.sized]), or a
+ *  copy of the seed, a count word.  It never iterates, never allocates and
+ *  never throws on the library's ranges.  A witness below holds it: @c bound
+ *  of a walk of @f$2^{62}@f$ steps is a constant expression, which a bound
+ *  that walked could not be within the compiler's step limit.  A change
+ *  that breaks this contract is a breaking change of Rule 3's reading, not
+ *  an optimisation to revisit.
  *  @tparam R the range. */
 export template <typename R>
 concept IsBoundedRange =
@@ -528,6 +539,12 @@ static_assert(bound(three >> chain<std::size_t>()) == 3 &&
                   std::ranges::distance(three >> chain<std::size_t>()) == 3,
               "the chain below n is bounded by n, read by arrows or not, and "
               "takes exactly n steps");
+constexpr std::size_t huge = std::size_t{1} << 62;
+static_assert(bound(huge >> chain<std::size_t>() >> Successor<std::size_t>{}) ==
+                      huge &&
+                  bound(std::views::iota(std::size_t{0}, huge)) == huge,
+              "the guarantee: bound never walks, or this would exceed the "
+              "compiler's step limit");
 static_assert(!IsBoundedRange<decltype(detail_chain_arrows::ns)>,
               "a chain that ends by a test is finite by fact, not bounded");
 }  // namespace detail_chain_bounded
