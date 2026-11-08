@@ -2719,6 +2719,12 @@ struct unit_trait<Nat, std::multiplies<Nat>> {
   using value_type = Nat;
   static constexpr value_type value{1u};
 };
+// Path D to totality: + and * are exact, closed and lossless, the boundary
+// the machine's memory, as for Rational (is_exact_total names ℕ among them).
+template <>
+struct is_exact_total<Nat, std::plus<Nat>> : std::true_type {};
+template <>
+struct is_exact_total<Nat, std::multiplies<Nat>> : std::true_type {};
 template <>
 inline constexpr bool is_associative_v<Nat, std::plus<Nat>> = true;
 template <>
