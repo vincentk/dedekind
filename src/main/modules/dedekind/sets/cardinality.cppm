@@ -35,6 +35,7 @@ module;
 #include <compare>
 #include <concepts>
 #include <cstddef>
+#include <cstdint>  // a numeral's limbs, std::uint64_t
 #include <functional>
 #include <iterator>  // reverse iterators: the limbs read from the top
 #include <limits>
