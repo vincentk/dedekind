@@ -83,7 +83,9 @@
  */
 module;
 
+#include <cstddef>
 #include <functional>
+#include <limits>
 #include <type_traits>
 
 export module dedekind.algebra:initial_ring;
@@ -91,10 +93,41 @@ export module dedekind.algebra:initial_ring;
 import dedekind.category;
 import dedekind.sets;
 import :group;
+import :polynomial;  // Poly<Numeral>: ℕ[π] with honest coefficients, the
+                     // witness
 import :ring;
+
+namespace dedekind::category {
+// (ℕ, [Z, S]) is the initial Maybe-algebra: the opt-in the structure earns,
+// Lambek holding on ℕ where it fails on every word (sets:cardinality).
+template <>
+inline constexpr bool is_initial_f_algebra_v<
+    maybe_functor<dedekind::sets::Numeral>, dedekind::sets::Numeral,
+    In<dedekind::sets::Numeral>> = true;
+}  // namespace dedekind::category
 
 namespace dedekind::algebra {
 using namespace dedekind::sets;
+
+// ===========================================================================
+// (0) Initial Rig — ℕ as the initial object in CRig (#1035).
+// ===========================================================================
+/** @brief Opt-in: @c R is the initial commutative rig, ℕ.  The one carrier
+ *  that is: @c sets::Numeral, exact above the word.  A word is a rig and not
+ *  initial, since it wraps. */
+export template <typename R>
+inline constexpr bool is_initial_rig_v = false;
+/** @concept IsInitialRig
+ *  @brief @c R is ℕ: for every commutative rig @c S there is exactly one rig
+ *  homomorphism @c ℕ @c → @c S, evaluation.  The structural part is checked;
+ *  the universal property is the opt-in, as for @c IsInitialRing. */
+export template <typename R>
+concept IsInitialRig =
+    dedekind::category::IsRig<R, std::plus<R>, std::multiplies<R>> &&
+    dedekind::category::IsCommutative<R, std::multiplies<R>> &&
+    is_initial_rig_v<R>;
+template <>
+inline constexpr bool is_initial_rig_v<Numeral> = true;
 
 // ===========================================================================
 // (1) Initial Ring — ℤ as the initial object in Ring.
@@ -191,6 +224,9 @@ concept IsGrothendieckGroup =
     dedekind::category::IsCommutativeMonoid<M, std::plus<M>> &&
     is_grothendieck_group_v<G, M>;
 
+// A word's claim (#1035, slice 3): SignedExtensionalCardinal wraps, so this
+// certificate is the ℤ/2^w reading of ℤ, pending the honest carrier that
+// follows ℕ's.
 template <>
 inline constexpr bool is_initial_ring_v<SignedCardinality> = true;
 
@@ -201,4 +237,30 @@ inline constexpr bool is_grothendieck_group_v<SignedCardinality, Cardinality> =
 static_assert(IsInitialRing<SignedCardinality>);
 static_assert(IsGrothendieckGroup<SignedCardinality, Cardinality>);
 
+// ── ℕ's witnesses: the initial rig, the initial Maybe-algebra, ℕ[π] ────────
+namespace detail_initial_rig_witness {
+using dedekind::category::In;
+using dedekind::category::maybe_functor;
+constexpr std::size_t top = std::numeric_limits<std::size_t>::max();
+static_assert(IsInitialRig<Numeral> && !IsInitialRig<ExtensionalCardinal<>>,
+              "ℕ is the initial rig; a word is a rig that wraps, not initial");
+static_assert(dedekind::category::IsInitialFAlgebra<maybe_functor<Numeral>,
+                                                    Numeral, In<Numeral>>,
+              "(ℕ, [Z, S]) is the initial Maybe-algebra: the first instance");
+static_assert(
+    canonical<Numeral>(Const<std::size_t>{6u} * Const<std::size_t>{7u}) ==
+            canonical<Numeral>(Const<std::size_t>{42u}) &&
+        canonical<Numeral>(Const<std::size_t>{top} * Const<std::size_t>{top}) ==
+            canonical<Numeral>(Const<std::size_t>{top} *
+                                   Const<std::size_t>{top} +
+                               Const<std::size_t>{0u}) &&
+        canonical<Numeral>(Const<std::size_t>{top} * Const<std::size_t>{top}) !=
+            canonical<Numeral>(Const<std::size_t>{1u}) &&
+        canonical<std::size_t>(Const<std::size_t>{top} *
+                               Const<std::size_t>{top}) ==
+            canonical<std::size_t>(Const<std::size_t>{1u}),
+    "a ground term's normal form in ℕ is its exact value, 6 * 7 = 42 and "
+    "(2^64-1)^2 above the word; the same term read in ℤ/2^64 wraps to 1: a "
+    "normal form per algebra");
+}  // namespace detail_initial_rig_witness
 }  // namespace dedekind::algebra

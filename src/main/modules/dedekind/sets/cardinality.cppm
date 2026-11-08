@@ -29,18 +29,22 @@ module;
 
 #include <algorithm>  // std::ranges::fold_left
 #include <array>
+#include <bit>  // the limbs' width
 #include <climits>
 #include <cmath>
 #include <compare>
 #include <concepts>
 #include <cstddef>
 #include <functional>
+#include <iterator>  // reverse iterators: the limbs read from the top
 #include <limits>
-#include <ranges>  // std::views::repeat: the doublings as a fold
+#include <optional>  // a numeral that is a word, or not
+#include <ranges>    // std::views::repeat: the doublings as a fold
 #include <stdexcept>
 #include <type_traits>  // std::remove_cvref_t --- IsRingIntegral normalisation
 #include <utility>
 #include <variant>
+#include <vector>  // a numeral's limbs above the first
 
 export module dedekind.sets:cardinality;
 
@@ -128,6 +132,196 @@ export struct ℶ_1 {
 static_assert(IsCardinality<ℶ_1> && !IsCountable<ℶ_1> &&
                   !std::same_as<ℶ_1, ℵ<1>>,
               "the continuum is uncountable, and not ℵ_1: that is CH");
+
+// ---------------------------------------------------------------------------
+// The finite cardinals as numerals: ℕ, not a word
+// ---------------------------------------------------------------------------
+
+/** @section cardinality__Numeral  ℕ, arbitrarily large but bounded
+ *  A term over ℕ has @c size_t atoms and @c + and @c * as nodes, the typed
+ *  grammar of @c :terms: nothing is evaluated, so no term overflows.  Its
+ *  @b normal @b form is a @c Numeral, the exact value, read off by the fold
+ *  @c canonical<Numeral> (@c algebra:polynomial, at zero variables); equality
+ *  of terms is equality of normal forms, and decides both ways.  The working
+ *  definition of "arbitrarily large, but bounded" (#1035): an atom is a
+ *  @c size_t, and a value above @f$2^{64}@f$ exists only as a term or as its
+ *  normal form, never as an atom.  The representation says the same: one limb
+ *  inline, the atom's word, and the limbs above it in a vector that is empty
+ *  below @f$2^{64}@f$, so @c 0 and @c 1 are constants that own nothing and the
+ *  heap is reached only where a word cannot.  Little-endian limbs, none
+ *  trailing zero: the form is unique and @c == is memberwise.  Arithmetic is
+ *  schoolbook in base @f$2^{64}@f$, by folds over the limbs (Rule 3); it need
+ *  not be fast, it is exact.  The word is this numeral's quotient by
+ *  @f$2^{64}@f$ (@c ExtensionalCardinal): below it the two agree exactly,
+ *  which is where the paper's listings live. */
+export struct Numeral {
+  using limb = std::uint64_t;
+  static_assert(std::numeric_limits<std::size_t>::digits <= 64,
+                "an atom, a size_t, fits the inline limb");
+  limb low{};  ///< the first limb: an atom is this, and nothing above
+  std::vector<limb>
+      high{};  ///< the limbs above, little-endian, none trailing zero
+
+  constexpr Numeral() = default;
+  /** @param n an atom: ℕ's atoms are the unsigned words. */
+  template <std::unsigned_integral N>
+  constexpr explicit Numeral(N n) : low(static_cast<limb>(n)) {}
+  /** @param limbs little-endian; normalised here, trailing zeros dropped. */
+  constexpr explicit Numeral(std::vector<limb> limbs)
+      : low(limbs.empty() ? limb{} : limbs.front()),
+        high(limbs.empty()
+                 ? std::vector<limb>{}
+                 : std::vector<limb>(limbs.begin() + 1, limbs.end())) {
+    high.erase(
+        std::ranges::find_if_not(high.rbegin(), high.rend(), IsZeroLimb{})
+            .base(),
+        high.end());
+  }
+  constexpr bool operator==(const Numeral&) const = default;
+  /** @return every limb, little-endian, the inline one first. */
+  constexpr std::vector<limb> limbs() const {
+    std::vector<limb> v{low};
+    v.insert(v.end(), high.begin(), high.end());
+    return v;
+  }
+  /** @return the word, where the numeral is one: below @f$2^{64}@f$. */
+  constexpr std::optional<std::size_t> word() const {
+    if (high.empty()) return static_cast<std::size_t>(low);
+    return std::nullopt;
+  }
+
+ private:
+  struct IsZeroLimb {
+    constexpr bool operator()(limb l) const { return l == limb{}; }
+  };
+};
+
+namespace detail_numeral {
+using limb = Numeral::limb;
+using wide = __uint128_t;  // a limb product, with its carry
+/** @return the limb at @c i, zero beyond the end. */
+constexpr limb at(const std::vector<limb>& v, std::size_t i) {
+  return i < v.size() ? v[i] : limb{};
+}
+/** @brief The state of a carried walk over limbs: those done, and the carry. */
+struct Carried {
+  std::vector<limb> limbs;
+  limb carry;
+};
+/** @brief One step of @c a @c + @c b: the limbs at @c i and the carry. */
+struct AddLimbs {
+  std::vector<limb> a, b;
+  constexpr Carried operator()(Carried s, std::size_t i) const {
+    const wide w = wide{at(a, i)} + at(b, i) + s.carry;
+    s.limbs.push_back(static_cast<limb>(w));
+    s.carry = static_cast<limb>(w >> 64);
+    return s;
+  }
+};
+/** @brief One step of @c a @c * @c k: the limb at @c i times @c k, and the
+ *  carry. */
+struct ScaleLimbs {
+  std::vector<limb> a;
+  limb k;
+  constexpr Carried operator()(Carried s, std::size_t i) const {
+    const wide w = wide{a[i]} * k + s.carry;
+    s.limbs.push_back(static_cast<limb>(w));
+    s.carry = static_cast<limb>(w >> 64);
+    return s;
+  }
+};
+/** @brief One step of @c a @c - @c 1: the limb at @c i less the borrow. */
+struct BorrowLimbs {
+  std::vector<limb> a;
+  constexpr Carried operator()(Carried s, std::size_t i) const {
+    const limb v = a[i];
+    s.limbs.push_back(v - s.carry);
+    s.carry = v < s.carry ? limb{1} : limb{};
+    return s;
+  }
+};
+/** @return @c a @c + @c b, with a final carry limb; the constructor drops it
+ *  when zero. */
+constexpr std::vector<limb> add(std::vector<limb> a, std::vector<limb> b) {
+  const std::size_t n = std::max(a.size(), b.size());
+  Carried s =
+      dedekind::category::fold(std::views::iota(std::size_t{0}, n), Carried{},
+                               AddLimbs{std::move(a), std::move(b)});
+  s.limbs.push_back(s.carry);
+  return s.limbs;
+}
+/** @return @c a @c * @c k shifted up by @c shift limbs: one row of the
+ *  schoolbook product. */
+constexpr std::vector<limb> row(const std::vector<limb>& a, limb k,
+                                std::size_t shift) {
+  Carried s = dedekind::category::fold(
+      std::views::iota(std::size_t{0}, a.size()),
+      Carried{std::vector<limb>(shift, limb{}), limb{}}, ScaleLimbs{a, k});
+  s.limbs.push_back(s.carry);
+  return s.limbs;
+}
+/** @brief One step of @c a @c * @c b: the row for @c b's limb @c j, added. */
+struct AddRow {
+  std::vector<limb> a, b;
+  constexpr std::vector<limb> operator()(std::vector<limb> acc,
+                                         std::size_t j) const {
+    return add(std::move(acc), row(a, b[j], j));
+  }
+};
+}  // namespace detail_numeral
+
+/** @brief The sum, exact. */
+export constexpr Numeral operator+(const Numeral& x, const Numeral& y) {
+  return Numeral(detail_numeral::add(x.limbs(), y.limbs()));
+}
+/** @brief The product, exact: schoolbook, a row per limb of @c y. */
+export constexpr Numeral operator*(const Numeral& x, const Numeral& y) {
+  const std::vector<Numeral::limb> a = x.limbs();
+  const std::vector<Numeral::limb> b = y.limbs();
+  return Numeral(dedekind::category::fold(
+      std::views::iota(std::size_t{0}, b.size()), std::vector<Numeral::limb>{},
+      detail_numeral::AddRow{a, b}));
+}
+/** @brief The order of ℕ: more limbs is larger, else the top limb decides. */
+export constexpr std::strong_ordering operator<=>(const Numeral& x,
+                                                  const Numeral& y) {
+  if (x.high.size() != y.high.size()) return x.high.size() <=> y.high.size();
+  const std::vector<Numeral::limb> a = x.limbs();
+  const std::vector<Numeral::limb> b = y.limbs();
+  return std::lexicographical_compare_three_way(a.rbegin(), a.rend(),
+                                                b.rbegin(), b.rend());
+}
+/** @brief The NNO's step on ℕ: @c n @c + @c 1, past the word's edge. */
+export constexpr Numeral successor(const Numeral& n) { return n + Numeral{1u}; }
+/** @brief The step down: @c n @c - @c 1, and @c 0 at @c 0, the monus, so the
+ *  step is total; @c Prior (@c :nno) stops at @c 0 before asking. */
+export constexpr Numeral predecessor(const Numeral& n) {
+  if (n == Numeral{}) return n;
+  const std::vector<Numeral::limb> a = n.limbs();
+  return Numeral(
+      dedekind::category::fold(std::views::iota(std::size_t{0}, a.size()),
+                               detail_numeral::Carried{{}, Numeral::limb{1}},
+                               detail_numeral::BorrowLimbs{a})
+          .limbs);
+}
+/** @brief An unsigned constant meeting ℕ, the hook @c :terms' @c carrier_cast
+ *  reaches by ADL.  A signed constant has no hook here and is refused there:
+ *  ℕ's atoms are the unsigned words. */
+export template <std::unsigned_integral K>
+constexpr Numeral carrier_cast(std::type_identity<Numeral>, K k) {
+  return Numeral{k};
+}
+/** @brief Lambek on ℕ, honestly: @f$[Z, S] : 1 + \mathbb{N} \to \mathbb{N}@f$
+ *  is an isomorphism, its inverse @c Prior, where no word's is (the Lambek
+ *  section of @c :nno).  @return the inverse arrow. */
+export constexpr dedekind::category::Prior<Numeral> inverse(
+    dedekind::category::In<Numeral>) {
+  return {};
+}
+export constexpr dedekind::category::In<Numeral> inverse(
+    dedekind::category::Prior<Numeral>) {
+  return {};
+}
 
 // ---------------------------------------------------------------------------
 // Extensional cardinal carrier
@@ -2510,3 +2704,64 @@ constexpr SignedCardinality lift<Cardinality, SignedCardinality>(
   return lift_ℕ_ℤ_(n);
 }
 }  // namespace dedekind::category
+
+// ── ℕ's algebra, declared, and its witnesses ────────────────────────────────
+namespace dedekind::category {
+using Nat = dedekind::sets::Numeral;
+template <>
+struct unit_trait<Nat, std::plus<Nat>> {
+  using value_type = Nat;
+  static constexpr value_type value{};
+};
+template <>
+struct unit_trait<Nat, std::multiplies<Nat>> {
+  using value_type = Nat;
+  static constexpr value_type value{1u};
+};
+template <>
+inline constexpr bool is_associative_v<Nat, std::plus<Nat>> = true;
+template <>
+inline constexpr bool is_associative_v<Nat, std::multiplies<Nat>> = true;
+template <>
+inline constexpr bool is_commutative_v<Nat, std::plus<Nat>> = true;
+template <>
+inline constexpr bool is_commutative_v<Nat, std::multiplies<Nat>> = true;
+template <>
+inline constexpr bool
+    is_distributive_v<Nat, std::multiplies<Nat>, std::plus<Nat>> = true;
+}  // namespace dedekind::category
+
+namespace dedekind::sets::detail_numeral_witness {
+constexpr std::uint64_t top = std::numeric_limits<std::uint64_t>::max();
+static_assert(Numeral{top} + Numeral{1u} ==
+                      Numeral(std::vector<std::uint64_t>{0, 1}) &&
+                  (Numeral{top} + Numeral{1u}).word() == std::nullopt &&
+                  Numeral{top}.word() == std::size_t{top},
+              "2^64 is the first value with a limb above the word");
+static_assert(Numeral{top} * Numeral{top} ==
+                  Numeral(std::vector<std::uint64_t>{1, top - 1}),
+              "(2^64 - 1)^2 = 2^128 - 2^65 + 1: the limbs 1 and 2^64 - 2");
+static_assert(successor(Numeral{top}) == Numeral{top} + Numeral{1u} &&
+                  predecessor(successor(Numeral{top})) == Numeral{top} &&
+                  predecessor(Numeral{}) == Numeral{},
+              "the step crosses the word's edge both ways; 0 is the monus' "
+              "fixed point");
+static_assert(Numeral{3u} < Numeral{top} &&
+                  Numeral{top} < Numeral{top} + Numeral{1u} &&
+                  Numeral(std::vector<std::uint64_t>{5, 0}) == Numeral{5u},
+              "the order is by limbs, the longer the larger; a trailing zero "
+              "limb is no limb");
+static_assert((Numeral{top} + Numeral{top}) * Numeral{3u} ==
+                      Numeral{top} * Numeral{3u} + Numeral{top} * Numeral{3u} &&
+                  Numeral{3u} * (Numeral{top} + Numeral{1u}) ==
+                      (Numeral{top} + Numeral{1u}) * Numeral{3u} &&
+                  (Numeral{top} * Numeral{top}) * Numeral{top} ==
+                      Numeral{top} * (Numeral{top} * Numeral{top}),
+              "the rig laws across the word's edge");
+static_assert(
+    dedekind::category::IsRig<Numeral, std::plus<Numeral>,
+                              std::multiplies<Numeral>> &&
+        dedekind::category::IsCommutative<Numeral, std::multiplies<Numeral>> &&
+        dedekind::category::IsIsomorphism<dedekind::category::In<Numeral>>,
+    "ℕ is a commutative rig, and Lambek holds on it: [Z, S] is an isomorphism");
+}  // namespace dedekind::sets::detail_numeral_witness
