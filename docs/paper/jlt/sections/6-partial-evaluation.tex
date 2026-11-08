@@ -98,6 +98,9 @@ The table is Brzozowski's automaton~\cite{brzozowski1964derivatives}, for one si
 Its cost is moved to compile time where the step limit admits: ``negative overhead abstraction''~\cite{stroustrup2026peterman}.}
 \label{lst:sites}
 \end{listing}
+The right panel's section says in its type what its words have in common, a symmetry, and how long they are, a bound as large as one likes but known before the scan.
+The bound makes the language finite, where without one palindromes are not even regular~\cite{kari2010watson}; the symmetry makes its test one pair per offset, linear in the length, where an automaton lists the words, exponentially in it (Table~\ref{tab:batch}).
+So one more overload of \cppinline{count} takes no table and tests every window at once: the compiler vectorises it.
 The presumption holds where both evaluations finish and neither meets undefined behaviour.
 Table~\ref{tab:binding} lists where the two binding times part.
 
@@ -127,8 +130,7 @@ In constant evaluation no optimiser runs: the front end interprets a fold one st
 So at compile time only a declared law shortens a fold, chosen by resolution, as for Listing~\ref{lst:laws}'s overloads: it buys at build time what the optimiser finds at run time by itself.
 
 \paragraph{A law can leave the compiler a batch.}
-Listing~\ref{lst:sites}'s section names its law in its type, so one more overload of \cppinline{count} takes no table: a window is independent pairs, and each position its own lane.
-Written as folds over small blocks, it vectorises at \texttt{-O2} with no intrinsic, about five times the table's speed (Appendix~\ref{app:fjlt:ssa}); the overload names a law of biochemistry and no instruction of any machine, and \Cpp{26}'s \cppinline{std::simd}~\cite{kretz2024simd} would make the lanes explicit.
+Listing~\ref{lst:sites}'s vectorised overload names a law of biochemistry and no instruction of any machine; \Cpp{26}'s \cppinline{std::simd}~\cite{kretz2024simd} would make the lanes explicit.
 
 \paragraph{The same laws license parallelism.}
 A parallel \cppinline{concat} is one more overload, licensed by \cppinline{IsCommutativeMonoid}.

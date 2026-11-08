@@ -43,6 +43,8 @@ iii) recursion is structural, on a type or on a natural number that counts down.
 Its kernel, Featherweight Jlt (FJlt), translates into System~F by dictionary passing, as Haskell's type classes do, and the translation is total and preserves types and evaluation, so an FJlt program inherits termination, parametricity and a value.
 What Jlt writes beyond the kernel is sugar, named with its desugaring, and that the desugaring keeps meaning is the paper's working hypothesis.
 Declared laws license overloads, and overload resolution composes them: in one program the action law and associativity, neither aware of the other, turn a fold of $n$ steps into one of $\log n$, even at compile time, where no optimiser runs.
+In another, the words sought share a symmetry, said in their type.
+An automaton would list them, exponentially in their length; the test the law writes is linear in it, and the compiler vectorises it.
 Along the way the paper shows that \Cpp{20} concepts with overlapping overloads resolve incoherently in GHC's sense, and adopts GHC's rule.
 The evidence is proof sketches, listings that compile and run at both binding times under a test in the public repository, their compiled output, and a library whose core a linter checks against the rules.
 
