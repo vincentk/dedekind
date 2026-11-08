@@ -1,6 +1,7 @@
 # Rule 3: a fold is over a bounded range, a count known before the fold
-# starts (IsBoundedRange, :chain, #1172).  The library's fold requires it, so
-# the compiler holds the bound there; a standard fold called directly is
-# outside that check.  Exempt: the library's folds themselves, named fold in
-# category.  Matched by the standard's names: an iterator-pair call too.
-match declRefExpr(to(varDecl(hasAnyName("::std::ranges::fold_left", "::std::ranges::fold_left_first", "::std::ranges::fold_right", "::std::ranges::fold_right_last", "::std::ranges::fold_left_with_iter", "::std::ranges::fold_left_first_with_iter"))), unless(hasAncestor(functionDecl(hasName("fold"), hasAncestor(namespaceDecl(hasName("category")))))), isExpansionInMainFile(), hasAncestor(scope))
+# starts (IsBoundedRange, :chain, #1172).  A standard fold is called only
+# inside a function whose range parameter is constrained by IsBoundedRange:
+# the bound is then in the signature, and the compiler checks it at every
+# call.  Any other call is a finding, the iterator-pair form included.  A
+# type constraint has no clang-query matcher, hence the tool.
+tool bounded-fold

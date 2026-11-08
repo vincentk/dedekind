@@ -61,6 +61,13 @@
 //                     node kind (declarations, statements and expressions,
 //                     type forms as written) with its count, for diffing
 //                     against the kernel's grammar (#1079).
+//   bounded-fold      Rule 3, a fold over a bounded range (#1172): a standard
+//                     fold (std::ranges::fold_left, fold_right, ...) is
+//                     called only inside a function whose template parameter
+//                     is constrained by category's IsBoundedRange, so the
+//                     bound is in the signature and the compiler checks it at
+//                     every call.  Any other call is a finding, the
+//                     iterator-pair form included.
 //   inheritance       Jlt has no subtyping: a class with a base that is not
 //                     an empty class, or with a virtual function, is a
 //                     finding.  An empty base (`: std::true_type`,
@@ -885,6 +892,77 @@ class InlineRequires : public clang::ASTConsumer,
 };
 
 // ---------------------------------------------------------------------------
+// bounded-fold: a standard fold only where the signature states the bound
+// ---------------------------------------------------------------------------
+
+/// The declaration whose body or initialiser holds `s`, through the parent
+/// chain: a function, or a variable at namespace scope.
+const clang::Decl* enclosingDecl(const clang::Stmt* s, clang::ASTContext& ctx) {
+  clang::DynTypedNodeList parents = ctx.getParents(*s);
+  while (!parents.empty()) {
+    const clang::DynTypedNode& n = parents[0];
+    if (const auto* d = n.get<clang::Decl>()) return d;
+    parents = ctx.getParents(n);
+  }
+  return nullptr;
+}
+
+/// Whether `f`'s template has a parameter constrained by category's
+/// IsBoundedRange: the bound stated in the signature.
+bool statesBound(const clang::FunctionDecl* f) {
+  if (!f) return false;
+  const clang::FunctionTemplateDecl* t = f->getDescribedFunctionTemplate();
+  if (!t) t = f->getPrimaryTemplate();
+  if (!t) return false;
+  for (const clang::NamedDecl* p : *t->getTemplateParameters()) {
+    const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p);
+    if (!tp || !tp->getTypeConstraint()) continue;
+    const clang::ConceptDecl* c = tp->getTypeConstraint()->getNamedConcept();
+    if (c->getName() != "IsBoundedRange") continue;
+    if (const auto* ns =
+            llvm::dyn_cast<clang::NamespaceDecl>(c->getDeclContext()))
+      if (ns->getName() == "category") return true;
+  }
+  return false;
+}
+
+/// A standard fold called directly, outside a function that states the
+/// bound in its signature: one finding per reference to the fold.
+class BoundedFold : public clang::ASTConsumer,
+                    public clang::RecursiveASTVisitor<BoundedFold> {
+ public:
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    this->ctx = &ctx;
+    TraverseDecl(ctx.getTranslationUnitDecl());
+  }
+  bool shouldVisitTemplateInstantiations() const { return false; }
+  bool VisitDeclRefExpr(clang::DeclRefExpr* e) {
+    static const std::set<std::string> folds{
+        "fold_left",       "fold_left_first",     "fold_right",
+        "fold_right_last", "fold_left_with_iter", "fold_left_first_with_iter"};
+    const auto* v = llvm::dyn_cast<clang::VarDecl>(e->getDecl());
+    if (!v || !folds.count(v->getNameAsString())) return true;
+    const std::string q = v->getQualifiedNameAsString();
+    if (q.rfind("std::", 0) != 0 || q.find("ranges::") == std::string::npos)
+      return true;
+    const clang::SourceManager& sm = ctx->getSourceManager();
+    const clang::SourceLocation loc = sm.getExpansionLoc(e->getBeginLoc());
+    if (!sm.isInMainFile(loc)) return true;
+    const clang::Decl* d = enclosingDecl(e, *ctx);
+    if (!d || !inScope(d)) return true;
+    if (statesBound(enclosingFunction(e, *ctx))) return true;
+    out() << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc) << ':'
+          << sm.getExpansionColumnNumber(loc)
+          << ": std::ranges::" << v->getName()
+          << " outside a function whose range is IsBoundedRange\n";
+    return true;
+  }
+
+ private:
+  clang::ASTContext* ctx = nullptr;
+};
+
+// ---------------------------------------------------------------------------
 // converted-result: a converted requirement's result is used at its type
 // ---------------------------------------------------------------------------
 
@@ -1615,6 +1693,7 @@ std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
   if (name == "definition") return std::make_unique<Definition>();
   if (name == "inline-requires") return std::make_unique<InlineRequires>();
   if (name == "inheritance") return std::make_unique<Inheritance>();
+  if (name == "bounded-fold") return std::make_unique<BoundedFold>();
   if (name == "context-order") return std::make_unique<ContextOrder>();
   if (name == "converted-result") return std::make_unique<ConvertedResult>();
   if (name == "inventory") return std::make_unique<Inventory>();
