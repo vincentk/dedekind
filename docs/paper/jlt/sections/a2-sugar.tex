@@ -2,39 +2,38 @@
 \section{Desugaring Jlt into Featherweight Jlt}
 \label{app:fjlt:closure}
 
-This appendix is the $-$sugar arrow of Figure~\ref{fig:arrows}, which Section~\ref{sec:translation:adequacy} outlines.
-It lists each construction of \Cpp{} that a Jlt program writes beyond the grammar of Appendix~\ref{app:fjlt:syntax}, with its desugaring into the kernel and its condition, and no proof.
-A condition is on how a term is built, never on inspecting it afterwards.
-The three rules are asked of the kernel term, not of its spelling.
-Three reasons cover the constructions: a spelling, private state, a choice.
-In that order the condition passes from the compiler to the repository's linter to a reader.
-The listings are FJlt up to this sugar, reading \cppinline{static_assert(e)} as the claim that $e$ evaluates to \cppinline{true}.
-The one exception is Listing~\ref{lst:rule3}'s Collatz chain, finite by fact, not by a condition on $\mathcal{R}$.
+This appendix describes the desugaring of Jlt into FJlt.
+It corresponds to the $-$sugar arrow of Figure~\ref{fig:arrows}, and complements Section~\ref{sec:translation:adequacy}.
+It covers the constructions of \Cpp{23} that a Jlt program may write beyond the grammar of Appendix~\ref{app:fjlt:syntax}, each with its desugaring and its condition.
+No proof of correctness is provided.
+Three reasons cover the constructions: i)~a spelling, syntactic sugar in Landin's sense~\cite{landin1964mechanical}, when the construction writes a kernel term another way; ii)~local state, when it keeps state that never leaves the call; iii)~branching, which only the kernel's own forms of choice may do.
+Across the three tables, the condition passes from the compiler to the repository's linter to a reader, and each row's mark says who holds it.
 
 \begin{table}[tbp]
 \centering
-\footnotesize
-\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.2\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=.85\hsize\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
 \toprule
-construction & FJlt, provided & image & the condition held by \\
+construction & FJlt, provided & image \\
 \midrule
-\texttt{auto}, \texttt{decltype}, argument deduction & nothing & the type the compiler deduces & the compiler \\
-alias, \texttt{tuple}, \texttt{array} & the parts FJlt & substitution, nested pairs, a range of $\mathcal{R}$ & the compiler \\
-variable or class template & each member of the family an FJlt instance & instance with a context, a default beside families resolved by specificity & the compiler, by lookup \\
-const member function & \texttt{const}, FJlt body & generic function with the object as first parameter & the linter \\
-constructor, conversion operator, default argument, designated initialiser & \texttt{constexpr}, FJlt body & a function returning the struct; a declared conversion; an overload with the argument supplied; the fields in order & the linter for \texttt{constexpr}, a reader \\
-explicit conversion & a total conversion between carriers & a declared function & a reader \\
-an operator on a constrained type & a constraint names the standard function object the standard defines by it, \texttt{plus<T>} for \texttt{+}, and the operator has type \texttt{T} there (\texttt{true + true} is the \texttt{int} 2) & that object's call & the linter for the name, a reader for the type \\
-operator overloading, user-defined literal & FJlt body & a named function call & the compiler \\
-non-type template parameter & the value a constant of a carrier & a type per value, as \texttt{integral\_constant} spells it & the compiler \\
-overloading & distinct carriers, or constraints ordered by specificity & specialisations of one trait, or generic functions & the compiler, by ambiguity \\
-\texttt{friend}, access specifier & a friend an FJlt function & a free function; nothing & the compiler \\
-inheritance & every base an empty class, no virtual function & a registration, read as the fact it states & the linter \\
-generic \texttt{cata} over a term type & algebra and term FJlt & the kernel's primitive \texttt{cata} & the compiler \\
+\texttt{auto}, \texttt{decltype}, argument deduction$^{\ast}$ & nothing & the type the compiler deduces \\
+\texttt{static\_assert(e)}$^{\ast}$ & \texttt{e} a closed \texttt{bool} term & the claim that \texttt{e} evaluates to \texttt{true} \\
+alias, \texttt{tuple}, \texttt{array}$^{\ast}$ & the parts FJlt & substitution, nested pairs, a range of $\mathcal{R}$ \\
+variable or class template$^{\ast}$ & each member of the family an FJlt instance & instance with a context, a default beside families resolved by specificity \\
+const member function$^{\dagger}$ & \texttt{const}, FJlt body & generic function with the object as first parameter \\
+constructor, conversion operator, default argument, designated initialiser$^{\dagger\ddagger}$ & \texttt{constexpr}, FJlt body & a function returning the struct; a declared conversion; an overload with the argument supplied; the fields in order \\
+explicit conversion$^{\ddagger}$ & a total conversion between carriers & a declared function \\
+an operator on a constrained type$^{\dagger\ddagger}$ & a constraint names the standard function object the standard defines by it, \texttt{plus<T>} for \texttt{+}, and the operator has type \texttt{T} there (\texttt{true + true} is the \texttt{int} 2) & that object's call \\
+operator overloading, user-defined literal$^{\ast}$ & FJlt body & a named function call \\
+non-type template parameter$^{\ast}$ & the value a constant of a carrier & a type per value, as \texttt{integral\_constant} spells it \\
+overloading$^{\ast}$ & distinct carriers, or constraints ordered by specificity & specialisations of one trait, or generic functions \\
+\texttt{friend}, access specifier$^{\ast}$ & a friend an FJlt function & a free function; nothing \\
+inheritance$^{\dagger}$ & every base an empty class, no virtual function & a registration, read as the fact it states \\
+generic \texttt{cata} over a term type$^{\ast}$ & algebra and term FJlt & the kernel's primitive \texttt{cata} \\
 \bottomrule
 \end{tabularx}
 \caption{Constructions that are another spelling of a kernel term.
-In each row, a term built by the construction from FJlt terms, under the condition, is the FJlt term in the image column.}
+In each row, a term built by the construction from FJlt terms, under the condition, is the FJlt term in the image column.
+A mark says who holds the condition: $\ast$ the compiler, $\dagger$ the repository's linter, $\ddagger$ a reader; two marks share it.}
 \label{tab:closure}
 \end{table}
 
@@ -55,21 +54,20 @@ A base clause on an empty class, such as \cppinline{std::true_type}, is a regist
 
 \begin{table}[tbp]
 \centering
-\footnotesize
-\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.2\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=.85\hsize\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
 \toprule
-construction & FJlt, provided & image & the condition held by \\
+construction & FJlt, provided & image \\
 \midrule
-lambda & captures by copy of FJlt values, FJlt body & function object, captures as fields & the linter for the captures, a reader for the image \\
-local constant, structured binding & the initialiser FJlt, the name bound once & a $\beta$-redex; a binding as \texttt{.first}, \texttt{.second} & the linter \\
-local state that does not escape & assignments only to locals, by-value parameters, elements of a local array, or a builtin's out-parameter that is a local; nothing written observable after the call & the state threaded as values, one binding per assignment, as \texttt{runST} encapsulates it & the linter for escape, a reader for the rest \\
+lambda$^{\dagger\ddagger}$ & captures by copy of FJlt values, FJlt body & function object, captures as fields \\
+local constant, structured binding$^{\dagger}$ & the initialiser FJlt, the name bound once & a $\beta$-redex; a binding as \texttt{.first}, \texttt{.second} \\
+local state that does not escape$^{\dagger\ddagger}$ & assignments only to locals, by-value parameters, elements of a local array, or a builtin's out-parameter that is a local; nothing written observable after the call & the state threaded as values, one binding per assignment, as \texttt{runST} encapsulates it \\
 \bottomrule
 \end{tabularx}
 \caption{Constructions whose state stays inside a call, read as Table~\ref{tab:closure}.}
 \label{tab:closure:private}
 \end{table}
 
-\paragraph{Private state.}
+\paragraph{Local state.}
 A capture or a local stays inside the call, so nothing outside can tell it from a value passed along.
 A lambda's image is the standard's own definition of its closure type: a class with the copied captures as members and a \cppinline{const} call operator.
 That is the function object production of Figure~\ref{fig:fjlt-syntax} to the letter, with a generic call operator where the lambda has a template head.
@@ -80,25 +78,24 @@ A closure type has no name, so a lambda is never a carrier and never the head of
 
 \begin{table}[tbp]
 \centering
-\footnotesize
-\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.2\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=.85\hsize\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
 \toprule
-construction & FJlt, provided & image & the condition held by \\
+construction & FJlt, provided & image \\
 \midrule
-\texttt{if} and \texttt{else} on a value & both branches return FJlt terms of one type & \texttt{p ? A : B} & a reader \\
-\texttt{if constexpr} on a value & condition a closed \texttt{bool} term, both branches FJlt of one type under the same constraints & \texttt{p ? A : B} & a reader, by the rewrite \\
-enumeration, \texttt{switch} & every enumerator handled, each case an FJlt term of one type & a finite sum of units and its nested case & the compiler, by its switch warning \\
-sum & branches FJlt on the summands & the case form & the kernel, a reader for a guard \\
-\texttt{if constexpr} on a constraint & then-branch FJlt under the constraint, else-branch under its negation & an instance chain, the more constrained generic function preferred & the compiler at concrete types, the linter at a type variable \\
-a call its clause does not decide & the caller instantiates at a concrete type & constraint inference: the call's resolution a parameter the caller supplies & the linter reports it \\
-\texttt{if consteval}, or an \texttt{if} on \texttt{is\_constant\_evaluated()} & both branches compute the same value on every input & the compile-time branch & the declared law that licenses the other branch, or a reader \\
+\texttt{if} and \texttt{else} on a value$^{\ddagger}$ & both branches return FJlt terms of one type & \texttt{p ? A : B} \\
+\texttt{if constexpr} on a value$^{\ddagger}$ & condition a closed \texttt{bool} term, both branches FJlt of one type under the same constraints & \texttt{p ? A : B} \\
+enumeration, \texttt{switch}$^{\ast}$ & every enumerator handled, each case an FJlt term of one type & a finite sum of units and its nested case \\
+sum$^{\ast\ddagger}$ & branches FJlt on the summands & the case form \\
+\texttt{if constexpr} on a constraint$^{\ast\dagger}$ & then-branch FJlt under the constraint, else-branch under its negation & an instance chain, the more constrained generic function preferred \\
+a call its clause does not decide$^{\dagger}$ & the caller instantiates at a concrete type & constraint inference: the call's resolution a parameter the caller supplies \\
+\texttt{if consteval}, or an \texttt{if} on \texttt{is\_constant\_evaluated()}$^{\ddagger}$ & both branches compute the same value on every input & the compile-time branch \\
 \bottomrule
 \end{tabularx}
-\caption{Constructions that choose, read as Table~\ref{tab:closure}.}
+\caption{Constructions that branch, read as Table~\ref{tab:closure}.}
 \label{tab:closure:choice}
 \end{table}
 
-\paragraph{Choices.}
+\paragraph{Branching.}
 A branch is what a spelling cannot hide.
 It needs one of the kernel's own forms: \cppinline{?:}, the case form, or generic functions ordered by specificity.
 An \cppinline{if constexpr} on a closed \cppinline{bool} term, a law or a trait read, is the term \cppinline{p ? A : B}.
@@ -116,7 +113,7 @@ Under a \cppinline{has_value} guard it desugars to the case form, as the head of
 In a constant initialiser, constant evaluation refuses the empty case, so the compiler holds the guard, as for Listing~\ref{lst:sites}'s \cppinline{*automaton(sites)}.
 \cppinline{std::get} on a variant is partial too and is not admitted, as a variant is read by the case form.
 
-\paragraph{Choices on a constraint.}
+\paragraph{Branching on a constraint.}
 A body \cppinline{if constexpr (C<T>) return A; else return B;} in a generic function with head $\overline{Q}$ is a pair of generic functions.
 Their heads are $\overline{Q}, C\texttt{<T>}$ and $\overline{Q}, \texttt{!}C\texttt{<T>}$, and their bodies \cppinline{A} and \cppinline{B}.
 The pair plays the role of a two-clause instance chain of Morris and Jones~\cite{morris2010instance}, an explicit alternation decided by one constraint.
@@ -135,7 +132,7 @@ Its desugaring is constraint inference: the call's resolution becomes a paramete
 Each caller supplies it after resolving the call at a concrete type, where resolution is a function, so the kernel term agrees with what \Cpp{} instantiates.
 The price is in the free theorem, which now ranges over that parameter.
 By hand, the clause decides the constraint, by requiring it or by splitting on it.
-Both this desugaring and the choice on a constraint add declarations, so neither is local in Felleisen's sense~\cite{felleisen1991expressive}.
+Both this desugaring and the branch on a constraint add declarations, so neither is local in Felleisen's sense~\cite{felleisen1991expressive}.
 
 \paragraph{The binding time.}
 \label{app:fjlt:consteval}
