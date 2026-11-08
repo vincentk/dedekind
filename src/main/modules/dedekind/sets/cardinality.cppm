@@ -54,14 +54,14 @@ using namespace dedekind::category;
 // Cardinality ladder (moved from :mereology)
 // ---------------------------------------------------------------------------
 
+/** @concept IsCardinality
+ *  @brief A type-level tag for the size of a species: whether it is finite
+ *  and whether it is countable.  A tag about sets, not a number: cardinal
+ *  arithmetic is the term algebra's (#1035).  @tparam C the tag. */
 export template <typename C>
-// Terminology note: this concept validates cardinality metadata tags
-// (`is_finite`, `is_countable`, `power_type`) rather than proving
-// cardinal arithmetic laws. Name kept for compatibility during taxonomy pass.
 concept IsCardinality = requires {
   { C::is_finite } -> std::convertible_to<bool>;
   { C::is_countable } -> std::convertible_to<bool>;
-  typename C::power_type;
 };
 
 /** @concept IsCountable: Magnitude is at most Aleph_0. */
@@ -78,8 +78,6 @@ export struct Finite {
   static constexpr bool is_countable = true;
 
   auto operator<=>(const Finite&) const = default;
-
-  using power_type = Finite;  // Finite sets always jump to other Finite sets.
 };
 
 static_assert(IsCardinality<Finite>);
@@ -110,39 +108,30 @@ export template <std::size_t N>
 struct ℵ {
   static constexpr bool is_finite = false;
   static constexpr bool is_countable = (N == 0);
-  using power_type = ℵ<N + 1>;
 
   constexpr friend bool operator==(const ℵ&, const ℵ&) = default;
 };
 
 export using ℵ_0 = ℵ<0>;  ///< Countable Infinity
-export using ℶ_1 = ℵ<1>;  ///< The Continuum (assuming GCH)
+/** @struct ℶ_1
+ *  @brief The continuum, @f$2^{\aleph_0}@f$, by definition: the size of the
+ *  power set of a countable set.  Not @c ℵ<1>: @f$\aleph_1 = \beth_1@f$ is
+ *  the continuum hypothesis, which ZFC neither proves nor refutes, so no tag
+ *  assumes it.  @f$\aleph_0 < \beth_1@f$ and @f$\aleph_1 \le \beth_1@f$
+ *  are theorems; @f$\aleph_n@f$ against @f$\beth_1@f$ for @f$n \ge 2@f$ is
+ *  not decided. */
+export struct ℶ_1 {
+  static constexpr bool is_finite = false;
+  static constexpr bool is_countable = false;
+  constexpr friend bool operator==(const ℶ_1&, const ℶ_1&) = default;
+};
+static_assert(IsCardinality<ℶ_1> && !IsCountable<ℶ_1> &&
+                  !std::same_as<ℶ_1, ℵ<1>>,
+              "the continuum is uncountable, and not ℵ_1: that is CH");
 
 // ---------------------------------------------------------------------------
 // Extensional cardinal carrier
 // ---------------------------------------------------------------------------
-
-/**
- * @concept IsWrappingWord
- * @brief A machine word that is the wrapping ring ℤ/2^w: an unsigned
- *        built-in integer (not @c bool) that the @c category registrations
- *        certify as a commutative ring under @c + and @c *, periodic under
- *        @c +, and totally ordered.
- * @details The machine-type part guarantees the operations the carriers use
- *          (@c /, @c %, the overflow builtins, @c numeric_limits); the
- *          @c category part is the semantic claim.  Signed @c int fails
- *          both (its ring claim is refused: overflow is UB).
- */
-export template <typename W>
-concept IsWrappingWord =
-    std::unsigned_integral<W> && !std::same_as<W, bool> &&
-    dedekind::category::IsCommutativeRing<W, std::plus<W>,
-                                          std::multiplies<W>> &&
-    dedekind::category::IsPeriodic<W, std::plus<W>> && std::totally_ordered<W>;
-
-static_assert(IsWrappingWord<std::size_t> && !IsWrappingWord<int> &&
-                  !IsWrappingWord<bool>,
-              "std::size_t is a wrapping word; signed int is not a ring.");
 
 /**
  * @brief Finite extensional cardinal: one machine word @c W.
@@ -155,7 +144,7 @@ static_assert(IsWrappingWord<std::size_t> && !IsWrappingWord<int> &&
  *
  * @tparam W The word (default @c std::size_t).
  */
-export template <IsWrappingWord W = std::size_t>
+export template <IsCountWord W = std::size_t>
 struct ExtensionalCardinal {
   using cardinality_type = Finite;
   using word_type = W;
@@ -271,7 +260,7 @@ struct ExtensionalCardinal {
 // Overflow-aware arithmetic returning ℵ_0 on overflow
 // ---------------------------------------------------------------------------
 
-export template <IsWrappingWord W>
+export template <IsCountWord W>
 constexpr std::variant<ExtensionalCardinal<W>, ℵ_0> add_or_ℵ_0(
     const ExtensionalCardinal<W>& lhs, const ExtensionalCardinal<W>& rhs) {
   const auto checked = ExtensionalCardinal<W>::checked_add(lhs, rhs);
@@ -281,7 +270,7 @@ constexpr std::variant<ExtensionalCardinal<W>, ℵ_0> add_or_ℵ_0(
   return std::variant<ExtensionalCardinal<W>, ℵ_0>{checked.result};
 }
 
-export template <IsWrappingWord W>
+export template <IsCountWord W>
 constexpr std::variant<ExtensionalCardinal<W>, ℵ_0> mul_or_ℵ_0(
     const ExtensionalCardinal<W>& lhs, const ExtensionalCardinal<W>& rhs) {
   const auto checked = ExtensionalCardinal<W>::checked_mul(lhs, rhs);
@@ -563,27 +552,6 @@ export constexpr std::size_t realize_to_size_t(
   return transfinite_sentinel;
 }
 
-/** @brief Draft writer-like cardinality effect carrier. */
-export struct CardinalityEffect {
-  Cardinality value;
-  Cardinality trace;
-};
-
-/** @brief Unit for cardinality effect composition. */
-export constexpr CardinalityEffect unit_effect(Cardinality value) {
-  return CardinalityEffect{value, finite_cardinality(0)};
-}
-
-/** @brief Sequential composition of cardinality effects. */
-export template <typename F>
-  requires std::invocable<F&, const Cardinality&> &&
-           std::convertible_to<std::invoke_result_t<F&, const Cardinality&>,
-                               CardinalityEffect>
-constexpr CardinalityEffect bind_effect(const CardinalityEffect& effect, F f) {
-  const CardinalityEffect next = f(effect.value);
-  return CardinalityEffect{next.value, add(effect.trace, next.trace)};
-}
-
 /** @brief Additive inverse of ExtensionalCardinal<> (two's-complement). */
 export constexpr ExtensionalCardinal<> inverse(
     ExtensionalCardinal<> value, std::plus<ExtensionalCardinal<>>) {
@@ -637,12 +605,12 @@ constexpr T inverse(const T& x, std::plus<T>) {
  *
  * @tparam S The signed word (default @c std::ptrdiff_t, the signed twin of
  *           @c std::size_t).  Gated on being a signed built-in integer whose
- *           unsigned twin is an @c IsWrappingWord: the raw signed type is not a
+ *           unsigned twin is an @c IsCountWord: the raw signed type is not a
  *           ring (overflow is UB), but this carrier's builtin-based arithmetic
  *           is exactly the ring of its unsigned twin.
  */
 export template <typename S = std::ptrdiff_t>
-  requires std::signed_integral<S> && IsWrappingWord<std::make_unsigned_t<S>>
+  requires std::signed_integral<S> && IsCountWord<std::make_unsigned_t<S>>
 struct SignedExtensionalCardinal {
   using signed_type = S;
   using word_type = std::make_unsigned_t<S>;
@@ -1851,13 +1819,13 @@ export constexpr SignedCardinality operator*(const SignedCardinality& a,
 /** @brief The NNO's step on the extensional cardinals, the wrapping ring
  *  @f$\mathbb{Z}/2^w@f$: @c n + 1 and @c n - 1 modulo the word, as on the
  *  word itself.  @param n a cardinal.  @return its successor. */
-export template <IsWrappingWord W>
+export template <IsCountWord W>
 constexpr ExtensionalCardinal<W> successor(
     const ExtensionalCardinal<W>& n) noexcept {
   return n + ExtensionalCardinal<W>{W{1}};
 }
 /** @param n a cardinal.  @return its predecessor, modulo the word. */
-export template <IsWrappingWord W>
+export template <IsCountWord W>
 constexpr ExtensionalCardinal<W> predecessor(
     const ExtensionalCardinal<W>& n) noexcept {
   return n - ExtensionalCardinal<W>{W{1}};
