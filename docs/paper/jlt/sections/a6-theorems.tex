@@ -3,7 +3,7 @@
 \label{app:fjlt:theorems}
 
 This appendix proves, as sketches, the theorems Section~\ref{sec:guarantees} states, relative to the rules of Figures~\ref{fig:fjlt-entailment} to~\ref{fig:fjlt-eval}, whose omitted cases are the textbook ones.
-The dependencies run one way: coherence, which makes the translation a function of the term; preservation with the lemma on dictionaries; the substitution lemma, whose third and fourth parts rest on the lemma on resolution; source subject reduction; progress; forward simulation, which uses coherence to translate the reduct; termination from forward simulation and the target's strong normalisation; soundness from progress and termination; the converse of simulation from soundness; parametricity on its own.
+Each result uses only those before it, except that the lemma on dictionaries and type preservation are proved together, by mutual induction; parametricity stands alone.
 Throughout, $\Sigma$ is any signature whose carriers meet the conditions of Appendix~\ref{app:fjlt:syntax}, used only as constants and total operators, and the translation $\llbracket \cdot \rrbracket$ is the one of Appendix~\ref{app:fjlt:translation}, into System~F with products, sums, the carriers of $\Sigma$ as constants and the iterators.
 Its carriers are non-empty, since \RuleOne{} makes them default constructible, so the usual equational calculus stays sound and complete in the many-sorted case~\cite{goguen1985completeness}.
 A context translates pointwise: $\llbracket \Delta \rrbracket$ has a type variable for each $\alpha \in \Delta$ and a record variable $q_Q : \llbracket Q \rrbracket$ for each assumed constraint $Q \in \Delta$, and $\llbracket \Gamma \rrbracket = \overline{x : \llbracket \tau \rrbracket}$.
@@ -22,6 +22,17 @@ So two derivations of $\Delta \Vdash Q$ have the same shape, and by induction on
 \textsc{T-Req-Assumed} and \textsc{E-Law-Assumed} are deterministic as well, taking the leftmost assumed shape and its first matching requirement in declaration order, nested shapes included, so the translation of a body is a function of the body.
 \textsc{T-Req-Assumed}, with \textsc{T-Conv} where its requirement converts, is tried before \textsc{T-Call} and \textsc{T-Trait}, \textsc{T-Node} applies exactly where a term of type $\mu F$ is expected, and \textsc{T-Call} names the declaration resolution selects, so a call has one derivation even where several generic functions of one name have entailed contexts.
 Hence $\llbracket \Delta \Vdash Q \rrbracket$ depends only on $\Delta$ and $Q$, the records in \textsc{T-Call} are determined by the program, and the translation is a function of it.
+\end{proof}
+
+\begin{lemma}[Translation commutes with substitution]
+\label{lem:subst}
+(i) $\llbracket \tau[\overline{\sigma}/\overline{\alpha}] \rrbracket = \llbracket \tau \rrbracket[\overline{\llbracket \sigma \rrbracket}/\overline{\alpha}]$.
+(ii) For a term typed at concrete types, $\llbracket e[\overline{v}/\overline{x}] \rrbracket = \llbracket e \rrbracket[\overline{\llbracket v \rrbracket}/\overline{x}]$.
+\end{lemma}
+
+\begin{proof}
+(i) By induction on $\tau$: every row of the type translation is structural in the subterms.
+(ii) By induction on $e$: every row of the term translation is structural in the subterms, and a variable translates to itself.
 \end{proof}
 
 \begin{lemma}[Dictionaries are well typed]
@@ -61,25 +72,6 @@ $(\llbracket r \rrbracket, \llbracket a \rrbracket)$ has the pair type, and $\pi
 The omitted rules are the textbook cases for pairs, sums and conditionals.
 \end{proof}
 
-\begin{lemma}[Translation commutes with substitution]
-\label{lem:subst}
-(i) $\llbracket \tau[\overline{\sigma}/\overline{\alpha}] \rrbracket = \llbracket \tau \rrbracket[\overline{\llbracket \sigma \rrbracket}/\overline{\alpha}]$.
-(ii) For a term typed at concrete types, $\llbracket e[\overline{v}/\overline{x}] \rrbracket = \llbracket e \rrbracket[\overline{\llbracket v \rrbracket}/\overline{x}]$.
-(iii) If $\Delta \Vdash Q$ and $\varnothing \Vdash Q[\overline{\sigma}/\overline{\alpha}]$, then $\llbracket \Delta \Vdash Q \rrbracket[\overline{\llbracket \sigma \rrbracket}/\overline{\alpha}][\overline{d}/\overline{q}] \longrightarrow^{*} \llbracket \varnothing \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket$, where $\overline{d}$ are the dictionaries of $\Delta$'s constraints at $\overline{\sigma}$.
-(iv) For a term $e$ typed under $\Delta$, $\llbracket e \rrbracket[\overline{\llbracket \sigma \rrbracket}/\overline{\alpha}][\overline{d}/\overline{q}] \longrightarrow^{*} \llbracket e[\overline{\sigma}/\overline{\alpha}] \rrbracket$, the right side typed at the concrete types.
-\end{lemma}
-
-\begin{proof}
-(i) By induction on $\tau$: every row of the type translation is structural in the subterms.
-(ii) By induction on $e$: every row of the term translation is structural in the subterms, and a variable translates to itself.
-(iii) and (iv) together, by induction on the entailment and typing derivations, after Lemma~\ref{lem:resolve}, which they use and which uses only (ii).
-\textsc{E-Assume}: the dictionary is $q$, and the substitution puts $d$, the dictionary built at $\overline{\sigma}$, in its place.
-\textsc{E-Shape}: the record is rebuilt field by field, each by the induction hypothesis.
-\textsc{E-Op}: the field is $\lambda\overline{a}.\,\llbracket \tau^{S}\texttt{(}e_r\texttt{)} \rrbracket$, and $e_r$ is typed under $\Delta$, so (iv) reduces it to the field \textsc{E-Op} builds at $\overline{\sigma}$.
-\textsc{E-Law}, \textsc{E-Law-Assumed} and \textsc{E-Not}: the same constant on both sides.
-(iv): a \textsc{T-Req-Assumed} site, $q.r\,\ldots$, has become $d.r\,\ldots$ and reduces by Lemma~\ref{lem:resolve} to the resolved instance's translation; the dictionaries of a \textsc{T-Call} or \textsc{T-App} site, and the record of a \textsc{T-Fold-R} site, reduce by (iii); every other row is structural in its subterms.
-\end{proof}
-
 \begin{lemma}[Dictionaries agree with resolution]
 \label{lem:resolve}
 If $\varnothing \Vdash C\texttt{<}\overline{\sigma}\texttt{>}$ with $\overline{\sigma}$ concrete and $\texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>}$ is a requirement of $C$ with parameters $\overline{a}$, then
@@ -91,6 +83,21 @@ by a projection and $\beta$-reductions, one per parameter.
 
 \begin{proof}
 The field is built by \textsc{E-Op} as $\lambda\overline{a}.\,\llbracket \tau^{S}\texttt{(}e_r[\overline{\sigma}/\overline{\alpha}]\texttt{)} \rrbracket$, where the instantiated expression is typed at concrete types, so its calls are \textsc{T-Trait} or \textsc{T-Call} and translate to resolved terms; a projection of the constructed record followed by $\beta$-reduction on $\overline{\llbracket e \rrbracket}$, which full $\beta$-reduction permits whether or not the arguments are values, gives the stated term, by Lemma~\ref{lem:subst}~(ii).
+\end{proof}
+
+\begin{lemma}[Dictionaries commute with substitution]
+\label{lem:subst-dict}
+(i) If $\Delta \Vdash Q$ and $\varnothing \Vdash Q[\overline{\sigma}/\overline{\alpha}]$, then $\llbracket \Delta \Vdash Q \rrbracket[\overline{\llbracket \sigma \rrbracket}/\overline{\alpha}][\overline{d}/\overline{q}] \longrightarrow^{*} \llbracket \varnothing \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket$, where $\overline{d}$ are the dictionaries of $\Delta$'s constraints at $\overline{\sigma}$.
+(ii) For a term $e$ typed under $\Delta$, $\llbracket e \rrbracket[\overline{\llbracket \sigma \rrbracket}/\overline{\alpha}][\overline{d}/\overline{q}] \longrightarrow^{*} \llbracket e[\overline{\sigma}/\overline{\alpha}] \rrbracket$, the right side typed at the concrete types.
+\end{lemma}
+
+\begin{proof}
+Both together, by induction on the entailment and typing derivations.
+\textsc{E-Assume}: the dictionary is $q$, and the substitution puts $d$, the dictionary built at $\overline{\sigma}$, in its place.
+\textsc{E-Shape}: the record is rebuilt field by field, each by the induction hypothesis.
+\textsc{E-Op}: the field is $\lambda\overline{a}.\,\llbracket \tau^{S}\texttt{(}e_r\texttt{)} \rrbracket$, and $e_r$ is typed under $\Delta$, so (ii) reduces it to the field \textsc{E-Op} builds at $\overline{\sigma}$.
+\textsc{E-Law}, \textsc{E-Law-Assumed} and \textsc{E-Not}: the same constant on both sides.
+(ii): a \textsc{T-Req-Assumed} site, $q.r\,\ldots$, has become $d.r\,\ldots$ and reduces by Lemma~\ref{lem:resolve} to the resolved instance's translation; the dictionaries of a \textsc{T-Call} or \textsc{T-App} site, and the record of a \textsc{T-Fold-R} site, reduce by (i); every other row is structural in its subterms.
 \end{proof}
 
 \begin{lemma}[Progress]
@@ -124,7 +131,7 @@ If $t \sqsupseteq e$ and $e \longrightarrow e'$ then $t \longrightarrow^{+} t'$ 
 Values: a constant translates to a constant; a function object with fields translates to a pair whose second component, $O_{\mathrm{call}}$ applied to the fields, may still reduce, which is why the claim is made for base types.
 Steps, by cases on the rule; by \textsc{S-Ctx} and the fact that the translation of a context is a context with one or more copies of the hole, each of which steps, it suffices to treat the redex.
 \textsc{S-Call} to a specialisation: $f_{\overline{\sigma}}\,\overline{\llbracket v \rrbracket}$ $\beta$-reduces to $\llbracket e_f \rrbracket[\overline{\llbracket v \rrbracket}/\overline{x}] = \llbracket e_f[\overline{v}/\overline{x}] \rrbracket$.
-\textsc{S-Call} to a generic function: $f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by type application and $\beta$-reduction to $\llbracket e_f \rrbracket$ with $\overline{\llbracket \sigma \rrbracket}$ for $\overline{\alpha}$, $\overline{d}$ for $\overline{q}$ and $\overline{\llbracket v \rrbracket}$ for $\overline{x}$; by Lemma~\ref{lem:subst}~(iv), with $\overline{d}$ the records \textsc{E-Shape} built for the closed call, the result reduces further to $\llbracket e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \rrbracket$, the term the source stepped to, whose requirement uses are typed by \textsc{T-Trait}, under \textsc{T-Conv} where the requirement converts, and whose folds at the former type variable are \textsc{T-Fold}'s at the concrete instance.
+\textsc{S-Call} to a generic function: $f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by type application and $\beta$-reduction to $\llbracket e_f \rrbracket$ with $\overline{\llbracket \sigma \rrbracket}$ for $\overline{\alpha}$, $\overline{d}$ for $\overline{q}$ and $\overline{\llbracket v \rrbracket}$ for $\overline{x}$; by Lemma~\ref{lem:subst-dict}~(ii), with $\overline{d}$ the records \textsc{E-Shape} built for the closed call, the result reduces further to $\llbracket e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \rrbracket$, the term the source stepped to, whose requirement uses are typed by \textsc{T-Trait}, under \textsc{T-Conv} where the requirement converts, and whose folds at the former type variable are \textsc{T-Fold}'s at the concrete instance.
 \textsc{S-Call} at the self-call of the one exception: where the source calls $f(w)$, $t$ carries $F^{m}\,d$ with $m \geq w + 1$, the first call $f\,v$ having unfolded to $(\mathit{iter}\,(v{+}1)\,F\,d)\,v \longrightarrow^{+} F^{v+1}\,d\,v$; the $\beta$-steps of $F$'s abstractions give the body with $F^{m-1}\,d$ at its self-calls, and $m - 1 \geq w \geq w' + 1$ for the argument $w' < w$ of each, so the result is $\sqsupseteq$ the source's reduct, and $d$ is never reached.
 \textsc{S-Op}: $(\pi_2\,(\overline{\llbracket v_y \rrbracket}, O_{\mathrm{call}}\,\overline{\llbracket v_y \rrbracket}))\,[\overline{\sigma}]\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by projection, type application and $\beta$-reduction to $\llbracket e_O \rrbracket$ with fields, dictionaries and arguments substituted, which is $\llbracket e' \rrbracket$ by the same argument as for a generic call.
 \textsc{S-Std}, \textsc{S-Prim} and \textsc{S-Conv}: a projection where there is one, then a $\delta$-step to the constant the standard or the declaration assigns, by the assumption that the primitives' translations compute the standard's functions on constants.
