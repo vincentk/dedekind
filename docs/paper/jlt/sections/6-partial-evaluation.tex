@@ -127,10 +127,7 @@ In constant evaluation no optimiser runs: the front end interprets a fold one st
 So at compile time only a declared law shortens a fold, chosen by resolution, as for Listing~\ref{lst:laws}'s overloads: it buys at build time what the optimiser finds at run time by itself.
 
 \paragraph{A law can leave the compiler a batch.}
-Listing~\ref{lst:sites}'s section carries a length and a law in its type.
-The length is a bound, as large as one likes but known before the scan, so the language is finite; with no bound, palindromes are not even regular~\cite{kari2010watson}, and no table holds them.
-The law keeps the finite language small: the table lists what the law states, 277 states for one pair test per offset.
-So one more overload of \cppinline{count} takes no table: a window is independent pairs, and each position its own lane.
+Listing~\ref{lst:sites}'s section names its law in its type, so one more overload of \cppinline{count} takes no table: a window is independent pairs, and each position its own lane.
 Written as folds over small blocks, it vectorises at \texttt{-O2} with no intrinsic, about five times the table's speed (Appendix~\ref{app:fjlt:ssa}); the overload names a law of biochemistry and no instruction of any machine, and \Cpp{26}'s \cppinline{std::simd}~\cite{kretz2024simd} would make the lanes explicit.
 
 \paragraph{The same laws license parallelism.}
