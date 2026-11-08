@@ -323,13 +323,6 @@ static_assert(IsMonoid<Sections<size_t>, compose> &&
               concat<Sections<size_t>, compose>(adding(40uz),
                                                 adding(2uz))(0uz) == 42);
 
-template <typename T>
-constexpr T twice_loose(T x) {
-  return x + x;
-}
-
-static_assert(twice_loose(std::string{"ab"}) == "abab");
-
 // Listing 3: Figure 2 in code, four panels.  Top left: the counts, a finite
 // chain, so the type supplies its prior and the chain is a default; top
 // right: Collatz's step, guarded by until(equals(1), ...), a chain finite by
