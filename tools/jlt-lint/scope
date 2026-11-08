@@ -132,7 +132,7 @@ rule3-bounded-fold           src/main/modules/dedekind/category/small.cppm  cate
 rule3-bounded-fold           src/main/modules/dedekind/category/species.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/thin.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/topoi.cppm  category  0
-rule3-bounded-fold           src/main/modules/dedekind/category/total.cppm  category  1
+rule3-bounded-fold           src/main/modules/dedekind/category/total.cppm  category  0
 rule3-no-mutual-recursion    src/main/modules/dedekind/category/*.cppm  category  0
 rule2-definition             src/main/modules/dedekind/category/*.cppm  category  0
 rule2-constrained-templates  src/main/modules/dedekind/category/*.cppm  category  report
