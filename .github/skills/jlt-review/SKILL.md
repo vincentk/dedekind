@@ -26,8 +26,8 @@ findings that are breaches over a list of style remarks.
 1. **New or changed `requires` clauses.** For each operation the body performs on a
    value of parameter type, name the constraint that permits it *at those types*.
    If none does, that is the finding, and the fix is the missing constraint. If the
-   body only works because of what some instantiation happens to have (`twice_loose`
-   in the paper: `x + x` with no constraint), say so.
+   body only works because of what some instantiation happens to have (`x + x`
+   with no constraint naming `+`), say so.
 2. **Conversions.** A requirement `{ e } -> std::convertible_to<T>` lets the body
    use the result as a `T` and nothing else. A body that compares two such results
    at their own type, or forwards one unconverted, breaches Rule 2.
@@ -51,8 +51,6 @@ findings that are breaches over a list of style remarks.
   file and line; do not duplicate them, but do say if a change *weakens* the
   gate (`tools/jlt-lint/scope` moving a `0` to `report`, a rule file deleted,
   a fixture's expected count lowered without a reason in the PR).
-- The planted breach `twice_loose` in `jlt_listings_test.cpp`, which the gate
-  expects.
 - Code outside the fragment by design: `tools/`, `docs/`, Python bindings,
   `src/test/**` test bodies (a `static_assert` or `CHECK` on a Jlt function is
   how the fragment is exercised, not a breach). Review test *subjects*, not test
