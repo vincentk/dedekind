@@ -31,9 +31,7 @@ id_b(true) == true && id_u(42) == 42 &&
 \begin{cpp}
 // Constant arrows:
 constexpr auto nil = constant<bool>(0uz);
-constexpr auto one = constant<bool>(1uz);
 constexpr auto ans = constant<bool>(42uz);
-constexpr auto aye = constant<size_t>(true);
 constexpr auto nay = constant<size_t>(false);
 constexpr auto cpy = ans;  // a copy
 static_assert(
@@ -126,13 +124,11 @@ concat<Sections<size_t>, compose>(
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
 Top left, laws on arrows alone, with Listing~\ref{lst:rule1}'s arrows: two involutions, each the \Cpp{} operator post-composed, compose to an isomorphism and to no involution; a projection is epic, its section monic.
 A law is asked on the arrow's value, at compile time: \cppinline{is_monic(f)} reads what the concept \cppinline{IsMonicArrow} reads, and a composite's law is derived from its legs.
-Below it: a monoid is a set which is closed under an associative binary operation and equipped with a unit element.
-Its elements need not be comparable, since equality is not decidable on every carrier, on functions for one.
-The unit is identified instead: \cppinline{is_unit}, by default equality with the unit, which a carrier may supply otherwise.
-The monoid shape is certified for the family of \cppinline{std::unsigned_integral} under \cppinline{(0, +)}.
-Right: the monoid shape, and \cppinline{concat} at the lengths that need no recursion, none, one and two.
-The monoid signatures are: \cppinline{size_t} under \cppinline{(0, +), (1, *)}, and \cppinline{Sections}, the sections of $+$, under \cppinline{(id, >>)}, with \cppinline{adding} the curried $+$.
-}
+Below it: the laws of a carrier under an operation, deleted by default and declared for the family of \cppinline{std::unsigned_integral} under \cppinline{(0, +)}, axioms found by resolution.
+Right: the monoid shape, a set closed under an associative binary operation with a unit element.
+Its elements need not be comparable, since equality is not decidable on every carrier, on functions for one: the unit is identified by \cppinline{is_unit}, by default equality with the unit, which a carrier may supply otherwise.
+Below it, \cppinline{concat} at the lengths that need no recursion, none, one and two.
+The monoid signatures are \cppinline{size_t} under \cppinline{(0, +), (1, *)}, and \cppinline{Sections}, the sections of $+$, under \cppinline{(id, >>)}, with \cppinline{adding} the curried $+$.}
 \label{lst:rule2}
 \end{listing}
 
