@@ -169,7 +169,6 @@ grammar's words ``exists`` / ``forall``, with ``any`` / ``all`` as aliases
 (importable by name; not star-exported, since they shadow the builtins).
 """
 
-from array import array
 from collections.abc import Sequence
 from functools import cache
 from operator import index
@@ -283,15 +282,15 @@ class Seq(Sequence):
     """
 
     __slots__ = ("_items",)
-    _carrier = None
+    _element = None
 
     def __class_getitem__(cls, c):
         return _seq_over(c)
 
     def __new__(cls, *xs):
-        if cls._carrier is None:
+        if cls._element is None:
             raise TypeError("Seq[C](x, …): the carrier is stated")
-        return cls._of(_held(cls._carrier, xs))
+        return cls._of(_held(cls._element, xs))
 
     @classmethod
     def _of(cls, items):
@@ -300,6 +299,9 @@ class Seq(Sequence):
         return s
 
     def __setattr__(self, name, value):
+        raise AttributeError("a Seq is immutable")
+
+    def __delattr__(self, name):
         raise AttributeError("a Seq is immutable")
 
     def __len__(self):
@@ -319,7 +321,7 @@ class Seq(Sequence):
         return type(self) is type(other) and self._items == other._items
 
     def __hash__(self):
-        return hash((self._carrier, tuple(self._items)))
+        return hash((self._element, self._items))
 
     def __repr__(self):
         return f"{type(self).__name__}({', '.join(map(repr, self))})"
@@ -329,18 +331,18 @@ class Seq(Sequence):
 def _seq_over(c):
     """The class ``Seq[C]``, one per carrier; ``A(c)`` refuses a non-carrier."""
     A(c)
-    return type(f"Seq[{_named(c)}]", (Seq,), {"__slots__": (), "_carrier": c})
+    return type(f"Seq[{_named(c)}]", (Seq,), {"__slots__": (), "_element": c})
 
 
 def _held(c, xs):
-    """The elements as ``Seq[C]`` holds them: a word's in an ``array('Q')``,
+    """The elements as ``Seq[C]`` holds them, in a tuple: a word's as ints,
     every other carrier's in a tuple of its values."""
     universe = A(c)
     for x in xs:
         if x not in universe:
             raise TypeError(f"{x!r} is not a {_named(c)}")
     if c is u64:
-        return array("Q", map(index, xs))
+        return tuple(map(index, xs))
     return tuple(map(c, xs))
 
 

@@ -31,9 +31,9 @@ from math import prod
 from types import MappingProxyType
 
 from ._jlt import MatchQuery, RandomText, WindowQuery, collect, count
-from ._pst import UniverseU64
+from ._pst import UniverseFp, UniverseU64
 from ._version import __version__
-from .pst import A, K3, Seq, ap, cardinality, carrier, codomain, u64
+from .pst import A, K3, Fp, Seq, ap, cardinality, carrier, codomain, u64
 from .pst import _attr
 from .trsk import arrow, dom, factors, function
 
@@ -69,7 +69,7 @@ def ext(S, *, limit=1000):
     ValueError: ext: 1000000000 letters, past the limit 1000 (pass limit=)
     """
     if isinstance(S, RandomText):
-        _within(len(S), "letters", limit)
+        _within(S.length, "letters", limit)
         return bytes(S)
     if isinstance(S, (MatchQuery, WindowQuery)):
         _within(count(S), "positions", limit)
@@ -92,6 +92,9 @@ def take(S, n=5, *, limit=1000):
     frozenset({0, 2, 4})
     >>> take(U & (π % 1000 == 999))  # within the first 1000: to see more, raise the limit
     frozenset({999})
+    >>> from pynzli.pst import GF_p
+    >>> len(take(GF_p, 3))  # the field's first residues, its universe never read whole
+    3
     """
     points, keep, shape, _, _ = _points(S, "take")
     scanned = islice(points, limit)
@@ -137,9 +140,11 @@ def _count(columns):
 
 def _elements(U):
     """A universe's elements in its order, lazily, read only when asked for:
-    the word's are 0 to 2⁶⁴ − 1, a chain's its own."""
+    the word's are 0 to 2⁶⁴ − 1, the field's their residues, a chain's its own."""
     if isinstance(U, UniverseU64):
         yield from range(cardinality(U))
+    elif isinstance(U, UniverseFp):
+        yield from map(Fp, range(cardinality(U)))
     else:
         yield from U
 

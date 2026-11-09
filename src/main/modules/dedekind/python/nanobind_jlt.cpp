@@ -488,10 +488,10 @@ void bind_matcher(nb::module_ module_) {
                               "random_text(alphabet, n, seed=0): n letters, "
                               "each a hash of its position; "
                               "never stored, so n may be a billion.")
-      .def(
-          "__len__",
+      .def_prop_ro(
+          "length",
           [](const jlt::RandomText& t) { return std::ranges::size(t.view()); },
-          "The number of letters.")
+          "The number of letters, a Python int at any size.")
       .def(
           "__bytes__",
           [](const jlt::RandomText& t) {
