@@ -8,8 +8,7 @@ Each rule has a listing of a few lines, verbatim from the repository's test up t
 \paragraph{Rule 1, Substitution: values and pure functions.}
 \phantomsection\label{def:rule1}
 Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
-Every function is \cppinline{constexpr} and depends on its arguments alone.\footnote{A \cppinline{constexpr} function may still change its own locals: constant evaluation permits modifying only objects whose lifetime began within it, so no mutation can leak, which is the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
-At runtime the linter of Section~\ref{sec:limits} holds the body to the same condition by closing each channel a mutation could leak through: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference.}
+Every function is \cppinline{constexpr} and depends on its arguments alone.
 What the rule conserves is what has come to be called Leibniz's law, that equals cannot be told apart by any operation, at either binding time, whose converse is the principle Leibniz himself stated~\cite{leibniz1686discours,leibniz1686discourse}: a call may be replaced by its value, $e[f(x)] = e[v]$ whenever $f(x)$ evaluates to $v$.
 In a programming language the law is referential transparency~\cite{strachey2000fundamental}, and a language where $a = b$ but $f(a) \neq f(b)$ for some $f$ has an equality one cannot reason with.
 
@@ -96,17 +95,21 @@ A law is asked on the arrow's value, at compile time: \cppinline{is_monic(f)} re
 \end{listing}
 
 In Listing~\ref{lst:rule1}, \cppinline{const T} and \cppinline{const T&} are one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
-An arrow is a function made a value, so its laws are equations between values.
-A program states such an equation with \cppinline{==}, and Leibniz's law lets it rewrite by one.
-The kernel requires \cppinline{==} of no type; the listings require it of each carrier they state a law on.
-The properties a law singles out, mono, epi and iso by cancellation~\cite{pierce1991basic}, involution, the variances, are certificates declared or derived on the arrow, whose type names carrier and operation, so a certificate is about the signature.
-Two consequences keep that exact: a function returns a value, never a reference, and every member function, a call operator included, is \cppinline{const}.
+A value in Jlt is a value in Leibniz's sense: a copy cannot be told from its original, so either may stand for the other.
+In \Cpp{} that is Stepanov's regular type, whose copy equals its original and which also has \cppinline{==}~\cite{stepanov2009elements}.
+Rule~1 keeps the copy and drops the comparison, asking \cppinline{std::semiregular}, because equality of values is undecidable in general, already for functions~\cite{rice1953classes}; \cppinline{==}, where a law needs it, is one more operation of the carrier's signature, as \cppinline{+} is.
+Two consequences keep it exact: a function returns a value, never a reference, and every member function, a call operator included, is \cppinline{const}.
 The grammar of Appendix~\ref{app:fjlt:syntax} has neither a reference type nor a non-\cppinline{const} member, and the linter of Section~\ref{sec:limits} holds \Cpp{} to the same.
+With the address and mutation out of reach, no arrow tells a copy from its original, so they are equal up to canonical isomorphism in Mazur's sense~\cite{mazur2008equal}, an object being known, by Yoneda's lemma, through its arrows out~\cite{maclane1971categories}.
+
+So a call whose arguments are known may be replaced by its value, and the compiler does so while compiling, where its optimisations begin.
+An arrow is a function made a value, so it too is copied, passed and composed as one (Listing~\ref{lst:rule1}).
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.
 
 \paragraph{Rule 2, Abstraction: a type varies behaviour only through its concepts and traits.}
 \phantomsection\label{def:rule2}
 Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts and traits say it can, and nothing else.
+A concept names a carrier and its operations, and a law certifies the pair: a signature and its equations, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, the law a \emph{certificate} the compiler finds by resolution but does not prove.
 That is the premise of Wadler's free theorems~\cite{wadler1989theorems}, with concepts and traits in the place of type classes~\cite{wadler1989adhoc}, and what it conserves is the body's independence from the carrier: \cppinline{f<T>} is one generic term applied to \cppinline{T}'s dictionary, so it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
 
 \begin{listing}[htbp]
@@ -246,6 +249,7 @@ For \cppinline{concat} the equation is its definition, $h(\mathit{nil}) = \mathi
 Meijer et al.\ take their recursion operators in CPO, where one list type holds the finite, the infinite and the partial lists, and a fold over it need not end; Jlt takes them for data only, the initial algebras in Set, where a list in a type is finite as an initial algebra and the chain in a value is finite by the descent, and codata is out of scope: a coalgebra is admitted as a generator bounded by a count, never as a value.
 The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value}.
 In both cases, an iteration that can be mapped onto the chain of Figure~\ref{fig:structures} contains no loop and terminates, whether the chain is held as one count or as the elements of an array.
+A loop is barred for termination, not for purity: the locals it changes cannot leak, since constant evaluation lets a function modify only objects whose lifetime began within it, the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
 In the terms of Meijer et al., \cppinline{concat} over a list is a catamorphism.
 The chain is an anamorphism, $\mathit{prior}$ unfolded from the seed and delimited where it has nothing.
 \cppinline{concat} over the chain is a hylomorphism, and the chain is never built as a list, only as its fold (Appendix~\ref{app:fjlt:translation}).
