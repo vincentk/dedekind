@@ -3,7 +3,7 @@
 Each C++ panel is the region between ``// [listing5:<panel>]`` markers in the
 tensor exhibit's test, which compiles it; each Python panel is the region
 between ``.. [listing5:<panel>]`` markers in ``pynzli.jlt``'s docstring, which
-``test_jlt_doctests`` runs.  And the Python column has the C++ column's
+``test_doctests`` runs.  And the Python column has the C++ column's
 surface: every library name a C++ panel uses is ``pynzli.jlt``'s too.
 """
 

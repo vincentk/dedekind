@@ -5,7 +5,6 @@
 # Project Variables
 BUILD_DIR     := build
 VENV_DIR      := .venv
-NOTEBOOKS_DIR := docs/python/notebooks
 LLVM_ROOT    ?= /usr/local/opt/llvm
 CLANG_FORMAT ?= $(LLVM_ROOT)/bin/clang-format
 CLANG_QUERY ?= $(LLVM_ROOT)/bin/clang-query
@@ -42,9 +41,9 @@ _HOST_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || ech
 JOBS ?= $(shell j=$$(( $(_HOST_CORES) - 2 )); [ $$j -lt 2 ] && j=2; echo $$j)
 
 .PHONY: help python-api jlt-lint jlt-lint-tool
-.PHONY: bench bench-native all clean compile test-compile test integration-test coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks doxygen paper paper-jlt \
+.PHONY: bench bench-native all clean compile test-compile test coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks doxygen paper-jlt \
 	ci-history ci-main pr-init pr-status pr-status-all pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
-	check-review-comments resolve-review-comment issue-list jupyter
+	check-review-comments resolve-review-comment issue-list
 
 all: compile
 
@@ -74,85 +73,13 @@ compile: $(BUILD_DIR)/CMakeCache.txt ## Configure if needed and build all target
 # modules, test executables, IR fixture showcases) without running any
 # tests. Useful as a fast local sanity gate — catches module-DAG
 # violations, Unicode/species-visibility issues, and template
-# instantiation errors without paying the cost of ctest, Python
-# bindings, or Jupyter integration runs.
+# instantiation errors without paying the cost of ctest or the Python
+# bindings.
 test-compile: compile ## compile, plus the IR-fixture showcases: type-checks every C++ file without running tests
 	cmake --build $(BUILD_DIR) --target set-pruning-ir-fixture --parallel $(JOBS)
 
 test: test-compile ## Build, then run the full test suite
 	ctest --test-dir $(BUILD_DIR) --output-on-failure --parallel $(JOBS)
-
-# The notebooks run against the package `make test` already built and staged
-# in $(BUILD_DIR)/python (the extensions next to the pure-Python modules),
-# not a second build of the library through pip; the wheel job on main checks
-# that the package installs.
-integration-test: test ## test, plus the Python and notebook suites
-	python -m pip install --upgrade pip jupyter
-	@ls $(BUILD_DIR)/python/pynzli/_jlt*.so $(BUILD_DIR)/python/pynzli/_pst*.so >/dev/null 2>&1 || \
-		{ echo "ERROR: no staged dedekind package in $(BUILD_DIR)/python; configure with DEDEKIND_BUILD_PYTHON_BINDINGS=ON"; exit 2; }
-	mkdir -p $(BUILD_DIR)/python-notebooks
-	@export PYTHONPATH="$(abspath $(BUILD_DIR))/python$${PYTHONPATH:+:$$PYTHONPATH}"; \
-	NOTEBOOK_DIR="docs/python/notebooks"; \
-	NOTEBOOKS="$$(find $$NOTEBOOK_DIR -maxdepth 1 -type f -name '*.ipynb' | sort)"; \
-	REPORT="$(BUILD_DIR)/python-notebooks/integration-summary.txt"; \
-	: > "$$REPORT"; \
-	if [ -z "$$NOTEBOOKS" ]; then \
-		echo "ERROR: no notebooks found in $$NOTEBOOK_DIR"; \
-		echo "ERROR: no notebooks found in $$NOTEBOOK_DIR" >> "$$REPORT"; \
-		exit 2; \
-	fi; \
-	echo "Running notebook integration tests from $$NOTEBOOK_DIR" | tee -a "$$REPORT"; \
-	FAILURES=0; \
-	TOTAL=0; \
-	for nb in $$NOTEBOOKS; do \
-		TOTAL=$$((TOTAL + 1)); \
-		name="$$(basename $$nb)"; \
-		if ! python -c 'import json,sys; nb=json.load(open(sys.argv[1], encoding="utf-8")); to_text=lambda s: "".join(s) if isinstance(s, list) else (s if isinstance(s, str) else ""); ok=any(c.get("cell_type") == "code" and ("import pynzli" in to_text(c.get("source", "")) or "from pynzli import" in to_text(c.get("source", "")) or "from pynzli." in to_text(c.get("source", ""))) for c in nb.get("cells", [])); sys.exit(0 if ok else 1)' "$$nb"; then \
-			echo "FAILED: $$name does not import pynzli in any code cell" | tee -a "$$REPORT"; \
-			FAILURES=$$((FAILURES + 1)); \
-			continue; \
-		fi; \
-		echo "Executing $$name" | tee -a "$$REPORT"; \
-		if ! python -m jupyter nbconvert --to notebook --execute "$$nb" --output "$$name" --output-dir $(BUILD_DIR)/python-notebooks; then \
-			echo "FAILED: $$name" | tee -a "$$REPORT"; \
-			FAILURES=$$((FAILURES + 1)); \
-		else \
-			echo "PASSED: $$name" >> "$$REPORT"; \
-		fi; \
-	done; \
-	if [ "$$FAILURES" -ne 0 ]; then \
-		echo "Notebook integration failures: $$FAILURES/$$TOTAL" | tee -a "$$REPORT"; \
-		exit 1; \
-	fi; \
-	echo "Notebook integration tests passed: $$TOTAL notebook(s)." | tee -a "$$REPORT"
-
-# Create a local virtual environment at $(VENV_DIR) if it does not yet exist.
-$(VENV_DIR)/bin/python:
-	python3 -m venv $(VENV_DIR)
-
-# Install dedekind into .venv and launch an interactive Jupyter server.
-#
-# This target:
-#   1. Builds the C++ library (reuses an incremental build if already current).
-#   2. Creates a local .venv if it does not exist.
-#   3. Installs pip, jupyter, and the dedekind editable package into .venv.
-#   4. Opens a Jupyter Notebook server pointing at $(NOTEBOOKS_DIR).
-#
-# Usage:
-#   make jupyter            # first-time or after C++ source changes
-#   make jupyter            # subsequent runs reuse the compiled artifacts
-#
-# Note: the dedicated $(BUILD_DIR)/python-jupyter build tree is wiped on each
-# invocation to prevent stale module-map files from causing compile errors.
-# This makes the editable install reliable at the cost of a one-time C++ relink.
-jupyter: compile $(VENV_DIR)/bin/python
-	$(VENV_DIR)/bin/pip install --quiet --upgrade pip jupyter
-	rm -rf $(BUILD_DIR)/python-jupyter
-	CC="$(CC)" CXX="$(CXX)" \
-	CMAKE_ARGS="-DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_CXX_SCAN_FOR_MODULES=ON -DCMAKE_BUILD_TYPE=Release -DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON $(CMAKE_EXTRA_ARGS)" \
-	SKBUILD_BUILD_DIR="$(BUILD_DIR)/python-jupyter" \
-	$(VENV_DIR)/bin/pip install -e .
-	$(VENV_DIR)/bin/jupyter notebook $(NOTEBOOKS_DIR)
 
 coverage: compile ## Build, run tests, and produce the LLVM coverage report
 	@echo "Running tests with profile environment..."
@@ -467,12 +394,7 @@ doxygen: $(BUILD_DIR)/CMakeCache.txt ## The Doxygen API docs in build/docs
 		$(CMAKE_EXTRA_ARGS)
 	cmake --build $(BUILD_DIR) --target docs --parallel $(JOBS)
 
-paper: ## Fast compile check of the older paper
-	$(MAKE) -C docs/paper ci-check
-
-papers: ## Both papers with their bibliographies, as CI builds them
-	$(MAKE) paper
-	$(MAKE) -C docs/paper doc
+papers: ## The paper with its bibliography, as CI builds it
 	$(MAKE) paper-jlt
 
 # The Jlt paper, full build with bibliography: docs/paper/jlt/jlt.pdf.
