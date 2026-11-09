@@ -76,7 +76,7 @@ A capturing closure type is neither default constructible nor assignable, so it 
 It is admitted as sugar instead, judged through its image, which is semiregular since its captures are values.
 A closure type has no name, so a lambda is never a carrier and never the head of an instance.
 A loop's locals are such state, and a loop that shows its end is admitted as sugar the same way, judged through the fold it denotes.
-A counted \cppinline{for (T i = 0; i < n; ++i)} whose counter and bound share one unsigned type \cppinline{T}, and whose body writes neither, is \cppinline{fold_left} over \cppinline{views::iota(T{0}, n)}: since \cppinline{i < n} holds before each increment, \cppinline{++i} cannot wrap, the loop's locals the fold's state and its body the step; a range-\cppinline{for} over a bounded range is \cppinline{fold_left} over that range.
+A counted \cppinline{for (T i = 0; i < n; ++i)} whose counter and bound share one unsigned type \cppinline{T}, and whose body writes neither, is \cppinline{fold_left} over \cppinline{views::iota(T{0}, n)}: since \cppinline{i < n} holds before each increment, \cppinline{++i} cannot wrap, the loop's locals the fold's state and its body the step; a range-\cppinline{for} over a bounded range, whose body does not write that range, is \cppinline{fold_left} over it.
 A \cppinline{while} whose condition no bound governs has no such image and stays out.
 
 \begin{table}[tbp]
