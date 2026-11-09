@@ -18,7 +18,6 @@ import dedekind.sets;
 
 using namespace dedekind::numbers;
 using dedekind::category::Ternary;
-using dedekind::sets::Numeral;
 
 TEST_CASE("numbers:collatz — the recurrence, explicit and as a relation",
           "[numbers][collatz]") {
@@ -27,10 +26,10 @@ TEST_CASE("numbers:collatz — the recurrence, explicit and as a relation",
   CHECK(collatz_rule(4) == 2);    // even: 4/2
   CHECK(collatz_rule(2) == 1);    // even: 2/2
   CHECK(collatz_rule(27) == 82);  // odd: 3·27+1
-  // The point-free relation, validated on pairs (ℕ = 𝔸<Numeral>).
-  CHECK(collatz(std::pair{Numeral{6u}, Numeral{3u}}));
-  CHECK(collatz(std::pair{Numeral{7u}, Numeral{22u}}));
-  CHECK(!collatz(std::pair{Numeral{6u}, Numeral{4u}}));
+  // The point-free relation, validated on pairs of counts (𝔸<std::size_t>).
+  CHECK(collatz(std::pair{std::size_t{6}, std::size_t{3}}));
+  CHECK(collatz(std::pair{std::size_t{7}, std::size_t{22}}));
+  CHECK(!collatz(std::pair{std::size_t{6}, std::size_t{4}}));
   // The shadow saturates where 3n+1 leaves the word; the top is a fixpoint.
   constexpr auto top = std::numeric_limits<std::size_t>::max();
   CHECK(collatz_rule(top) == top);
@@ -39,7 +38,7 @@ TEST_CASE("numbers:collatz — the recurrence, explicit and as a relation",
 
 TEST_CASE("numbers:collatz — two steps, and the attractor's pre-image",
           "[numbers][collatz][relational]") {
-  const auto n = [](std::size_t i) { return Numeral{i}; };
+  const auto n = [](std::size_t i) { return i; };
   CHECK(collatz2(std::pair{n(4), n(1)}));   // 4 → 2 → 1
   CHECK(collatz2(std::pair{n(6), n(10)}));  // 6 → 3 → 10
   CHECK(!collatz2(std::pair{n(6), n(5)}));

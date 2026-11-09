@@ -41,14 +41,13 @@ module;
 
 export module dedekind.sequences:relprod;
 
-import dedekind.sets;  // Comprehension / 𝔸, Numeral
+import dedekind.sets;  // Comprehension / 𝔸
 import dedekind.order; // ProductRestrict, IsRelPredicate
 
 namespace dedekind::sequences {
 using dedekind::order::IsRelPredicate;
 using dedekind::sets::Comprehension;
 using dedekind::sets::IsCardinality;
-using dedekind::sets::Numeral;
 using dedekind::sets::𝔸;
 
 /** @brief The composed predicate for @f$R;S@f$ over the finite ℕ-prefix
@@ -62,14 +61,15 @@ using dedekind::sets::𝔸;
  *  @e worst-case, @b no array. */
 namespace detail_relprod {
 /** @brief Whether @c b is a middle for @f$(a, c)@f$: @f$R(a,b) \wedge
- *  S(b,c)@f$, with @c b the @c i-th element of ℕ. */
+ *  S(b,c)@f$, with @c b the count @c i, a machine word: the middle is a
+ *  finite window of counts. */
 template <typename PR, typename PS, typename Pair>
 struct IsMiddle {
   const PR& r;
   const PS& s;
   const Pair& ac;
   constexpr bool operator()(std::size_t i) const {
-    const auto b = Numeral{i};
+    const std::size_t b = i;
     return static_cast<bool>(r(std::pair{ac.first, b})) &&
            static_cast<bool>(s(std::pair{b, ac.second}));
   }

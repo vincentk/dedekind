@@ -1,9 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
+#include <cstddef>
 
-// The fixtures are sets of ℕ cut by order comparisons and remainders, whose
-// rules are order's (sets:terms admits an operator where the module stating its
-// rule is imported), so this test of relational algebra lives at the order
-// layer.
+// The fixtures are sets of counts (the set over the machine word, which has a
+// remainder) cut by order comparisons and remainders, whose rules are order's
+// (sets:terms admits an operator where the module stating its rule is
+// imported), so this test of relational algebra lives at the order layer.
 import dedekind.category;
 import dedekind.sets;
 import dedekind.relational;
@@ -19,8 +20,9 @@ using namespace dedekind::relational;
 namespace {
 
 // Even numbers and multiples of 3 in [0, 10).
-constexpr auto evens_0_10 = ℕ & (π < 10 && π % 2 == 0);
-constexpr auto threes_0_10 = ℕ & (π < 10 && π % 3 == 0);
+constexpr auto counts = 𝔸<std::size_t>{};
+constexpr auto evens_0_10 = counts & (π < 10 && π % 2 == 0);
+constexpr auto threes_0_10 = counts & (π < 10 && π % 3 == 0);
 
 }  // namespace
 
