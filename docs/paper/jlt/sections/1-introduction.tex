@@ -11,7 +11,6 @@ Either becomes a rewrite by Leibniz's law, which Rule~1 conserves (Section~\ref{
 For the declared laws Birkhoff's theorem makes the reasoning complete: an equation follows from the laws by equational reasoning exactly when it holds in every model of them~\cite{birkhoff1935structure,burris1981universalalgebra}.
 A class with laws is an equational theory and its instances the models, a variety, and a stronger class has fewer instances, so the constraints describe the structure and the structure licenses the optimisation.
 The goal is correctness by construction in Dijkstra's sense~\cite{dijkstra1976discipline}.
-
 The case for functional programming is usually made in a language built around it, sometimes experimental or niche.
 The underlying concepts, however, are often older, run deeper and have broader reach than is assumed:
 the most widely written functional language may well be SQL's \texttt{SELECT}, a declarative query over relations~\cite{iso9075sql}, whose algebra is Codd's~\cite{codd1970relational}, with Tarski's calculus of relations~\cite{tarski1941calculus} its older relative.
@@ -24,7 +23,6 @@ Listing~\ref{lst:sites} is a case: a count over all sequences compiles away to a
 %For them the repository binds the library's combinators into Python as handles to the compiled core, so the laws declared in \Cpp{} hold in an interactive session: the specialisations they license run there at run time, and only what the compiler evaluates of them is fixed when the bindings are built (Section~\ref{sec:binding}).
 A functional fragment of \Cpp{23} is worth drawing because the whole may be too large to work in with confidence.
 Such a fragment is worth drawing now because \Cpp{23} is the first standard with every ingredient: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
-
 Compliance with such a fragment is also easier to check than a decade ago: for example, a language model of code~\cite{chen2021evaluating} can be instructed to proof-read every change against its rules.
 Such a review is a read, not a proof (Section~\ref{sec:limits}).
 
