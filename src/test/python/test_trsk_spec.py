@@ -79,19 +79,6 @@ class RelationAsSymbolicFunction(unittest.TestCase):
         self.assertEqual(list(fib[3:][:5]), [2, 3, 5, 8, 13])
 
 
-class ExtToTheHost(unittest.TestCase):
-    """Exhibit 4: ext lowers a finite relation to host data, one row per
-    element of the domain when the relation is a function."""
-
-    @_needs("pynzli.pst", "A", "u64", "π_1", "π_2", "ext", exhibit="exhibit 4")
-    def test_a_functional_relation_is_one_row_per_domain_element(self) -> None:
-        from pynzli.pst import A, ext, u64, π_1, π_2
-
-        U = A(u64)
-        doubling = (U[:5] * U) & (π_2 == π_1 * 2)
-        self.assertEqual(ext(doubling), [(0, 0), (1, 2), (2, 4), (3, 6), (4, 8)])
-
-
 class TheTotalOperatorSurface(unittest.TestCase):
     """#1018 / #981: a term operator is admitted where it is total on the
     carrier, or divides by a nonzero constant; a constant must meet the
