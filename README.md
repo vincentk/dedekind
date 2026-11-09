@@ -178,7 +178,7 @@ In return, what follows from true declarations is derived for you and checked at
 
 ### Further reading:
 
-* **Theory**: the Jlt paper, [The Juliet Posture: Structurally Typed Functional Programming in Standard C++23](https://vincentk.github.io/dedekind/jlt.pdf) (a draft), and the earlier, broader draft, [Symbolic Algebra in Standard C++ Verified at Compile Time](https://vincentk.github.io/dedekind/paper.pdf).
+* **Theory**: the Jlt paper, [The Juliet Posture: Structurally Typed Functional Programming in Standard C++23](https://vincentk.github.io/dedekind/jlt.pdf) (a draft).
 * **Build**: the build instructions are available through the [CMakeLists.txt](CMakeLists.txt) and controlled through the [build action](.github/workflows/cmake.yml).
 * **Documentation**: the [C++ API reference](https://vincentk.github.io/dedekind/) (Doxygen), for quick lookups against the source tree, and the [Python API reference](https://vincentk.github.io/dedekind/python/) (`pynzli`, with usage examples the test suite checks); both are works in progress.
 * **Python Bindings (MVP)**: see [docs/python/README.md](docs/python/README.md) and [docs/python/release-checklist-v0.1.md](docs/python/release-checklist-v0.1.md).

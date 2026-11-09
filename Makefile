@@ -42,7 +42,7 @@ _HOST_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || ech
 JOBS ?= $(shell j=$$(( $(_HOST_CORES) - 2 )); [ $$j -lt 2 ] && j=2; echo $$j)
 
 .PHONY: help python-api jlt-lint jlt-lint-tool
-.PHONY: bench bench-native all clean compile test-compile test integration-test coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks doxygen paper paper-jlt \
+.PHONY: bench bench-native all clean compile test-compile test integration-test coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks doxygen paper-jlt \
 	ci-history ci-main pr-init pr-status pr-status-all pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list jupyter
 
@@ -467,12 +467,7 @@ doxygen: $(BUILD_DIR)/CMakeCache.txt ## The Doxygen API docs in build/docs
 		$(CMAKE_EXTRA_ARGS)
 	cmake --build $(BUILD_DIR) --target docs --parallel $(JOBS)
 
-paper: ## Fast compile check of the older paper
-	$(MAKE) -C docs/paper ci-check
-
-papers: ## Both papers with their bibliographies, as CI builds them
-	$(MAKE) paper
-	$(MAKE) -C docs/paper doc
+papers: ## The paper with its bibliography, as CI builds it
 	$(MAKE) paper-jlt
 
 # The Jlt paper, full build with bibliography: docs/paper/jlt/jlt.pdf.
