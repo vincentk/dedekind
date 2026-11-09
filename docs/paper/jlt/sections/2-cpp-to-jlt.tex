@@ -22,12 +22,7 @@ constexpr auto id_b = id<bool>();
 constexpr auto id_u = id<size_t>();
 static_assert(
 id_b(true) == true && id_u(42) == 42 &&
-is_monotone(id_u) && is_monotone(id_b) &&
-is_involution(id_u) && is_involution(id_b) &&
-is_identity(id_u >> id_u) &&
-(id_u >> id_u)(42) == 42 &&
-is_monotone(id_u >> id_u) &&
-is_involution(id_u >> id_u));
+(id_u >> id_u)(42) == 42);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
@@ -38,59 +33,17 @@ constexpr auto one = constant<bool>(1uz);
 constexpr auto ans = constant<bool>(42uz);
 constexpr auto aye = constant<size_t>(true);
 constexpr auto nay = constant<size_t>(false);
+constexpr auto cpy = ans;  // a copy
 static_assert(
-(ans >> id_u)(true) == ans(false) &&
-is_constant(ans) && is_monotone(ans) &&
-is_constant(aye) && is_antitone(aye) &&
-!is_monic(ans) && !is_epic(ans) &&
-!is_monic(aye >> id_b) &&
-!is_epic(nay >> id_b) &&
-is_constant(nil >> nay >> ans));
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.48\linewidth}
-\begin{cpp}
-// Involutions, pointwise:
-static_assert(
-(!aye)(0) == false &&
-is_involution(!id_b) &&
-is_constant(!aye) &&
-
-(~nil)(true) + 1 == 0 &&
-is_involution(~id_u) &&
-is_constant(~nil) &&
-
-(-one)(true) == (~nil)(true) &&
-is_involution(-id_u) &&
-is_constant(-nil) &&
-
-is_iso(-id_u >> ~id_u) &&
-!is_involution(-id_u >> ~id_u));
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.48\linewidth}
-\begin{cpp}
-// Products and coproducts:
-constexpr auto fst = Π<1, pair<bool, size_t>>{};
-constexpr auto sec = Pairing{id_b, nil};
-constexpr auto inl = ι<1, bool, size_t>{};
-constexpr auto ret = Copairing{id_b, nay};
-static_assert(
-is_epic(fst) && !is_monic(fst) &&
-is_monic(sec) && !is_epic(sec) &&
-(sec >> fst)(true) && !(sec >> fst)(false) &&
-is_monic(inl) && !is_epic(inl) &&
-is_epic(ret) && !is_monic(ret) &&
-(inl >> ret)(true) && !(inl >> ret)(false));
+cpy(true) == ans(false) &&
+(ans >> id_u)(true) == 42 &&
+(nil >> nay >> ans)(false) == 42);
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution.
-Equals cannot be told apart, so a function is its graph, and functions are the arrows of a category, with composition \cppinline{>>} their only structure.
-Top left: the identities.
-Top right: the points, constant arrows, monotone and antitone at once and neither monic nor epic.
-Bottom left: the involutions, each the C++ operator post-composed, so \cppinline{!f} is $\neg \circ f$; two compose to an isomorphism and to no involution.
-Bottom right: a projection and its section, an injection and its retraction, the arrows that are epic or monic but not both.
-A law is asked on the arrow's value, at compile time: \cppinline{is_monic(f)} reads what the concept \cppinline{IsMonicArrow} reads, and a composite's law is derived from its legs.}
+A function made a value is an arrow: a copy of it is as good as the original, arrows compose with \cppinline{>>}, and every call here is replaced by its value while compiling.
+Left: the identities.
+Right: the points, constant arrows, and a copy.}
 \label{lst:rule1}
 \end{listing}
 
@@ -109,10 +62,48 @@ The compiler enforces the rule in part: a \cppinline{constexpr} function that re
 \paragraph{Rule 2, Abstraction: a type varies behaviour only through its concepts and traits.}
 \phantomsection\label{def:rule2}
 Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts and traits say it can, and nothing else.
-A concept names a carrier and its operations, and a law certifies the pair: a signature and its equations, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, the law a \emph{certificate} the compiler finds by resolution but does not prove.
+The first certificates need no carrier: mono, epi and iso by cancellation~\cite{pierce1991basic}, monotone, antitone and involution are asked of an arrow alone (Listing~\ref{lst:rule2}, top).
+A concept then names a carrier and its operations, and a law certifies the pair: a signature and its equations, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, the law a \emph{certificate} the compiler finds by resolution but does not prove.
 That is the premise of Wadler's free theorems~\cite{wadler1989theorems}, with concepts and traits in the place of type classes~\cite{wadler1989adhoc}, and what it conserves is the body's independence from the carrier: \cppinline{f<T>} is one generic term applied to \cppinline{T}'s dictionary, so it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
 
 \begin{listing}[htbp]
+\begin{minipage}[t]{0.47\linewidth}
+\begin{cpp}
+// Points and involutions:
+static_assert(
+is_constant(ans) && is_monotone(ans) &&
+is_antitone(aye) &&
+!is_monic(ans) && !is_epic(ans) &&
+
+(!aye)(0) == false &&
+is_involution(!id_b) && is_constant(!aye) &&
+(~nil)(true) + 1 == 0 &&
+is_involution(~id_u) && is_constant(~nil) &&
+(-one)(true) == (~nil)(true) &&
+is_involution(-id_u) && is_constant(-nil) &&
+
+is_iso(-id_u >> ~id_u) &&
+!is_involution(-id_u >> ~id_u));
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.5\linewidth}
+\begin{cpp}
+// Products and coproducts:
+constexpr auto fst = Π<1, pair<bool, size_t>>{};
+constexpr auto sec = Pairing{id_b, nil};
+constexpr auto inl = ι<1, bool, size_t>{};
+constexpr auto ret = Copairing{id_b, nay};
+static_assert(
+is_epic(fst) && !is_monic(fst) &&
+is_monic(sec) && !is_epic(sec) &&
+(sec >> fst)(true) && !(sec >> fst)(false) &&
+is_monic(inl) && !is_epic(inl) &&
+is_epic(ret) && !is_monic(ret) &&
+(inl >> ret)(true) && !(inl >> ret)(false));
+\end{cpp}
+\end{minipage}
+
+\medskip
 \begin{minipage}[t]{0.47\linewidth}
 \begin{cpp}
 using namespace std;
@@ -177,11 +168,13 @@ concat<Sections<size_t>, compose>(
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
-Left: a monoid is a set which is closed under an associative binary operation and equipped with a unit element.
+Top, certificates on arrows alone, with Listing~\ref{lst:rule1}'s arrows: the points are monotone and antitone at once and neither monic nor epic; each involution is the \Cpp{} operator post-composed, so \cppinline{!f} is $\neg \circ f$, and two compose to an isomorphism and to no involution; a projection and its section, an injection and its retraction, are epic or monic but not both.
+A law is asked on the arrow's value, at compile time: \cppinline{is_monic(f)} reads what the concept \cppinline{IsMonicArrow} reads, and a composite's law is derived from its legs.
+Bottom left: a monoid is a set which is closed under an associative binary operation and equipped with a unit element.
 Its elements need not be comparable, since equality is not decidable on every carrier, on functions for one.
 The unit is identified instead: \cppinline{is_unit}, by default equality with the unit, which a carrier may supply otherwise.
 The monoid shape is certified for the family of \cppinline{std::unsigned_integral} under \cppinline{(0, +)}.
-Right: \cppinline{concat} at the lengths that need no recursion, none, one and two.
+Bottom right: \cppinline{concat} at the lengths that need no recursion, none, one and two.
 The monoid signatures are: \cppinline{size_t} under \cppinline{(0, +), (1, *)}, \cppinline{bool} under \cppinline{(false, ||), (true, &&)}, \cppinline{string} under \cppinline{("", +)}, and \cppinline{Sections}, the sections of $+$, under \cppinline{(id, >>)}, with \cppinline{adding} the curried $+$.
 }
 \label{lst:rule2}

@@ -239,20 +239,15 @@ constexpr bool distributive<bool>(std::multiplies<bool>, std::plus<bool>) {
 static_assert(IsSemiring<bool, std::plus<bool>, std::multiplies<bool>>);
 static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
 
-// Listing 1: values and arrows.  Equals cannot be told apart, so a function
-// is its graph, and functions are the arrows of a category, with composition
-// their only structure.  The definitions are the tree's and the facts are
-// checked here; a law is asked on the arrow's value (is_monic(f) reads what
-// IsMonicArrow<F> reads), a composite's law derived by the engine in :posetal.
-using dedekind::category::Constant;
+// Listing 1: values and arrows.  A function made a value, an arrow: copied,
+// composed with >>, and replaced by its value at compile time.  The
+// definitions are the tree's and the facts are checked here.
 using dedekind::category::constant;
 using dedekind::category::Copairing;
 using dedekind::category::id;
-using dedekind::category::Identity;
 using dedekind::category::is_antitone;
 using dedekind::category::is_constant;
 using dedekind::category::is_epic;
-using dedekind::category::is_identity;
 using dedekind::category::is_involution;
 using dedekind::category::is_iso;
 using dedekind::category::is_monic;
@@ -268,27 +263,29 @@ using dedekind::category::ι;
 // Identity arrows:
 constexpr auto id_b = id<bool>();
 constexpr auto id_u = id<size_t>();
-static_assert(id_b(true) == true && id_u(42uz) == 42 && is_monotone(id_u) &&
-              is_monotone(id_b) && is_involution(id_u) && is_involution(id_b) &&
-              is_identity(id_u >> id_u) && (id_u >> id_u)(42uz) == 42 &&
-              is_monotone(id_u >> id_u) && is_involution(id_u >> id_u));
+static_assert(id_b(true) == true && id_u(42uz) == 42 &&
+              (id_u >> id_u)(42uz) == 42);
 // Constant arrows:
 constexpr auto nil = constant<bool>(0uz);
 constexpr auto one = constant<bool>(1uz);
 constexpr auto ans = constant<bool>(42uz);
 constexpr auto aye = constant<size_t>(true);
 constexpr auto nay = constant<size_t>(false);
-static_assert((ans >> id_u)(true) == ans(false) && is_constant(ans) &&
-              is_monotone(ans) && is_constant(aye) && is_antitone(aye) &&
-              !is_monic(ans) && !is_epic(ans) && !is_monic(aye >> id_b) &&
-              !is_epic(nay >> id_b) && is_constant(nil >> nay >> ans));
-// Involutions, pointwise:
-static_assert((!aye)(0uz) == false && is_involution(!id_b) &&
-              is_constant(!aye) && (~nil)(true) + 1 == 0 &&
-              is_involution(~id_u) && is_constant(~nil) &&
-              (-one)(true) == (~nil)(true) && is_involution(-id_u) &&
-              is_constant(-nil) && is_iso(-id_u >> ~id_u) &&
-              !is_involution(-id_u >> ~id_u));
+constexpr auto cpy = ans;  // a copy
+static_assert(cpy(true) == ans(false) && (ans >> id_u)(true) == 42 &&
+              (nil >> nay >> ans)(false) == 42);
+
+// Listing 2, top: certificates on arrows alone, before any carrier.  A law
+// is asked on the arrow's value (is_monic(f) reads what IsMonicArrow<F>
+// reads), a composite's law derived by the engine in :posetal.
+// Points and involutions:
+static_assert(is_constant(ans) && is_monotone(ans) && is_antitone(aye) &&
+              !is_monic(ans) && !is_epic(ans) && (!aye)(0uz) == false &&
+              is_involution(!id_b) && is_constant(!aye) &&
+              (~nil)(true) + 1 == 0 && is_involution(~id_u) &&
+              is_constant(~nil) && (-one)(true) == (~nil)(true) &&
+              is_involution(-id_u) && is_constant(-nil) &&
+              is_iso(-id_u >> ~id_u) && !is_involution(-id_u >> ~id_u));
 // Products and coproducts:
 constexpr auto fst = Π<1, std::pair<bool, size_t>>{};
 constexpr auto sec = Pairing{id_b, nil};  // ⟨1, 0⟩
