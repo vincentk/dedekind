@@ -488,6 +488,20 @@ void bind_matcher(nb::module_ module_) {
                               "random_text(alphabet, n, seed=0): n letters, "
                               "each a hash of its position; "
                               "never stored, so n may be a billion.")
+      .def(
+          "__len__",
+          [](const jlt::RandomText& t) { return std::ranges::size(t.view()); },
+          "The number of letters.")
+      .def(
+          "__bytes__",
+          [](const jlt::RandomText& t) {
+            std::string letters(std::ranges::size(t.view()), '\0');
+            std::ranges::transform(t.view(), letters.begin(), [](std::byte b) {
+              return static_cast<char>(b);
+            });
+            return nb::bytes(letters.data(), letters.size());
+          },
+          "bytes(text): the letters, materialised.")
       .def("__rshift__",
            [](const jlt::RandomText& t, const jlt::Plan& p) {
              return jlt::MatchQuery{

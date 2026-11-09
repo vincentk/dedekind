@@ -6,18 +6,59 @@ domain and codomain are products of the universes (``U64``, ``GF_p``, ``B``,
 set ``U & pred`` is a relation out of the unit; ``U * V`` multiplies.
 
 Relations are the Kleisli arrows of the powerset monad, composed
-monadically, and form a cartesian bicategory::
+monadically, and form a cartesian bicategory:
 
-    from pynzli.pst import U64, π_1, π_2, canonical
-    from pynzli.trsk import Function, arrow, converse, copy, diag, merge
+>>> from pynzli.pst import U64, ap, u64, π_1, π_2, canonical
+>>> from pynzli.trsk import Function, arrow, classifier, converse, copy, diag, merge
+>>> succ = U64 * U64 & (π_2 == π_1 + 1)
+>>> two = succ >> succ  # Kleisli composition: ∃ over the middle
+>>> two == (U64 * U64 & (π_2 == π_1 + 2))  # canonical eliminates the ∃
+True
+>>> (diag(U64) >> succ) == succ  # η, the unit of >>
+True
+>>> spider = copy(U64) >> (arrow(succ) * arrow(succ)) >> merge(U64)
+>>> spider == (succ & succ)  # succ ∧ succ: a spider
+True
+>>> converse(succ)  # the dagger
+(𝔸(u64) × 𝔸(u64) & (π_2 == (π_1 + 1)))°
+>>> Function[u64, u64](succ)  # the graph of a function, checked
+𝔸(u64) × 𝔸(u64) & (π_2 == (π_1 + 1))
+>>> ap(two, 3)  # a function applied
+5
 
-    succ = U64 * U64 & (π_2 == π_1 + 1)
-    two = succ >> succ                     # Kleisli composition: ∃ over the middle
-    two == (U64 * U64 & (π_2 == π_1 + 2))  # True: canonical eliminates the ∃
-    diag(U64) >> succ == succ              # True: η, the unit of >>
-    copy(U64) >> (arrow(succ) * arrow(succ)) >> merge(U64) # succ ∧ succ: a spider
-    converse(succ)                         # the dagger
-    Function[u64, u64](succ)               # the graph of a function, checked
+A relation holds the term its author wrote; ``classifier`` reads it, and
+``canonical`` is its normal form, the ∃ eliminated where an atom defines the
+column:
+
+>>> two  # as written
+(𝔸(u64) × 𝔸(u64) & (π_2 == (π_1 + 1))) >> (𝔸(u64) × 𝔸(u64) & (π_2 == (π_1 + 1)))
+>>> classifier(two)  # read: the ∃ over the middle
+∃π_3 ∈ 𝔸(u64). (π_3 == (π_1 + 1)) & (π_2 == (π_3 + 1))
+>>> succ.project(1)  # R >> π, the structural projection, as written
+(𝔸(u64) × 𝔸(u64) & (π_2 == (π_1 + 1))) >> (𝔸(u64) × 𝔸(u64) × 𝔸(u64) & (π_3 == π_1))
+>>> canonical(succ.project(1))  # both ∃ eliminated: the domain is entire
+𝔸(u64)
+
+``ext`` (from ``pynzli``) materialises a relation whose product is small: a
+function as a read-only map from its arguments, any other relation as the
+``frozenset`` of its rows, each a ``tuple``.  The author's spelling is gone,
+only the extension remains; past the limit, ``ext`` refuses, naming the size:
+
+>>> from pynzli import ext
+>>> from pynzli.pst import B, K3, Ternary
+>>> ext(diag(B))  # η on 𝔹, a function
+mappingproxy({False: False, True: True})
+>>> rows = K3 * B & (π_2 == π_1)  # a relation: U has no image in 𝔹
+>>> ext(rows) == {(Ternary.FALSE, False), (Ternary.TRUE, True)}
+True
+>>> ext(B * K3 & (π_2 == π_1)) == {False: Ternary.FALSE, True: Ternary.TRUE}  # 𝔹 ↪ K₃
+True
+>>> ext(succ)
+Traceback (most recent call last):
+ValueError: ext: 18446744073709551616 arguments in its domain, past the limit 1048576
+>>> ext(U64 * U64 & (π_2 * π_2 == π_1))  # a root: no function
+Traceback (most recent call last):
+ValueError: ext: 340282366920938463463374607431768211456 rows in its product, past the limit 1048576
 
 ``copy`` and ``merge`` are the Frobenius spiders, ``diag`` is η, ``>>`` the
 Kleisli composition (its ∃ the monad's μ), ``converse(R)`` the dagger.  Where
