@@ -52,7 +52,7 @@ jobs:
       with:
         submodules: recursive
 
-    # The runner belongs to this job: give the build, ctest and the linter
+    # The runner belongs to this job: give the build, the tests and the linter
     # every core (the Makefile's JOBS default leaves two free for a
     # developer's machine).
     - name: Use every core
@@ -65,8 +65,9 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
-    # The toolchain, named once: every later step reads CXX, CC,
-    # CLANG_FORMAT, CLANG_QUERY and LLVM_ROOT, whichever image it runs on.
+    # The toolchain, named once: every later step reads CXX, CC and
+    # CLANG_FORMAT, whichever image it runs on.  The linter's clang-query and
+    # Clang's CMake packages CMake finds next to the compiler.
     - name: Install clang build chain (Linux)
       if: runner.os == 'Linux'
       run: |
@@ -78,8 +79,6 @@ jobs:
           echo "CXX=clang++-23"
           echo "CC=clang-23"
           echo "CLANG_FORMAT=clang-format-23"
-          echo "CLANG_QUERY=clang-query-23"
-          echo "LLVM_ROOT=/usr/lib/llvm-23"
         } >> "$GITHUB_ENV"
 
     - name: Install clang build chain (macOS)
@@ -91,8 +90,6 @@ jobs:
           echo "CXX=$root/bin/clang++"
           echo "CC=$root/bin/clang"
           echo "CLANG_FORMAT=$root/bin/clang-format"
-          echo "CLANG_QUERY=$root/bin/clang-query"
-          echo "LLVM_ROOT=$root"
         } >> "$GITHUB_ENV"
 
     - name: Toolchain versions
@@ -105,7 +102,7 @@ jobs:
     # subsequent step uses the same virtualenv as a local dev box does.
     # Local dev: ./.venv created by the developer; CI: ./.venv created
     # here.  The Python tests import the package that
-    # `make test` built and staged in build/python (PYTHONPATH), so the
+    # `make check` built and staged in build/python (PYTHONPATH), so the
     # library is compiled once; the `[tool.coverage.paths]` mapping in
     # pyproject.toml rewrites build/python/pynzli back to
     # `python/pynzli/` for the grep gate / Codecov.  The wheel job on
@@ -119,27 +116,25 @@ jobs:
     - name: Check Code Formatting
       run: make format-check CLANG_FORMAT="$CLANG_FORMAT"
 
-    - name: Build & Run the Tests
-      run: make test CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+    # The build lints and tests each layer as soon as it is built, beside
+    # the compilation of the layers above (CMake's `check`).
+    - name: Build, Lint & Test
+      run: make check CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
     # The report (gates, reported counts, the syntax inventory) is kept as an
     # artifact: the paper's closure table rests on the inventory as
     # supplementary material, so the counts live here and not in the paper.
-    - name: Jlt Lint (post-processing over the compilation database)
-      run: |
-        set -o pipefail
-        mkdir -p build/jlt-lint
-        make jlt-lint CLANG_QUERY="$CLANG_QUERY" LLVM_ROOT="$LLVM_ROOT" \
-          JLT_LINT_CMAKE_ARGS="-DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC -DClang_DIR=$LLVM_ROOT/lib/cmake/clang -DLLVM_DIR=$LLVM_ROOT/lib/cmake/llvm" \
-          2>&1 | tee build/jlt-lint/report.txt
-
+    # report.txt joins the layers' reports (parts/), and exists only when
+    # every layer linted; the parts are kept for a failure.
     - name: Publish the lint report
       if: always()
       uses: actions/upload-artifact@v7
       with:
         name: jlt-lint-report${{ runner.os == 'macOS' && '-macos' || '' }}
         if-no-files-found: ignore
-        path: build/jlt-lint/report.txt
+        path: |
+          build/jlt-lint/report.txt
+          build/jlt-lint/parts/*.txt
 
     # The checked-in IR is x86-64's: it is read where it was written.
     - name: Validate Checked-In LLVM IR Fixture
@@ -160,8 +155,9 @@ jobs:
         if-no-files-found: error
         path: src/test/cpp/modules/dedekind/python/*.ll
 
+    # The profiles of the tests `make check` ran.
     - name: Process Coverage Data
-      run: make coverage CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+      run: cmake --build build --target generate_coverage
 
     - name: Collect Python Coverage
       run: |
