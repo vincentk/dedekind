@@ -127,6 +127,7 @@ A law is asked on the arrow's value, at compile time: \cppinline{is_monic(f)} re
 Below it: the laws of a carrier under an operation, deleted by default and declared for the family of \cppinline{std::unsigned_integral} under \cppinline{(0, +)}, axioms found by resolution.
 Right: the monoid shape, a set closed under an associative binary operation with a unit element.
 Its elements need not be comparable, since equality is not decidable on every carrier, on functions for one: the unit is identified by \cppinline{is_unit}, by default equality with the unit, which a carrier may supply otherwise.
+\cppinline{IsMonoid<size_t, plus<size_t>>} is inferred from the laws on the left, a shape from its parts.
 Below it, \cppinline{concat} at the lengths that need no recursion, none, one and two.
 The monoid signatures are \cppinline{size_t} under \cppinline{(0, +), (1, *)}, and \cppinline{Sections}, the sections of $+$, under \cppinline{(id, >>)}, with \cppinline{adding} the curried $+$.}
 \label{lst:rule2}
@@ -134,6 +135,7 @@ The monoid signatures are \cppinline{size_t} under \cppinline{(0, +), (1, *)}, a
 
 In \Cpp{23} what a type permits is stated by constraints on template parameters: a \cppinline{concept} is a predicate on a type's structure~\cite{cpp23standard}, a trait a compile-time function on a type or a family of types~\cite{myers1995traits}, and together they take the place of type classes~\cite{wadler1989adhoc}.
 Overload resolution selects the instance: among the declarations whose constraints a type satisfies, the compiler takes the most specific, by the partial order of constraints~\cite{cpp23standard}.
+Concepts are structural: a type that has the operations satisfies the shape without a declaration, so the standard library's types are admitted after the fact, unmodified.
 A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, and not at definition, against the constraint, which is why this is a rule here and not a theorem.
 
 Laws are \emph{certificates}, of two kinds.
@@ -260,7 +262,7 @@ static_assert(fs_10 == V{89, 55});
 \end{minipage}
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in code.
 Left, over a type: a term of height three, Listing~\ref{lst:rule2}'s composite composed with itself, folded once to a value and once to a law, the law inferred from its legs'.
-Below it, over a value: the chain below the seed $n = 10$, which $\mathit{prior}$ counts down, folded in the simplest case, $S = M$ a monoid, by the library's \cppinline{concat} over a bounded range.
+Below it, over a value: the chain below the seed $n = 10$, which $\mathit{prior}$ counts down, folded in the simplest case, $S = M$ a monoid, by the library's \cppinline{concat} over a bounded range: the overload that completes Listing~\ref{lst:rule2}'s fixed lengths, defined there before the fold.
 Right: the general fold, $S$ acting on $M$: $f$ maps every element to Fibonacci's matrix, and $h$, \cppinline{act}, multiplies it into a vector from $e = (1, 0)$.
 In the standard's ranges library~\cite{cpp23standard}, Figure~\ref{fig:structures}'s chain is an \cppinline{input_range}.
 The arrow $f$ along it is \cppinline{views::transform}, written \cppinline{>>}, and the fold with the action $h$ is \cppinline{ranges::fold_left}, the native fold, bounds-checked before it starts.}
