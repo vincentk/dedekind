@@ -71,8 +71,6 @@ What that conserves is the body's independence from the carrier: \cppinline{f<T>
 constexpr auto fst = Π<1, pair<bool, size_t>>{};
 constexpr auto sec = Pairing{id_b, nil};
 static_assert(
-is_constant(ans) && is_antitone(aye) &&
-!is_monic(ans) && !is_epic(ans) &&
 is_involution(~id_u) && is_involution(-id_u) &&
 is_iso(-id_u >> ~id_u) &&
 !is_involution(-id_u >> ~id_u) &&
@@ -121,21 +119,19 @@ concat<size_t>(42uz) == 42 &&
 concat<size_t>(40uz, 2uz) == 42 &&
 concat<size_t, multiplies<size_t>>(6uz, 7uz)
     == 42 &&
-concat<string>("ab"s, "c"s) == "abc" &&
-concat<bool, logical_or<bool>>(false, true) &&
 concat<Sections<size_t>, compose>(
     adding(40uz), adding(2uz))(0uz) == 42);
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
-Top left, laws on arrows alone, with Listing~\ref{lst:rule1}'s arrows: a point is neither monic nor epic; two involutions, each the \Cpp{} operator post-composed, compose to an isomorphism and to no involution; a projection is epic, its section monic.
+Top left, laws on arrows alone, with Listing~\ref{lst:rule1}'s arrows: two involutions, each the \Cpp{} operator post-composed, compose to an isomorphism and to no involution; a projection is epic, its section monic.
 A law is asked on the arrow's value, at compile time: \cppinline{is_monic(f)} reads what the concept \cppinline{IsMonicArrow} reads, and a composite's law is derived from its legs.
 Below it: a monoid is a set which is closed under an associative binary operation and equipped with a unit element.
 Its elements need not be comparable, since equality is not decidable on every carrier, on functions for one.
 The unit is identified instead: \cppinline{is_unit}, by default equality with the unit, which a carrier may supply otherwise.
 The monoid shape is certified for the family of \cppinline{std::unsigned_integral} under \cppinline{(0, +)}.
 Right: the monoid shape, and \cppinline{concat} at the lengths that need no recursion, none, one and two.
-The monoid signatures are: \cppinline{size_t} under \cppinline{(0, +), (1, *)}, \cppinline{string} under \cppinline{("", +)}, \cppinline{bool} under \cppinline{(false, ||)}, and \cppinline{Sections}, the sections of $+$, under \cppinline{(id, >>)}, with \cppinline{adding} the curried $+$.
+The monoid signatures are: \cppinline{size_t} under \cppinline{(0, +), (1, *)}, and \cppinline{Sections}, the sections of $+$, under \cppinline{(id, >>)}, with \cppinline{adding} the curried $+$.
 }
 \label{lst:rule2}
 \end{listing}
