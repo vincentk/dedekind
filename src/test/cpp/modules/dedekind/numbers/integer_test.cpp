@@ -109,8 +109,8 @@ TEST_CASE("Integer: additive inverse -x is antitone on ℤ (#908/#959)",
   STATIC_CHECK(IsVariant<AdditiveInverse<Integer>>);
 
   // Self-adjoint antitone Galois connection: a <= -b iff b <= -a.
-  STATIC_CHECK(IsGaloisConnection<AdditiveInverse<Integer>,
-                                  AdditiveInverse<Integer>>);
+  STATIC_CHECK(
+      IsGaloisConnection<AdditiveInverse<Integer>, AdditiveInverse<Integer>>);
   const Integer neg_five{-5};
   CHECK((neg_five <= neg(two)) == (two <= neg(neg_five)));
   CHECK((two <= neg(three)) == (three <= neg(two)));
@@ -131,7 +131,8 @@ namespace int_vs_ℤ {
 constexpr Integer int_max{INT_MAX};
 static_assert(int_max + Integer{1} > int_max,
               "INT_MAX + 1 in ℤ: the successor, above the word");
-static_assert(int_max + Integer{1} == Integer{static_cast<long long>(INT_MAX) + 1LL},
+static_assert(int_max + Integer{1} ==
+                  Integer{static_cast<long long>(INT_MAX) + 1LL},
               "where a wider word holds the value, ℤ agrees with it");
 static_assert((int_max + Integer{1}) - Integer{1} == int_max &&
                   Integer{INT_MIN} - Integer{1} < Integer{INT_MIN},
@@ -141,8 +142,7 @@ static_assert(int_max * int_max * int_max * int_max * int_max >
               "and past every word: (2^31 - 1)^5 exceeds 2^64");
 }  // namespace int_vs_ℤ
 
-TEST_CASE("Integer: int overflows, ℤ does not",
-          "[numbers][integer][exhibit]") {
+TEST_CASE("Integer: int overflows, ℤ does not", "[numbers][integer][exhibit]") {
   const Integer int_max{INT_MAX};
   CHECK(int_max + Integer{1} > int_max);
   CHECK(rank(Integer{INT_MIN}) == Numeral{0u - static_cast<unsigned>(INT_MIN)});

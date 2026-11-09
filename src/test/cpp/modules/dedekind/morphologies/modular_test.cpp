@@ -196,9 +196,9 @@ struct ResidueStep {
 template <auto N>
 constexpr Modular<N> χ_to_modular(const Integer& z) {
   using ML = typename Modular<N>::machine_type;
-  const std::uint64_t r = std::ranges::fold_left(
-      z.magnitude.limbs() | std::views::reverse, std::uint64_t{},
-      ResidueStep<N>{});
+  const std::uint64_t r =
+      std::ranges::fold_left(z.magnitude.limbs() | std::views::reverse,
+                             std::uint64_t{}, ResidueStep<N>{});
   const Modular<N> m{static_cast<ML>(r)};
   return z.negative ? Modular<N>{} - m : m;
 }
@@ -239,12 +239,12 @@ TEST_CASE("modular: the reduction mod n preserves + and *",
         (χ_to_modular<7>(z2) * χ_to_modular<7>(z5)).value);
   CHECK(χ_to_modular<7>(Integer{8}).value == 1);
   // Across the word's edge, both signs.
-  STATIC_CHECK(χ_to_modular<7>(two_64() * Integer{-3}).value ==
-               (χ_to_modular<7>(two_64()) * χ_to_modular<7>(Integer{-3}))
-                   .value);
-  STATIC_CHECK(χ_to_modular<7>(two_64() + Integer{-9}).value ==
-               (χ_to_modular<7>(two_64()) + χ_to_modular<7>(Integer{-9}))
-                   .value);
+  STATIC_CHECK(
+      χ_to_modular<7>(two_64() * Integer{-3}).value ==
+      (χ_to_modular<7>(two_64()) * χ_to_modular<7>(Integer{-3})).value);
+  STATIC_CHECK(
+      χ_to_modular<7>(two_64() + Integer{-9}).value ==
+      (χ_to_modular<7>(two_64()) + χ_to_modular<7>(Integer{-9})).value);
 }
 
 // ── The field's terms read as polynomials (algebra:polynomial) ──────────────

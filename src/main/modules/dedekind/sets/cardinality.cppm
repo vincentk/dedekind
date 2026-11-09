@@ -392,10 +392,9 @@ export constexpr Integer operator+(const Integer& x, const Integer& y) {
   if (x.negative == y.negative)
     return Integer(x.magnitude + y.magnitude, x.negative);
   if (y.magnitude <= x.magnitude)
-    return Integer(
-        Numeral(detail_numeral::subtract(x.magnitude.limbs(),
-                                         y.magnitude.limbs())),
-        x.negative);
+    return Integer(Numeral(detail_numeral::subtract(x.magnitude.limbs(),
+                                                    y.magnitude.limbs())),
+                   x.negative);
   return Integer(Numeral(detail_numeral::subtract(y.magnitude.limbs(),
                                                   x.magnitude.limbs())),
                  y.negative);
@@ -413,8 +412,7 @@ export constexpr Integer operator*(const Integer& x, const Integer& y) {
 export constexpr std::strong_ordering operator<=>(const Integer& x,
                                                   const Integer& y) {
   if (x.negative != y.negative) return y.negative <=> x.negative;
-  return x.negative ? y.magnitude <=> x.magnitude
-                    : x.magnitude <=> y.magnitude;
+  return x.negative ? y.magnitude <=> x.magnitude : x.magnitude <=> y.magnitude;
 }
 /** @brief A signed constant meeting ℤ, the hook @c :terms' @c carrier_cast
  *  reaches by ADL: exact.  @tparam K the constant's type.  @param k it. */

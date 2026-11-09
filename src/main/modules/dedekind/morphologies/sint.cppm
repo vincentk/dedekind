@@ -242,17 +242,15 @@ static_assert(origin(embed_sint_ℤ(η(42))) == dedekind::sets::Integer{42} &&
 static_assert(
     embed_sint_ℤ(std::numeric_limits<long long>::min()) <
             embed_sint_ℤ(std::numeric_limits<int>::min()) &&
-        embed_sint_ℤ(std::numeric_limits<long long>::max()) +
-                embed_sint_ℤ(1) >
+        embed_sint_ℤ(std::numeric_limits<long long>::max()) + embed_sint_ℤ(1) >
             embed_sint_ℤ(std::numeric_limits<long long>::max()),
     "every width embeds exactly, and ℤ goes on past each word's ends");
 
 // Concept-level witness: the result realises the categorical image of the
 // source set under the canonical mono int ↪ ℤ (@c :category:image).
-static_assert(
-    IsImageOf<decltype(embed_sint_ℤ(η(42))), decltype(embed_sint_ℤ_)>,
-    "embed_sint_ℤ(S) realises IsImageOf<result, embed_sint_ℤ_>: a "
-    "Subobject of ℤ, the image of S under int ↪ ℤ.");
+static_assert(IsImageOf<decltype(embed_sint_ℤ(η(42))), decltype(embed_sint_ℤ_)>,
+              "embed_sint_ℤ(S) realises IsImageOf<result, embed_sint_ℤ_>: a "
+              "Subobject of ℤ, the image of S under int ↪ ℤ.");
 
 /**
  * @brief Type-honest absolute value at the machine layer:

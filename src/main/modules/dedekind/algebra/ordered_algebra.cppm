@@ -264,9 +264,9 @@ static_assert(dedekind::category::IsAntiMonotone<
                   AdditiveInverse<dedekind::sets::Integer>>,
               "the additive inverse -x on ℤ (an ordered additive group) is "
               "antitone: a ≤ b ⟹ -b ≤ -a.");
-static_assert(dedekind::category::IsVariant<
-                  AdditiveInverse<dedekind::sets::Integer>>,
-              "-x has a definite variance (antitone), hence IsVariant.");
+static_assert(
+    dedekind::category::IsVariant<AdditiveInverse<dedekind::sets::Integer>>,
+    "-x has a definite variance (antitone), hence IsVariant.");
 // ... and hence a CONTRAVARIANT FUNCTOR (#908), witnessed HERE in :algebra,
 // downstream of :adjunction: -x is exactly the order-reversing leg that
 // IsGaloisConnection consumes in the antitone witness below. The variance-
@@ -281,10 +281,10 @@ namespace dedekind::category {
 /** @brief The theorem: an antitone involution is self-adjoint,
  *  @f$a \le -b \iff b \le -a@f$.  The law leg of the witness below. */
 template <>
-inline constexpr bool is_adjoint_v<
-    dedekind::algebra::AdditiveInverse<dedekind::sets::Integer>,
-    dedekind::algebra::AdditiveInverse<dedekind::sets::Integer>,
-    std::less_equal<>> = true;
+inline constexpr bool
+    is_adjoint_v<dedekind::algebra::AdditiveInverse<dedekind::sets::Integer>,
+                 dedekind::algebra::AdditiveInverse<dedekind::sets::Integer>,
+                 std::less_equal<>> = true;
 }  // namespace dedekind::category
 namespace dedekind::algebra {
 // The additive inverse is an antitone INVOLUTION (-(-x) = x), hence a

@@ -21,7 +21,7 @@ export module dedekind.numbers:integer;
 
 import dedekind.algebra;
 import dedekind.category;
-import dedekind.order;  // ℤ's chain
+import dedekind.order; // ℤ's chain
 import dedekind.sets;
 import :natural;
 export import :cardinality;
@@ -43,10 +43,10 @@ export using default_integer = dedekind::sets::SignedCardinality;
  *  and no multiplicative group (ℚ is its field of fractions). */
 export inline constexpr auto ℤ = dedekind::sets::𝔸<dedekind::sets::Integer>{};
 
-static_assert(std::same_as<std::remove_cvref_t<decltype(ℤ)>,
-                           dedekind::sets::𝔸<dedekind::sets::Integer, Boole,
-                                             ℵ_0>>,
-              "ℤ is the universe 𝔸<Integer>, countable.");
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(ℤ)>,
+                 dedekind::sets::𝔸<dedekind::sets::Integer, Boole, ℵ_0>>,
+    "ℤ is the universe 𝔸<Integer>, countable.");
 static_assert(
     dedekind::algebra::IsOrderedAdditiveGroup<dedekind::sets::Integer> &&
         dedekind::algebra::IsOrderedCommutativeRing<dedekind::sets::Integer> &&
@@ -56,12 +56,11 @@ static_assert(
     "multiplicative group: only ±1 are units");
 // ℤ inhabits Ddk: an algebraic set, closed under +, * and unary -, which ℕ
 // is not (Figure 1, Ddk = Trsk ∩ Alg).
-static_assert(
-    dedekind::algebra::IsAlgebraOnSet<
-        decltype(ℤ), std::plus<dedekind::sets::Integer>,
-        std::multiplies<dedekind::sets::Integer>,
-        std::negate<dedekind::sets::Integer>>,
-    "ℤ is an algebraic set (Ddk): closed under +, * and unary -.");
+static_assert(dedekind::algebra::IsAlgebraOnSet<
+                  decltype(ℤ), std::plus<dedekind::sets::Integer>,
+                  std::multiplies<dedekind::sets::Integer>,
+                  std::negate<dedekind::sets::Integer>>,
+              "ℤ is an algebraic set (Ddk): closed under +, * and unary -.");
 static_assert(dedekind::order::IsTotallyOrdered<dedekind::sets::Integer>,
               "ℤ is a chain.");
 
