@@ -195,3 +195,17 @@ TEST_CASE(
   // int (ℤ): Z collides with S(−1).
   CHECK_FALSE(Prior<int>{}(In<int>{}(-1)).has_value());
 }
+
+TEST_CASE("category:nno — Lambek on Numeral: In and Prior are inverse",
+          "[category][nno][numeral][lambek]") {
+  const auto in_ = In<Numeral>{};
+  const auto prior_ = inverse(in_);
+  const auto back = inverse(prior_);
+  const Numeral top{std::numeric_limits<std::size_t>::max()};
+  const Numeral past = top + Numeral{1u};
+  CHECK(prior_(in_(std::nullopt)) == std::nullopt);
+  CHECK(prior_(in_(top)) == top);
+  CHECK(back(prior_(Numeral{})) == Numeral{});
+  CHECK(back(prior_(past)) == past);
+  CHECK(prior_(past) == top);
+}

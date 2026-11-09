@@ -35,10 +35,9 @@
  *     @c Cardinality @c - @c Cardinality @c → @c SignedCardinality
  *     (PR #433) realises operationally.
  *
- * Reifying both as separate concepts gives the practitioner @b
- * formal, @b type-checked @b documentation that @c SignedCardinality
- * inhabits both Forms; downstream generic code can bind to whichever
- * universal property is relevant for its argument.
+ * No carrier inhabits either yet.  A machine word wraps, so it is
+ * @c ℤ/2^w, not @c ℤ; the honest carrier follows ℕ's (#1035), whose
+ * initial rig, @c IsInitialRig, @c Numeral inhabits.
  *
  * @section initial_ring__Honesty_Obligation
  * Existence and uniqueness of the canonical homomorphisms remain the
@@ -47,21 +46,15 @@
  * target abelian group (in @c IsGrothendieckGroup).  What the type
  * system pins is the @b structural shape — the carrier is a ring /
  * abelian group of the appropriate kind, plus the opt-in trait that
- * names it as the universal one.  Witnesses on @c SignedCardinality
- * exercise the universal property at one concrete target each
- * (@c Modular<n> for the initial-ring side; @c Cardinality for the
- * Grothendieck side) — the static_asserts pin the shape, the test
- * suite pins the operational behaviour.
+ * names it as the universal one.
  *
  * @section initial_ring__Architecture
  * Three-layer chain mirroring the NNO story (PR #447):
  *
- *   @c IsInitialRing  →  @c SignedCardinality  →  @c ℤ
- *   @c IsGrothendieckGroup<·, Cardinality>  →  @c SignedCardinality  →  @c ℤ
+ *   @c IsInitialRig  →  @c Numeral  →  @c ℕ
+ *   @c IsInitialRing, @c IsGrothendieckGroup<·, ℕ>  →  (pending)  →  @c ℤ
  *
- * The first chain anchors the ring-side universal property; the
- * second anchors the abelian-group-side universal property.  Both
- * land on the same carrier.
+ * ℕ's chain is complete; ℤ's waits for a carrier that does not wrap.
  *
  * @section initial_ring__Bridge_to_Limit
  * @c IsInitialRing instantiates the @b same universal-property
@@ -83,7 +76,9 @@
  */
 module;
 
+#include <cstddef>
 #include <functional>
+#include <limits>
 #include <type_traits>
 
 export module dedekind.algebra:initial_ring;
@@ -91,10 +86,41 @@ export module dedekind.algebra:initial_ring;
 import dedekind.category;
 import dedekind.sets;
 import :group;
+import :polynomial;  // Poly<Numeral>: ℕ[π] with honest coefficients, the
+                     // witness
 import :ring;
+
+namespace dedekind::category {
+// (ℕ, [Z, S]) is the initial Maybe-algebra: the opt-in the structure earns,
+// Lambek holding on ℕ where it fails on every word (sets:cardinality).
+template <>
+inline constexpr bool is_initial_f_algebra_v<
+    maybe_functor<dedekind::sets::Numeral>, dedekind::sets::Numeral,
+    In<dedekind::sets::Numeral>> = true;
+}  // namespace dedekind::category
 
 namespace dedekind::algebra {
 using namespace dedekind::sets;
+
+// ===========================================================================
+// (0) Initial Rig — ℕ as the initial object in CRig (#1035).
+// ===========================================================================
+/** @brief Opt-in: @c R is the initial commutative rig, ℕ.  The one carrier
+ *  that is: @c sets::Numeral, exact above the word.  A word is a rig and not
+ *  initial, since it wraps. */
+export template <typename R>
+inline constexpr bool is_initial_rig_v = false;
+/** @concept IsInitialRig
+ *  @brief @c R is ℕ: for every commutative rig @c S there is exactly one rig
+ *  homomorphism @c ℕ @c → @c S, evaluation.  The structural part is checked;
+ *  the universal property is the opt-in, as for @c IsInitialRing. */
+export template <typename R>
+concept IsInitialRig =
+    dedekind::category::IsRig<R, std::plus<R>, std::multiplies<R>> &&
+    dedekind::category::IsCommutative<R, std::multiplies<R>> &&
+    is_initial_rig_v<R>;
+template <>
+inline constexpr bool is_initial_rig_v<Numeral> = true;
 
 // ===========================================================================
 // (1) Initial Ring — ℤ as the initial object in Ring.
@@ -191,14 +217,30 @@ concept IsGrothendieckGroup =
     dedekind::category::IsCommutativeMonoid<M, std::plus<M>> &&
     is_grothendieck_group_v<G, M>;
 
-template <>
-inline constexpr bool is_initial_ring_v<SignedCardinality> = true;
-
-template <>
-inline constexpr bool is_grothendieck_group_v<SignedCardinality, Cardinality> =
-    true;
-
-static_assert(IsInitialRing<SignedCardinality>);
-static_assert(IsGrothendieckGroup<SignedCardinality, Cardinality>);
-
+// ── ℕ's witnesses: the initial rig, the initial Maybe-algebra, ℕ[π] ────────
+namespace detail_initial_rig_witness {
+using dedekind::category::In;
+using dedekind::category::maybe_functor;
+constexpr std::size_t top = std::numeric_limits<std::size_t>::max();
+static_assert(IsInitialRig<Numeral> && !IsInitialRig<ExtensionalCardinal<>>,
+              "ℕ is the initial rig; a word is a rig that wraps, not initial");
+static_assert(dedekind::category::IsInitialFAlgebra<maybe_functor<Numeral>,
+                                                    Numeral, In<Numeral>>,
+              "(ℕ, [Z, S]) is the initial Maybe-algebra: the first instance");
+static_assert(
+    canonical<Numeral>(Const<std::size_t>{6u} * Const<std::size_t>{7u}) ==
+            canonical<Numeral>(Const<std::size_t>{42u}) &&
+        canonical<Numeral>(Const<std::size_t>{top} * Const<std::size_t>{top}) ==
+            canonical<Numeral>(Const<std::size_t>{top} *
+                                   Const<std::size_t>{top} +
+                               Const<std::size_t>{0u}) &&
+        canonical<Numeral>(Const<std::size_t>{top} * Const<std::size_t>{top}) !=
+            canonical<Numeral>(Const<std::size_t>{1u}) &&
+        canonical<std::size_t>(Const<std::size_t>{top} *
+                               Const<std::size_t>{top}) ==
+            canonical<std::size_t>(Const<std::size_t>{1u}),
+    "a ground term's normal form in ℕ is its exact value, 6 * 7 = 42 and "
+    "(2^64-1)^2 above the word; the same term read in ℤ/2^64 wraps to 1: a "
+    "normal form per algebra");
+}  // namespace detail_initial_rig_witness
 }  // namespace dedekind::algebra

@@ -5,6 +5,7 @@
 #include <functional>
 #include <limits>
 #include <variant>
+#include <vector>
 
 import dedekind.category;
 import dedekind.numbers;
@@ -738,4 +739,29 @@ TEST_CASE(
   CHECK(structural_order(five, inf) < 0);
   CHECK(structural_order(inf, naz) < 0);  // <=> leaves NaZ unordered
   CHECK(structural_order(naz, naz) == 0);
+}
+
+TEST_CASE("Numbers: Numeral, ℕ above the word",
+          "[numbers][cardinality][numeral]") {
+  using dedekind::sets::Numeral;
+  constexpr std::uint64_t top = std::numeric_limits<std::uint64_t>::max();
+  const Numeral t{top};
+  SECTION("a cube of 2^64 - 1 has three limbs, and the word is left behind") {
+    const Numeral cube = t * t * t;
+    CHECK(cube.high.size() == 2);
+    CHECK_FALSE(cube.word().has_value());
+    CHECK(t.word() == std::size_t{top});
+    // (2^64 - 1)^3 = 2^192 - 3·2^128 + 3·2^64 - 1
+    CHECK(cube == Numeral(std::vector<std::uint64_t>{top, 2, top - 2}));
+  }
+  SECTION("the same value, however written") {
+    CHECK((t + Numeral{1u}) * (t + Numeral{1u}) ==
+          (t + Numeral{1u}) + (t + Numeral{1u}) * t);
+    CHECK(Numeral{2u} + Numeral{2u} == Numeral{2u} * Numeral{2u});
+  }
+  SECTION("the order crosses the word's edge") {
+    CHECK(t < t + Numeral{1u});
+    CHECK(t * t > t + t);
+    CHECK(dedekind::sets::predecessor(t + Numeral{1u}) == t);
+  }
 }
