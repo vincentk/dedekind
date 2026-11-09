@@ -250,7 +250,7 @@ rule2-definition             src/main/modules/dedekind/sets/si*.cppm  sets  0
 rule2-definition             src/main/modules/dedekind/sets/terms.cppm  sets  116
 rule2-decided-resolution     src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
 rule2-decided-resolution     src/main/modules/dedekind/sets/si*.cppm  sets  0
-rule2-decided-resolution     src/main/modules/dedekind/sets/terms.cppm  sets  27
+rule2-decided-resolution     src/main/modules/dedekind/sets/terms.cppm  sets  29
 rule2-no-inline-requires     src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
 rule2-no-inline-requires     src/main/modules/dedekind/sets/si*.cppm  sets  0
 rule2-no-inline-requires     src/main/modules/dedekind/sets/terms.cppm  sets  17
