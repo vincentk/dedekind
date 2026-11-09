@@ -180,14 +180,14 @@ A carrier with its operations is an algebra of a signature, in the sense of univ
 Seed: after Lambek~\cite{lambek1968fixpoint}, the structure map $[0, \mathit{succ}] : \mathbf{1} + X \to X$ of the naturals is an isomorphism.
 Its inverse $\mathit{prior} : X \to \mathbf{1} + X$ steps down and always ends.
 Peano's $\mathit{succ}$~\cite{peano1889arithmetices}, dashed, never does.
-The user supplies the point $n : \mathbf{1} \to X$ and $\mathit{prior}$.
+The user supplies the point $n : \mathbf{1} \to X$, the seed, and $\mathit{prior}$.
 The chain is what $\mathit{prior}$ reaches from $n$: the $n$ elements below it, not $n$ itself.
-So $n$ names the chain's cardinality, and $0$ the empty chain.
+So $n$ is the chain's rank, its cardinality, and $0$ the empty chain.
 Order: after Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself.
 The chain of an element is its forward orbit, here the chain of $\mathit{prior}\,n$.
 The carrier needs neither an order nor an origin.
-Terms: replace $\mathbf{1} + X$ by a polynomial functor $F$, $X$ by its initial algebra $\mu F$, and $\mathit{prior}$ by Lambek's inverse $\mathit{out} : \mu F \to F\,\mu F$; the chain below $n$ becomes the subterms below a term $t$, $\mathit{sub}(t)$, and $n$ becomes $t$'s height.
 Reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
+Terms: replace $\mathbf{1} + X$ by a polynomial functor $F$, $X$ by its initial algebra $\mu F$, and $\mathit{prior}$ by Lambek's inverse $\mathit{out} : \mu F \to F\,\mu F$; the chain below $n$ becomes the subterms below a term $t$, $\mathit{sub}(t)$, and $n$ becomes $t$'s height, its rank.
 Algebra: $f$ lands in $S$, and the fold in $M$.
 In the simplest case $S = M$ is a monoid.
 A monoid $S$ may also act on $M$, and a semiring on a semimodule, which adds distributivity.
@@ -206,14 +206,16 @@ These are the standard's forward, bidirectional and random-access iterators~\cit
 Recursion in Jlt is structural~\cite{burstall1969proving}: every step reduces a finite residue, so the recursion ends.
 Figure~\ref{fig:structures} draws the residue: the chain that $\mathit{prior}$ reaches from a seed $n$, or, for a term $t$, its subterms $\mathit{sub}(t)$ under $\mathit{out}$.
 Codata, structures observed without end, which Turner keeps apart from data~\cite{turner2004total}, is deliberately out of scope.
-The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value}.
+The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value} of bounded rank.
 
-In \Cpp{}, a fold over a type is a function template instantiated once per node.
+In \Cpp{}, a fold over a type is a function template instantiated once per node, the overload chosen by the node's type.
 Each node of a term is a class template whose type names its children's, as \cppinline{-id_u >> ~id_u} composes two composites, so the term's shape is its type.
-The recursion is then the compiler's instantiation, which ends with the type's finite depth.
-A fold over a value is the standard's \cppinline{ranges::fold_left} over a range whose length is read, and checked against its bound, before the first step.
-In the terms of Meijer et al.~\cite{meijer1991functional}, \cppinline{concat} over the chain is a hylomorphism: the chain is never built as a list, only folded (Appendix~\ref{app:fjlt:translation}).
-A loop is barred for termination, not for purity: a counter inside a \cppinline{constexpr} function cannot escape it, since constant evaluation lets a function modify only objects whose lifetime began within the call, the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
+The recursion is then the compiler's instantiation, which ends with the type's finite height.
+A fold over a value is the standard's \cppinline{ranges::fold_left} over a range whose rank, its length, is read before the first step.
+In the terms of Meijer et al.~\cite{meijer1991functional}, \cppinline{fold_left} over the chain is a hylomorphism: the chain is never built as a list, only folded (Appendix~\ref{app:fjlt:translation}).
+A loop that shows its end is sugar for the fold it denotes: a counted \cppinline{for} whose body writes neither its counter nor its bound is a fold over \cppinline{iota(0, n)}, and a range-\cppinline{for} over a bounded range a fold over that range (Appendix~\ref{app:fjlt:closure}).
+Its state is no objection: a counter inside a \cppinline{constexpr} function cannot escape it, since constant evaluation lets a function modify only objects whose lifetime began within the call, the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
+A loop whose end nothing shows stays out.
 
 
 \begin{listing}[htbp]

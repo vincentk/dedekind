@@ -75,6 +75,9 @@ Rule~1 excludes capture by reference.
 A capturing closure type is neither default constructible nor assignable, so it is not \cppinline{std::semiregular}, and Rule~1 does not admit it as a value.
 It is admitted as sugar instead, judged through its image, which is semiregular since its captures are values.
 A closure type has no name, so a lambda is never a carrier and never the head of an instance.
+A loop's locals are such state, and a loop that shows its end is admitted as sugar the same way, judged through the fold it denotes.
+A counted \cppinline{for} whose body writes neither its counter nor its bound is \cppinline{fold_left} over \cppinline{views::iota(0, n)}, the loop's locals the fold's state and its body the step; a range-\cppinline{for} over a bounded range is \cppinline{fold_left} over that range.
+A \cppinline{while} whose condition no bound governs has no such image and stays out.
 
 \begin{table}[tbp]
 \centering
@@ -152,7 +155,7 @@ The tables are complete by measurement, not by argument, at the resolution of a 
 The repository's linter lists every kind of syntax node a file writes, leaving out the compiler's implicit wrappers.
 In the \texttt{category} module and the listings, each kind is the kernel's or a row, with \texttt{if consteval} for the parallel \cppinline{concat}.
 The rest of the library it reads, some twenty further files, writes about a hundred kinds.
-Half a dozen are beyond these, loops and \cppinline{throw} among them, outside the posture and not sugar.
+Half a dozen are beyond these, \cppinline{throw} and a loop whose end nothing shows among them, outside the posture and not sugar.
 The linter reports the inventory and holds each rule's findings at its count (\texttt{tools/jlt-lint/scope} in the repository).
 A kind does not tell every use apart.
 A binary operator is arithmetic or an assignment, and the assignments are the row of local state, which Rule~1's footnote admits and which reading, not counting, finds.
