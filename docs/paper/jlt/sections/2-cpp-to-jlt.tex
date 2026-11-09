@@ -221,38 +221,17 @@ A loop whose end nothing shows stays out.
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// the counts, a finite chain
-static_assert(IsFinite<size_t> &&
-    IsTotalOrder<size_t, less_equal<>>);
+// over a type: the shape is the type
+constexpr auto dec = -id_u >> ~id_u;  // x - 1
+constexpr auto dec2 = dec >> dec;     // x - 2
+static_assert(dec2(42uz) == 40 && is_iso(dec2));
+\end{cpp}
+\smallskip
+\begin{cpp}
+// over a value: the chain below the seed
 constexpr auto ns =                   // 9, …, 0
     10uz >> chain<size_t>();
-static_assert(
-    ranges::input_range<decltype(ns)> &&
-    ranges::distance(ns) == 10 &&
-    ranges::equal(ns, views::iota(0uz, 10uz)
-                      | views::reverse) &&
-    ranges::empty(0uz >> chain<size_t>()) &&
-    ranges::equal(ns >> id<size_t>(), ns));
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-// Collatz's step, until 1
-constexpr auto prior = until(equals(1uz),
-    arrow<size_t>([](size_t n) {
-      return n % 2 ? 3 * n + 1 : n / 2;
-    }));
-constexpr IsBoundedRange auto cs = // 500, 250, …, 1
-    1'000uz >> chain(prior, 200uz);
-static_assert(
-    bound(cs) == 200 &&
-    ranges::distance(cs) == 111 &&
-    ranges::max(cs) == 9232);
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-// the fold on a monoid: the library's concat
+// S = M, the fold on a monoid
 template <IsBoundedRange R,
           typename T = ranges::range_value_t<R>,
           typename Op = plus<T>>
@@ -262,14 +241,12 @@ constexpr T concat(R r, Op op = {}) {
 }
 static_assert(
     concat(ns) == 45 &&
-    concat(ns, multiplies<size_t>{}) == 0 &&
-    concat(ns >> constant<size_t>(7uz)) == 70 &&
-    concat(cs) == 102512);
+    concat(ns >> constant<size_t>(7uz)) == 70);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// the fold on an action: matrices on vectors
+// S acting on M: matrices on vectors
 using V = array<size_t, 2>;
 struct M { V top, bottom;           // row by row
   friend constexpr V operator*(V v, M a) {  // v·A
@@ -282,18 +259,15 @@ constexpr auto ms = ns >> constant<size_t>(fib);
 // F(11), F(10)
 constexpr auto fs_10 = ranges::fold_left(
   ms, V{1, 0}, act);
-static_assert(fs_10 == V{89, 55}); 
+static_assert(fs_10 == V{89, 55});
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in code.
-Top. Left: counting down, a finite chain, whose type supplies $\mathit{prior}$.
-Right: a chaotic path, Collatz's step from $1000$.
-It is finite by fact, as far as anyone knows: that every natural reaches $1$ is an open problem~\cite{lagarias1985collatz}.
-So its chain declares a budget, and is bounded by it.
-Bottom. Left: a closed operation, \cppinline{concat} on any monoid, generically, Listing~\ref{lst:rule2}'s at a range.
-Right: a general fold is a heterogeneous action, here matrices on vectors, Fibonacci's.
+Left, over a type: a term of height three, Listing~\ref{lst:rule2}'s composite composed with itself, folded once to a value and once to a law, the law inferred from its legs'.
+Below it, over a value: the chain below the seed $n = 10$, which $\mathit{prior}$ counts down, folded in the simplest case, $S = M$ a monoid, by the library's \cppinline{concat} over a bounded range.
+Right: the general fold, $S$ acting on $M$: $f$ maps every element to Fibonacci's matrix, and $h$, \cppinline{act}, multiplies it into a vector from $e = (1, 0)$.
 In the standard's ranges library~\cite{cpp23standard}, Figure~\ref{fig:structures}'s chain is an \cppinline{input_range}.
-The arrow $f$ along it is \cppinline{views::transform}, and the fold with the action $h$ is \cppinline{ranges::fold_left}, the native fold, bounds-checked before it starts.}
+The arrow $f$ along it is \cppinline{views::transform}, written \cppinline{>>}, and the fold with the action $h$ is \cppinline{ranges::fold_left}, the native fold, bounds-checked before it starts.}
 \label{lst:rule3}
 \end{listing}
 
