@@ -24,7 +24,7 @@ FJlt & System~F & in \\
 \texttt{concept C = Ā} & $\mathit{Dict}_C\,\overline{\alpha} = \{\,\overline{r : \llbracket A \rrbracket}\,\}$ & Listing~\ref{lst:rule2} \\
 \texttt{constexpr τ f(τ̄) = delete} & nothing & Listing~\ref{lst:rule2} \\
 \texttt{template <>}\newline\texttt{constexpr τ f<τ̄>(x̄) \{ e \}} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & Listing~\ref{lst:rule2} \\
-\texttt{template <ᾱ> requires }$\overline{C\texttt{<}\overline{\tau}\texttt{>}}$\newline\texttt{constexpr τ f(x̄) \{ e \}} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_C\,\overline{\tau}}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & Listing~\ref{lst:rule2} \\
+\texttt{template <ᾱ> requires }$\overline{C\texttt{<}\overline{\tau}\texttt{>}}$\newline\texttt{constexpr τ f(x̄) \{ e \}} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_C\,\overline{\llbracket \tau \rrbracket}}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & Listing~\ref{lst:rule2} \\
 \texttt{f<τ̄>(ē)} & $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket}$ & Listing~\ref{lst:rule2} \\
 \texttt{fold\_left(r, a, f)}, $r$ a chain & $\pi_2\,(\mathit{iter}\,|r|\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket))$, $\mathit{step}$ the chain's $\mathit{next}$ beside $\llbracket f \rrbracket$ at its $\mathit{head}$ & Listing~\ref{lst:rule3} \\
 \bottomrule
