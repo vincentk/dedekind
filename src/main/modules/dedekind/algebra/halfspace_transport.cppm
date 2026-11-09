@@ -139,7 +139,9 @@ constexpr Interval<T, L> image(
                         ProductRestrict<Scaling<K>, Cylinder<R, 1, V>>>& s) {
   const T c = carrier_cast<T>(s.predicate.product.a.b.value);
   const T p = carrier_cast<T>(s.predicate.rp.b.value);
-  if (c == carrier_cast<T>(1))
+  // The identity scale as an unsigned constant: every carrier meets it,
+  // ℕ included, which refuses a signed one.
+  if (c == carrier_cast<T>(1u))
     return Interval<T, L>::half(p, dir_of(R), strict_of(R));
   if constexpr (dedekind::algebra::IsOrderedAdditiveGroup<T>) {
     if (c == carrier_cast<T>(-1))
@@ -239,7 +241,7 @@ constexpr Interval<T, L> preimage(
     const Comprehension<𝔸<std::pair<T, T>, LG, CU>, Scaling<K>>& g,
     const Interval<T, L>& h) {
   const T c = carrier_cast<T>(g.predicate.a.b.value);
-  if (c == carrier_cast<T>(1)) return h;
+  if (c == carrier_cast<T>(1u)) return h;  // unsigned: ℕ meets it too
   if constexpr (dedekind::algebra::IsOrderedAdditiveGroup<T>) {
     if (c == carrier_cast<T>(-1)) {
       if (!h.span()) return h;
