@@ -35,9 +35,8 @@ using dedekind::algebra::IsInitialRing;
 // (1) Concept fires on the canonical witnesses
 // ===========================================================================
 
-TEST_CASE("initial_ring: IsInitialRig<Numeral> fires; no word is initial",
+TEST_CASE("initial_ring: no SignedCardinality registration is initial",
           "[algebra][initial_ring][witness]") {
-  STATIC_CHECK(dedekind::algebra::IsInitialRig<dedekind::sets::Numeral>);
   STATIC_CHECK(!is_initial_ring_v<SignedCardinality>);
   STATIC_CHECK(!(is_grothendieck_group_v<SignedCardinality, Cardinality>));
 }

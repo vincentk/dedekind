@@ -320,6 +320,8 @@ export constexpr dedekind::category::Prior<Numeral> inverse(
     dedekind::category::In<Numeral>) {
   return {};
 }
+/** @brief The other direction: @c Prior's inverse is @c In.
+ *  @return the inverse arrow. */
 export constexpr dedekind::category::In<Numeral> inverse(
     dedekind::category::Prior<Numeral>) {
   return {};
@@ -2772,4 +2774,15 @@ static_assert(
         dedekind::category::IsCommutative<Numeral, std::multiplies<Numeral>> &&
         dedekind::category::IsIsomorphism<dedekind::category::In<Numeral>>,
     "ℕ is a commutative rig, and Lambek holds on it: [Z, S] is an isomorphism");
+constexpr auto in_ = dedekind::category::In<Numeral>{};
+constexpr auto prior_ = inverse(in_);
+static_assert(prior_(in_(std::nullopt)) == std::nullopt &&
+                  prior_(in_(Numeral{top})) == Numeral{top} &&
+                  in_(prior_(Numeral{})) == Numeral{} &&
+                  in_(prior_(Numeral{top} + Numeral{1u})) ==
+                      Numeral{top} + Numeral{1u} &&
+                  inverse(prior_)(prior_(Numeral{top} + Numeral{1u})) ==
+                      Numeral{top} + Numeral{1u},
+              "the inverse laws on values: Prior after In and In after Prior "
+              "are identities, at zero and across the word's edge");
 }  // namespace dedekind::sets::detail_numeral_witness
