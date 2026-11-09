@@ -7,10 +7,6 @@ BUILD_DIR     := build
 VENV_DIR      := .venv
 LLVM_ROOT    ?= /usr/local/opt/llvm
 CLANG_FORMAT ?= $(LLVM_ROOT)/bin/clang-format
-CLANG_QUERY ?= $(LLVM_ROOT)/bin/clang-query
-# Where jlt-lint finds the LLVM that built the tree (its CMake package dirs).
-JLT_LINT_CMAKE_ARGS ?= -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_C_COMPILER=$(CC) \
-  -DClang_DIR=$(LLVM_ROOT)/lib/cmake/clang -DLLVM_DIR=$(LLVM_ROOT)/lib/cmake/llvm
 CMAKE_EXTRA_ARGS ?=
 
 # GNU make provides built-in defaults (CXX=c++, CC=cc). Override only those
@@ -35,13 +31,13 @@ endif
 #     makes CPU progress.
 # Override with `make JOBS=N ...` to pin a specific count (e.g. for
 # micro-benchmarks or constrained environments). Passed through to
-# `cmake --build` and `ctest` via CMake's `--parallel` flag, which is
+# `cmake --build` via CMake's `--parallel` flag, which is
 # the portable knob that dispatches to the underlying generator.
 _HOST_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 JOBS ?= $(shell j=$$(( $(_HOST_CORES) - 2 )); [ $$j -lt 2 ] && j=2; echo $$j)
 
-.PHONY: help python-api jlt-lint jlt-lint-tool
-.PHONY: bench bench-native all clean compile test-compile test coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks doxygen paper-jlt \
+.PHONY: help python-api jlt-lint
+.PHONY: bench bench-native all clean compile test-compile test check coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks doxygen paper-jlt \
 	ci-history ci-main pr-init pr-status pr-status-all pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list
 
@@ -79,15 +75,17 @@ test-compile: compile ## compile, plus the IR-fixture showcases: type-checks eve
 	cmake --build $(BUILD_DIR) --target set-pruning-ir-fixture --parallel $(JOBS)
 
 test: test-compile ## Build, then run the full test suite
-	ctest --test-dir $(BUILD_DIR) --output-on-failure --parallel $(JOBS)
+	cmake --build $(BUILD_DIR) --target run-test --parallel $(JOBS)
+
+# The build lints and tests each layer as soon as it is built (CMake's `check`:
+# lint-<layer>, run-test-<layer>), beside the compilation of the layers above;
+# -k 0 reports every failure, not the first.  CI's one entry.
+check: $(BUILD_DIR)/CMakeCache.txt ## Build, lint and test, each layer as soon as it is built
+	cmake --build $(BUILD_DIR) --target all check --parallel $(JOBS) -- -k 0
 
 coverage: compile ## Build, run tests, and produce the LLVM coverage report
-	@echo "Running tests with profile environment..."
 	rm -f $(BUILD_DIR)/*.profraw
-	# Set the variable for the duration of the ctest command
-	ctest --test-dir $(BUILD_DIR) --output-on-failure --parallel $(JOBS)
-
-	@echo "Processing coverage..."
+	cmake --build $(BUILD_DIR) --target run-test --parallel $(JOBS)
 	cmake --build $(BUILD_DIR) --target generate_coverage --parallel $(JOBS)
 
 # Run Python tests with coverage collection and produce an XML report for Codecov.
@@ -161,16 +159,10 @@ format: ## Format all C++ sources
 format-check: ## Check formatting without changing files
 	find src -name "*.cpp" -o -name "*.cppm" | xargs $(CLANG_FORMAT) --dry-run --Werror
 
-# The Jlt linter (#1060): a post-processing step over the build's compilation
-# database; the gate is tools/jlt-lint/scope.
-jlt-lint: jlt-lint-tool ## The Jlt linter, after a build
-	python3 tools/jlt-lint/jlt_lint.py $(CLANG_QUERY) $(BUILD_DIR) $(BUILD_DIR)/jlt-lint/jlt-lint
-
-# The linter's own binary (tools/jlt-lint/tool): the checks that need code
-# rather than a pattern, built against the LLVM that built the tree.
-jlt-lint-tool:
-	cmake -S tools/jlt-lint/tool -B $(BUILD_DIR)/jlt-lint -G Ninja $(JLT_LINT_CMAKE_ARGS)
-	cmake --build $(BUILD_DIR)/jlt-lint
+# The Jlt linter (#1060), every layer (CMake's `lint`; one is lint-<layer>);
+# the gate is tools/jlt-lint/scope, the report build/jlt-lint/report.txt.
+jlt-lint: $(BUILD_DIR)/CMakeCache.txt ## The Jlt linter, building what it reads
+	cmake --build $(BUILD_DIR) --target lint --parallel $(JOBS)
 
 install-hooks: ## Install the pre-push git hook
 	git config core.hooksPath .githooks

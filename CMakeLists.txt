@@ -152,6 +152,26 @@ enable_testing()
 set_property(GLOBAL PROPERTY DEDEKIND_ALL_TEST_BINARIES "")
 set_property(GLOBAL PROPERTY DEDEKIND_ALL_LIB_ARCHIVES "")
 
+# A test, for ctest and as a target of the build, run-test-<NAME>: the build
+# runs it as soon as what it tests is built, beside the compilation of the
+# layers above (`check`, below).  The command and its environment are said
+# once, for both; a program that is a target of the build is run once built.
+function(add_dedekind_test NAME TEST_NAME ENVIRONMENT PROGRAM)
+    set(RUN ${PROGRAM})
+    if(TARGET ${PROGRAM})
+        set(RUN $<TARGET_FILE:${PROGRAM}>)
+    endif()
+    add_custom_target(run-test-${NAME}
+        COMMAND ${CMAKE_COMMAND} -E env ${ENVIRONMENT} ${RUN} ${ARGN}
+        VERBATIM)
+    if(TARGET ${PROGRAM})
+        add_dependencies(run-test-${NAME} ${PROGRAM})
+    endif()
+    add_test(NAME ${TEST_NAME} COMMAND ${PROGRAM} ${ARGN})
+    set_tests_properties(${TEST_NAME} PROPERTIES ENVIRONMENT "${ENVIRONMENT}")
+    set_property(GLOBAL APPEND PROPERTY DEDEKIND_RUN_TESTS run-test-${NAME})
+endfunction()
+
 function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     set(LIB_TARGET dedekind_${LAYER_NAME})
     set(TEST_TARGET test_${LAYER_NAME})
@@ -198,10 +218,6 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
         endif()
     endif()
 
-    if(TEST_SOURCES)
-        add_test(NAME ${TEST_TARGET} COMMAND ${TEST_TARGET})
-    endif()
-
     # Use an absolute path for the profile file, utilizing GITHUB_WORKSPACE if available
     if(DEFINED ENV{GITHUB_WORKSPACE})
         set(PROFILE_DIR "$ENV{GITHUB_WORKSPACE}/build")
@@ -210,9 +226,9 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     endif()
 
     if(TEST_SOURCES)
-        set_tests_properties(${TEST_TARGET} PROPERTIES 
-            ENVIRONMENT "LLVM_PROFILE_FILE=${PROFILE_DIR}/dedekind-${LAYER_NAME}-%m.profraw"
-        )
+        add_dedekind_test(${LAYER_NAME} ${TEST_TARGET}
+            "LLVM_PROFILE_FILE=${PROFILE_DIR}/dedekind-${LAYER_NAME}-%m.profraw"
+            ${TEST_TARGET})
     endif()
 
     # Track binaries for the final coverage report
@@ -220,6 +236,8 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
         set_property(GLOBAL APPEND PROPERTY DEDEKIND_ALL_TEST_BINARIES $<TARGET_FILE:${TEST_TARGET}>)
     endif()
     set_property(GLOBAL APPEND PROPERTY DEDEKIND_ALL_LIB_ARCHIVES $<TARGET_FILE:${LIB_TARGET}>)
+    # The layers, in order, for the linter (tools/jlt-lint).
+    set_property(GLOBAL APPEND PROPERTY DEDEKIND_LAYERS ${LAYER_NAME})
 endfunction()
 
 # --- THE PROPOSITIONS (Serialized by Libraries) ---
@@ -397,13 +415,12 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     install(TARGETS _jlt _pst LIBRARY DESTINATION pynzli)
     install(FILES ${PYNZLI_MODULE_PATHS} DESTINATION pynzli)
 
-    add_test(
-        NAME test_python_bindings
-        COMMAND ${Python_EXECUTABLE} -m unittest discover
+    add_dedekind_test(python test_python_bindings
+        "PYTHONPATH=${DEDEKIND_PYTHON_PACKAGE_ROOT}"
+        ${Python_EXECUTABLE} -m unittest discover
                 -s ${CMAKE_SOURCE_DIR}/src/test/python
                 -p test_*.py)
-    set_tests_properties(test_python_bindings PROPERTIES
-        ENVIRONMENT "PYTHONPATH=${DEDEKIND_PYTHON_PACKAGE_ROOT}")
+    add_dependencies(run-test-python _jlt _pst)
 endif()
 
 
@@ -488,6 +505,21 @@ if(DEDEKIND_BENCH)
     add_executable(bench_listing5 src/bench/cpp/listing5_bench.cpp)
     set_target_properties(bench_listing5 PROPERTIES CXX_SCAN_FOR_MODULES ON)
     target_link_libraries(bench_listing5 PRIVATE dedekind_category)
+endif()
+
+# The linter, a lint-<layer> target per layer (tools/jlt-lint/CMakeLists.txt).
+add_subdirectory(tools/jlt-lint)
+
+# The build's own check: every test and the linter, each layer's as soon as
+# the layer is built, so ninja overlaps them with the layers above; and the IR
+# fixture's showcases, type-checked.  `make check` builds it with `all`.
+get_property(_dedekind_run_tests GLOBAL PROPERTY DEDEKIND_RUN_TESTS)
+add_custom_target(run-test)
+add_dependencies(run-test ${_dedekind_run_tests})
+add_custom_target(check)
+add_dependencies(check run-test set-pruning-ir-fixture)
+if(TARGET lint)  # absent only when turned off (DEDEKIND_JLT_LINT)
+    add_dependencies(check lint)
 endif()
 
 get_property(ALL_TESTS GLOBAL PROPERTY DEDEKIND_ALL_TEST_BINARIES)

@@ -47,7 +47,7 @@ findings that are breaches over a list of style remarks.
 
 ## What not to report
 
-- Findings the CI gate already fails on: the `jlt-lint` step reports them with
+- Findings the CI gate already fails on: the build's `lint-<layer>` targets report them with
   file and line; do not duplicate them, but do say if a change *weakens* the
   gate (`tools/jlt-lint/scope` moving a `0` to `report`, a rule file deleted,
   a fixture's expected count lowered without a reason in the PR).
