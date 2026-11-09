@@ -122,20 +122,21 @@ The C++ compiles in [a test](src/test/cpp/modules/dedekind/category/tensor_exhib
 
 ```cpp
 // Cardinality-1 reduction: an intensional meet of two halfspaces over
-// a transfinite carrier collapses to the point {4}, an interval value,
+// the counts collapses to the point {4}, an interval value,
 // at compile time, with no lambdas and no predicate erasure.
-constexpr auto gt_3 = ℕ & (π > 3);          // { x ∈ ℕ | x > 3 }
-constexpr auto lt_5 = ℕ & (π < 5);          // { x ∈ ℕ | x < 5 }
+constexpr auto counts = 𝔸<std::size_t>{};  // the counts: the set over the word
+constexpr auto gt_3 = counts & (π > 3);     // { x | x > 3 }
+constexpr auto lt_5 = counts & (π < 5);     // { x | x < 5 }
 
-constexpr auto in_between = gt_3 & lt_5;            // ≡ {4}: the point, as a VALUE
+constexpr auto in_between = gt_3 & lt_5;    // ≡ {4}: the point, as a VALUE
 static_assert(in_between(4) && !in_between(5));
 
-// Decidability is not the contrast: a halfspace on ℕ decides membership
-// by a comparison, so both parents and the result are decidable.  The
-// collapse gains a known element.  The intersection IS the theorem:
-// { x ∈ ℕ | x > 3 } ∩ { x ∈ ℕ | x < 5 } = {4}.
+// Decidability is not the contrast: a halfspace on the counts decides
+// membership by a comparison, so both parents and the result are decidable.
+// The collapse gains a known element.  The intersection IS the theorem:
+// { x | x > 3 } ∩ { x | x < 5 } = {4}.
 static_assert(HasDecidableMembership<decltype(gt_3)>);
-static_assert(in_between == Interval<Cardinality>::point(finite_cardinality(4)));
+static_assert(in_between == Interval<std::size_t>::point(std::size_t{4}));
 ```
 
 The example above is showcase 4, checked in as a `STATIC_CHECK` in

@@ -159,6 +159,9 @@ export struct Numeral {
   using limb = std::uint64_t;
   static_assert(std::numeric_limits<std::size_t>::digits <= 64,
                 "an atom, a size_t, fits the inline limb");
+  /** @brief ℕ is countable: @c :order's halfspaces read this, as they read
+   *  ℚ's, since @c IsRingIntegral is false on a numeral. */
+  using cardinality_type = ℵ_0;
   limb low{};  ///< the first limb: an atom is this, and nothing above
   std::vector<limb>
       high{};  ///< the limbs above, little-endian, none trailing zero

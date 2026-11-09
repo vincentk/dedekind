@@ -90,11 +90,17 @@ static_assert(collatz_rule(std::numeric_limits<std::size_t>::max()) ==
  *  @c 𝔸<std::size_t>, which has @c %; ℕ itself (@c Numeral) has none. */
 constexpr auto counts = 𝔸<std::size_t>{};
 constexpr auto n_even = counts * counts & π_1 % 2 == 0;
-/** @brief The even step @f$m = n/2@f$, spelled without division as
- *  @f$2\pi_2 = \pi_1@f$ (the doubling graph read backwards). */
-constexpr auto halve = counts * counts & π_2 * 2 == π_1;
-/** @brief The odd step @f$m = 3n+1@f$ --- the affine graph (@c :order). */
-constexpr auto triple_plus_1 = counts * counts & π_1 * 3 + 1 == π_2;
+/** @brief The even step @f$m = n/2@f$, by the word's division by a constant:
+ *  doubling wraps on the word, so @f$2\pi_2 = \pi_1@f$ would give each even
+ *  input a second, wrapped half. */
+constexpr auto halve = counts * counts & π_2 == π_1 / 2;
+/** @brief The word's top, where the rule saturates. */
+constexpr auto top = std::numeric_limits<std::size_t>::max();
+/** @brief The odd step @f$m = 3n+1@f$, saturating at the word's top as
+ *  @c collatz_rule does: McCarthy's conditional selects the top where
+ *  @f$3n+1@f$ would leave the word. */
+constexpr auto triple_plus_1 =
+    counts * counts & cond(π_1 <= (top - 1) / 3, π_1 * 3 + 1, top) == π_2;
 
 /** @brief The Trsk relation @f$T \subseteq \mathbb{N}\times\mathbb{N}@f$,
  *  spelled @b point-free as the McCarthy conditional
@@ -122,6 +128,11 @@ static_assert(collatz(std::pair{std::size_t{7}, std::size_t{22}}),
               "7 is odd: 3·7+1 == 22, so 7 ↦ 22");
 static_assert(!collatz(std::pair{std::size_t{6}, std::size_t{4}}),
               "6 ↦ 3, not 4");
+static_assert(!collatz(std::pair{std::size_t{2}, top / 2 + 2}),
+              "2 ↦ 1 only: doubling wraps, halving does not");
+static_assert(collatz(std::pair{top, top}) &&
+                  collatz(std::pair{top / 3, collatz_rule(top / 3)}),
+              "the relation saturates where the rule does");
 
 // ─── Backward reachability, relationally (no shadow, no graph) ─────────────
 //

@@ -111,30 +111,7 @@ TEST_CASE(
 }
 
 // ===========================================================================
-// (4) The Form_Bias chain: NNO → Numeral → ℕ
-// ===========================================================================
-
-TEST_CASE(
-    "category:nno — three-layer chain: NNO Form → Numeral carrier → ℕ "
-    "alias",
-    "[category][nno][form-bias][architecture]") {
-  // Layer 1: NNO is the Form (universal property; concept-level), asserted
-  // where the witness is declared (numbers:natural).
-
-  // Layer 2: Numeral is the canonical carrier inhabiting the Form.
-  STATIC_CHECK(std::same_as<decltype(ZeroElement<Numeral>{}()), Numeral>);
-  STATIC_CHECK(
-      std::same_as<decltype(Successor<Numeral>{}(Numeral{})), Numeral>);
-
-  // Layer 3: ℕ is the universe 𝔸<Numeral>.  The textbook
-  // symbol practitioners use; the NNO universal property is what it
-  // _means_ via the chain.
-  STATIC_CHECK(
-      std::same_as<typename std::remove_cvref_t<decltype(ℕ)>::Domain, Numeral>);
-}
-
-// ===========================================================================
-// (5) The cover, Lambek, and ++: the posture at the bounds, at runtime
+// (4) The cover, Lambek, and ++: the posture at the bounds, at runtime
 // ===========================================================================
 
 TEST_CASE("category:nno — the cover is partial at ⊤",

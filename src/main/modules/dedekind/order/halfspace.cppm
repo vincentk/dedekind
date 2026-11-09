@@ -614,6 +614,9 @@ namespace detail_pointfree_decidability {
 using PointFree = decltype(ℕ & (π > 5u));
 static_assert(HasDecidableMembership<decltype(ℕ & (π > 5u))>,
               "ℕ | x>5 is a decidable (Boole) set.");
+static_assert(IsCountable<typename PointFree::cardinality_type> &&
+                  IsCountable<Interval<Numeral>::cardinality_type>,
+              "ℕ | x>5 is countable: Numeral declares ℵ_0.");
 }  // namespace detail_pointfree_decidability
 
 // The comparison an atom makes, its evaluation and its De Morgan dual, and the

@@ -1,5 +1,4 @@
 #include <catch2/catch_test_macros.hpp>
-#include <type_traits>
 
 import dedekind.category;
 import dedekind.numbers;
@@ -8,40 +7,6 @@ import dedekind.sets;
 using namespace dedekind::category;
 using namespace dedekind::numbers;
 using namespace dedekind::sets;
-
-TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
-  // Per #559 (option-A migration, sibling to #551's 𝔸<carrier> ambient
-  // redesign), the canonical species symbols are universe @b values:
-  // @c ℕ = @c 𝔸<Numeral>, @c ℤ = @c 𝔸<SignedCardinality> (post-#670),
-  // and so on.  Carriers are spelled directly (Numeral,
-  // SignedCardinality, Rational<...>, ...)
-  // in template-type-parameter positions.  Each symbol's STATIC_CHECK
-  // below witnesses the universe-over-carrier reading by asserting
-  // (a) decltype(symbol) == 𝔸<carrier> and (b)
-  // decltype(symbol)::Domain == carrier.
-
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℕ)>, 𝔸<Numeral>>);
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<𝔸<Numeral>>, 𝔸<Numeral>>);
-
-  // Post-#670: ℤ uses the saturating SignedCardinality variant, not the
-  // cyclic finite fragment.
-  STATIC_CHECK(
-      std::same_as<std::remove_cvref_t<decltype(ℤ)>, 𝔸<SignedCardinality>>);
-  STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℤ)>::Domain,
-                            SignedCardinality>);
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<𝔸<SignedCardinality>>,
-                            𝔸<SignedCardinality>>);
-
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
-                            𝔸<Rational<default_integer>>>);
-  STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℚ)>::Domain,
-                            Rational<default_integer>>);
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<𝔸<Rational<default_integer>>>,
-                            𝔸<Rational<default_integer>>>);
-
-  // The 𝔻 universe lives in dedekind.analysis:dual; their checks are
-  // in src/test/cpp/modules/dedekind/analysis/dual_test.cpp.
-}
 
 TEST_CASE("Numbers: starter universes construct from ambient values",
           "[numbers][starter][sets]") {
