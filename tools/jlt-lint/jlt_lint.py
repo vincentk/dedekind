@@ -17,8 +17,18 @@ process, over one parse, each check's findings in its own section.
 Files are linted in parallel, ``NCPU`` at a time (default: the number of
 cores); the report is printed in file order, as if they had run one by one.
 
-Usage: jlt_lint.py [CLANG_QUERY] [BUILD_DIR] [JLT_TOOL]
+A scope line belongs to a part: the layer its path names
+(``src/main/modules/dedekind/<layer>/`` or ``src/test/cpp/modules/dedekind/<layer>/``),
+``fixtures`` otherwise.  ``--part`` lints one part, so the build can lint a
+layer as soon as that layer is built, and ``--out`` keeps its findings;
+``--join`` reads them back, checks that every part of the scope ran, and
+prints the report of the whole scope, as one run would have.
+
+Usage: jlt_lint.py [CLANG_QUERY] [BUILD_DIR] [JLT_TOOL] [--part P --out DIR]
+       jlt_lint.py --join DIR
 """
+
+import argparse
 
 import collections
 import concurrent.futures
@@ -44,6 +54,13 @@ UNDO_FOR_CHECK = ["--extra-arg=-UDEDEKIND_RUNTIME_COVERAGE_BRIDGES"]
 # them: a tool resolves them relative to its own binary, which on macOS with
 # Homebrew's LLVM is not next to them.  Set by main() from the database.
 RESOURCE_DIR = []
+LAYER = re.compile(r"^src/(?:main|test/cpp)/modules/dedekind/([^/]+)/")
+
+
+def part_of(path):
+    """The part a file belongs to: its layer, or ``fixtures``."""
+    m = LAYER.match(path)
+    return m.group(1) if m else "fixtures"
 
 
 def read_scope():
@@ -182,7 +199,7 @@ def run(query, build, path, namespace, rules):
     return total, where, out
 
 
-def one_entry_per_file(build):
+def one_entry_per_file(build, part):
     """A compilation database with one entry per file, in a directory of its
     own: a module partition has one per set of flags it is built with (CMake 4
     synthesises a BMI for every consumer with other flags, the Python
@@ -201,22 +218,21 @@ def one_entry_per_file(build):
         r = subprocess.run([compiler, "-print-resource-dir"], capture_output=True, text=True)
         if r.returncode == 0 and r.stdout.strip():
             RESOURCE_DIR[:] = [f"-resource-dir={r.stdout.strip()}"]
-    db = build / "jlt-lint-db"
-    db.mkdir(exist_ok=True)
+    db = build / "jlt-lint-db" / part  # a directory per part: parts run at once
+    db.mkdir(parents=True, exist_ok=True)
     (db / "compile_commands.json").write_text(json.dumps([e for _, e in kept.values()], indent=1))
     return db
 
 
-def main():
-    query = sys.argv[1] if len(sys.argv) > 1 else "clang-query"
-    build = pathlib.Path(sys.argv[2] if len(sys.argv) > 2 else ROOT / "build")
-    tool = pathlib.Path(sys.argv[3] if len(sys.argv) > 3 else build / "jlt-lint" / "jlt-lint")
-    lines = list(read_scope())
+def lint_part(query, build, tool, part):
+    """Lint the scope lines of one part (all of them for None); return one
+    block per (file, namespace): its report lines, failures and coverage rows."""
+    lines = [l for l in read_scope() if part is None or part_of(l[1]) == part]
     if any(not f.startswith("tools/") for _, f, _, _ in lines) and \
             not (build / "compile_commands.json").exists():
         sys.exit(f"jlt-lint: no {build}/compile_commands.json; build first")
     if (build / "compile_commands.json").exists():
-        build = one_entry_per_file(build)
+        build = one_entry_per_file(build, part or "all")
 
     groups = collections.defaultdict(list)
     for rule, f, ns, expected in lines:
@@ -245,39 +261,91 @@ def main():
     ordered = sorted(groups.items())
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
         results = list(pool.map(lint, ordered))
+    return [block(f, ns, entries, *result)
+            for ((f, ns), entries), result in zip(ordered, results)]
 
-    failures = 0
-    per_rule = collections.defaultdict(lambda: {"gated": 0, "reported": 0, "findings": 0})
-    for ((f, ns), entries), (counts, where, out) in zip(ordered, results):
-        if counts is None:
-            print(f"jlt-lint: {f}: does not parse, a matcher did not run, the scope is absent, or a tool failed", file=sys.stderr)
-            print("\n".join(out.splitlines()[:30]), file=sys.stderr)
-            failures += 1
+
+def block(f, ns, entries, counts, where, out):
+    """One file's part of the report: its lines, failures and coverage rows."""
+    text, failures = [], 0
+    rows = {}
+    if counts is None:
+        text.append(f"jlt-lint: {f}: does not parse, a matcher did not run, the scope is absent, or a tool failed")
+        text += out.splitlines()[:30]
+        return {"key": [f, ns], "text": text, "failures": 1, "rows": rows}
+    for rule, expected in entries:
+        n = counts[rule]
+        row = rows.setdefault(rule, {"gated": 0, "reported": 0, "findings": 0})
+        if expected == "report":
+            row["reported"] += 1
+            row["findings"] += n
+            if n:
+                text.append(f"jlt-lint: report {rule} {f}: {n}")
+                text += [f"  {pathlib.Path(loc).relative_to(ROOT) if loc.startswith(str(ROOT)) else loc}"
+                         for loc in where[rule]]
             continue
-        for rule, expected in entries:
-            n, row = counts[rule], per_rule[rule]
-            if expected == "report":
-                row["reported"] += 1
-                row["findings"] += n
-                if n:
-                    print(f"jlt-lint: report {rule} {f}: {n}")
-                    for loc in where[rule]:
-                        print(f"  {pathlib.Path(loc).relative_to(ROOT) if loc.startswith(str(ROOT)) else loc}")
-                continue
-            row["gated"] += 1
-            ok = n == int(expected)
-            print(f"jlt-lint: gate   {rule} {f}: {n}, expected {expected}{'' if ok else '  FAIL'}")
-            if not ok:
-                failures += 1
-                for loc in where[rule]:
-                    print(f"  {loc}")
+        row["gated"] += 1
+        ok = n == int(expected)
+        text.append(f"jlt-lint: gate   {rule} {f}: {n}, expected {expected}{'' if ok else '  FAIL'}")
+        if not ok:
+            failures += 1
+            text += [f"  {loc}" for loc in where[rule]]
+    return {"key": [f, ns], "text": text, "failures": failures, "rows": rows}
 
-    print("\njlt-lint: coverage")
-    print(f"  {'rule':<34} {'files gated':>12} {'files reported':>15} {'findings reported':>18}")
+
+def report(blocks):
+    """The report of some blocks, in file order, with the coverage table."""
+    per_rule = collections.defaultdict(lambda: {"gated": 0, "reported": 0, "findings": 0})
+    text, failures = [], 0
+    for b in sorted(blocks, key=lambda b: b["key"]):
+        text += b["text"]
+        failures += b["failures"]
+        for rule, row in b["rows"].items():
+            for k, v in row.items():
+                per_rule[rule][k] += v
+    text.append("\njlt-lint: coverage")
+    text.append(f"  {'rule':<34} {'files gated':>12} {'files reported':>15} {'findings reported':>18}")
     for rule in sorted(per_rule):
         r = per_rule[rule]
-        print(f"  {rule:<34} {r['gated']:>12} {r['reported']:>15} {r['findings']:>18}")
-    print(f"jlt-lint: {failures} failure(s)")
+        text.append(f"  {rule:<34} {r['gated']:>12} {r['reported']:>15} {r['findings']:>18}")
+    text.append(f"jlt-lint: {failures} failure(s)")
+    return "\n".join(text) + "\n", failures
+
+
+def join(out):
+    """The report of the whole scope from its parts' findings, once every
+    part of the scope has run."""
+    wanted = {part_of(f) for _, f, _, _ in read_scope()}
+    found = {p.stem: json.loads(p.read_text()) for p in out.glob("*.json")}
+    missing = sorted(wanted - found.keys())
+    if missing:
+        sys.exit(f"jlt-lint: {out}: no findings of the part(s) {', '.join(missing)}")
+    return [b for p in sorted(wanted) for b in found[p]]
+
+
+def main():
+    args = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
+    args.add_argument("query", nargs="?", default="clang-query")
+    args.add_argument("build", nargs="?", type=pathlib.Path, default=ROOT / "build")
+    args.add_argument("tool", nargs="?", type=pathlib.Path)
+    args.add_argument("--part", help="lint only this part: a layer, or fixtures")
+    args.add_argument("--out", type=pathlib.Path,
+                      help="keep the findings in OUT/<part>.json and the report in OUT/<part>.txt")
+    args.add_argument("--join", type=pathlib.Path, metavar="DIR",
+                      help="the report of the whole scope from DIR's parts, into DIR/../report.txt")
+    a = args.parse_args()
+    if a.join:
+        text, failures = report(join(a.join))
+        (a.join.parent / "report.txt").write_text(text)
+    else:
+        blocks = lint_part(a.query, a.build, a.tool or a.build / "jlt-lint" / "jlt-lint", a.part)
+        text, failures = report(blocks)
+        if a.out:
+            name = a.part or "all"
+            a.out.mkdir(parents=True, exist_ok=True)
+            (a.out / f"{name}.json").write_text(json.dumps(blocks))
+            (a.out / f"{name}.txt").write_text(text)
+    sys.stdout.write(text)
     return 1 if failures else 0
 
 
