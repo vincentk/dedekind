@@ -35,7 +35,7 @@ from ._pst import UniverseFp, UniverseU64
 from ._version import __version__
 from .pst import A, K3, Fp, Seq, ap, cardinality, carrier, codomain, u64
 from .pst import _attr
-from .trsk import arrow, dom, factors, function
+from .trsk import arrow, dom, factors, function, kind, operands
 
 
 def ext(S, *, limit=1000):
@@ -92,6 +92,10 @@ def take(S, n=5, *, limit=1000):
     frozenset({0, 2, 4})
     >>> take(U & (π % 1000 == 999))  # within the first 1000: to see more, raise the limit
     frozenset({999})
+    >>> from pynzli.pst import B, U64
+    >>> take(U64 | B)
+    Traceback (most recent call last):
+    TypeError: take(𝔸(u64) | 𝔹): a sum's points are tagged, inl / inr; not enumerated yet
     >>> from pynzli.pst import GF_p
     >>> len(take(GF_p, 3))  # the field's first residues, its universe never read whole
     3
@@ -172,6 +176,25 @@ def _read_only(pairs):
     return MappingProxyType(dict(pairs))
 
 
+def _kind(x):
+    """``kind(x)`` where x is a set, relation or object of pynzli; else None."""
+    try:
+        return kind(x)
+    except TypeError:
+        return None
+
+
+def _has_sum(x):
+    """Whether a sum occurs in ``x``'s object, at the top or nested in a
+    product: its points are tagged, ``inl(x)`` / ``inr(y)``."""
+    k = _kind(x)
+    if k == "sum":
+        return True
+    if k in (None, "leaf", "unit"):
+        return False
+    return any(map(_has_sum, operands(x)))
+
+
 def _points(S, caller):
     """How a set or relation is read: its candidate points in the universe's
     order, which of them are in its extension (``None``: all), the shape of
@@ -180,6 +203,8 @@ def _points(S, caller):
     A function is its graph, a map from each argument; a set or relation
     valued in K₃ is its χ, a map from each point; else the points it holds.
     """
+    if _has_sum(S):
+        raise TypeError(f"{caller}({S!r}): a sum's points are tagged, inl / inr; not enumerated yet")
     if _attr(S, "_factors") is not None:
         if S in function:
             columns = dom(arrow(S))
