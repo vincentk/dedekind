@@ -1,6 +1,6 @@
 /** @file dedekind/linear_algebra/matrix_test.cpp
  *
- * Unit coverage for the `:matrix` partition:
+ * Unit coverage for the `:mat2x2` partition:
  *   - NTTP family: `Vec2`, `Invertible2x2`, `Matrix2x2`, `DirectSum`,
  *     `BlockUpperTriangular` (Tiers 0–2 of issue #366).
  *   - Value-level family: `Matrix2x2V<T>` with full ring-plus-transpose

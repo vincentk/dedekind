@@ -20,7 +20,7 @@
  * carrier.
  *
  * @c MatNxNV<S,N> is therefore the double generalisation
- * (2×2 → N×N, ring → semiring) that @c :matrix reserves the slot for:
+ * (2×2 → N×N, ring → semiring) that @c :mat2x2 leaves open:
  * @c Mat(S), the @b Kleene-algebra-of-matrices (Conway/Kozen).  Its two
  * monoids @ref MatPlus (elementwise @c ⊕) and @ref MatTimes (the @c ⊕-⊗
  * contraction) are registered so that @c Mat(S) is itself an

@@ -29,7 +29,8 @@ export module dedekind.linear_algebra;
 export import :contracts;
 export import :basis;
 export import :vec2;      // homogeneous fixed-rank-2 (Vec2V<T> = T²)
-export import :matrix;    // n×m matrix aggregator (today: re-exports :mat2x2)
+export import :mat2x2;    // the worked 2×2 matrix family
+export import :matnxn;    // Mat(S): the N×N, semiring-generic generalisation
 export import :diagonal;  // Diagonal<D, F> + OuterProduct<U, V> at any D incl.
                           // ℵ_0 (#372)
 export import :transfer;  // semiring-generic bra·ket + rank-1 transfer power
