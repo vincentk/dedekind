@@ -96,7 +96,9 @@ A law is asked on the arrow's value, at compile time: \cppinline{is_monic(f)} re
 \end{listing}
 
 In Listing~\ref{lst:rule1}, \cppinline{const T} and \cppinline{const T&} are one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
-An arrow is a function made a value, and its laws are equations between values, so \cppinline{==} is where Leibniz's law meets the program: the kernel asks it of no type, the listings of every carrier a law is stated on.
+An arrow is a function made a value, so its laws are equations between values.
+A program states such an equation with \cppinline{==}, and Leibniz's law lets it rewrite by one.
+The kernel requires \cppinline{==} of no type; the listings require it of each carrier they state a law on.
 The properties a law singles out, mono, epi and iso by cancellation~\cite{pierce1991basic}, involution, the variances, are certificates declared or derived on the arrow, whose type names carrier and operation, so a certificate is about the signature.
 Two consequences keep that exact: a function returns a value, never a reference, and every member function, a call operator included, is \cppinline{const}.
 The grammar of Appendix~\ref{app:fjlt:syntax} has neither a reference type nor a non-\cppinline{const} member, and the linter of Section~\ref{sec:limits} holds \Cpp{} to the same.
