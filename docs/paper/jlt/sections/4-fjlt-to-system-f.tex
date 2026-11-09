@@ -10,7 +10,9 @@ It is total on FJlt, and Section~\ref{sec:guarantees} says what the image guaran
 Six of its rules carry the listings' structure, and Table~\ref{tab:rules} states them.
 Conditionals, conversions and the remaining operators are routine, and Appendix~\ref{app:fjlt:translation} gives them all.
 A generic function is checked under two contexts: $\Delta$, its template head and \cppinline{requires} clause, the type variables and the constraints assumed on them; and $\Gamma$, its parameters with their types.
-The translation turns $\Delta$'s type variables into System~F's $\Lambda$, each of its constraints $Q$ into a record parameter $q_Q$, a \emph{dictionary}, and $\Gamma$'s variables into $\lambda$; a dictionary built at concrete types, which a call passes for $q_Q$, is written $d$.
+The translation turns $\Delta$'s type variables into System~F's $\Lambda$, and $\Gamma$'s variables into $\lambda$.
+Each constraint $Q$ in $\Delta$ becomes a record parameter $q_Q$, a \emph{dictionary}.
+A dictionary built at concrete types, which a call passes for $q_Q$, is written $d$.
 
 \begin{table}[ht]
 \centering
