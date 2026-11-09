@@ -61,22 +61,25 @@ using dedekind::sets::𝔸;
  *  @e worst-case, @b no array. */
 namespace detail_relprod {
 /** @brief Whether @c b is a middle for @f$(a, c)@f$: @f$R(a,b) \wedge
- *  S(b,c)@f$, with @c b the count @c i, a machine word: the middle is a
- *  finite window of counts. */
-template <typename PR, typename PS, typename Pair>
+ *  S(b,c)@f$, with @c b the count @c i read into the declared middle carrier
+ *  @c B (exactly: @c carrier_cast): the window is counted in machine words,
+ *  the predicates read the carrier the relation declares.
+ *  @tparam B the middle carrier. */
+template <typename B, typename PR, typename PS, typename Pair>
 struct IsMiddle {
   const PR& r;
   const PS& s;
   const Pair& ac;
   constexpr bool operator()(std::size_t i) const {
-    const std::size_t b = i;
+    const B b = dedekind::sets::carrier_cast<B>(i);
     return static_cast<bool>(r(std::pair{ac.first, b})) &&
            static_cast<bool>(s(std::pair{b, ac.second}));
   }
 };
 }  // namespace detail_relprod
 
-export template <IsRelPredicate PR, IsRelPredicate PS>
+/** @tparam B the middle carrier the composed relations declare. */
+export template <typename B, IsRelPredicate PR, IsRelPredicate PS>
 struct ComposePrefixPred {
   using is_rel_predicate = void;
   PR r;
@@ -94,7 +97,7 @@ struct ComposePrefixPred {
     // ∃ b ∈ [0,M). R(a,b) ∧ S(b,c) --- exists stops at the first witness b.
     return std::ranges::any_of(
         std::views::iota(std::size_t{0}, bound),
-        detail_relprod::IsMiddle<PR, PS, Pair>{r, s, ac});
+        detail_relprod::IsMiddle<B, PR, PS, Pair>{r, s, ac});
   }
 };
 
@@ -114,8 +117,8 @@ constexpr std::size_t prefix_bound(
                                 dedekind::sets::Const<K>>>& p) {
   return static_cast<std::size_t>(p.rp.b.value);
 }
-template <typename PR, typename PS>
-constexpr std::size_t prefix_bound(const ComposePrefixPred<PR, PS>& p) {
+template <typename B, typename PR, typename PS>
+constexpr std::size_t prefix_bound(const ComposePrefixPred<B, PR, PS>& p) {
   return p.bound;
 }
 
@@ -141,7 +144,7 @@ export template <typename A, typename B, typename C, typename L,
 constexpr auto operator>>(
     const Comprehension<𝔸<std::pair<A, B>, L, K1>, PR>& r,
     const Comprehension<𝔸<std::pair<B, C>, L, K2>, PS>& s) {
-  using CP = ComposePrefixPred<PR, PS>;
+  using CP = ComposePrefixPred<B, PR, PS>;
   return Comprehension<𝔸<std::pair<A, C>, L>, CP>{
       CP{r.predicate, s.predicate, prefix_bound(r.predicate)}};
 }
