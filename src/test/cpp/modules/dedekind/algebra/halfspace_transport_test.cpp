@@ -34,7 +34,6 @@ using dedekind::sequences::operator>>;
 
 namespace {
 inline constexpr auto ℤ = 𝔸<SignedCardinality>{};
-inline constexpr auto ℕ = 𝔸<Numeral>{};
 using dedekind::algebra::𝔽64;  // GF(2⁶): operator+ is XOR (characteristic 2)
 
 // ── #876 finding 2: the translation graph IS a categorical equalizer ─────────
