@@ -881,69 +881,98 @@ static_assert((𝔹 * 𝔹 & (𝑦 == ap(dedekind::category::Identity<bool>{},
                                      𝑥)))(std::pair{true, false}),
               "𝑦 == ap(id, 𝑥) is the diagonal.");
 
-// successor graph: {(a,b) | b = a + 1} = ℕ * ℕ & π_1 + 1u == π_2 (ℕ takes
-// unsigned constants).
-static_assert((ℕ * ℕ & π_1 + 1u == π_2)(std::pair{Numeral{4u}, Numeral{5u}}),
+// The relational exhibits compute over counts in a finite window: the set over
+// the machine word, which has %.
+inline constexpr auto counts = 𝔸<std::size_t>{};
+
+// successor graph: {(a,b) | b = a + 1} = counts * counts & π_1 + 1 == π_2.
+static_assert((counts * counts &
+               π_1 + 1 == π_2)(std::pair{std::size_t{4}, std::size_t{5}}),
               "4 + 1 == 5: (4,5) ∈ the successor graph.");
-static_assert(!(ℕ * ℕ & π_1 + 1u == π_2)(std::pair{Numeral{4u}, Numeral{6u}}),
+static_assert(!(counts * counts &
+                π_1 + 1 == π_2)(std::pair{std::size_t{4}, std::size_t{6}}),
               "4 + 1 != 6: (4,6) ∉ the successor graph.");
 // A RESTRICTED domain: the successor graph over {x ≤ 5} × ℕ.  operator* keeps
 // the ≤5 bound by lifting it to the π_1 cylinder, so x = 7 is excluded even
 // though 8 = 7+1: the factor predicate is not dropped.
-static_assert(((ℕ & (π <= 5u)) * ℕ &
-               π_1 + 1u == π_2)(std::pair{Numeral{4u}, Numeral{5u}}),
+static_assert(((counts & (π <= 5)) * counts &
+               π_1 + 1 == π_2)(std::pair{std::size_t{4}, std::size_t{5}}),
               "(4,5): 4 ≤ 5 ∧ 5 = 4+1, in the restricted successor graph.");
-static_assert(!((ℕ & (π <= 5u)) * ℕ &
-                π_1 + 1u == π_2)(std::pair{Numeral{7u}, Numeral{8u}}),
+static_assert(!((counts & (π <= 5)) * counts &
+                π_1 + 1 == π_2)(std::pair{std::size_t{7}, std::size_t{8}}),
               "(7,8): 7 ≰ 5, excluded though 8 = 7+1.");
-// doubling graph: {(a,b) | b = 2a} = ℕ * ℕ & π_1 * 2u == π_2.
-static_assert((ℕ * ℕ & π_1 * 2u == π_2)(std::pair{Numeral{3u}, Numeral{6u}}),
+// doubling graph: {(a,b) | b = 2a} = ℕ * ℕ & π_1 * 2 == π_2.
+static_assert((counts * counts &
+               π_1 * 2 == π_2)(std::pair{std::size_t{3}, std::size_t{6}}),
               "3 * 2 == 6: (3,6) ∈ the doubling graph.");
-static_assert(!(ℕ * ℕ & π_1 * 2u == π_2)(std::pair{Numeral{3u}, Numeral{7u}}),
+static_assert(!(counts * counts &
+                π_1 * 2 == π_2)(std::pair{std::size_t{3}, std::size_t{7}}),
               "3 * 2 != 7: (3,7) ∉ the doubling graph.");
-// affine graph: {(a,b) | b = 3a+1} = ℕ * ℕ & π_1 * 3u + 1u == π_2
+// affine graph: {(a,b) | b = 3a+1} = ℕ * ℕ & π_1 * 3 + 1 == π_2
 // (the Collatz odd branch, :collatz).
-static_assert((ℕ * ℕ &
-               π_1 * 3u + 1u == π_2)(std::pair{Numeral{7u}, Numeral{22u}}),
+static_assert((counts * counts &
+               π_1 * 3 + 1 == π_2)(std::pair{std::size_t{7}, std::size_t{22}}),
               "3·7+1 == 22: (7,22) ∈ the affine graph.");
-static_assert(!(ℕ * ℕ &
-                π_1 * 3u + 1u == π_2)(std::pair{Numeral{7u}, Numeral{21u}}),
+static_assert(!(counts * counts &
+                π_1 * 3 + 1 == π_2)(std::pair{std::size_t{7}, std::size_t{21}}),
               "3·7+1 != 21: (7,21) ∉ the affine graph.");
 
 // dom / cod are the projections π_A / π_B (Table 3), recovered from the graph's
 // STRUCTURE: they return the DECLARED domain/codomain, not the effective image.
+// The residue graph has no axis cylinder, so both recover the declared universe
+// ℕ (unqualified so ADL finds the order-layer recovery).  cod is thus the
+// declared ℕ --- its EFFECTIVE second projection is only the residue class
+// {0,…,16}, but reading that off is the ∃-elimination behind the Rice wall
+// (§3.3), so cod does not claim surjectivity here.
+static_assert(dom(counts * counts & π_1 % 17 == π_2)(std::size_t{100}),
+              "π_A of the residue graph = declared ℕ (entire), contains 100.");
+static_assert(cod(counts * counts & π_1 % 17 == π_2)(std::size_t{3}),
+              "π_B = declared codomain ℕ, contains 3 (NOT the effective "
+              "{0,…,16} residue image, which would need the ∃-projection).");
+
 // With a RESTRICTED factor, dom recovers the halfspace off the π_1 cylinder:
 // π_A((ℕ|≤5)*ℕ) = {a ≤ 5}, while cod stays the unrestricted ℕ.
-static_assert(dom((ℕ & (π <= 5u)) * ℕ)(Numeral{4u}),
+static_assert(dom((counts & (π <= 5)) * counts)(std::size_t{4}),
               "π_A recovers {a ≤ 5}: 4 ≤ 5.");
-static_assert(!dom((ℕ & (π <= 5u)) * ℕ)(Numeral{7u}),
+static_assert(!dom((counts & (π <= 5)) * counts)(std::size_t{7}),
               "π_A recovers {a ≤ 5}: 7 ≰ 5.");
-static_assert(cod((ℕ & (π <= 5u)) * ℕ)(Numeral{99u}),
+static_assert(cod((counts & (π <= 5)) * counts)(std::size_t{99}),
               "π_B is unrestricted ℕ: contains 99.");
 // The restriction survives a graph refinement (dom digs through
 // ProductRestrict).
-static_assert(dom((ℕ & (π <= 5u)) * ℕ & π_1 + 1u == π_2)(Numeral{4u}),
+static_assert(dom((counts & (π <= 5)) * counts &
+                  π_1 + 1 == π_2)(std::size_t{4}),
               "π_A of the restricted successor still recovers {a ≤ 5}.");
 
 // TWO bounds on the SAME axis: dom recovers the TIGHTER halfspace (their meet),
 // not either bound alone.  Guards axis_factor's both-branch: the factors are
 // recovered Halfspace SETS, so their meet is the set-level & collapse; the
 // predicate-level && would build a categorical Morphism and lose dom/cod.
-static_assert(dom(ℕ * ℕ & (π_1 <= 5u && π_1 <= 3u))(Numeral{3u}),
+static_assert(dom(counts * counts & (π_1 <= 5 && π_1 <= 3))(std::size_t{3}),
               "π_A of {a ≤ 5 ∧ a ≤ 3} recovers the tighter {a ≤ 3}: 3 ≤ 3.");
-static_assert(!dom(ℕ * ℕ & (π_1 <= 5u && π_1 <= 3u))(Numeral{4u}),
+static_assert(!dom(counts * counts & (π_1 <= 5 && π_1 <= 3))(std::size_t{4}),
               "π_A recovers the TIGHTER bound: 4 ≤ 5 but 4 ≰ 3, so excluded.");
 // Three same-axis bounds reduce to one factor whatever the association: the
 // meet lattice is closed over its own outputs (#872).
-static_assert(dom(ℕ * ℕ & ((π_1 >= 1u && π_1 <= 5u) && π_1 >= 2u)) ==
-                  Interval<Numeral>::bounded(Numeral{2u}, Strictness::NonStrict,
-                                             Numeral{5u},
-                                             Strictness::NonStrict),
+static_assert(dom(counts * counts & ((π_1 >= 1 && π_1 <= 5) && π_1 >= 2)) ==
+                  Interval<std::size_t>::bounded(std::size_t{2},
+                                                 Strictness::NonStrict,
+                                                 std::size_t{5},
+                                                 Strictness::NonStrict),
               "π_A of {1 ≤ a ≤ 5 ∧ a ≥ 2} is the interval [2, 5].");
 static_assert(
-    dom(ℕ * ℕ & ((π_1 >= 1u && π_1 <= 5u) && π_1 >= 2u)) ==
-        dom(ℕ * ℕ & (π_1 >= 1u && (π_1 <= 5u && π_1 >= 2u))),
+    dom(counts * counts & ((π_1 >= 1 && π_1 <= 5) && π_1 >= 2)) ==
+        dom(counts * counts & (π_1 >= 1 && (π_1 <= 5 && π_1 >= 2))),
     "the factor is independent of the association of the three bounds.");
+
+// relational application: apply(R, a) is the fibre {b | (a,b) ∈ R}.  For the
+// residue graph (a function) it is the singleton {a % 17}: apply(R,20) = {3}.
+static_assert(dedekind::relational::apply(counts * counts & π_1 % 17 == π_2,
+                                          std::size_t{20})(std::size_t{3}),
+              "apply(R,20) = {3}: (20,3) ∈ R since 20 % 17 == 3.");
+static_assert(!dedekind::relational::apply(counts * counts & π_1 % 17 == π_2,
+                                           std::size_t{20})(std::size_t{4}),
+              "apply(R,20) does not contain 4.");
 
 /** @brief @c upperbounds(S) --- the @f$\forall@f$-projection @f$R/\ni@f$: the
  *  region dominating all of @c S, and the pluggable point of the extremum
@@ -1033,22 +1062,22 @@ constexpr auto min(const S& s) {
 
 inline constexpr auto ℤ =
     𝔸<SignedCardinality>{};  // local alias (:integer is downstream)
-// Exhibit (intensional, infinite case) over ℕ = @c 𝔸<Numeral> and ℤ =
+// Exhibit (intensional, infinite case) over the counts @c 𝔸<std::size_t> and ℤ
+// =
 // @c 𝔸<SignedCardinality>, both registered chains (ℤ under the posture that
 // its sentinels ±ℵ_0 / NaZ are the memory boundary, not points of ℤ).
-inline constexpr auto le5 = ℕ & (π <= 5u);  // {x ∈ ℕ | x ≤ 5}
-inline constexpr auto ge5 = ℕ & (π >= 5u);  // {x ∈ ℕ | x ≥ 5}
-static_assert(max(le5)(Numeral{5u}), "5 = max {x ≤ 5} (read off the pivot).");
-static_assert(!max(le5)(Numeral{3u}),
-              "3 is not the greatest element of {x ≤ 5}.");
-static_assert(min(ge5)(Numeral{5u}), "5 = min {x ≥ 5}.");
-static_assert(!min(ge5)(Numeral{7u}), "7 is not the least element of {x ≥ 5}.");
+inline constexpr auto le5 = counts & (π <= 5);  // {x ∈ ℕ | x ≤ 5}
+inline constexpr auto ge5 = counts & (π >= 5);  // {x ∈ ℕ | x ≥ 5}
+static_assert(max(le5)(5), "5 = max {x ≤ 5} (read off the pivot).");
+static_assert(!max(le5)(3), "3 is not the greatest element of {x ≤ 5}.");
+static_assert(min(ge5)(5), "5 = min {x ≥ 5}.");
+static_assert(!min(ge5)(7), "7 is not the least element of {x ≥ 5}.");
 // DISCRETE strict: {x<5} on ℕ has attained max 4 (the predecessor), NOT ∅; the
-// bound is reached through the NNO's step on Numeral, exactly as on a machine
-// integer.
-static_assert(max(ℕ&(π < 5u))(Numeral{4u}), "4 = max {x < 5} on ℕ.");
-static_assert(!max(ℕ & (π < 5u))(Numeral{5u}), "5 ∉ {x < 5}, so not its max.");
-static_assert(min(ℕ&(π > 5u))(Numeral{6u}), "6 = min {x > 5} on ℕ.");
+// bound is reached through the NNO's step on the word, exactly as
+// on a machine integer.
+static_assert(max(counts&(π < 5))(4), "4 = max {x < 5} on ℕ.");
+static_assert(!max(counts & (π < 5))(5), "5 ∉ {x < 5}, so not its max.");
+static_assert(min(counts&(π > 5))(6), "6 = min {x > 5} on ℕ.");
 // ℤ: the same extrema, and the negative side ℕ cannot spell.
 static_assert(max(ℤ&(π <= 5))(5), "5 = max {x ≤ 5} on ℤ.");
 static_assert(!max(ℤ & (π <= 5))(3), "3 is not the greatest element.");
@@ -1172,11 +1201,11 @@ static_assert(detail_cover_witness::order_is_cover_star(8),
 // (the R/∋ division) decided by the counterexample set {x≤5} ∩ {x>5} collapsing
 // to ∅ via the complement-pair meet.  So the specialisation is checked against
 // the general law, not merely trusted (the Wadler free theorem, mechanised).
-static_assert(max(le5)(Numeral{5u}) ==
-                  (le5(Numeral{5u}) && (le5 & (ℕ & (π > 5u))) == Ø<Numeral>{}),
+static_assert(max(le5)(5) ==
+                  (le5(5) && (le5 & (counts & (π > 5))) == Ø<std::size_t>{}),
               "specific max(le5) models (∈) ∩ (R/∋) at the pivot.");
-static_assert(min(ge5)(Numeral{5u}) ==
-                  (ge5(Numeral{5u}) && (ge5 & (ℕ & (π < 5u))) == Ø<Numeral>{}),
+static_assert(min(ge5)(5) ==
+                  (ge5(5) && (ge5 & (counts & (π < 5))) == Ø<std::size_t>{}),
               "specific min(ge5) models (∈) ∩ (R/∋) at the pivot.");
 
 // Exhibit (finite case): max 𝔹 = {true}, min 𝔹 = {false} --- the SAME generic

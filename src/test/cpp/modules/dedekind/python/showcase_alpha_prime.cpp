@@ -34,6 +34,7 @@
  */
 
 #include <concepts>
+#include <cstddef>
 #include <type_traits>
 
 import dedekind.category;
@@ -51,20 +52,24 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
+// The counts the exhibit computes over: the set over the machine word.
+constexpr auto counts = 𝔸<std::size_t>{};
+
 // (1) Rule.  Intensional ℕ-comprehension, point-free: the ambient set ℕ
 //     refined by the projection predicate `π > 5`.  Reads "the set of
 //     x ∈ ℕ such that x > 5".  This is the textbook membership shape.
-constexpr auto S = ℕ & (π > 5u);
+constexpr auto S = counts & (π > 5);
 
-// ℕ = 𝔸<Numeral> answers in @c Boole, so the comprehension @c S does ---
+// The counts 𝔸<std::size_t> answer in @c Boole, so the comprehension @c S does
+// ---
 // @c S.contains(...) lands @c bool directly, no
 // Kleene lift required.  Rice's theorem still caps further promotion of
 // the opaque λ inside the comprehension, but the carrier-axis witness
 // is sufficient at this layer.
 
 // (2) Tested.  Compile-time membership query: the rule is the type, so
-//     `S(Numeral{7u})` is constant-evaluable and reads as bare @c bool.
-static_assert(S(Numeral{7u}));
+//     `S(7u)` is constant-evaluable and reads as bare @c bool.
+static_assert(S(7u));
 
 // (3) Trimmed.  Set difference: A ∖ B = {x | x ∈ A ∧ x ∉ B}.  The textbook
 //     `S \ T` would be the natural spelling; substituted here as
@@ -73,29 +78,28 @@ static_assert(S(Numeral{7u}));
 //     across `NegatedPredicate` (so `T & {<7}` would collapse to the literal
 //     interval [6, 6]) is a future DSL refinement; membership on T still
 //     constant-folds via the predicate.
-constexpr auto T = set_difference(S, ℕ&(π > 10u));
-static_assert(T(Numeral{8u}));    // 5 < 8 ≤ 10 ✓
-static_assert(!T(Numeral{11u}));  // 11 > 10 ✗
+constexpr auto T = set_difference(S, counts&(π > 10));
+static_assert(T(8u));    // 5 < 8 ≤ 10 ✓
+static_assert(!T(11u));  // 11 > 10 ✗
 
 // (4) Collapsed.  The value-first meet of two bare halfspaces folds through
 //     `structured_and` to a `Interval`: `S` (= {x > 5}) meet {x < 7} on ℕ has
 //     exactly one inhabitant, and the meet folds it to the point {6}.  The
 //     point collapse gates on the NNO's successor / predecessor --- an axiom of
-//     the category, which ℕ's Numeral witnesses --- not on `std::integral`, so
+//     the category, which the word witnesses --- not on `std::integral`, so
 //     ℕ collapses exactly as a machine integer does.
-constexpr auto a = S & (ℕ & (π < 7u));  // the point {6}
-static_assert(a == Interval<Numeral>::point(Numeral{6u}),
+constexpr auto a = S & (counts & (π < 7));  // the point {6}
+static_assert(a == Interval<std::size_t>::point(std::size_t{6}),
               "the meet folds to the point {6} at compile time");
-static_assert(static_cast<bool>(a(Numeral{6u})) &&
-                  !static_cast<bool>(a(Numeral{5u})) &&
-                  !static_cast<bool>(a(Numeral{7u})),
+static_assert(static_cast<bool>(a(6u)) && !static_cast<bool>(a(5u)) &&
+                  !static_cast<bool>(a(7u)),
               "the folded point is exactly 6");
 
 // (5) Contradicted.  Complement-via-LEM: any S has empty meet with its
 //     complement.  The value-first meet folds `S ∩ ¬S` to the empty `Interval`
 //     at compile time — the law of excluded middle, value-directed.
 constexpr auto b = S & ~S;
-static_assert(b == Ø<Numeral>{},
+static_assert(b == Ø<std::size_t>{},
               "S ∩ ¬S folds to the empty set at compile time");
 
 // (6) Certified.  Both reductions are finite constexpr `Interval`s — the point
@@ -103,8 +107,7 @@ static_assert(b == Ø<Numeral>{},
 //     compile time even though their parent `S` is a transfinite intensional
 //     description.  The reduction crosses the realisation boundary value-first:
 //     the folded values, not an elevated result type.
-static_assert(!static_cast<bool>(b(Numeral{6u})),
-              "the folded contradiction is empty");
+static_assert(!static_cast<bool>(b(6u)), "the folded contradiction is empty");
 
 // The deferred eighth "transformed" nugget was previously realised here
 // via the symbolic scout-algebra affine pipe (element<ℚ> + bound<k> /
@@ -116,7 +119,7 @@ static_assert(!static_cast<bool>(b(Numeral{6u})),
  * @brief Showcase α′: the §3 walk's compile-time payoff lifted to a
  *        runtime witness.
  *
- * @c S(Numeral{7u}) is constant-evaluable (7 > 5 lands in the halfspace).
+ * @c S(7u) is constant-evaluable (7 > 5 lands in the halfspace).
  * Post-#622 the result IS @c bool directly (ℕ → Boole on the
  * carrier axis), so the body returns the membership query as-is — no
  * Kleene comparison lift required.
@@ -124,5 +127,5 @@ static_assert(!static_cast<bool>(b(Numeral{6u})),
  * Expected IR: `ret i1 true`
  */
 extern "C" __attribute__((noinline)) bool witness_alpha_prime() {
-  return S(Numeral{7u});
+  return S(7u);
 }

@@ -7,6 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <cstddef>
 #include <limits>
 #include <type_traits>
 #include <utility>
@@ -19,6 +20,9 @@ import dedekind.relational; // RelAnd / RelOr (the structured meet/join result)
 using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::order;
+
+// The counts the exhibit computes over: the set over the machine word.
+constexpr auto counts = 𝔸<std::size_t>{};
 
 namespace {
 using I = Interval<int>;
@@ -82,10 +86,10 @@ TEST_CASE("order:halfspace — excluded middle B ∪ ¬B covers the plane (#365)
           "[order][halfspace][set][complement]") {
   // A set unioned with its complement covers the ambient, the dual of the
   // contradiction B ∩ ¬B = Ø; decided by membership.
-  constexpr auto B = ℕ * ℕ & π_1 > 5u;
+  constexpr auto B = counts * counts & π_1 > 5;
   constexpr auto cover = B | ~B;
-  CHECK(static_cast<bool>(cover(std::pair{Numeral{6u}, Numeral{0u}})));
-  CHECK(static_cast<bool>(cover(std::pair{Numeral{0u}, Numeral{0u}})));
+  CHECK(static_cast<bool>(cover(std::pair{std::size_t{6}, std::size_t{0}})));
+  CHECK(static_cast<bool>(cover(std::pair{std::size_t{0}, std::size_t{0}})));
 }
 
 TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
@@ -123,8 +127,8 @@ TEST_CASE(
     // stay IsRelPredicate (so the result can feed the 𝔸<pair> | relpred
     // comprehension) --- unlike the generic AndPredicate / OrPredicate, which
     // would drop the marker (#824).
-    constexpr auto p = π_1 > 5u;
-    constexpr auto q = π_2 > 3u;
+    constexpr auto p = π_1 > 5;
+    constexpr auto q = π_2 > 3;
     using AndP = std::decay_t<decltype(p && q)>;
     using OrP = std::decay_t<decltype(p || q)>;
     STATIC_CHECK(
@@ -137,9 +141,9 @@ TEST_CASE(
                                                  std::decay_t<decltype(q)>>>);
     STATIC_CHECK(IsRelPredicate<AndP>);  // the marker is preserved through &&
     STATIC_CHECK(IsRelPredicate<OrP>);   // ... and through ||
-    CHECK((p || q)(std::pair{Numeral{6u}, Numeral{0u}}));
-    CHECK_FALSE((p && q)(std::pair{Numeral{6u}, Numeral{0u}}));
-    CHECK((p && q)(std::pair{Numeral{6u}, Numeral{4u}}));
+    CHECK((p || q)(std::pair{std::size_t{6}, std::size_t{0}}));
+    CHECK_FALSE((p && q)(std::pair{std::size_t{6}, std::size_t{0}}));
+    CHECK((p && q)(std::pair{std::size_t{6}, std::size_t{4}}));
   }
 }
 
@@ -228,16 +232,21 @@ TEST_CASE(
 // coords force the predicate bodies to actually execute at run time.
 TEST_CASE("order:halfspace — projection-arithmetic functional graphs (runtime)",
           "[order][relation][projection-arithmetic]") {
-  volatile std::size_t a = 4;
-  const auto A = Numeral{std::size_t(a)};  // 4
+  volatile std::size_t a = 4, m = 20;
+  const std::size_t A = a;  // 4
+  const std::size_t M = m;  // 20
 
-  const auto succ = ℕ * ℕ & π_1 + 1u == π_2;  // b = a + 1
-  CHECK(succ(std::pair{A, Numeral{5u}}));
-  CHECK_FALSE(succ(std::pair{A, Numeral{6u}}));
+  const auto succ = counts * counts & π_1 + 1 == π_2;  // b = a + 1
+  CHECK(succ(std::pair{A, std::size_t{5}}));
+  CHECK_FALSE(succ(std::pair{A, std::size_t{6}}));
 
-  const auto dbl = ℕ * ℕ & π_1 * 2u == π_2;  // b = 2a
-  CHECK(dbl(std::pair{Numeral{3u}, Numeral{6u}}));
-  CHECK_FALSE(dbl(std::pair{Numeral{3u}, Numeral{7u}}));
+  const auto dbl = counts * counts & π_1 * 2 == π_2;  // b = 2a
+  CHECK(dbl(std::pair{std::size_t{3}, std::size_t{6}}));
+  CHECK_FALSE(dbl(std::pair{std::size_t{3}, std::size_t{7}}));
+
+  const auto res = counts * counts & π_1 % 17 == π_2;  // b = a % 17
+  CHECK(res(std::pair{M, std::size_t{3}}));
+  CHECK_FALSE(res(std::pair{M, std::size_t{4}}));
 }
 
 TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
