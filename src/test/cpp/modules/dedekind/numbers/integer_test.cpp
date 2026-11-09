@@ -2,9 +2,9 @@
 #include <cstdlib>  // For std::abs in the partial-commuting-square test.
 #include <limits>  // For std::numeric_limits in the abs honest-extension tests.
 #include <variant>  // For std::variant's operator== reached via ADL on
-    // SignedCardinality (an alias of std::variant<...>).  Without this include the
-    // CHECK assertions below fail to find the comparison
-    // operator — see PR #437 review thread.
+// SignedCardinality (an alias of std::variant<...>).  Without this include the
+// CHECK assertions below fail to find the comparison
+// operator — see PR #437 review thread.
 
 import dedekind.category;
 import dedekind.algebra; // AdditiveInverse + IsOrderedAdditiveGroup (#959)
