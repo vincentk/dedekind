@@ -62,7 +62,7 @@ O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \note{the sta
 \llbracket e\texttt{(}\overline{e'}\texttt{)} \rrbracket = (\pi_2\,\llbracket e \rrbracket)\,[\overline{\llbracket \sigma \rrbracket}]\,\overline{d}\,\overline{\llbracket e' \rrbracket} & \note{\textsc{T-Op}, \textsc{T-App}: application} \\
 \qquad \text{with } \overline{d} = \overline{\llbracket \Delta \Vdash Q[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}] \rrbracket} & \note{the call operator's dictionaries} \\
 \llbracket e\texttt{.}y_i \rrbracket = \pi_i\,(\pi_1\,\llbracket e \rrbracket) & \note{a field, through the fields' pair} \\
-\llbracket \tau\texttt{(}e\texttt{)} \rrbracket = \mathit{conv}_{\tau',\tau}\,\llbracket e \rrbracket & \note{a conversion, a constant of type $\llbracket \tau' \rrbracket \to \llbracket \tau \rrbracket$ , the identity's $\delta$-step included at $\tau' = \tau$} \\
+\llbracket \tau\texttt{(}e\texttt{)} \rrbracket = \mathit{conv}_{\tau',\tau}\,\llbracket e \rrbracket & \note{a conversion between distinct carriers, a constant of type $\llbracket \tau' \rrbracket \to \llbracket \tau \rrbracket$; at $\tau' = \tau$, $\mathit{conv}_{\tau,\tau} = \lambda x.\,x$} \\
 \end{array}
 \]
 \caption{The translation of declarations and terms; pairs, sums, boxes and conditionals are the target's own (Table~\ref{tab:conventions}).

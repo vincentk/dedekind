@@ -3,7 +3,7 @@
 \label{sec:guarantees}
 % The three theorems about the translation of Section~\ref{sec:translation}
 % and the appendices, stated after the exhibits so that each can
-% point at one.  Proof sketches in Appendix~\ref{app:fjlt:theorems}; the
+% point at one.  Proofs in Appendix~\ref{app:fjlt:theorems}; the
 % adequacy argument (C++ -> FJlt) is Section~\ref{sec:translation:adequacy}
 % and is not a theorem.
 
@@ -11,6 +11,14 @@ The theorems rest on FJlt alone.
 Their proofs (Appendix~\ref{app:fjlt:theorems}) are inductions over the grammar, the typing and the translation of FJlt, and never mention the three rules.
 The rules are not the hypotheses of the theorems.
 They are what makes a \Cpp{} program a term of the calculus the theorems are about, and that step is the argument of Section~\ref{sec:translation:adequacy}.
+
+\begin{theorem}[Coherence]
+\label{thm:coherence}
+The translation is a function of the program: two resolutions of the same constraint at the same concrete types yield the same record.
+\end{theorem}
+
+In \Cpp{} this is overload resolution together with the one-definition rule: at concrete types a specialisation is unique, or the program is ill-formed.
+It gives ``the unit of \cppinline{+} at \cppinline{size_t}'' one meaning in a program, so a law can be stated about it, and it lets laws compose: two overloads written apart are chosen the same way wherever they are called, as the two behind Listing~\ref{lst:laws} are.
 
 \begin{theorem}[Type preservation]
 \label{thm:preservation}
@@ -30,14 +38,6 @@ What a \cppinline{static_assert} sees is what the translation computes, and, by 
 Section~\ref{sec:binding} is this theorem run twice.
 The theorem also fixes the notion of equality, which equational reasoning presupposes and which is a question of its own~\cite{mazur2008equal}: two closed terms of a carrier are equal when they evaluate to the same value, by behaviour and not by identity, and Leibniz's law of Rule~1 holds by substitution.
 That is why Rule~1 asks \cppinline{std::semiregular} and not \cppinline{std::regular}: no \cppinline{==} is asked of a value, a carrier's \cppinline{==} is one more operation of its signature where a shape asks for it, and a function object, a value under Rule~1, has none.
-
-\begin{theorem}[Coherence]
-\label{thm:coherence}
-The translation is a function of the program: two resolutions of the same constraint at the same concrete types yield the same record.
-\end{theorem}
-
-In \Cpp{} this is overload resolution together with the one-definition rule: at concrete types a specialisation is unique, or the program is ill-formed.
-It gives ``the unit of \cppinline{+} at \cppinline{size_t}'' one meaning in a program, so a law can be stated about it, and it lets laws compose: two overloads written apart are chosen the same way wherever they are called, as the two behind Listing~\ref{lst:laws} are.
 
 \begin{corollary}[Termination]
 \label{cor:termination}
