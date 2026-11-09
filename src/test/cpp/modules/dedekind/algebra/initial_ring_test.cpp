@@ -3,9 +3,9 @@
  * @brief Test suite for the @c algebra:initial_ring partition.
  *
  * @section Scope
- * Exercises the initial rig, ℕ, as @c IsInitialRig<Numeral>, and that no
- * machine word claims ℤ's universal properties (a word wraps); ℤ's honest
- * carrier follows ℕ's (#1035).
+ * Exercises the initial rig, ℕ, as @c IsInitialRig<Numeral>, ℤ as
+ * @c IsInitialRing<Integer> and @c IsGrothendieckGroup<Integer, Numeral>, and
+ * that no machine word claims ℤ's universal properties (a word wraps).
  *
  *   3. Carrier-lattice arrows (Figure 1 in @c paper.tex /
  *      @c report.tex) — the labelled arrows are mechanically
@@ -15,7 +15,6 @@
  */
 #include <catch2/catch_test_macros.hpp>
 #include <type_traits>
-#include <variant>  // load-bearing for variant operator== via ADL
 
 import dedekind.algebra;
 import dedekind.category;
@@ -33,8 +32,11 @@ using dedekind::algebra::IsInitialRing;
 // (1) Concept fires on the canonical witnesses
 // ===========================================================================
 
-TEST_CASE("initial_ring: no SignedCardinality registration is initial",
+TEST_CASE("initial_ring: ℤ is initial and the Grothendieck group of ℕ",
           "[algebra][initial_ring][witness]") {
+  STATIC_CHECK(IsInitialRing<Integer>);
+  STATIC_CHECK(IsGrothendieckGroup<Integer, Numeral>);
+  // The saturating proxy is neither: ±ℵ_0 are no integers.
   STATIC_CHECK(!is_initial_ring_v<SignedCardinality>);
   STATIC_CHECK(!(is_grothendieck_group_v<SignedCardinality, Numeral>));
 }

@@ -1,10 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
+#include <climits>  // INT_MAX: the exhibit's edge
 #include <cstdlib>  // For std::abs in the partial-commuting-square test.
 #include <limits>  // For std::numeric_limits in the abs honest-extension tests.
-#include <variant>  // For std::variant's operator== reached via ADL on
-// SignedCardinality (an alias of std::variant<...>).  Without this include the
-// CHECK assertions below fail to find the comparison
-// operator — see PR #437 review thread.
 
 import dedekind.category;
 import dedekind.algebra; // AdditiveInverse + IsOrderedAdditiveGroup (#959)
@@ -85,19 +82,8 @@ TEST_CASE(
 
 TEST_CASE("sint: 𝕂3 → sint → ℤ chain via embed_𝕂3_ℤ_ + lift",
           "[numbers][sint][lift][embedding-chain]") {
-  // Post-PR #439, embed_𝕂3_ℤ_ already lands on SignedCardinality
-  // directly.  The textbook-factored chain
-  //
-  //   𝕂3 → std::signed_integral → ℤ
-  //
-  // would route through @c int (the machine layer) on the first leg
-  // and then through @c embed_sint_ℤ on the
-  // second; PR #439's chosen factorisation collapses the two legs
-  // into one for ergonomic reasons.  Exercise the chain claim
-  // directly by relating @c embed_𝕂3_ℤ_'s images to the lifted
-  // canonical machine-int images @c -1 / @c 0 / @c 1, asserting
-  // that both factorisations agree on the canonical value of each
-  // Kleene truth-value.
+  // The two factorisations of 𝕂3 → ℤ, directly and through the machine
+  // integers -1 / 0 / 1, agree on each Kleene truth value.
   CHECK(embed_𝕂3_ℤ_(Ternary::False) == embed_sint_ℤ(-1));
   CHECK(embed_𝕂3_ℤ_(Ternary::Unknown) == embed_sint_ℤ(0));
   CHECK(embed_𝕂3_ℤ_(Ternary::True) == embed_sint_ℤ(1));
@@ -105,33 +91,59 @@ TEST_CASE("sint: 𝕂3 → sint → ℤ chain via embed_𝕂3_ℤ_ + lift",
 
 TEST_CASE("Integer: additive inverse -x is antitone on ℤ (#908/#959)",
           "[numbers][integer][algebra][antitone]") {
-  // ℤ (SignedCardinality) is an ordered additive group, so the unary additive
-  // inverse -x is ORDER-REVERSING: the algebraic dog-food of the antitone
-  // reification, the same shape as the logic NegationArrow's negation on Omega.
-  constexpr AdditiveInverse<SignedCardinality> neg{};
-  const SignedCardinality two = finite_signed_cardinality(2);
-  const SignedCardinality three = finite_signed_cardinality(3);
+  // ℤ is an ordered additive group, so the unary additive inverse -x is
+  // ORDER-REVERSING: the algebraic dog-food of the antitone reification, the
+  // same shape as the logic NegationArrow's negation on Omega.
+  constexpr AdditiveInverse<Integer> neg{};
+  const Integer two{2};
+  const Integer three{3};
 
-  // The inverse maps to the negatives.
-  CHECK(neg(two) == finite_signed_cardinality(-2));
-  CHECK(neg(three) == finite_signed_cardinality(-3));
+  CHECK(neg(two) == Integer{-2});
+  CHECK(neg(three) == Integer{-3});
 
-  // Order-reversal: 2 <= 3, so -3 <= -2, i.e. neg(3) <= neg(2).
+  // Order-reversal: 2 <= 3, so -3 <= -2.
   CHECK(two <= three);
   CHECK(neg(three) <= neg(two));
 
-  // The arrow is a certified antitone / variant morphism.
-  STATIC_CHECK(IsAntiMonotone<AdditiveInverse<SignedCardinality>>);
-  STATIC_CHECK(IsVariant<AdditiveInverse<SignedCardinality>>);
+  STATIC_CHECK(IsAntiMonotone<AdditiveInverse<Integer>>);
+  STATIC_CHECK(IsVariant<AdditiveInverse<Integer>>);
 
-  // Self-adjoint antitone Galois connection: -x is an antitone involution
-  // (-(-x) = x), so (AdditiveInverse, AdditiveInverse) is a Galois connection
-  // and a <= -b iff b <= -a.  The first ANTITONE witness of IsGaloisConnection.
-  STATIC_CHECK(IsGaloisConnection<AdditiveInverse<SignedCardinality>,
-                                  AdditiveInverse<SignedCardinality>>);
-  const SignedCardinality neg_five = finite_signed_cardinality(-5);
-  // both-true side: (-5 <= -2) iff (2 <= 5).
+  // Self-adjoint antitone Galois connection: a <= -b iff b <= -a.
+  STATIC_CHECK(IsGaloisConnection<AdditiveInverse<Integer>,
+                                  AdditiveInverse<Integer>>);
+  const Integer neg_five{-5};
   CHECK((neg_five <= neg(two)) == (two <= neg(neg_five)));
-  // both-false side: (2 <= -3) iff (3 <= -2).
   CHECK((two <= neg(three)) == (three <= neg(two)));
+}
+
+// ===========================================================================
+// (5) The exhibit: int against ℤ
+// ===========================================================================
+//
+// int carries the ring's operators and not the ring: signed overflow is
+// undefined, so constant evaluation refuses it.  The line
+//
+//   static_assert(INT_MAX + 1 > INT_MAX);  // ill-formed: not a constant
+//
+// does not compile, and no static_assert can say so, since a refusal is not
+// a value.  The same term over ℤ is exact, and so is its law.
+namespace int_vs_ℤ {
+constexpr Integer int_max{INT_MAX};
+static_assert(int_max + Integer{1} > int_max,
+              "INT_MAX + 1 in ℤ: the successor, above the word");
+static_assert(int_max + Integer{1} == Integer{static_cast<long long>(INT_MAX) + 1LL},
+              "where a wider word holds the value, ℤ agrees with it");
+static_assert((int_max + Integer{1}) - Integer{1} == int_max &&
+                  Integer{INT_MIN} - Integer{1} < Integer{INT_MIN},
+              "the group laws hold at both ends of int, where int has none");
+static_assert(int_max * int_max * int_max * int_max * int_max >
+                  Integer{std::numeric_limits<long long>::max()},
+              "and past every word: (2^31 - 1)^5 exceeds 2^64");
+}  // namespace int_vs_ℤ
+
+TEST_CASE("Integer: int overflows, ℤ does not",
+          "[numbers][integer][exhibit]") {
+  const Integer int_max{INT_MAX};
+  CHECK(int_max + Integer{1} > int_max);
+  CHECK(rank(Integer{INT_MIN}) == Numeral{0u - static_cast<unsigned>(INT_MIN)});
 }

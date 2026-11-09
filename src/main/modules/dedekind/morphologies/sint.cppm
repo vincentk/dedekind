@@ -21,8 +21,8 @@
  * std::plus, std::multiplies> and @c IsArithmeticAdditiveGroup<int>
  * do @b not (the axiomatic-ring witness would be a false claim under
  * UB).  The
- * exact-@c ℤ reading lives one carrier step deeper, on @c
- * SignedCardinality (with @c ±ℵ_0 saturation and @c NaZ).
+ * exact-@c ℤ reading lives one carrier step deeper, on @c sets::Integer,
+ * which every signed word embeds into exactly.
  *
  * @section sint__Symmetric_Honest_Rejection
  * @c unsigned @c int and @c int are rejected as witnesses for @c ℕ and
@@ -49,15 +49,15 @@
  * style is @b "Intensional @b first; @b realize @b when @b you @b
  * mean @b it".  Practitioners write code over the @b canonical
  * mathematical set ( @c var<ℤ>, predicates, comprehension DSL,
- * abstract algebraic operations on @c SignedCardinality directly)
+ * abstract algebraic operations on @c sets::Integer directly)
  * and only descend to machine integers via an @b explicit
  * realize-step ( @c realize_to_size_t / future @c
  * realize_signed_to_machine, see #429).  The realize-step carries a
  * proof obligation — the caller chooses a sentinel for the
  * transfinite case, and the type system mechanically forces the
  * caller to handle that case.  This posture does NOT add
- * heterogeneous arithmetic overloads (e.g.\ @c SignedCardinality
- * @c + @c int → @c SignedCardinality) that would smuggle machine-
+ * heterogeneous arithmetic overloads (e.g.\ @c Integer
+ * @c + @c int → @c Integer) that would smuggle machine-
  * int-style code into the variant carrier; doing so would
  * structurally undo the Honest Rejection by routing machine-int
  * UB-on-overflow back through the variant operator surface.  See
@@ -72,8 +72,6 @@
 module;
 
 #include <concepts>
-#include <cstddef>  // std::size_t (used in the digits-width static_assert
-                    // in embed_sint_ℤ's per-value entry point)
 #include <functional>
 #include <limits>
 #include <numeric>      // std::gcd (relocated from :integer per #670 cleanup)
@@ -102,7 +100,7 @@ using namespace dedekind::sets;
 //
 // These concepts and aliases previously lived in :integer alongside the
 // value-level ℤ alias.  The reorganisation separates the @b set-level
-// ℤ (now `𝔸<SignedCardinality>`, kept in :integer) from the
+// ℤ (now `𝔸<Integer>`, kept in :integer) from the
 // @b carrier-level machinery for machine signed integers (concepts,
 // embedding, GCD --- relocated here).  Downstream consumers (Rational
 // in :rational) import :sint to pick them up.
@@ -147,69 +145,34 @@ concept HasEuclideanGcd = IsInteger<Z> && requires(Z a, Z b) {
 };
 
 // ===========================================================================
-// (1) Universal machine→variant lift: std::signed_integral → SignedCardinality
+// (1) The lift: std::signed_integral ↪ ℤ
 // ===========================================================================
 
 /**
- * @brief Universal machine-to-variant lift: @c std::signed_integral
- *        @c → @c SignedCardinality.  Closes part of #418.
+ * @brief The lift of a machine signed integer into ℤ, @c sets::Integer:
+ *        exact for every value of every width (#418).
  *
- * @details The structure-honest lift from a machine signed integer
- * (which only @b carries the ring operator surface — UB on overflow
- * defeats the axiomatic ring laws) into the variant @c ℤ-proxy
- * @c SignedCardinality (with @c ±ℵ_0 saturation and @c NaZ).  Where
- * the @c std::signed_integral source has incomplete axiomatic
- * structure, the @c SignedCardinality target carries full @c IsRing
- * via the saturating semantics — moving the carrier @b up the
- * carrier lattice rather than @b across it.
+ * @details The machine word carries the ring operators and not the ring
+ * (overflow is undefined); its image in ℤ carries the ring.  Companion to
+ * @c embed_uint_ℕ (in @c :uint) on the unsigned side: together they complete
+ * the chains @c 𝔹 @c → @c std::unsigned_integral @c → @c ℕ and
+ * @c 𝕂3 @c → @c std::signed_integral @c → @c ℤ.
  *
- * Companion to @c embed_uint_ℕ (in @c :uint, post-#417 / renamed
- * under #457) on the symmetric unsigned side.  Together the two arrows
- * complete the embedding chains
- *
- *   @c 𝔹 @c → @c std::unsigned_integral @c → @c ℕ
- *   @c 𝕂3 @c → @c std::signed_integral @c → @c ℤ
- *
- * documented in the carrier-lattice section of @c report.tex /
- * @c paper.tex.
- *
- * @tparam S Any @c std::signed_integral source type.
+ * @tparam S Any @c std::signed_integral source type.  @param v the value.
+ * @return @c v in ℤ.
  */
 export template <std::signed_integral S>
-constexpr dedekind::sets::SignedCardinality embed_sint_ℤ(S v) {
-  // The lift funnels into @c finite_signed_cardinality, which stores into
-  // @c SignedExtensionalCardinal<>'s signed word (@c std::ptrdiff_t).  On
-  // 32-bit platforms @c long @c long is wider than that word, so the word is
-  // the binding constraint.  Pin the guard against it so the injectivity claim
-  // holds on every platform.
-  static_assert(
-      std::numeric_limits<S>::digits <=
-          std::numeric_limits<
-              dedekind::sets::SignedExtensionalCardinal<>::signed_type>::digits,
-      "embed_sint_ℤ requires every value of S "
-      "to be representable in the SignedExtensionalCardinal<>'s "
-      "signed word (std::ptrdiff_t).  On platforms where "
-      "this fires (e.g. 32-bit std::size_t with 64-bit long long, or "
-      "wider extended integer types), an explicit ±ℵ_0 escalation "
-      "on out-of-range values would be needed; without it the "
-      "conversion would silently truncate and break injectivity.");
-  return finite_signed_cardinality(v);
+constexpr dedekind::sets::Integer embed_sint_ℤ(S v) {
+  return dedekind::sets::Integer{v};
 }
 
 /**
- * @brief Concrete monic arrow: int ↪ SignedCardinality (variant ℤ-proxy).
- *
- * @details The named-arrow form of @c
- * embed_sint_ℤ<int>, registered as monic in
- * @c is_monic_arrow_v so downstream @c IsMonicArrow callsites can
- * find it.  Distinct @c int values yield distinct @c SignedCardinality
- * values (injective on the finite fragment).
+ * @brief Concrete monic arrow: @c int ↪ ℤ, the named-arrow form of
+ *        @c embed_sint_ℤ<int>, registered monic below.
  */
 export inline constexpr auto embed_sint_ℤ_ =
-    dedekind::category::arrow<int, dedekind::sets::SignedCardinality>(
-        [](const int& i) noexcept -> dedekind::sets::SignedCardinality {
-          return embed_sint_ℤ(i);
-        });
+    dedekind::category::arrow<int, dedekind::sets::Integer>(
+        [](const int& i) { return embed_sint_ℤ(i); });
 
 /**
  * @brief Set-level lift of @c embed_sint_ℤ_: image of an @c int-set
@@ -236,8 +199,8 @@ export inline constexpr auto embed_sint_ℤ_ =
  * once.
  *
  * Mathematically: the image of @c S under the canonical mono
- * @c int @c ↪ @c ℤ is a subset of the finite fragment of @c
- * SignedCardinality containing whichever @c int values are in @c S.
+ * @c int @c ↪ @c ℤ is the subset of ℤ containing whichever @c int values
+ * are in @c S.
  */
 // No-narrowing pin: the source set's element type must be EXACTLY
 // @c int.  Without this gate, sets over a wider signed type
@@ -271,31 +234,25 @@ constexpr auto embed_sint_ℤ(S&& s) {
   return dedekind::sets::image(embed_sint_ℤ_, std::forward<S>(s));
 }
 
-// Set-level lift witnesses: @c embed_sint_ℤ on @c η(42)
-// lands at @c finite_signed_cardinality(42), and on @c η(-7)
-// at @c finite_signed_cardinality(-7).  Pinned at the @b value level so
-// the pivot equality is constant-evaluated, not just the codomain type.
-// Mirrors PR #624 / #626 / #628's witnesses — same shape, different
-// (carrier, codomain) pair.
+// Set-level lift witnesses, at the value level: the pivot equality is
+// constant-evaluated, not just the codomain type.
+static_assert(origin(embed_sint_ℤ(η(42))) == dedekind::sets::Integer{42} &&
+                  origin(embed_sint_ℤ(η(-7))) == dedekind::sets::Integer{-7},
+              "embed_sint_ℤ lands η(42) at 42 and η(-7) at -7 in ℤ");
 static_assert(
-    origin(embed_sint_ℤ(η(42))) == finite_signed_cardinality(42),
-    "embed_sint_ℤ(η(42)) lands at "
-    "finite_signed_cardinality(42) on the SignedCardinality carrier.");
-static_assert(origin(embed_sint_ℤ(η(-7))) == finite_signed_cardinality(-7),
-              "embed_sint_ℤ(η(-7)) lands at "
-              "finite_signed_cardinality(-7) on the SignedCardinality carrier "
-              "(negative-value witness — the symmetric complement to "
-              "embed_uint_ℕ's non-negative-only fragment).");
+    embed_sint_ℤ(std::numeric_limits<long long>::min()) <
+            embed_sint_ℤ(std::numeric_limits<int>::min()) &&
+        embed_sint_ℤ(std::numeric_limits<long long>::max()) +
+                embed_sint_ℤ(1) >
+            embed_sint_ℤ(std::numeric_limits<long long>::max()),
+    "every width embeds exactly, and ℤ goes on past each word's ends");
 
-// Concept-level witness: the result realises the categorical image
-// of the source set under the canonical mono int ↪ ℤ — Subobject
-// of @c Cod<embed_sint_ℤ_> = SignedCardinality per @c :category:image.
+// Concept-level witness: the result realises the categorical image of the
+// source set under the canonical mono int ↪ ℤ (@c :category:image).
 static_assert(
     IsImageOf<decltype(embed_sint_ℤ(η(42))), decltype(embed_sint_ℤ_)>,
-    "embed_sint_ℤ(S) realises IsImageOf<result, embed_sint_ℤ_>: result "
-    "is a Subobject of Cod<embed_sint_ℤ_> = SignedCardinality, "
-    "witnessing the categorical image of S under the canonical mono "
-    "int ↪ ℤ.");
+    "embed_sint_ℤ(S) realises IsImageOf<result, embed_sint_ℤ_>: a "
+    "Subobject of ℤ, the image of S under int ↪ ℤ.");
 
 /**
  * @brief Type-honest absolute value at the machine layer:
@@ -381,7 +338,7 @@ static_assert(dedekind::algebra::HasSuccessorOperators<long long>,
 // Rejection.  Signed-overflow UB defeats closure-under-arithmetic
 // as a stable axiom; the strict abelian-group / ring witnesses
 // must @b not fire on @c std::signed_integral primitives.  The
-// exact-@c ℤ reading lives on @c SignedCardinality post-#402.
+// exact-@c ℤ reading lives on @c sets::Integer.
 static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<int>,
               "int must NOT satisfy IsArithmeticAdditiveGroup: "
               "signed-overflow UB defeats closure-under-arithmetic as a "
@@ -446,13 +403,11 @@ template <>
 inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(embed_sint_ℤ_)>> =
     true;
 static_assert(IsInjective<std::decay_t<decltype(embed_sint_ℤ_)>>,
-              "embed_sint_ℤ_ (int → SignedCardinality) is "
-              "registered injective.");
+              "embed_sint_ℤ_ (int → ℤ) is registered injective.");
 
 // IsEmbeddingFunctor witness (#633): @c embed_sint_ℤ_ is fully faithful
-// (discrete source) + injective on objects (sign-magnitude bijection
-// between machine signed values and the corresponding SignedCardinality
-// witnesses).
+// (discrete source) + injective on objects (each machine signed value is
+// its own integer).
 template <>
 inline constexpr bool
     is_embedding_functor_v<std::decay_t<decltype(embed_sint_ℤ_)>> = true;
@@ -461,15 +416,14 @@ static_assert(
     "embed_sint_ℤ_ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
 
 // IsMonotone witness (#664 morphism vocabulary): the canonical inclusion
-// @c int @c → @c SignedCardinality preserves order — the embedding takes
-// @c k to @c finite_signed_cardinality(k), and @c SignedCardinality's
-// @c <=> agrees with the machine @c int order on the finite fragment.
+// @c int @c → @c ℤ preserves order: ℤ's @c <=> agrees with @c int's on
+// every @c int.
 template <>
 inline constexpr bool
     is_monotone_v<std::decay_t<decltype(embed_sint_ℤ_)>, std::less_equal<>> =
         true;
 static_assert(IsMonotone<std::decay_t<decltype(embed_sint_ℤ_)>>,
-              "embed_sint_ℤ_ (int → SignedCardinality) is monotone — "
+              "embed_sint_ℤ_ (int → ℤ) is monotone: "
               "the canonical inclusion preserves the numeric order.");
 
 // ... and therefore an ORDER EMBEDDING (#908), hence a covariant functor,
@@ -498,14 +452,13 @@ static_assert(IsOrderEmbedding<std::decay_t<decltype(embed_sint_ℤ_)>>,
 // For @c std::signed_integral @c S, the relation @c std::equal_to<S> IS
 // a textbook equivalence relation on @c S (reflexive / symmetric /
 // transitive by the std::regular contract).  Together with the @c
-// embed_sint_ℤ_ injection above (S → SignedCardinality, registered monic
+// embed_sint_ℤ_ injection above (S → ℤ, registered monic
 // / injective), this pins the structural reading: @c S modulo @c
 // std::equal_to<S> is equivalent (in the Mazur sense) to a bounded slice
 // of @c ℤ for inputs in @c [std::numeric_limits<S>::min(), @c
 // std::numeric_limits<S>::max()].  Outside that bound, signed-overflow
-// UB makes the equivalence non-classical --- the unbounded variant
-// carrier @c SignedCardinality is the right home for inputs in the
-// saturation regime.
+// UB makes the equivalence non-classical --- ℤ itself, @c sets::Integer,
+// is the home for values past the word.
 //
 // This is the signed-side natural progression of the unsigned-as-ℕ
 // slice in @c numbers:uint (#591); together they cover the std::integral
