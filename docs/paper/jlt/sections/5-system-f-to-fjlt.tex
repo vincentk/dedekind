@@ -1,5 +1,5 @@
 % !TEX root = ../jlt.tex
-\section{From System~F Back to Featherweight Jlt}
+\section{Guarantees from System~F}
 \label{sec:guarantees}
 % The three theorems about the translation of Section~\ref{sec:translation}
 % and the appendices, stated after the exhibits so that each can
@@ -34,10 +34,9 @@ If $e \longrightarrow e'$ in FJlt (Appendix~\ref{app:fjlt:evaluation}), then $\l
 For closed terms of base type, $e$ evaluates to $v$ if and only if $\llbracket e \rrbracket$ reduces to $\llbracket v \rrbracket$.
 \end{theorem}
 
-What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the runtime computes.
+What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the program computes at run time.
 Section~\ref{sec:binding} is this theorem run twice.
-The theorem also fixes the notion of equality, which equational reasoning presupposes and which is a question of its own~\cite{mazur2008equal}: two closed terms of a carrier are equal when they evaluate to the same value, by behaviour and not by identity, and Leibniz's law of Rule~1 holds by substitution.
-That is why Rule~1 asks \cppinline{std::semiregular} and not \cppinline{std::regular}: no \cppinline{==} is asked of a value, a carrier's \cppinline{==} is one more operation of its signature where a shape asks for it, and a function object, a value under Rule~1, has none.
+The theorem also makes Section~\ref{sec:posture}'s equality exact: two closed terms of a carrier are equal when they evaluate to the same value, a constant of a base type compared bit for bit, and Leibniz's law of Rule~1 holds by substitution.
 
 \begin{corollary}[Termination]
 \label{cor:termination}
@@ -138,7 +137,7 @@ What the translation adds is the second half of Theorem~\ref{thm:simulation}: th
 A program declares few laws and infers the rest.
 A declared law is an axiom, its certificate evaluated where a record is built.
 A law at a construction is derived from the laws of its parts, through an instance with a context, by the entailment of qualified types~\cite{jones1994qualified}: that a finite power of a semiring is a semimodule over it is inferred, not declared (Appendix~\ref{app:fjlt:inferred}).
-The inference is local in Pierce and Turner's sense~\cite{pierce2000local}: information moves only between adjacent nodes, and here only upward, from a term's immediate parts to the term, a synthesized attribute~\cite{knuth1968semantics}.
+The inference is local in Pierce and Turner's sense~\cite{pierce2000local}: information moves only between adjacent nodes, and here only upward, from a term's immediate parts to the term, a synthesised attribute~\cite{knuth1968semantics}.
 They infer type arguments and Jlt infers laws, so the likeness is in the flow of information, not in what is inferred.
 By Theorem~\ref{thm:coherence} each inferred law is unique, and the conditions on contexts that end instance search~\cite{sulzmann2007understanding} end the inference.
 As type checking rules out classes of errors without proving a program correct, law inference licenses classes of optimisations without deciding program equivalence, which stays undecidable where every program ends: a program testing whether a machine halts within $n$ steps equals the constant false exactly when that machine never halts~\cite{turing1936computable}.

@@ -73,7 +73,7 @@ namespace dedekind::linear_algebra {
  * `Vec2<T, x, y>` carries the module element `(x, y) ∈ T²` as NTTPs. The
  * type is the element; `Vec2<T, 1, 2>` and `Vec2<T, 3, 4>` are distinct
  * types. Used as the target of the NTTP `Invertible2x2`'s left action in
- * `:matrix`.
+ * `:mat2x2`.
  */
 export template <typename T, T x, T y>
   requires std::equality_comparable<T>

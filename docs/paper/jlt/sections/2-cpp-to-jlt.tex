@@ -5,13 +5,14 @@
 Jlt is standard \Cpp{23} under three rules, not a dialect and not a library; the compiler enforces some of the rules, and we say which.
 Each rule has a listing of a few lines, verbatim from the repository's test up to formatting and the definitions a listing omits or the test imports; the LLVM IR of Appendix~\ref{app:fjlt:ssa} is Clang~23's output, its flags in its caption, with names shortened.
 
-\paragraph{Rule 1, Substitution: values and pure functions.}
+\paragraph{Rule 1, Substitution: const values and an identity-preserving copy.}
 \phantomsection\label{def:rule1}
-Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
-Every function is \cppinline{constexpr} and depends on its arguments alone.\footnote{A \cppinline{constexpr} function may still change its own locals: constant evaluation permits modifying only objects whose lifetime began within it, so no mutation can leak, which is the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
-At runtime the linter of Section~\ref{sec:limits} holds the body to the same condition by closing each channel a mutation could leak through: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference.}
+Every type a Jlt program passes around is \cppinline{std::semiregular}, and its copy is as good as the original: nothing else is assumed.
+Every function is \cppinline{constexpr}, every member function \cppinline{const}, and each depends on its arguments alone.
 What the rule conserves is what has come to be called Leibniz's law, that equals cannot be told apart by any operation, at either binding time, whose converse is the principle Leibniz himself stated~\cite{leibniz1686discours,leibniz1686discourse}: a call may be replaced by its value, $e[f(x)] = e[v]$ whenever $f(x)$ evaluates to $v$.
+The compiler makes that replacement while compiling, where its optimisations begin.
 In a programming language the law is referential transparency~\cite{strachey2000fundamental}, and a language where $a = b$ but $f(a) \neq f(b)$ for some $f$ has an equality one cannot reason with.
+The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at run time.
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.48\linewidth}
@@ -23,12 +24,7 @@ constexpr auto id_b = id<bool>();
 constexpr auto id_u = id<size_t>();
 static_assert(
 id_b(true) == true && id_u(42) == 42 &&
-is_monotone(id_u) && is_monotone(id_b) &&
-is_involution(id_u) && is_involution(id_b) &&
-is_identity(id_u >> id_u) &&
-(id_u >> id_u)(42) == 42 &&
-is_monotone(id_u >> id_u) &&
-is_involution(id_u >> id_u));
+(id_u >> id_u)(42) == 42);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
@@ -39,37 +35,57 @@ constexpr auto one = constant<bool>(1uz);
 constexpr auto ans = constant<bool>(42uz);
 constexpr auto aye = constant<size_t>(true);
 constexpr auto nay = constant<size_t>(false);
+constexpr auto cpy = ans;  // a copy
 static_assert(
-(ans >> id_u)(true) == ans(false) &&
-is_constant(ans) && is_monotone(ans) &&
-is_constant(aye) && is_antitone(aye) &&
-!is_monic(ans) && !is_epic(ans) &&
-!is_monic(aye >> id_b) &&
-!is_epic(nay >> id_b) &&
-is_constant(nil >> nay >> ans));
+cpy(true) == ans(false) &&
+(ans >> id_u)(true) == 42 &&
+(nil >> nay >> ans)(false) == 42);
 \end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.48\linewidth}
+\end{minipage}
+\caption{\hyperref[def:rule1]{Rule~1}: Substitution.
+A function object is a value: a copy of it is as good as the original, function objects compose with \cppinline{>>}, and every call here is replaced by its value while compiling.
+Left: the identities.
+Right: the points, constant arrows, and a copy.}
+\label{lst:rule1}
+\end{listing}
+
+A function object is a value, as an abstraction is in the $\lambda$-calculus~\cite{pierce2002tapl}: the arguments it binds are its fields, so it is copied as any value is; \cppinline{constant<bool>(42uz)} carries its 42 (Listing~\ref{lst:rule1}).
+A value in Jlt is a value in Leibniz's sense: a copy cannot be told from its original, so either may stand for the other.
+In \Cpp{} a copy equal to its original is Stepanov's \cppinline{std::regular} type, which also has \cppinline{==}~\cite{stepanov2009elements}.
+Rule~1 keeps the copy but only requires \cppinline{std::semiregular}, because equality of values is undecidable for functions~\cite{rice1953classes}.
+Two things keep it exact: a function returns a value, never a reference, and a call operator is a member function like any other, so it too is \cppinline{const}.
+\cppinline{const T} and \cppinline{const T&} are therefore one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
+
+With the address and mutation out of reach, no arrow tells a copy from its original, so they are equal up to canonical isomorphism in Mazur's sense~\cite{mazur2008equal}, an object being known, by Yoneda's lemma, through its arrows out~\cite{maclane1971categories}.
+
+\paragraph{Rule 2, Abstraction: a type varies behaviour only through its concepts and traits.}
+\phantomsection\label{def:rule2}
+Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts and traits say it can, and nothing else.
+The first certificates need no carrier: mono, epi and iso by cancellation~\cite{pierce1991basic}, monotone, antitone and involution are asked of an arrow alone (Listing~\ref{lst:rule2}, top).
+A concept then names a carrier and its operations, and a law certifies the pair: a signature and its equations, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, the law a \emph{certificate} the compiler finds by resolution but does not prove.
+That is the premise of Wadler's free theorems~\cite{wadler1989theorems}, with concepts and traits in the place of type classes~\cite{wadler1989adhoc}, and what it conserves is the body's independence from the carrier: \cppinline{f<T>} is one generic term applied to \cppinline{T}'s dictionary, so it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
+
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.47\linewidth}
 \begin{cpp}
-// Involutions, pointwise:
+// Points and involutions:
 static_assert(
+is_constant(ans) && is_monotone(ans) &&
+is_antitone(aye) &&
+!is_monic(ans) && !is_epic(ans) &&
+
 (!aye)(0) == false &&
-is_involution(!id_b) &&
-is_constant(!aye) &&
-
+is_involution(!id_b) && is_constant(!aye) &&
 (~nil)(true) + 1 == 0 &&
-is_involution(~id_u) &&
-is_constant(~nil) &&
-
+is_involution(~id_u) && is_constant(~nil) &&
 (-one)(true) == (~nil)(true) &&
-is_involution(-id_u) &&
-is_constant(-nil) &&
+is_involution(-id_u) && is_constant(-nil) &&
 
 is_iso(-id_u >> ~id_u) &&
 !is_involution(-id_u >> ~id_u));
 \end{cpp}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.48\linewidth}
+\begin{minipage}[t]{0.5\linewidth}
 \begin{cpp}
 // Products and coproducts:
 constexpr auto fst = Π<1, pair<bool, size_t>>{};
@@ -85,29 +101,8 @@ is_epic(ret) && !is_monic(ret) &&
 (inl >> ret)(true) && !(inl >> ret)(false));
 \end{cpp}
 \end{minipage}
-\caption{\hyperref[def:rule1]{Rule~1}: Substitution.
-Equals cannot be told apart, so a function is its graph, and functions are the arrows of a category, with composition \cppinline{>>} their only structure.
-Top left: the identities.
-Top right: the points, constant arrows, monotone and antitone at once and neither monic nor epic.
-Bottom left: the involutions, each the C++ operator post-composed, so \cppinline{!f} is $\neg \circ f$; two compose to an isomorphism and to no involution.
-Bottom right: a projection and its section, an injection and its retraction, the arrows that are epic or monic but not both.
-A law is asked on the arrow's value, at compile time: \cppinline{is_monic(f)} reads what the concept \cppinline{IsMonicArrow} reads, and a composite's law is derived from its legs.}
-\label{lst:rule1}
-\end{listing}
 
-In Listing~\ref{lst:rule1}, \cppinline{const T} and \cppinline{const T&} are one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
-An arrow is a function made a value, and its laws are equations between values, so \cppinline{==} is where Leibniz's law meets the program: the kernel asks it of no type, the listings of every carrier a law is stated on.
-The properties a law singles out, mono, epi and iso by cancellation~\cite{pierce1991basic}, involution, the variances, are certificates declared or derived on the arrow, whose type names carrier and operation, so a certificate is about the signature.
-Two consequences keep that exact: a function returns a value, never a reference, and every member function, a call operator included, is \cppinline{const}.
-The grammar of Appendix~\ref{app:fjlt:syntax} has neither a reference type nor a non-\cppinline{const} member, and the linter of Section~\ref{sec:limits} holds \Cpp{} to the same.
-The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.
-
-\paragraph{Rule 2, Abstraction: a type varies behaviour only through its concepts and traits.}
-\phantomsection\label{def:rule2}
-Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts and traits say it can, and nothing else.
-That is the premise of Wadler's free theorems~\cite{wadler1989theorems}, with concepts and traits in the place of type classes~\cite{wadler1989adhoc}, and what it conserves is the body's independence from the carrier: \cppinline{f<T>} is one generic term applied to \cppinline{T}'s dictionary, so it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
-
-\begin{listing}[htbp]
+\medskip
 \begin{minipage}[t]{0.47\linewidth}
 \begin{cpp}
 using namespace std;
@@ -172,11 +167,13 @@ concat<Sections<size_t>, compose>(
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
-Left: a monoid is a set which is closed under an associative binary operation and equipped with a unit element.
+Top, certificates on arrows alone, with Listing~\ref{lst:rule1}'s arrows: the points are monotone and antitone at once and neither monic nor epic; each involution is the \Cpp{} operator post-composed, so \cppinline{!f} is $\neg \circ f$, and two compose to an isomorphism and to no involution; a projection and its section, an injection and its retraction, are epic or monic but not both.
+A law is asked on the arrow's value, at compile time: \cppinline{is_monic(f)} reads what the concept \cppinline{IsMonicArrow} reads, and a composite's law is derived from its legs.
+Bottom left: a monoid is a set which is closed under an associative binary operation and equipped with a unit element.
 Its elements need not be comparable, since equality is not decidable on every carrier, on functions for one.
 The unit is identified instead: \cppinline{is_unit}, by default equality with the unit, which a carrier may supply otherwise.
 The monoid shape is certified for the family of \cppinline{std::unsigned_integral} under \cppinline{(0, +)}.
-Right: \cppinline{concat} at the lengths that need no recursion, none, one and two.
+Bottom right: \cppinline{concat} at the lengths that need no recursion, none, one and two.
 The monoid signatures are: \cppinline{size_t} under \cppinline{(0, +), (1, *)}, \cppinline{bool} under \cppinline{(false, ||), (true, &&)}, \cppinline{string} under \cppinline{("", +)}, and \cppinline{Sections}, the sections of $+$, under \cppinline{(id, >>)}, with \cppinline{adding} the curried $+$.
 }
 \label{lst:rule2}
@@ -244,6 +241,7 @@ For \cppinline{concat} the equation is its definition, $h(\mathit{nil}) = \mathi
 Meijer et al.\ take their recursion operators in CPO, where one list type holds the finite, the infinite and the partial lists, and a fold over it need not end; Jlt takes them for data only, the initial algebras in Set, where a list in a type is finite as an initial algebra and the chain in a value is finite by the descent, and codata is out of scope: a coalgebra is admitted as a generator bounded by a count, never as a value.
 The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value}.
 In both cases, an iteration that can be mapped onto the chain of Figure~\ref{fig:structures} contains no loop and terminates, whether the chain is held as one count or as the elements of an array.
+A loop is barred for termination, not for purity: the locals it changes cannot leak, since constant evaluation lets a function modify only objects whose lifetime began within it, the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
 In the terms of Meijer et al., \cppinline{concat} over a list is a catamorphism.
 The chain is an anamorphism, $\mathit{prior}$ unfolded from the seed and delimited where it has nothing.
 \cppinline{concat} over the chain is a hylomorphism, and the chain is never built as a list, only as its fold (Appendix~\ref{app:fjlt:translation}).
