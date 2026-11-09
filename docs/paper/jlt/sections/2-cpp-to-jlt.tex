@@ -5,12 +5,14 @@
 Jlt is standard \Cpp{23} under three rules, not a dialect and not a library; the compiler enforces some of the rules, and we say which.
 Each rule has a listing of a few lines, verbatim from the repository's test up to formatting and the definitions a listing omits or the test imports; the LLVM IR of Appendix~\ref{app:fjlt:ssa} is Clang~23's output, its flags in its caption, with names shortened.
 
-\paragraph{Rule 1, Substitution: values and pure functions.}
+\paragraph{Rule 1, Substitution: const values and an identity-preserving copy.}
 \phantomsection\label{def:rule1}
-Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
-Every function is \cppinline{constexpr} and depends on its arguments alone.
+Every type a Jlt program passes around is \cppinline{std::semiregular}, and its copy is as good as the original: nothing else is assumed.
+Every function is \cppinline{constexpr}, every member function \cppinline{const}, and each depends on its arguments alone.
 What the rule conserves is what has come to be called Leibniz's law, that equals cannot be told apart by any operation, at either binding time, whose converse is the principle Leibniz himself stated~\cite{leibniz1686discours,leibniz1686discourse}: a call may be replaced by its value, $e[f(x)] = e[v]$ whenever $f(x)$ evaluates to $v$.
+The compiler makes that replacement while compiling, where its optimisations begin.
 In a programming language the law is referential transparency~\cite{strachey2000fundamental}, and a language where $a = b$ but $f(a) \neq f(b)$ for some $f$ has an equality one cannot reason with.
+The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.48\linewidth}
@@ -41,23 +43,20 @@ cpy(true) == ans(false) &&
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution.
-A function made a value is an arrow: a copy of it is as good as the original, arrows compose with \cppinline{>>}, and every call here is replaced by its value while compiling.
+A function object is a value: a copy of it is as good as the original, function objects compose with \cppinline{>>}, and every call here is replaced by its value while compiling.
 Left: the identities.
 Right: the points, constant arrows, and a copy.}
 \label{lst:rule1}
 \end{listing}
 
-In Listing~\ref{lst:rule1}, \cppinline{const T} and \cppinline{const T&} are one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
+A function object is a value, as an abstraction is in the $\lambda$-calculus~\cite{pierce2002tapl}: the arguments it binds are its fields, so it is copied as any value is; \cppinline{constant<bool>(42uz)} carries its 42 (Listing~\ref{lst:rule1}).
 A value in Jlt is a value in Leibniz's sense: a copy cannot be told from its original, so either may stand for the other.
-In \Cpp{} that is Stepanov's regular type, whose copy equals its original and which also has \cppinline{==}~\cite{stepanov2009elements}.
-Rule~1 keeps the copy and drops the comparison, asking \cppinline{std::semiregular}, because equality of values is undecidable in general, already for functions~\cite{rice1953classes}; \cppinline{==}, where a law needs it, is one more operation of the carrier's signature, as \cppinline{+} is.
-Two consequences keep it exact: a function returns a value, never a reference, and every member function, a call operator included, is \cppinline{const}.
-The grammar of Appendix~\ref{app:fjlt:syntax} has neither a reference type nor a non-\cppinline{const} member, and the linter of Section~\ref{sec:limits} holds \Cpp{} to the same.
-With the address and mutation out of reach, no arrow tells a copy from its original, so they are equal up to canonical isomorphism in Mazur's sense~\cite{mazur2008equal}, an object being known, by Yoneda's lemma, through its arrows out~\cite{maclane1971categories}.
+In \Cpp{} a copy equal to its original is Stepanov's \cppinline{std::regular} type, which also has \cppinline{==}~\cite{stepanov2009elements}.
+Rule~1 keeps the copy but only requires \cppinline{std::semiregular}, because equality of values is undecidable for functions~\cite{rice1953classes}.
+Two things keep it exact: a function returns a value, never a reference, and a call operator is a member function like any other, so it too is \cppinline{const}.
+\cppinline{const T} and \cppinline{const T&} are therefore one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
 
-So a call whose arguments are known may be replaced by its value, and the compiler does so while compiling, where its optimisations begin.
-An arrow is a function made a value, so it too is copied, passed and composed as one (Listing~\ref{lst:rule1}).
-The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.
+With the address and mutation out of reach, no arrow tells a copy from its original, so they are equal up to canonical isomorphism in Mazur's sense~\cite{mazur2008equal}, an object being known, by Yoneda's lemma, through its arrows out~\cite{maclane1971categories}.
 
 \paragraph{Rule 2, Abstraction: a type varies behaviour only through its concepts and traits.}
 \phantomsection\label{def:rule2}
