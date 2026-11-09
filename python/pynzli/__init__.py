@@ -86,9 +86,9 @@ def to_string(letters):
     ASCII character.  ``ext`` gives letters as ``bytes``; a ``str`` is asked
     for, never guessed.  A byte past ASCII raises ``ValueError``, named.
 
-    >>> to_string(bytes([71, 65, 255, 67]))
+    >>> to_string(b"GAATTC")
     'GAATTC'
-    >>> to_string(b"GA\xffC")
+    >>> to_string(bytes([71, 65, 255, 67]))
     Traceback (most recent call last):
     ValueError: to_string: byte 255 at 2 is no ASCII letter
     """
