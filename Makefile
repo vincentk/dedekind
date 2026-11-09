@@ -73,8 +73,8 @@ compile: $(BUILD_DIR)/CMakeCache.txt ## Configure if needed and build all target
 # modules, test executables, IR fixture showcases) without running any
 # tests. Useful as a fast local sanity gate — catches module-DAG
 # violations, Unicode/species-visibility issues, and template
-# instantiation errors without paying the cost of ctest, Python
-# bindings, or Jupyter integration runs.
+# instantiation errors without paying the cost of ctest or the Python
+# bindings.
 test-compile: compile ## compile, plus the IR-fixture showcases: type-checks every C++ file without running tests
 	cmake --build $(BUILD_DIR) --target set-pruning-ir-fixture --parallel $(JOBS)
 
