@@ -186,6 +186,7 @@ So $n$ names the chain's cardinality, and $0$ the empty chain.
 Order: after Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself.
 The chain of an element is its forward orbit, here the chain of $\mathit{prior}\,n$.
 The carrier needs neither an order nor an origin.
+Terms: replace $\mathbf{1} + X$ by a polynomial functor $F$, $X$ by its initial algebra $\mu F$, and $\mathit{prior}$ by Lambek's inverse $\mathit{out} : \mu F \to F\,\mu F$; the chain below $n$ becomes the subterms below a term $t$, $\mathit{sub}(t)$, and $n$ becomes $t$'s height.
 Reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
 Algebra: $f$ lands in $S$, and the fold in $M$.
 In the simplest case $S = M$ is a monoid.
@@ -202,12 +203,16 @@ These are the standard's forward, bidirectional and random-access iterators~\cit
 
 \paragraph{Rule 3, Descent: recursion is structural.}
 \phantomsection\label{def:rule3}
-A Jlt program recurses on a structure whose residue, what remains to be folded, gets smaller at every step and so reaches its end.
-The step is Figure~\ref{fig:structures}'s $\mathit{prior}$, which steps down and has nothing at the bottom, or another step down the same order, as halving is (Listing~\ref{lst:laws}), on an order with no infinite descent.
+Recursion in Jlt is structural~\cite{burstall1969proving}: every step reduces a finite residue, so the recursion ends.
+Figure~\ref{fig:structures} draws the residue: the chain that $\mathit{prior}$ reaches from a seed $n$, or, for a term $t$, its subterms $\mathit{sub}(t)$ under $\mathit{out}$.
+Another step down the same order serves as well, as halving does (Listing~\ref{lst:laws}), on an order with no infinite descent.
+Codata, structures observed without end, is deliberately out of scope~\cite{turner2004total}.
 What the rule conserves is that inductive argument: structural induction~\cite{burstall1969proving}, a language all of whose programs end by it being, in a stricter form, Turner's total functional programming~\cite{turner2004total}, and the fold's universal property its equation~\cite{meijer1991functional,hutton1999tutorial}, $h = \mathit{fold}\,a$ exactly when $h \circ \mathit{in} = a \circ F\,h$.\footnote{$F$ is one layer of the data type with a hole for the rest, for a list of words $F\,X = 1 + \mathit{Word} \times X$; $\mathit{in}$ builds one more layer, the constructors $\mathit{nil}$ and $\mathit{cons}$; $a$, the algebra, says what to do with one layer once the rest is folded; and $F\,h$ applies $h$ to the rest only.
 For \cppinline{concat} the equation is its definition, $h(\mathit{nil}) = \mathit{unit}$ and $h(\mathit{cons}(w, r)) = w \oplus h(r)$, and \emph{exactly when} says that \cppinline{concat} is the only function that satisfies both.}
-Meijer et al.\ take their recursion operators in CPO, where one list type holds the finite, the infinite and the partial lists, and a fold over it need not end; Jlt takes them for data only, the initial algebras in Set, where a list in a type is finite as an initial algebra and the chain in a value is finite by the descent, and codata is out of scope: a coalgebra is admitted as a generator bounded by a count, never as a value.
+Meijer et al.\ take their recursion operators in CPO, where one list type holds the finite, the infinite and the partial lists, and a fold over it need not end; Jlt takes them for data only, the initial algebras in Set, where a list in a type is finite as an initial algebra and the chain in a value is finite by the descent; a coalgebra is admitted only as a generator bounded by a count, never as a value.
 The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value}.
+In \Cpp{}, a fold over a value is the standard's \cppinline{ranges::fold_left} over a range whose length is read, and checked against its bound, before the first step.
+A fold over a type is a function template instantiated once per node: each node of a term is a class template whose type names its children's, as \cppinline{-id_u >> ~id_u} composes two composites, so the term's shape is its type, and the recursion is the compiler's instantiation, which ends with the type's finite depth.
 In both cases, an iteration that can be mapped onto the chain of Figure~\ref{fig:structures} contains no loop and terminates, whether the chain is held as one count or as the elements of an array.
 A loop is barred for termination, not for purity: the locals it changes cannot leak, since constant evaluation lets a function modify only objects whose lifetime began within it, the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
 In the terms of Meijer et al., \cppinline{concat} over a list is a catamorphism.
