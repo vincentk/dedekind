@@ -24,7 +24,7 @@ import dedekind.sets;
 import dedekind.relational;
 import dedekind.order;
 import dedekind.algebra;
-import dedekind.sequences;  // the bounded >> over a finite middle
+import dedekind.sequences; // the bounded >> over a finite middle
 
 using namespace dedekind::category;
 using namespace dedekind::sets;

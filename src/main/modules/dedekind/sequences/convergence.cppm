@@ -530,9 +530,11 @@ using dedekind::order::IsTotallyOrdered;
 
 /** @brief A part of an offset, at most @c PTRDIFF_MAX, read into the ℤ proxy.
  *  @param n the part. */
-constexpr dedekind::sets::SignedCardinality signed_chunk(std::size_t n) noexcept {
+constexpr dedekind::sets::SignedCardinality signed_chunk(
+    std::size_t n) noexcept {
   return dedekind::sets::SignedCardinality{
-      dedekind::sets::SignedExtensionalCardinal<>{static_cast<std::ptrdiff_t>(n)}};
+      dedekind::sets::SignedExtensionalCardinal<>{
+          static_cast<std::ptrdiff_t>(n)}};
 }
 
 /** @brief @f$a + n@f$ on the saturating ℤ proxy, for an offset @c n over the
