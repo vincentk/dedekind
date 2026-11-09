@@ -207,11 +207,11 @@ Codata, structures observed without end, which Turner keeps apart from data~\cit
 The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value} of bounded rank.
 
 In \Cpp{}, a fold over a type is a function template instantiated once per node, the overload chosen by the node's type.
-Each node of a term is a class template whose type names its children's, as \cppinline{-id_u >> ~id_u} composes two composites, so the term's shape is its type.
+Each node of a term is a class template whose type names its children's, as \cppinline{dec >> dec} composes two composites, with \cppinline{dec = -id_u >> ~id_u}, so the term's shape is its type.
 The recursion is then the compiler's instantiation, which ends with the type's finite height.
-A fold over a value is the standard's \cppinline{ranges::fold_left} over a range whose rank, its length, is read before the first step.
+A fold over a value is the standard's \cppinline{ranges::fold_left} over a range whose rank is bounded before the first step, by its length or by a budget declared with it.
 In the terms of Meijer et al.~\cite{meijer1991functional}, \cppinline{fold_left} over the chain is a hylomorphism: the chain is never built as a list, only folded (Appendix~\ref{app:fjlt:translation}).
-A loop that shows its end is sugar for the fold it denotes: a counted \cppinline{for} whose body writes neither its counter nor its bound is a fold over \cppinline{iota(0, n)}, and a range-\cppinline{for} over a bounded range a fold over that range (Appendix~\ref{app:fjlt:closure}).
+A loop that shows its end is sugar for the fold it denotes: a counted \cppinline{for (T i = 0; i < n; ++i)}, with counter and bound of one unsigned type and a body that writes neither, is a fold over \cppinline{iota(0, n)}, and a range-\cppinline{for} over a bounded range a fold over that range (Appendix~\ref{app:fjlt:closure}).
 Its state is no objection: a counter inside a \cppinline{constexpr} function cannot escape it, since constant evaluation lets a function modify only objects whose lifetime began within the call, the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
 A loop whose end nothing shows stays out.
 
