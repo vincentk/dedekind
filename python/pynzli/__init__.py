@@ -49,7 +49,7 @@ def ext(S, *, limit=1 << 20):
     a relation                        ``frozenset`` of its rows, ``tuple``
     a relation valued in K₃           its χ, a read-only map from rows to K₃
     a relation certified a function   a read-only map, argument to value
-    a text of letters                 ``bytes``
+    a text of letters                 ``bytes`` (``to_string``: a ``str``)
     the positions of a query          ``Seq[u64]``
     ================================  =====================================
 
@@ -79,6 +79,27 @@ def ext(S, *, limit=1 << 20):
     if _attr(S, "_carrier") is not None:
         return _set(S, limit)
     raise TypeError(f"ext({S!r}): no set, relation, function or sequence of pynzli")
+
+
+def to_string(letters):
+    """``to_string(letters)``: a text of letters as a ``str``, each letter its
+    ASCII character.  ``ext`` gives letters as ``bytes``; a ``str`` is asked
+    for, never guessed.  A byte past ASCII raises ``ValueError``, named.
+
+    >>> to_string(b"GAATTC")
+    'GAATTC'
+    >>> to_string(b"GA\xffC")
+    Traceback (most recent call last):
+    ValueError: to_string: byte 255 at 2 is no ASCII letter
+    """
+    if not isinstance(letters, bytes):
+        raise TypeError(f"to_string({letters!r}): letters are bytes, from ext")
+    try:
+        return letters.decode("ascii")
+    except UnicodeDecodeError as e:
+        raise ValueError(
+            f"to_string: byte {letters[e.start]} at {e.start} is no ASCII letter"
+        ) from None
 
 
 def _within(n, what, limit):
@@ -134,4 +155,4 @@ def _relation(R, limit):
     return frozenset(r for r in rows if r in R)
 
 
-__all__ = ["__version__", "ext", "jlt", "pst", "trsk"]
+__all__ = ["__version__", "ext", "jlt", "pst", "to_string", "trsk"]
