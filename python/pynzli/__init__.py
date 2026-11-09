@@ -26,11 +26,12 @@ The C++ API reference: https://vincentk.github.io/dedekind/
 The Jlt paper: https://vincentk.github.io/dedekind/jlt.pdf
 """
 
-from itertools import islice, product
+from itertools import islice
 from math import prod
 from types import MappingProxyType
 
 from ._jlt import MatchQuery, RandomText, WindowQuery, collect, count
+from ._pst import UniverseU64
 from ._version import __version__
 from .pst import A, K3, Seq, ap, cardinality, carrier, codomain, u64
 from .pst import _attr
@@ -134,12 +135,31 @@ def _count(columns):
     return prod(cardinality(_universe(c)) for c in columns)
 
 
+def _elements(U):
+    """A universe's elements in its order, lazily, read only when asked for:
+    the word's are 0 to 2⁶⁴ − 1, a chain's its own."""
+    if isinstance(U, UniverseU64):
+        yield from range(cardinality(U))
+    else:
+        yield from U
+
+
+def _rows(columns):
+    """A product's rows in order, lazily: the first column slowest."""
+    if not columns:
+        yield ()
+        return
+    for x in _elements(_universe(columns[0])):
+        for rest in _rows(columns[1:]):
+            yield (x, *rest)
+
+
 def _arguments(columns):
     """The arguments of a function, as ``ap`` takes them: a value for one
     column, a tuple for several."""
     if len(columns) == 1:
-        return iter(_universe(columns[0]))
-    return product(*map(_universe, columns))
+        return _elements(_universe(columns[0]))
+    return _rows(columns)
 
 
 def _read_only(pairs):
@@ -161,7 +181,7 @@ def _points(S, caller):
             pairs = ((x, ap(S, x)) for x in _arguments(columns))
             return pairs, None, _read_only, _count(columns), "arguments in its domain"
         columns = factors(S)
-        rows = product(*map(_universe, columns))
+        rows = _rows(columns)
         if codomain(S) is K3:
             pairs = ((r, ap(S, r)) for r in rows)
             return pairs, None, _read_only, _count(columns), "rows in its product"
@@ -169,12 +189,12 @@ def _points(S, caller):
     if _attr(S, "_carrier") is not None:
         U = _universe(carrier(S))
         if codomain(S) is K3:
-            pairs = ((x, ap(S, x)) for x in U)
+            pairs = ((x, ap(S, x)) for x in _elements(U))
             return pairs, None, _read_only, cardinality(U), "elements in its universe"
         n = _attr(S, "_cardinality")
         if n is not None:
-            return iter(S), None, frozenset, n, "elements"
-        return iter(U), S.__contains__, frozenset, cardinality(U), "elements in its universe"
+            return _elements(S), None, frozenset, n, "elements"
+        return _elements(U), S.__contains__, frozenset, cardinality(U), "elements in its universe"
     raise TypeError(f"{caller}({S!r}): no set, relation, function or sequence of pynzli")
 
 
