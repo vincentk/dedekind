@@ -8,7 +8,7 @@
  *
  * @section embeddings__Overview
  * Two faithful ring homomorphisms, both spelled over the same 2×2 carrier
- * `Matrix2x2V<T>` from `:matrix`:
+ * `Matrix2x2V<T>` from `:mat2x2`:
  *
  *   ℂ ↪ M₂(T):   a + b·i  ↦  [[ a, -b ],
  *                              [ b,  a ]]
