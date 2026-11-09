@@ -27,7 +27,6 @@ The Jlt paper: https://vincentk.github.io/dedekind/jlt.pdf
 """
 
 from itertools import islice, product
-from warnings import warn
 from math import prod
 from types import MappingProxyType, SimpleNamespace
 
@@ -93,27 +92,19 @@ def take(S, n=5, *, limit=None):
     in its universe's order, shaped as ``ext`` shapes the whole, as a data
     frame's ``head`` is.  It needs no count, so it reaches what ``ext``
     refuses; it scans at most ``limit`` points (``options.limit`` unless
-    given); where that leaves it short it returns what it found, with a
-    warning saying how to see more.
+    given), and returns what it found there.
 
     >>> from pynzli.pst import A, u64, π
     >>> U = A(u64)
     >>> take(U & (π % 2 == 0), 3)
     frozenset({0, 2, 4})
-    >>> take(U & (π % 1000 == 999))  # warns: 1 of 5, raise pynzli.options.limit
+    >>> take(U & (π % 1000 == 999))  # within the first 1000: to see more, raise the limit
     frozenset({999})
     """
     limit = options.limit if limit is None else limit
-    points, keep, shape, size, what = _points(S, "take")
+    points, keep, shape, _, _ = _points(S, "take")
     scanned = islice(points, limit)
-    found = list(islice(filter(keep, scanned) if keep else scanned, n))
-    if len(found) < n and size > limit:
-        warn(
-            f"take: {len(found)} of {n} among the first {limit} {what}; "
-            "to see more, raise pynzli.options.limit",
-            stacklevel=2,
-        )
-    return shape(found)
+    return shape(islice(filter(keep, scanned) if keep else scanned, n))
 
 
 def to_string(letters):
