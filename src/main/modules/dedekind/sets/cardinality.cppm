@@ -187,7 +187,8 @@ export struct Numeral {
   }
   /** @return the word, where the numeral is one: below @f$2^{64}@f$. */
   constexpr std::optional<std::size_t> word() const {
-    if (high.empty()) return static_cast<std::size_t>(low);
+    if (high.empty() && low <= std::numeric_limits<std::size_t>::max())
+      return static_cast<std::size_t>(low);
     return std::nullopt;
   }
 
@@ -206,8 +207,8 @@ constexpr limb at(const std::vector<limb>& v, std::size_t i) {
 }
 /** @brief The state of a carried walk over limbs: those done, and the carry. */
 struct Carried {
-  std::vector<limb> limbs;
-  limb carry;
+  std::vector<limb> limbs{};
+  limb carry{};
 };
 /** @brief One step of @c a @c + @c b: the limbs at @c i and the carry. */
 struct AddLimbs {
