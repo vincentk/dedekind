@@ -28,7 +28,7 @@ The Jlt paper: https://vincentk.github.io/dedekind/jlt.pdf
 
 from itertools import islice, product
 from math import prod
-from types import MappingProxyType, SimpleNamespace
+from types import MappingProxyType
 
 from ._jlt import MatchQuery, RandomText, WindowQuery, collect, count
 from ._version import __version__
@@ -37,14 +37,7 @@ from .pst import _attr
 from .trsk import arrow, dom, factors, function
 
 
-options = SimpleNamespace(limit=1000)
-"""``pynzli.options``: settings read at each call.  ``options.limit``, default
-1000, is how many points ``ext`` materialises and ``take`` scans before it
-refuses; set it once (``pynzli.options.limit = 10**6``), or pass ``limit=`` to
-one call."""
-
-
-def ext(S, *, limit=None):
+def ext(S, *, limit=1000):
     """``ext(S)``: the extension of an intensional value, immutable, its shape
     the source's type's:
 
@@ -60,8 +53,7 @@ def ext(S, *, limit=None):
     the positions of a query          ``Seq[u64]``
     ================================  =====================================
 
-    A source of more than ``limit`` points (``options.limit`` unless given)
-    raises ``ValueError``, the count named: never truncated; ``take`` previews
+    A source of more than ``limit`` points raises ``ValueError``, the count named: never truncated; ``take`` previews
     it.  Where the library does not count a set, its universe's count bounds it.
 
     >>> from pynzli.jlt import abc, fixed_by, len as length, random_text, rev, words
@@ -73,9 +65,8 @@ def ext(S, *, limit=None):
     ('bytes', 8, True)
     >>> ext(random_text(abc("ACGT"), 10**9))
     Traceback (most recent call last):
-    ValueError: ext: 1000000000 letters, past the limit 1000 (pynzli.options.limit)
+    ValueError: ext: 1000000000 letters, past the limit 1000 (pass limit=)
     """
-    limit = options.limit if limit is None else limit
     if isinstance(S, RandomText):
         _within(len(S), "letters", limit)
         return bytes(S)
@@ -87,12 +78,12 @@ def ext(S, *, limit=None):
     return shape(filter(keep, points) if keep else points)
 
 
-def take(S, n=5, *, limit=None):
+def take(S, n=5, *, limit=1000):
     """``take(S, n)``: a preview, the first ``n`` points of a set or relation
     in its universe's order, shaped as ``ext`` shapes the whole, as a data
     frame's ``head`` is.  It needs no count, so it reaches what ``ext``
-    refuses; it scans at most ``limit`` points (``options.limit`` unless
-    given), and returns what it found there.
+    refuses; it scans at most ``limit`` points and returns what it found
+    there.
 
     >>> from pynzli.pst import A, u64, π
     >>> U = A(u64)
@@ -101,7 +92,6 @@ def take(S, n=5, *, limit=None):
     >>> take(U & (π % 1000 == 999))  # within the first 1000: to see more, raise the limit
     frozenset({999})
     """
-    limit = options.limit if limit is None else limit
     points, keep, shape, _, _ = _points(S, "take")
     scanned = islice(points, limit)
     return shape(islice(filter(keep, scanned) if keep else scanned, n))
@@ -131,7 +121,7 @@ def to_string(letters):
 def _within(n, what, limit):
     """Refuse ``n`` points past ``limit``, naming ``n``."""
     if n > limit:
-        raise ValueError(f"ext: {n} {what}, past the limit {limit} (pynzli.options.limit)")
+        raise ValueError(f"ext: {n} {what}, past the limit {limit} (pass limit=)")
 
 
 def _universe(c):
@@ -188,4 +178,4 @@ def _points(S, caller):
     raise TypeError(f"{caller}({S!r}): no set, relation, function or sequence of pynzli")
 
 
-__all__ = ["__version__", "ext", "jlt", "options", "pst", "take", "to_string", "trsk"]
+__all__ = ["__version__", "ext", "jlt", "pst", "take", "to_string", "trsk"]

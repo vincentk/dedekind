@@ -129,10 +129,10 @@ True
 [0, 1, 2]
 >>> ext(U)
 Traceback (most recent call last):
-ValueError: ext: 18446744073709551616 elements, past the limit 1000 (pynzli.options.limit)
+ValueError: ext: 18446744073709551616 elements, past the limit 1000 (pass limit=)
 >>> ext(evens)  # not counted: its universe bounds it
 Traceback (most recent call last):
-ValueError: ext: 18446744073709551616 elements in its universe, past the limit 1000 (pynzli.options.limit)
+ValueError: ext: 18446744073709551616 elements in its universe, past the limit 1000 (pass limit=)
 >>> F & (π < 3)  # doctest: +IGNORE_EXCEPTION_DETAIL
 Traceback (most recent call last):
 TypeError: 𝔽ₚ has no order

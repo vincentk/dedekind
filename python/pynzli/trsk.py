@@ -55,10 +55,10 @@ True
 True
 >>> ext(succ)
 Traceback (most recent call last):
-ValueError: ext: 18446744073709551616 arguments in its domain, past the limit 1000 (pynzli.options.limit)
+ValueError: ext: 18446744073709551616 arguments in its domain, past the limit 1000 (pass limit=)
 >>> ext(U64 * U64 & (π_2 * π_2 == π_1))  # a root: no function
 Traceback (most recent call last):
-ValueError: ext: 340282366920938463463374607431768211456 rows in its product, past the limit 1000 (pynzli.options.limit)
+ValueError: ext: 340282366920938463463374607431768211456 rows in its product, past the limit 1000 (pass limit=)
 
 ``copy`` and ``merge`` are the Frobenius spiders, ``diag`` is η, ``>>`` the
 Kleisli composition (its ∃ the monad's μ), ``converse(R)`` the dagger.  Where
