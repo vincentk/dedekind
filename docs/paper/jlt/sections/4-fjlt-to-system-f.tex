@@ -10,7 +10,7 @@ It is total on FJlt, and Section~\ref{sec:guarantees} says what the image guaran
 Six of its rules carry the listings' structure, and Table~\ref{tab:rules} states them.
 Conditionals, conversions and the remaining operators are routine, and Appendix~\ref{app:fjlt:translation} gives them all.
 A generic function is checked under two contexts: $\Delta$, its template head and \cppinline{requires} clause, the type variables and the constraints assumed on them; and $\Gamma$, its parameters with their types.
-The translation turns $\Delta$'s type variables into System~F's $\Lambda$, each of its constraints into a record parameter $q$, a \emph{dictionary}, and $\Gamma$'s variables into $\lambda$; a dictionary built at concrete types, which a call passes for $q$, is written $d$.
+The translation turns $\Delta$'s type variables into System~F's $\Lambda$, each of its constraints $Q$ into a record parameter $q_Q$, a \emph{dictionary}, and $\Gamma$'s variables into $\lambda$; a dictionary built at concrete types, which a call passes for $q_Q$, is written $d$.
 
 \begin{table}[ht]
 \centering
@@ -22,7 +22,7 @@ FJlt & System~F & in \\
 \texttt{concept C = Ā} & $\mathit{Dict}_C\,\overline{\alpha} = \{\,\overline{r : \llbracket A \rrbracket}\,\}$ & Listing~\ref{lst:rule2} \\
 \texttt{constexpr τ f(τ̄) = delete} & nothing & Listing~\ref{lst:rule2} \\
 \texttt{template <>}\newline\texttt{constexpr τ f<τ̄>(x̄) \{ e \}} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & Listing~\ref{lst:rule2} \\
-\texttt{template <ᾱ> requires Q̄}\newline\texttt{constexpr τ f(x̄) \{ e \}} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_Q}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & Listing~\ref{lst:rule2} \\
+\texttt{template <ᾱ> requires }$\overline{C\texttt{<}\overline{\tau}\texttt{>}}$\newline\texttt{constexpr τ f(x̄) \{ e \}} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_C\,\overline{\tau}}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & Listing~\ref{lst:rule2} \\
 \texttt{f<τ̄>(ē)} & $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket}$ & Listing~\ref{lst:rule2} \\
 \texttt{fold\_left(r, a, f)}, $r$ a chain & $\pi_2\,(\mathit{iter}\,|r|\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket))$, $\mathit{step}$ the chain's $\mathit{next}$ beside $\llbracket f \rrbracket$ at its $\mathit{head}$ & Listing~\ref{lst:rule3} \\
 \bottomrule
@@ -35,7 +35,7 @@ The whole translation is Figures~\ref{fig:fjlt-dictionaries} to~\ref{fig:fjlt-re
 A law is a field of type \texttt{Bool}, and a shape built from shapes is a record holding their records, which is how a superclass is passed.
 The whole is dictionary passing, Wadler and Blott's translation of type classes, here into System~F, the record being the dictionary~\cite{wadler1989adhoc}.
 Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
-\cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}, so under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{d.op a b}.
+\cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}, so under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{q.op a b}.
 
 \begin{table}[ht]
 \centering
