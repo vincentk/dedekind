@@ -3,7 +3,7 @@
 \label{sec:binding}
 
 Every function in this paper has run twice already.
-The test behind the listings calls the same functions at runtime, on values it did not have at compile time.
+The test behind the listings calls the same functions at run time, on values it did not have at compile time.
 Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own.\footnote{A \cppinline{consteval} function is evaluated only at compile time, so it has one binding time, which is why Rule~1 asks \cppinline{constexpr} and not \cppinline{consteval}.}
 Theorem~\ref{thm:simulation} says the two evaluations agree, which is the presumption of this section: moving a call from compile time to run time changes where it is evaluated, not what it evaluates to.
 Both are partial evaluation~\cite{jones1993partial} at build time: the compiler evaluates what it can and leaves the processor the rest.

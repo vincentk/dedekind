@@ -6,7 +6,7 @@ Figures~\ref{fig:fjlt-entailment} and~\ref{fig:fjlt-typing} say which FJlt progr
 As Appendix~\ref{app:fjlt:syntax}'s carrier sets keep \RuleOne{}, their rules hold a program to \RuleTwo{}, through the definition check and resolution, and to \RuleThree{}, through well-founded declarations and ranges (Section~\ref{sec:posture}).
 There are three judgments.
 $\Delta \Vdash Q$ says that the constraint $Q$ is \emph{entailed} in the context $\Delta$, which holds type variables and assumed constraints.
-$\Delta; \Gamma \vdash e : \tau$ types a term.
+$\Delta; \Gamma \vdash e : \tau$ types a term, $\Gamma$ holding the term variables with their types.
 $\vdash D$ says a declaration is well formed.
 A program is well formed when its declarations are and its closed term has a type.
 The compiler holds a program to most of this.

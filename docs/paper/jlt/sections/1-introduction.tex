@@ -11,31 +11,37 @@ Either becomes a rewrite by Leibniz's law, which Rule~1 conserves (Section~\ref{
 For the declared laws Birkhoff's theorem makes the reasoning complete: an equation follows from the laws by equational reasoning exactly when it holds in every model of them~\cite{birkhoff1935structure,burris1981universalalgebra}.
 A class with laws is an equational theory and its instances the models, a variety, and a stronger class has fewer instances, so the constraints describe the structure and the structure licenses the optimisation.
 The goal is correctness by construction in Dijkstra's sense~\cite{dijkstra1976discipline}.
+The case for functional programming is usually made in a language built around it, sometimes experimental or niche.
+The underlying concepts, however, are often older, run deeper and have broader reach than is assumed:
+the most widely written functional language may well be SQL's \texttt{SELECT}, a declarative query over relations~\cite{iso9075sql}, whose algebra is Codd's~\cite{codd1970relational}, with Tarski's calculus of relations~\cite{tarski1941calculus} its older relative.
 
-The case is usually made in a language built around it.
-This paper makes it in a mainstream systems language instead, \Cpp{23}.
+This paper makes the case in a mainstream multi-paradigm systems language: \Cpp{23}.
 Much of machine learning and most embedded devices run on \Cpp{}, and a growing number of the people who write it arrive from Python with a functional vocabulary.
-For them the repository binds the library's combinators into Python as handles to the compiled core, so the laws declared in \Cpp{} hold in an interactive session: the specialisations they license run there at run time, and only what the compiler evaluates of them is fixed when the bindings are built (Section~\ref{sec:binding}).
-The most widely written functional language may well be SQL's \texttt{SELECT}, a declarative query over relations~\cite{iso9075sql}, whose algebra is Codd's~\cite{codd1970relational}, with Tarski's calculus of relations~\cite{tarski1941calculus} its older relative.
-A functional fragment of \Cpp{23} is worth drawing because the whole is too large to work in with confidence, and worth drawing now because \Cpp{23} is the first standard with every ingredient: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
-Performance is why one comes to such a language in the first place, by its zero-overhead principle~\cite{stroustrup2005abstraction},\footnote{Stroustrup has since called the phrase an understatement: ``It's compiled away. This is why I talk about zero overhead abstraction, and people are beginning to take me to task for that because that's understating and underestimating the ability of the \Cpp{} compiler. We can do negative overhead abstraction''~\cite{stroustrup2026peterman}.
-Listing~\ref{lst:sites} is a case: a count over all sequences compiles away to a constant, a matcher's construction to its table, and a law with a length bound to a vectorised scan.} and the posture does not affect it: an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point.
-What the posture addresses is the other cost, the language's size.
-Alignment with the posture is easier to check than a decade ago: for example, a language model of code~\cite{chen2021evaluating} reads every change against its rules.
-And while this is not a hard proof but only a read, it is often a thorough read (Section~\ref{sec:limits}).
+Ubiquity and performance are why one comes to such a language in the first place: a compiler for nearly every machine, and abstraction without overhead by its zero-overhead principle~\cite{stroustrup2005abstraction}.\footnote{Stroustrup has since called the phrase an understatement: ``It's compiled away. This is why I talk about zero overhead abstraction, and people are beginning to take me to task for that because that's understating and underestimating the ability of the \Cpp{} compiler. We can do negative overhead abstraction''~\cite{stroustrup2026peterman}.
+Listing~\ref{lst:sites} is a case: a count over all sequences compiles away to a constant, a matcher's construction to its table, and a law with a length bound to a vectorised scan.}
+% Should probably go to conclusions or something:
+%For them the repository binds the library's combinators into Python as handles to the compiled core, so the laws declared in \Cpp{} hold in an interactive session: the specialisations they license run there at run time, and only what the compiler evaluates of them is fixed when the bindings are built (Section~\ref{sec:binding}).
+A functional fragment of \Cpp{23} is worth drawing because the whole may be too large to work in with confidence.
+Such a fragment is worth drawing now because \Cpp{23} is the first standard with every ingredient: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
+Compliance with such a fragment is also easier to check than a decade ago: for example, a language model of code~\cite{chen2021evaluating} can be instructed to proof-read every change against its rules.
+Such a review is a read, not a proof (Section~\ref{sec:limits}).
 
-\Cpp{} is not a theorem prover, but its compiler performs checks of the same kind: a compile-time check is a claim the compiler verifies, and the worth of such a checker when the author is not the one trusted had a recent highlight, machine-generated proofs~\cite{hubert2025olympiad} in Lean~\cite{demoura2021lean} whose correctness rests on the checker, not the author, although even such a checker can have loopholes~\cite{demoura2026postmortem}.
-The search that found those proofs is a black box, and a language model's account of its own reasoning need not be the reasoning it did: its chain of thought can leave out what drove the answer, and circuit tracing finds computations its explanation misdescribes~\cite{turpin2023unfaithful,lindsey2025biology}.
-What makes the output usable is that it is no black box but an artefact a small checker verifies, an interpretable model in place of an explained one, and a registry of Lean-verified mathematics is arranged that way: a short statement a human reads, checked against a proof of any length, which a machine may find correct and still unreadable~\cite{rudin2019stop,tao2026palomar}.
-A program is such an artefact too: a machine runs an executable with no interpretation, so every claim about it is a claim about something formal, regardless of whether that actually is what its author intended.
+Machine-checked mathematics and mainstream software sit at opposite corners.
+A proof checked in Lean~\cite{demoura2021lean} is a white box, true on the checker's word however it was found~\cite{hubert2025olympiad}, and whether it is interesting is left to a human reader~\cite{rudin2019stop,tao2026palomar}.
+A program in production is often the reverse: interesting, even commercially viable, from the start, and as opaque as the search that may have written it~\cite{turpin2023unfaithful,lindsey2025biology}; the open question is whether it is true, whether it behaves as its authors intended.
+Yet a program is a formal artefact too: a compiler translates it towards a formalised machine, so every claim about it is a claim about something formal, and a compile-time check is such a claim, which the compiler verifies.
 For generic code, \Cpp{} lacks just such a check.
 \cppinline{concept}s as proposed for \Cpp{0x} checked a template's definition against its constraints~\cite{gregor2006concepts,dosreis2006specifying}, but as standardised in \Cpp{20} they check only its uses~\cite{stroustrup2020thriving}, so a template's body may use operations its constraints do not name.
 The designers named the problem at the outset, in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
+
 \Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary, and this paper documents a discipline that does, recovering some of what a functional language guarantees at the cost of three rules.
 The cost is paid once, in how a program is written, and what it buys is paid back at every use: a law holds in every model of it, a specialisation it licenses pays on every call, and a checked statement serves every reader.
+The fragment characterised here is standard \Cpp{23}, restricted, not extended: it complies with the principles of the host language, and is accepted by any conforming compiler.
+The compiler's optimisation pipelines can be brought to bear:
+an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point, and which in Jlt are declared.
 
 The fragment is the \emph{Juliet Posture}, or Jlt, and it has two boundaries, both drawn here.
-The outer boundary is drawn by the three rules: Jlt is a proper subset of \Cpp{23} defined by these three rules.
+The outer boundary is drawn by the three rules: Jlt is the proper subset of \Cpp{23} they define.
 We call it a posture because it asks only for a style of programming: every ingredient is in the ISO standard~\cite{cpp23standard}, implemented by toolchains in wide use, and what Jlt adds is the programmer's discipline.
 The compiler holds some of the rules and the programmer the rest, and a linter helps but is not required (Table~\ref{tab:posture}).
 The inner boundary is drawn by the translation: the \emph{kernel}, Featherweight Jlt (FJlt), is the part of Jlt on which a translation to System~F ($\llbracket\cdot\rrbracket$) is defined, and it inherits from System~F termination, parametricity and a value.
@@ -43,7 +49,7 @@ Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical},
 
 Jlt is thus an embedded domain-specific language in Hudak's sense~\cite{hudak1996building}, whose domain is System~F and whose host is \Cpp{23}.
 Its programs are ordinary \Cpp{23} programs, type-checked and compiled by an unmodified toolchain, Clang~23 in this case (Section~\ref{sec:limits}).
-Being a strict subset of \Cpp{23}, it is not a language this paper designs and develops as an architect might develop a house.
+It is not a language this paper designs and develops as an architect might develop a house.
 Instead it characterises a fragment of a pre-existing ecosystem, as a traveller might discover a city.
 The claim here is one of existence: \Cpp{23} contains an embedding of a sizeable fragment of System~F, and the listings exhibit it.
 No claim is made that Jlt is unique or canonical, although it seems likely that another fragment drawn to the same ends would look much like it.
