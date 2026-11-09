@@ -12,7 +12,7 @@ Every function is \cppinline{constexpr}, every member function \cppinline{const}
 What the rule conserves is what has come to be called Leibniz's law, that equals cannot be told apart by any operation, at either binding time, whose converse is the principle Leibniz himself stated~\cite{leibniz1686discours,leibniz1686discourse}: a call may be replaced by its value, $e[f(x)] = e[v]$ whenever $f(x)$ evaluates to $v$.
 The compiler makes that replacement while compiling, where its optimisations begin.
 In a programming language the law is referential transparency~\cite{strachey2000fundamental}, and a language where $a = b$ but $f(a) \neq f(b)$ for some $f$ has an equality one cannot reason with.
-The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.
+The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at run time.
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.48\linewidth}
