@@ -384,23 +384,24 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
 TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
   SECTION("Contradiction: {x ∈ ℕ | x > 10 ∧ x < 5} is ∅") {
     // Here we combine the symbolic predicates
+    // On ℕ, not the word: there the compiler folds the comparison away.
     constexpr auto gt10_and_lt5 = [](const auto& v) {
-      return (v > 10u) && (v < 5u);
+      return (v > Numeral{10u}) && (v < Numeral{5u});
     };
-    auto S = Comprehension{counts, gt10_and_lt5};
+    auto S = Comprehension{ℕ, gt10_and_lt5};
 
     // For a non-trivial polish, we verify it is 'Total Absence'
-    REQUIRE_FALSE(S(0u));
-    REQUIRE_FALSE(S(7u));
-    REQUIRE_FALSE(S(12u));
+    REQUIRE_FALSE(S(Numeral{0u}));
+    REQUIRE_FALSE(S(Numeral{7u}));
+    REQUIRE_FALSE(S(Numeral{12u}));
   }
 
   SECTION("Tautology: {x ∈ ℕ | x > 10 ∨ x <= 10} is 𝔸") {
     constexpr auto gt10_or_le10 = [](const auto& v) {
-      return (v > 10u) || (v <= 10u);
+      return (v > Numeral{10u}) || (v <= Numeral{10u});
     };
-    auto S = Comprehension{counts, gt10_or_le10};
-    REQUIRE(S(7u));
+    auto S = Comprehension{ℕ, gt10_or_le10};
+    REQUIRE(S(Numeral{7u}));
   }
 }
 
