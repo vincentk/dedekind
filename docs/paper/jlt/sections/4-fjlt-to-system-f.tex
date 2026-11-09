@@ -9,6 +9,8 @@ This section is about one map, the translation $\llbracket \cdot \rrbracket$ fro
 It is total on FJlt, and Section~\ref{sec:guarantees} says what the image guarantees; it is partial on \Cpp{}, and Section~\ref{sec:translation:adequacy} is the argument for when a \Cpp{} program is an FJlt program.
 Six of its rules carry the listings' structure, and Table~\ref{tab:rules} states them.
 Conditionals, conversions and the remaining operators are routine, and Appendix~\ref{app:fjlt:translation} gives them all.
+A generic function is checked under two contexts: $\Delta$, its template head and \cppinline{requires} clause, the type variables and the constraints assumed on them; and $\Gamma$, its parameters with their types.
+The translation turns $\Delta$'s type variables into System~F's $\Lambda$, each of its constraints into a record parameter $q$, a \emph{dictionary}, and $\Gamma$'s variables into $\lambda$; a dictionary built at concrete types, which a call passes for $q$, is written $d$.
 
 \begin{table}[ht]
 \centering
@@ -62,8 +64,8 @@ Listing~\ref{lst:rule2}'s instance for the unsigned integrals is the simplest ca
 In \Cpp{} that is a generic function with a \cppinline{requires} clause, and the clause is the context.
 Under translation it is a function from the components' records to the composite's:
 \begin{minted}{text}
-pair_unit  =  Λ A. Λ B. λ da : MonoidDict A OpA. λ db : MonoidDict B OpB.
-                (da.unit, db.unit)
+pair_unit  =  Λ A. Λ B. λ q_A : Dict_IsMonoid A Op_A. λ q_B : Dict_IsMonoid B Op_B.
+                (q_A.unit, q_B.unit)
 \end{minted}
 The compiler applies such functions outside in, as often as the composite nests.
 The recursion ends, because a context on a structured head mentions only proper parts of its type arguments, and a context mentions only shapes declared before it.\footnote{The termination conditions on instance contexts are studied by Sulzmann et al.~\cite{sulzmann2007understanding}.
