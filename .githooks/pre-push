@@ -19,7 +19,7 @@ echo "pre-push: formatting check passed"
 if [ "${PRE_PUSH_DOCS_CHECKS:-0}" = "1" ]; then
   if command -v lualatex >/dev/null 2>&1; then
     echo "pre-push: building LaTeX paper"
-    (cd "$repo_root/docs/paper" && make ci-check)
+    (cd "$repo_root/docs/paper" && make jlt-check)
     echo "pre-push: paper build passed"
   else
     echo "pre-push: skipping LaTeX paper build (lualatex not available)"

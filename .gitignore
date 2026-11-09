@@ -38,25 +38,25 @@ build-runtime-bridges**
 # LaTeX build artefacts (paper + report).
 # These are regenerated on every build; tracking them creates recurring
 # binary/textual merge conflicts on parallel paper-touching PRs.
-docs/paper/*.aux
-docs/paper/*.bbl
-docs/paper/*.bcf
-docs/paper/*.blg
-docs/paper/*.fdb_latexmk
-docs/paper/*.fls
-docs/paper/*.log
-docs/paper/*.out
-docs/paper/*.synctex.gz
-docs/paper/*.toc
-docs/paper/*.run.xml
-# Built artefact; published from main via the docs-and-pages CI job.
+docs/paper/**/*.aux
+docs/paper/**/*.bbl
+docs/paper/**/*.bcf
+docs/paper/**/*.blg
+docs/paper/**/*.fdb_latexmk
+docs/paper/**/*.fls
+docs/paper/**/*.log
+docs/paper/**/*.out
+docs/paper/**/*.synctex.gz
+docs/paper/**/*.toc
+docs/paper/**/*.run.xml
+# Built artefact of the retired paper, built only on demand.
 # (Note: gitignore does NOT support inline trailing comments — an
 # explanation MUST sit on its own `#`-prefixed line above the pattern,
 # otherwise the trailing text becomes part of the literal path pattern
 # and the actual file is never matched.  This footgun bit PR #513;
 # the inline-comment form here landed at PR #514 but didn't actually
 # ignore paper.pdf for any consumer.)
-docs/paper/paper.pdf
+docs/paper/**/paper.pdf
 # The Jlt paper (docs/paper/jlt): the same build artefacts.
 docs/paper/jlt/*.aux
 docs/paper/jlt/*.bbl
@@ -97,6 +97,7 @@ build_ci/**
 nn_notes/**
 .coverage
 docs/paper/_minted/
+docs/paper/retired/_minted*/
 
 # vim swap files
 *.swp
