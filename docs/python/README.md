@@ -32,28 +32,16 @@ does not compare.
 
 ## Install
 
-### Using make jupyter (recommended for notebooks)
-
-From the repository root:
-
-```bash
-make jupyter
-```
-
-This creates a `.venv` if needed, builds the C++ library, installs the
-`dedekind` package into `.venv`, and opens a Jupyter Notebook server in
-`docs/python/notebooks/`.
-
 ### From source (packaging / wheel)
 
-For wheel/sdist builds and non-notebook use:
+For wheel/sdist builds:
 
 ```bash
 python -m pip install --upgrade pip
 python -m pip install .
 ```
 
-For iterative local work without Jupyter:
+For iterative local work:
 
 ```bash
 python -m pip install --upgrade pip
@@ -100,57 +88,6 @@ The repository includes a Python smoke test integrated into CTest:
 ctest --test-dir build --output-on-failure -R test_python_bindings
 ```
 
-For the broader Python integration lane, run:
-
-```bash
-make integration-test
-```
-
-This target runs the standard test suite, then discovers and executes every
-notebook in `docs/python/notebooks/` headlessly. Each integration notebook is
-required to import `dedekind` explicitly.
-
-## CI Modes (Current Decision Boundary)
-
-The current workflow effectively has two execution depths:
-
-- CI mode (fast path): compile + test signal for PR iteration speed.
-- Integration mode (full path): packaging + notebook execution + artifact
-  verification, used when validating end-to-end delivery readiness.
-
-Practical guidance:
-
-1. Use `make test` during rapid local/PR iteration when the question is core C++
-   build-and-test correctness.
-2. Use `make integration-test` before review/merge when Python facade,
-   notebooks, and packaging assumptions must be validated together.
-3. Treat integration evidence (`python-notebooks`, `python-dist`) as required
-   for staged publication decisions.
-
-This split is intentionally conservative for now: it preserves release confidence
-while giving us a clear place to optimize CI runtime (issue #243) without
-dropping end-to-end checks required by staged publication (issue #240).
-
-## Notebook Demos
-
-The notebooks live in `docs/python/notebooks/`; each asserts what it shows, so
-it is also a test:
-
-- `01_terms_on_the_ring_and_the_field.ipynb`: the canonical ring and field, the
-  README exhibit as one normal form, refusals at construction, the successor's
-  image wrapping, the ring's polynomial normal form.
-- `02_pst_sets_by_evaluation.ipynb`: sets over the truth chains, with `Unknown`
-  as a verdict.
-
-CI verifies execution via `make integration-test`; rendered copies
-of executed notebooks are uploaded as the `python-notebooks` artifact on every
-CI run.
-
-To run the notebooks interactively, use:
-
-```bash
-make jupyter
-```
 ## Reviewer Verification (CI Artifacts)
 
 For pull requests, wheel/sdist and Python-native docs are expected to be
@@ -160,17 +97,14 @@ Review path:
 
 1. Open the PR checks and select the `C++ CI with Cmake` run.
 2. Open the run's `Artifacts` section.
-3. Download `python-notebooks` and confirm it includes:
-   - executed notebook outputs from `docs/python/notebooks/`
-   - `integration-summary.txt` with per-notebook pass/fail status
-4. Download `python-dist` and confirm it includes:
+3. Download `python-dist` and confirm it includes:
    - wheel/sdist files from `dist/`
    - distribution manifest (`dist-manifest.txt`)
    - distribution checksums (`dist-sha256.txt`)
    - installed wheel report (`install-report.txt`)
    - generated pydoc output (`pydoc-pynzli.txt`)
-5. Confirm the workflow step `Verify Installed Wheel Smoke Test` is green.
-6. Confirm the workflow step `Build & Run Integration Tests` is green.
+4. Confirm the workflow step `Verify Installed Wheel Smoke Test` is green.
+5. Confirm the workflow step `Build & Run the Tests` is green.
 
 This provides reviewer-visible evidence that packaging and runtime smoke checks
 worked in CI for the PR changeset.
@@ -179,5 +113,4 @@ worked in CI for the PR changeset.
 
 - Python bindings MVP: #234
 - User docs and release checklist: #236
-- Notebook demos: #239
 - DSL design sketch: #241

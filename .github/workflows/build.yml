@@ -104,7 +104,7 @@ jobs:
     # Create the .venv up front and prepend it to GITHUB_PATH so every
     # subsequent step uses the same virtualenv as a local dev box does.
     # Local dev: ./.venv created by the developer; CI: ./.venv created
-    # here.  The notebooks and the Python tests import the package that
+    # here.  The Python tests import the package that
     # `make test` built and staged in build/python (PYTHONPATH), so the
     # library is compiled once; the `[tool.coverage.paths]` mapping in
     # pyproject.toml rewrites build/python/pynzli back to
@@ -119,8 +119,8 @@ jobs:
     - name: Check Code Formatting
       run: make format-check CLANG_FORMAT="$CLANG_FORMAT"
 
-    - name: Build & Run Integration Tests
-      run: make integration-test CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+    - name: Build & Run the Tests
+      run: make test CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
     # The report (gates, reported counts, the syntax inventory) is kept as an
     # artifact: the paper's closure table rests on the inventory as
@@ -176,17 +176,3 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
         verbose: true
-
-    # Diagnostic artifact upload — runs regardless of earlier-step outcome so
-    # the rendered notebooks are available for offline inspection even when a
-    # critical-path step (coverage, Codecov upload) fails. Placed at the tail
-    # so the critical path reads top-to-bottom without diagnostic noise.
-    - name: Upload Notebook Integration Artifacts
-      if: ${{ always() }}
-      uses: actions/upload-artifact@v7
-      with:
-        name: python-notebooks${{ runner.os == 'macOS' && '-macos' || '' }}
-        if-no-files-found: warn
-        path: |
-          build/python-notebooks/*.ipynb
-          build/python-notebooks/integration-summary.txt

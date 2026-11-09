@@ -218,7 +218,6 @@ jobs:
         cp -R build/docs/html/. build/pages/
         cp -R build/python-api build/pages/python
         test -f build/pages/python/pynzli.html
-        cp docs/paper/paper.pdf build/pages/paper.pdf
         cp docs/paper/jlt/jlt.pdf build/pages/jlt.pdf
 
     - name: Upload artifact

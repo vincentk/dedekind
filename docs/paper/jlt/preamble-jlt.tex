@@ -16,6 +16,11 @@
 \newtheorem{theorem}{Theorem}
 \newtheorem{corollary}{Corollary}
 \newtheorem{lemma}{Lemma}
+\newtheorem{assumption}{Assumption}
+% A result of the main text, restated before its proof: its number and name, then the statement.
+% One case of a case analysis in a proof: the rule(s) it treats, on a line of its own.
+\newcommand{\case}[1]{\par\noindent\textit{Case} #1:\ }
+\newenvironment{restated}[1]{\par\medskip\noindent\textbf{#1.}\ \itshape}{\par\medskip}
 
 \newunicodechar{ℚ}{\ensuremath{\mathbb{Q}}}
 \newunicodechar{α}{\ensuremath{\alpha}}
