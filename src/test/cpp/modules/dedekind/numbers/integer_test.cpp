@@ -127,7 +127,7 @@ TEST_CASE("Integer: additive inverse -x is antitone on ℤ (#908/#959)",
 //
 // does not compile, and no static_assert can say so, since a refusal is not
 // a value.  The same term over ℤ is exact, and so is its law.
-namespace int_vs_ℤ {
+namespace int_vs_integer {
 constexpr Integer int_max{INT_MAX};
 static_assert(int_max + Integer{1} > int_max,
               "INT_MAX + 1 in ℤ: the successor, above the word");
@@ -139,8 +139,8 @@ static_assert((int_max + Integer{1}) - Integer{1} == int_max &&
               "the group laws hold at both ends of int, where int has none");
 static_assert(int_max * int_max * int_max * int_max * int_max >
                   Integer{std::numeric_limits<long long>::max()},
-              "and past every word: (2^31 - 1)^5 exceeds 2^64");
-}  // namespace int_vs_ℤ
+              "and past every word: (2^31 - 1)^5 exceeds LLONG_MAX");
+}  // namespace int_vs_integer
 
 TEST_CASE("Integer: int overflows, ℤ does not", "[numbers][integer][exhibit]") {
   const Integer int_max{INT_MAX};
