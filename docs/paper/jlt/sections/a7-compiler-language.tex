@@ -4,27 +4,16 @@
 
 This appendix is the argument Figure~\ref{fig:arrows} cites for its right-hand leg: that for a closed term $t$ of base type in the image of $\llbracket\cdot\rrbracket$, $\mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$ is $\mathit{eval}\,t$.
 Theorem~\ref{thm:simulation} gives that inside the calculus.
-Here the program the compiler emits is read as the same term, in three steps.
-Instantiation is partial evaluation of the dictionary-passing term; what remains is a first-order term; and the compiler's intermediate representation is that term as a functional program.
-It is a reason, not a theorem.
-The compiler is not among the hypotheses: its lowering is trusted, as every \Cpp{} program trusts it.
-The reading of SSA as iterator terms is Appel's, which this paper uses and does not prove.
+Here the program the compiler emits is read as the same term.
+It is a reason, not a theorem: the compiler is not among the hypotheses, and its lowering is trusted, as every \Cpp{} program trusts it.
 
-\paragraph{From the dictionary-passing term to SSA.}
-Instantiation is partial evaluation of the dictionary-passing term at a static type, $\llbracket \mathit{concat} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs.
-So the two agree on every closed term, by Theorem~\ref{thm:simulation} at the binding time where the records are constants, and nothing of a record survives to run time.
-Parametricity, a property of the term before that evaluation, holds of every instantiation as an application of it.
-For Go, Ellis et al.~\cite{ellis2022generic} prove the dictionary-passing translation correct beside monomorphisation, which Griesemer et al.~\cite{griesemer2020featherweight} proved; \Cpp{} only ever does the second, and the first carries the theorems.
-What that evaluation leaves is a closed first-order term over the base types.
+\paragraph{From the term to SSA.}
+Instantiation is partial evaluation of the dictionary-passing term (Section~\ref{sec:binding}), and it leaves a closed first-order term over the base types.
 The type abstractions are gone with their arguments, and the record parameters with the records the compiler resolved.
 Every trait call is a call to one specialisation, and the only recursion left is $\mathit{iter}$ and $\mathit{fold}_F$.
-The compiler then lowers that term to its intermediate representation, in static single assignment form~\cite{cytron1991ssa}.
-Every variable is assigned exactly once, and where two paths of control join, a $\phi$-node names the value that arrives along each.
-
-\paragraph{SSA is a functional language.}
-Kelsey showed it to correspond to continuation-passing style~\cite{kelsey1995correspondence}, and Appel put the correspondence as a slogan~\cite{appel1998ssa}: a basic block is a local function, its $\phi$-nodes are that function's parameters, a branch is a call that passes the arguments, and dominance is lexical scope.
-So a Jlt function is translated twice into a functional language, with instantiation between the two.
-Appendix~\ref{app:fjlt:translation} translates it into System~F with records and iterators, and the compiler into first-order functions with tail calls.
+For Go, Ellis et al.~\cite{ellis2022generic} prove the dictionary-passing translation correct beside monomorphisation, which Griesemer et al.~\cite{griesemer2020featherweight} proved; \Cpp{} only ever does the second, and the first carries the theorems.
+The compiler lowers the first-order term to static single assignment form~\cite{cytron1991ssa}, and SSA is a functional language: Kelsey showed it to correspond to continuation-passing style~\cite{kelsey1995correspondence}, and Appel reads a basic block as a local function and its $\phi$-nodes as that function's parameters~\cite{appel1998ssa}.
+So a Jlt function is translated twice into a functional language, by Appendix~\ref{app:fjlt:translation} into System~F with records and iterators and by the compiler into first-order functions with tail calls.
 Rules~1 and~3 are what makes the source already look like the second.
 
 \paragraph{A loop, read.}
@@ -49,45 +38,3 @@ So Section~\ref{sec:binding}'s claim that the discipline costs nothing at run ti
 One seam shows here too.
 SSA's values are the scalars in registers, and a value in memory, a boxed value in particular, is read and written through a pointer that no $\phi$-node carries.
 That is the line between a value and a cell that Rule~1 draws.
-
-\paragraph{Into the vector unit.}
-A vector register is a direct product of lanes, and its operations act pointwise.
-A computation fits it when two conditions hold: no position depends on another, and the values are contiguous and small, under operations the unit has.
-Either can fail alone, as Table~\ref{tab:batch} shows.
-Listing~\ref{lst:sites}'s table is Brzozowski's automaton~\cite{brzozowski1964derivatives}: for one word the matcher of Knuth, Morris and Pratt~\cite{knuth1977fast}, for many Aho and Corasick's~\cite{aho1975efficient}.
-It is generic over the alphabet, and it fails the first condition, as each state needs the last.
-\cppinline{fixed_by(~rev)} meets it: the ranks embed the alphabet with its hole in a byte and carry the reflection to $3 - r$, so a pair is a sum compared with three.
-\cppinline{count} has an overload keyed on the section's type.
-A block goes through in stages, ranks, a pass per pair and a sum, each a fold small enough to be seen as a loop.
-It is an exhibit for this compiler and these flags.
-A specialisation is keyed on a law or a data shape, never on a particular problem or compiler; it guarantees the answer, while vectorising stays the compiler's choice.
-Generating such code from algebra is old~\cite{frigo2005fftw,puschel2005spiral}, as is separating an algorithm from its schedule~\cite{ragankelley2013halide} and matching many patterns in lanes~\cite{wang2019hyperscan}.
-What is shown here is that standard \Cpp{23} gets there from laws its types already carry.
-The times, the disassembly and what else was tried are in the repository's \texttt{src/bench}, and \texttt{make bench} reproduces them.
-The figures are to one significant digit, since benchmarks are fickle and the orders of magnitude are the result.
-Past the cache, the law's scan is bound by the core, not by memory: it runs at a tenth of a plain read's rate.
-
-\begin{table}[htbp]
-\centering
-\small
-\begin{tabular}{@{}lccr@{}}
-\toprule
-Counting the sites of \texttt{pali6} & independent & batchable & ns a letter \\
-\midrule
-each of the 64 sites' windows tested & yes & no & 20 \\
-the 64 sites' table (277 states) & no & yes & 2 \\
-\quad the same table, hand-written, holes as the library & no & yes & 2 \\
-the law, letters as they come, four compared at run time & yes & no & 10 \\
-the law, sets of bases in bytes (IUPAC's code) & yes & yes, with costly operations & 4 \\
-\textbf{the library's \texttt{count(text >> pali6)}, by the law} & yes & yes & \textbf{0.4} \\
-\quad \texttt{pynzli}, by the law, from bytes & yes & yes & 0.4 \\
-\texttt{re}, 64 alternatives in a lookahead & & & 300 \\
-\bottomrule
-\end{tabular}
-\caption{The two conditions, one failing at a time.
-Each row is named as \texttt{make bench} prints it.
-The figures are one recorded run, in full under \emph{One run in full} in \texttt{src/bench/README.md}: one core of a shared AMD EPYC 7763, Clang~23 at \texttt{-O2}, baseline SSE2, $10^8$ letters, to one significant digit.
-Past the cache, on 3.1 billion letters: the law 2\,GB/s, a plain read of the same memory 20\,GB/s.
-A text drawn and not stored, by the table: peak memory flat from $10^7$ to $10^{10}$ letters; the law's own storage a fixed block.}
-\label{tab:batch}
-\end{table}
