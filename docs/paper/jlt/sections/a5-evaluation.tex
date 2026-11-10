@@ -65,4 +65,4 @@ $\Sigma$ is not a list; the listings also use \cppinline{std::string} with conca
 \paragraph{Boxes.}
 \textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a constant evaluator rejects a term that builds a box.
 A law, a constant's initialiser or a \cppinline{static_assert} premise is therefore a constant expression whose value keeps no allocation alive, \cppinline{make_shared} excluded, the condition under which every FJlt program is a Jlt program.
-\Cpp{26} retires that condition~\cite{keir2025constexprsharedptr}.
+\Cpp{26} admits \cppinline{make_shared} within an evaluation~\cite{keir2025constexprsharedptr}; an allocation still may not outlive it.
