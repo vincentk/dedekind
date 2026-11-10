@@ -65,7 +65,7 @@ Theorem~\ref{thm:coherence} needs exactly that.
 \\[7pt]
 \textsc{(D-Generic)} & \dfrac{\overline{\alpha}, \overline{Q};\; \overline{x : \tau_x} \vdash e : \tau \qquad \rho \in \{\tau, \texttt{auto}\}}{\begin{array}{c}\vdash \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} \\ \texttt{constexpr } \rho\; f\texttt{(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}\end{array}}
 \\[7pt]
-\textsc{(D-Const)} & \dfrac{\varnothing; \varnothing \vdash e : \tau \qquad \rho \in \{\tau, \texttt{auto}\}}{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;}}
+\textsc{(D-Const)} & \dfrac{\varnothing; \varnothing \vdash e : \tau \qquad \rho \in \{\tau, \texttt{auto}\} \qquad e \text{ a constant initialiser}}{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;}}
 \\[7pt]
 \textsc{(T-Const)} & \dfrac{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \text{ declared before, at } \tau}{\Delta; \Gamma \vdash x : \tau}
 \\[7pt]
@@ -130,8 +130,10 @@ Its application to arguments of those types is typed at $\sigma$ by \textsc{T-Ca
 \paragraph{Operators.}
 An operator expression $\ominus e$ or $e_1 \oplus e_2$ is resolved as \Cpp{} resolves it~\cite[{\texttt{over.match.oper}}]{cpp23standard}, the built-in operator a candidate beside the declared functions \texttt{operator}$\oplus$, and the only one when no operand is of class or enumeration type.
 Where the choice is a primitive of $\Sigma$, the expression is typed by the primitive's signature, the rule for the arithmetic of base types; otherwise it is the call \texttt{operator}$\oplus$\texttt{(}$e_1$\texttt{, }$e_2$\texttt{)}, typed by \textsc{T-Call} or \textsc{T-Trait}.
-Where the operands are of different base types, the primitive acts after the standard's usual arithmetic conversions~\cite[{\texttt{expr.arith.conv}}]{cpp23standard}: the expression is the primitive on each operand converted to their common type, the conversion $\tau(e)$ of the grammar, placed by the compiler, as Listing~\ref{lst:rule2}'s \cppinline{+ 1} on a \cppinline{size_t}.
+Where the operands are of different base types, the primitive acts after the conversions the standard specifies for that operator: the usual arithmetic conversions for arithmetic and comparison\cite[{\texttt{expr.arith.conv}}]{cpp23standard}, and for a shift the promotion of each operand on its own, the result of the left operand's type\cite[{\texttt{expr.shift}}]{cpp23standard}.
+Each such conversion is the grammar's $\tau(e)$, placed by the compiler, as Listing~\ref{lst:rule2}'s \cppinline{+ 1} on a \cppinline{size_t}.
 A declared \texttt{operator}$\oplus$ needs no common type, since its signature is its own: in Listing~\ref{lst:rule3}'s \cppinline{v * a}, a matrix acting on a vector, the operands' types differ and nothing converts.
+The candidate selected may be a rewritten or a reversed one\cite[{\texttt{over.match.oper}}]{cpp23standard}: then the expression is the call under the standard's rewrite, \cppinline{a != b} as \cppinline{!(a == b)}, a reversed candidate with its arguments swapped, \cppinline{a < b} as \cppinline{(a <=> b) < 0}, and typing, translation and evaluation read the rewritten call.
 
 \paragraph{Deduced types and constants.}
 Where a declaration's result type $\rho$ is \cppinline{auto}, its $\tau$ is the type of the body in the premise, and \textsc{T-Call}, \textsc{T-Trait} and \textsc{T-App}'s $\tau_r$ read that type.
@@ -141,6 +143,7 @@ The one exception's self-call is such a use, and its function writes its result 
 A trait and its instances write \cppinline{auto} together or not at all, as the standard requires of a specialisation~\cite[{\texttt{dcl.spec.auto}}]{cpp23standard}.
 A call's type arguments are deduced as well: \textsc{T-App}'s $\overline{\sigma}$, and a call $f\texttt{(}\overline{e}\texttt{)}$ is $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)}$ at the $\overline{\sigma}$ the compiler deduces, so the rules check them and do not compute them.
 A constant is typed under the empty contexts, and \textsc{T-Const} types its name at that type in every later declaration and in the program's term.
+Its initialiser is a constant expression whose value keeps no allocation alive past the evaluation, as \cppinline{constexpr} requires of a variable and the compiler holds\cite[{\texttt{expr.const}}]{cpp23standard}.
 
 \paragraph{Ranges and terms.}
 A range $R\texttt{<}\tau\texttt{>}$ is an instance of a family $\mathcal{R}$ defined by conditions.

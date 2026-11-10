@@ -80,6 +80,8 @@ An explicit conversion between carriers is a declared function, total by a reade
 A non-type template parameter is a type per value, as \cppinline{integral_constant} spells it, the value a constant of a carrier, which the compiler holds.
 A user-defined literal is a named function call, which the compiler holds.
 Inheritance is a registration, read as the fact it states, on the linter's condition that every base is an empty class and no function is virtual.
+A \cppinline{static_assert(e)}, \cppinline{e} a closed \cppinline{bool} term, is the claim that \cppinline{e} evaluates to \cppinline{true}, which the compiler holds; a listing's assertions are its program's terms.
+At a type variable no candidate of an operator is known, so an operator on a constrained type, \cppinline{a + b} with \cppinline{IsMonoid<T, plus<T>>} in $\Delta$, is the call of the standard function object the constraint names, \cppinline{plus<T>{}(a, b)}, at the result type the requirement states; the linter holds the spelling and a reader the result type.
 A static member function is a generic function.
 A struct with fields and no call operator is a product, nested pairs.
 \cppinline{std::array<T, n>} is both a product of $n$ copies and a member of $\mathcal{R}$ with length $n$, so a fold over it is already in the grammar.
