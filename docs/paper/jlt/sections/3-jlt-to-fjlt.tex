@@ -2,7 +2,60 @@
 \section{From Jlt to Featherweight Jlt}
 \label{sec:translation:adequacy}
 
-This section is the $-$sugar arrow of Figure~\ref{fig:arrows}, between the rules of Section~\ref{sec:posture} and the kernel's grammar of Section~\ref{sec:translation}: which construction of Jlt becomes which term of the kernel, each closure statement left to Appendix~\ref{app:fjlt:closure}.
+\subsection{Featherweight Jlt}
+\label{sec:fjlt:syntax}
+
+Featherweight Jlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}: small enough to reason about, large enough to carry the listings.
+Its base types and their \cppinline{constexpr} operators form a many-sorted algebra~\cite{birkhoff1970heterogeneous,sannella2012foundations} over a signature $\Sigma$.
+A type that keeps \RuleOne{}, such as \cppinline{bool} or \cppinline{size_t}, is a \emph{carrier set}.
+A total operator on such types, $\ominus$ or $\oplus$ in the figure, is a \emph{function} between them.
+It need not stay on one carrier set, as \cppinline{==} on \cppinline{std::string} gives a \cppinline{bool}.
+Listing~\ref{lst:fjlt-reading}, in Appendix~\ref{app:fjlt:closure}, is a program in the grammar.
+
+\begin{figure}[!htbp]
+\[
+\begin{array}{lcl@{\hspace{0.2em}}l}
+P &::=& \overline{D}\; e & \text{program} \\[3pt]
+D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \texttt{ = } \overline{A}\texttt{;} & \text{shape} \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> constexpr } \tau\; f\texttt{(}\overline{\tau}\texttt{) = delete;} & \text{trait} \\
+  & \mid & \texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{\tau\; x}\texttt{)} & \text{instance} \\
+  &   & \qquad \texttt{\{ return } e\texttt{; \}} & \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} & \text{generic function} \\
+  &   & \qquad \texttt{constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau\; y}\texttt{;} & \text{function object} \\
+  &   & \qquad \texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q} & \\
+  &   & \qquad \texttt{constexpr } \tau \texttt{ operator()(}\overline{\tau\; x}\texttt{) const \{ return } e\texttt{; \} \};} & \\[3pt]
+A &::=& Q \;\mid\; e & \text{nested shape, law} \\
+  & \mid & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>;}} \texttt{ \}} & \text{required calls} \\[3pt]
+Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
+\tau &::=& \alpha \;\mid\; b \;\mid\; T\texttt{<}\overline{\tau}\texttt{>} & \text{type} \\[3pt]
+e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} & \text{term} \\
+  & \mid & \ominus e \;\mid\; \texttt{*}e \;\mid\; e\texttt{.}y \;\mid\; \tau\texttt{(}e\texttt{)} \;\mid\; e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e & \text{built-ins, by arity} \\
+\end{array}
+\]
+\caption{The abstract grammar~\cite{pierce2002tapl} of FJlt, a subset of \Cpp{23}, namespace qualifiers elided.
+Terminals are in monospace, and an overbar abbreviates a sequence.
+A letter with a row has the structure the row gives; a letter with no row is a name or a symbol.
+$P$ is a program.
+$D$ is a declaration.
+$A$ is a requirement.
+$Q$ is a constraint.
+$\tau$ is a type.
+$e$ is a term.
+$\alpha, \beta$ are type variables, $b$ base types.
+$T$ are type constructors, declared or adopted from the standard library; $O$ the structs among them, function objects (standard, such as \cppinline{std::plus}, or declared), \cppinline{std::pair} and \cppinline{std::optional}; $y$ their fields.
+$\ominus$ and $\oplus$ are the unary and binary operators of $\Sigma$.
+$C$ are concept names, the standard ones included; $S$ the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}.
+$f$ are function names, $x$ term variables, $c$ constants.}
+\label{fig:fjlt-syntax}
+\end{figure}
+
+A template is always fully applied: $\alpha$ ranges over types, and there is no template template parameter, so System~F suffices.
+
+\subsection{Desugaring}
+\label{sec:fjlt:desugaring}
+
+This subsection is the $-$sugar arrow of Figure~\ref{fig:arrows}, between the rules of Section~\ref{sec:posture} and the kernel they reduce to: which construction of Jlt becomes which term of the kernel, each closure statement left to Appendix~\ref{app:fjlt:closure}.
 Desugaring rewrites a program into one that uses only the kernel's constructions and computes the same value, as the \Cpp{} standard defines a lambda as a class with a call operator; no tool runs it.
 Tables~\ref{tab:closure} to~\ref{tab:closure:choice} state it construction by construction: a condition, and the kernel term it yields.
 
@@ -13,7 +66,7 @@ The other sugar is routine (Table~\ref{tab:closure}).
 The theorems of Section~\ref{sec:guarantees} are about FJlt, and they reach a \Cpp{} program on two conditions, which hold in different ways.
 
 \emph{Every FJlt program is a Jlt program, with the same meaning.}
-This direction holds by construction (Appendix~\ref{app:fjlt:syntax}): the grammar of Figure~\ref{fig:fjlt-syntax} is \Cpp{} syntax, FJlt's evaluation is constant evaluation restricted to it, each construct keeps the standard's rule, and the standard library pieces the grammar admits keep their standard meaning.
+This direction holds by construction (Section~\ref{sec:fjlt:syntax}): the grammar of Figure~\ref{fig:fjlt-syntax} is \Cpp{} syntax, FJlt's evaluation is constant evaluation restricted to it, each construct keeps the standard's rule, and the standard library pieces the grammar admits keep their standard meaning.
 Constant evaluation refuses undefined behaviour, so at compile time an FJlt program cannot go wrong silently; at run time it can (Section~\ref{sec:limits}).
 
 \emph{A Jlt program written in the grammar of Figure~\ref{fig:fjlt-syntax} is an FJlt program.}
@@ -27,10 +80,10 @@ It is also conditional on the grammar, because \Cpp{} has constructions FJlt lac
 \toprule
 & Jlt may write & kept out of the kernel by & the kernel has instead \\
 \midrule
-1 & overloading & the grammar (Appendix~\ref{app:fjlt:syntax}), except by constraints & generic functions of one name ordered by their constraints, plus their specialisations \\
+1 & overloading & the grammar (Section~\ref{sec:fjlt:syntax}), except by constraints & generic functions of one name ordered by their constraints, plus their specialisations \\
 2 & argument-dependent lookup & the grammar, and the lookup wall (Section~\ref{sec:limits}) & instances found by the trait's name \\
 3 & implicit conversions & the grammar, and Rule~2 for the body & a conversion only where a requirement declares one, and the body then sees the declared type \\
-4 & references, moves & erased by the grammar (Appendix~\ref{app:fjlt:syntax}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
+4 & references, moves & erased by the grammar (Section~\ref{sec:fjlt:syntax}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
 5 & the sugar: branches on a trait or a concept, lambdas, inheritance, \texttt{*} on an optional, \ldots & the grammar, and desugared (Tables~\ref{tab:closure} to~\ref{tab:closure:choice}) & \texttt{?:} on a law, specialisation, an operation struct, a registration, the case form on a sum, \ldots \\
 \bottomrule
 \end{tabularx}

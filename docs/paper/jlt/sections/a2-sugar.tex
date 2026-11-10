@@ -2,9 +2,47 @@
 \section{Desugaring Jlt into Featherweight Jlt}
 \label{app:fjlt:closure}
 
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+// D: a trait; its primary stays deleted
+template <typename T>
+constexpr T op(T, T) = delete;
+
+// D: an instance; + an operator of Sigma
+template <>
+constexpr std::string
+op<std::string>(std::string a, std::string b) {
+  return a + b;
+}
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+// D: a shape; A its required calls
+template <typename T>
+concept IsMagma =
+    requires(const T a, const T b) {
+      { op(a, b) } -> std::same_as<T>;
+    };
+
+// D: a generic function; Q its constraint
+template <typename T> requires IsMagma<T>
+constexpr T twice(T x) {
+  return op(x, x);
+}
+
+// e: the closed term the program evaluates
+twice("ab"s) + "c"s == "ababc"s
+\end{cpp}
+\end{minipage}
+\caption{A small program, each declaration labelled with its form in Figure~\ref{fig:fjlt-syntax}; its \texttt{\"\"s} literals are sugar.}
+\label{lst:fjlt-reading}
+\end{listing}
+
 This appendix describes the desugaring of Jlt into FJlt.
 It corresponds to the $-$sugar arrow of Figure~\ref{fig:arrows}, and complements Section~\ref{sec:translation:adequacy}.
-It covers the constructions of \Cpp{23} that a Jlt program may write beyond the grammar of Appendix~\ref{app:fjlt:syntax}, each with its desugaring and its condition.
+It covers the constructions of \Cpp{23} that a Jlt program may write beyond the grammar of Section~\ref{sec:fjlt:syntax}, each with its desugaring and its condition.
 No proof of correctness is provided.
 Three reasons cover the constructions: i)~a spelling, syntactic sugar in Landin's sense~\cite{landin1964mechanical}, when the construction writes a kernel term another way; ii)~local state, when it keeps state that never leaves the call; iii)~branching, which only the kernel's own forms of choice may do.
 Across the three tables, the condition passes from the compiler to the repository's linter to a reader, and each row's mark says who holds it.

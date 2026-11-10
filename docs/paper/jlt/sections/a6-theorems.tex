@@ -5,7 +5,7 @@
 This appendix proves the theorems Section~\ref{sec:guarantees} states, relative to the rules of Figures~\ref{fig:fjlt-entailment} to~\ref{fig:fjlt-eval} and to the assumptions below.
 The plan is short: the translation into System~F is a function (coherence) and preserves types; evaluation agrees across it (simulation); the rest are corollaries.
 Each result uses only those before it, except that the lemma on dictionaries and type preservation are proved together, by mutual induction.
-Throughout, $\Sigma$ is a signature whose carriers meet the conditions of Appendix~\ref{app:fjlt:syntax}, used only as constants and total operators, and $\llbracket \cdot \rrbracket$ is the translation of Appendix~\ref{app:fjlt:translation}.
+Throughout, $\Sigma$ is a signature whose carriers meet the conditions of Section~\ref{sec:fjlt:syntax}, used only as constants and total operators, and $\llbracket \cdot \rrbracket$ is the translation of Appendix~\ref{app:fjlt:translation}.
 A context translates pointwise: $\llbracket \Delta \rrbracket$ has a type variable for each $\alpha \in \Delta$ and a record variable $q_Q : \llbracket Q \rrbracket$ for each assumed constraint $Q \in \Delta$, and $\llbracket \Gamma \rrbracket = \overline{x : \llbracket \tau \rrbracket}$.
 
 \subsection{Assumptions}
