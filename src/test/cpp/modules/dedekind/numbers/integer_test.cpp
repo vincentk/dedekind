@@ -168,4 +168,7 @@ TEST_CASE("numbers:integer: a borrow runs through maximum-value limbs",
   const Integer two_128{(w + Numeral{1u}) * (w + Numeral{1u})};
   CHECK(two_128 + Integer{-1} == Integer{w * (w + Numeral{1u}) + w});
   CHECK((two_128 + Integer{-1}).magnitude().limb_count() == 2);
+  // 2^128 - (2^128 - 1): each subtrahend limb is the maximum and receives a
+  // borrow, so the amount taken is 2^64, wider than a limb.
+  CHECK(two_128 + -Integer{w * (w + Numeral{1u}) + w} == Integer{1});
 }
