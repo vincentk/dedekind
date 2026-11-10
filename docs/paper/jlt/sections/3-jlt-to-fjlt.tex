@@ -1,15 +1,15 @@
 % !TEX root = ../jlt.tex
 \section{From Jlt to Featherweight Jlt}
 \label{sec:translation:adequacy}
-
-\subsection{Featherweight Jlt}
 \label{sec:fjlt:syntax}
 
-Featherweight Jlt, the kernel of Figure~\ref{fig:arrows}, is the subset of \Cpp{23} that Figure~\ref{fig:fjlt-syntax} writes, in the style of Featherweight Java~\cite{igarashi2001featherweight}: small enough to reason about, large enough to carry the listings.
-Its base types and their \cppinline{constexpr} operators form a many-sorted algebra~\cite{birkhoff1970heterogeneous,sannella2012foundations} over a signature $\Sigma$.
-A type that keeps \RuleOne{}, such as \cppinline{bool} or \cppinline{size_t}, is a \emph{carrier set}.
-A total operator on such types, $\ominus$ or $\oplus$ in the figure, is a \emph{function} between them.
-It need not stay on one carrier set, as \cppinline{==} on \cppinline{std::string} gives a \cppinline{bool}.
+This section describes the $-$sugar arrow of Figure~\ref{fig:arrows}.
+The source is Jlt, a fragment of \Cpp{23} circumscribed by the three rules of Section~\ref{sec:posture}.
+The target is Featherweight Jlt, a kernel in the style of Featherweight Java~\cite{igarashi2001featherweight}.
+
+FJlt is the subset of \Cpp{23} spelled out in Figure~\ref{fig:fjlt-syntax}: small enough to reason about, large enough to carry the listings.
+Its base types and their \cppinline{constexpr} operators form a many-sorted algebra over a signature $\Sigma$~\cite{birkhoff1970heterogeneous,sannella2012foundations}.
+A type that keeps \RuleOne{}, such as \cppinline{bool} or \cppinline{size_t}, is a \emph{carrier set}, and a total operator between such types, $\ominus$ or $\oplus$ in the figure, a \emph{function}, which may leave its carrier set, as \cppinline{==} on \cppinline{std::string} gives a \cppinline{bool}.
 Listing~\ref{lst:fjlt-reading}, in Appendix~\ref{app:fjlt:closure}, is a program in the grammar.
 
 \begin{figure}[!htbp]
@@ -52,46 +52,14 @@ $f$ are function names, $x$ term variables, $c$ constants.}
 
 A template is always fully applied: $\alpha$ ranges over types, and there is no template template parameter, so System~F suffices.
 
-\subsection{Desugaring}
-\label{sec:fjlt:desugaring}
-
-This subsection is the $-$sugar arrow of Figure~\ref{fig:arrows}, between the rules of Section~\ref{sec:posture} and the kernel they reduce to: which construction of Jlt becomes which term of the kernel, each closure statement left to Appendix~\ref{app:fjlt:closure}.
-Desugaring rewrites a program into one that uses only the kernel's constructions and computes the same value, as the \Cpp{} standard defines a lambda as a class with a call operator; no tool runs it.
-Tables~\ref{tab:closure} to~\ref{tab:closure:choice} state it construction by construction: a condition, and the kernel term it yields.
-
-A branch on a type, the sugar that matters most, becomes a family of generic functions ordered by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent.
-Listing~\ref{lst:laws}'s two specialisations, each licensed by a law, compose under it.
-The other sugar is routine (Table~\ref{tab:closure}).
-
-The theorems of Section~\ref{sec:guarantees} are about FJlt, and they reach a \Cpp{} program on two conditions, which hold in different ways.
-
 \emph{Every FJlt program is a Jlt program, with the same meaning.}
-This direction holds by construction (Section~\ref{sec:fjlt:syntax}): the grammar of Figure~\ref{fig:fjlt-syntax} is \Cpp{} syntax, FJlt's evaluation is constant evaluation restricted to it, each construct keeps the standard's rule, and the standard library pieces the grammar admits keep their standard meaning.
+This direction holds by construction: the grammar of Figure~\ref{fig:fjlt-syntax} is \Cpp{} syntax, FJlt's evaluation is constant evaluation restricted to it, each construct keeps the standard's rule, and the standard library pieces the grammar admits keep their standard meaning.
 Constant evaluation refuses undefined behaviour, so at compile time an FJlt program cannot go wrong silently; at run time it can (Section~\ref{sec:limits}).
 
-\emph{A Jlt program written in the grammar of Figure~\ref{fig:fjlt-syntax} is an FJlt program.}
-This direction is not a theorem, because the compiler does not check two of the rules.
-It is also conditional on the grammar, because \Cpp{} has constructions FJlt lacks, and a Jlt program may use them.
-
-\begin{table}[ht]
-\centering
-\small
-\begin{tabularx}{\linewidth}{@{}r@{\hspace{0.6em}}>{\hsize=.8\hsize\raggedright\hyphenpenalty=10000\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
-\toprule
-& Jlt may write & kept out of the kernel by & the kernel has instead \\
-\midrule
-1 & overloading & the grammar (Section~\ref{sec:fjlt:syntax}), except by constraints & generic functions of one name ordered by their constraints, plus their specialisations \\
-2 & argument-dependent lookup & the grammar, and the lookup wall (Section~\ref{sec:limits}) & instances found by the trait's name \\
-3 & implicit conversions & the grammar, and Rule~2 for the body & a conversion only where a requirement declares one, and the body then sees the declared type \\
-4 & references, moves & erased by the grammar (Section~\ref{sec:fjlt:syntax}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
-5 & the sugar: branches on a trait or a concept, lambdas, inheritance, \texttt{*} on an optional, \ldots & the grammar, and desugared (Tables~\ref{tab:closure} to~\ref{tab:closure:choice}) & \texttt{?:} on a law, specialisation, an operation struct, a registration, the case form on a sum, \ldots \\
-\bottomrule
-\end{tabularx}
-\caption{The filtration from Jlt to its kernel FJlt.
-The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
-\label{tab:adequacy}
-\end{table}
-
-No row of Tables~\ref{tab:closure} to~\ref{tab:closure:choice} needs anything the calculus lacks, and by measurement they are complete for the \texttt{category} module and the listings, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}).
-That each desugaring keeps the meaning is named, not proved: it is the paper's working hypothesis.
-
+\paragraph{Desugaring.}
+\label{sec:fjlt:desugaring}
+Desugaring admits the \Cpp{} that FJlt lacks but that maps easily onto it, as the standard itself defines a lambda as a class with a call operator.
+It is a rewrite into the kernel's constructions that computes the same value; no tool runs it.
+Appendix~\ref{app:fjlt:closure} gives it construction by construction, each with its condition and the kernel term it yields (Tables~\ref{tab:adequacy} to~\ref{tab:closure:choice}).
+A branch on a type, the sugar that matters most, becomes a family of generic functions ordered by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent; Listing~\ref{lst:laws}'s two specialisations, each licensed by a law, compose under it.
+That each desugaring keeps the meaning is the paper's working hypothesis, named and not proved: the compiler does not check two of the rules, and the tables are complete by measurement for the \texttt{category} module and the listings, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}).
