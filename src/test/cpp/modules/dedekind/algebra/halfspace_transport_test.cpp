@@ -13,6 +13,7 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
+#include <cstdint>     // std::uint8_t (a middle carrier with a top)
 #include <functional>  // std::plus (equalizer parallel-pair arrow)
 #include <limits>
 #include <stdexcept>
@@ -89,7 +90,6 @@ static_assert(!image(ℤ * ℤ & π_1 * -1 == π_2 & π_1 < 0)(-2),
 static_assert(
     image((ℕ * ℕ & π_1 + 1u == π_2) & π_1 > 5u) == (ℕ & (π > 6u)),
     "image(succ, {n>5}) = {n>6}: the graph decides where opacity walls.");
-// The identity scale on ℕ: its unit is an unsigned constant, which ℕ meets.
 // A downward cut on ℕ keeps its floor: {n≤5} = [0, 5] shifts to [1, 6], so 0
 // is not in the image (no n has n+1 = 0); strictness rides on the upper side.
 static_assert(image((ℕ * ℕ & π_1 + 1u == π_2) & π_1 <= 5u) ==
@@ -98,6 +98,7 @@ static_assert(image((ℕ * ℕ & π_1 + 1u == π_2) & π_1 <= 5u) ==
 static_assert(image((ℕ * ℕ & π_1 + 1u == π_2) & π_1 < 5u) ==
                   ((ℕ & (π >= 1u)) & (ℕ & (π < 6u))),
               "image(succ, {n<5}) = {1,…,5} on ℕ.");
+// The identity scale on ℕ: its unit is an unsigned constant, which ℕ meets.
 static_assert(image((ℕ * ℕ & π_1 * 1u == π_2) & π_1 > 5u) == (ℕ & (π > 5u)),
               "image(x ↦ 1·x, {n>5}) = {n>5} on ℕ.");
 
@@ -346,6 +347,18 @@ TEST_CASE("algebra:halfspace_transport: bounded composition over ℕ",
   CHECK(twice(std::pair{Numeral{2u}, Numeral{2u}}));        // middle b = 2
   CHECK_FALSE(twice(std::pair{Numeral{1u}, Numeral{2u}}));  // off the diagonal
   CHECK_FALSE(twice(std::pair{Numeral{3u}, Numeral{3u}}));  // 3 ∉ [0, 3)
+}
+
+// A window wider than the middle carrier stops at the carrier's top: B = uint8
+// holds 256 values, so the scan over [0, 257) never reads the count 256.
+TEST_CASE("algebra:halfspace_transport: bounded composition over a byte",
+          "[algebra][relprod]") {
+  using B = std::uint8_t;
+  const auto r = (𝔸<unsigned>{} * 𝔸<B>{} & π_1 == 0u) & (π_1 < 257u);
+  const auto s = 𝔸<B>{} * 𝔸<B>{} & π_1 == π_2;
+  const auto rs = r >> s;
+  CHECK_FALSE(rs(std::pair{1u, B{0}}));  // no middle: R needs a = 0
+  CHECK(rs(std::pair{0u, B{255}}));      // middle b = 255, the top
 }
 
 // #875: retractability generalizes ℤ → arbitrary IsGroup.  The graph `inverse`

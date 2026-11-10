@@ -36,13 +36,15 @@ module;
 #include <algorithm>  // std::ranges::any_of
 #include <concepts>   // std::convertible_to
 #include <cstddef>
+#include <functional>  // std::less_equal (the order of the top)
 #include <ranges>
 #include <utility>
 
 export module dedekind.sequences:relprod;
 
-import dedekind.sets;  // Comprehension / 𝔸
-import dedekind.order; // ProductRestrict, IsRelPredicate
+import dedekind.category; // LatticeTop: a bounded middle's greatest value
+import dedekind.sets;     // Comprehension / 𝔸
+import dedekind.order;    // ProductRestrict, IsRelPredicate
 
 namespace dedekind::sequences {
 using dedekind::order::IsRelPredicate;
@@ -76,6 +78,27 @@ struct IsMiddle {
            static_cast<bool>(s(std::pair{b, ac.second}));
   }
 };
+/** @brief The middle carrier registers its greatest value under @c <= as a
+ *  count, as the machine words do.  @tparam B the middle carrier. */
+template <typename B>
+concept HasTopCount = requires {
+  {
+    dedekind::category::LatticeTop<B, std::less_equal<B>>::value
+  } -> std::convertible_to<std::size_t>;
+};
+/** @brief The window @c [0, bound) met with the middle carrier: where @c B
+ *  has a top, the counts above it name no value of @c B, so the window stops
+ *  at @c top+1 and the scan stays total.  @tparam B the middle carrier.
+ *  @param bound the declared prefix bound. */
+template <typename B>
+constexpr std::size_t middle_window(std::size_t bound) {
+  if constexpr (HasTopCount<B>) {
+    const auto top = static_cast<std::size_t>(
+        dedekind::category::LatticeTop<B, std::less_equal<B>>::value);
+    if (top < bound) return top + 1;
+  }
+  return bound;
+}
 }  // namespace detail_relprod
 
 /** @tparam B the middle carrier the composed relations declare. */
@@ -94,9 +117,10 @@ struct ComposePrefixPred {
       ac.second;
     }
   constexpr bool operator()(const Pair& ac) const {
-    // ∃ b ∈ [0,M). R(a,b) ∧ S(b,c) --- exists stops at the first witness b.
+    // ∃ b ∈ [0,M) ∩ B. R(a,b) ∧ S(b,c) --- exists stops at the first witness.
     return std::ranges::any_of(
-        std::views::iota(std::size_t{0}, bound),
+        std::views::iota(std::size_t{0},
+                         detail_relprod::middle_window<B>(bound)),
         detail_relprod::IsMiddle<B, PR, PS, Pair>{r, s, ac});
   }
 };
