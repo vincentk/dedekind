@@ -27,7 +27,7 @@ A value is immutable and a reference to one denotes it, which is why a parameter
 \textsc{(S-Const)} & x \longrightarrow e \quad \text{for a constant declared } \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \\[3pt]
 \textsc{(S-Op)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)} \longrightarrow e[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}][\overline{v_y}/\overline{y}][\overline{v}/\overline{x}] \quad \text{for a declared function object with body } e\text{, } \overline{\sigma} \text{ deduced} \\[3pt]
 \textsc{(S-Std)} & O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{c}\texttt{)} \longrightarrow c \quad \text{for a standard function object, } c \text{ the value the standard assigns} \\[3pt]
-\textsc{(S-Prim)} & \ominus c \longrightarrow c' \qquad c_1 \oplus c_2 \longrightarrow c \quad \text{the base type's operator, total by the choice of } \ominus, \oplus \\[3pt]
+\textsc{(S-Prim)} & \ominus c \longrightarrow c' \qquad c_1 \oplus c_2 \longrightarrow c \quad \text{where resolution picks a primitive of } \Sigma\text{, total by its choice} \\[3pt]
 \textsc{(S-Conv)} & \tau\texttt{(}c\texttt{)} \longrightarrow c' \quad \text{the conversion between distinct carriers the standard or the declaration assigns} \qquad \tau\texttt{(}v\texttt{)} \longrightarrow v \quad \text{at } v\text{'s own type, any value} \\[3pt]
 \textsc{(S-If)} & \texttt{true ? } e_1 \texttt{ : } e_2 \longrightarrow e_1 \qquad \texttt{false ? } e_1 \texttt{ : } e_2 \longrightarrow e_2 \\[3pt]
 \textsc{(S-Proj)} & \texttt{std::pair\{}v_1\texttt{, }v_2\texttt{\}.first} \longrightarrow v_1 \qquad \texttt{std::pair\{}v_1\texttt{, }v_2\texttt{\}.second} \longrightarrow v_2 \qquad O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}.}y_i \longrightarrow v_i \\[3pt]
@@ -48,6 +48,7 @@ A value is immutable and a reference to one denotes it, which is why a parameter
 
 \paragraph{Calls, folds and terms.}
 \textsc{S-Call} covers specialisations and generic functions alike, since resolution has already chosen the body; for a generic function the explicit type arguments are substituted first.
+An operator on values whose resolution picks a declared \texttt{operator}$\oplus$ is that call, and steps by \textsc{S-Call}.
 A constant's name is, like a function's, a name of the program and not a variable, so a closed term may hold it; \textsc{S-Const} unfolds it, and since evaluation is deterministic every use gives the one value \Cpp{} computes once.
 \textsc{S-Range} is total: on the empty range the head is $\mathit{default}_\tau$ and the tail the range itself, values \textsc{S-Fold} never reaches, since it runs $|r|$ times.
 The default value of a type is given by its structure, not by \cppinline{T{}}: a carrier's own default, a pair of defaults, the empty optional, the first injection of a default, a fieldless function object, and for a box a box of its content's default, so that no term of the kernel holds a null box.

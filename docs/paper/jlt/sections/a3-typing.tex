@@ -127,6 +127,10 @@ Once instantiated, the candidates denote one operation, by Lemma~\ref{lem:resolv
 A premise $f : \sigma \times \tau \to \sigma$ in \textsc{T-Fold} and \textsc{T-Case} says that $f$ is a function name or a function object.
 Its application to arguments of those types is typed at $\sigma$ by \textsc{T-Call}, \textsc{T-Trait}, \textsc{T-Op}, \textsc{T-App} or, at a type variable, \textsc{T-Req-Assumed}.
 
+\paragraph{Operators.}
+An operator expression $\ominus e$ or $e_1 \oplus e_2$ is resolved as \Cpp{} resolves it~\cite[{\texttt{over.match.oper}}]{cpp23standard}, the built-in operator a candidate beside the declared functions \texttt{operator}$\oplus$, and the only one when no operand is of class or enumeration type.
+Where the choice is a primitive of $\Sigma$, the expression is typed by the primitive's signature, the rule for the arithmetic of base types; otherwise it is the call \texttt{operator}$\oplus$\texttt{(}$e_1$\texttt{, }$e_2$\texttt{)}, typed by \textsc{T-Call} or \textsc{T-Trait}.
+
 \paragraph{Deduced types and constants.}
 Where a declaration's result type $\rho$ is \cppinline{auto}, its $\tau$ is the type of the body in the premise, and \textsc{T-Call}, \textsc{T-Trait} and \textsc{T-App}'s $\tau_r$ read that type.
 This is local type inference~\cite{pierce2000local}: the type is synthesised from the body, and nothing flows into it from a use.
