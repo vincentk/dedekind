@@ -24,9 +24,10 @@ A value is immutable and a reference to one denotes it, which is why a parameter
 \begin{array}{ll}
 \textsc{(S-Call)} & f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)} \longrightarrow e[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \\
  & \qquad \text{where } f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to a declaration with parameters } \overline{x} \text{ and body } e \\[3pt]
+\textsc{(S-Const)} & x \longrightarrow e \quad \text{for a constant declared } \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \\[3pt]
 \textsc{(S-Op)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)} \longrightarrow e[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}][\overline{v_y}/\overline{y}][\overline{v}/\overline{x}] \quad \text{for a declared function object with body } e\text{, } \overline{\sigma} \text{ deduced} \\[3pt]
 \textsc{(S-Std)} & O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{c}\texttt{)} \longrightarrow c \quad \text{for a standard function object, } c \text{ the value the standard assigns} \\[3pt]
-\textsc{(S-Prim)} & \ominus c \longrightarrow c' \qquad c_1 \oplus c_2 \longrightarrow c \quad \text{the base type's operator, total by the choice of } \ominus, \oplus \\[3pt]
+\textsc{(S-Prim)} & \ominus c \longrightarrow c' \qquad c_1 \oplus c_2 \longrightarrow c \quad \text{where resolution picks a primitive of } \Sigma\text{, total by its choice} \\[3pt]
 \textsc{(S-Conv)} & \tau\texttt{(}c\texttt{)} \longrightarrow c' \quad \text{the conversion between distinct carriers the standard or the declaration assigns} \qquad \tau\texttt{(}v\texttt{)} \longrightarrow v \quad \text{at } v\text{'s own type, any value} \\[3pt]
 \textsc{(S-If)} & \texttt{true ? } e_1 \texttt{ : } e_2 \longrightarrow e_1 \qquad \texttt{false ? } e_1 \texttt{ : } e_2 \longrightarrow e_2 \\[3pt]
 \textsc{(S-Proj)} & \texttt{std::pair\{}v_1\texttt{, }v_2\texttt{\}.first} \longrightarrow v_1 \qquad \texttt{std::pair\{}v_1\texttt{, }v_2\texttt{\}.second} \longrightarrow v_2 \qquad O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}.}y_i \longrightarrow v_i \\[3pt]
@@ -47,6 +48,8 @@ A value is immutable and a reference to one denotes it, which is why a parameter
 
 \paragraph{Calls, folds and terms.}
 \textsc{S-Call} covers specialisations and generic functions alike, since resolution has already chosen the body; for a generic function the explicit type arguments are substituted first.
+An operator on values whose resolution picks a declared \texttt{operator}$\oplus$ is that call, and steps by \textsc{S-Call}.
+A constant's name is, like a function's, a name of the program and not a variable, so a closed term may hold it; \textsc{S-Const} unfolds it, and since evaluation is deterministic every use gives the one value \Cpp{} computes once.
 \textsc{S-Range} is total: on the empty range the head is $\mathit{default}_\tau$ and the tail the range itself, values \textsc{S-Fold} never reaches, since it runs $|r|$ times.
 The default value of a type is given by its structure, not by \cppinline{T{}}: a carrier's own default, a pair of defaults, the empty optional, the first injection of a default, a fieldless function object, and for a box a box of its content's default, so that no term of the kernel holds a null box.
 \textsc{S-Fold} consumes the head of the range, so a fold takes as many steps as the range has elements.
@@ -54,12 +57,12 @@ The default value of a type is given by its structure, not by \cppinline{T{}}: a
 
 \paragraph{Totality.}
 \textsc{S-Prim} and \textsc{S-Std} are total because the admitted operators are, which is what Lemma~\ref{lem:progress} needs.
-That totality, the condition of Appendix~\ref{app:fjlt:syntax}, is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operator defined on every input, and it keeps \cppinline{int}'s overflow and division out.
+That totality, the condition of Section~\ref{sec:fjlt:syntax}, is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operator defined on every input, and it keeps \cppinline{int}'s overflow and division out.
 On unsigned carriers the operators are addition, subtraction, multiplication and the bitwise operators, which wrap, the comparisons, and division, remainder and the shifts by a literal the carrier can take (a nonzero divisor, a shift below the width); by a variable, those three are partial and not admitted.
 On \cppinline{bool} they are the logical operators.
 $\Sigma$ is not a list; the listings also use \cppinline{std::string} with concatenation and the comparisons, allocation failure aside, and finite enumerations such as \cppinline{Ternary}.
 
 \paragraph{Boxes.}
 \textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a constant evaluator rejects a term that builds a box.
-A law or a \cppinline{static_assert} premise therefore contains no \cppinline{make_shared}, the condition under which every FJlt program is a Jlt program.
-\Cpp{26} retires that condition~\cite{keir2025constexprsharedptr}.
+A law, a constant's initialiser or a \cppinline{static_assert} premise is therefore a constant expression whose value keeps no allocation alive, \cppinline{make_shared} excluded, the condition under which every FJlt program is a Jlt program.
+\Cpp{26} admits \cppinline{make_shared} within an evaluation~\cite{keir2025constexprsharedptr}; an allocation still may not outlive it.

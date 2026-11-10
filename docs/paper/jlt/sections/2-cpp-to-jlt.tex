@@ -23,8 +23,8 @@ constexpr auto id() { return Identity<A>{}; }
 constexpr auto id_b = id<bool>();
 constexpr auto id_u = id<size_t>();
 static_assert(
-id_b(true) == true && id_u(42) == 42 &&
-(id_u >> id_u)(42) == 42);
+id_b(true) == true && id_u(42uz) == 42 &&
+(id_u >> id_u)(42uz) == 42);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}

@@ -2,49 +2,89 @@
 \section{Desugaring Jlt into Featherweight Jlt}
 \label{app:fjlt:closure}
 
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+// D: a trait; its primary stays deleted
+template <typename T>
+constexpr T op(T, T) = delete;
+
+// D: an instance; + an operator of Sigma
+template <>
+constexpr std::string
+op<std::string>(std::string a, std::string b) {
+  return a + b;
+}
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+// D: a shape; A its required calls
+template <typename T>
+concept IsMagma =
+    requires(const T a, const T b) {
+      { op(a, b) } -> std::same_as<T>;
+    };
+
+// D: a generic function; Q its constraint
+template <typename T> requires IsMagma<T>
+constexpr T twice(T x) {
+  return op(x, x);
+}
+
+// e: the closed term the program evaluates
+twice("ab"s) + "c"s == "ababc"s
+\end{cpp}
+\end{minipage}
+\caption{A small program, each declaration labelled with its form in Figure~\ref{fig:fjlt-syntax}; its \texttt{\"\"s} literals are sugar.}
+\label{lst:fjlt-reading}
+\end{listing}
+
 This appendix describes the desugaring of Jlt into FJlt.
 It corresponds to the $-$sugar arrow of Figure~\ref{fig:arrows}, and complements Section~\ref{sec:translation:adequacy}.
-It covers the constructions of \Cpp{23} that a Jlt program may write beyond the grammar of Appendix~\ref{app:fjlt:syntax}, each with its desugaring and its condition.
+It covers the constructions of \Cpp{23} that a Jlt program may write beyond the grammar of Section~\ref{sec:fjlt:syntax}, each with its desugaring and its condition.
 No proof of correctness is provided.
 Three reasons cover the constructions: i)~a spelling, syntactic sugar in Landin's sense~\cite{landin1964mechanical}, when the construction writes a kernel term another way; ii)~local state, when it keeps state that never leaves the call; iii)~branching, which only the kernel's own forms of choice may do.
 Across the three tables, the condition passes from the compiler to the repository's linter to a reader, and each row's mark says who holds it.
 
-\begin{table}[tbp]
+\begin{table}[ht]
 \centering
-\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
+\small
+\begin{tabularx}{\linewidth}{@{}r@{\hspace{0.6em}}>{\hsize=.8\hsize\raggedright\hyphenpenalty=10000\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
 \toprule
-construction & FJlt, provided & image \\
+& Jlt may write & kept out of the kernel by & the kernel has instead \\
 \midrule
-\texttt{auto}, \texttt{decltype}, argument deduction$^{\ast}$ & nothing & the type the compiler deduces \\
-\texttt{static\_assert(e)}$^{\ast}$ & \texttt{e} a closed \texttt{bool} term & the claim that \texttt{e} evaluates to \texttt{true} \\
-alias, \texttt{tuple}, \texttt{array}$^{\ast}$ & the parts FJlt & substitution, nested pairs, a range of $\mathcal{R}$ \\
-variable or class template$^{\ast}$ & each member of the family an FJlt instance & instance with a context, a default beside families resolved by specificity \\
-const member function$^{\dagger}$ & \texttt{const}, FJlt body & generic function with the object as first parameter \\
-constructor, conversion operator, default argument, designated initialiser$^{\dagger\ddagger}$ & \texttt{constexpr}, FJlt body & a function returning the struct; a declared conversion; an overload with the argument supplied; the fields in order \\
-explicit conversion$^{\ddagger}$ & a total conversion between carriers & a declared function \\
-an operator on a constrained type$^{\dagger\ddagger}$ & a constraint names the standard function object the standard defines by it, \texttt{plus<T>} for \texttt{+}, and the operator has type \texttt{T} there (\texttt{true + true} is the \texttt{int} 2) & that object's call \\
-operator overloading, user-defined literal$^{\ast}$ & FJlt body & a named function call \\
-non-type template parameter$^{\ast}$ & the value a constant of a carrier & a type per value, as \texttt{integral\_constant} spells it \\
-overloading$^{\ast}$ & distinct carriers, or constraints ordered by specificity & specialisations of one trait, or generic functions \\
-\texttt{friend}, access specifier$^{\ast}$ & a friend an FJlt function & a free function; nothing \\
-inheritance$^{\dagger}$ & every base an empty class, no virtual function & a registration, read as the fact it states \\
-generic \texttt{cata} over a term type$^{\ast}$ & algebra and term FJlt & the kernel's primitive \texttt{cata} \\
+1 & overloading & the grammar (Section~\ref{sec:fjlt:syntax}), except by constraints & generic functions of one name ordered by their constraints, plus their specialisations \\
+2 & argument-dependent lookup & the grammar, and the lookup wall (Section~\ref{sec:limits}) & instances found by the trait's name \\
+3 & implicit conversions & the grammar, and Rule~2 for the body & a conversion only where a requirement declares one or a built-in operator's rule places one (Appendix~\ref{app:fjlt:typing}), and the body then sees the declared type \\
+4 & references, moves & erased by the grammar (Section~\ref{sec:fjlt:syntax}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
+5 & the sugar: branches on a trait or a concept, lambdas, inheritance, \texttt{*} on an optional, \ldots & the grammar, and desugared (Appendix~\ref{app:fjlt:closure}) & \texttt{?:} on a law, specialisation, an operation struct, a registration, the case form on a sum, \ldots \\
 \bottomrule
 \end{tabularx}
-\caption{Constructions that are another spelling of a kernel term.
-In each row, a term built by the construction from FJlt terms, under the condition, is the FJlt term in the image column.
-A mark says who holds the condition: $\ast$ the compiler, $\dagger$ the repository's linter, $\ddagger$ a reader; two marks share it.}
-\label{tab:closure}
+\caption{The filtration from Jlt to its kernel FJlt.
+The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
+\label{tab:adequacy}
 \end{table}
 
 \paragraph{Spellings.}
-Most of what a program writes beyond the grammar is a kernel term spelt another way, and Table~\ref{tab:closure} gives its image.
+Most of what a program writes beyond the grammar is a kernel term spelt another way; where a spelling carries a condition, its sentence names the condition and who holds it, the compiler, the repository's linter or a reader.
+A deduced result type, a call's deduced type arguments and a constant are the kernel's own (Appendix~\ref{app:fjlt:typing}); an \cppinline{auto} parameter adds a template parameter the declaration does not write, and is sugar.
 A variable template \cppinline{v<T...> = e} is the nullary function template \cppinline{v<T...>() { return e; }}.
 So is a class template with a static constant member, and constant evaluation of the three agrees.
 A primary that answers \cppinline{false} beside partial specialisations that answer \cppinline{true} is two generic functions whose heads both match.
 Resolution by specificity orders them, as it orders constrained overloads such as Listing~\ref{lst:laws}'s \cppinline{fold} and \cppinline{concat}.
 Lookup leaves some FJlt spellings unwritable (Section~\ref{sec:limits}), and there the host's spelling stands for it.
 A \cppinline{const} member function is the generic function with the object as its first parameter, reading its fields where the member read \cppinline{this}.
+A constructor is a function returning the struct, a conversion operator a declared conversion, a default argument an overload with the argument supplied, and a designated initialiser the fields in order, each with a \cppinline{constexpr} FJlt body; the linter holds \cppinline{constexpr} and a reader the rest.
+An explicit conversion between carriers is a declared function, total by a reader's check.
+A non-type template parameter is a type per value, as \cppinline{integral_constant} spells it, the value a constant of a carrier, which the compiler holds.
+A user-defined literal is a named function call, which the compiler holds.
+A \cppinline{static_assert(e)}, \cppinline{e} a closed \cppinline{bool} term, is the claim that \cppinline{e} evaluates to \cppinline{true}, which the compiler holds; a listing's assertions are its program's terms.
+At a type variable no candidate of an operator is known, so an operator on a constrained type is the call of the standard function object the constraint names: \cppinline{a + b} with \cppinline{IsMonoid<T, plus<T>>} in $\Delta$ is \cppinline{plus<T>{}(a, b)}.
+Its result type is the one the requirement states; the linter holds the spelling and a reader the result type.
+An alias is the type it names, substituted, and \cppinline{decltype(e)} the type the compiler deduces for \cppinline{e}.
+A \cppinline{tuple} is nested pairs, a \cppinline{friend} function a free function, and an access specifier nothing.
+The library's generic \cppinline{cata} over a term type is the kernel's primitive.
 A static member function is a generic function.
 A struct with fields and no call operator is a product, nested pairs.
 \cppinline{std::array<T, n>} is both a product of $n$ copies and a member of $\mathcal{R}$ with length $n$, so a fold over it is already in the grammar.
@@ -63,7 +103,8 @@ local constant, structured binding$^{\dagger}$ & the initialiser FJlt, the name 
 local state that does not escape$^{\dagger\ddagger}$ & assignments only to locals, by-value parameters, elements of a local array, or a builtin's out-parameter that is a local; nothing written observable after the call & the state threaded as values, one binding per assignment, as \texttt{runST} encapsulates it \\
 \bottomrule
 \end{tabularx}
-\caption{Constructions whose state stays inside a call, read as Table~\ref{tab:closure}.}
+\caption{Constructions whose state stays inside a call: a term built by the construction from FJlt terms, under the condition, is the FJlt term in the image column.
+A mark says who holds the condition: $\ast$ the compiler, $\dagger$ the repository's linter, $\ddagger$ a reader; two marks share it.}
 \label{tab:closure:private}
 \end{table}
 
@@ -94,7 +135,7 @@ a call its clause does not decide$^{\dagger}$ & the caller instantiates at a con
 \texttt{if consteval}, or an \texttt{if} on \texttt{is\_constant\_evaluated()}$^{\ddagger}$ & both branches compute the same value on every input & the compile-time branch \\
 \bottomrule
 \end{tabularx}
-\caption{Constructions that branch, read as Table~\ref{tab:closure}.}
+\caption{Constructions that branch, read as Table~\ref{tab:closure:private}.}
 \label{tab:closure:choice}
 \end{table}
 
@@ -151,12 +192,11 @@ So the law that licenses the shortcut also proves that the branches agree.
 For an arbitrary branch the condition is semantic, and a reader holds it, as for the part of Rule~2 the linter does not reach.
 
 \paragraph{Completeness.}
-The tables are complete by measurement, not by argument, at the resolution of a syntax node's kind.
+The constructions are complete by measurement, not by argument, at the resolution of a syntax node's kind.
 The repository's linter lists every kind of syntax node a file writes, leaving out the compiler's implicit wrappers.
-In the \texttt{category} module and the listings, each kind is the kernel's or a row, with \texttt{if consteval} for the parallel \cppinline{concat}.
-The rest of the library it reads, some twenty further files, writes about a hundred kinds.
-Half a dozen are beyond these, \cppinline{throw} and a loop whose end nothing shows among them, outside the posture and not sugar.
+In the listings and the library's core, each kind is the kernel's or a construction above, with \texttt{if consteval} for the parallel \cppinline{concat}.
+The rest of the library it reads writes about a hundred kinds, and half a dozen are beyond these, \cppinline{throw} and a loop whose end nothing shows among them, outside the posture and not sugar.
 The linter reports the inventory and holds each rule's findings at its count (\texttt{tools/jlt-lint/scope} in the repository).
 A kind does not tell every use apart.
-A binary operator is arithmetic or an assignment, and the assignments are the row of local state, which Rule~1's footnote admits and which reading, not counting, finds.
+A binary operator is arithmetic or an assignment, and the assignments are local state, which Rule~3 admits and which reading, not counting, finds.
 With the tables closed, the second direction of Section~\ref{sec:translation:adequacy} reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.

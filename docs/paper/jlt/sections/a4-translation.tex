@@ -4,6 +4,7 @@
 \newcommand{\note}[1]{\parbox[t]{0.27\linewidth}{\raggedright\footnotesize #1}}
 
 This appendix defines in full the arrow $\llbracket\cdot\rrbracket$ of Figure~\ref{fig:arrows} and Section~\ref{sec:translation} on the programs of Appendix~\ref{app:fjlt:typing}, by dictionary passing~\cite{wadler1989adhoc}: a constraint becomes a record type, an entailment derivation a record, and a generic function a function of those records.
+A template is always fully applied: $\alpha$ ranges over types, and there is no template template parameter, so System~F suffices as the target.
 The target is System~F with products, sums, the sorts of $\Sigma$ as constant types with its operators as constants, and the iterators of inductive types: $\mathit{iter} : \forall\sigma.\,\mathbb{N} \to (\sigma \to \sigma) \to \sigma \to \sigma$ and, for each term type $\mu F$, $\mathit{fold}_F : \forall\sigma.\,(F(\sigma) \to \sigma) \to \mu F \to \sigma$, each reducing one constructor at a time.
 Its iterative fragment embeds into System~F by an encoding that preserves reduction~\cite{matthes1999extensions}.
 Records are nested pairs.
@@ -53,6 +54,7 @@ A converted result is used only at its declared type (Appendix~\ref{app:fjlt:typ
 \texttt{struct } O \texttt{ \{ } \overline{y}\texttt{; ... operator()(}\overline{x}\texttt{) ... } e \texttt{ ... \};} & \note{a function object's call function} \\
 \qquad \mapsto\; O_{\mathrm{call}} = \lambda\overline{y}.\,\Lambda\overline{\beta}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \\
 O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \note{the standard's function $o$  as a constant} \\
+\texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \;\mapsto\; x = \llbracket e \rrbracket & \note{a constant, a definition} \\
 \texttt{concept}, \texttt{= delete} \;\mapsto\; \text{nothing} & \\[6pt]
 \multicolumn{2}{l}{\textit{terms}} \\
 \llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_i\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket}\,\overline{\llbracket e \rrbracket} & \note{\textsc{T-Call}, $f_i$ the declaration it resolves to} \\
@@ -61,6 +63,7 @@ O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \note{the sta
 \llbracket O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e_y}\texttt{\}} \rrbracket = (\overline{\llbracket e_y \rrbracket},\; O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket}) & \note{construction; a fieldless $O$  has the empty tuple of fields} \\
 \llbracket e\texttt{(}\overline{e'}\texttt{)} \rrbracket = (\pi_2\,\llbracket e \rrbracket)\,[\overline{\llbracket \sigma \rrbracket}]\,\overline{d}\,\overline{\llbracket e' \rrbracket} & \note{\textsc{T-Op}, \textsc{T-App}: application} \\
 \qquad \text{with } \overline{d} = \overline{\llbracket \Delta \Vdash Q[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}] \rrbracket} & \note{the call operator's dictionaries} \\
+\llbracket e_1 \oplus e_2 \rrbracket = \oplus\,\llbracket e_1 \rrbracket\,\llbracket e_2 \rrbracket \text{ or } \llbracket \texttt{operator}\oplus\texttt{(}e_1\texttt{, }e_2\texttt{)} \rrbracket & \note{a primitive of $\Sigma$, its constant; otherwise the call it resolves to, under the standard's rewrite where the candidate is rewritten or reversed; $\ominus$ alike} \\
 \llbracket e\texttt{.}y_i \rrbracket = \pi_i\,(\pi_1\,\llbracket e \rrbracket) & \note{a field, through the fields' pair} \\
 \llbracket \tau\texttt{(}e\texttt{)} \rrbracket = \mathit{conv}_{\tau',\tau}\,\llbracket e \rrbracket & \note{a conversion between distinct carriers, a constant of type $\llbracket \tau' \rrbracket \to \llbracket \tau \rrbracket$; at $\tau' = \tau$, $\mathit{conv}_{\tau,\tau} = \lambda x.\,x$} \\
 \end{array}
@@ -72,6 +75,9 @@ The right-hand column says which case a line is.}
 
 \paragraph{Declarations and terms.}
 A function object is a pair of its fields and its call function, so a fieldless \cppinline{std::plus<size_t>} is $((), \mathit{plus})$, passing it as a step uses its second component, and reading a field uses its first.
+A result type does not appear in a declaration's image, so a deduced one translates as the written one would.
+A constant is a defined name of the target, $x = \llbracket e \rrbracket$, unfolded where it is used (Assumption~\ref{ass:target}), as a function's definition is, and its name translates to itself; it is not a $\beta$-redex, which would substitute every use at once where \textsc{S-Const} unfolds one.
+Every definition is placed the same way: the program's image is its definitions in declaration order, a function's $f = \ldots$ as a constant's, each scoping over the definitions and the term after it, so a name is bound before every use, in the order well-formedness fixes (Appendix~\ref{app:fjlt:typing}).
 A trait has no image of its own; its specialisations are closed terms $f_{\overline{\tau}}$, and a generic function that serves as an instance with a context is the function from records to a record that \textsc{E-Shape} builds its dictionary with.
 Where \cppinline{size_t} is read as $\mathbb{N}$, by a coercion constant from the carrier to the inductive naturals, $\llbracket n \rrbracket$ is the natural number that is $n$'s value; the translation of a term with a run-time \cppinline{n} is the term with $n$ as a free variable of type $\mathbb{N}$, and Theorem~\ref{thm:simulation} is stated for closed terms.
 The call function of a constrained operation abstracts over its dictionaries as a generic function does, and an application supplies them.
