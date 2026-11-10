@@ -187,12 +187,11 @@ So the law that licenses the shortcut also proves that the branches agree.
 For an arbitrary branch the condition is semantic, and a reader holds it, as for the part of Rule~2 the linter does not reach.
 
 \paragraph{Completeness.}
-The tables are complete by measurement, not by argument, at the resolution of a syntax node's kind.
+The constructions are complete by measurement, not by argument, at the resolution of a syntax node's kind.
 The repository's linter lists every kind of syntax node a file writes, leaving out the compiler's implicit wrappers.
-In the \texttt{category} module and the listings, each kind is the kernel's or a row, with \texttt{if consteval} for the parallel \cppinline{concat}.
-The rest of the library it reads, some twenty further files, writes about a hundred kinds.
-Half a dozen are beyond these, \cppinline{throw} and a loop whose end nothing shows among them, outside the posture and not sugar.
+In the listings and the library's core, each kind is the kernel's or a construction above, with \texttt{if consteval} for the parallel \cppinline{concat}.
+The rest of the library it reads writes about a hundred kinds, and half a dozen are beyond these, \cppinline{throw} and a loop whose end nothing shows among them, outside the posture and not sugar.
 The linter reports the inventory and holds each rule's findings at its count (\texttt{tools/jlt-lint/scope} in the repository).
 A kind does not tell every use apart.
-A binary operator is arithmetic or an assignment, and the assignments are the row of local state, which Rule~1's footnote admits and which reading, not counting, finds.
+A binary operator is arithmetic or an assignment, and the assignments are local state, which Rule~3 admits and which reading, not counting, finds.
 With the tables closed, the second direction of Section~\ref{sec:translation:adequacy} reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.

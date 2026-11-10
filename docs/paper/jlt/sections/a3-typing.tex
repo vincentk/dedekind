@@ -130,6 +130,8 @@ Its application to arguments of those types is typed at $\sigma$ by \textsc{T-Ca
 \paragraph{Operators.}
 An operator expression $\ominus e$ or $e_1 \oplus e_2$ is resolved as \Cpp{} resolves it~\cite[{\texttt{over.match.oper}}]{cpp23standard}, the built-in operator a candidate beside the declared functions \texttt{operator}$\oplus$, and the only one when no operand is of class or enumeration type.
 Where the choice is a primitive of $\Sigma$, the expression is typed by the primitive's signature, the rule for the arithmetic of base types; otherwise it is the call \texttt{operator}$\oplus$\texttt{(}$e_1$\texttt{, }$e_2$\texttt{)}, typed by \textsc{T-Call} or \textsc{T-Trait}.
+Where the operands are of different base types, the primitive acts after the standard's usual arithmetic conversions~\cite[{\texttt{expr.arith.conv}}]{cpp23standard}: the expression is the primitive on each operand converted to their common type, the conversion $\tau(e)$ of the grammar, placed by the compiler, as Listing~\ref{lst:rule2}'s \cppinline{+ 1} on a \cppinline{size_t}.
+A declared \texttt{operator}$\oplus$ needs no common type, since its signature is its own: in Listing~\ref{lst:rule3}'s \cppinline{v * a}, a matrix acting on a vector, the operands' types differ and nothing converts.
 
 \paragraph{Deduced types and constants.}
 Where a declaration's result type $\rho$ is \cppinline{auto}, its $\tau$ is the type of the body in the premise, and \textsc{T-Call}, \textsc{T-Trait} and \textsc{T-App}'s $\tau_r$ read that type.
