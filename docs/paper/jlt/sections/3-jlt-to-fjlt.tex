@@ -17,18 +17,20 @@ Listing~\ref{lst:fjlt-reading}, in Appendix~\ref{app:fjlt:closure}, is a program
 \begin{array}{lcl@{\hspace{0.2em}}l}
 P &::=& \overline{D}\; e & \text{program} \\[3pt]
 D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \texttt{ = } \overline{A}\texttt{;} & \text{shape} \\
-  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> constexpr } \tau\; f\texttt{(}\overline{\tau}\texttt{) = delete;} & \text{trait} \\
-  & \mid & \texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{\tau\; x}\texttt{)} & \text{instance} \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> constexpr } \rho\; f\texttt{(}\overline{\tau}\texttt{) = delete;} & \text{trait} \\
+  & \mid & \texttt{template <> constexpr } \rho\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{\tau\; x}\texttt{)} & \text{instance} \\
   &   & \qquad \texttt{\{ return } e\texttt{; \}} & \\
   & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} & \text{generic function} \\
-  &   & \qquad \texttt{constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \\
+  &   & \qquad \texttt{constexpr } \rho\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \\
   & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau\; y}\texttt{;} & \text{function object} \\
   &   & \qquad \texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q} & \\
-  &   & \qquad \texttt{constexpr } \tau \texttt{ operator()(}\overline{\tau\; x}\texttt{) const \{ return } e\texttt{; \} \};} & \\[3pt]
+  &   & \qquad \texttt{constexpr } \rho \texttt{ operator()(}\overline{\tau\; x}\texttt{) const \{ return } e\texttt{; \} \};} & \\
+  & \mid & \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} & \text{constant} \\[3pt]
 A &::=& Q \;\mid\; e & \text{nested shape, law} \\
   & \mid & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>;}} \texttt{ \}} & \text{required calls} \\[3pt]
 Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
 \tau &::=& \alpha \;\mid\; b \;\mid\; T\texttt{<}\overline{\tau}\texttt{>} & \text{type} \\[3pt]
+\rho &::=& \tau \;\mid\; \texttt{auto} & \text{result type} \\[3pt]
 e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} & \text{term} \\
   & \mid & \ominus e \;\mid\; \texttt{*}e \;\mid\; e\texttt{.}y \;\mid\; \tau\texttt{(}e\texttt{)} \;\mid\; e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e & \text{built-ins, by arity} \\
 \end{array}
@@ -40,13 +42,13 @@ $P$ is a program.
 $D$ is a declaration.
 $A$ is a requirement.
 $Q$ is a constraint.
-$\tau$ is a type.
+$\tau$ is a type, and $\rho$ a result type, written or deduced.
 $e$ is a term.
 $\alpha, \beta$ are type variables, $b$ base types.
 $T$ are type constructors, declared or adopted from the standard library; $O$ the structs among them, function objects (standard, such as \cppinline{std::plus}, or declared), \cppinline{std::pair} and \cppinline{std::optional}; $y$ their fields.
 $\ominus$ and $\oplus$ are the unary and binary operators of $\Sigma$.
 $C$ are concept names, the standard ones included; $S$ the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}.
-$f$ are function names, $x$ term variables, $c$ constants.}
+$f$ are function names, $x$ term variables and the names of declared constants, $c$ constants.}
 \label{fig:fjlt-syntax}
 \end{figure}
 

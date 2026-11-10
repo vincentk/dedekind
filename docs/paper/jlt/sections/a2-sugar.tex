@@ -72,7 +72,7 @@ The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
 \toprule
 construction & FJlt, provided & image \\
 \midrule
-\texttt{auto}, \texttt{decltype}, argument deduction$^{\ast}$ & nothing & the type the compiler deduces \\
+\texttt{auto} parameter, \texttt{decltype}$^{\ast}$ & nothing & a template parameter; the type the compiler deduces \\
 \texttt{static\_assert(e)}$^{\ast}$ & \texttt{e} a closed \texttt{bool} term & the claim that \texttt{e} evaluates to \texttt{true} \\
 alias, \texttt{tuple}, \texttt{array}$^{\ast}$ & the parts FJlt & substitution, nested pairs, a range of $\mathcal{R}$ \\
 variable or class template$^{\ast}$ & each member of the family an FJlt instance & instance with a context, a default beside families resolved by specificity \\
@@ -96,6 +96,7 @@ A mark says who holds the condition: $\ast$ the compiler, $\dagger$ the reposito
 
 \paragraph{Spellings.}
 Most of what a program writes beyond the grammar is a kernel term spelt another way, and Table~\ref{tab:closure} gives its image.
+A deduced result type, a call's deduced type arguments and a constant are the kernel's own (Appendix~\ref{app:fjlt:typing}); an \cppinline{auto} parameter adds a template parameter the declaration does not write, and is sugar.
 A variable template \cppinline{v<T...> = e} is the nullary function template \cppinline{v<T...>() { return e; }}.
 So is a class template with a static constant member, and constant evaluation of the three agrees.
 A primary that answers \cppinline{false} beside partial specialisations that answer \cppinline{true} is two generic functions whose heads both match.

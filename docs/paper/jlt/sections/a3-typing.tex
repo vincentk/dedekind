@@ -63,7 +63,11 @@ Theorem~\ref{thm:coherence} needs exactly that.
 \\[7pt]
 \textsc{(T-Req-Assumed)} & \dfrac{\begin{array}{c} C\texttt{<}\overline{\tau}\texttt{>} \in \Delta \\ \texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \text{ is a requirement of } C \text{ with parameters } \overline{a : \tau_a} \\ \Delta; \Gamma \vdash \overline{e : \tau_a} \end{array}}{\Delta; \Gamma \vdash \tau^{S}\texttt{(}e_r[\overline{e}/\overline{a}]\texttt{)} : \tau}
 \\[7pt]
-\textsc{(D-Generic)} & \dfrac{\overline{\alpha}, \overline{Q};\; \overline{x : \tau_x} \vdash e : \tau}{\begin{array}{c}\vdash \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} \\ \texttt{constexpr } \tau\; f\texttt{(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}\end{array}}
+\textsc{(D-Generic)} & \dfrac{\overline{\alpha}, \overline{Q};\; \overline{x : \tau_x} \vdash e : \tau \qquad \rho \in \{\tau, \texttt{auto}\}}{\begin{array}{c}\vdash \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} \\ \texttt{constexpr } \rho\; f\texttt{(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}\end{array}}
+\\[7pt]
+\textsc{(D-Const)} & \dfrac{\varnothing; \varnothing \vdash e : \tau \qquad \rho \in \{\tau, \texttt{auto}\}}{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;}}
+\\[7pt]
+\textsc{(T-Const)} & \dfrac{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \text{ declared before, at } \tau}{\Delta; \Gamma \vdash x : \tau}
 \\[7pt]
 \multicolumn{2}{@{}l}{\text{\textit{Recursion, from the adopted library}}}
 \\[7pt]
@@ -76,7 +80,7 @@ Theorem~\ref{thm:coherence} needs exactly that.
 \textsc{(T-Node)} & \dfrac{\Delta; \Gamma \vdash t : O\texttt{<}\overline{\tau}\texttt{>} \qquad O \text{ a node of } F}{\Delta; \Gamma \vdash t : \mu F}
 \end{array}
 \]
-\caption{The rules for terms, $\Delta; \Gamma \vdash e : \tau$, and for generic functions, $\vdash D$.
+\caption{The rules for terms, $\Delta; \Gamma \vdash e : \tau$, and for generic functions and constants, $\vdash D$.
 They come in three groups: calls, the definition check and recursion.
 Omitted as textbook: \textsc{T-Var}, \textsc{T-Construct}, \textsc{T-Field}, \textsc{T-Inj}, \textsc{T-Case}, and the rules for constants, pairs, boxes, conditionals and the arithmetic of base types.}
 \label{fig:fjlt-typing}
@@ -123,6 +127,15 @@ Once instantiated, the candidates denote one operation, by Lemma~\ref{lem:resolv
 A premise $f : \sigma \times \tau \to \sigma$ in \textsc{T-Fold} and \textsc{T-Case} says that $f$ is a function name or a function object.
 Its application to arguments of those types is typed at $\sigma$ by \textsc{T-Call}, \textsc{T-Trait}, \textsc{T-Op}, \textsc{T-App} or, at a type variable, \textsc{T-Req-Assumed}.
 
+\paragraph{Deduced types and constants.}
+Where a declaration's result type $\rho$ is \cppinline{auto}, its $\tau$ is the type of the body in the premise, and \textsc{T-Call}, \textsc{T-Trait} and \textsc{T-App}'s $\tau_r$ read that type.
+This is local type inference~\cite{pierce2000local}: the type is synthesised from the body, and nothing flows into it from a use.
+\Cpp{} refuses a use of the function before a return statement has deduced its type, and an FJlt body is a single return, so no body is typed through its own deduced type.
+The one exception's self-call is such a use, and its function writes its result type.
+A trait and its instances write \cppinline{auto} together or not at all, as the standard requires of a specialisation.
+A call's type arguments are deduced as well: \textsc{T-App}'s $\overline{\sigma}$, and a call $f\texttt{(}\overline{e}\texttt{)}$ is $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)}$ at the $\overline{\sigma}$ the compiler deduces, so the rules check them and do not compute them.
+A constant is typed under the empty contexts, and \textsc{T-Const} types its name at that type in every later declaration and in the program's term.
+
 \paragraph{Ranges and terms.}
 A range $R\texttt{<}\tau\texttt{>}$ is an instance of a family $\mathcal{R}$ defined by conditions.
 It has a length $|r| \in \mathbb{N}$, fixed before a fold starts, and, when $|r| > 0$, a head and a tail $\mathit{next}\,r$ with $|\mathit{next}\,r| = |r| - 1$.
@@ -147,6 +160,7 @@ Well-formedness also requires that the declarations, taken at their type argumen
 A shape at some types depends on the traits its requirements call and on its nested shapes, at those types.
 A trait at some types depends on the context of every candidate whose head matches there, which resolution asks even of a candidate it then rejects, and on the candidate it picks.
 An instance, a generic function or an operation at some types depends on the shapes of its context, on the declarations its body calls and on the operations its body constructs.
+A constant depends on the declarations its initialiser names.
 An operation also depends on the operations in its field, parameter and result types, each at the types it names.
 The relation is on instantiations, not on bare declarations, since a structured instance may ask for the shape that asks for it, at a smaller type.
 \cppinline{IsMonoid} at a pair calls \cppinline{unit} there, whose instance asks \cppinline{IsMonoid} at the components (Section~\ref{sec:translation:contexts}).
