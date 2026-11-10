@@ -1470,26 +1470,26 @@ struct Orbit {
 template <typename X, typename F, typename Equal>
   requires IsIteration<X, F, Equal>
 constexpr Orbit<X> step(const F& f, const Orbit<X>& o, const Equal& equal) {
-  const X x1 = std::invoke(f, o.x);
+  Orbit<X> next{std::invoke(f, o.x), false};
   if constexpr (std::predicate<const Equal&, const X&, const X&>)
-    return {x1, std::invoke(equal, x1, o.x)};
-  else
-    return {x1, false};
+    next.fixed = static_cast<bool>(std::invoke(equal, next.x, o.x));
+  return next;
 }
 /** @brief @f$f^n@f$ on @c o by halving, as @c concat on copies; a known
- *  fixed point is returned as it is.  @param f the endomorphism.
- *  @param o the point.  @param n the power.  @param equal the equality. */
+ *  fixed point is returned as it is; the state is moved, never copied.
+ *  @param f the endomorphism.  @param o the point.  @param n the power.  @param equal the equality. */
 template <typename X, typename F, typename Equal>
   requires IsIteration<X, F, Equal>
-constexpr Orbit<X> power(const F& f, const Orbit<X>& o, std::size_t n,
+constexpr Orbit<X> power(const F& f, Orbit<X> o, std::size_t n,
                          const Equal& equal) {
-  if (n == 0) {
+  if (n == 0 || o.fixed) {
     return o;
-  } else if (o.fixed) {
-    return o;
+  } else if (n == 1) {
+    return step(f, o, equal);
   } else {
-    const Orbit<X> h = power(f, o, n / 2, equal);   // the first half
-    const Orbit<X> hh = power(f, h, n / 2, equal);  // the second half
+    // the two halves, the first moved into the second: one live state
+    Orbit<X> hh =
+        power(f, power(f, std::move(o), n / 2, equal), n / 2, equal);
     return n % 2 == 1 && !hh.fixed ? step(f, hh, equal) : hh;
   }
 }
