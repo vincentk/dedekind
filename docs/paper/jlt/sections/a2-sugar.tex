@@ -56,7 +56,7 @@ Across the three tables, the condition passes from the compiler to the repositor
 \midrule
 1 & overloading & the grammar (Section~\ref{sec:fjlt:syntax}), except by constraints & generic functions of one name ordered by their constraints, plus their specialisations \\
 2 & argument-dependent lookup & the grammar, and the lookup wall (Section~\ref{sec:limits}) & instances found by the trait's name \\
-3 & implicit conversions & the grammar, and Rule~2 for the body & a conversion only where a requirement declares one, and the body then sees the declared type \\
+3 & implicit conversions & the grammar, and Rule~2 for the body & a conversion only where a requirement declares one or a built-in operator's rule places one (Appendix~\ref{app:fjlt:typing}), and the body then sees the declared type \\
 4 & references, moves & erased by the grammar (Section~\ref{sec:fjlt:syntax}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
 5 & the sugar: branches on a trait or a concept, lambdas, inheritance, \texttt{*} on an optional, \ldots & the grammar, and desugared (Appendix~\ref{app:fjlt:closure}) & \texttt{?:} on a law, specialisation, an operation struct, a registration, the case form on a sum, \ldots \\
 \bottomrule
@@ -82,6 +82,7 @@ A user-defined literal is a named function call, which the compiler holds.
 Inheritance is a registration, read as the fact it states, on the linter's condition that every base is an empty class and no function is virtual.
 A \cppinline{static_assert(e)}, \cppinline{e} a closed \cppinline{bool} term, is the claim that \cppinline{e} evaluates to \cppinline{true}, which the compiler holds; a listing's assertions are its program's terms.
 At a type variable no candidate of an operator is known, so an operator on a constrained type, \cppinline{a + b} with \cppinline{IsMonoid<T, plus<T>>} in $\Delta$, is the call of the standard function object the constraint names, \cppinline{plus<T>{}(a, b)}, at the result type the requirement states; the linter holds the spelling and a reader the result type.
+An alias is the type it names, substituted; a \cppinline{tuple} is nested pairs, and an \cppinline{array} of known length a range of $\mathcal{R}$; a \cppinline{friend} function is a free function, and an access specifier nothing; the library's generic \cppinline{cata} over a term type is the kernel's primitive; the compiler holds each.
 A static member function is a generic function.
 A struct with fields and no call operator is a product, nested pairs.
 \cppinline{std::array<T, n>} is both a product of $n$ copies and a member of $\mathcal{R}$ with length $n$, so a fold over it is already in the grammar.
