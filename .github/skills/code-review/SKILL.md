@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Review guidance for the dedekind repo. Use when performing a pull-request code review. Read the backing paper (docs/paper/paper.tex) for context and check that changes stay coherent with it, and that they reuse/extend existing abstractions rather than reinventing them (this maturing library trends toward negative net lines).
+description: Review guidance for the dedekind repo. Use when performing a pull-request code review. Read the backing paper (docs/paper/jlt/jlt.tex and its sections/) for context and check that changes stay coherent with it, and that they reuse/extend existing abstractions rather than reinventing them (this maturing library trends toward negative net lines).
 ---
 
 # dedekind code review
@@ -12,7 +12,8 @@ high-signal comments over a long list.
 
 ## Read the paper AND the README for context first
 
-At the start of every review, read BOTH `docs/paper/paper.tex` and `README.md`
+At the start of every review, read BOTH the Jlt paper (`docs/paper/jlt/jlt.tex`
+and `docs/paper/jlt/sections/`) and `README.md`
 from the source tree, before reading the diff. They are the specification the
 code serves: the paper is the source of truth for the thesis, vocabulary, and
 worked exhibits; the README is the reader-facing surface (its intro claims and

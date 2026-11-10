@@ -286,6 +286,12 @@ static_assert(is_constant(ans) && is_monotone(ans) && is_antitone(aye) &&
               is_constant(~nil) && (-one)(true) == (~nil)(true) &&
               is_involution(-id_u) && is_constant(-nil) &&
               is_iso(-id_u >> ~id_u) && !is_involution(-id_u >> ~id_u));
+// Listing 3, left: a fold over a type.  The term's shape is its type, a
+// composite of composites, depth 3; it is folded once to a value and once
+// to a law, the law inferred from its legs'.
+constexpr auto dec = -id_u >> ~id_u;  // x - 1
+constexpr auto dec2 = dec >> dec;     // x - 2
+static_assert(dec2(42uz) == 40 && is_iso(dec2));
 // Products and coproducts:
 constexpr auto fst = Π<1, std::pair<bool, size_t>>{};
 constexpr auto sec = Pairing{id_b, nil};  // ⟨1, 0⟩
@@ -320,15 +326,15 @@ static_assert(IsMonoid<Sections<size_t>, compose> &&
               concat<Sections<size_t>, compose>(adding(40uz),
                                                 adding(2uz))(0uz) == 42);
 
-// Listing 3: Figure 2 in code, four panels.  Top left: the counts, a finite
-// chain, so the type supplies its prior and the chain is a default; top
-// right: Collatz's step, guarded by until(equals(1), ...), a chain finite by
-// fact, bounded by a budget declared with it; bottom left: the fold on a
-// monoid, homogeneous, Listing 2's concat at a range, one chain under two
-// operations; bottom right: the fold on an action M × S → M, heterogeneous, the
-// standard's fold_left as it stands.  Both chains are bounded ranges, which is
-// what ties them to the library's folds.  chain, until, equals, arrow, bound,
-// IsBoundedRange, IsFinite, IsTotalOrder and HasNNOStep are the library's.
+// Listing 3: Figure 2 in code.  Left, over a type: dec and dec2 above;
+// below them, over a value, the simplest case S = M: the counts' chain below
+// the seed, folded on a monoid by the library's concat, a bounded range.
+// Right: the general fold, S acting on M, matrices on vectors, Fibonacci's,
+// the standard's fold_left as it stands.  The checks the listing does not
+// print (the chain is an input range of the right length; Collatz's chain,
+// bounded by a budget declared with it) stay here.  chain, until, equals,
+// arrow, bound, IsBoundedRange, IsFinite, IsTotalOrder and HasNNOStep are
+// the library's.
 namespace listing3 {
 using dedekind::category::arrow;
 using dedekind::category::bound;

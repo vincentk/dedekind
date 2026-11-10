@@ -36,6 +36,7 @@ Rule~3 keeps them predictable, because every fold's length is in the program: a 
 \paragraph{The linter is sound and incomplete.}
 The repository's linter, run in continuous integration on the compiler's own front end and documented there, checks Rule~3 for every instantiated body, Rule~1's syntactic part, and Rule~2 at the level of names: a body may use, on a value of parameter type, only what a declared constraint names.
 For Rule~1 it closes each channel a mutation could leak through at run time: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference.
+For Rule~3 it reports every loop statement, a loop admitted as sugar included, and the reviewer judges whether a reported loop shows its end.
 A finding is a breach or a gap in its reading of the standard's concepts, and its silence is not a proof.
 Review complements it: an agentic reviewer reads every pull request against the three rules, and the listings and the library's core are held at zero on all three to the extent the two instruments reach.
 
