@@ -1470,7 +1470,8 @@ struct Orbit {
 template <typename X, typename F, typename Equal>
   requires IsIteration<X, F, Equal>
 constexpr Orbit<X> step(const F& f, const Orbit<X>& o, const Equal& equal) {
-  Orbit<X> next{std::invoke(f, o.x), false};
+  X x1 = std::invoke(f, o.x);  // the result converts to X
+  Orbit<X> next{std::move(x1), false};
   if constexpr (std::predicate<const Equal&, const X&, const X&>)
     next.fixed = static_cast<bool>(std::invoke(equal, next.x, o.x));
   return next;
@@ -1483,7 +1484,9 @@ template <typename X, typename F, typename Equal>
   requires IsIteration<X, F, Equal>
 constexpr Orbit<X> power(const F& f, Orbit<X> o, std::size_t n,
                          const Equal& equal) {
-  if (n == 0 || o.fixed) {
+  if (n == 0) {
+    return o;
+  } else if (o.fixed) {
     return o;
   } else if (n == 1) {
     return step(f, o, equal);
