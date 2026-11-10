@@ -24,7 +24,8 @@
  *
  * Concrete carrier-side instances:
  *   * @c F : @c Rig @c → @c Ring (the Grothendieck construction):
- *     ℤ @c = @c F(ℕ), ℕ @c = @c U(ℤ).
+ *     ℤ @c = @c F(ℕ); @c U forgets only the inverses, so @c U(ℤ) is ℤ
+ *     read as a rig, and the unit ℕ @c → @c U(F(ℕ)) is the embedding.
  *   * @c F : @c IntegralDomain @c → @c Field (the field of fractions):
  *     @c Rational<Z> @c = @c F(Z) for @c Z @c = @c
  *     SignedExtensionalCardinal<>.
