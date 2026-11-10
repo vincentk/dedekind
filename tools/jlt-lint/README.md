@@ -3,9 +3,12 @@
 A linter for the Jlt fragment (#1060): the three rules of the Jlt paper
 (`docs/paper/jlt/jlt.tex`, Section 2), turned from a reading into a verdict.
 
-It runs **after** the build: it reparses each file in scope through
+It runs **after** a layer's build: it reparses each file in scope through
 `build/compile_commands.json`, which carries the module maps CMake wrote, so
-the prebuilt module files must exist.
+the prebuilt module files must exist.  The build owns it: `lint-<layer>`
+lints a layer's lines of `scope` once the layer and its tests are built,
+beside the compilation of the layers above, `lint-fixtures` the rest, and
+`lint` joins their reports into `build/jlt-lint/report.txt`.
 
 ## Layout
 
@@ -29,17 +32,20 @@ the prebuilt module files must exist.
   results, reported counts and a coverage table per rule, and fails on a gate
   mismatch, or if a file does not parse or a matcher does not run.  Files run
   in parallel, `NCPU` at a time (default: the number of cores); the report is
-  in file order.
+  in file order.  `--part` lints one layer (or `fixtures`), `--join` makes
+  the whole report from the parts and fails if a part of `scope` did not run.
 
-Run it with `make jlt-lint` after `make compile`.
+Run it with `make jlt-lint`, or with the tests as `make check`.
 
 ## The tool
 
 `tool/` is `jlt-lint`, a small LibTooling binary for the checks that need code
-rather than a pattern.  `make jlt-lint` builds it against the LLVM that built
-the tree (`JLT_LINT_CMAKE_ARGS` names its CMake package dirs; CI installs
-`libclang-23-dev` and `libclang-cpp23-dev` for them), and `make jlt-lint`
-runs it beside the clang-query rules on the same compilation database.  A
+rather than a pattern.  The build makes it (`jlt-lint-tool`) against the LLVM
+that compiles the tree, whose CMake packages and `clang-query` it finds next to
+the compiler (`-DClang_DIR`, `-DLLVM_DIR`, `-DDEDEKIND_CLANG_QUERY` name them
+otherwise; CI installs `libclang-23-dev` and `libclang-cpp23-dev` for them;
+without them `lint` fails and says so, and `-DDEDEKIND_JLT_LINT=OFF` drops it),
+and the linter runs it beside the clang-query rules on the same compilation database.  A
 rule file names one of its checks with `tool <check>` instead of match lines;
 the tool prints one finding per line as `path:line:col`, and the driver counts
 them like any other rule.  Checks so far: `mutual-recursion` (functions of the
@@ -71,7 +77,7 @@ Each rule is one file under `rules/`, named for the rule of the paper it checks.
 | `rule1-no-escaping-reference-captures` | a lambda that captures by reference and escapes: inside a `return`, not under a call into `std`, not called on the spot (an approximation) |
 | `rule1-boxed-mutable-pointee` | a `make_shared<T>` call or `shared_ptr<T>` member (in a template too) with `T` not `const` |
 | `rule1-boxed-identity` | `get()`, `use_count()`, `owner_before()`, or `==` between two `shared_ptr`s |
-| `rule3-no-loops` | a `for`, range-`for`, `while` or `do` (except `iterate`'s one loop) |
+| `rule3-no-loops` | a `for`, range-`for`, `while` or `do` |
 | `rule3-no-self-recursion` | a function calling itself at the same instantiation: recursion on a value, unless the descent is visible (`p / c`, `p >> c`, `p - 1` on an unsigned parameter, under a test of `p` against 0, the call in the branch the test does not select); recursion over a type's structure (`cata`) passes |
 | `rule3-no-mutual-recursion` | functions on a call cycle of length two or more (the tool's `mutual-recursion` check) |
 | `rule3-bounded-fold` | a standard fold (`std::ranges::fold_left`, `fold_right`, …) outside a function whose range parameter is `IsBoundedRange` (#1172; the tool's `bounded-fold` check) |
@@ -108,7 +114,7 @@ naming itself inside a requires-expression (reported, though not recursion).
 
 ## Plan
 
-1. A trivial gate as a post-processing step in CI (this).
+1. A trivial gate in CI, a step of the build per layer (this).
 2. More rules and more files, line by line in `scope`.
 3. A clang-tidy plugin when a rule needs code a matcher cannot express: a
    the blind spots above; `scope` stays the switchboard.

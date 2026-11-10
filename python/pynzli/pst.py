@@ -16,22 +16,33 @@ read twice (the total, saturating ``succ`` / ``pred``; the partial ``cover``,
 it, and iteration from ⊥ by the cover.
 
 Sets over 𝔹 and K₃ are the chain fragment of the paper's Lwv grammar, spelled
-as the paper spells it::
+as the paper spells it.  A set is held as its run list, its normal form, and
+``ext`` (from ``pynzli``) materialises it, a ``frozenset``; a K₃-valued set is
+its χ, a read-only map:
 
-    from pynzli.pst import 𝔸, Ø, η, π, K3, Ternary, Kleene, ap, canonical, exists, forall, identity
-    U, T, F = Ternary.UNKNOWN, Ternary.TRUE, Ternary.FALSE
-
-    S = K3 & (π > F)          # generator & pred      -> {U, ⊤}
-    S == (K3 & (π >= U))      # True: one normal form, the run list [U, ⊤]
-    ~S & η(T) | Ø(K3)            # ~ & | ^ on sets
-    U in S;  ap(S, U)            # membership, χ: ap applies an arrow
-    exists(K3, π > F)         # True;  forall(K3, π > F) is False
-    canonical(S) == S;  repr(S)  # True; "[U, ⊤]": held as its run list
-
-    H = identity(K3)             # χ(x) = x, valued in K₃
-    H == H                       # Ternary.UNKNOWN: reflexive only up to the
-                                 # excluded middle, where the set is U
-    K3 & (ap(H, π) >= U)      # the α-cut: χ applied to π, compared on the chain
+>>> from pynzli import ext
+>>> from pynzli.pst import 𝔸, Ø, η, π, K3, Ternary, Kleene, ap, canonical, exists, forall, identity
+>>> U, T, F = Ternary.UNKNOWN, Ternary.TRUE, Ternary.FALSE
+>>> S = K3 & (π > F)  # generator & pred
+>>> S  # the author wrote π > F; the set holds its run list
+[U, ⊤]
+>>> S == (K3 & (π >= U)), canonical(S) == S  # one normal form
+(True, True)
+>>> ~S, ~S | η(T), ~S & η(T) | Ø(K3)  # ~ & | ^ on sets
+({⊥}, {⊥} ∪ {⊤}, Ø)
+>>> U in S, ap(S, U), exists(K3, π > F), forall(K3, π > F)  # χ: ap applies an arrow
+(True, True, True, False)
+>>> ext(S) == {U, T}, type(ext(S)).__name__
+(True, 'frozenset')
+>>> H = identity(K3)  # χ(x) = x, valued in K₃
+>>> H
+{χ ≥ ⊤}: {⊤}; {χ ≥ U}: [U, ⊤]
+>>> (H == H) == U  # reflexive only up to the excluded middle, where the set is U
+True
+>>> K3 & (ap(H, π) >= U)  # the α-cut: χ applied to π, compared on the chain
+[U, ⊤]
+>>> ext(H) == {F: F, U: U, T: T}, type(ext(H)).__name__
+(True, 'mappingproxy')
 
 A set, a chain and a carrier are read by free functions, not properties
 (#1054): ``carrier(S)``, ``universe(S)``, ``codomain(S)``,
@@ -52,57 +63,102 @@ as polynomials (``canonical(S)``, a set in, the same set out, its equations
 different ones decide nothing, so ``==`` answers ``True`` or raises.  A term
 outside that catalogue evaluates but does not compare.  Reduction stays in C++.
 
-The canonical ring and field, each as large as a machine word allows::
+The canonical ring and field, each as large as a machine word allows:
 
-    from pynzli.pst import 𝔸, is_field, u64, 𝔽ₚ   # 𝔽ₚ is the name Fp (NFKC)
-
-    u64(2**64 - 1) + 1          # u64(0): the ring ℤ/2⁶⁴ wraps
-    u64(7) // 2;  u64(7) % 2    # by a nonzero word; u64(7) / 2 is a TypeError
-    𝔽ₚ(1) / 3 * 3               # 𝔽ₚ(1): p = 2⁶⁴ − 59, the largest prime < 2⁶⁴
-    𝔽ₚ(-1);  int(𝔽ₚ(-1))        # 𝔽ₚ(-1); -1: the symmetric representative
-    5 in 𝔸(u64);  -1 in 𝔸(𝔽ₚ)   # True; True: ints that are representatives
-    𝔽ₚ(-1) == -1                # True, and 𝔽ₚ(-1) != p - 1: equal to the
-                                # int it represents, so hashing agrees
-    is_field(u64);  is_field(𝔽ₚ)  # False; True: the C++ concepts' verdict
+>>> from pynzli.pst import 𝔸, is_field, modulus, u64, 𝔽ₚ  # 𝔽ₚ is the name Fp (NFKC)
+>>> u64(2**64 - 1) + 1  # the ring ℤ/2⁶⁴ wraps
+u64(0)
+>>> u64(7) // 2, u64(7) % 2  # by a nonzero word
+(u64(3), u64(1))
+>>> u64(7) / 2  # doctest: +IGNORE_EXCEPTION_DETAIL
+Traceback (most recent call last):
+TypeError: a word divides by // and %
+>>> 𝔽ₚ(1) / 3 * 3  # p = 2⁶⁴ − 59, the largest prime < 2⁶⁴
+𝔽ₚ(1)
+>>> 𝔽ₚ(-1), int(𝔽ₚ(-1))  # the symmetric representative
+(𝔽ₚ(-1), -1)
+>>> 5 in 𝔸(u64), -1 in 𝔸(𝔽ₚ)  # ints that are representatives
+(True, True)
+>>> p = modulus(𝔽ₚ)
+>>> 𝔽ₚ(-1) == -1, 𝔽ₚ(-1) != p - 1  # equal to the int it represents, so hashing agrees
+(True, True)
+>>> is_field(u64), is_field(𝔽ₚ)  # the C++ concepts' verdict
+(False, True)
 
 The term surface (#1006, exhibit 3): a term names no carrier, and the former
 ``A(carrier) & term`` binds it, casting every constant into the carrier and
 admitting every operator there or refusing it (``TypeError``), all when the
 set is built.  The universes multiply into products of any arity, each column
 its own sort (a relation is a table: one class, its schema as data); 𝔹 ↪ K₃
-is the one coercion, any other two carriers meet through ``ap``::
+is the one coercion, any other two carriers meet through ``ap``.  ``ext``
+materialises what fits, a function as a read-only map, and refuses what does
+not, naming its size:
 
-    from pynzli.pst import A, U64, u64, 𝔽ₚ, B, ap, π, π_1, π_2, π_3
-    from pynzli.trsk import Function        # the relational surface
-
-    U = A(u64)
-    evens = U & (π % 2 == 0)            # + − · wrap; // and % by a nonzero word
-    4 in evens                          # True
-    U * U & (π_2 == π_1 + 1)              # a relation on the product
-    U * U & (π_2 == π_2 // π_1)            # TypeError: a term divisor could be 0
-    U & (π > -1)                        # ValueError: the word cannot hold -1
-    π % 0                               # ValueError, when the term is written
-    F = A(𝔽ₚ)
-    third = F * F & (π_2 == π_1 / 3)      # / by a nonzero constant: a field's
-    ap(third, (3, 1))                   # True: 3 · 3⁻¹ = 1
-    Function[u64, B](U64 * B & (π_2 == ap(U64 & (π > 5), π_1)))   # χ as a function
-    fib = U64 * U64 * U64 & (π_3 == π_1 + π_2)    # Function[u64, u64, u64]
-    ap(fib, (3, 5))                               # 8
-    F & (π < 3)                         # TypeError: 𝔽ₚ has no order
-    A(u64) & (π / 2 == 1)               # TypeError: 2 is not a unit of ℤ/2⁶⁴
-    B & (π + True == True)              # TypeError: 𝔹's rig is (∨, ∧), it has no +
+>>> from pynzli.pst import A, U64, GF_p, u64, 𝔽ₚ, B, ap, cond, π, π_1, π_2, π_3
+>>> from pynzli.trsk import Function  # the relational surface
+>>> U = A(u64)
+>>> evens = U & (π % 2 == 0)  # + − · wrap; // and % by a nonzero word
+>>> 4 in evens, 5 in evens
+(True, False)
+>>> step = U * U & (π_2 == π_1 + 1)  # a relation on the product
+>>> (3, 4) in step, (3, 5) in step
+(True, False)
+>>> U * U & (π_2 == π_2 // π_1)  # doctest: +IGNORE_EXCEPTION_DETAIL
+Traceback (most recent call last):
+TypeError: a term divisor could be 0
+>>> U & (π > -1)  # doctest: +IGNORE_EXCEPTION_DETAIL
+Traceback (most recent call last):
+ValueError: the word cannot hold -1
+>>> π % 0  # doctest: +IGNORE_EXCEPTION_DETAIL
+Traceback (most recent call last):
+ValueError: a division by 0, when the term is written
+>>> F = A(𝔽ₚ)
+>>> third = F * F & (π_2 == π_1 / 3)  # / by a nonzero constant: a field's
+>>> ap(third, (3, 1))  # 3 · 3⁻¹ = 1
+True
+>>> chi = Function[u64, B](U64 * B & (π_2 == ap(U64 & (π > 5), π_1)))  # χ as a function
+>>> ap(chi, 7), ap(chi, 2)
+(True, False)
+>>> fib = U64 * U64 * U64 & (π_3 == π_1 + π_2)  # Function[u64, u64, u64]
+>>> ap(fib, (3, 5))
+8
+>>> one_hot = B * GF_p & (π_2 == cond(π_1 == True, 1, 0))  # a function from 𝔹
+>>> ext(one_hot) == {False: 0, True: 1}, type(ext(one_hot)).__name__
+(True, 'mappingproxy')
+>>> sorted(ext(U & (π < 3)))
+[0, 1, 2]
+>>> ext(U)
+Traceback (most recent call last):
+ValueError: ext: 18446744073709551616 elements, past the limit 1000 (pass limit=)
+>>> ext(evens)  # not counted: its universe bounds it
+Traceback (most recent call last):
+ValueError: ext: 18446744073709551616 elements in its universe, past the limit 1000 (pass limit=)
+>>> F & (π < 3)  # doctest: +IGNORE_EXCEPTION_DETAIL
+Traceback (most recent call last):
+TypeError: 𝔽ₚ has no order
+>>> A(u64) & (π / 2 == 1)  # doctest: +IGNORE_EXCEPTION_DETAIL
+Traceback (most recent call last):
+TypeError: 2 is not a unit of ℤ/2⁶⁴
+>>> B & (π + 1 == True)  # doctest: +IGNORE_EXCEPTION_DETAIL
+Traceback (most recent call last):
+TypeError: 𝔹's rig is (∨, ∧), it has no +
 
 A set over ``u64`` built from ``π ⋈ k`` atoms under ``&`` and ``|`` is read as
 its run list, so equality, ``canonical``, ``len``, iteration and slicing by value
 are the library's; ``image`` / ``preimage`` under ``succ`` / ``pred`` / ``id``
 (from ``pynzli.jlt``) substitute the variable, and the run list translates,
-wrapping at the word's end::
+wrapping at the word's end:
 
-    from pynzli.jlt import succ
-    (U & (π > 3)) & (U & (π < 5)) == U & (π == 4)    # True: one normal form
-    canonical(~(U & (π == 5)))     # 𝔸(u64) & ((π <= 4) | (π >= 6)): the runs, written
-    list(U[3:8]);  len(U & (π < 3))                  # [3, 4, 5, 6, 7]; 3
-    image(succ(int), U & (π > 5)) == U & ((π > 6) | (π == 0))   # True: wraps
+>>> from pynzli.jlt import succ
+>>> (U & (π > 3)) & (U & (π < 5)) == U & (π == 4)  # one normal form
+True
+>>> canonical(~(U & (π == 5)))  # the author wrote ~(π == 5); the runs, written
+𝔸(u64) & ((π <= 4) | (π >= 6))
+>>> everything = U & (π >= 0)
+>>> list(everything[3:8]), len(U & (π < 3))
+([3, 4, 5, 6, 7], 3)
+>>> image(succ(int), U & (π > 5)) == U & ((π > 6) | (π == 0))  # wraps
+True
 
 Spelling: Python normalises identifiers (NFKC), so ``𝔸`` *is* the name ``A``
 and ``𝔹`` is ``B``; ``Ø``, ``η``, ``π`` are names as
@@ -112,6 +168,10 @@ and ``GF(p)`` is ``GF_p``.  ``∃`` / ``∀`` are not identifiers either: the
 grammar's words ``exists`` / ``forall``, with ``any`` / ``all`` as aliases
 (importable by name; not star-exported, since they shadow the builtins).
 """
+
+from collections.abc import Sequence
+from functools import cache
+from operator import index
 
 # `_pst` is the private native extension module (pynzli._pst), NumPy-style;
 # this pure-Python facade re-exports it under the public name.
@@ -204,6 +264,88 @@ class Set:
         return _Annotation(f"Set[{_named(c)}]", lambda x: _is_set_on(x, c))
 
 
+class Seq(Sequence):
+    """``Seq[C](x, …)``: a finite sequence over the carrier ``C``, immutable.
+
+    Every element is checked a value of ``C`` when the sequence is built, and
+    held as ``C`` makes it; a word is held as its int.  Slicing gives a
+    ``Seq[C]``, ``==`` compares the values, and the sequence hashes.
+
+    >>> s = Seq[u64](3, 4, 5)
+    >>> s
+    Seq[u64](3, 4, 5)
+    >>> s[1:], s[0], 5 in s, s == Seq[u64](3, 4, 5)
+    (Seq[u64](4, 5), 3, True, True)
+    >>> Seq[u64](-1)
+    Traceback (most recent call last):
+    TypeError: -1 is not a u64
+    """
+
+    __slots__ = ("_items",)
+    _element = None
+
+    def __class_getitem__(cls, c):
+        return _seq_over(c)
+
+    def __new__(cls, *xs):
+        if cls._element is None:
+            raise TypeError("Seq[C](x, …): the carrier is stated")
+        return cls._of(_held(cls._element, xs))
+
+    @classmethod
+    def _of(cls, items):
+        s = object.__new__(cls)
+        object.__setattr__(s, "_items", items)
+        return s
+
+    def __setattr__(self, name, value):
+        raise AttributeError("a Seq is immutable")
+
+    def __delattr__(self, name):
+        raise AttributeError("a Seq is immutable")
+
+    def __len__(self):
+        return len(self._items)
+
+    def __iter__(self):
+        return iter(self._items)
+
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            return self._of(self._items[i])
+        return self._items[i]
+
+    def __eq__(self, other):
+        if not isinstance(other, Seq):
+            return NotImplemented
+        return type(self) is type(other) and self._items == other._items
+
+    def __hash__(self):
+        return hash((self._element, self._items))
+
+    def __repr__(self):
+        return f"{type(self).__name__}({', '.join(map(repr, self))})"
+
+
+@cache
+def _seq_over(c):
+    """The class ``Seq[C]``, one per carrier; ``A(c)`` refuses a non-carrier."""
+    A(c)
+    return type(f"Seq[{_named(c)}]", (Seq,), {"__slots__": (), "_element": c})
+
+
+def _held(c, xs):
+    """The elements as ``Seq[C]`` holds them, in a tuple: a word's as ints,
+    every other carrier's in a tuple of its values."""
+    universe = A(c)
+    for x in xs:
+        if x not in universe:
+            raise TypeError(f"{x!r} is not a {_named(c)}")
+    if c is u64:
+        return tuple(map(index, xs))
+    return tuple(map(c, xs))
+
+
 # The aliases: deliberately not in __all__ (they shadow the builtins when
 # star-imported); `from pynzli.pst import any, all` is the explicit opt-in.
 any = exists  # noqa: A001
@@ -211,7 +353,7 @@ all = forall  # noqa: A001
 
 __all__ = [
     "A", "B", "K3", "U64", "GF_p", "Ternary", "u64", "Fp", "Boole", "Kleene",
-    "Ø", "η", "π", "π_1", "π_2", "π_3", "Term", "Pred", "exists", "forall", "ap", "canonical", "cond", "Set",
+    "Ø", "η", "π", "π_1", "π_2", "π_3", "Term", "Pred", "exists", "forall", "ap", "canonical", "cond", "Set", "Seq",
     "lift", "image", "preimage",
     # the readings: free functions, one spelling each (#1054)
     "bottom", "cardinality", "carrier", "codomain", "identity", "is_bounded", "is_decidable", "is_dense",

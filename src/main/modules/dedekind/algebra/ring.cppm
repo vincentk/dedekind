@@ -227,7 +227,7 @@ concept IsCommutativeRing =
  *  The literal-operator shape concept @c HasRingOperators above
  *  covers the ring surface (+, -, unary -, *).  The semiring surface
  *  drops subtraction / unary negation but adds the structural
- *  identities @c T{} and @c T{1} --- the "no additive inverse"
+ *  identities @c T{} and @c T{1u} --- the "no additive inverse"
  *  carriers (booleans under OR/AND, naturals, tropical semirings).
  *
  *  Below we add the semiring-shape sibling and the homomorphism
@@ -251,7 +251,7 @@ concept IsCommutativeRing =
 /**
  * @concept HasSemiringOperators
  * @brief @b Pure @b syntactic @b shape: T closes strictly under @c +
- *        and @c *, with structural identities @c T{} and @c T{1}.
+ *        and @c *, with structural identities @c T{} and @c T{1u}.
  *
  * @details
  * The semiring-shape sibling of @c HasRingOperators: drops binary /
@@ -259,6 +259,11 @@ concept IsCommutativeRing =
  * default-constructor and unit constructor.  Carriers that fire:
  * @c bool under OR/AND, @c unsigned int (also fires @c
  * HasRingOperators), naturals, tropical and other exotic semirings.
+ *
+ * The unit is spelled from an unsigned literal: ℕ's exact carrier
+ * @c Numeral (@c sets:cardinality) takes only unsigned words as atoms
+ * and refuses a signed constant, while a built-in or a ring carrier
+ * constructed from the constant expression @c 1u is not narrowed.
  *
  * Replaces the former @c IsSemiringLike (identical body) under the
  * #394 retire-Like sweep.
@@ -268,7 +273,7 @@ concept HasSemiringOperators = requires(T a, T b) {
   { a + b } -> std::same_as<T>;
   { a * b } -> std::same_as<T>;
   T{};
-  T{1};
+  T{1u};
 };
 
 // `HasRingOperators` is defined earlier in this file (right after the

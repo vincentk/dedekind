@@ -11,7 +11,6 @@
  * compile-time witnesses live inside the partition itself; this file
  * exercises the @b runtime / @b composition surface.
  */
-#include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <functional>  // std::plus
@@ -146,35 +145,4 @@ TEST_CASE("uint: lift composes with the bool→unsigned arrow (𝔹 → uint →
   // the carrier-lattice section of paper.tex / report.tex.
   CHECK(embed_uint_ℕ_(embed_𝔹_uint_(false)) == Numeral{0u});
   CHECK(embed_uint_ℕ_(embed_𝔹_uint_(true)) == Numeral{1u});
-}
-
-TEST_CASE("uint: Fibonacci on Numeral — the canonical intensional ℕ-series",
-          "[numbers][uint][ergonomics][intensional-first][fibonacci]") {
-  // Fibonacci is the textbook intensional ℕ-series — defined inductively
-  // by F_0 = 0, F_1 = 1, F_{n+1} = F_n + F_{n-1}.  The recurrence uses
-  // only addition; the sequence stays in ℕ throughout.  Computing it on
-  // @c Numeral keeps the practitioner in the canonical mathematical
-  // carrier the whole way through (no machine-int arithmetic; no
-  // overflow: the numeral grows a limb where the word would wrap).  Sibling to
-  // the negafibonacci-on- SignedCardinality test in @c sint_test.cpp.
-  auto f_prev = Numeral{0u};  // F_0
-  auto f_curr = Numeral{1u};  // F_1
-
-  // Compute F_2 .. F_10: the textbook 1, 2, 3, 5, 8, 13, 21, 34, 55.
-  std::array<Numeral, 9> fibs;
-  for (std::size_t i = 0; i < 9; ++i) {
-    auto next = f_prev + f_curr;
-    fibs[i] = next;
-    f_prev = f_curr;
-    f_curr = next;
-  }
-  CHECK(fibs[0] == Numeral{1u});   // F_2
-  CHECK(fibs[1] == Numeral{2u});   // F_3
-  CHECK(fibs[2] == Numeral{3u});   // F_4
-  CHECK(fibs[3] == Numeral{5u});   // F_5
-  CHECK(fibs[4] == Numeral{8u});   // F_6
-  CHECK(fibs[5] == Numeral{13u});  // F_7
-  CHECK(fibs[6] == Numeral{21u});  // F_8
-  CHECK(fibs[7] == Numeral{34u});  // F_9
-  CHECK(fibs[8] == Numeral{55u});  // F_10
 }

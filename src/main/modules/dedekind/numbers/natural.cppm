@@ -190,7 +190,7 @@ static_assert(dedekind::algebra::IsAlgebraOnSet<decltype(dedekind::sets::ℕ),
               "closed under the rig operations +, *.");
 
 // (2) Syntax (the C++ operator surface that maps to ℕ's algebra).
-//   - HasSemiringOperators<unsigned int>: +, * close, with T{} and T{1}.
+//   - HasSemiringOperators<unsigned int>: +, * close, with T{} and T{1u}.
 //   - HasRingOperators<unsigned int>: +, -, unary -, * close (modular wrap
 //     gives ℕ-flavoured behaviour without true negatives, but the literal
 //     operators close on the carrier).
@@ -198,7 +198,7 @@ static_assert(dedekind::algebra::IsAlgebraOnSet<decltype(dedekind::sets::ℕ),
 static_assert(
     dedekind::algebra::HasSemiringOperators<unsigned int>,
     "ℕ's machine carrier (unsigned) closes the semiring operator surface "
-    "(+, *, T{}, T{1}).");
+    "(+, *, T{}, T{1u}).");
 static_assert(dedekind::algebra::HasRingOperators<unsigned int>,
               "ℕ's machine carrier (unsigned) also closes the literal "
               "ring operator surface (+, binary -, unary -, *) "
@@ -274,6 +274,16 @@ static_assert(dedekind::order::HasTotalOrderOperators<Numeral>,
 static_assert(dedekind::order::IsTotallyOrdered<Numeral>,
               "ℕ is axiomatically totally ordered (the chain "
               "0 ≤ 1 ≤ 2 ≤ ...).");
+// The exact carrier is the concept's own witness: rig, commutative under +,
+// totally ordered, and its unit is spelled Numeral{1u}, the only spelling ℕ
+// admits.  A signed constant is refused, so the embedding
+// embed_unsigned_integral<Numeral> is the one road from a machine word.
+static_assert(IsNatural<Numeral>, "ℕ = Numeral satisfies IsNatural.");
+static_assert(
+    !std::constructible_from<Numeral, int>,
+    "ℕ's atoms are the unsigned words: a signed constant is refused.");
+static_assert(embed_unsigned_integral<Numeral>(42u) == Numeral{42u},
+              "a machine word embeds into ℕ at its own value.");
 // Sequence witness: FinitePath<ℕ> is a finite sequence enumerating
 // a ℕ-prefix.  Pins ℕ as a valid @b sequence codomain: any finite
 // sub-sequence of natural numbers presents as IsFiniteSequence.

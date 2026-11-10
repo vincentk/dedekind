@@ -7,10 +7,9 @@ import dedekind.category;
 
 using namespace dedekind::category;
 
-// iterate is its recursive definition with the one tail call eliminated
-// (#1061).
+// iterate is its recursive definition, computed by halving the budget.
 // The definition, verbatim, for budgets within the constexpr depth limit; the
-// library's loop must agree with it on every case: a fixed point reached
+// library's power must agree with it on every case: a fixed point reached
 // early, a budget spent before one is, and the empty budget.
 namespace iterate_witness {
 template <typename X, typename F>
@@ -36,6 +35,8 @@ static_assert(iterate(Step{}, std::size_t{7}, 0) == 7 &&
 static_assert(iterate(Halve{}, std::size_t{1000}, 3) ==
               iterate_by_recursion(Halve{}, std::size_t{1000},
                                    3));  // cut short
+static_assert(iterate(Halve{}, std::size_t{1000}, ~std::size_t{0}) == 0,
+              "a fixed point ends the walk: the budget is not spent");
 }  // namespace iterate_witness
 
 // Negative witnesses moved out of the module (#1061): each type here breaks

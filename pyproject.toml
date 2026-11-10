@@ -63,6 +63,7 @@ wheel.py-api = "cp315"
 DEDEKIND_BUILD_PYTHON_BINDINGS = "ON"
 DEDEKIND_ENABLE_DOUBLE_REAL_PROXY = "ON"
 DEDEKIND_COVERAGE = "OFF"
+DEDEKIND_JLT_LINT = "OFF"  # the linter is CI's, not the wheel's
 
 [tool.pytest.ini_options]
 testpaths = ["src/test/python"]
