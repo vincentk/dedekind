@@ -3,9 +3,9 @@
  * @brief Test suite for the @c algebra:initial_ring partition.
  *
  * @section Scope
- * Exercises the initial rig, ℕ, as @c IsInitialRig<Numeral>, ℤ as
- * @c IsInitialRing<Integer> and @c IsGrothendieckGroup<Integer, Numeral>, and
- * that no machine word claims ℤ's universal properties (a word wraps).
+ * Exercises that no machine word and no saturating proxy claims ℤ's
+ * universal properties (a word wraps, ±ℵ_0 are no integers); ℤ's own
+ * witnesses are pinned at the definition site, @c algebra/initial_ring.cppm.
  *
  *   3. Carrier-lattice arrows (Figure 1 in @c paper.tex /
  *      @c report.tex) — the labelled arrows are mechanically
@@ -25,17 +25,14 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 using dedekind::algebra::is_grothendieck_group_v;
 using dedekind::algebra::is_initial_ring_v;
-using dedekind::algebra::IsGrothendieckGroup;
-using dedekind::algebra::IsInitialRing;
 
 // ===========================================================================
 // (1) Concept fires on the canonical witnesses
 // ===========================================================================
 
-TEST_CASE("initial_ring: ℤ is initial and the Grothendieck group of ℕ",
+TEST_CASE("initial_ring: the saturating proxy is no initial ring",
           "[algebra][initial_ring][witness]") {
-  STATIC_CHECK(IsInitialRing<Integer>);
-  STATIC_CHECK(IsGrothendieckGroup<Integer, Numeral>);
+  // ℤ's witnesses are pinned at the definition site, algebra/initial_ring.cppm.
   // The saturating proxy is neither: ±ℵ_0 are no integers.
   STATIC_CHECK(!is_initial_ring_v<SignedCardinality>);
   STATIC_CHECK(!(is_grothendieck_group_v<SignedCardinality, Numeral>));

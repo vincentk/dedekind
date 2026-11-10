@@ -258,7 +258,7 @@ constexpr std::uint64_t φ(const Numeral& n) { return n.low; }
  *  @f$\hat\varphi(a - b) = \varphi(a) - \varphi(b)@f$, so on a normal form
  *  @f$\pm\varphi(|z|)@f$.  @param z an integer.  @return its image. */
 constexpr std::uint64_t φ_hat(const Integer& z) {
-  return z.negative ? std::uint64_t{} - φ(z.magnitude) : φ(z.magnitude);
+  return z.negative() ? std::uint64_t{} - φ(z.magnitude()) : φ(z.magnitude());
 }
 static_assert(IsGrothendieckGroup<Integer, Numeral> && IsInitialRing<Integer> &&
                   !IsInitialRing<SignedExtensionalCardinal<>>,

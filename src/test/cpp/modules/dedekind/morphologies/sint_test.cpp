@@ -42,7 +42,7 @@ TEST_CASE("sint: embed_sint_ℤ across canonical widths",
   CHECK(embed_sint_ℤ(static_cast<long>(1000)) == Integer{1000});
   CHECK(embed_sint_ℤ(static_cast<long long>(-7)) == Integer{-7});
   CHECK(embed_sint_ℤ(static_cast<short>(-100)) == Integer{-100});
-  CHECK(embed_sint_ℤ(std::numeric_limits<long long>::min()).magnitude ==
+  CHECK(embed_sint_ℤ(std::numeric_limits<long long>::min()).magnitude() ==
         Numeral{std::uint64_t{1} << 63});
 }
 
@@ -155,11 +155,4 @@ TEST_CASE("sint: negafibonacci on ℤ, the canonical intensional ℤ-series",
   CHECK(f_neg3 == Integer{2});
   CHECK(f_neg4 == Integer{-3});
   CHECK(f_neg5 == Integer{5});
-}
-
-TEST_CASE("sint: no Integer + int overload, the rejection kept",
-          "[numbers][sint][ergonomics][no-smuggling]") {
-  // There is no Integer + int: an int operand would bring its overflow back
-  // through ℤ's surface.  A constant enters ℤ by name, Integer{3}.
-  CHECK(Integer{5} + Integer{3} == Integer{8});
 }

@@ -197,10 +197,10 @@ template <auto N>
 constexpr Modular<N> χ_to_modular(const Integer& z) {
   using ML = typename Modular<N>::machine_type;
   const std::uint64_t r =
-      std::ranges::fold_left(z.magnitude.limbs() | std::views::reverse,
+      std::ranges::fold_left(z.magnitude().limbs() | std::views::reverse,
                              std::uint64_t{}, ResidueStep<N>{});
   const Modular<N> m{static_cast<ML>(r)};
-  return z.negative ? Modular<N>{} - m : m;
+  return z.negative() ? Modular<N>{} - m : m;
 }
 /** @return @f$2^{64}@f$. */
 constexpr Integer two_64() {

@@ -105,12 +105,9 @@ TEST_CASE("Integer: additive inverse -x is antitone on ℤ (#908/#959)",
   CHECK(two <= three);
   CHECK(neg(three) <= neg(two));
 
-  STATIC_CHECK(IsAntiMonotone<AdditiveInverse<Integer>>);
-  STATIC_CHECK(IsVariant<AdditiveInverse<Integer>>);
-
-  // Self-adjoint antitone Galois connection: a <= -b iff b <= -a.
-  STATIC_CHECK(
-      IsGaloisConnection<AdditiveInverse<Integer>, AdditiveInverse<Integer>>);
+  // Self-adjoint antitone Galois connection: a <= -b iff b <= -a.  The
+  // concept witnesses are pinned at the definition site,
+  // algebra/ordered_algebra.cppm.
   const Integer neg_five{-5};
   CHECK((neg_five <= neg(two)) == (two <= neg(neg_five)));
   CHECK((two <= neg(three)) == (three <= neg(two)));

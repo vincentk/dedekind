@@ -358,46 +358,55 @@ export constexpr dedekind::category::In<Numeral> inverse(
 export struct Integer {
   /** @brief ℤ is countable. */
   using cardinality_type = ℵ_0;
-  Numeral magnitude{};  ///< @f$|z|@f$, the rank of the normal form
-  bool negative{};      ///< the sign, false at zero
 
   constexpr Integer() = default;
   /** @param s an atom: a signed word, embedded exactly. */
   template <std::signed_integral S>
   constexpr explicit Integer(S s)
-      : magnitude(Numeral{s < S{} ? static_cast<std::make_unsigned_t<S>>(
-                                        std::make_unsigned_t<S>{} -
-                                        static_cast<std::make_unsigned_t<S>>(s))
-                                  : static_cast<std::make_unsigned_t<S>>(s)}),
-        negative(s < S{}) {
+      : magnitude_(Numeral{s < S{}
+                               ? static_cast<std::make_unsigned_t<S>>(
+                                     std::make_unsigned_t<S>{} -
+                                     static_cast<std::make_unsigned_t<S>>(s))
+                               : static_cast<std::make_unsigned_t<S>>(s)}),
+        negative_(s < S{}) {
     static_assert(std::numeric_limits<S>::digits < 64,
                   "a signed atom's magnitude fits the inline limb");
   }
   /** @param n a natural: ℕ ↪ ℤ, @f$n \mapsto n - 0@f$. */
-  constexpr explicit Integer(Numeral n) : magnitude(std::move(n)) {}
+  constexpr explicit Integer(Numeral n) : magnitude_(std::move(n)) {}
   /** @param m a magnitude.  @param minus the sign, dropped at zero: the
    *  normal form. */
   constexpr Integer(Numeral m, bool minus)
-      : magnitude(std::move(m)), negative(minus && magnitude != Numeral{}) {}
+      : magnitude_(std::move(m)), negative_(minus && magnitude_ != Numeral{}) {}
   constexpr bool operator==(const Integer&) const = default;
+  /** @return @f$|z|@f$, the rank of the normal form. */
+  constexpr Numeral magnitude() const { return magnitude_; }
+  /** @return the sign: false at zero. */
+  constexpr bool negative() const { return negative_; }
+
+ private:
+  // The normal form, reached through the constructors only: a writable sign
+  // would admit a negative zero, which == could not identify with zero.
+  Numeral magnitude_{};
+  bool negative_{};
 };
 
 /** @brief The additive inverse: the sign flipped, zero kept. */
 export constexpr Integer operator-(const Integer& z) {
-  return Integer(z.magnitude, !z.negative);
+  return Integer(z.magnitude(), !z.negative());
 }
 /** @brief The sum: magnitudes add under one sign; under two, the smaller is
  *  taken from the larger, which gives its sign. */
 export constexpr Integer operator+(const Integer& x, const Integer& y) {
-  if (x.negative == y.negative)
-    return Integer(x.magnitude + y.magnitude, x.negative);
-  if (y.magnitude <= x.magnitude)
-    return Integer(Numeral(detail_numeral::subtract(x.magnitude.limbs(),
-                                                    y.magnitude.limbs())),
-                   x.negative);
-  return Integer(Numeral(detail_numeral::subtract(y.magnitude.limbs(),
-                                                  x.magnitude.limbs())),
-                 y.negative);
+  if (x.negative() == y.negative())
+    return Integer(x.magnitude() + y.magnitude(), x.negative());
+  if (y.magnitude() <= x.magnitude())
+    return Integer(Numeral(detail_numeral::subtract(x.magnitude().limbs(),
+                                                    y.magnitude().limbs())),
+                   x.negative());
+  return Integer(Numeral(detail_numeral::subtract(y.magnitude().limbs(),
+                                                  x.magnitude().limbs())),
+                 y.negative());
 }
 /** @brief The difference: the sum with the inverse. */
 export constexpr Integer operator-(const Integer& x, const Integer& y) {
@@ -405,14 +414,15 @@ export constexpr Integer operator-(const Integer& x, const Integer& y) {
 }
 /** @brief The product: magnitudes multiply, signs multiply. */
 export constexpr Integer operator*(const Integer& x, const Integer& y) {
-  return Integer(x.magnitude * y.magnitude, x.negative != y.negative);
+  return Integer(x.magnitude() * y.magnitude(), x.negative() != y.negative());
 }
 /** @brief The order of ℤ: the negatives below, ordered by magnitude reversed;
  *  the naturals above, ordered as ℕ. */
 export constexpr std::strong_ordering operator<=>(const Integer& x,
                                                   const Integer& y) {
-  if (x.negative != y.negative) return y.negative <=> x.negative;
-  return x.negative ? y.magnitude <=> x.magnitude : x.magnitude <=> y.magnitude;
+  if (x.negative() != y.negative()) return y.negative() <=> x.negative();
+  return x.negative() ? y.magnitude() <=> x.magnitude()
+                      : x.magnitude() <=> y.magnitude();
 }
 /** @brief A signed constant meeting ℤ, the hook @c :terms' @c carrier_cast
  *  reaches by ADL: exact.  @tparam K the constant's type.  @param k it. */
@@ -436,7 +446,7 @@ constexpr Integer carrier_cast(std::type_identity<Integer>, K k) {
 /** @param n a natural.  @return @c n. */
 export constexpr Numeral rank(const Numeral& n) { return n; }
 /** @param z an integer.  @return @f$|z|@f$. */
-export constexpr Numeral rank(const Integer& z) { return z.magnitude; }
+export constexpr Numeral rank(const Integer& z) { return z.magnitude(); }
 /** @concept IsRanked
  *  @brief Each value has a rank, a @c Numeral.  @tparam T the carrier. */
 export template <typename T>
@@ -2064,11 +2074,11 @@ constexpr std::int64_t least = std::numeric_limits<std::int64_t>::min();
 /** @return @f$2^{64}@f$, the first integer above the word. */
 constexpr Integer two_64() { return Integer{Numeral{top} + Numeral{1u}}; }
 static_assert(Integer{-0} == Integer{} && -Integer{} == Integer{} &&
-                  !(-Integer{}).negative &&
-                  !(Integer{5} - Integer{5}).negative &&
+                  !(-Integer{}).negative() &&
+                  !(Integer{5} - Integer{5}).negative() &&
                   Integer{Numeral{}, true} == Integer{},
               "zero is never negative: the normal form");
-static_assert(Integer{least}.magnitude == Numeral{std::uint64_t{1} << 63} &&
+static_assert(Integer{least}.magnitude() == Numeral{std::uint64_t{1} << 63} &&
                   Integer{least} - Integer{1} ==
                       -Integer{Numeral{(std::uint64_t{1} << 63) + 1u}} &&
                   -two_64() - Integer{1} < -two_64() &&
