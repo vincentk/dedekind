@@ -1,9 +1,9 @@
-#include <cstdint>
-#include <utility>  // std::move
 #include <catch2/catch_test_macros.hpp>
 #include <climits>  // INT_MAX: the exhibit's edge
+#include <cstdint>
 #include <cstdlib>  // For std::abs in the partial-commuting-square test.
 #include <limits>  // For std::numeric_limits in the abs honest-extension tests.
+#include <utility>  // std::move
 
 import dedekind.category;
 import dedekind.algebra; // AdditiveInverse + IsOrderedAdditiveGroup (#959)
@@ -152,7 +152,8 @@ TEST_CASE("numbers:integer — a moved-from integer is a value in normal form",
   // -2^64: the magnitude's low limb is zero, so moving the limbs out could
   // leave a zero magnitude beside the sign.  The accessors read the normal
   // form, and the additive identity holds on the source.
-  Integer a(Numeral{std::numeric_limits<std::uint64_t>::max()} + Numeral{1u}, true);
+  Integer a(Numeral{std::numeric_limits<std::uint64_t>::max()} + Numeral{1u},
+            true);
   const Integer b = std::move(a);
   CHECK(b.negative());
   CHECK(a + Integer{} == a);
