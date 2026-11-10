@@ -384,15 +384,20 @@ export struct Integer {
    *  normal form. */
   constexpr Integer(Numeral m, bool minus)
       : magnitude_(std::move(m)), negative_(minus && magnitude_ != Numeral{}) {}
-  constexpr bool operator==(const Integer&) const = default;
+  /** @brief Equality of normal forms, read through the accessors. */
+  constexpr bool operator==(const Integer& other) const {
+    return magnitude_ == other.magnitude_ && negative() == other.negative();
+  }
   /** @return @f$|z|@f$, the rank of the normal form. */
   constexpr Numeral magnitude() const { return magnitude_; }
   /** @return the sign: false at zero. */
-  constexpr bool negative() const { return negative_; }
+  constexpr bool negative() const {
+    return negative_ && magnitude_ != Numeral{};
+  }
 
  private:
-  // The normal form, reached through the constructors only: a writable sign
-  // would admit a negative zero, which == could not identify with zero.
+  // The normal form is what the accessors read: a sign is reported only with
+  // a magnitude, so no value, a moved-from one included, is a negative zero.
   Numeral magnitude_{};
   bool negative_{};
 };
