@@ -131,8 +131,8 @@ constexpr Integer int_max{INT_MAX};
 static_assert(int_max + Integer{1} > int_max,
               "INT_MAX + 1 in ℤ: the successor, above the word");
 static_assert(int_max + Integer{1} ==
-                  Integer{static_cast<long long>(INT_MAX) + 1LL},
-              "where a wider word holds the value, ℤ agrees with it");
+                  Integer{Numeral{static_cast<unsigned>(INT_MAX) + 1u}},
+              "where an unsigned word holds the value, ℤ agrees with it");
 static_assert((int_max + Integer{1}) - Integer{1} == int_max &&
                   Integer{INT_MIN} - Integer{1} < Integer{INT_MIN},
               "the group laws hold at both ends of int, where int has none");
@@ -147,7 +147,7 @@ TEST_CASE("Integer: int overflows, ℤ does not", "[numbers][integer][exhibit]")
   CHECK(rank(Integer{INT_MIN}) == Numeral{0u - static_cast<unsigned>(INT_MIN)});
 }
 
-TEST_CASE("numbers:integer — a moved-from integer is a value in normal form",
+TEST_CASE("numbers:integer: a moved-from integer is a value in normal form",
           "[numbers][integer][normal-form]") {
   // -2^64: the magnitude's low limb is zero, so moving the limbs out could
   // leave a zero magnitude beside the sign.  The accessors read the normal
@@ -158,4 +158,14 @@ TEST_CASE("numbers:integer — a moved-from integer is a value in normal form",
   CHECK(b.negative());
   CHECK(a + Integer{} == a);
   CHECK((a == Integer{} || a == b));
+}
+
+TEST_CASE("numbers:integer: a borrow runs through maximum-value limbs",
+          "[numbers][integer][limbs]") {
+  // 2^128 - 1: subtracting one from the limbs [0, 0, 1] borrows through
+  // both zero limbs, each becoming the maximum limb with a borrow in.
+  const Numeral w{std::numeric_limits<std::uint64_t>::max()};
+  const Integer two_128{(w + Numeral{1u}) * (w + Numeral{1u})};
+  CHECK(two_128 + Integer{-1} == Integer{w * (w + Numeral{1u}) + w});
+  CHECK((two_128 + Integer{-1}).magnitude().limb_count() == 2);
 }

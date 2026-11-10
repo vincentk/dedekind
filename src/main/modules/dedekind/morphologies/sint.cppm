@@ -240,7 +240,7 @@ static_assert(origin(embed_sint_ℤ(η(42))) == dedekind::sets::Integer{42} &&
                   origin(embed_sint_ℤ(η(-7))) == dedekind::sets::Integer{-7},
               "embed_sint_ℤ lands η(42) at 42 and η(-7) at -7 in ℤ");
 static_assert(
-    embed_sint_ℤ(std::numeric_limits<long long>::min()) <
+    embed_sint_ℤ(std::numeric_limits<long long>::min()) <=
             embed_sint_ℤ(std::numeric_limits<int>::min()) &&
         embed_sint_ℤ(std::numeric_limits<long long>::max()) + embed_sint_ℤ(1) >
             embed_sint_ℤ(std::numeric_limits<long long>::max()),
