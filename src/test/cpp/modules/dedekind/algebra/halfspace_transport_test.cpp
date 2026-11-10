@@ -90,6 +90,14 @@ static_assert(
     image((ℕ * ℕ & π_1 + 1u == π_2) & π_1 > 5u) == (ℕ & (π > 6u)),
     "image(succ, {n>5}) = {n>6}: the graph decides where opacity walls.");
 // The identity scale on ℕ: its unit is an unsigned constant, which ℕ meets.
+// A downward cut on ℕ keeps its floor: {n≤5} = [0, 5] shifts to [1, 6], so 0
+// is not in the image (no n has n+1 = 0); strictness rides on the upper side.
+static_assert(image((ℕ * ℕ & π_1 + 1u == π_2) & π_1 <= 5u) ==
+                  ((ℕ & (π >= 1u)) & (ℕ & (π <= 6u))),
+              "image(succ, {n≤5}) = {1,…,6} on ℕ.");
+static_assert(image((ℕ * ℕ & π_1 + 1u == π_2) & π_1 < 5u) ==
+                  ((ℕ & (π >= 1u)) & (ℕ & (π < 6u))),
+              "image(succ, {n<5}) = {1,…,5} on ℕ.");
 static_assert(image((ℕ * ℕ & π_1 * 1u == π_2) & π_1 > 5u) == (ℕ & (π > 5u)),
               "image(x ↦ 1·x, {n>5}) = {n>5} on ℕ.");
 

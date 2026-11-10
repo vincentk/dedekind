@@ -110,7 +110,8 @@ constexpr auto image(
  *  pushforward @c {y⋈p+k}, a halfspace of the same shape.  Order comparisons
  *  only (equality restricts to a point, not a halfspace), and only where the
  *  translation preserves the order: an ordered additive group, or ℕ (a
- *  constant cannot be negative there); a wrapping carrier is excluded. */
+ *  constant cannot be negative there); a wrapping carrier is excluded.  On ℕ
+ *  a downward cut keeps its floor: @c {x≤p} pushes to @c [k, p+k]. */
 export template <IsTotallyOrdered T, typename K, Rel R, typename V,
                  IsOckhamAlgebra L, IsCardinality C>
   requires(is_order_rel(R) && (dedekind::algebra::IsOrderedAdditiveGroup<T> ||
@@ -119,10 +120,15 @@ constexpr auto image(
     const Comprehension<𝔸<std::pair<T, T>, L, C>,
                         ProductRestrict<Translation<K>, Cylinder<R, 1, V>>>&
         s) {
-  return Interval<T, L>::half(
-      carrier_cast<T>(s.predicate.rp.b.value) +
-          carrier_cast<T>(s.predicate.product.a.b.value),
-      dir_of(R), strict_of(R));
+  const T k = carrier_cast<T>(s.predicate.product.a.b.value);
+  const T p = carrier_cast<T>(s.predicate.rp.b.value) + k;
+  // Not a group, hence ℕ: its floor 0 bounds a downward cut, so {x⋈p} is
+  // [0, p] and its image starts at the shifted floor 0 + k = k.
+  if constexpr (!dedekind::algebra::IsOrderedAdditiveGroup<T>) {
+    if (dir_of(R) == Direction::Downward)
+      return Interval<T, L>::bounded(k, Strictness::NonStrict, p, strict_of(R));
+  }
+  return Interval<T, L>::half(p, dir_of(R), strict_of(R));
 }
 
 /** @brief image of a restricted scaling @c x↦c·x, @c c=±1, on @c {x⋈p}: the
