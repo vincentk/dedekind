@@ -67,7 +67,7 @@ Theorem~\ref{thm:coherence} needs exactly that.
 \\[7pt]
 \textsc{(D-Const)} & \dfrac{\varnothing; \varnothing \vdash e : \tau \qquad \rho \in \{\tau, \texttt{auto}\} \qquad e \text{ a constant initialiser}}{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;}}
 \\[7pt]
-\textsc{(T-Const)} & \dfrac{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \text{ declared before, at } \tau}{\Delta; \Gamma \vdash x : \tau}
+\textsc{(T-Const)} & \dfrac{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \text{ declared before, at } \tau \qquad x \notin \Gamma}{\Delta; \Gamma \vdash x : \tau}
 \\[7pt]
 \multicolumn{2}{@{}l}{\text{\textit{Recursion, from the adopted library}}}
 \\[7pt]
@@ -142,7 +142,7 @@ This is \Cpp{}'s return type deduction~\cite[{\texttt{dcl.spec.auto}}]{cpp23stan
 The one exception's self-call is such a use, and its function writes its result type.
 A trait and its instances write \cppinline{auto} together or not at all, as the standard requires of a specialisation~\cite[{\texttt{dcl.spec.auto}}]{cpp23standard}.
 A call's type arguments are deduced as well: \textsc{T-App}'s $\overline{\sigma}$, and a call $f\texttt{(}\overline{e}\texttt{)}$ is $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)}$ at the $\overline{\sigma}$ the compiler deduces, so the rules check them and do not compute them.
-A constant is typed under the empty contexts, and \textsc{T-Const} types its name at that type in every later declaration and in the program's term.
+A constant is typed under the empty contexts, and \textsc{T-Const} types its name at that type in every later declaration and in the program's term, unless a parameter or field of the same name is in $\Gamma$, which shadows it, as in \Cpp{}.
 Its initialiser is a constant expression whose value keeps no allocation alive past the evaluation, as \cppinline{constexpr} requires of a variable and the compiler holds\cite[{\texttt{expr.const}}]{cpp23standard}.
 
 \paragraph{Ranges and terms.}
