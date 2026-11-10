@@ -73,6 +73,7 @@ The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
 construction & FJlt, provided & image \\
 \midrule
 \texttt{auto} parameter, \texttt{decltype}$^{\ast}$ & nothing & a template parameter; the type the compiler deduces \\
+\texttt{template <C T>}, a default template argument$^{\ast}$ & nothing & \texttt{template <typename T> requires C<T>}; the argument, written at each call \\
 \texttt{static\_assert(e)}$^{\ast}$ & \texttt{e} a closed \texttt{bool} term & the claim that \texttt{e} evaluates to \texttt{true} \\
 alias, \texttt{tuple}, \texttt{array}$^{\ast}$ & the parts FJlt & substitution, nested pairs, a range of $\mathcal{R}$ \\
 variable or class template$^{\ast}$ & each member of the family an FJlt instance & instance with a context, a default beside families resolved by specificity \\

@@ -10,9 +10,9 @@ The target is Featherweight Jlt, a kernel in the style of Featherweight Java~\ci
 FJlt is the subset of \Cpp{23} spelled out in Figure~\ref{fig:fjlt-syntax}: small enough to reason about, large enough to carry the listings.
 Its base types and their \cppinline{constexpr} operators form a many-sorted algebra over a signature $\Sigma$~\cite{birkhoff1970heterogeneous,sannella2012foundations}.
 A type that keeps \RuleOne{}, such as \cppinline{bool} or \cppinline{size_t}, is a \emph{carrier set}, and a total operator between such types, a candidate of $\ominus$ or $\oplus$ in the figure, a \emph{function}, which may leave its carrier set, as \cppinline{==} on \cppinline{std::string} gives a \cppinline{bool}.
-Listing~\ref{lst:fjlt-reading}, in Appendix~\ref{app:fjlt:closure}, is a program in the grammar.
+Listings~\ref{lst:rule1} and~\ref{lst:rule2} are written in it, up to two shorthands the standard defines as rewrites, a constrained template parameter and a default template argument (Table~\ref{tab:closure}).
 
-\begin{figure}[!htbp]
+\begin{figure}[!htb]
 \[
 \begin{array}{lcl@{\hspace{0.2em}}l}
 P &::=& \overline{D}\; e & \text{program} \\[3pt]
@@ -52,11 +52,8 @@ $f$ are function names, \texttt{operator}$\oplus$ among them, $x$ term variables
 \label{fig:fjlt-syntax}
 \end{figure}
 
-A template is always fully applied: $\alpha$ ranges over types, and there is no template template parameter, so System~F suffices.
-
 \emph{Every FJlt program is a Jlt program, with the same meaning.}
 This direction holds by construction: the grammar of Figure~\ref{fig:fjlt-syntax} is \Cpp{} syntax, FJlt's evaluation is constant evaluation restricted to it, each construct keeps the standard's rule, and the standard library pieces the grammar admits keep their standard meaning.
-Constant evaluation refuses undefined behaviour, so at compile time an FJlt program cannot go wrong silently; at run time it can (Section~\ref{sec:limits}).
 
 \paragraph{Desugaring.}
 \label{sec:fjlt:desugaring}
