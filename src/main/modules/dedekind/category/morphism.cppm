@@ -1521,6 +1521,14 @@ constexpr Orbit<X> power(const F& f, const Orbit<X>& o, std::size_t n,
  *  one: once a fixed point is seen every call left returns at once, so a
  *  budget of @c SIZE_MAX costs the steps taken, which a fold over the budget
  *  would not.
+ *
+ *  @c n is a bound, steps @f$\le n@f$, not a length, and a bound too large
+ *  to walk is admitted on purpose: the signature declares it honestly, and
+ *  the library supplies the computation that makes it affordable, depth
+ *  @f$\lceil \log_2 n \rceil@f$ plus the steps taken.  A caller that
+ *  states @c SIZE_MAX states that a naive walk would not finish and that
+ *  this implementation will; a search for an optimisation, overload
+ *  resolution among them, finds it here.  A feature, not a bug.
  *  @tparam X the carrier.  @tparam F the endomorphism.  @tparam Equal the
  *  equality of the early exit.
  *  @param f the endomorphism.  @param x0 the point.  @param n the power.
