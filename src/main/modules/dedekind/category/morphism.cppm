@@ -1493,7 +1493,8 @@ constexpr Orbit<X> power(const F& f, Orbit<X> o, std::size_t n,
   } else {
     // the two halves, the first moved into the second: one live state
     Orbit<X> hh = power(f, power(f, std::move(o), n / 2, equal), n / 2, equal);
-    return n % 2 == 1 && !hh.fixed ? step(f, hh, equal) : hh;
+    if (n % 2 == 1 && !hh.fixed) return step(f, hh, equal);
+    return hh;  // moved, not copied
   }
 }
 }  // namespace detail_morphism_iterate
