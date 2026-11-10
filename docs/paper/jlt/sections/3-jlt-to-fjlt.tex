@@ -10,7 +10,8 @@ The target is Featherweight Jlt, a kernel in the style of Featherweight Java~\ci
 FJlt is the subset of \Cpp{23} spelled out in Figure~\ref{fig:fjlt-syntax}: small enough to reason about, large enough to carry the listings.
 Its base types and their \cppinline{constexpr} operators form a many-sorted algebra over a signature $\Sigma$~\cite{birkhoff1970heterogeneous,sannella2012foundations}.
 A type that keeps \RuleOne{}, such as \cppinline{bool} or \cppinline{size_t}, is a \emph{carrier set}, and a total operator between such types, a candidate of $\ominus$ or $\oplus$ in the figure, a \emph{function}, which may leave its carrier set, as \cppinline{==} on \cppinline{std::string} gives a \cppinline{bool}.
-Listings~\ref{lst:rule1} and~\ref{lst:rule2} are written in it, up to two shorthands the standard defines as rewrites, a constrained template parameter and a default template argument (Table~\ref{tab:closure}).
+Listing~\ref{lst:rule1} is a program in the grammar.
+Listing~\ref{lst:rule3} is Jlt beyond it: its lambda \cppinline{act} is sugar for a function object, and its \cppinline{using} alias for the type it names (Appendix~\ref{app:fjlt:closure}).
 
 \begin{figure}[!htb]
 \[
