@@ -67,7 +67,7 @@ The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
 \end{table}
 
 \paragraph{Spellings.}
-Most of what a program writes beyond the grammar is a kernel term spelt another way; each spelling below names its condition and who holds it, the compiler, the repository's linter or a reader.
+Most of what a program writes beyond the grammar is a kernel term spelt another way; where a spelling carries a condition, its sentence names the condition and who holds it, the compiler, the repository's linter or a reader.
 A deduced result type, a call's deduced type arguments and a constant are the kernel's own (Appendix~\ref{app:fjlt:typing}); an \cppinline{auto} parameter adds a template parameter the declaration does not write, and is sugar.
 A variable template \cppinline{v<T...> = e} is the nullary function template \cppinline{v<T...>() { return e; }}.
 So is a class template with a static constant member, and constant evaluation of the three agrees.
@@ -79,10 +79,12 @@ A constructor is a function returning the struct, a conversion operator a declar
 An explicit conversion between carriers is a declared function, total by a reader's check.
 A non-type template parameter is a type per value, as \cppinline{integral_constant} spells it, the value a constant of a carrier, which the compiler holds.
 A user-defined literal is a named function call, which the compiler holds.
-Inheritance is a registration, read as the fact it states, on the linter's condition that every base is an empty class and no function is virtual.
 A \cppinline{static_assert(e)}, \cppinline{e} a closed \cppinline{bool} term, is the claim that \cppinline{e} evaluates to \cppinline{true}, which the compiler holds; a listing's assertions are its program's terms.
-At a type variable no candidate of an operator is known, so an operator on a constrained type, \cppinline{a + b} with \cppinline{IsMonoid<T, plus<T>>} in $\Delta$, is the call of the standard function object the constraint names, \cppinline{plus<T>{}(a, b)}, at the result type the requirement states; the linter holds the spelling and a reader the result type.
-An alias is the type it names, substituted, and \cppinline{decltype(e)} the type the compiler deduces for \cppinline{e}; a \cppinline{tuple} is nested pairs, and an \cppinline{array} of known length a range of $\mathcal{R}$; a \cppinline{friend} function is a free function, and an access specifier nothing; the library's generic \cppinline{cata} over a term type is the kernel's primitive; the compiler holds each.
+At a type variable no candidate of an operator is known, so an operator on a constrained type is the call of the standard function object the constraint names: \cppinline{a + b} with \cppinline{IsMonoid<T, plus<T>>} in $\Delta$ is \cppinline{plus<T>{}(a, b)}.
+Its result type is the one the requirement states; the linter holds the spelling and a reader the result type.
+An alias is the type it names, substituted, and \cppinline{decltype(e)} the type the compiler deduces for \cppinline{e}.
+A \cppinline{tuple} is nested pairs, a \cppinline{friend} function a free function, and an access specifier nothing.
+The library's generic \cppinline{cata} over a term type is the kernel's primitive.
 A static member function is a generic function.
 A struct with fields and no call operator is a product, nested pairs.
 \cppinline{std::array<T, n>} is both a product of $n$ copies and a member of $\mathcal{R}$ with length $n$, so a fold over it is already in the grammar.
