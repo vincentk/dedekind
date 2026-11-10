@@ -58,7 +58,7 @@ Across the three tables, the condition passes from the compiler to the repositor
 2 & argument-dependent lookup & the grammar, and the lookup wall (Section~\ref{sec:limits}) & instances found by the trait's name \\
 3 & implicit conversions & the grammar, and Rule~2 for the body & a conversion only where a requirement declares one, and the body then sees the declared type \\
 4 & references, moves & erased by the grammar (Section~\ref{sec:fjlt:syntax}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
-5 & the sugar: branches on a trait or a concept, lambdas, inheritance, \texttt{*} on an optional, \ldots & the grammar, and desugared (Tables~\ref{tab:closure} to~\ref{tab:closure:choice}) & \texttt{?:} on a law, specialisation, an operation struct, a registration, the case form on a sum, \ldots \\
+5 & the sugar: branches on a trait or a concept, lambdas, inheritance, \texttt{*} on an optional, \ldots & the grammar, and desugared (Appendix~\ref{app:fjlt:closure}) & \texttt{?:} on a law, specialisation, an operation struct, a registration, the case form on a sum, \ldots \\
 \bottomrule
 \end{tabularx}
 \caption{The filtration from Jlt to its kernel FJlt.
@@ -66,37 +66,8 @@ The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
 \label{tab:adequacy}
 \end{table}
 
-\begin{table}[tbp]
-\centering
-\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
-\toprule
-construction & FJlt, provided & image \\
-\midrule
-\texttt{auto} parameter, \texttt{decltype}$^{\ast}$ & nothing & a template parameter; the type the compiler deduces \\
-\texttt{template <C T>}, a default template argument$^{\ast}$ & nothing & \texttt{template <typename T> requires C<T>}; the argument, written at each call \\
-\texttt{static\_assert(e)}$^{\ast}$ & \texttt{e} a closed \texttt{bool} term & the claim that \texttt{e} evaluates to \texttt{true} \\
-alias, \texttt{tuple}, \texttt{array}$^{\ast}$ & the parts FJlt & substitution, nested pairs, a range of $\mathcal{R}$ \\
-variable or class template$^{\ast}$ & each member of the family an FJlt instance & instance with a context, a default beside families resolved by specificity \\
-const member function$^{\dagger}$ & \texttt{const}, FJlt body & generic function with the object as first parameter \\
-constructor, conversion operator, default argument, designated initialiser$^{\dagger\ddagger}$ & \texttt{constexpr}, FJlt body & a function returning the struct; a declared conversion; an overload with the argument supplied; the fields in order \\
-explicit conversion$^{\ddagger}$ & a total conversion between carriers & a declared function \\
-an operator on a constrained type$^{\dagger\ddagger}$ & a constraint names the standard function object the standard defines by it, \texttt{plus<T>} for \texttt{+}, and the operator has type \texttt{T} there (\texttt{true + true} is the \texttt{int} 2) & that object's call \\
-user-defined literal$^{\ast}$ & FJlt body & a named function call \\
-non-type template parameter$^{\ast}$ & the value a constant of a carrier & a type per value, as \texttt{integral\_constant} spells it \\
-overloading$^{\ast}$ & distinct carriers, or constraints ordered by specificity & specialisations of one trait, or generic functions \\
-\texttt{friend}, access specifier$^{\ast}$ & a friend an FJlt function & a free function; nothing \\
-inheritance$^{\dagger}$ & every base an empty class, no virtual function & a registration, read as the fact it states \\
-generic \texttt{cata} over a term type$^{\ast}$ & algebra and term FJlt & the kernel's primitive \texttt{cata} \\
-\bottomrule
-\end{tabularx}
-\caption{Constructions that are another spelling of a kernel term.
-In each row, a term built by the construction from FJlt terms, under the condition, is the FJlt term in the image column.
-A mark says who holds the condition: $\ast$ the compiler, $\dagger$ the repository's linter, $\ddagger$ a reader; two marks share it.}
-\label{tab:closure}
-\end{table}
-
 \paragraph{Spellings.}
-Most of what a program writes beyond the grammar is a kernel term spelt another way, and Table~\ref{tab:closure} gives its image.
+Most of what a program writes beyond the grammar is a kernel term spelt another way; each spelling below names its condition and who holds it, the compiler, the repository's linter or a reader.
 A deduced result type, a call's deduced type arguments and a constant are the kernel's own (Appendix~\ref{app:fjlt:typing}); an \cppinline{auto} parameter adds a template parameter the declaration does not write, and is sugar.
 A variable template \cppinline{v<T...> = e} is the nullary function template \cppinline{v<T...>() { return e; }}.
 So is a class template with a static constant member, and constant evaluation of the three agrees.
@@ -104,6 +75,11 @@ A primary that answers \cppinline{false} beside partial specialisations that ans
 Resolution by specificity orders them, as it orders constrained overloads such as Listing~\ref{lst:laws}'s \cppinline{fold} and \cppinline{concat}.
 Lookup leaves some FJlt spellings unwritable (Section~\ref{sec:limits}), and there the host's spelling stands for it.
 A \cppinline{const} member function is the generic function with the object as its first parameter, reading its fields where the member read \cppinline{this}.
+A constructor is a function returning the struct, a conversion operator a declared conversion, a default argument an overload with the argument supplied, and a designated initialiser the fields in order, each with a \cppinline{constexpr} FJlt body; the linter holds \cppinline{constexpr} and a reader the rest.
+An explicit conversion between carriers is a declared function, total by a reader's check.
+A non-type template parameter is a type per value, as \cppinline{integral_constant} spells it, the value a constant of a carrier, which the compiler holds.
+A user-defined literal is a named function call, which the compiler holds.
+Inheritance is a registration, read as the fact it states, on the linter's condition that every base is an empty class and no function is virtual.
 A static member function is a generic function.
 A struct with fields and no call operator is a product, nested pairs.
 \cppinline{std::array<T, n>} is both a product of $n$ copies and a member of $\mathcal{R}$ with length $n$, so a fold over it is already in the grammar.
@@ -122,7 +98,8 @@ local constant, structured binding$^{\dagger}$ & the initialiser FJlt, the name 
 local state that does not escape$^{\dagger\ddagger}$ & assignments only to locals, by-value parameters, elements of a local array, or a builtin's out-parameter that is a local; nothing written observable after the call & the state threaded as values, one binding per assignment, as \texttt{runST} encapsulates it \\
 \bottomrule
 \end{tabularx}
-\caption{Constructions whose state stays inside a call, read as Table~\ref{tab:closure}.}
+\caption{Constructions whose state stays inside a call: a term built by the construction from FJlt terms, under the condition, is the FJlt term in the image column.
+A mark says who holds the condition: $\ast$ the compiler, $\dagger$ the repository's linter, $\ddagger$ a reader; two marks share it.}
 \label{tab:closure:private}
 \end{table}
 
@@ -153,7 +130,7 @@ a call its clause does not decide$^{\dagger}$ & the caller instantiates at a con
 \texttt{if consteval}, or an \texttt{if} on \texttt{is\_constant\_evaluated()}$^{\ddagger}$ & both branches compute the same value on every input & the compile-time branch \\
 \bottomrule
 \end{tabularx}
-\caption{Constructions that branch, read as Table~\ref{tab:closure}.}
+\caption{Constructions that branch, read as Table~\ref{tab:closure:private}.}
 \label{tab:closure:choice}
 \end{table}
 

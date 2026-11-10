@@ -102,7 +102,7 @@ A call it would refuse is a body that varies with a type through a constraint it
 
 \paragraph{Conversions.}
 \textsc{T-Conv} types the conversion between carriers that \Cpp{} inserts implicitly and the kernel term writes, $\tau\texttt{(}e\texttt{)}$.
-It is total by the condition on conversions of Table~\ref{tab:closure}.
+It is total by the condition on conversions of Appendix~\ref{app:fjlt:closure}.
 \textsc{E-Op} reads $S$ as equality for \cppinline{std::same_as} and as conversion for \cppinline{std::convertible_to}.
 Write $\tau^{S}\texttt{(}e\texttt{)}$ for $e$ when $S$ is \cppinline{std::same_as}, and for $\tau\texttt{(}e\texttt{)}$ when it is \cppinline{std::convertible_to}.
 \textsc{T-Req-Assumed} then types $\tau^{S}$ of the pattern, and a use of the requirement keeps its declared type when \textsc{S-Call} substitutes the instance (\textsc{S-Conv}).
