@@ -1477,8 +1477,8 @@ constexpr Orbit<X> step(const F& f, const Orbit<X>& o, const Equal& equal) {
 }
 /** @brief @f$f^n@f$ on @c o by halving, as @c concat on copies; a known
  *  fixed point is returned as it is; the state is moved, never copied.
- *  @param f the endomorphism.  @param o the point.  @param n the power.  @param
- * equal the equality. */
+ *  @param f the endomorphism.  @param o the point.  @param n the power.
+ *  @param equal the equality. */
 template <typename X, typename F, typename Equal>
   requires IsIteration<X, F, Equal>
 constexpr Orbit<X> power(const F& f, Orbit<X> o, std::size_t n,
