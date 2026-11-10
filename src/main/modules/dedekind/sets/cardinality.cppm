@@ -165,36 +165,35 @@ export struct Numeral {
   /** @brief ℕ is countable: @c :order's halfspaces read this, as they read
    *  ℚ's, since @c IsRingIntegral is false on a numeral. */
   using cardinality_type = ℵ_0;
-  limb low{};  ///< the first limb: an atom is this, and nothing above
-  std::vector<limb>
-      high{};  ///< the limbs above, little-endian, none trailing zero
 
   constexpr Numeral() = default;
   /** @param n an atom: ℕ's atoms are the unsigned words. */
   template <std::unsigned_integral N>
-  constexpr explicit Numeral(N n) : low(static_cast<limb>(n)) {}
+  constexpr explicit Numeral(N n) : low_(static_cast<limb>(n)) {}
   /** @param limbs little-endian; normalised here, trailing zeros dropped. */
   constexpr explicit Numeral(std::vector<limb> limbs)
-      : low(limbs.empty() ? limb{} : limbs.front()),
-        high(limbs.empty()
-                 ? std::vector<limb>{}
-                 : std::vector<limb>(limbs.begin() + 1, limbs.end())) {
-    high.erase(
-        std::ranges::find_if_not(high.rbegin(), high.rend(), IsZeroLimb{})
+      : low_(limbs.empty() ? limb{} : limbs.front()),
+        high_(limbs.empty()
+                  ? std::vector<limb>{}
+                  : std::vector<limb>(limbs.begin() + 1, limbs.end())) {
+    high_.erase(
+        std::ranges::find_if_not(high_.rbegin(), high_.rend(), IsZeroLimb{})
             .base(),
-        high.end());
+        high_.end());
   }
   constexpr bool operator==(const Numeral&) const = default;
+  /** @return the first limb: the numeral modulo @f$2^{64}@f$. */
+  constexpr limb low() const { return low_; }
   /** @return every limb, little-endian, the inline one first. */
   constexpr std::vector<limb> limbs() const {
-    std::vector<limb> v{low};
-    v.insert(v.end(), high.begin(), high.end());
+    std::vector<limb> v{low_};
+    v.insert(v.end(), high_.begin(), high_.end());
     return v;
   }
   /** @return the word, where the numeral is one: below @f$2^{64}@f$. */
   constexpr std::optional<std::size_t> word() const {
-    if (high.empty() && low <= std::numeric_limits<std::size_t>::max())
-      return static_cast<std::size_t>(low);
+    if (high_.empty() && low_ <= std::numeric_limits<std::size_t>::max())
+      return static_cast<std::size_t>(low_);
     return std::nullopt;
   }
 
@@ -202,6 +201,10 @@ export struct Numeral {
   struct IsZeroLimb {
     constexpr bool operator()(limb l) const { return l == limb{}; }
   };
+  // The normal form: no trailing zero limb, so == is memberwise.  The vector
+  // constructor normalises; writable members would not.
+  limb low_{};  // the first limb: an atom is this, and nothing above
+  std::vector<limb> high_{};  // the limbs above, little-endian
 };
 
 namespace detail_numeral {
@@ -304,9 +307,9 @@ export constexpr Numeral operator*(const Numeral& x, const Numeral& y) {
 /** @brief The order of ℕ: more limbs is larger, else the top limb decides. */
 export constexpr std::strong_ordering operator<=>(const Numeral& x,
                                                   const Numeral& y) {
-  if (x.high.size() != y.high.size()) return x.high.size() <=> y.high.size();
   const std::vector<Numeral::limb> a = x.limbs();
   const std::vector<Numeral::limb> b = y.limbs();
+  if (a.size() != b.size()) return a.size() <=> b.size();
   return std::lexicographical_compare_three_way(a.rbegin(), a.rend(),
                                                 b.rbegin(), b.rend());
 }

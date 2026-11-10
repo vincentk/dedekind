@@ -252,7 +252,7 @@ constexpr Numeral two_64() { return Numeral{top} + Numeral{1u}; }
 /** @brief A monoid homomorphism @f$\varphi : (\mathbb{N}, +) \to
  *  \mathbb{Z}/2^{64}@f$, the word's quotient: the low limb.  @param n a
  *  natural.  @return @f$n \bmod 2^{64}@f$. */
-constexpr std::uint64_t φ(const Numeral& n) { return n.low; }
+constexpr std::uint64_t φ(const Numeral& n) { return n.low(); }
 /** @brief Its extension @f$\hat\varphi : \mathbb{Z} \to \mathbb{Z}/2^{64}@f$,
  *  the one group homomorphism with @f$\hat\varphi(n - 0) = \varphi(n)@f$:
  *  @f$\hat\varphi(a - b) = \varphi(a) - \varphi(b)@f$, so on a normal form
