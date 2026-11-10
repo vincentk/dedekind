@@ -133,7 +133,7 @@ Where the choice is a primitive of $\Sigma$, the expression is typed by the prim
 
 \paragraph{Deduced types and constants.}
 Where a declaration's result type $\rho$ is \cppinline{auto}, its $\tau$ is the type of the body in the premise, and \textsc{T-Call}, \textsc{T-Trait} and \textsc{T-App}'s $\tau_r$ read that type.
-This is local type inference~\cite{pierce2000local}: the type is synthesised from the body, and nothing flows into it from a use.
+This is \Cpp{}'s return type deduction~\cite[{\texttt{dcl.spec.auto}}]{cpp23standard} and local type inference~\cite{pierce2000local}: the type is synthesised from the body, and nothing flows into it from a use.
 \Cpp{} refuses a use of the function before a return statement has deduced its type, and an FJlt body is a single return, so no body is typed through its own deduced type.
 The one exception's self-call is such a use, and its function writes its result type.
 A trait and its instances write \cppinline{auto} together or not at all, as the standard requires of a specialisation.

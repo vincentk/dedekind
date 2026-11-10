@@ -46,7 +46,7 @@ $\tau$ is a type, and $\rho$ a result type, written or deduced.
 $e$ is a term.
 $\alpha, \beta$ are type variables, $b$ base types.
 $T$ are type constructors, declared or adopted from the standard library; $O$ the structs among them, function objects (standard, such as \cppinline{std::plus}, or declared), \cppinline{std::pair} and \cppinline{std::optional}; $y$ their fields.
-$\ominus$ and $\oplus$ are unary and binary operator symbols, at any type, resolved as \Cpp{} resolves an operator, the operators of $\Sigma$ among the candidates.
+$\ominus$ and $\oplus$ are unary and binary operator symbols, at any type, resolved as \Cpp{} resolves an operator~\cite[{\texttt{over.match.oper}}]{cpp23standard}, the operators of $\Sigma$ among the candidates.
 $C$ are concept names, the standard ones included; $S$ the result-type concepts \cppinline{std::same_as} and \cppinline{std::convertible_to}.
 $f$ are function names, \texttt{operator}$\oplus$ among them, $x$ term variables and the names of declared constants, $c$ constants.}
 \label{fig:fjlt-syntax}
