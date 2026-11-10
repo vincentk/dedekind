@@ -17,46 +17,27 @@
  *      membership is decided) is a property of the domain, the
  *      Galois-specialisation axis.
  *   3. Membership genuinely lands in Ω\Σ: the intensional image of a set
- *      RETURNS Unknown outright.
+ *      RETURNS Unknown outright (pinned by showcase_10).
  *
  * The archetype hard predicate is Mandelbrot membership (numbers/mandelbrot),
  * semi-decidable: escape is recognisable, non-escape is not.  Its Unknown is
- * exercised at runtime (mandelbrot_stress_test); the compile-time Unknown here
- * is the intensional image, whose indecision is a static observable.
+ * exercised at runtime (mandelbrot_stress_test); the compile-time Unknown is
+ * the intensional image, whose indecision is a static observable.
  */
 #include <catch2/catch_test_macros.hpp>
-#include <concepts>
 
 import dedekind.category;
-import dedekind.sets;
-import dedekind.numbers;
-import dedekind.order;
 
 using namespace dedekind::category;
-using namespace dedekind::sets;
-using namespace dedekind::numbers;
-using namespace dedekind::order;
 
-TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
+TEST_CASE("partial membership: fix(¬)=Unknown",
           "[sets][computability][membership]") {
   // ── Ω = {⊤, ⊥, U}: the extra point is the fixpoint of negation ──
   {
     // Kleene ¬ fixes Unknown (negation about zero); the decided fragment
     // Σ = {⊤, ⊥} has none; on Σ, ¬ swaps the two values.
-    static_assert(!Ternary::Unknown == Ternary::Unknown);  // fix(¬) = U
-    static_assert(!Ternary::True == Ternary::False);       // no fixpoint on Σ
-    static_assert(!Ternary::False == Ternary::True);
+    STATIC_CHECK(!Ternary::Unknown == Ternary::Unknown);  // fix(¬) = U
+    STATIC_CHECK(!Ternary::True == Ternary::False);       // no fixpoint on Σ
+    STATIC_CHECK(!Ternary::False == Ternary::True);
   }
-  // ── membership RETURNS Unknown: the intensional image of a set ──
-  {
-    constexpr auto gt5 = ℕ & (π > 5u);  // {n ∈ ℕ | n > 5} : decidable (ℵ₀)
-    static_assert(HasDecidableMembership<decltype(gt5)>);
-    constexpr Successor<Numeral> succ;      // ℕ → ℕ, an arrow as it stands
-    constexpr auto img = image(succ, gt5);  // {y | ∃n. n>5 ∧ y=n+1} : Ω
-    static_assert(std::same_as<typename decltype(img)::logic_species, Kleene>);
-    static_assert(!HasDecidableMembership<decltype(img)>);
-    // honestly Unknown, though set-theoretically 7 ∈ image(succ, {n>5})
-    static_assert(img(Numeral{7u}) == Ternary::Unknown);
-  }
-  CHECK(true);  // runtime anchor for coverage
 }
