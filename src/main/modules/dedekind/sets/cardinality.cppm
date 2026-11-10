@@ -184,6 +184,8 @@ export struct Numeral {
   constexpr bool operator==(const Numeral&) const = default;
   /** @return the first limb: the numeral modulo @f$2^{64}@f$. */
   constexpr limb low() const { return low_; }
+  /** @return the number of limbs, the inline one counted: no allocation. */
+  constexpr std::size_t limb_count() const { return 1 + high_.size(); }
   /** @return every limb, little-endian, the inline one first. */
   constexpr std::vector<limb> limbs() const {
     std::vector<limb> v{low_};
@@ -307,9 +309,10 @@ export constexpr Numeral operator*(const Numeral& x, const Numeral& y) {
 /** @brief The order of ℕ: more limbs is larger, else the top limb decides. */
 export constexpr std::strong_ordering operator<=>(const Numeral& x,
                                                   const Numeral& y) {
+  if (x.limb_count() != y.limb_count())
+    return x.limb_count() <=> y.limb_count();
   const std::vector<Numeral::limb> a = x.limbs();
   const std::vector<Numeral::limb> b = y.limbs();
-  if (a.size() != b.size()) return a.size() <=> b.size();
   return std::lexicographical_compare_three_way(a.rbegin(), a.rend(),
                                                 b.rbegin(), b.rend());
 }

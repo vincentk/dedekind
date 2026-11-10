@@ -246,7 +246,7 @@ TEST_CASE("Numbers: Numeral, ℕ above the word",
   const Numeral t{top};
   SECTION("a cube of 2^64 - 1 has three limbs, and the word is left behind") {
     const Numeral cube = t * t * t;
-    CHECK(cube.limbs().size() == 3);
+    CHECK(cube.limb_count() == 3);
     CHECK_FALSE(cube.word().has_value());
     CHECK(t.word() == std::size_t{top});
     // (2^64 - 1)^3 = 2^192 - 3·2^128 + 3·2^64 - 1
