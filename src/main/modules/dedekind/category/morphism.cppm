@@ -50,7 +50,7 @@ module;
 #include <functional>
 #include <optional>
 #include <type_traits>
-#include <utility>  // std::move, std::as_const: iterate's rebinding  // std::integral_constant: the slot as a type
+#include <utility>  // std::move  // std::integral_constant: the slot as a type
 
 export module dedekind.category:morphism;
 
@@ -1446,6 +1446,55 @@ static_assert(HasArrowComposeOperators<Identity<int>, Identity<int>>,
               "Identity<int> must support @c >> arrow composition with "
               "itself; this is the canonical fish-operator witness.");
 
+namespace detail_morphism_iterate {
+/** @brief What @c iterate needs: @c f an endomorphism of @c X, and @c equal
+ *  an equality on @c X or the default, which is used only where @c X has one.
+ *  @tparam X the carrier.  @tparam F the endomorphism.  @tparam Equal the
+ *  equality. */
+template <typename X, typename F, typename Equal>
+concept IsIteration =
+    std::copyable<X> && std::regular_invocable<const F&, const X&> &&
+    std::convertible_to<std::invoke_result_t<const F&, const X&>, X> &&
+    (std::predicate<const Equal&, const X&, const X&> ||
+     std::same_as<Equal, std::equal_to<>>);
+/** @brief A point of the orbit, and whether it is known to be fixed.
+ *  @tparam X the carrier. */
+template <std::copyable X>
+struct Orbit {
+  X x;
+  bool fixed;
+};
+/** @brief One application of @c f, noting a fixed point where @c equal
+ *  applies to @c X.  @param f the endomorphism.  @param o the point.
+ *  @param equal the equality. */
+template <typename X, typename F, typename Equal>
+  requires IsIteration<X, F, Equal>
+constexpr Orbit<X> step(const F& f, const Orbit<X>& o, const Equal& equal) {
+  const X x1 = std::invoke(f, o.x);
+  if constexpr (std::predicate<const Equal&, const X&, const X&>)
+    return {x1, std::invoke(equal, x1, o.x)};
+  else
+    return {x1, false};
+}
+/** @brief @f$f^n@f$ on @c o by halving, as @c concat on copies; a known
+ *  fixed point is returned as it is.  @param f the endomorphism.
+ *  @param o the point.  @param n the power.  @param equal the equality. */
+template <typename X, typename F, typename Equal>
+  requires IsIteration<X, F, Equal>
+constexpr Orbit<X> power(const F& f, const Orbit<X>& o, std::size_t n,
+                         const Equal& equal) {
+  if (n == 0) {
+    return o;
+  } else if (o.fixed) {
+    return o;
+  } else {
+    const Orbit<X> h = power(f, o, n / 2, equal);   // the first half
+    const Orbit<X> hh = power(f, h, n / 2, equal);  // the second half
+    return n % 2 == 1 && !hh.fixed ? step(f, hh, equal) : hh;
+  }
+}
+}  // namespace detail_morphism_iterate
+
 /** @section morphism__Iterate
  *  The n-fold composite of an endomorphism, applied: @f$f^n(x)@f$, the one
  *  bounded iteration of Jlt (Rule 3).
@@ -1464,31 +1513,25 @@ static_assert(HasArrowComposeOperators<Identity<int>, Identity<int>>,
  *  early exit at a fixed point changes no value, since a fixed point absorbs
  *  (@f$f(y) = y@f$ gives @f$f^m(y) = y@f$): it is an operational shortcut,
  *  taken when @c equal applies to @c X, and a fixed point certifies itself.
- *  Implemented by eliminating the definition's one tail call, so it equals the
- *  recursion without tail-call optimisation, which the standard does not
- *  guarantee and constant evaluation does not perform: the loop's @c (x, k)
- *  are the arguments of the next call, each iteration one unfolding, and the
- *  mutation is local (Rule 1's footnote).  The loop is the one Rule 3 exempts.
+ *  Its value is the fold of @c f over @c n steps, computed as the power:
+ *  @f$f^n = f^{n \bmod 2} \circ f^{\lfloor n/2 \rfloor} \circ
+ *  f^{\lfloor n/2 \rfloor}@f$, a descent on @c n by halving (Rule 3), as
+ *  @c concat on copies.  @c f is applied as often as by the recursion above,
+ *  in the same order, and the depth is the bits of @c n.  The early exit stays
+ *  one: once a fixed point is seen every call left returns at once, so a
+ *  budget of @c SIZE_MAX costs the steps taken, which a fold over the budget
+ *  would not.
  *  @tparam X the carrier.  @tparam F the endomorphism.  @tparam Equal the
  *  equality of the early exit.
  *  @param f the endomorphism.  @param x0 the point.  @param n the power.
  *  @param equal the equality. */
 export template <typename X, typename F, typename Equal = std::equal_to<>>
-  requires std::copyable<X> && std::regular_invocable<const F&, const X&> &&
-           std::convertible_to<std::invoke_result_t<const F&, const X&>, X> &&
-           (std::predicate<const Equal&, const X&, const X&> ||
-            std::same_as<Equal, std::equal_to<>>)
+  requires detail_morphism_iterate::IsIteration<X, F, Equal>
 constexpr X iterate(const F& f, const X& x0, std::size_t n,
                     const Equal& equal = {}) {
-  X x = x0;                              // the call's argument
-  for (std::size_t k = n; k > 0; --k) {  // at most n applications of f
-    X x1 = std::invoke(f, std::as_const(x));
-    if constexpr (std::predicate<const Equal&, const X&, const X&>) {
-      if (std::invoke(equal, x1, x)) return x1;  // a fixed point: stop
-    }
-    x = std::move(x1);  // the tail call iterate(f, x1, k - 1)
-  }
-  return x;  // the power is spent: iterate(f, x, 0) = x
+  return detail_morphism_iterate::power(
+             f, detail_morphism_iterate::Orbit<X>{x0, false}, n, equal)
+      .x;
 }
 
 }  // namespace dedekind::category
