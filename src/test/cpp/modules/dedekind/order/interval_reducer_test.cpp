@@ -99,16 +99,16 @@ TEST_CASE(
   }
 
   SECTION("ℕ: the point collapse gates on the NNO, not on std::integral") {
-    // The carrier is the Cardinality proxy for ℕ --- not a machine integer.
+    // The carrier is ℕ's Numeral --- not a machine integer.
     // The one-point collapse needs successor / predecessor, which are an axiom
-    // of the CATEGORY (the NNO) that the proxy witnesses, so (3,5) on ℕ folds
+    // of the CATEGORY (the NNO) that the carrier witnesses, so (3,5) on ℕ folds
     // to {4} exactly as it does on int, and (5,5) to the empty set.
     const auto point = subobject_reduce<Boole, SetCombine>(
-        MakeMeet{}(Up(finite_cardinality(3)), Down(finite_cardinality(5))));
-    CHECK(point == Interval<Cardinality>::point(finite_cardinality(4)));
+        MakeMeet{}(Up(Numeral{3u}), Down(Numeral{5u})));
+    CHECK(point == Interval<Numeral>::point(Numeral{4u}));
     const auto empty = subobject_reduce<Boole, SetCombine>(
-        MakeMeet{}(Up(finite_cardinality(5)), Down(finite_cardinality(5))));
-    CHECK(empty == Ø<Cardinality>{});
+        MakeMeet{}(Up(Numeral{5u}), Down(Numeral{5u})));
+    CHECK(empty == Ø<Numeral>{});
   }
 
   SECTION("without the value leg the reducer keeps the Meet (type fallback)") {

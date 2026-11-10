@@ -9,7 +9,8 @@
  *     `:mereology`, where only the structural concepts now remain).
  *   - `ExtensionalCardinal<W>` — the machine-total finite cardinal carrier
  *     with wrapping arithmetic, compatible with `dedekind.category:total`.
- *   - `Cardinality` — the `finite | ℵ_0` sum type and its utility functions.
+ *   - `Numeral` — ℕ itself, exact above the word.
+ *   - `SignedCardinality` — the ℤ proxy, saturating at `±ℵ_0`.
  *
  * Cardinality is a property of sets — how many elements a set contains —
  * so it belongs in the `sets` layer, below `numbers` and `algebra`.
@@ -39,9 +40,8 @@ module;
 #include <functional>
 #include <iterator>  // reverse iterators: the limbs read from the top
 #include <limits>
-#include <optional>  // a numeral that is a word, or not
-#include <ranges>    // std::views::repeat: the doublings as a fold
-#include <stdexcept>
+#include <optional>     // a numeral that is a word, or not
+#include <ranges>       // std::views::repeat: the doublings as a fold
 #include <type_traits>  // std::remove_cvref_t --- IsRingIntegral normalisation
 #include <utility>
 #include <variant>
@@ -159,6 +159,9 @@ export struct Numeral {
   using limb = std::uint64_t;
   static_assert(std::numeric_limits<std::size_t>::digits <= 64,
                 "an atom, a size_t, fits the inline limb");
+  /** @brief ℕ is countable: @c :order's halfspaces read this, as they read
+   *  ℚ's, since @c IsRingIntegral is false on a numeral. */
+  using cardinality_type = ℵ_0;
   limb low{};  ///< the first limb: an atom is this, and nothing above
   std::vector<limb>
       high{};  ///< the limbs above, little-endian, none trailing zero
@@ -335,7 +338,7 @@ export constexpr dedekind::category::In<Numeral> inverse(
  * @brief Finite extensional cardinal: one machine word @c W.
  *
  * @details The bare carrier is the wrapping ring ℤ/2^w (registered periodic
- * and cyclic below); @c Cardinality adjoins the saturating @c ℵ_0 on top.
+ * and cyclic below); ℕ itself is @c Numeral, exact above the word.
  * It is not a bignum: its width is the width of @c W.  Overflow is detected
  * with the compiler's checked-arithmetic builtins, which compute exactly for
  * any word width, so no promotion to @c int can overflow on the way.
@@ -364,10 +367,7 @@ struct ExtensionalCardinal {
    *  The explicit @c static_cast keeps the sign-conversion at this boundary
    *  rather than at each call site.
    *
-   *  Intentionally non-explicit so integral values convert implicitly when
-   *  initialising or passing a @c Cardinality (= @c std::variant<
-   *  ExtensionalCardinal<>, ℵ_0>), the load-bearing path for the
-   *  @c ℕ-as-Cardinality carrier reading. */
+   *  Intentionally non-explicit so integral values convert implicitly. */
   template <std::integral S>
     requires(!std::same_as<S, W>)
   constexpr ExtensionalCardinal(S v) noexcept  // NOLINT
@@ -453,302 +453,6 @@ struct ExtensionalCardinal {
     return CheckedResult{ExtensionalCardinal{product}, overflowed};
   }
 };
-
-// ---------------------------------------------------------------------------
-// Overflow-aware arithmetic returning ℵ_0 on overflow
-// ---------------------------------------------------------------------------
-
-export template <IsCountWord W>
-constexpr std::variant<ExtensionalCardinal<W>, ℵ_0> add_or_ℵ_0(
-    const ExtensionalCardinal<W>& lhs, const ExtensionalCardinal<W>& rhs) {
-  const auto checked = ExtensionalCardinal<W>::checked_add(lhs, rhs);
-  if (checked.overflowed) {
-    return std::variant<ExtensionalCardinal<W>, ℵ_0>{ℵ_0{}};
-  }
-  return std::variant<ExtensionalCardinal<W>, ℵ_0>{checked.result};
-}
-
-export template <IsCountWord W>
-constexpr std::variant<ExtensionalCardinal<W>, ℵ_0> mul_or_ℵ_0(
-    const ExtensionalCardinal<W>& lhs, const ExtensionalCardinal<W>& rhs) {
-  const auto checked = ExtensionalCardinal<W>::checked_mul(lhs, rhs);
-  if (checked.overflowed) {
-    return std::variant<ExtensionalCardinal<W>, ℵ_0>{ℵ_0{}};
-  }
-  return std::variant<ExtensionalCardinal<W>, ℵ_0>{checked.result};
-}
-
-/** @brief Sum type for finite vs countably infinite cardinalities; the
- *         library's bona-fide proxy for @f$\mathbb{N}@f$ modulo
- *         physical limits.
- *
- *  @details The variant @c (ExtensionalCardinal<>, ℵ_0) is @b not a
- *  cyclic carrier (it does not wrap modulo capacity); on overflow it
- *  @b escalates --- saturates --- into @c ℵ_0 via the @c add /
- *  @c mul helpers below.  The explicit overflow story is "you reached
- *  countable infinity" rather than the C++ default of silent wrap or
- *  UB.  The finite fragment is @c ExtensionalCardinal<>, one
- *  @c std::size_t word (so the variant is @b not a bignum).  The
- *  @c ℵ_0 alternative marks the saturation regime that takes over once
- *  the word cannot hold the result.
- *
- *  Strictly mathematically, @f$\mathbb{N} \cup \{\aleph_0\}@f$ is
- *  not a monoid in the textbook sense (e.g.\ left-cancellation
- *  fails on the saturating element).  The library's pragmatic
- *  certificate accepts it as a proxy for @f$\mathbb{N}@f$ because
- *  the finite fragment is @f$\mathbb{N}@f$ exactly and the
- *  saturation is the @b explicit overflow contract: "if you compute
- *  beyond memory limits, you saturate at @c ℵ_0".  Downstream code
- *  that requires strict-ℕ behaviour should test the finite-fragment
- *  alternative (@c std::holds_alternative<ExtensionalCardinal<>>).
- *  See the sibling @c SignedCardinality below for the ℤ proxy on
- *  the same pattern.
- */
-export using Cardinality = std::variant<ExtensionalCardinal<>, ℵ_0>;
-
-/** @brief Convenience constructor for finite cardinal values. */
-export constexpr Cardinality finite_cardinality(std::size_t n) {
-  return Cardinality{ExtensionalCardinal<>{n}};
-}
-
-/** @brief Cardinal addition under the finite/ℵ_0 policy. */
-export constexpr Cardinality add(const Cardinality& lhs,
-                                 const Cardinality& rhs) {
-  if (std::holds_alternative<ℵ_0>(lhs) || std::holds_alternative<ℵ_0>(rhs)) {
-    return Cardinality{ℵ_0{}};
-  }
-  return add_or_ℵ_0(std::get<ExtensionalCardinal<>>(lhs),
-                    std::get<ExtensionalCardinal<>>(rhs));
-}
-
-/**
- * @brief Cardinal multiplication under the finite/ℵ_0 policy.
- * @details `x * ℵ_0 = ℵ_0` for any x.
- */
-export constexpr Cardinality mul(const Cardinality& lhs,
-                                 const Cardinality& rhs) {
-  if (std::holds_alternative<ℵ_0>(lhs) || std::holds_alternative<ℵ_0>(rhs)) {
-    return Cardinality{ℵ_0{}};
-  }
-  return mul_or_ℵ_0(std::get<ExtensionalCardinal<>>(lhs),
-                    std::get<ExtensionalCardinal<>>(rhs));
-}
-
-/**
- * @brief Total comparison over the finite/ℵ_0 fragment.
- * @details finite < ℵ_0, and ℵ_0 == ℵ_0.
- */
-export constexpr std::strong_ordering compare(const Cardinality& lhs,
-                                              const Cardinality& rhs) {
-  const bool lhs_inf = std::holds_alternative<ℵ_0>(lhs);
-  const bool rhs_inf = std::holds_alternative<ℵ_0>(rhs);
-
-  if (lhs_inf && rhs_inf) return std::strong_ordering::equal;
-  if (lhs_inf) return std::strong_ordering::greater;
-  if (rhs_inf) return std::strong_ordering::less;
-
-  return std::get<ExtensionalCardinal<>>(lhs) <=>
-         std::get<ExtensionalCardinal<>>(rhs);
-}
-
-// ---------------------------------------------------------------------------
-// Cardinality homogeneous operator surface (closes #424; prerequisite for
-// #416 / #402 retarget).  Mirrors the SignedCardinality pattern (PR #396)
-// --- @c std::plus / @c std::multiplies / @c std::three_way_comparable
-// can now find operators on @c Cardinality directly, lifting the @c IsRig
-// and order witnesses out of "free functions only" land.
-//
-// No subtraction: ℕ is closed under @c + but not under @c - (would
-// produce ℤ).  The math-wins reading is that @c Cardinality is a
-// @b commutative @b semiring (rig), not a ring; downstream code that
-// needs additive inverses uses @c SignedCardinality.
-//
-// @c / and @c % @b are included: Euclidean division on ℕ is closed
-// (@c 7 @c / @c 3 @c = @c 2 with remainder @c 1, both naturals --- the
-// quotient/remainder pair is the textbook construction).  This is what
-// lifts @c IsDividableChain<Cardinality> downstream in @c :completeness,
-// matching the existing claim on @c unsigned int.
-//
-// @c noexcept @b justification: the operators below dispatch through
-// @c std::get<>, which throws @c std::bad_variant_access if the variant
-// is @c valueless_by_exception.  @c std::variant becomes valueless only
-// if an alternative's move/copy ctor throws during reassignment; both
-// of @c Cardinality's alternatives are nothrow-move-constructible
-// (@c ExtensionalCardinal<> wraps one integral word;
-// @c ℵ_0 is empty), so @c Cardinality is provably never valueless and
-// the @c noexcept on these operators is sound.  The static_asserts
-// below make the guarantee explicit at compile time.
-// ---------------------------------------------------------------------------
-
-static_assert(std::is_nothrow_move_constructible_v<ExtensionalCardinal<>>,
-              "ExtensionalCardinal<> must be nothrow-move-constructible "
-              "so Cardinality is provably never valueless_by_exception "
-              "(and the noexcept on the homogeneous operators below is "
-              "sound, even though they dispatch through std::get<>).");
-static_assert(std::is_nothrow_move_constructible_v<ℵ_0>,
-              "ℵ_0 must be nothrow-move-constructible (it's empty, so "
-              "this is trivially true; pinned for the same valueless-"
-              "by-exception guarantee on Cardinality).");
-
-/** @brief Explicit @c == on @c Cardinality.  @c std::variant supplies a
- *         defaulted @c operator== inside the module's purview, but it
- *         is @b not reachable across the @c dedekind.sets module
- *         boundary (the @c <variant> header lives in the global module
- *         fragment, so its operator templates are not exported).
- *         Defining the operator explicitly in @c dedekind::sets ---
- *         where ADL can find it from importers like @c
- *         dedekind.numbers --- closes that gap so @c
- *         IsPartiallyOrdered<Cardinality> / @c
- *         std::three_way_comparable<Cardinality> fire downstream. */
-export constexpr bool operator==(const Cardinality& lhs,
-                                 const Cardinality& rhs) noexcept {
-  const bool lhs_inf = std::holds_alternative<ℵ_0>(lhs);
-  const bool rhs_inf = std::holds_alternative<ℵ_0>(rhs);
-  if (lhs_inf != rhs_inf) return false;
-  if (lhs_inf) return true;
-  return std::get<ExtensionalCardinal<>>(lhs) ==
-         std::get<ExtensionalCardinal<>>(rhs);
-}
-
-/** @brief @c + on @c Cardinality wraps the existing @c add() policy
- *         (saturating to @c ℵ_0 on overflow). */
-export constexpr Cardinality operator+(const Cardinality& lhs,
-                                       const Cardinality& rhs) noexcept {
-  return add(lhs, rhs);
-}
-
-/** @brief The NNO steps on the ℕ proxy, as the free customization points the
- *  order layer's point collapse calls (@c category:nno, found here by ADL):
- *  successor is @c + @c finite_cardinality(1), saturating at @c ℵ_0 (its
- *  fixpoint); predecessor is the monus --- 0 is its fixpoint (ℕ has no
- *  negatives), and @c ℵ_0 is fixed again.  The @c :nno arrow
- *  @c Successor<Cardinality> delegates here, so the law is spelled once.
- */
-export constexpr Cardinality successor(const Cardinality& n) noexcept {
-  return n + finite_cardinality(1);
-}
-export constexpr Cardinality predecessor(const Cardinality& n) noexcept {
-  if (std::holds_alternative<ℵ_0>(n)) return n;  // ℵ₀ is a fixpoint
-  const auto& f = std::get<ExtensionalCardinal<>>(n);
-  if (f == ExtensionalCardinal<>{}) return n;  // 0 is a fixpoint (monus)
-  return Cardinality{f -
-                     std::get<ExtensionalCardinal<>>(finite_cardinality(1))};
-}
-
-/** @brief @c ++n / @c --n: the successor and the predecessor of the ℕ proxy,
- *  by value, saturating at ℵ₀ and stepping down by monus (#1002).
- *
- *  @details Why by value, and why only on types of our own.
- *  - A user-defined operator need not mutate.  Taken by value, @c ++n returns
- *    a new value and leaves @c n alone, so it keeps Rule 1 (no reference
- *    parameter, no reference returned, no state) and is the posture's spelling
- *    of @c Successor; it applies to a constant too.  There is no postfix form:
- *    by value, @c n++ would be @c n itself.
- *  - The built-in @c ++ mutates.  On a @c const built-in it does not compile
- *    ("cannot assign to variable with const-qualified type"), so @c const
- *    already makes the compiler hold Rule 1 at the operator.
- *  - It cannot be replaced: an overloaded operator must have a parameter of
- *    class or enumeration type, so no @c operator++ may be declared for
- *    @c size_t, @c const or not.  Its successor is @c n @c + @c 1, or
- *    @c successor(n).
- *  - The standard's incrementable concepts ask @c ++i for an @c I&, so they
- *    do not admit the by-value form, and @c std::views::iota does not walk
- *    such a type; @c chain_view walks by @c successor and @c cover instead.
- *  - For counts with a by-value @c ++, a type of our own is the route: a
- *    struct around the word, or the smallest strong typedef the language has,
- *    @c enum @c class @c Nat @c : @c size_t @c {}, whose values are the word's
- *    and which @c std::to_underlying converts back.
- *  @param n the element.  @return its successor (predecessor). */
-export constexpr Cardinality operator++(Cardinality n) noexcept {
-  return successor(n);
-}
-export constexpr Cardinality operator--(Cardinality n) noexcept {
-  return predecessor(n);
-}
-static_assert(++finite_cardinality(2) == finite_cardinality(3) &&
-                  --finite_cardinality(3) == finite_cardinality(2) &&
-                  --finite_cardinality(0) == finite_cardinality(0),
-              "++ / -- are the successor and the predecessor (monus at 0).");
-static_assert(
-    ++Cardinality{ℵ_0{}} == Cardinality{ℵ_0{}},
-    "++ saturates at ℵ₀, the memory boundary the carrier is honest about.");
-namespace detail_cardinality_step_witness {
-constexpr Cardinality two = finite_cardinality(2);
-static_assert(
-    ++two == finite_cardinality(3) && two == finite_cardinality(2),
-    "by value: ++n is the successor, n is unchanged, even a constant.");
-}  // namespace detail_cardinality_step_witness
-
-/** @brief @c * on @c Cardinality wraps the existing @c mul() policy. */
-export constexpr Cardinality operator*(const Cardinality& lhs,
-                                       const Cardinality& rhs) noexcept {
-  return mul(lhs, rhs);
-}
-
-/** @brief Euclidean division on @c Cardinality.  Convention follows
- *         the @c ExtensionalCardinal<> totalisation: division by zero
- *         yields zero; @c finite @c / @c ℵ_0 yields zero (the limit);
- *         @c ℵ_0 @c / @c finite-non-zero yields @c ℵ_0; @c ℵ_0 @c /
- *         @c ℵ_0 yields @c ℵ_0 (saturation rather than indeterminate ---
- *         @c Cardinality has no @c NaZ-equivalent sentinel; the ℕ proxy
- *         keeps the policy total). */
-export constexpr Cardinality operator/(const Cardinality& lhs,
-                                       const Cardinality& rhs) noexcept {
-  const bool lhs_inf = std::holds_alternative<ℵ_0>(lhs);
-  const bool rhs_inf = std::holds_alternative<ℵ_0>(rhs);
-  if (lhs_inf && rhs_inf) return Cardinality{ℵ_0{}};
-  if (lhs_inf) {
-    // ℵ_0 / 0 collapses to 0 by ExtensionalCardinal<>'s convention; ℵ_0 /
-    // non-zero stays ℵ_0.
-    if (std::get<ExtensionalCardinal<>>(rhs) == ExtensionalCardinal<>{}) {
-      return finite_cardinality(0);
-    }
-    return Cardinality{ℵ_0{}};
-  }
-  if (rhs_inf) return finite_cardinality(0);  // finite / ℵ_0 → 0
-  return Cardinality{std::get<ExtensionalCardinal<>>(lhs) /
-                     std::get<ExtensionalCardinal<>>(rhs)};
-}
-
-/** @brief Euclidean remainder on @c Cardinality.  Mirrors the @c
- *         operator/ convention: @c finite @c % @c finite delegates to
- *         the underlying @c ExtensionalCardinal<>'s @c %; @c finite @c
- *         % @c ℵ_0 returns the @c lhs (the limit-style "remainder is
- *         the original" reading); operations with @c ℵ_0 on the @c lhs
- *         saturate to @c ℵ_0. */
-export constexpr Cardinality operator%(const Cardinality& lhs,
-                                       const Cardinality& rhs) noexcept {
-  const bool lhs_inf = std::holds_alternative<ℵ_0>(lhs);
-  const bool rhs_inf = std::holds_alternative<ℵ_0>(rhs);
-  if (lhs_inf) return Cardinality{ℵ_0{}};
-  if (rhs_inf) return lhs;
-  return Cardinality{std::get<ExtensionalCardinal<>>(lhs) %
-                     std::get<ExtensionalCardinal<>>(rhs)};
-}
-
-/** @brief Spaceship on @c Cardinality wraps @c compare() (finite values
- *         compare via the underlying @c ExtensionalCardinal<> spaceship;
- *         @c ℵ_0 dominates every finite value).  Returns
- *         @c std::strong_ordering --- there is no NaN-equivalent in the
- *         ℕ proxy. */
-export constexpr std::strong_ordering operator<=>(
-    const Cardinality& lhs, const Cardinality& rhs) noexcept {
-  return compare(lhs, rhs);
-}
-
-/**
- * @brief Realize a cardinality value to `std::size_t` with explicit boundary.
- * @param transfinite_sentinel Value used for non-finite cardinalities.
- */
-export constexpr std::size_t realize_to_size_t(
-    const Cardinality& value, std::size_t transfinite_sentinel =
-                                  std::numeric_limits<std::size_t>::max()) {
-  if (std::holds_alternative<ExtensionalCardinal<>>(value)) {
-    return std::get<ExtensionalCardinal<>>(value).realize_to_size_t(
-        transfinite_sentinel);
-  }
-  return transfinite_sentinel;
-}
 
 /** @brief Additive inverse of ExtensionalCardinal<> (two's-complement). */
 export constexpr ExtensionalCardinal<> inverse(
@@ -973,8 +677,7 @@ struct SignedExtensionalCardinal {
 //
 // `SignedExtensionalCardinal<S>` is a *finite* signed carrier --- ℤ/2^w ℤ
 // in two's complement.  Useful for
-// showcase arithmetic, but not ℤ.  `SignedCardinality` is the signed
-// counterpart of `Cardinality` (the ℕ ∪ {ℵ_0} variant): an extended-
+// showcase arithmetic, but not ℤ.  `SignedCardinality` is an extended-
 // integer carrier whose addition / subtraction / multiplication
 // escalate to ±ℵ_0 (or `NaZ` for indeterminate forms) rather than wrap.
 //
@@ -1013,7 +716,7 @@ export struct NaZ {
   constexpr friend bool operator==(const NaZ&, const NaZ&) = default;
 };
 
-/** @brief Signed counterpart of @c Cardinality with ±ℵ_0 escalation;
+/** @brief The ℤ proxy with ±ℵ_0 escalation;
  *         the library's bona-fide proxy for @f$\mathbb{Z}@f$ modulo
  *         physical limits.
  *
@@ -1021,7 +724,7 @@ export struct NaZ {
  *  The finite alternative is the default-constructed first slot, so
  *  @c SignedCardinality{} is canonical zero.
  *
- *  Same picture as @c Cardinality (the ℕ proxy), with a sign added:
+ *  The picture:
  *    - @b Not @b cyclic --- arithmetic does not wrap modulo capacity.
  *    - On signed overflow, @b escalates (saturates) into @c ±ℵ_0
  *      according to the sign of the operands.
@@ -1057,9 +760,9 @@ export using SignedCardinality =
     std::variant<SignedExtensionalCardinal<>, PositiveInfinity,
                  NegativeInfinity, NaZ>;
 
-// noexcept justification for SignedCardinality's operators (parallel
-// to the Cardinality block above; pinned per Copilot review on PR #425
-// to make the std::get-can't-throw guarantee compile-time explicit).
+// noexcept justification for SignedCardinality's operators (pinned per
+// Copilot review on PR #425 to make the std::get-can't-throw guarantee
+// compile-time explicit).
 // All four variant alternatives are nothrow-move-constructible
 // (SignedExtensionalCardinal<> wraps an integral magnitude + bool;
 // PositiveInfinity / NegativeInfinity / NaZ are empty sentinel
@@ -1120,15 +823,9 @@ constexpr SignedCardinality finite_signed_cardinality(S value) noexcept {
   return SignedCardinality{SignedExtensionalCardinal<>{value}};
 }
 
-/** @brief An integer constant meeting ℕ or ℤ, the hook the term grammar's
- *  @c carrier_cast reaches by ADL: exactly, or a domain error for a negative
- *  constant meeting ℕ.  @tparam K the constant's type.  @param k the constant.
- */
-export template <std::integral K>
-constexpr Cardinality carrier_cast(std::type_identity<Cardinality>, K k) {
-  if (k < K{}) throw std::domain_error("a negative constant meets ℕ");
-  return finite_cardinality(static_cast<std::size_t>(k));
-}
+/** @brief An integer constant meeting ℤ, the hook the term grammar's
+ *  @c carrier_cast reaches by ADL.  @tparam K the constant's type.
+ *  @param k the constant. */
 export template <std::integral K>
 constexpr SignedCardinality carrier_cast(std::type_identity<SignedCardinality>,
                                          K k) {
@@ -1206,8 +903,8 @@ static_assert(
     "min − min is 0: only an overflowing difference saturates.");
 
 /** @brief The step up on the ℤ proxy, the free customization point the order
- *  layer's point collapse calls (@c category:nno, found here by ADL), as on
- *  @c Cardinality: @c +1 through the saturating @c +, so @c +ℵ_0 is a fixpoint
+ *  layer's point collapse calls (@c category:nno, found here by ADL):
+ *  @c +1 through the saturating @c +, so @c +ℵ_0 is a fixpoint
  *  and @c NaZ propagates.
  *  @param n the value to step from.
  *  @return @c n @c + @c 1, saturating. */
@@ -1332,7 +1029,7 @@ export constexpr bool operator<(const SignedCardinality& lhs,
 /** @brief Explicit homogeneous @c == on @c SignedCardinality (#669).
  *
  * @details
- * Mirrors the @c == on @c Cardinality above: the @c std::variant's
+ * The @c std::variant's
  * defaulted @c == lives inside the module's purview and is @b not
  * reachable across the @c dedekind.sets module boundary (the
  * @c \<variant\> header is in the global module fragment).  Defining
@@ -1423,9 +1120,9 @@ export constexpr std::weak_ordering constant_order(
 // Heterogeneous comparison: variant ↔ std::integral (closes #415)
 // ---------------------------------------------------------------------------
 //
-// Cross-type relational operators between the variant ℕ-/ℤ-proxy carriers
-// (@c Cardinality, @c SignedCardinality) and built-in @c std::integral
-// values.  The load-bearing path is the halfspace machinery's
+// Cross-type relational operators between the variant ℤ-proxy carrier
+// @c SignedCardinality and built-in @c std::integral values.  The load-bearing
+// path is the halfspace machinery's
 // @c (x @c > @c Pivot) substitution where @c x is a variant ℤ-proxy and
 // @c Pivot is the @c int NTTP from @c -21: previously this
 // required an explicit lift of the literal to the variant alternative.
@@ -1435,38 +1132,6 @@ export constexpr std::weak_ordering constant_order(
 // @c <=, @c >, @c >=) and the symmetric (rhs-first) direction
 // uniformly --- the witness section in @c numbers/cardinality.cppm
 // pins both directions via @c HasPartialOrderOperatorsWith.
-
-/** @brief @c Cardinality @c <=> @c std::integral.  ℵ_0 is greater than
- *         any finite integer; negative signed values are below the
- *         entire ℕ proxy (no element of @c Cardinality is negative),
- *         which is encoded as @c lhs @c > @c rhs.  Otherwise the
- *         comparison reduces to the @c ExtensionalCardinal<> spaceship.
- *         Delegates the integral lift through @c ExtensionalCardinal<>'s
- *         existing @c std::integral ctor, which subsumes @c bool /
- *         @c size_t / signed-non-negative paths uniformly --- avoiding
- *         @c std::make_unsigned_t (undefined for @c bool).
- */
-export template <std::integral T>
-constexpr std::strong_ordering operator<=>(const Cardinality& lhs,
-                                           T rhs) noexcept {
-  if (std::holds_alternative<ℵ_0>(lhs)) return std::strong_ordering::greater;
-  if constexpr (std::signed_integral<T>) {
-    if (rhs < 0) return std::strong_ordering::greater;
-  }
-  return std::get<ExtensionalCardinal<>>(lhs) <=> ExtensionalCardinal<>{rhs};
-}
-
-/** @brief @c Cardinality @c == @c std::integral.  Negative signed values
- *         and ℵ_0 never equal a finite integer; the finite alternative
- *         delegates to @c ExtensionalCardinal<>'s defaulted @c ==. */
-export template <std::integral T>
-constexpr bool operator==(const Cardinality& lhs, T rhs) noexcept {
-  if (std::holds_alternative<ℵ_0>(lhs)) return false;
-  if constexpr (std::signed_integral<T>) {
-    if (rhs < 0) return false;
-  }
-  return std::get<ExtensionalCardinal<>>(lhs) == ExtensionalCardinal<>{rhs};
-}
 
 /** @brief @c SignedCardinality @c <=> @c std::integral.  Lifts @c rhs
  *         to a finite @c SignedCardinality and routes through
@@ -1494,19 +1159,16 @@ constexpr bool operator==(const SignedCardinality& lhs, T rhs) noexcept {
 // Heterogeneous comparison: variant ↔ std::floating_point (closes #428)
 // ---------------------------------------------------------------------------
 //
-// Cross-type relational operators between the variant ℕ-/ℤ-proxy
-// carriers and built-in @c std::floating_point values.  Mirrors the
+// Cross-type relational operators between the variant ℤ-proxy
+// carrier and built-in @c std::floating_point values.  Mirrors the
 // @c std::integral overloads above; needed for showcase callsites like
 // @c (var<ℤ> @c > @c -21.0) where the literal is a @c double and
 // the carrier is the variant.  Returns @c
 // std::partial_ordering throughout — a NaN @c rhs (or @c NaZ on @c
 // lhs) propagates as @c unordered, IEEE-NaN-style.
 //
-// Float extraction for the variant carriers:
-//   * @c ExtensionalCardinal<>'s @c explicit @c operator @c F() (in
-//     this same file) covers the @c Cardinality finite path.
-//   * @c SignedExtensionalCardinal<> doesn't carry an @c operator
-//     @c F(); we lift via @c (negative @c ? @c -1 @c : @c 1) @c *
+// Float extraction: @c SignedExtensionalCardinal<> doesn't carry an
+//     @c operator @c F(); we lift via @c (negative @c ? @c -1 @c : @c 1) @c *
 //     @c static_cast<F>(magnitude) on the one-word carrier.
 
 namespace detail {
@@ -1582,50 +1244,6 @@ constexpr bool eq_unsigned_to_floating(LT lhs, F rhs) noexcept {
 }
 }  // namespace detail
 
-/** @brief @c Cardinality @c <=> @c std::floating_point.  @c ℵ_0 is
- *         greater than every finite double (and equivalent to
- *         @c +inf); negative finite floats and @c -inf land strictly
- *         below the ℕ proxy.  A @c NaN @c rhs returns
- *         @c std::partial_ordering::unordered.  Finite-vs-finite is
- *         settled in @b integer @b domain via @c
- *         compare_unsigned_to_floating, which stays precision-correct
- *         even when the underlying word exceeds @c 2^digits<F>. */
-export template <std::floating_point F>
-constexpr std::partial_ordering operator<=>(const Cardinality& lhs,
-                                            F rhs) noexcept {
-  if (std::isnan(rhs)) return std::partial_ordering::unordered;
-  if (std::holds_alternative<ℵ_0>(lhs)) {
-    if (std::isinf(rhs) && !std::signbit(rhs))
-      return std::partial_ordering::equivalent;
-    return std::partial_ordering::greater;
-  }
-  if (std::isinf(rhs))
-    return std::signbit(rhs) ? std::partial_ordering::greater
-                             : std::partial_ordering::less;
-  using LT = ExtensionalCardinal<>::word_type;
-  return detail::compare_unsigned_to_floating<F, LT>(
-      std::get<ExtensionalCardinal<>>(lhs).value, rhs);
-}
-
-/** @brief @c Cardinality @c == @c std::floating_point.  Equality
- *         requires either @c ℵ_0 vs @c +inf, or finite @c lhs equal to
- *         a finite, non-negative, integer-valued @c rhs in the carrier's
- *         representable range.  Float rounding cannot fake equality
- *         (@c eq_unsigned_to_floating compares in integer domain). */
-export template <std::floating_point F>
-constexpr bool operator==(const Cardinality& lhs, F rhs) noexcept {
-  // rhs is read by the standard classification functions and the detail
-  // helpers, not by the operators: an operator on F here would be resolved
-  // against this file's own overload set, which F's constraint alone does not
-  // decide (Rule 2).
-  if (std::isnan(rhs)) return false;
-  if (std::holds_alternative<ℵ_0>(lhs))
-    return std::isinf(rhs) && !std::signbit(rhs);
-  using LT = ExtensionalCardinal<>::word_type;
-  return detail::eq_unsigned_to_floating<F, LT>(
-      std::get<ExtensionalCardinal<>>(lhs).value, rhs);
-}
-
 /** @brief @c SignedCardinality @c <=> @c std::floating_point.
  *         @c NaZ propagates as @c unordered (mirrors compare_signed's
  *         NaZ semantics); @c ±ℵ_0 maps to @c ±inf-equivalent;
@@ -1637,8 +1255,10 @@ export template <std::floating_point F>
 constexpr std::partial_ordering operator<=>(const SignedCardinality& lhs,
                                             F rhs) noexcept {
   using namespace detail;
-  // rhs is read by the standard classification functions (see the
-  // Cardinality == F overload above).
+  // rhs is read by the standard classification functions and the detail
+  // helpers, not by the operators: an operator on F here would be resolved
+  // against this file's own overload set, which F's constraint alone does not
+  // decide (Rule 2).
   if (sc_is_naz(lhs)) return std::partial_ordering::unordered;
   if (std::isnan(rhs)) return std::partial_ordering::unordered;
   const bool rhs_is_pos_inf = std::isinf(rhs) && !std::signbit(rhs);
@@ -1702,83 +1322,6 @@ constexpr bool operator==(const SignedCardinality& lhs, F rhs) noexcept {
                                         rhs_is_neg ? -rhs : rhs);
 }
 
-// ---------------------------------------------------------------------------
-// Heterogeneous comparison: Cardinality ↔ SignedCardinality (closes #428,
-// extended scope from the user's "ℕ ⊂ ℤ should be comparable" pushback)
-// ---------------------------------------------------------------------------
-//
-// The canonical embedding @c ℕ ↪ @c ℤ is structural: every natural is an
-// integer.  At the @b variant level the corresponding map is
-// @c Cardinality (ℕ-proxy) → @c SignedCardinality (ℤ-proxy); the lift
-// helper below realises it.  (The same direction at the machine /
-// downstream-numbers layer is named @c embed_uint_sint_ in @c
-// numbers/integer.cppm — pre-#402 that arrow is @c arrow<unsigned, int>;
-// post-#402 it retargets to the variant pair, at which point the local
-// helper here and @c embed_uint_sint_ become two names for the same lift.)
-// That makes @c Cardinality @c < @c SignedCardinality a well-defined
-// question; pre-#428 it didn't compile, forcing call sites to explicitly
-// lift through the embedding before comparing.
-//
-// The implementation lifts @c Cardinality on the fly to its
-// @c SignedCardinality image and routes through @c compare_signed:
-//   * @c finite Cardinality @c c → positive @c SignedExtensionalCardinal<>
-//     with @c magnitude @c = @c c, @c negative @c = @c false.
-//   * @c ℵ_0 → @c PositiveInfinity (= @c +ℵ_0).
-// Returns @c std::partial_ordering throughout — a @c NaZ on the
-// @c SignedCardinality side propagates as @c unordered.
-
-/** @brief Lift @c Cardinality into @c SignedCardinality via the canonical
- *         ℕ ↪ ℤ embedding direction.  Public, exported: this is the
- *         canonical variant-level @c ℕ @c ↪ @c ℤ embedding that the
- *         carrier-lattice diagram (Figure 1 in @c paper.tex) labels at
- *         the top row.  The machine-layer counterpart is @c embed_uint_sint_
- *         in @c numbers:integer (an @c arrow<unsigned, @c int> sign
- *         reinterpretation, structurally distinct from the variant-
- *         layer canonical embedding here).  Lives in @c sets:cardinality
- *         so the cross-variant operators below reach it without crossing
- *         the @c sets @c → @c numbers module boundary; an exported
- *         @c arrow form @c lift_ℕ_ℤ_ wrapping this function lives in
- *         @c numbers:integer for monic-arrow registration in the
- *         carrier lattice. */
-export constexpr SignedCardinality lift_cardinality_to_signed(
-    const Cardinality& c) noexcept {
-  if (std::holds_alternative<ℵ_0>(c)) {
-    return SignedCardinality{PositiveInfinity{}};
-  }
-  // ℕ's word is unsigned and ℤ's is its signed twin, so naturals past
-  // 2^(w-1) - 1 are past ℤ's word: they escalate (the #680 tripwire).
-  const auto n = std::get<ExtensionalCardinal<>>(c).value;
-  using Signed = SignedExtensionalCardinal<>::signed_type;
-  if (n > static_cast<std::size_t>(std::numeric_limits<Signed>::max()))
-    return SignedCardinality{PositiveInfinity{}};
-  return SignedCardinality{SignedExtensionalCardinal<>{n}};
-}
-
-/**
- * @brief Canonical variant-layer embedding @c ℕ @c ↪ @c ℤ:
- *        @c Cardinality @c → @c SignedCardinality, exposed as a
- *        first-class @c arrow object for the carrier-lattice diagram.
- *
- * @details Wraps @c dedekind::sets::lift_cardinality_to_signed (the
- *          public function definition; lives in @c sets:cardinality
- *          to remain reachable from cross-variant comparison
- *          operators without crossing the @c sets @c → @c numbers
- *          module boundary).  This @c arrow form is the named monic
- *          morphism the carrier-lattice Figure 1 labels at the
- *          variant-layer top row.  The corresponding machine-layer
- *          horizontal arrow (@c arrow<unsigned, @c int>, previously
- *          @c embed_uint_sint_) was removed in #670 as deprecated;
- *          the carrier-lattice diagram is consequently missing that
- *          middle-row machine-layer ℕ→ℤ link until a follow-up
- *          restores it on the new ℤ carrier (@c SignedCardinality).
- *          Registered as monic below.
- */
-export inline constexpr auto lift_ℕ_ℤ_ =
-    arrow<dedekind::sets::Cardinality, dedekind::sets::SignedCardinality>(
-        [](const dedekind::sets::Cardinality& c) noexcept {
-          return dedekind::sets::lift_cardinality_to_signed(c);
-        });
-
 /**
  * @brief Canonical embedding K3 ↪ ℤ: Ternary → SignedCardinality.
  * @details Maps False → -1, Unknown → 0, True → 1.  Lands on the
@@ -1803,216 +1346,6 @@ export inline constexpr auto embed_𝕂3_ℤ_ =
           }
           return dedekind::sets::SignedCardinality{dedekind::sets::NaZ{}};
         });
-
-/** @brief @c Cardinality @c <=> @c SignedCardinality.  Routes through
- *         the canonical ℕ ↪ ℤ lift and @c compare_signed; @c NaZ on
- *         the @c rhs propagates as @c unordered. */
-export constexpr std::partial_ordering operator<=>(
-    const Cardinality& lhs, const SignedCardinality& rhs) noexcept {
-  return compare_signed(lift_cardinality_to_signed(lhs), rhs);
-}
-
-/** @brief @c Cardinality @c == @c SignedCardinality.  @c NaZ never
- *         equals anything; otherwise the canonical lift settles the
- *         comparison. */
-export constexpr bool operator==(const Cardinality& lhs,
-                                 const SignedCardinality& rhs) noexcept {
-  if (detail::sc_is_naz(rhs)) return false;
-  // The lift produces a non-negative SignedCardinality, so any negative
-  // rhs is never equal.  Otherwise compare_signed returns equivalent.
-  return compare_signed(lift_cardinality_to_signed(lhs), rhs) ==
-         std::partial_ordering::equivalent;
-}
-
-// ---------------------------------------------------------------------------
-// Elementwise cross-carrier arithmetic (#432; paper-3 sibling of #362)
-// ---------------------------------------------------------------------------
-//
-// The carrier-aware analog of the Set-level strength-reduction in PR
-// #431: at the @b element level, arithmetic between values of different
-// carriers should compose along the canonical embeddings, with the
-// result type announcing the smallest carrier in which the operation
-// closes.  Two distinct cases:
-//
-//  (a) @b Closed @b cross-carrier @b ops — both operands have the
-//      operator and the result lives in the larger carrier.  Mechanical
-//      promotion via @c lift_cardinality_to_signed and dispatch to
-//      @c SignedCardinality's operator.
-//
-//  (b) @b Closure-forcing @b ops — the operator is well-defined on the
-//      smaller carrier as a function into the larger, but the smaller
-//      carrier isn't @b closed under it.  The operator's @b existence
-//      with a wider return type is the @b structure-forcing @b axiom
-//      expressed in code: this is exactly the Grothendieck construction
-//      "ℤ is what one obtains by adjoining @c operator- to @c (ℕ, +)",
-//      reified at the type level.  Phrasing "ℕ has no subtraction" is
-//      the slight oversimplification we used in PR #425; the honest
-//      reading is that subtraction is well-defined on ℕ × ℕ → ℤ; ℕ just
-//      isn't closed under it.  See @c docs/design/carrier-lattice.md.
-
-/** @brief Closure-forcing unary minus on @c Cardinality: well-defined
- *         on every natural, with codomain widened to @c
- *         SignedCardinality.  Delegates to the canonical lift @c
- *         lift_cardinality_to_signed and @c SignedCardinality's
- *         existing unary @c -, so canonicalisation rules (canonical
- *         @c +0 for negation-of-zero; @c +ℵ_0 → @c -ℵ_0 sentinel
- *         flip) flow from a single source of truth.  This is the
- *         smallest possible elementwise statement of the Grothendieck
- *         construction in code. */
-export constexpr SignedCardinality operator-(const Cardinality& v) noexcept {
-  return -lift_cardinality_to_signed(v);
-}
-
-/** @brief Retraction direction: @c abs : @c ℤ @c → @c ℕ.  The math-
- *         honest signature for absolute value: every element of
- *         @c SignedCardinality has a non-negative magnitude, so the
- *         result type @b is @c Cardinality (not @c
- *         SignedCardinality), announcing the non-negativity guarantee
- *         at the type level.
- *
- *  Categorically, @c abs is a @b retraction (left inverse) of the
- *  canonical embedding @c embed_uint_sint_ on the non-negative fragment of
- *  ℤ — i.e., @c abs ∘ embed_uint_sint_ @c = @c id_ℕ — extended by sign-
- *  folding on the negative fragment.  This is the @b downward
- *  complement of the closure-forcing @c -Cardinality direction
- *  above: where unary @c - @b widens @c ℕ @c → @c ℤ along the
- *  Grothendieck embedding, @c abs @b narrows @c ℤ @c → @c ℕ along
- *  the same embedding's retraction.  Closes #436.
- *
- *  Sentinel handling:
- *    * @c finite_signed_cardinality(n) (any sign) → finite
- *      Cardinality with magnitude @c |n|.
- *    * @c PositiveInfinity → @c ℵ_0 (the bound on the magnitude
- *      escalates to ℵ_0).
- *    * @c NegativeInfinity → @c ℵ_0 (sign is folded; magnitude
- *      escalates).
- *    * @c NaZ → @c ℵ_0 by analogy with the IEEE-NaN-style propagation
- *      that #396 chose for the saturating semantics; NaZ has no
- *      well-defined magnitude, but the saturated answer is the
- *      conservative bound.
- *
- *  @section cardinality__Relationship_to_std_abs
- *  Conceptually the same operation as @c std::abs at a different
- *  carrier layer, with two load-bearing differences:
- *
- *  @b 1. @b Type-honest @b codomain.  The natural categorical
- *  signature for absolute value is @c int @c → @c unsigned (the image
- *  is exactly the non-negative ints, which canonically embed into
- *  @c unsigned).  C++'s @c std::abs(int) @c → @c int is type-
- *  @b dishonest about this: the result is always non-negative but the
- *  return type doesn't say so, and the caller has to know.  This
- *  @c abs's variant-layer signature @c SignedCardinality @c → @c
- *  Cardinality (i.e. @c ℤ @c → @c ℕ) is the @b honest version of the
- *  same operation: the type announces non-negativity.  In other
- *  words, the variant @c abs is to the (type-honest) @c int @c → @c
- *  unsigned absolute value what @c lift_ℕ_ℤ_ is to the unsigned-to-
- *  signed widening — both honour at the variant layer what the
- *  machine layer signs implicitly.
- *
- *  @b 2. @b Total. @c std::abs(int) has @b undefined @b behaviour at
- *  @c INT_MIN (since @c -INT_MIN overflows the signed range).  The
- *  variant carrier @c SignedCardinality has no such pathology — the
- *  magnitude of the most-negative finite value is representable as a
- *  non-negative @c Cardinality, and the saturating @c ±ℵ_0 / @c NaZ
- *  cases extend the operation totally.
- *
- *  The commuting square (@c std::abs vs this @c abs across the
- *  machine ↔ variant lifts, with the post-@c std::abs side coerced to
- *  @c unsigned to make the codomain match) holds on the non-@c
- *  INT_MIN fragment of @c int and is partial at @c INT_MIN — @c
- *  std::abs(INT_MIN) is UB, while @c
- *  abs(embed_sint_ℤ_(INT_MIN)) is a finite Cardinality
- *  with magnitude @c |INT_MIN| (computable via the unsigned-modular
- *  expression @c 0u @c - @c static_cast<unsigned>(INT_MIN) — well-
- *  defined for any @c int width per @c
- *  std::numeric_limits<int>::digits, no 32-bit ABI assumption).  This
- *  is the same Honest-Rejection / saturating-extension pattern the
- *  project runs for @c int / @c unsigned vs the variant carriers.
- *
- *  @see std::abs (machine-layer counterpart; type-dishonest @c int →
- *       @c int signature; partial under UB at @c INT_MIN).
- *  @see lift_ℕ_ℤ_ in @c numbers:integer (the injective half of the
- *       split-mono Figure 1 pair).
- */
-export constexpr Cardinality abs(const SignedCardinality& z) noexcept {
-  if (detail::sc_is_naz(z)) return Cardinality{ℵ_0{}};
-  if (detail::sc_is_pos_inf(z) || detail::sc_is_neg_inf(z))
-    return Cardinality{ℵ_0{}};
-  // Finite: extract the magnitude (an ExtensionalCardinal<>) directly.
-  return Cardinality{std::get<SignedExtensionalCardinal<>>(z).magnitude()};
-}
-
-/** @brief Arrow form of @c abs: an exported @c arrow<SignedCardinality,
- *         Cardinality> object.  Registered @b epic (surjective) below: every
- *         @c Cardinality is the image of itself ( @c abs(lift_ℕ_ℤ_(c)) @c =
- *         @c c) and of its negation; the map is sign-folding, conflating
- *         @c +n and @c -n.  Companion to the injective @c lift_ℕ_ℤ_ in
- *         @c numbers:integer — together they exhibit the split-mono pair
- *         from the carrier-lattice diagram (Figure 1). */
-export inline constexpr auto abs_ =
-    dedekind::category::arrow<SignedCardinality, Cardinality>(
-        [](const SignedCardinality& z) noexcept { return abs(z); });
-
-/** @brief Closure-forcing binary minus on @c Cardinality: well-defined
- *         as a function @c ℕ × ℕ → ℤ; ℕ isn't closed under it.  The
- *         operator's existence with the wider return type @b is the
- *         Grothendieck embedding made operational at the binary level.
- *         Routes through @c lift_cardinality_to_signed on both
- *         operands and dispatches to @c SignedCardinality's @c -. */
-export constexpr SignedCardinality operator-(const Cardinality& a,
-                                             const Cardinality& b) noexcept {
-  return lift_cardinality_to_signed(a) - lift_cardinality_to_signed(b);
-}
-
-/** @brief Closed cross-carrier addition: @c Cardinality @c + @c
- *         SignedCardinality lifts the @c Cardinality through the
- *         canonical embedding and dispatches to @c SignedCardinality's
- *         @c +.  Closes in @c ℤ.  Carrier-promotion in the
- *         math-correct direction (larger carrier wins). */
-export constexpr SignedCardinality operator+(
-    const Cardinality& a, const SignedCardinality& b) noexcept {
-  return lift_cardinality_to_signed(a) + b;
-}
-
-/** @brief Symmetric: @c SignedCardinality @c + @c Cardinality.
- *         Delegates to the canonical direction; addition is
- *         commutative on ℤ. */
-export constexpr SignedCardinality operator+(const SignedCardinality& a,
-                                             const Cardinality& b) noexcept {
-  return a + lift_cardinality_to_signed(b);
-}
-
-/** @brief Closure-forcing cross-carrier subtraction: @c Cardinality
- *         @c - @c SignedCardinality.  Result is in @c ℤ — well-defined
- *         on the @c (ℕ, ℤ) pair as a function into ℤ. */
-export constexpr SignedCardinality operator-(
-    const Cardinality& a, const SignedCardinality& b) noexcept {
-  return lift_cardinality_to_signed(a) - b;
-}
-
-/** @brief Symmetric: @c SignedCardinality @c - @c Cardinality.  Lifts
- *         @c b through the embedding; result is in @c ℤ.  Subtraction
- *         is @b not commutative, so this is a separate overload, not
- *         a delegation. */
-export constexpr SignedCardinality operator-(const SignedCardinality& a,
-                                             const Cardinality& b) noexcept {
-  return a - lift_cardinality_to_signed(b);
-}
-
-/** @brief Closed cross-carrier multiplication: @c Cardinality @c * @c
- *         SignedCardinality lifts and dispatches.  Closes in @c ℤ. */
-export constexpr SignedCardinality operator*(
-    const Cardinality& a, const SignedCardinality& b) noexcept {
-  return lift_cardinality_to_signed(a) * b;
-}
-
-/** @brief Symmetric: @c SignedCardinality @c * @c Cardinality.
- *         Multiplication is commutative; delegates to the canonical
- *         direction. */
-export constexpr SignedCardinality operator*(const SignedCardinality& a,
-                                             const Cardinality& b) noexcept {
-  return a * lift_cardinality_to_signed(b);
-}
 
 /** @brief The NNO's step on the extensional cardinals, the wrapping ring
  *  @f$\mathbb{Z}/2^w@f$: @c n + 1 and @c n - 1 modulo the word, as on the
@@ -2046,8 +1379,6 @@ constexpr SignedExtensionalCardinal<S> predecessor(
 // @c IsIntegerChain, which refines the NNO's step.
 namespace dedekind::category {
 template <>
-struct is_integer_chain<dedekind::sets::Cardinality> : std::true_type {};
-template <>
 struct is_integer_chain<dedekind::sets::SignedCardinality> : std::true_type {};
 template <typename W>
 struct is_integer_chain<dedekind::sets::ExtensionalCardinal<W>>
@@ -2065,16 +1396,13 @@ export using dedekind::category::IsIntegerChain;
 export template <typename T>
 concept IsRingIntegral = IsIntegerChain<T>;
 
-// Positive witnesses: built-in integrals + the variant ℕ-/ℤ-proxy carriers.
+// Positive witnesses: built-in integrals + the variant ℤ-proxy carrier.
 static_assert(IsRingIntegral<int>);
 static_assert(IsRingIntegral<unsigned int>);
 static_assert(IsRingIntegral<long>);
 static_assert(IsRingIntegral<long long>);
 static_assert(IsRingIntegral<std::size_t>);
 static_assert(IsRingIntegral<bool>);
-static_assert(IsRingIntegral<Cardinality>,
-              "Cardinality must satisfy IsRingIntegral — the variant ℕ-proxy "
-              "is the canonical exact-ℕ integer-range carrier.");
 static_assert(IsRingIntegral<SignedCardinality>,
               "SignedCardinality must satisfy IsRingIntegral — the variant "
               "ℤ-proxy is the canonical exact-ℤ integer-range carrier.");
@@ -2089,7 +1417,6 @@ static_assert(IsRingIntegral<ExtensionalCardinal<>>,
 // fires in deduced contexts.
 static_assert(IsRingIntegral<const int>);
 static_assert(IsRingIntegral<int&>);
-static_assert(IsRingIntegral<const Cardinality&>);
 static_assert(IsRingIntegral<SignedCardinality&&>);
 
 // Negative witnesses: continuous / non-integer carriers correctly refused.
@@ -2364,7 +1691,7 @@ struct inverse_trait<SC, std::plus<SC>> {
 // non-finite alternatives are the out-of-memory boundary of the finite
 // backing, not inhabitants of ℤ --- NaZ is the indeterminate-form
 // tripwire, never a point of the integers.  ℤ = 𝔸<SignedCardinality> is
-// thereby a certified chain like ℕ = 𝔸<Cardinality>: halfspaces, Interval
+// thereby a certified chain like ℕ = 𝔸<Numeral>: halfspaces, Interval
 // and max / min admit it on the same footing.
 template <>
 inline constexpr bool is_reflexive_v<SC, std::less_equal<>> = true;
@@ -2379,7 +1706,7 @@ inline constexpr bool is_connex_v<SC, std::less_equal<>> = true;
 
 static_assert(IsTotalOrder<SC, std::less_equal<>, bool>,
               "SignedCardinality is a certified total order under <=: the "
-              "ℤ proxy is a chain on the same footing as the ℕ proxy.");
+              "ℤ proxy is a chain on the same footing as ℕ.");
 
 static_assert(IsAbelianGroup<SC, std::plus<SC>>,
               "SignedCardinality must certify as an abelian group under "
@@ -2396,115 +1723,21 @@ static_assert(IsCommutativeRing<SC, std::plus<SC>, std::multiplies<SC>>,
               "SignedCardinality must certify as a commutative ring.");
 
 // ---------------------------------------------------------------------------
-// Category trait registrations for Cardinality (#424; prerequisite for
-// the #402 retarget).  The unsigned variant ℕ-proxy now carries the same
-// trait surface as its signed sibling SC --- modulo the missing additive
-// inverse: Cardinality is a commutative @b semiring (rig), not a ring.
-// ℕ has no negatives.
-//
-// Saturation (not periodicity) on both ops mirrors SignedCardinality:
-// overflow escalates to ℵ_0 rather than wrapping.  is_saturating is the
-// load-bearing IsTotal certificate (alongside is_periodic / is_idempotent).
-//
-// Order-axiom specialisations (is_reflexive_v / is_transitive_v /
-// is_antisymmetric_v under std::less_equal<>): registered here because
-// Cardinality's homogeneous operator<=> (added in #424 above) lifts the
-// underlying ExtensionalCardinal<>'s strict total order onto the variant
-// in the well-formed direction (finite ≤ ℵ_0; ℵ_0 ≤ ℵ_0).  Cardinality
-// has no NaZ, so it is a chain with no posture needed; SignedCardinality
-// registers the same laws above under the ℚ posture on its sentinels.
-// ---------------------------------------------------------------------------
-
-using Card = dedekind::sets::Cardinality;
-
-template <>
-struct unit_trait<Card, std::plus<Card>> {
-  using value_type = Card;
-  static constexpr value_type value = dedekind::sets::finite_cardinality(0);
-};
-
-template <>
-struct unit_trait<Card, std::multiplies<Card>> {
-  using value_type = Card;
-  static constexpr value_type value = dedekind::sets::finite_cardinality(1);
-};
-
-template <>
-inline constexpr bool is_associative_v<Card, std::plus<Card>> = true;
-
-template <>
-inline constexpr bool is_associative_v<Card, std::multiplies<Card>> = true;
-
-template <>
-inline constexpr bool is_commutative_v<Card, std::plus<Card>> = true;
-
-template <>
-inline constexpr bool is_commutative_v<Card, std::multiplies<Card>> = true;
-
-template <>
-inline constexpr bool
-    is_distributive_v<Card, std::multiplies<Card>, std::plus<Card>> = true;
-
-// Saturating (escalates to ℵ_0 on overflow), not periodic.  Lifts
-// IsTotal -> IsMagma -> IsCommutativeMonoid -> IsRig (no additive
-// inverse, so the chain stops here; SignedCardinality is what extends
-// to IsRing / IsAbelianGroup).
-template <>
-struct is_saturating<Card, std::plus<Card>> : std::true_type {};
-
-template <>
-struct is_saturating<Card, std::multiplies<Card>> : std::true_type {};
-
-// Order-axiom traits under std::less_equal<>: the variant's homogeneous
-// <=> (compare()) is a strict total order on (finite ∪ {ℵ_0}).
-template <>
-inline constexpr bool is_reflexive_v<Card, std::less_equal<>> = true;
-
-template <>
-inline constexpr bool is_transitive_v<Card, std::less_equal<>> = true;
-
-template <>
-inline constexpr bool is_antisymmetric_v<Card, std::less_equal<>> = true;
-template <>
-inline constexpr bool is_connex_v<Card, std::less_equal<>> = true;
-
-static_assert(IsCommutativeMonoid<Card, std::plus<Card>>,
-              "Cardinality must certify as a commutative monoid under "
-              "addition (the ℕ-proxy with ℵ_0 escalation; saturating, "
-              "not cyclic).");
-
-static_assert(IsCommutativeMonoid<Card, std::multiplies<Card>>,
-              "Cardinality must certify as a commutative monoid under "
-              "multiplication.");
-
-static_assert(IsRig<Card, std::plus<Card>, std::multiplies<Card>>,
-              "Cardinality must certify as a rig (commutative semiring): "
-              "+ and * are total, identities present, distributivity holds, "
-              "and there are no additive inverses (ℕ has no negatives). "
-              "The bona-fide ℕ proxy modulo physical limits.");
-
-// ---------------------------------------------------------------------------
-// SpeciesTraits specialisations: lift the variant ℕ-/ℤ-proxy carriers
-// to first-class @c IsSpecies status (per #413; prerequisite for #402).
-//
-// Without these, @c std::variant<...> doesn't satisfy
-// @c IsSpecies (the primary @c SpeciesTraits<T> registration covers
-// @c std::integral / @c std::floating_point / @c bool only), so
-// @c ambient_set<Cardinality>(...) and @c ambient_set<SignedCardinality>(...)
-// can't anchor IsSet witnesses on the variant carriers — which blocks
-// the @c ℕ @c = @c Cardinality / @c ℤ @c = @c SignedCardinality
-// retarget under #402.
+// SpeciesTraits specialisations: lift ℕ's carrier @c Numeral and the
+// variant ℤ-proxy to first-class @c IsSpecies status (per #413), so
+// @c ambient_set<Numeral>(...) and @c ambient_set<SignedCardinality>(...)
+// anchor IsSet witnesses (the primary @c SpeciesTraits<T> registration
+// covers @c std::integral / @c std::floating_point / @c bool only).
 //
 // Pattern follows @c SpeciesTraits<Rational<Z>> in @c numbers/rational.cppm:
-// @c Domain @c = the carrier itself (variants are their own elements),
-// @c machine_type @c = the carrier (no separate machine sibling — the
-// variants ARE the project's canonical exact ℕ-/ℤ-proxy carriers).
+// @c Domain @c = the carrier itself, @c machine_type @c = the carrier (no
+// separate machine sibling).
 // ---------------------------------------------------------------------------
 
 template <>
-struct SpeciesTraits<dedekind::sets::Cardinality> {
-  using Domain = dedekind::sets::Cardinality;
-  using machine_type = dedekind::sets::Cardinality;
+struct SpeciesTraits<dedekind::sets::Numeral> {
+  using Domain = dedekind::sets::Numeral;
+  using machine_type = dedekind::sets::Numeral;
 };
 
 template <>
@@ -2526,13 +1759,11 @@ struct SpeciesTraits<dedekind::sets::SignedExtensionalCardinal<S>> {
   using machine_type = dedekind::sets::SignedExtensionalCardinal<S>;
 };
 
-// IsSpecies witnesses: the variant carriers are now first-class
-// species and can flow into @c ambient_set<...> / ETCS object
-// construction in downstream partitions (cf.\ @c sets:boundaries,
-// where @c 𝔸<Cardinality> / @c 𝔸<SignedCardinality>
-// instantiations will land as part of the #402 retarget PR).
-static_assert(IsSpecies<dedekind::sets::Cardinality>,
-              "Cardinality must be a recognised Species (post-#413).");
+// IsSpecies witnesses: the carriers are first-class species and can flow
+// into @c ambient_set<...> / ETCS object construction in downstream
+// partitions (cf.\ @c sets:boundaries, where @c ℕ @c = @c 𝔸<Numeral>).
+static_assert(IsSpecies<dedekind::sets::Numeral>,
+              "Numeral, ℕ's carrier, must be a recognised Species.");
 static_assert(IsSpecies<dedekind::sets::SignedCardinality>,
               "SignedCardinality must be a recognised Species (post-#413).");
 static_assert(
@@ -2545,27 +1776,8 @@ static_assert(
 // gap between the variant carriers and the std-library's concept
 // templates.  Pinning these means downstream code can freely write
 // `requires std::regular<T>` or `requires std::three_way_comparable<T,
-// std::partial_ordering>` against the variant ℕ-/ℤ-proxy carriers
+// std::partial_ordering>` against the variant ℤ-proxy carrier
 // without surprise rejection.
-
-// --- Cardinality (ℕ ∪ {ℵ_0}) ---
-// Strong order: no unordered values; finite < ℵ_0; finite-vs-finite
-// reduces to ExtensionalCardinal's defaulted <=>.
-static_assert(std::equality_comparable<dedekind::sets::Cardinality>,
-              "Cardinality must be std::equality_comparable (closes #669; "
-              "exposes the variant's == across the module boundary).");
-static_assert(std::regular<dedekind::sets::Cardinality>,
-              "Cardinality must be std::regular (semi-regular + "
-              "equality_comparable); enables downstream concept-binding.");
-static_assert(std::three_way_comparable<dedekind::sets::Cardinality,
-                                        std::strong_ordering>,
-              "Cardinality must be std::three_way_comparable with "
-              "std::strong_ordering --- no NaN/NaZ-equivalent in the ℕ "
-              "proxy, so the strong order is exact.");
-static_assert(std::totally_ordered<dedekind::sets::Cardinality>,
-              "Cardinality must be std::totally_ordered --- the strong "
-              "order above implies the four partial-order operators "
-              "(<, <=, >, >=) via C++20 rewrite rules.");
 
 // --- SignedCardinality (ℤ ∪ {±ℵ_0, NaZ}) ---
 // <=> returns std::partial_ordering: NaZ is unordered against every other
@@ -2592,91 +1804,6 @@ static_assert(std::totally_ordered<dedekind::sets::SignedCardinality>,
               "(rewritten from <=>); comparability of NaZ is a semantic "
               "matter settled by the order registration, not by syntax.");
 
-// ---------------------------------------------------------------------------
-// Closure-forcing trait specialisations (slice of #432)
-// ---------------------------------------------------------------------------
-//
-// Engineer's honesty obligation: assert that @c SignedCardinality is
-// the @b canonical (smallest) recipient of the closure-forcing
-// operations on @c Cardinality.  Justification: @c SignedCardinality
-// is (the operational realisation of) the Grothendieck group of
-// @c (Cardinality, +); the unary and binary @c − overloads in @c
-// dedekind::sets are the universal map ℕ → Forget(ℤ) / its binary
-// shadow.  See @c docs/design/carrier-lattice.md for the textbook
-// dependency graph.
-
-template <>
-inline constexpr bool
-    is_closure_forcing_v<std::negate<>, dedekind::sets::Cardinality,
-                         dedekind::sets::SignedCardinality> = true;
-
-template <>
-inline constexpr bool
-    is_closure_forcing_v<std::minus<>, dedekind::sets::Cardinality,
-                         dedekind::sets::SignedCardinality> = true;
-
-static_assert(
-    IsClosureForcing<std::negate<>, dedekind::sets::Cardinality,
-                     dedekind::sets::SignedCardinality>,
-    "Unary @c -Cardinality is closure-forcing into @c SignedCardinality "
-    "— the Grothendieck construction at the operator level.");
-
-static_assert(IsClosureForcing<std::minus<>, dedekind::sets::Cardinality,
-                               dedekind::sets::SignedCardinality>,
-              "Binary @c Cardinality - Cardinality is closure-forcing into "
-              "@c SignedCardinality — well-defined as a function ℕ × ℕ → ℤ.");
-
-// And the negative-control witness: ℕ is @b not closed under unary or
-// binary @c -, which is exactly what makes those ops closure-forcing.
-static_assert(!IsClosedUnderUnary<dedekind::sets::Cardinality, std::negate<>>,
-              "Cardinality must @b not satisfy IsClosedUnderUnary under "
-              "@c std::negate<> — that's precisely what makes unary @c - "
-              "closure-forcing.");
-static_assert(!IsClosedUnder<dedekind::sets::Cardinality, std::minus<>>,
-              "Cardinality must @b not satisfy IsClosedUnder under "
-              "@c std::minus<> — that's precisely what makes binary @c - "
-              "closure-forcing.");
-
-// ---------------------------------------------------------------------------
-// Surjective-arrow witness: @c abs_ is registered @b epic.
-//
-// Every @c Cardinality @c c is the image of itself ( @c abs_(lift_ℕ_ℤ_(c))
-// @c = @c c) under @c abs_, so @c abs_ is surjective.  This is the project's
-// first downstream surjective arrow registration (closes part of #459's
-// downstream-witness goal): the @c IsSurjective synonym now mechanically
-// fires on a real domain arrow, not just on @c Identity.  The arrow is
-// @b not monic: distinct signed cardinalities (e.g. @c +3, @c -3) map to
-// the same @c Cardinality, so sign is folded.
-// ---------------------------------------------------------------------------
-template <>
-inline constexpr bool
-    is_epic_arrow_v<std::decay_t<decltype(dedekind::sets::abs_)>> = true;
-static_assert(IsSurjective<std::decay_t<decltype(dedekind::sets::abs_)>>,
-              "abs_ : SignedCardinality → Cardinality is registered "
-              "surjective; the IsSurjective synonym fires on a real domain "
-              "arrow.");
-static_assert(!IsInjective<std::decay_t<decltype(dedekind::sets::abs_)>>,
-              "abs_ is NOT injective — it folds sign (abs(3) == abs(-3)).");
-
-template <>
-inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(lift_ℕ_ℤ_)>> =
-    true;
-static_assert(IsInjective<std::decay_t<decltype(lift_ℕ_ℤ_)>>,
-              "lift_ℕ_ℤ_ (variant-layer ℕ ↪ ℤ; Grothendieck-construction unit) "
-              "is registered injective.");
-
-// IsMonotone witness (#664 morphism vocabulary): the variant-layer
-// canonical inclusion @c Cardinality @c → @c SignedCardinality preserves
-// order — non-negative cardinals lift to non-negative signed cardinals
-// with the same numeric magnitude, and @c SignedCardinality 's @c <=>
-// agrees with @c Cardinality 's on the common fragment.
-template <>
-inline constexpr bool
-    is_monotone_v<std::decay_t<decltype(lift_ℕ_ℤ_)>, std::less_equal<>> = true;
-static_assert(IsMonotone<std::decay_t<decltype(lift_ℕ_ℤ_)>>,
-              "lift_ℕ_ℤ_ (Cardinality → SignedCardinality) is monotone — "
-              "the variant-layer ℕ ↪ ℤ embedding preserves order.");
-
 template <>
 inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(embed_𝕂3_ℤ_)>> =
     true;
@@ -2693,20 +1820,6 @@ inline constexpr bool
 static_assert(IsMonotone<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
               "embed_𝕂3_ℤ_ (𝕂3 → ℤ) is monotone — preserves the Kleene "
               "three-value order through the canonical embedding.");
-
-// ---------------------------------------------------------------------------
-// Carrier-lattice lift unification (#455): existential-proof
-// specialisation of @c category::lift for the central variant-layer
-// pair @c (Cardinality, SignedCardinality).  Demonstrates that the
-// discoverability-alias dispatch works on a real lattice arrow;
-// remaining six specialisations land as follow-up.
-// ---------------------------------------------------------------------------
-
-template <>
-constexpr SignedCardinality lift<Cardinality, SignedCardinality>(
-    Cardinality const& n) {
-  return lift_ℕ_ℤ_(n);
-}
 }  // namespace dedekind::category
 
 // ── ℕ's algebra, declared, and its witnesses ────────────────────────────────
@@ -2739,6 +1852,16 @@ inline constexpr bool is_commutative_v<Nat, std::multiplies<Nat>> = true;
 template <>
 inline constexpr bool
     is_distributive_v<Nat, std::multiplies<Nat>, std::plus<Nat>> = true;
+// The order: by limbs, the longer the larger, then lexicographic from the
+// top (operator<=> above), a chain.
+template <>
+inline constexpr bool is_reflexive_v<Nat, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_transitive_v<Nat, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_antisymmetric_v<Nat, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_connex_v<Nat, std::less_equal<>> = true;
 }  // namespace dedekind::category
 
 namespace dedekind::sets::detail_numeral_witness {

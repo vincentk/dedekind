@@ -14,8 +14,8 @@
  * @c d @c ∈ @c D.  The codebase already has rule-based intensional
  * carriers that play this role at the algebraic / sequence layer:
  *
- *  - @c dedekind::sequences::Path<T, @c Cardinality> — domain
- *    @c std::size_t @c (≅ @c ℕ when @c Cardinality @c = @c ℵ_0),
+ *  - @c dedekind::sequences::Path<T, @c C> — domain
+ *    @c std::size_t @c (≅ @c ℕ when the cardinality tag @c C @c = @c ℵ_0),
  *    codomain @c T.
  *  - @c dedekind::linear_algebra::Diagonal<D, @c F>'s rule type @c F
  *    (#534) — itself an @c IsArrow with a scalar codomain, hence a
@@ -76,7 +76,7 @@ module;
 
 export module dedekind.geometry:function;
 
-import dedekind.sequences; // Path<T, Cardinality> — the canonical infinite-dim function-space inhabitant
+import dedekind.sequences; // Path<T, C> — the canonical infinite-dim function-space inhabitant
 import dedekind.sets; // ℵ_0 — the canonical infinite cardinality
 
 namespace dedekind::geometry {

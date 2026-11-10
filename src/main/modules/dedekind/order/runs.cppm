@@ -83,7 +83,7 @@ export constexpr Strictness flip(Strictness s) {
  *  self-declare so the point-free @c A|pred halfspace classifies identically
  *  to the scout comprehension (which inherits the ambient @c C directly).
  *  Otherwise fall back to the @c IsRingIntegral discriminator: the structural
- *  integers @b and the @c Cardinality / @c SignedCardinality (ℕ/ℤ) proxies are
+ *  integers @b and the @c SignedCardinality (ℤ) proxy are
  *  @c ℵ_0, and the real proxies (@c QuadraticReal, @c double) are the continuum
  *  @c ℶ_1.  The bound only has to be tight enough for the countability
  *  verdict (@c IsCountable). */
@@ -235,7 +235,7 @@ template <typename V>
 constexpr std::optional<V> least() {
   if constexpr (HasLatticeBottomValue<V>)
     return LatticeBottom<V, std::less_equal<V>>::value;
-  else if constexpr (std::same_as<V, Cardinality>)
+  else if constexpr (std::same_as<V, Numeral>)
     return V{};
   else if constexpr (std::same_as<V, SignedCardinality>)
     return SignedCardinality{NegativeInfinity{}};
@@ -245,13 +245,11 @@ constexpr std::optional<V> least() {
     return std::nullopt;
 }
 /** @brief The carrier's greatest element, where it has one as a value, dual to
- *  @ref least (ℵ₀ on ℕ).  @tparam V the carrier. */
+ *  @ref least (ℕ has none).  @tparam V the carrier. */
 template <typename V>
 constexpr std::optional<V> greatest() {
   if constexpr (HasLatticeTopValue<V>)
     return LatticeTop<V, std::less_equal<V>>::value;
-  else if constexpr (std::same_as<V, Cardinality>)
-    return Cardinality{ℵ_0{}};
   else if constexpr (std::same_as<V, SignedCardinality>)
     return SignedCardinality{PositiveInfinity{}};
   else if constexpr (IsPst<V>)

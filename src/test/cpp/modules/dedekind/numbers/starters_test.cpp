@@ -1,5 +1,4 @@
 #include <catch2/catch_test_macros.hpp>
-#include <type_traits>
 
 import dedekind.category;
 import dedekind.numbers;
@@ -9,56 +8,21 @@ using namespace dedekind::category;
 using namespace dedekind::numbers;
 using namespace dedekind::sets;
 
-TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
-  // Per #559 (option-A migration, sibling to #551's 𝔸<carrier> ambient
-  // redesign), the canonical species symbols are universe @b values:
-  // @c ℕ = @c 𝔸<Cardinality>, @c ℤ = @c 𝔸<SignedCardinality> (post-#670:
-  // saturating-discipline alignment with ℕ), and so on.  Carriers are
-  // spelled directly (Cardinality, SignedCardinality, Rational<...>, ...)
-  // in template-type-parameter positions.  Each symbol's STATIC_CHECK
-  // below witnesses the universe-over-carrier reading by asserting
-  // (a) decltype(symbol) == 𝔸<carrier> and (b)
-  // decltype(symbol)::Domain == carrier.
-
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℕ)>, 𝔸<Cardinality>>);
-  STATIC_CHECK(
-      std::same_as<std::remove_cvref_t<𝔸<Cardinality>>, 𝔸<Cardinality>>);
-
-  // Post-#670: ℤ uses the saturating SignedCardinality variant
-  // (mirroring ℕ = 𝔸<Cardinality>), not the cyclic finite fragment.
-  STATIC_CHECK(
-      std::same_as<std::remove_cvref_t<decltype(ℤ)>, 𝔸<SignedCardinality>>);
-  STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℤ)>::Domain,
-                            SignedCardinality>);
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<𝔸<SignedCardinality>>,
-                            𝔸<SignedCardinality>>);
-
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
-                            𝔸<Rational<default_integer>>>);
-  STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℚ)>::Domain,
-                            Rational<default_integer>>);
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<𝔸<Rational<default_integer>>>,
-                            𝔸<Rational<default_integer>>>);
-
-  // The 𝔻 universe lives in dedekind.analysis:dual; their checks are
-  // in src/test/cpp/modules/dedekind/analysis/dual_test.cpp.
-}
-
 TEST_CASE("Numbers: starter universes construct from ambient values",
           "[numbers][starter][sets]") {
   // Post-#895 the universe value @b is the ambient; wrap it directly:
   //   constexpr auto naturals = Set{ℕ};      // universal Set over ℕ-carrier
-  //   static_assert(naturals(7u));           // value-level membership query
-  // (ℕ = @c 𝔸<Cardinality>; the retired @c element / @c % scout is gone.)
+  //   static_assert(naturals(Numeral{7u}));  // value-level membership query
+  // (ℕ = @c 𝔸<Numeral>; the retired @c element / @c % scout is gone.)
 
   constexpr auto naturals = ℕ;
-  static_assert(naturals(7u));
-  static_assert(naturals(0u));
+  static_assert(naturals(Numeral{7u}));
+  static_assert(naturals(Numeral{0u}));
   // Direct ambient-call route: ℕ.contains(value) (or equivalently
-  // 𝔸<Cardinality>.contains(value), since ℕ = 𝔸<Cardinality>) returns
-  // L::True for every Cardinality value (the universal-set semantics).
-  static_assert(𝔸<Cardinality>{}.contains(7u));
-  static_assert(𝔸<Cardinality>{}.contains(0u));
+  // 𝔸<Numeral>.contains(value), since ℕ = 𝔸<Numeral>) returns
+  // L::True for every Numeral (the universal-set semantics).
+  static_assert(𝔸<Numeral>{}.contains(Numeral{7u}));
+  static_assert(𝔸<Numeral>{}.contains(Numeral{0u}));
 
   constexpr auto integers = ℤ;
   static_assert(integers(-7));
@@ -73,10 +37,10 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
   {
     const auto U = ℕ;
     const auto O = !U;
-    CHECK((U | O)(7u));
-    CHECK_FALSE((U & O)(7u));
-    CHECK((U | O)(0u));
-    CHECK_FALSE((U & O)(0u));
+    CHECK((U | O)(Numeral{7u}));
+    CHECK_FALSE((U & O)(Numeral{7u}));
+    CHECK((U | O)(Numeral{0u}));
+    CHECK_FALSE((U & O)(Numeral{0u}));
   }
 
   {

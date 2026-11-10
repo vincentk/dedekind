@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <cstddef>
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -8,6 +9,9 @@ import dedekind.sets;
 
 using namespace dedekind::category;
 using namespace dedekind::sets;
+
+// The counts the exhibit computes over: the set over the machine word.
+constexpr auto counts = 𝔸<std::size_t>{};
 
 // Test-fork helpers for the retract-decidable image specialisation
 // (#602 Layer 2 / Case A / #659).  A non-iso monic arrow whose image
@@ -178,14 +182,12 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   }
 
   SECTION("Natural-numbers membership") {
-    // Post-#559, ℕ is the universe value 𝔸<Cardinality>; the underlying
-    // carrier is Cardinality (the variant ℕ-proxy from #402, which
-    // accepts unsigned literals via implicit construction).  Callsites
-    // here use unsigned values that lift into Cardinality.
-    constexpr auto gt_zero = [](const auto& v) { return v > 0u; };
+    // ℕ is the universe value 𝔸<Numeral>; its elements are numerals,
+    // built from unsigned words.
+    constexpr auto gt_zero = [](const auto& v) { return v > Numeral{0u}; };
     auto infinite = Comprehension{ℕ, gt_zero};
-    REQUIRE(infinite(5u));
-    REQUIRE_FALSE(infinite(0u));
+    REQUIRE(infinite(Numeral{5u}));
+    REQUIRE_FALSE(infinite(Numeral{0u}));
   }
 }
 
@@ -236,7 +238,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Boundary collapses: A ^ ∅ = A, ∅ ^ A = A (#469)") {
-    auto S = Comprehension{ℕ, gt_10};
+    auto S = Comprehension{counts, gt_10};
     // Use the deduced Domain / logic species from S rather than hard-coding
     // them: the carrier and species come from ℕ, the universe.
     using SDomain = decltype(S)::Domain;
@@ -255,7 +257,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Boundary collapses: A ^ 𝔸 = ¬A, 𝔸 ^ A = ¬A (#469)") {
-    auto S = Comprehension{ℕ, gt_10};
+    auto S = Comprehension{counts, gt_10};
     using SDomain = decltype(S)::Domain;
     using SLogic = decltype(S)::logic_species;
     𝔸<SDomain, SLogic> universe{};
@@ -274,7 +276,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // different sets — see the stateful-predicate-disjoint-instances
     // section below).  The honest claim is therefore the runtime one:
     // for any Set S, S ^ S evaluates to false at every input.
-    auto S = Comprehension{ℕ, gt_10};
+    auto S = Comprehension{counts, gt_10};
     auto S_xor_S = S ^ S;
     REQUIRE_FALSE(S_xor_S(5u));
     REQUIRE_FALSE(S_xor_S(50u));
@@ -306,8 +308,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // the intersection at the type level, so A & B reduces to
     // Ø<unsigned int, Kleene>.  In that case A ^ B should
     // collapse to A | B (no XOR formula needed in the result lambda).
-    auto A = Comprehension{ℕ, gt_10};
-    auto B = Comprehension{ℕ, lt_5};
+    auto A = Comprehension{counts, gt_10};
+    auto B = Comprehension{counts, lt_5};
     auto sym_diff_disjoint = A ^ B;
     auto union_disjoint = A | B;
     // Membership matches the union (since the intersection is empty,
@@ -327,8 +329,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // XOR is the free identity A △ B = (A ∩ ~B) ∪ (~A ∩ B), so A ^ ~B and
     // ~(A ^ B) agree pointwise: x ∈ A ^ ~B iff x is in exactly one, which is
     // equivalent to x ∈ A ↔ x ∈ B (the biconditional).
-    auto A = Comprehension{ℕ, gt_10};
-    auto B = Comprehension{ℕ, lt_100};
+    auto A = Comprehension{counts, gt_10};
+    auto B = Comprehension{counts, lt_100};
     auto sym_diff_neg = A ^ ~B;
     auto biconditional = ~(A ^ B);
     // Both should agree pointwise: A ^ ¬B = ¬(A ^ B).
@@ -349,7 +351,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // the capturing lambda (x > 10u) here is non-empty, so the pair stays a
     // residual node whose pointwise value is true everywhere.  We test the
     // runtime semantics rather than the structural type.
-    auto S = Comprehension{ℕ, gt_10};
+    auto S = Comprehension{counts, gt_10};
     auto S_xor_notS = S ^ ~S;
     REQUIRE(S_xor_notS(5u));
     REQUIRE(S_xor_notS(50u));
@@ -357,8 +359,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Membership: x ∈ A ^ B iff x is in exactly one") {
-    auto A = Comprehension{ℕ, gt_10};
-    auto B = Comprehension{ℕ, lt_100};
+    auto A = Comprehension{counts, gt_10};
+    auto B = Comprehension{counts, lt_100};
     auto sym_diff = A ^ B;
     // 5: in B only (5 < 100, 5 ≯ 10) → in symmetric difference
     REQUIRE(sym_diff(5u));
@@ -369,8 +371,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Textbook identity: A ^ B == (A | B) & ~(A & B)") {
-    auto A = Comprehension{ℕ, gt_10};
-    auto B = Comprehension{ℕ, lt_100};
+    auto A = Comprehension{counts, gt_10};
+    auto B = Comprehension{counts, lt_100};
     auto sym_diff = A ^ B;
     auto union_minus_inter = (A | B) & ~(A & B);
     REQUIRE(sym_diff(5u) == union_minus_inter(5u));
@@ -382,23 +384,24 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
 TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
   SECTION("Contradiction: {x ∈ ℕ | x > 10 ∧ x < 5} is ∅") {
     // Here we combine the symbolic predicates
+    // On ℕ, not the word: there the compiler folds the comparison away.
     constexpr auto gt10_and_lt5 = [](const auto& v) {
-      return (v > 10u) && (v < 5u);
+      return (v > Numeral{10u}) && (v < Numeral{5u});
     };
     auto S = Comprehension{ℕ, gt10_and_lt5};
 
     // For a non-trivial polish, we verify it is 'Total Absence'
-    REQUIRE_FALSE(S(0u));
-    REQUIRE_FALSE(S(7u));
-    REQUIRE_FALSE(S(12u));
+    REQUIRE_FALSE(S(Numeral{0u}));
+    REQUIRE_FALSE(S(Numeral{7u}));
+    REQUIRE_FALSE(S(Numeral{12u}));
   }
 
   SECTION("Tautology: {x ∈ ℕ | x > 10 ∨ x <= 10} is 𝔸") {
     constexpr auto gt10_or_le10 = [](const auto& v) {
-      return (v > 10u) || (v <= 10u);
+      return (v > Numeral{10u}) || (v <= Numeral{10u});
     };
     auto S = Comprehension{ℕ, gt10_or_le10};
-    REQUIRE(S(7u));
+    REQUIRE(S(Numeral{7u}));
   }
 }
 

@@ -54,11 +54,8 @@ export using default_integer = dedekind::sets::SignedCardinality;
  * @c ℤ is the universe @c 𝔸<SignedCardinality>, using the @b saturating
  * variant @c sets::SignedCardinality as the carrier (rather than the
  * @b cyclic finite fragment @c SignedExtensionalCardinal<>).  This
- * mirrors the @c ℕ pattern (@c ℕ @c = @c 𝔸<Cardinality>, where
- * @c Cardinality is the saturating @f$\mathbb{N} \cup \{\aleph_0\}@f$
- * variant) --- the project's stance is now consistent across @c ℕ and
- * @c ℤ: bounded representations @b escalate (saturate to
- * @f$\pm \aleph_0@f$) rather than wrap.
+ * is the ℤ counterpart of @c ℕ @c = @c 𝔸<Numeral>: bounded representations
+ * @b escalate (saturate to @f$\pm \aleph_0@f$) rather than wrap.
  *
  * The carrier @c sets::SignedCardinality is the project's documented
  * bona-fide proxy for @f$\mathbb{Z}@f$ modulo physical limits
@@ -80,13 +77,11 @@ export inline constexpr auto ℤ =
 static_assert(std::same_as<std::remove_cvref_t<decltype(ℤ)>,
                            dedekind::sets::𝔸<dedekind::sets::SignedCardinality,
                                              Boole, ℵ_0>>,
-              "ℤ is the universe 𝔸<SignedCardinality>, mirroring "
-              "ℕ = 𝔸<Cardinality> (#670).");
+              "ℤ is the universe 𝔸<SignedCardinality> (#670).");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℤ)>::Domain,
                            dedekind::sets::SignedCardinality>,
               "ℤ's underlying carrier IS SignedCardinality — the project's "
-              "bona-fide saturating ℤ proxy (per cardinality.cppm:923-924). "
-              "Mirrors ℕ's underlying carrier being Cardinality.");
+              "bona-fide saturating ℤ proxy (per cardinality.cppm:923-924).");
 
 // The saturating ℤ proxy inhabits the algebraic concept chain the
 // in-line scout-algebra surface uses (#664).  Pinning the witness:

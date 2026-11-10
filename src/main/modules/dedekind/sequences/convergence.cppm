@@ -17,10 +17,12 @@
  */
 module;
 
+#include <algorithm>  // std::min, offset_signed
 #include <cmath>
 #include <concepts>
 #include <cstddef>
 #include <functional>  // std::less_equal
+#include <limits>      // the ℤ proxy's word bound, offset_signed
 #include <type_traits>
 #include <vector>
 
@@ -525,7 +527,33 @@ inline constexpr bool is_periodic_sequence_v<OrbitSequence<T, Op>, N> = true;
 using dedekind::category::HasNNOStep;
 using dedekind::category::Ternary;
 using dedekind::order::IsTotallyOrdered;
-using dedekind::sets::Cardinality;
+
+/** @brief A part of an offset, at most @c PTRDIFF_MAX, read into the ℤ proxy.
+ *  @param n the part. */
+constexpr dedekind::sets::SignedCardinality signed_chunk(
+    std::size_t n) noexcept {
+  return dedekind::sets::SignedCardinality{
+      dedekind::sets::SignedExtensionalCardinal<>{
+          static_cast<std::ptrdiff_t>(n)}};
+}
+
+/** @brief @f$a + n@f$ on the saturating ℤ proxy, for an offset @c n over the
+ *  whole @c size_t range: three non-negative parts, each at most
+ *  @c PTRDIFF_MAX (so @c n fits, @f$2^{64} - 1 \le 3 (2^{63} - 1)@f$), added
+ *  by the carrier's own exact @c +.  The partial sums increase from @c a to
+ *  @f$a + n@f$, so they saturate exactly when the sum does, never early (a
+ *  negative seed absorbs the first part).
+ *  @param seed the orbit's start.
+ *  @param n the offset. */
+constexpr dedekind::sets::SignedCardinality offset_signed(
+    const dedekind::sets::SignedCardinality& seed, std::size_t n) noexcept {
+  constexpr auto most =
+      static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max());
+  const std::size_t first = std::min(n, most);
+  const std::size_t second = std::min(n - first, most);
+  return seed + signed_chunk(first) + signed_chunk(second) +
+         signed_chunk(n - first - second);
+}
 
 /** @brief The orbit of a seed under the NNO step, @f$n \mapsto S^{n}(a)@f$:
  *  the unique morphism the universal property gives from ℕ into the carrier
@@ -534,11 +562,11 @@ using dedekind::sets::Cardinality;
  *  to it.  Its shape classifies the carrier's posture at the bound: an
  *  injective infinite stream on an unbounded chain (the NNO proper), monotone
  *  and bounded on a saturating one --- eventually constant at ⊤ when the chain
- *  is finite (K₃, @c IsAbsorptiveSequence), converging to ℵ₀ without reaching
- *  it on ℕ's proxy --- periodic on a wrapping one.
+ *  is finite (K₃, @c IsAbsorptiveSequence) --- periodic on a wrapping one.
  *
  *  @c at(n) is @f$O(1)@f$ where the carrier's @c + is the iterated step
- *  (Peano addition, @f$S^{n}(a) = a + n@f$: the integrals, the ℕ proxy), and
+ *  (Peano addition, @f$S^{n}(a) = a + n@f$: the integrals, ℕ's @c Numeral, the
+ *  ℤ proxy @c SignedCardinality), and
  *  the @f$O(n)@f$ walk otherwise (K₃).
  *  @tparam N the carrier, with the NNO step. */
 export template <dedekind::category::HasNNOStep N>
@@ -549,10 +577,12 @@ struct SuccessorOrbit : Path<N> {
         return static_cast<N>(seed + static_cast<N>(n));
       } else if constexpr (requires {
                              {
-                               seed + dedekind::sets::finite_cardinality(n)
+                               seed + dedekind::sets::Numeral { n }
                              } -> std::same_as<N>;
                            }) {
-        return seed + dedekind::sets::finite_cardinality(n);
+        return seed + dedekind::sets::Numeral{n};
+      } else if constexpr (std::same_as<N, dedekind::sets::SignedCardinality>) {
+        return offset_signed(seed, n);
       } else {
         N acc = seed;
         for (std::size_t i = 0; i < n; ++i)
@@ -567,19 +597,13 @@ struct SuccessorOrbit : Path<N> {
  *  the carrier's algebra: it saturates or stops, never wraps), it is
  *  inflationary, so the orbit is monotone from any seed; it is bounded where
  *  the chain has a top.  The K₃ orbit is
- *  eventually constant at ⊤ from any seed, within two steps.  The ℕ proxy's is
- *  not: from a finite seed the index type is exhausted one step before ℵ₀,
- *  which is the orbit's supremum and not one of its terms --- the sequence
- *  converges to the memory boundary without reaching it, so it is monotone and
- *  bounded, not absorptive. */
+ *  eventually constant at ⊤ from any seed, within two steps. */
 template <HasNNOStep N>
   requires IsTotallyOrdered<N> &&
                dedekind::category::IsMonotone<Successor<N>, std::less_equal<>>
 inline constexpr bool is_monotone_sequence_v<SuccessorOrbit<N>> = true;
 template <>
 inline constexpr bool is_bounded_sequence_v<SuccessorOrbit<Ternary>> = true;
-template <>
-inline constexpr bool is_bounded_sequence_v<SuccessorOrbit<Cardinality>> = true;
 template <>
 inline constexpr bool is_absorptive_sequence_v<SuccessorOrbit<Ternary>> = true;
 
@@ -592,11 +616,6 @@ static_assert(IsSequence<SuccessorOrbit<int>> &&
 static_assert(IsAbsorptiveSequence<SuccessorOrbit<Ternary>> &&
                   IsBoundedSequence<SuccessorOrbit<Ternary>>,
               "the K₃ orbit is eventually constant at ⊤.");
-static_assert(IsMonotoneSequence<SuccessorOrbit<Cardinality>> &&
-                  IsBoundedSequence<SuccessorOrbit<Cardinality>> &&
-                  !IsAbsorptiveSequence<SuccessorOrbit<Cardinality>>,
-              "the ℕ proxy's orbit is monotone and bounded by ℵ₀, and not "
-              "eventually constant: ℵ₀ is its supremum, not a term.");
 
 }  // namespace dedekind::sequences
 

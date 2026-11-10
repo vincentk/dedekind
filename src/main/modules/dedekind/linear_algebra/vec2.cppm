@@ -122,7 +122,7 @@ struct Vec2V {
   // and as a `Finite` cardinality tag — the linear-algebraic reading of
   // the `dedekind.sets:cardinality` ladder: a tuple's index set is always
   // extensionally finite.
-  // FIXME: promote `dimension_type` to a full `Cardinality` value if / when
+  // FIXME: promote `dimension_type` to a cardinality value if / when
   // infinite-dimensional tuple carriers land — for now `Finite` is a tag.
   using dimension_type = dedekind::sets::Finite;
   static constexpr std::size_t dimension = 2;

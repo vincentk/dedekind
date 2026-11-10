@@ -37,18 +37,16 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
 
   // A :relational test may not import :order, so π/fix is unavailable; use
   // named predicates (comprehension form) rather than inline lambdas.
-  constexpr auto gt_zero = [](const auto& v) { return v > 0u; };
-  constexpr auto le_ten = [](const auto& v) { return v <= 10u; };
+  constexpr auto gt_zero = [](const auto& v) { return v > Numeral{0u}; };
+  constexpr auto le_ten = [](const auto& v) { return v <= Numeral{10u}; };
   const auto positive = Comprehension{ℕ, gt_zero};
   const auto bounded = Comprehension{ℕ, le_ten};
 
-  // ambient_set<Cardinality> lifts the predicate-set into the variant
-  // ℕ-proxy ambient (the carrier of the ℕ universe; post-#402 / #559
-  // ℕ = 𝔸<Cardinality>).  The characteristic-function χ then reads on
-  // Cardinality values; unsigned literals like @c 5u / @c 0u lift
-  // implicitly into the variant's finite alternative on the call site.
-  const auto positive_set = ambient_set<Cardinality>(positive);
-  const auto bounded_set = ambient_set<Cardinality>(bounded);
+  // ambient_set<Numeral> lifts the predicate-set into ℕ's ambient
+  // (ℕ = 𝔸<Numeral>).  The characteristic-function χ then reads on
+  // Numeral values.
+  const auto positive_set = ambient_set<Numeral>(positive);
+  const auto bounded_set = ambient_set<Numeral>(bounded);
   const auto support = positive_set & bounded_set;
 
   STATIC_CHECK(dedekind::category::IsSet<decltype(positive_set)>);
@@ -59,26 +57,25 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
   STATIC_CHECK(dedekind::sets::HasDecidableMembership<decltype(positive)>);
   STATIC_CHECK(dedekind::sets::HasDecidableMembership<decltype(bounded)>);
 
-  CHECK(positive_set.χ(5u));
-  CHECK_FALSE(positive_set.χ(0u));
-  CHECK(support(5u));
-  CHECK_FALSE(support(50u));
+  CHECK(positive_set.χ(Numeral{5u}));
+  CHECK_FALSE(positive_set.χ(Numeral{0u}));
+  CHECK(support(Numeral{5u}));
+  CHECK_FALSE(support(Numeral{50u}));
 }
 
 TEST_CASE("Sets+Category: Set naming boundary is explicit",
           "[sets][category][etcs][alignment]") {
-  constexpr auto gt_zero = [](const auto& v) { return v > 0u; };
+  constexpr auto gt_zero = [](const auto& v) { return v > Numeral{0u}; };
   const auto positive = Comprehension{ℕ, gt_zero};
 
   // `sets::Set` (DSL species) and `category::Set` (CCC witness) are distinct.
   STATIC_CHECK(!std::same_as<decltype(positive),
-                             dedekind::category::CanonicalSetCCC<Cardinality>>);
+                             dedekind::category::CanonicalSetCCC<Numeral>>);
 
-  // Bridge through ETCS object construction over the post-#402 ℕ carrier
-  // (ℕ = Cardinality, the variant ℕ-proxy).
-  const auto positive_set = ambient_set<Cardinality>(positive);
+  // Bridge through ETCS object construction over ℕ's carrier, Numeral.
+  const auto positive_set = ambient_set<Numeral>(positive);
   STATIC_CHECK(IsSet<decltype(positive_set)>);
 
-  CHECK(positive_set.χ(3u));
-  CHECK_FALSE(positive_set.χ(0u));
+  CHECK(positive_set.χ(Numeral{3u}));
+  CHECK_FALSE(positive_set.χ(Numeral{0u}));
 }

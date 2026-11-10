@@ -204,8 +204,7 @@ concept IsSaturating = is_saturating_v<T, Op>;
  *
  *  Used positively as a witness ("ℕ is closed under +") and
  *  negatively in @c HasClosureForcingShape ("ℕ is @b not closed
- *  under −, which is why @c -Cardinality returns @c
- *  SignedCardinality").  See @c docs/design/carrier-lattice.md, the
+ *  under −").  See @c docs/design/carrier-lattice.md, the
  *  "elementwise dual" section.
  */
 export template <typename S, typename Op>
@@ -216,10 +215,9 @@ concept IsClosedUnder = requires(const S& a, const S& b) {
 /**
  * @concept IsClosedUnderUnary
  * @brief Unary closure variant: @c Op{}(s) returns @c S for any
- *        @c S-typed operand.  Cardinality has @b no @c IsClosedUnderUnary
+ *        @c S-typed operand.  ℕ has @b no @c IsClosedUnderUnary
  *        for @c std::negate<> (negation of a positive natural would
- *        need to land outside ℕ); that's the structural witness that
- *        @c -Cardinality is closure-forcing rather than closed.
+ *        need to land outside ℕ).
  */
 export template <typename S, typename Op>
 concept IsClosedUnderUnary = requires(const S& a) {
@@ -248,10 +246,10 @@ concept IsClosedUnderEither = IsClosedUnder<T, Op> || IsClosedUnderUnary<T, Op>;
  *  range); the fourth lets a genuinely exact number field be a Magma --- and
  *  hence reach @c IsField --- rather than being excluded as
  *  "non-machine-total".  It is registered for @c Rational = ℚ and
- *  @c QuadraticReal = ℚ(√D).  @c SignedCardinality = ℤ and @c Cardinality = ℕ
- *  are total via @c is_saturating (they escalate to @f$\pm\aleph_0@f$), so
- *  @c IsRing<ℤ> / @c IsSemiring<ℕ> hold through the saturating path, witnessed
- *  at @c :integer / @c :natural.  (The two postures are distinct and a carrier
+ *  @c QuadraticReal = ℚ(√D), and for ℕ's @c Numeral.  @c SignedCardinality = ℤ
+ *  is total via @c is_saturating (it escalates to @f$\pm\aleph_0@f$), so
+ *  @c IsRing<ℤ> holds through the saturating path, witnessed at
+ *  @c :integer.  (The two postures are distinct and a carrier
  *  picks exactly one.)  The named concept @c IsSaturating that wraps
  *  @c is_saturating_v lives in @c dedekind.category:mereology; here we reach
  *  for the underlying trait variables directly so this upstream-foundational
@@ -1144,8 +1142,7 @@ static_assert(!IsLattice<unsigned int, XOR, AND>,
 // checker and is carried by the engineer's opt-in trait
 // @c is_closure_forcing_v, in the same pattern as @c
 // is_associative_v / @c is_saturating.  Concrete trait specialisations
-// live next to the carriers they pin (e.g., @c sets:cardinality for
-// the @c (Cardinality, SignedCardinality) pair).
+// live next to the carriers they pin.
 
 /**
  * @concept HasClosureForcingShape
@@ -1192,11 +1189,9 @@ inline constexpr bool is_closure_forcing_v = false;
  *        @c A @c → @c B (or @c A @c × @c A @c → @c B), with @c B the
  *        canonical recipient.
  *
- *  Operationally: @c IsClosureForcing<std::negate<>, @c Cardinality,
- *  @c SignedCardinality> witnesses that @c -Cardinality (unary) is
- *  the Grothendieck embedding's operator-level shadow.  Similarly
- *  @c IsClosureForcing<std::minus<>, @c Cardinality,
- *  @c SignedCardinality> for the binary case.
+ *  Operationally: @c IsClosureForcing<std::negate<>, @c N, @c Z> would
+ *  witness that unary minus on ℕ is the Grothendieck embedding's
+ *  operator-level shadow, and @c std::minus<> the binary case.
  */
 export template <typename Op, typename A, typename B>
 concept IsClosureForcing =

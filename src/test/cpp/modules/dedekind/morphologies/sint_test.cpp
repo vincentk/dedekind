@@ -181,36 +181,6 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "sint: realize-when-you-mean-it boundary — explicit descent to the "
-    "machine carrier",
-    "[numbers][sint][ergonomics][realize]") {
-  // The unsigned-side realize-step is well-established (PR #427-era
-  // realize_to_size_t with explicit transfinite_sentinel).  Showing
-  // the boundary here on the Cardinality (ℕ) side as the canonical
-  // pattern — the practitioner explicitly chooses the sentinel for
-  // transfinite values, which @b is the proof obligation: the type
-  // system makes the caller commit to a behaviour for the overflow
-  // / saturation regime.
-  const auto seven = finite_cardinality(7);
-  const auto sentinel = std::numeric_limits<std::size_t>::max();
-  CHECK(realize_to_size_t(seven, sentinel) == 7);
-  CHECK(realize_to_size_t(Cardinality{ℵ_0{}}, sentinel) == sentinel);
-
-  // The signed-side @c realize_signed_to_machine boundary is tracked
-  // under #429 and not yet shipped.  Once it lands, the symmetric
-  // pattern is:
-  //
-  //   const auto z   = finite_signed_cardinality(7);
-  //   const int  out = realize_signed_to_machine(z, INT_MAX, INT_MIN);
-  //   // ^ proof obligation: caller chooses sentinels for ±ℵ_0 and NaZ.
-  //
-  // The doctrinal point is the same in either direction: descent to a
-  // machine integer is an @b explicit step, not an implicit operator
-  // overload — and the explicit step carries the proof obligation
-  // structurally.
-}
-
-TEST_CASE(
     "sint: negafibonacci on SignedCardinality — the canonical intensional "
     "ℤ-series",
     "[numbers][sint][ergonomics][intensional-first][negafibonacci]") {
@@ -248,14 +218,9 @@ TEST_CASE(
   CHECK(f_neg4 == finite_signed_cardinality(-3));
   CHECK(f_neg5 == finite_signed_cardinality(5));
 
-  // The forward Fibonacci sibling on @c Cardinality (ℕ) is the
-  // natural pedagogical pair — Fibonacci F_n stays in ℕ throughout
-  // because the recurrence uses only addition.  The intensional-
-  // first / realize-when-you-mean-it doctrine reads the same way on
-  // both sides: stay in the canonical carrier; descend to the
-  // machine layer only via an explicit realize-step.  A Fibonacci-
-  // on-Cardinality companion test in @c uint_test.cpp is the
-  // natural follow-up.
+  // The forward Fibonacci sibling on @c Numeral (ℕ), in @c uint_test.cpp,
+  // is the natural pedagogical pair — Fibonacci F_n stays in ℕ
+  // throughout because the recurrence uses only addition.
 }
 
 TEST_CASE(

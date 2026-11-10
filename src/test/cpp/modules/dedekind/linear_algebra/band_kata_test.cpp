@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
+#include <limits>
 #include <utility>
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -31,10 +32,10 @@
 //        `banded_entry` helper gates the dyad by the band, ⊕-zero off-band).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import dedekind.category; // IsArrow, unit_v
-import dedekind.algebra;  // MaxPlus, semiring_ops
-import dedekind.sets;     // ℕ, Cardinality, finite_cardinality, the product (*)
-import dedekind.order;    // the relational-predicate DSL
+import dedekind.category;   // IsArrow, unit_v
+import dedekind.algebra;    // MaxPlus, semiring_ops
+import dedekind.sets;       // 𝔸, the product (*)
+import dedekind.order;      // the relational-predicate DSL
 import dedekind.relational; // the relational-predicate machinery (converse, …)
 import dedekind.linear_algebra; // OuterProduct — the rank-1 dyad carrier
 
@@ -69,13 +70,17 @@ constexpr OuterProduct<LogWeight, LogWeight, TropMult> kValue{LogWeight{},
 
 // (S1) The band SUPPORT |y−x| ≤ 1 as the DISJUNCTION of three adjacency graphs,
 //   point-free over ℕ×ℕ — intensional, infinite basis:
-const auto kBand = (ℕ * ℕ & π_1 == π_2)         // y = x       (main diagonal)
-                   | (ℕ * ℕ & π_1 + 1 == π_2)   // y = x + 1 (super-diagonal)
-                   | (ℕ * ℕ & π_2 + 1 == π_1);  // x = y + 1 (sub-diagonal)
+//   the indices are counts, the set over the machine word, where the successor
+//   wraps: each adjacency is guarded by its order, so (SIZE_MAX, 0) is off.
+constexpr auto counts = 𝔸<std::size_t>{};
+const auto kBand =
+    (counts * counts & π_1 == π_2)                     // y = x   (main)
+    | (counts * counts & π_1 + 1 == π_2 & π_1 < π_2)   // y = x + 1 (super)
+    | (counts * counts & π_2 + 1 == π_1 & π_2 < π_1);  // x = y + 1 (sub)
 
 // Named helpers (no lambdas): the ℕ×ℕ index pair, and the masked band entry.
-constexpr std::pair<Cardinality, Cardinality> at(std::size_t x, std::size_t y) {
-  return {finite_cardinality(x), finite_cardinality(y)};
+constexpr std::pair<std::size_t, std::size_t> at(std::size_t x, std::size_t y) {
+  return {x, y};
 }
 // (S3) The banded operator = kValue MASKED by kBand (no masked-matrix
 // combinator
@@ -106,4 +111,9 @@ TEST_CASE("kata: a symbolic tridiagonal band over the infinite line ℕ",
   // structurally, no tabulation of ℕ ever happens.
   CHECK(banded_entry(1000, 1000) == MP::of(2000));  // diagonal, deep in ℕ
   CHECK(banded_entry(1000, 1002) == kTropZero);     // off band, deep in ℕ
+
+  // The word's successor wraps; the band does not.
+  constexpr auto top = std::numeric_limits<std::size_t>::max();
+  CHECK(banded_entry(top, 0) == kTropZero);  // off band: no wrap
+  CHECK(banded_entry(0, top) == kTropZero);  // off band: no wrap
 }

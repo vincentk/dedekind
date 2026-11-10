@@ -60,31 +60,16 @@ static_assert(admits(On<unsigned>{}, std::less<>{}, false) &&
                   admits(On<unsigned>{}, std::divides<>{}, true),
               "on a word: the order comparisons, // and % by a constant, and "
               "its own division; a field's division is not its rule.");
-// ℕ's proxy is a rig and a dividable chain, not a group: + · % are in its
-// signature, monus is not until its variety is named.
-static_assert(
-    admits(On<Cardinality>{}, std::plus<>{}, false) &&
-        admits(On<Cardinality>{}, std::multiplies<>{}, false) &&
-        admits(On<Cardinality>{}, std::modulus<>{}, true) &&
-        admits(On<Cardinality>{}, std::less<>{}, false) &&
-        !admits(On<Cardinality>{}, std::minus<>{}, false) &&
-        !admits(On<Cardinality>{}, FieldDivision{}, true),
-    "ℕ: + · % and the order are in the signature; monus and a field's "
-    "division are not.");
 
 TEST_CASE("order:terms: a constant meets the carrier beside it",
           "[sets][terms][constants]") {
-  const auto succ = π_1 + 1 == π_2;
-  CHECK(succ(std::pair{finite_cardinality(4), finite_cardinality(5)}));
-  CHECK(carrier_cast<Cardinality>(3) == finite_cardinality(3));
-  CHECK_THROWS_AS(carrier_cast<Cardinality>(-1), std::domain_error);
   CHECK_THROWS_AS(carrier_cast<unsigned char>(300), std::domain_error);
   CHECK_THROWS_AS(carrier_cast<bool>(2), std::domain_error);
 }
 
 TEST_CASE("order:terms: a constant is checked when the term is bound",
           "[sets][terms][constants]") {
-  CHECK_THROWS_AS(𝔸<Cardinality>{} & (π + -1 == 3), std::domain_error);
+  CHECK_THROWS_AS(𝔸<Numeral>{} & (π + -1 == 3), std::domain_error);
   CHECK_THROWS_AS(carrier_cast<int>(1.5), std::domain_error);
   CHECK_THROWS_AS(carrier_cast<int>(1e12), std::domain_error);
   CHECK(carrier_cast<int>(2.0) == 2);

@@ -34,6 +34,7 @@
  */
 
 #include <concepts>
+#include <cstddef>
 #include <type_traits>
 
 import dedekind.category;
@@ -51,12 +52,16 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
+// The counts the exhibit computes over: the set over the machine word.
+constexpr auto counts = 𝔸<std::size_t>{};
+
 // (1) Rule.  Intensional ℕ-comprehension, point-free: the ambient set ℕ
 //     refined by the projection predicate `π > 5`.  Reads "the set of
 //     x ∈ ℕ such that x > 5".  This is the textbook membership shape.
-constexpr auto S = ℕ & (π > 5);
+constexpr auto S = counts & (π > 5);
 
-// ℕ = 𝔸<Cardinality> answers in @c Boole, so the comprehension @c S does ---
+// The counts 𝔸<std::size_t> answer in @c Boole, so the comprehension @c S does
+// ---
 // @c S.contains(...) lands @c bool directly, no
 // Kleene lift required.  Rice's theorem still caps further promotion of
 // the opaque λ inside the comprehension, but the carrier-axis witness
@@ -73,7 +78,7 @@ static_assert(S(7u));
 //     across `NegatedPredicate` (so `T & {<7}` would collapse to the literal
 //     interval [6, 6]) is a future DSL refinement; membership on T still
 //     constant-folds via the predicate.
-constexpr auto T = set_difference(S, ℕ&(π > 10));
+constexpr auto T = set_difference(S, counts&(π > 10));
 static_assert(T(8u));    // 5 < 8 ≤ 10 ✓
 static_assert(!T(11u));  // 11 > 10 ✗
 
@@ -81,10 +86,10 @@ static_assert(!T(11u));  // 11 > 10 ✗
 //     `structured_and` to a `Interval`: `S` (= {x > 5}) meet {x < 7} on ℕ has
 //     exactly one inhabitant, and the meet folds it to the point {6}.  The
 //     point collapse gates on the NNO's successor / predecessor --- an axiom of
-//     the category, which the ℕ proxy witnesses --- not on `std::integral`, so
+//     the category, which the word witnesses --- not on `std::integral`, so
 //     ℕ collapses exactly as a machine integer does.
-constexpr auto a = S & (ℕ & (π < 7));  // the point {6}
-static_assert(a == Interval<Cardinality>::point(finite_cardinality(6)),
+constexpr auto a = S & (counts & (π < 7));  // the point {6}
+static_assert(a == Interval<std::size_t>::point(std::size_t{6}),
               "the meet folds to the point {6} at compile time");
 static_assert(static_cast<bool>(a(6u)) && !static_cast<bool>(a(5u)) &&
                   !static_cast<bool>(a(7u)),
@@ -94,7 +99,7 @@ static_assert(static_cast<bool>(a(6u)) && !static_cast<bool>(a(5u)) &&
 //     complement.  The value-first meet folds `S ∩ ¬S` to the empty `Interval`
 //     at compile time — the law of excluded middle, value-directed.
 constexpr auto b = S & ~S;
-static_assert(b == Ø<Cardinality>{},
+static_assert(b == Ø<std::size_t>{},
               "S ∩ ¬S folds to the empty set at compile time");
 
 // (6) Certified.  Both reductions are finite constexpr `Interval`s — the point

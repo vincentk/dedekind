@@ -5,9 +5,7 @@
  * @section Scope
  * Exercises the initial rig, ℕ, as @c IsInitialRig<Numeral>, and that no
  * machine word claims ℤ's universal properties (a word wraps); ℤ's honest
- * carrier follows ℕ's (#1035).  The Grothendieck construction's operator
- * @c Cardinality - Cardinality → SignedCardinality is exercised on small
- * values.
+ * carrier follows ℕ's (#1035).
  *
  *   3. Carrier-lattice arrows (Figure 1 in @c paper.tex /
  *      @c report.tex) — the labelled arrows are mechanically
@@ -38,7 +36,7 @@ using dedekind::algebra::IsInitialRing;
 TEST_CASE("initial_ring: no SignedCardinality registration is initial",
           "[algebra][initial_ring][witness]") {
   STATIC_CHECK(!is_initial_ring_v<SignedCardinality>);
-  STATIC_CHECK(!(is_grothendieck_group_v<SignedCardinality, Cardinality>));
+  STATIC_CHECK(!(is_grothendieck_group_v<SignedCardinality, Numeral>));
 }
 
 TEST_CASE(
@@ -48,74 +46,9 @@ TEST_CASE(
   // Default: not initial.  Carriers must opt in explicitly.
   STATIC_CHECK(!is_initial_ring_v<int>);
   STATIC_CHECK(!is_initial_ring_v<unsigned int>);
-  STATIC_CHECK(!is_initial_ring_v<Cardinality>);
-  STATIC_CHECK((!is_grothendieck_group_v<unsigned int, Cardinality>));
-  STATIC_CHECK((!is_grothendieck_group_v<Cardinality, Cardinality>));
-}
-
-// ===========================================================================
-// (3) Grothendieck construction exercised: closure-forcing operator
-// ===========================================================================
-
-TEST_CASE(
-    "grothendieck: Cardinality - Cardinality → SignedCardinality realises "
-    "the Grothendieck construction at the operator level",
-    "[algebra][grothendieck][universal-property][closure-forcing]") {
-  // Exercise the textbook construction: [(a, b)] ∈ ℤ represents
-  // a - b.  The closure-forcing operator's existence with the wider
-  // codomain is the Grothendieck-construction's @b multiplication
-  // (the construction map at the operator level); the @b unit is
-  // the embedding @c lift_ℕ_ℤ_ that lifts a single Cardinality into
-  // SignedCardinality (covered in test (5) below).
-  auto const a3 = finite_cardinality(3);
-  auto const a5 = finite_cardinality(5);
-  auto const a7 = finite_cardinality(7);
-  // 5 - 3 = 2.
-  CHECK(a5 - a3 == finite_signed_cardinality(2));
-  // 3 - 5 = -2 (the construction's defining clause: the operator
-  // widens to the larger carrier where the result lives).
-  CHECK(a3 - a5 == finite_signed_cardinality(-2));
-  // 7 - 7 = 0 (the equivalence-class neutral element).
-  CHECK(a7 - a7 == finite_signed_cardinality(0));
-  // 0 - 5 = -5.
-  CHECK(finite_cardinality(0) - a5 == finite_signed_cardinality(-5));
-}
-
-TEST_CASE(
-    "grothendieck: equivalence classes [(a, b)] ~ [(c, d)] iff a + d = b + c",
-    "[algebra][grothendieck][universal-property][equivalence]") {
-  // Concrete witnesses of the Grothendieck quotient relation:
-  // (a, b) ~ (c, d) iff a + d = b + c, both representing a - b.
-  // The closure-forcing operator should yield equal results for
-  // equivalent input pairs.
-  // [(5, 3)] = [(7, 5)] = [(2, 0)] all represent 2.
-  auto const v1 = finite_cardinality(5) - finite_cardinality(3);
-  auto const v2 = finite_cardinality(7) - finite_cardinality(5);
-  auto const v3 = finite_cardinality(2) - finite_cardinality(0);
-  CHECK(v1 == v2);
-  CHECK(v1 == v3);
-  CHECK(v1 == finite_signed_cardinality(2));
-  // Negative side: [(0, 4)] = [(2, 6)] = [(7, 11)] all represent -4.
-  auto const n1 = finite_cardinality(0) - finite_cardinality(4);
-  auto const n2 = finite_cardinality(2) - finite_cardinality(6);
-  auto const n3 = finite_cardinality(7) - finite_cardinality(11);
-  CHECK(n1 == n2);
-  CHECK(n1 == n3);
-  CHECK(n1 == finite_signed_cardinality(-4));
-}
-
-TEST_CASE(
-    "grothendieck: closure-forcing operator produces a SignedCardinality "
-    "that is structurally an abelian group (witnesses the codomain widening)",
-    "[algebra][grothendieck][carrier-lattice]") {
-  // The construction's load-bearing claim: the codomain admits
-  // additive inverses, which the source @c Cardinality (a
-  // saturating commutative monoid) does not.  Verify the inverse
-  // structure on the lifted side.
-  auto const z = finite_cardinality(5) - finite_cardinality(3);  // = 2
-  auto const neg_z = -z;                                         // = -2
-  CHECK((z + neg_z) == finite_signed_cardinality(0));
-  CHECK(neg_z == finite_signed_cardinality(-2));
+  STATIC_CHECK(!is_initial_ring_v<Numeral>);
+  STATIC_CHECK((!is_grothendieck_group_v<unsigned int, Numeral>));
+  STATIC_CHECK((!is_grothendieck_group_v<Numeral, Numeral>));
 }
 
 TEST_CASE(
@@ -152,31 +85,4 @@ TEST_CASE(
   constexpr Singleton<bool, Boole> s_false{false};
   const auto image_set_false = embed_𝔹_𝕂3(s_false);
   CHECK(origin(image_set_false) == Ternary::False);
-}
-
-// ===========================================================================
-// (7) Carrier-lattice lift unification (#455): existential-proof
-//     dispatch on the central (Cardinality, SignedCardinality) pair.
-// ===========================================================================
-
-TEST_CASE(
-    "carrier-lattice lift dispatch: lift<Cardinality, SignedCardinality>(c) "
-    "agrees with the canonical bespoke lift_ℕ_ℤ_(c) — discoverability alias "
-    "without categorical overclaim",
-    "[carrier-lattice][lift-unification][dispatch]") {
-  // The unified lift<From, To> trait dispatches to the canonical
-  // bespoke arrow registered for the (From, To) pair.  For the
-  // central variant-layer ℕ → ℤ pair, the dispatch resolves to
-  // lift_ℕ_ℤ_; the result must agree on every input.
-  for (const std::size_t v : {std::size_t{0}, std::size_t{1}, std::size_t{42},
-                              std::size_t{1000}, std::size_t{2147483648u}}) {
-    const auto via_alias =
-        lift<Cardinality, SignedCardinality>(finite_cardinality(v));
-    const auto via_bespoke = lift_ℕ_ℤ_(finite_cardinality(v));
-    CHECK(via_alias == via_bespoke);
-  }
-  // The transfinite case: lift_ℕ_ℤ_ promotes ℵ_0 to PositiveInfinity;
-  // the alias dispatch agrees.
-  const auto inf = Cardinality{ℵ_0{}};
-  CHECK(lift<Cardinality, SignedCardinality>(inf) == lift_ℕ_ℤ_(inf));
 }

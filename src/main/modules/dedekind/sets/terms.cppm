@@ -20,11 +20,11 @@
  * mask), its operators, the comparison an atom makes.  Its @b constants are
  * values, spelled as the literals themselves (@c π_1 @c + @c 1 @c == @c π_2),
  * so a term built at run time --- from Python --- is the same term.  A constant
- * meets the sort of the term it is combined with: on a pair of @c Cardinality
- * the @c 1 above is the cardinal 1, converted when the term is evaluated and
- * checked to be representable.  Facts about a constant's value (a divisor is
- * not zero) are checked when the term is built: in @c constexpr code a
- * violation is a compile error.
+ * meets the sort of the term it is combined with, converted when the term is
+ * evaluated and checked to be representable (ℕ, @c Numeral, takes an unsigned
+ * constant and refuses a signed one).  Facts about a constant's value (a
+ * divisor is not zero) are checked when the term is built: in @c constexpr code
+ * a violation is a compile error.
  *
  * Certificates read the structure: an atom @c π_2 @c == @c T with
  * @c slots_v<T> @c ⊆ @c {1} is the graph of a function of the first
@@ -112,7 +112,7 @@ export module dedekind.sets:terms;
 
 import dedekind.category;
 import :boundaries;   // the set objects
-import :cardinality;  // IsRingIntegral; Cardinality, the ℕ carrier constants
+import :cardinality;  // IsRingIntegral; Numeral, the ℕ carrier constants
                       // meet
 
 namespace dedekind::sets {
@@ -2579,13 +2579,6 @@ inline constexpr auto half_after_shift = (π_1 + 1) * 3 == π_2;
 static_assert(half_after_shift(P{1, 6}), "(1 + 1)·3 == 6: any nesting");
 static_assert(only_slot(slots_v<decltype(π_1 * 3 + 1)>, 1),
               "3·π_1 + 1 mentions only the first slot");
-inline constexpr auto on_naturals = π_1 + 1 == π_2;
-static_assert(on_naturals(std::pair{finite_cardinality(4),
-                                    finite_cardinality(5)}),
-              "the constant 1 meets ℕ as the cardinal 1");
-using N2 = std::pair<Cardinality, Cardinality>;
-static_assert(is_total_term_v<N2, decltype(π_1 * 3 + 1)>,
-              "3·x + 1 is total on ℕ: + and · saturate");
 static_assert(IsGraphAtom<decltype(π_1 * 3 + 1 == π_2)> &&
                   !IsGraphAtom<decltype(π_2 * π_2 == π_1 * π_1)>,
               "π_2 == t(π_1) is a graph; y² == x² (y = ±x) is not certified");

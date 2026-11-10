@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
+#include <limits>
 #include <ranges>
 
 import dedekind.category;
@@ -59,9 +60,20 @@ TEST_CASE("sequences — the orbit's shape is the carrier's posture at the bound
   CHECK(k3.at(1) == Ternary::Unknown);
   CHECK(k3.at(2) == Ternary::True);
   CHECK(k3.at(7) == Ternary::True);
-  // ℕ's proxy: the finite fragment walks, the top absorbs.
-  const SuccessorOrbit<Cardinality> nat{finite_cardinality(40)};
-  CHECK(nat.at(2) == finite_cardinality(42));
-  const SuccessorOrbit<Cardinality> top{Cardinality{ℵ_0{}}};
-  CHECK(top.at(5) == Cardinality{ℵ_0{}});
+  // ℕ: the orbit walks, with no top to absorb it.
+  const SuccessorOrbit<Numeral> nat{Numeral{40u}};
+  CHECK(nat.at(2) == Numeral{42u});
+  // ℤ proxy: a + n in O(1) over the whole size_t range, saturating only
+  // where the sum leaves the word, never early from a negative seed.
+  using Word = std::ptrdiff_t;
+  constexpr Word lo = std::numeric_limits<Word>::min();
+  constexpr Word hi = std::numeric_limits<Word>::max();
+  const SuccessorOrbit<SignedCardinality> z{
+      SignedCardinality{SignedExtensionalCardinal<>{lo}}};
+  CHECK(z.at(std::numeric_limits<std::size_t>::max()) ==
+        SignedCardinality{SignedExtensionalCardinal<>{hi}});
+  const SuccessorOrbit<SignedCardinality> one{
+      SignedCardinality{SignedExtensionalCardinal<>{Word{1}}}};
+  CHECK(one.at(std::numeric_limits<std::size_t>::max()) ==
+        SignedCardinality{PositiveInfinity{}});
 }

@@ -79,8 +79,7 @@ namespace dedekind::linear_algebra {
  * @brief Type-level witness for a finite dimension @c N.  Sibling of
  *        @c dedekind::sets::ℵ<N> on the infinite side; together they
  *        cover the dimension axis used by @c Diagonal / @c OuterProduct
- *        without forcing the @c std::variant<> @c Cardinality value to
- *        appear as an NTTP.
+ *        without forcing a cardinality value to appear as an NTTP.
  */
 export template <std::size_t N>
 struct dim_finite {

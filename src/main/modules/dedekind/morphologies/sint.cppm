@@ -328,12 +328,6 @@ static_assert(
  *     but C++ has no clean "non-negative int" type to express that
  *     codomain (cf. @c std::numeric_limits<int>::digits for the
  *     width-relative phrasing).
- *
- * Variant-layer counterpart: @c abs : @c SignedCardinality @c → @c
- * Cardinality (in @c sets:cardinality), which IS surjective onto
- * the saturating @c Cardinality (because @c Cardinality has an @c
- * ℵ_0 sentinel and no upper bound on the finite fragment) — see the
- * @c Relationship_to_std_abs section in that function's docstring.
  */
 export constexpr unsigned abs_int_unsigned(int x) noexcept {
   // The conditional is a clarity move; both branches reduce to

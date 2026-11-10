@@ -102,8 +102,8 @@ TEST_CASE("Topology: Ø/𝔸 in the clopen ∩ decidable boundary core (Stone)",
     CHECK(HasDecidableMembership<OpenRay>);
   }
 
-  SECTION("the ℕ proxy is a discrete carrier too (#937): its ray is clopen") {
-    using NatRay = Interval<Cardinality>;
+  SECTION("ℕ is a discrete carrier too (#937): its ray is clopen") {
+    using NatRay = Interval<Numeral>;
     STATIC_CHECK(HasDiscreteCarrier<NatRay>);
     STATIC_CHECK(IsClopen<NatRay>);
     CHECK(IsClopen<NatRay>);

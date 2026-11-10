@@ -53,8 +53,7 @@ export import :boundaries;
 export import :computability;
 export import :terms;  // the term grammar: projections, constants, atoms
 export import :expressions;
-export import :heterogeneous;  // across carriers: A × B, A + B, the ℕ / ℤ
-                               // widening
+export import :heterogeneous;  // across carriers: A × B, A + B
 export import :extensional;
 export import :quantifier;
 export import :singleton;

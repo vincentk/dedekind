@@ -10,10 +10,11 @@
  * honest point-wise set that still covers every element.  The intermediate
  * TYPES are telling: a value Singleton on bool, a value Halfspace on ℕ.
  *
- * NB: the empty set is spelled by carrier (Ø<bool> / Ø<Cardinality>); the
+ * NB: the empty set is spelled by carrier (Ø<bool> / Ø<std::size_t>); the
  * ambient spelling Ø<𝔹> / Ø<ℕ> is pending the empty-set-on-ambient migration.
  */
 #include <catch2/catch_test_macros.hpp>
+#include <cstddef>
 #include <utility>
 
 import dedekind.category;
@@ -24,6 +25,9 @@ import dedekind.order;
 using namespace dedekind::sets;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
+
+// The counts the exhibit computes over: the set over the machine word.
+constexpr auto counts = 𝔸<std::size_t>{};
 
 TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
           "[sets][lattice][pruning]") {
@@ -47,16 +51,17 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
   // ──
   {
     static_assert(
-        dedekind::category::IsSet<decltype(ℕ)>);  // the universe IS an ETCS set
-    constexpr auto gt_5 = ℕ & (π > 5);  // {x > 5} ⊂ ℕ, an interval value
-    constexpr auto le_5 = ~gt_5;        // {x <= 5}, the complement
+        dedekind::category::IsSet<decltype(counts)>);  // the universe IS an
+                                                       // ETCS set
+    constexpr auto gt_5 = counts & (π > 5);  // {x > 5} ⊂ ℕ, an interval value
+    constexpr auto le_5 = ~gt_5;             // {x <= 5}, the complement
     // LEM (⊤): {x≤5} ∪ {x>5} covers ℕ, decided by membership: every element
     // lands in one half or the other.
     constexpr auto cover = le_5 | gt_5;
     static_assert(static_cast<bool>(cover(3u)) && static_cast<bool>(cover(6u)));
     // non-contradiction (⊥): {x≤5} ∩ {x>5} is empty --- the crossing meet still
     // collapses to the empty set.
-    static_assert((le_5 & gt_5) == Ø<Cardinality>{});
+    static_assert((le_5 & gt_5) == Ø<std::size_t>{});
   }
   // ── generator η, symmetric difference ^, product * (source for paper
   // Listing 2).  Singleton products collapse to a value Singleton, so they

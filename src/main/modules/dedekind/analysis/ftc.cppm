@@ -26,8 +26,8 @@
  *    not yet formalized. (See backlog: Cauchy-Riemann Framework)
  *
  * 5. **Sequence Loop Indexing**: Both integral_over() and hypothesis
- *    functions use raw std::size_t loops. Should abstract via Path<R,
- *    Cardinality> monadic composition when mature. (See backlog:
+ *    functions use raw std::size_t loops. Should abstract via Path<R, C>
+ *    monadic composition when mature. (See backlog:
  *    Sequence-Adapter Layer)
  *
  * @copyright 2026 The Dedekind Authors
@@ -183,7 +183,7 @@ constexpr R integral_over(
     std::size_t slices = 4096) {  // FIXME #123: magic constant slices; pending
                                   // adaptive refinement
   // FIXME: Sequence-adapter layer. Numeric loop uses raw std::size_t indexing.
-  // Should abstract via Path<R, Cardinality> when monadic/comonadic composition
+  // Should abstract via Path<R, C> when monadic/comonadic composition
   // fully supports recursive decomposition of integration bounds.
   if (a == b) {
     return detail::zero<R>();

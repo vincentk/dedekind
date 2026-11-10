@@ -70,7 +70,7 @@ concept HasGroupOperatorsAdd =
  * @c ++, @c --, @c ~, @c ! can be unary); the convention here is to
  * witness the multiplicative @b unit (the identity element @c 1) via
  * the structural constructor @c T{1}, parallel to @c
- * HasSemiringOperators's @c T{1} requirement.  The reciprocal of @c x is
+ * HasSemiringOperators's @c T{1u} requirement.  The reciprocal of @c x is
  * then @c T{1} / x at the callsite, with no carrier-imposed @c
  * .inverse() method needed.
  *

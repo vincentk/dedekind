@@ -10,6 +10,7 @@
  */
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <cstddef>
 #include <type_traits>
 
 import dedekind.category;
@@ -21,6 +22,9 @@ using namespace dedekind::sets;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
+// The counts the exhibit computes over: the set over the machine word.
+constexpr auto counts = 𝔸<std::size_t>{};
+
 TEST_CASE("Quantifier machinery: Ø == comprehension, folded at compile time",
           "[sets][quantifier][emptiness]") {
   // (a) COMPILE time, order specialization: the `&` meet combinator dispatches
@@ -30,11 +34,11 @@ TEST_CASE("Quantifier machinery: Ø == comprehension, folded at compile time",
   //     collapse).  This is the counterexample set of ∀x>5. x≥3, namely
   //     {x>5 ∧ x<3}, decided empty at compile time on the bare point-free
   //     grammar; no `Set{}` wrap is involved.
-  constexpr auto gt5 = ℕ & (π > 5);
-  constexpr auto lt3 = ℕ & (π < 3);
-  static_assert((gt5 & lt3) == Ø<Cardinality>{},
+  constexpr auto gt5 = counts & (π > 5);
+  constexpr auto lt3 = counts & (π < 3);
+  static_assert((gt5 & lt3) == Ø<std::size_t>{},
                 "{x>5 ∧ x<3} folds to the empty set at compile time.");
-  CHECK((gt5 & lt3) == Ø<Cardinality>{});  // runtime (Codecov)
+  CHECK((gt5 & lt3) == Ø<std::size_t>{});  // runtime (Codecov)
 }
 
 namespace {

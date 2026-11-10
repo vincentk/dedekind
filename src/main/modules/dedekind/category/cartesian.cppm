@@ -1127,8 +1127,7 @@ static_assert(IsBinaryFunction<arrow_as_relation<Identity<int>>, int, int>,
 //
 // Discoverability alias indexed by the lattice arrow's @c (From, To)
 // pair.  Calling @c lift<From, To>(x) dispatches to the canonical
-// bespoke arrow registered for that pair (e.g. @c lift_ℕ_ℤ_ for the
-// pair @c (Cardinality, SignedCardinality)).  Bespoke names remain
+// bespoke arrow registered for that pair.  Bespoke names remain
 // canonical; this trait is purely additive.
 //
 // @b Not @b a @b categorical @b claim.  The seven existing carrier-

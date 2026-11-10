@@ -18,7 +18,7 @@
 #include <functional>
 #include <stdexcept>
 #include <type_traits>
-#include <variant>  // SignedCardinality / Cardinality reach equality via ADL.
+#include <variant>  // SignedCardinality reaches equality via ADL.
 
 import dedekind.algebra;
 import dedekind.category;
@@ -32,8 +32,6 @@ using dedekind::morphologies::is_prime;
 using dedekind::morphologies::IsCyclic;
 using dedekind::morphologies::Modular;
 using dedekind::morphologies::𝔽ₚ;
-using dedekind::sets::Cardinality;
-using dedekind::sets::finite_cardinality;
 using dedekind::sets::finite_signed_cardinality;
 using dedekind::sets::SignedCardinality;
 using dedekind::sets::SignedExtensionalCardinal;
