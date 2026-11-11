@@ -49,7 +49,7 @@ module;
 export module dedekind.algebra:halfspace_transport;
 
 import dedekind.category; // IsAbelianGroup, is_left_total_v (the trait primary)
-import dedekind.sets;     // Set, 𝔸, Singleton, Numeral, SignedCardinality
+import dedekind.sets;     // Set, 𝔸, Singleton, Numeral, Integer
 import dedekind.order;    // Translation / Scaling, ProductRestrict, rays
 import dedekind.relational; // ComposePred (Tarski :dyadic), the >> trait NODE (#792)
 import :ordered_algebra;  // IsOrderedAdditiveGroup (the canonical gate)

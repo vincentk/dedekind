@@ -18,14 +18,11 @@ import dedekind.numbers;
 import dedekind.sets;
 
 using dedekind::numbers::Rational;
-using dedekind::sets::SignedExtensionalCardinal;
 
 namespace {
 
-// Fixed-width (one-limb) signed rational — the canonical ℚ carrier; embedded
-// sensor-fusion showcases get bit-for-bit determinism with no signed-long
-// overflow hazard.
-using Rat = Rational<SignedExtensionalCardinal<>>;
+// ℚ slice step 4: one Rational.
+using Rat = Rational<>;
 
 /**
  * @brief A stationary scalar Kalman filter with compile-time-fixed

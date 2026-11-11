@@ -20,15 +20,15 @@ using namespace dedekind::sets;
 // value-determined.  That is the value-safety basis for #922: e.g. S{7}∧¬S{3}
 // stays unreduced rather than collapsing to ⊥.
 static_assert(
-    IsIdempotentLeaf<Ø<SignedExtensionalCardinal<>>>,
+    IsIdempotentLeaf<Ø<ExtensionalCardinal<>>>,
     "a stateless boundary is value-determined (idempotent-collapsible)");
-static_assert(!IsIdempotentLeaf<Singleton<SignedExtensionalCardinal<>>>,
+static_assert(!IsIdempotentLeaf<Singleton<ExtensionalCardinal<>>>,
               "a runtime-stateful leaf is not idempotent-collapsible");
 
 TEST_CASE(
     "value-first subobject_reduce runs the boundary laws on values (#922)",
     "[sets][reducer][value-first]") {
-  using Card = SignedExtensionalCardinal<>;
+  using Card = ExtensionalCardinal<>;
   const 𝔸<Card> universe;          // 𝔸 = ⊤ of Sub(Card)
   const Ø<Card> empty;             // Ø = ⊥ of Sub(Card)
   const Singleton<Card> seven{7};  // a RUNTIME-stateful leaf (holds 7)

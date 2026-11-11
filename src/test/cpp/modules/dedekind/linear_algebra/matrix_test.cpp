@@ -19,22 +19,17 @@ import dedekind.category;
 import dedekind.numbers;
 import dedekind.linear_algebra;
 import dedekind.order; // dedekind::order::HasLatticeOperators on bool (bool lattice corner)
-import dedekind.sets; // SignedExtensionalCardinal (the canonical default_integer carrier; Rational<default_integer> sits over it for the rational lattice corner)
+import dedekind.sets;
 
 using namespace dedekind::analysis;
 using namespace dedekind::numbers;
 using namespace dedekind::linear_algebra;
 
 namespace {
-// Two spellings of ℚ, for two jobs.  Rat is the STRUCTURAL one: this file
-// uses it as a NON-TYPE template parameter (Invertible2x2<Rat, Rat{1L}, ...>),
-// and default_integer is a std::variant (non-structural), while
-// SignedExtensionalCardinal<> is all-public.  It is ℚ over a WRAPPING word, so
-// it is not certified a ring (a wrapped cross-product breaks associativity),
-// and it carries values and NTTPs here, never certificates.  Q is the
-// certified ℚ, over the saturating default_integer: the concept witnesses
-// (semimodule, matrix algebra, orthogonal group) are asked of Q.
-using Rat = Rational<dedekind::sets::SignedExtensionalCardinal<>>;
+// ℚ slice step 4: one Rational.  This file uses Rat as a NON-TYPE template
+// parameter (Invertible2x2<Rat, Rat{1L}, ...>), and ℤ's Integer keeps its
+// limbs in a std::vector, so it is not structural.
+using Rat = Rational<>;
 using Q = Rational<default_integer>;
 }  // namespace
 

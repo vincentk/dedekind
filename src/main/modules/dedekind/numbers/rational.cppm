@@ -46,51 +46,10 @@ using namespace dedekind::sets;
  * @class Rational
  * @brief The Field of Fractions over an Integral Domain Z.
  *
- * @details @b The @b countably-infinite @b fiction.  Over the saturating
- * carrier @c SignedCardinality this type @b models ℚ as a faithful,
- * @b strong-totally-ordered field over a countably infinite ℤ --- even though
- * no finite machine can hold arbitrarily large numerators / denominators.  The
- * carrier's sentinels (@c NaZ, @c ±ℵ_0) are @b not inhabitants of that ℚ; they
- * are the out-of-memory boundary of the finite backing.  Reaching one means the
- * computation has run off the edge of the fiction, so a non-finite
- * numerator / denominator is @b rejected (@c std::domain_error, see
- * @c reject_non_finite) rather than admitted as a value --- the OOM tripwire.
- * This is what keeps @c operator<=> a genuine @c std::strong_ordering and
- * preserves @c IsTotal / @c IsField (both load-bearing for the ℝ coat-hanger
- * downstream); a retained @c NaZ/1 would force @c <=> to @c partial_ordering
- * and quietly demote ℚ to a non-total order.
- *
- * @b Comparison is a tripwire too.  @c operator<=> cross-multiplies
- * (@f$a/b \lessgtr c/d \iff ad \lessgtr cb@f$), and on the saturating carrier
- * the cross-products can overflow even for two @b finite canonical rationals
- * (e.g. @f$M/2@f$ vs @f$(M{-}1)/3@f$ near @c UINT64_MAX).  Rather than let a
- * saturated intermediate read them EQUAL while @c == reads them unequal,
- * @c <=> @b rejects an overflowed cross-product (@c reject_non_finite_product)
- * --- the same OOM tripwire.  So the strong-total-order guarantee is precise:
- * @b every @c <=> that @b returns is a genuine strong-total verdict; a
- * comparison that would leave the finite backing throws instead.  Over the
- * client-contracted finite subset the branch is never taken.
- *
- * @par Client contract.
- * The fiction is @b deliberate: client code @b may pretend ℚ is truly infinite,
- * at the risk of hitting the OOM tripwire (in construction @b or comparison).
- * @b Robust client code constrains itself to a finite subset a priori --- e.g.
- * integers @f$-\text{max} < x < \text{max}@f$, or the canonicalised rationals
- * over that range --- so the tripwire is never reached.  The library does @b
- * not silently clamp on the client's behalf; it @b throws, so the boundary
- * stays visible (Honest Rejection, the same posture as division-by-zero).
+ * @details Over ℤ's @c Integer the fractions are exact, and no value
+ * denotes ∞: finite terms over finite atoms stay finite.
+ * ℚ slice step 3: one @c Rational, not a template (#1035).
  */
-/** @brief The rejection contract a saturating backing must offer ℚ's
- *  tripwire: @c is_finite(i), found by ADL, says whether @c i is a point of ℤ
- *  or a sentinel (@c ±ℵ_0 / @c NaZ).  @c Rational rejects a non-finite value
- *  wherever one can arise (construction, comparison); a saturating carrier
- *  without this hook would clamp silently and is not admitted as a backing
- *  (see @c FractionBacking).
- *  @tparam I the integer carrier. */
-export template <typename I>
-concept RejectsNonFinite = requires(const I& i) {
-  { is_finite(i) } -> std::same_as<bool>;
-};
 
 export template <IsInteger Z = default_integer>
 class Rational {
@@ -136,9 +95,7 @@ class Rational {
    *  reject.  This @c Rational(Z) form remains the canonical embedding
    *  when the caller already has a @c Z value in hand. */
   constexpr Rational(Z n)
-      : first(n), second(Z{1}) {  // NOLINT(google-explicit-constructor)
-    reject_non_finite();  // ℚ has no sentinels — reject a non-finite n (#680).
-  }
+      : first(n), second(Z{1}) {}  // NOLINT(google-explicit-constructor)
 
   /** @brief Embedding of any standard integral as a rational n/1, in @b one
    *  user-defined conversion.
@@ -155,51 +112,15 @@ class Rational {
    *      value-2);
    *    * generally, any context where an @c int literal lifts into
    *      @c Rational<Z> across one UDC.
-   *
-   *  Canonical example post-retarget: @c Z @c = @c
-   *  SignedExtensionalCardinal<>, whose @c S → @c SEC<> constructor
-   *  is itself a one-UDC step.
    */
   template <std::integral S>
     requires(!std::same_as<S, Z>)
   constexpr Rational(S n)  // NOLINT(google-explicit-constructor)
       : first(Z{n}), second(Z{1}) {}
 
-  /** @brief #680: ℚ has no sentinels.  On the saturating @c SignedCardinality a
-   *  non-finite numerator/denominator (@c NaZ / @c ±ℵ_0) is @b not a rational,
-   *  so @b reject it with @c std::domain_error (Honest Rejection at the carrier
-   *  boundary, the same posture as division-by-zero, cf. the @c embed_𝕃_ℚ
-   *  no-sentinels contract below).  This also avoids @c euclidean_gcd's
-   *  non-termination (@c NaZ @c % anything @c == @c NaZ) and the ordering
-   *  incoherence a retained @c NaZ/1 would cause (@c <=> would read it EQUAL to
-   *  @c 1/1 while @c == reads it unequal).  Generic over the backing through
-   *  @c RejectsNonFinite (the @c is_finite hook); a compile-time no-op for
-   *  carriers without sentinels (plain integers). */
-  constexpr void reject_non_finite() const {
-    if constexpr (RejectsNonFinite<Z>) {
-      if (!is_finite(first) || !is_finite(second))
-        throw std::domain_error(
-            "Rational: non-finite ℤ (NaZ / ±ℵ_0) is not a rational.");
-    }
-  }
-
-  /** @brief #680: the comparison-side OOM tripwire.  Throws @c
-   *  std::domain_error when a cross-product @c a.first*b.second (or its twin)
-   *  has saturated to a non-finite value, i.e. the comparison has left the
-   *  finite backing.  Compile-time no-op for carriers with no sentinels. */
-  static constexpr void reject_non_finite_product(const Z& lhs, const Z& rhs) {
-    if constexpr (RejectsNonFinite<Z>) {
-      if (!is_finite(lhs) || !is_finite(rhs))
-        throw std::domain_error(
-            "Rational: comparison cross-product overflowed the finite backing "
-            "(OOM tripwire).");
-    }
-  }
-
   /** @section rational__The_Simplification_Morphism */
   constexpr void simplify() {
     if (second == Z{0}) throw std::domain_error("Rational: Division by zero.");
-    reject_non_finite();  // #680: non-finite ℤ is not a rational (throw).
 
     Z common = euclidean_gcd(first, second);
     first = first / common;
@@ -220,17 +141,6 @@ class Rational {
                                                     const Rational& b) {
     const auto lhs = a.first * b.second;
     const auto rhs = b.first * a.second;
-    // #680: the cross-products are the OOM tripwire too.  On the saturating
-    // carrier, two *finite* canonical rationals can have cross-products that
-    // both overflow to the same +ℵ_0 (e.g. M/2 vs (M-1)/3 near UINT64_MAX);
-    // a silent fall-through would then read them EQUAL while == reads them
-    // unequal.  So a comparison whose cross-product leaves the finite backing
-    // is itself off the edge of the fiction — reject it (Honest Rejection),
-    // exactly as construction does.  Every <=> that RETURNS is therefore a
-    // genuine strong-total verdict.  (An overflow-free comparison over the
-    // full carrier would need a Stern-Brocot / continued-fraction walk; the
-    // client-contract finite subset never reaches this branch.)
-    reject_non_finite_product(lhs, rhs);
     if (lhs < rhs) return std::strong_ordering::less;
     if (rhs < lhs) return std::strong_ordering::greater;
     return std::strong_ordering::equal;
@@ -387,17 +297,6 @@ struct PartialEmbedIntegerToRational {
   using logic_species = Kleene;
 
   TernaryResult<Rational<I>> operator()(I n) const noexcept {
-    // #680: a non-finite ℤ (NaZ / ±ℵ_0) is off the edge of the countably-
-    // infinite fiction, so it does not embed as a rational.  This is the
-    // PARTIAL (Kleene) twin of the total arrow @c embed_ℤ_ℚ_: where that arrow
-    // THROWS at the boundary, the ternary surface models the same partiality
-    // with @c Ternary::False and stays honestly @c noexcept.  (Constructing
-    // @c Rational<I>{n,1} on a sentinel would reject with @c domain_error and,
-    // under this @c noexcept, terminate.)  The default 0/1 is finite, so its
-    // construction cannot throw.
-    if constexpr (std::same_as<I, dedekind::sets::SignedCardinality>) {
-      if (!dedekind::sets::is_finite(n)) return {Ternary::False, Rational<I>{}};
-    }
     return {Ternary::True, Rational<I>{n, static_cast<I>(1)}};
   }
 };
@@ -415,8 +314,7 @@ namespace dedekind::category {
 
 // NOTE: ℚ = @c Rational<Z> is @c IsTotal on the EXACT path (@c is_exact_total,
 // registered with the law registrations below): its arithmetic is closed and
-// lossless up to the out-of-memory tripwire, which @c Rational raises rather
-// than saturating.  The strict @c category::IsField<ℚ> rests on that; the
+// lossless.  The strict @c category::IsField<ℚ> rests on that; the
 // witness is pinned at the (3)-Semantics static_assert below.
 
 /** @brief Kleene traits for rational arithmetic. */
@@ -520,28 +418,24 @@ static_assert(std::same_as<typename Rational<default_integer>::IntegerCarrier,
 // quotient_algebra_base.  The laws are registered directly, each gated on the
 // same law holding for I AND on I not wrapping (FractionBacking): the law of
 // fractions is proved from the law on I only when no intermediate product
-// a*d, b*c wraps, so I must saturate or be exact under the op.  Over a
-// wrapping word (SignedExtensionalCardinal<W>) ℚ's laws are not certified.
+// a*d, b*c wraps, so I must be exact under the op.  Over a wrapping word
+// ℚ's laws are not certified.
 // Totality is the EXACT path (is_exact_total): ℚ's arithmetic is closed and
-// lossless up to the carrier's out-of-memory tripwire, which Rational raises
-// as std::domain_error rather than saturating.  The carrier-specific bits
+// lossless.  The carrier-specific bits
 // (identities 0/1 and 1/1, inverses) remain explicit below.
 // ---------------------------------------------------------------------------
 
 namespace dedekind::category {
 
 /** @brief An integer backing over which fraction arithmetic obeys ℚ's laws
- *  under @c Op: it does not wrap, so a wrapped intermediate cross-product
- *  cannot silently break a law.  Either it is exact, or it saturates @b and
- *  offers the @c is_finite hook (@c RejectsNonFinite) through which ℚ's
- *  tripwire rejects the saturated value instead of clamping.
+ *  under @c Op: it is exact, so no intermediate cross-product wraps and
+ *  silently breaks a law.
  *  @tparam I the integer carrier.
  *  @tparam Op the operation on @c I (@c std::plus / @c std::multiplies). */
 template <typename I, typename Op>
 concept FractionBacking =
     dedekind::morphologies::IsInteger<I> &&
-    (is_exact_total_v<I, Op> ||
-     (is_saturating_v<I, Op> && dedekind::numbers::RejectsNonFinite<I>));
+    is_exact_total_v<I, Op>;
 
 template <typename I>
   requires FractionBacking<I, std::plus<I>> &&
@@ -772,18 +666,12 @@ export using machine_integer = int;
 // `Frac` set-level lift removed under ℚ-retarget chiselling: depended
 // transitively on @c embed_ℤ_ℚ (removed above).  The carrier-lattice
 // functor zoo (@c Frac / @c Cplx / @c Dual / ...) at the set level
-// remains a valid target — the next iteration will restore @c Frac
-// on the new @c ℤ carrier (@c SignedCardinality) via @c embed_sint_ℤ
-// rather than the deprecated machine-layer arrow.
+// remains a valid target, on ℤ's @c Integer via @c embed_sint_ℤ.
 
 /**
- * @brief Restored variant-layer subalgebra embedding @b ℤ ↪ ℚ:
- *        @c SignedCardinality → @c Rational<default_integer>, @f$n\mapsto
- * n/1@f$.
+ * @brief The subalgebra embedding @b ℤ ↪ ℚ, @f$n\mapsto n/1@f$.
  *
- * @details Restores the arrow the comment above anticipated ("on the new @b ℤ
- * carrier @c SignedCardinality"), replacing the removed machine-layer
- * @c arrow<int,…>.  @f$n\mapsto n/1@f$ is the genuine ring embedding of ℤ into
+ * @details @f$n\mapsto n/1@f$ is the genuine ring embedding of ℤ into
  * its field of fractions ℚ: an @c EmbedsAsSubalgebra @b S-leg (the canonical
  * tower rung below @c embed_ℚ_ℝ) that is also @b order-preserving
  * (@c is_monotone_v) — the property the halfspace strength-reduction pulls back
@@ -799,9 +687,6 @@ export using machine_integer = int;
 export inline constexpr auto embed_ℤ_ℚ_ =
     arrow<default_integer, Rational<default_integer>>(
         [](const default_integer& n) {
-          // NOT noexcept: Rational(Z) rejects a non-finite ℤ (NaZ/±ℵ_0) with
-          // std::domain_error (#680), which must escape this arrow rather than
-          // hit std::terminate.
           return Rational<default_integer>{n};
         });
 
@@ -824,20 +709,10 @@ inline constexpr bool is_monotone_v<
 namespace dedekind::category {
 /** @brief ℤ ↪ ℚ preserves @f$+,\times,0,1@f$ — the field-of-fractions ring
  *  embedding, between two @b strict-total algebras: ℤ is @c category::IsRing
- *  (saturating totality, @c :cardinality) and ℚ is @c category::IsField (exact
+ *  (exact totality, @c :cardinality) and ℚ is @c category::IsField (exact
  *  totality, registered in this partition).  So the declarations here make a
  *  fully-certified ring homomorphism, not merely an operational declaration.
- *
- *  @b Boundary behaviour (#680, resolved): ℚ has @b no sentinels.  ℕ/ℤ
- *  saturate at the OOM/±ℵ_0 boundary; ℚ instead @b rejects a non-finite ℤ
- *  (@c NaZ / @c ±ℵ_0) at construction with @c std::domain_error --- the same
- *  Honest-Rejection posture as @c 1/0.  This is why @c embed_ℤ_ℚ_'s arrow is
- *  @b not @c noexcept: @c embed_ℤ_ℚ_(non-finite ℤ) propagates that
- *  @c domain_error rather than diverging in @c euclidean_gcd (the old hang) or
- *  fabricating an order-incoherent @c NaZ/1.  A retained sentinel would break
- *  ℚ's total order (@c NaZ/1 @c <=> @c 1/1 equal while @c == false), so
- *  rejection --- not saturation --- is the coherent fix.  The finite fragment
- *  is unaffected and still gcd-normalises at compile time. */
+ *  No value of either denotes ∞. */
 template <>
 struct is_homomorphism<
     std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>,
@@ -899,12 +774,8 @@ static_assert(embed_ℤ_ℚ_(ℤ_carrier{2}) < embed_ℤ_ℚ_(ℤ_carrier{3}),
  * The integer carrier @c I must hold the reduced 53-bit mantissa and the
  * power-of-two scaling.  For built-in signed @c I the arrow checks each step
  * against @c std::numeric_limits<I> and throws @c std::overflow_error rather
- * than trip signed-overflow UB.  The default @c default_integer
- * (@c SignedCardinality) stands in for ℤ, and its saturation sentinel is
- * ℚ's out-of-memory tripwire: @c Rational rejects it with
- * @c std::domain_error.  On the current one-word carrier the tripwire sits
- * at 2^63, so a double whose mantissa or power-of-two scaling exceeds that
- * (e.g. 1e20, 1e-20, every subnormal) trips it.
+ * than trip signed-overflow UB.  Over ℤ's @c Integer every finite double
+ * embeds.
  */
 export template <IsInteger I = default_integer>
 inline constexpr auto embed_𝕃_ℚ =
@@ -1003,8 +874,7 @@ struct SpeciesTraits<dedekind::numbers::Rational<Z>> {
 
 // embed_ℤ_ℚ monicity / IsEmbeddingFunctor / is_homomorphism
 // registrations removed under ℚ-retarget chiselling — the arrow
-// itself was removed (machine-layer ℕ → ℤ scaffolding).  Restoring
-// on the new ℤ carrier (SignedCardinality) lands as a follow-up.
+// itself was removed (machine-layer ℕ → ℤ scaffolding).
 
 }  // namespace dedekind::category
 
@@ -1071,21 +941,11 @@ static_assert(
                                 std::multiplies<Rational<default_integer>>>,
     "ℚ = Rational<default_integer> is a strict category::IsField (exact "
     "totality, laws registered on the carrier).");
-// ℚ does not saturate: the tripwire rejects, and the certificate says so.
+// ℚ does not saturate, and the certificate says so.
 static_assert(
     !dedekind::category::is_saturating_v<Rational<default_integer>,
                                          std::plus<Rational<default_integer>>>,
     "ℚ is exact, not saturating.");
-// Over a WRAPPING word the fraction laws are not certified: a wrapped
-// cross-product breaks associativity silently, so no field claim is made.
-static_assert(
-    !dedekind::category::associative<Rational<SignedExtensionalCardinal<>>>(
-        std::plus<Rational<SignedExtensionalCardinal<>>>{}) &&
-        !dedekind::category::IsField<
-            Rational<SignedExtensionalCardinal<>>,
-            std::plus<Rational<SignedExtensionalCardinal<>>>,
-            std::multiplies<Rational<SignedExtensionalCardinal<>>>>,
-    "fractions over a wrapping word are not certified a field.");
 // A field is a fortiori a ring and a semiring --- the full ladder on ℚ, pinned.
 static_assert(
     dedekind::category::IsRing<Rational<default_integer>,
@@ -1121,11 +981,6 @@ static_assert(
     "Rational<I> must satisfy the operational field-like witness (ℚ is a "
     "field).");
 
-static_assert(
-    dedekind::algebra::HasFieldOperators<Rational<SignedExtensionalCardinal<>>>,
-    "Rational<SignedExtensionalCardinal<>> must satisfy "
-    "HasFieldOperators: the fixed-width signed-rational carrier for ℚ.");
-
 // ---------------------------------------------------------------------------
 // Algebraic-soul concept certifications (dogfood the library's own concepts)
 // ---------------------------------------------------------------------------
@@ -1152,10 +1007,6 @@ static_assert(dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
               "Rational<default_integer> has the literal field-operator "
               "surface: +, -, unary -, *, / all close on Rational, and "
               "Rational{1} is the multiplicative unit.");
-static_assert(
-    dedekind::algebra::HasFieldOperators<Rational<SignedExtensionalCardinal<>>>,
-    "Rational<SignedExtensionalCardinal<>> --- the canonical exact ℚ "
-    "carrier --- has the field-operator surface.");
 
 // Canonical-spine syntactic witnesses on Rational<default_integer>:
 // the ring / additive-group / multiplicative-group surfaces are all

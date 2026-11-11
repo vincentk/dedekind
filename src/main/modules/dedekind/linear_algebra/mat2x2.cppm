@@ -907,7 +907,7 @@ constexpr Matrix2x2V<T> operator/(const Covec2V<T>& a, const Covec2V<T>& b) {
 namespace detail {
 
 // The canonical total field ℚ = Rational<default_integer> (default_integer is
-// the saturating SignedCardinality), NOT the raw signed-`long` shortcut: since
+// ℤ's Integer), NOT the raw signed-`long` shortcut: since
 // #559 these witnesses are strict (they thread through the semimodule
 // contract), and `long`'s `+` is an overflow hazard the honest `IsTotal`
 // refuses.  Totality distributes from this scalar to Vec2V / Matrix2x2V (the §4

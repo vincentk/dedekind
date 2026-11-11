@@ -45,7 +45,7 @@ export import :galois;
 export import :magma;   // base rung of the algebra tower (algebraic-set magma)
 export import :monoid;  // additive / multiplicative / generic monoid rungs
 export import :group;
-export import :initial_ring;  // SignedExtensionalCardinal<> as Initial Ring +
+export import :initial_ring;  // Integer as Initial Ring +
                               // Grothendieck Group of ℕ (closes part of #446)
 export import :free;          // IsFreeAlgebra<F> + structural-trait propagation
                       // (textbook companion to HSP; R[x] etc.; #498/#499)

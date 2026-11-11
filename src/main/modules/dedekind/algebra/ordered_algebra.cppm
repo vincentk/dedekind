@@ -52,31 +52,25 @@ module;
 export module dedekind.algebra:ordered_algebra;
 
 import dedekind.category; // IsAbelianGroup, IsCommutativeRing, IsField
-import dedekind.sets;     // Integer, SignedCardinality
+import dedekind.sets;     // Integer
 import :group;            // Inverse<G, Op>: the reified group-inverse arrow
 
 namespace dedekind::algebra {
 
 /**
  * @brief Marker trait: @c T is a non-cyclic ordered additive group
- *        whose order is translation-invariant, with the saturating
- *        escape contract for values that would exceed representable
- *        capacity.
+ *        whose order is translation-invariant.
  *
  * @details
  * Defaults to @c false.  Carriers opt in via specialisation when their
- * arithmetic is @b not @b cyclic --- i.e.\ they @b saturate or
- * @b escalate (e.g.\ to @f$\pm \aleph_0@f$ sentinels) rather than
- * wrapping at the representable bound.  Saturation preserves the
- * partial order @f$\le@f$ under translation (if @c a @c <= @c b then
- * @c a+c @c <= @c b+c, including the case where both saturate to the
- * same sentinel); wrapping does @b not (the modular wrap reverses the
- * order at the boundary).
+ * arithmetic is @b not @b cyclic: translation preserves the order
+ * @f$\le@f$ (if @c a @c <= @c b then @c a+c @c <= @c b+c); wrapping does
+ * @b not (the modular wrap reverses the order at the boundary).
  *
  * @note The fact this marker discriminates is @b cyclicity, not
- *       boundedness: an exact carrier (ℤ = @c sets::Integer, ℚ) and a
- *       saturating one stay order-preserving under translation; a modular
- *       carrier (@c unsigned @c int, @c sets::SignedExtensionalCardinal<S>)
+ *       boundedness: an exact carrier (ℤ = @c sets::Integer, ℚ) stays
+ *       order-preserving under translation; a modular
+ *       carrier (@c unsigned @c int, @c sets::ExtensionalCardinal<W>)
  *       wraps, reversing the order at the boundary, and fails the marker by
  *       default.
  */
@@ -87,13 +81,6 @@ struct is_translation_invariant_ordered : std::false_type {};
  *  everywhere, with no boundary to escalate at. */
 export template <>
 struct is_translation_invariant_ordered<dedekind::sets::Integer>
-    : std::true_type {};
-/** @brief The saturating proxy @c sets::SignedCardinality, for the interval
- *  pipe that still reads its ends as @f$\pm\aleph_0@f$ (#1035's next slice):
- *  translation preserves the order on the finite fragment, and both sides
- *  saturate to one sentinel past it. */
-export template <>
-struct is_translation_invariant_ordered<dedekind::sets::SignedCardinality>
     : std::true_type {};
 
 export template <typename T>

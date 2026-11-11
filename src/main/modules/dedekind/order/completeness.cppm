@@ -100,7 +100,7 @@ concept IsDiscrete = IsPartiallyOrdered<T> && dedekind::category::HasNNOStep<T>;
  * @c (a + b) / 2 so that the @b carrier itself supplies the value
  * @c 2 (via the @c T{2} structural constructor), rather than relying
  * on mixed-type @c T-vs-int arithmetic.  This matters for variant
- * exact carriers (@c SignedExtensionalCardinal<>, @c Rational<...> over
+ * exact carriers (@c Integer, @c Rational<...> over
  * such) which do not implicitly inter-operate with literal @c int ---
  * forcing the carrier to construct its own @c 2 keeps the concept
  * honest across both built-in (@c int, @c double) and exact carriers.

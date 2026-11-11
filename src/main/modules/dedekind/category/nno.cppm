@@ -376,15 +376,12 @@ struct Prior {
  *  The structure map @f$[Z, S] : 1 + N \to N@f$ of the @b initial algebra is an
  *  isomorphism, with inverse @f$\langle \text{is}\;Z?,\, P\rangle@f$.  Here
  * that reads @c IsIsomorphism<In<N>> (@c :morphism), which an @c inverse(In<N>)
- *  overload would declare.  No shipped carrier declares one, each for its own
- *  reason, witnessed on values below and in @c numbers: ℤ (@c int,
- *  @c SignedCardinality) is a group, @c S(−1) @c = @c Z; the bounded chains
- *  (K₃, ℕ's proxy) saturate, so @c S is not injective at ⊤ (the largest finite
- *  cardinal and ℵ₀ both step to ℵ₀); and the signed machine integers have no
- *  value at @c S(max) at all, the same refusal as their ring claim
- *  (@c sets:cardinality).  Likewise no step is declared a bijection: ℤ's proxy
- *  saturates, and @c S ⊣ P on it is registered as the adjunction it is
- *  (@c numbers:integer), not derived from an iso it is not. */
+ *  overload would declare.  ℕ's @c Numeral declares one (@c sets:cardinality).
+ *  The others do not, each for its own reason, witnessed on values below: ℤ
+ *  (@c int, @c Integer) is a group, @c S(−1) @c = @c Z; the bounded chains
+ *  (K₃) saturate, so @c S is not injective at ⊤; and the signed machine
+ *  integers have no value at @c S(max) at all, the same refusal as their ring
+ *  claim (@c sets:cardinality). */
 
 static_assert(cover(5) == 6 && !cover(std::numeric_limits<int>::max()) &&
                   lower_cover(5) == 4 &&

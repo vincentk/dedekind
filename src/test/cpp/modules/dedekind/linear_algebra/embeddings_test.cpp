@@ -27,11 +27,10 @@ using namespace dedekind::algebra;
 using namespace dedekind::analysis;  // Dual<F>
 using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
-using dedekind::sets::SignedExtensionalCardinal;
 
 namespace {
-// Fixed-width (one-limb) signed rational — the canonical ℚ carrier.
-using Rat = Rational<SignedExtensionalCardinal<>>;
+// ℚ slice step 4: one Rational.
+using Rat = Rational<>;
 }  // namespace
 
 TEST_CASE("algebra:modules — operator-shape witnesses for bona fide scalars",

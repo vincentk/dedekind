@@ -42,9 +42,9 @@ import dedekind.sets;
 using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::optimization;
-using dedekind::sets::SignedExtensionalCardinal;
 
-using Rat = Rational<SignedExtensionalCardinal<>>;
+// ℚ slice step 4: one Rational, the vertex as a constexpr value.
+using Rat = Rational<>;
 
 // The unit-square pack: signed-unimodular + axis-aligned.
 using U1 = Halfspace2D<Rat, Rat{1}, Rat{0}, Rat{1}>;   //  x ≤ 1

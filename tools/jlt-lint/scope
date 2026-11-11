@@ -262,7 +262,7 @@ rule3-no-loops               src/main/modules/dedekind/sets/si*.cppm  sets  0
 rule3-no-loops               src/main/modules/dedekind/sets/terms.cppm  sets  9
 rule3-no-self-recursion      src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
 rule3-bounded-fold           src/main/modules/dedekind/sets/boundaries.cppm  sets  0
-rule3-bounded-fold           src/main/modules/dedekind/sets/cardinality.cppm  sets  1
+rule3-bounded-fold           src/main/modules/dedekind/sets/cardinality.cppm  sets  0
 rule3-bounded-fold           src/main/modules/dedekind/sets/computability.cppm  sets  0
 rule3-bounded-fold           src/main/modules/dedekind/sets/expressions.cppm  sets  0
 rule3-bounded-fold           src/main/modules/dedekind/sets/extensional.cppm  sets  8

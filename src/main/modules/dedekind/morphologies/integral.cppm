@@ -106,32 +106,6 @@ concept IsInteger =
       { a / b } -> std::same_as<T>;
     };
 
-/** @brief Saturating-ℤ-shape integer: integer surface + translation-invariant
- *         order (sentinels propagate cleanly; no cyclic wrap).  The variant
- *         ℤ proxy @c SignedCardinality is the canonical witness.
- *
- *  The classifier uses @c is_translation_invariant_ordered_v as the
- *  carrier-promise marker (registered in @c :algebra:ordered_algebra on
- *  @c SignedCardinality); the cyclic alternative is gated below by
- *  @c IsCyclicGroup<T, std::plus<T>> rather than the duck-typed
- *  @c morphologies::IsCyclic shape concept, which checks for the
- *  @c Modular<N>-shaped member API (@c Domain / @c generator() /
- *  @c successor()) and would not fire on @c SignedExtensionalCardinal<>.
- */
-export template <typename T>
-concept IsSaturatingInteger =
-    IsInteger<T> && is_translation_invariant_ordered_v<T>;
-
-/** @brief Cyclic-ℤ-shape integer: integer surface + abelian-group-cyclic
- *         under @c +.  @c SignedExtensionalCardinal<> (sign-magnitude
- *         @c ℤ/2^{N*64}ℤ) is the canonical witness via
- *         @c IsCyclicGroup<SignedExtensionalCardinal<>, std::plus<>>
- *         pinned in @c :sets:cardinality.
- */
-export template <typename T>
-concept IsCyclicInteger =
-    IsInteger<T> && dedekind::category::IsCyclicGroup<T, std::plus<T>>;
-
 /** @section integral__Formal_Verification Umbrella negative claims under
  * arithmetic.
  *
@@ -171,21 +145,12 @@ static_assert(!IsAlgebra<bool, std::plus<>, std::multiplies<>>,
 
 /** @section integral__IsInteger_Witnesses
  *
- * @c ExtensionalCardinal<> and @c SignedExtensionalCardinal<> are the
- * project's two structurally-faithful @c IsInteger witnesses: the cyclic
- * ℤ/2^w read unsigned and read in two's complement, on the same word.  The
- * variant ℤ proxy
- * @c SignedCardinality is the saturating sibling — it inherits
- * @c IsInteger transitively through its finite-fragment alternative
- * but is gated separately via @c IsSaturatingInteger above.
+ * @c ExtensionalCardinal<> is the structurally-faithful @c IsInteger
+ * witness: the cyclic ℤ/2^w read unsigned.
  */
 static_assert(IsInteger<ExtensionalCardinal<>>,
               "ExtensionalCardinal<> must satisfy IsInteger (Euclidean "
               "ring: +, -, *, /, % with two's-complement wrapping).");
-
-static_assert(IsInteger<SignedExtensionalCardinal<>>,
-              "SignedExtensionalCardinal<> must satisfy IsInteger (Euclidean "
-              "signed ring: two's complement, wrapping at 2^(w-1)).");
 
 /** @section integral__Residue_Preimage
  *
@@ -221,9 +186,7 @@ static_assert(IsInteger<SignedExtensionalCardinal<>>,
  * the
  * @c IsCongruenceQuotient side-condition (#803).  This is precisely the
  * discrete circle @c ℤ/L the torus rotates on (@c L a power of two).  @c bool
- * and the saturating/variant ℤ-proxy @c SignedCardinality (whose @c ±ℵ_0
- * saturation breaks residue-equivalence, and which @c Congruence cannot reduce)
- * are declined by construction.
+ * is declined by construction.
  */
 export template <typename T, typename K, auto N, decltype(N) R, typename L,
                  typename C>
@@ -250,25 +213,5 @@ static_assert(preimage(ℤ4 * ℤ4 & π_1 + 1u == π_2, Congruence<4u, 2u>{})(1u
                             Congruence<4u, 2u>{})(2u),
               "preimage(x↦x+1, {x≡2 mod 4}) = {x≡1 mod 4} on ℤ/2^w.");
 }  // namespace
-
-/** @section integral__Classifier_Partition_Witnesses
- *
- * The two structural ℤ proxies partition cleanly across
- * @c IsSaturatingInteger / @c IsCyclicInteger.  These pins document the
- * intended classification so future trait changes cannot silently invert
- * the partition.
- */
-static_assert(IsSaturatingInteger<SignedCardinality>,
-              "SignedCardinality is the canonical saturating-ℤ witness "
-              "(translation-invariant order; ±ℵ_0 / NaZ escalation).");
-static_assert(!IsCyclicInteger<SignedCardinality>,
-              "SignedCardinality is NOT cyclic: it is the saturating "
-              "ℤ proxy, not a finite cyclic group.");
-static_assert(IsCyclicInteger<SignedExtensionalCardinal<>>,
-              "SignedExtensionalCardinal<> is the canonical cyclic-ℤ "
-              "witness (two's-complement ℤ/2^w under +).");
-static_assert(!IsSaturatingInteger<SignedExtensionalCardinal<>>,
-              "SignedExtensionalCardinal<> is NOT saturating: it wraps "
-              "cyclically rather than escalating to a sentinel.");
 
 }  // namespace dedekind::morphologies

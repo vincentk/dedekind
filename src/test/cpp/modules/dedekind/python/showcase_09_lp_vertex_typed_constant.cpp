@@ -42,11 +42,9 @@ import dedekind.sets;
 using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::optimization;
-using dedekind::sets::SignedExtensionalCardinal;
 
-// Fixed-width (one-limb) signed rational: the canonical ℚ. Wraps at
-// 2^63 instead of tripping signed-overflow UB.
-using Rat = Rational<SignedExtensionalCardinal<>>;
+// ℚ slice step 4: one Rational, the vertex as a constexpr value.
+using Rat = Rational<>;
 
 // Constraints of the paper-facing LP instance.
 using H1 = Halfspace2D<Rat, Rat{1}, Rat{1}, Rat{4}>;   //  x +  y ≤ 4

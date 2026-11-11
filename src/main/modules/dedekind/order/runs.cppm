@@ -83,7 +83,7 @@ export constexpr Strictness flip(Strictness s) {
  *  self-declare so the point-free @c A|pred halfspace classifies identically
  *  to the scout comprehension (which inherits the ambient @c C directly).
  *  Otherwise fall back to the @c IsRingIntegral discriminator: the structural
- *  integers @b and the @c SignedCardinality (ℤ) proxy are
+ *  integers are
  *  @c ℵ_0, and the real proxies (@c QuadraticReal, @c double) are the continuum
  *  @c ℶ_1.  The bound only has to be tight enough for the countability
  *  verdict (@c IsCountable). */
@@ -229,16 +229,15 @@ template <typename V>
 concept HasLatticeTopValue =
     requires { LatticeTop<V, std::less_equal<V>>::value; };
 /** @brief The carrier's least element, where it has one as a value: a
- *  registered lattice bottom (the machine words), ℕ's 0 and ℤ's −ℵ₀, a truth
- *  chain's ⊥.  @tparam V the carrier. */
+ *  registered lattice bottom (the machine words), ℕ's 0, a truth chain's ⊥.
+ *  ℤ has none: its missing bound is the absence of a bound.
+ *  @tparam V the carrier. */
 template <typename V>
 constexpr std::optional<V> least() {
   if constexpr (HasLatticeBottomValue<V>)
     return LatticeBottom<V, std::less_equal<V>>::value;
   else if constexpr (std::same_as<V, Numeral>)
     return V{};
-  else if constexpr (std::same_as<V, SignedCardinality>)
-    return SignedCardinality{NegativeInfinity{}};
   else if constexpr (IsPst<V>)
     return unit<V>(Sup{});
   else
@@ -250,8 +249,6 @@ template <typename V>
 constexpr std::optional<V> greatest() {
   if constexpr (HasLatticeTopValue<V>)
     return LatticeTop<V, std::less_equal<V>>::value;
-  else if constexpr (std::same_as<V, SignedCardinality>)
-    return SignedCardinality{PositiveInfinity{}};
   else if constexpr (IsPst<V>)
     return unit<V>(Inf{});
   else

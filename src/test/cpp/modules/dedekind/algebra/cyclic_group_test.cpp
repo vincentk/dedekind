@@ -46,13 +46,11 @@ TEST_CASE("IsCyclicGroup — primitive unsigned integrals",
   STATIC_CHECK(cyclic_order_v<std::size_t, std::plus<std::size_t>> == 0);
 }
 
-TEST_CASE("IsCyclicGroup — ExtensionalCardinal and signed counterpart",
+TEST_CASE("IsCyclicGroup — ExtensionalCardinal",
           "[algebra][cyclic-group][cardinal]") {
   using C1 = dedekind::sets::ExtensionalCardinal<>;
-  using Z1 = dedekind::sets::SignedExtensionalCardinal<>;
 
   STATIC_CHECK(IsCyclicGroup<C1, std::plus<C1>>);
-  STATIC_CHECK(IsCyclicGroup<Z1, std::plus<Z1>>);
 }
 
 TEST_CASE("IsCyclicGroup — bool under bit_xor is the additive 𝔽2 group",

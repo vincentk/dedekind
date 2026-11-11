@@ -261,9 +261,9 @@ constexpr std::uint64_t φ_hat(const Integer& z) {
   return z.negative() ? std::uint64_t{} - φ(z.magnitude()) : φ(z.magnitude());
 }
 static_assert(IsGrothendieckGroup<Integer, Numeral> && IsInitialRing<Integer> &&
-                  !IsInitialRing<SignedExtensionalCardinal<>>,
+                  !IsInitialRing<ExtensionalCardinal<>>,
               "ℤ is the Grothendieck group of ℕ and the initial ring; a "
-              "signed word is ℤ/2^64, neither");
+              "word is ℤ/2^64, neither");
 static_assert(φ_hat(Integer{two_64()}) == φ(two_64()) &&
                   φ_hat(Integer{Numeral{top}}) == φ(Numeral{top}) &&
                   φ_hat(Integer{}) == std::uint64_t{},

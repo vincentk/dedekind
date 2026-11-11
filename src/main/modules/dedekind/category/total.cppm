@@ -76,10 +76,9 @@ inline constexpr bool is_periodic_v = is_periodic<T, Op>::value;
 /** @section total__Property_Ledger_2: Saturation
  *  A type is saturating under @c Op if it defines an extended-range
  *  topology where "stepping off the edge" escalates to a saturating
- *  value (e.g.\ @f$\pm \aleph_0@f$) rather than wrapping.  The
- *  archetypal carrier is @c sets::SignedCardinality (#377) ---
- *  the ℤ ∪ {±ℵ_0, NaZ} extended-integer carrier whose @c + is total
- *  by escalation, not by wrap.
+ *  value (e.g.\ the top of a bounded chain) rather than wrapping.  The
+ *  archetypal carrier is a finite chain such as K₃, whose join is total
+ *  by absorption at ⊤, not by wrap.
  *
  *  Distinct from @c is_idempotent_v, which says the operation is
  *  globally stable (a*a = a for all a).  Saturation is the milder
@@ -169,8 +168,6 @@ concept IsPeriodic = is_periodic_v<T, Op>;
  * variables; @c IsTotal in @c :total reaches for the trait
  * variable @c is_saturating_v directly so the upstream layer does
  * not depend on this partition's concept-level surface.
- *
- * Introduced under #377 for @c sets::SignedCardinality.
  */
 export template <typename T, typename Op = std::plus<T>>
 concept IsSaturating = is_saturating_v<T, Op>;
@@ -247,9 +244,8 @@ concept IsClosedUnderEither = IsClosedUnder<T, Op> || IsClosedUnderUnary<T, Op>;
  *  hence reach @c IsField --- rather than being excluded as
  *  "non-machine-total".  It is registered for @c Rational = ℚ and
  *  @c QuadraticReal = ℚ(√D), and for ℕ's @c Numeral and ℤ's @c Integer.
- *  The saturating proxy @c SignedCardinality is total via @c is_saturating
- *  (it escalates to @f$\pm\aleph_0@f$).  (The two postures are distinct and
- *  a carrier picks exactly one.)  The named concept @c IsSaturating that wraps
+ *  A saturating carrier is total via @c is_saturating instead.  (The two
+ *  postures are distinct and a carrier picks exactly one.)  The named concept @c IsSaturating that wraps
  *  @c is_saturating_v lives in @c dedekind.category:mereology; here we reach
  *  for the underlying trait variables directly so this upstream-foundational
  *  layer does not depend on that partition.
@@ -647,7 +643,6 @@ static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
  * all finite cyclic carriers that matter --- @c unsigned int /
  * @c unsigned long / @c size_t under @c std::plus (wrapping at
  * @f$2^w@f$), @c ExtensionalCardinal<W> under @c std::plus,
- * @c SignedExtensionalCardinal<S> under @c std::plus,
  * @c morphologies::Modular<N> under @c std::plus --- are cyclic
  * specialisations of the abelian-group case.
  *

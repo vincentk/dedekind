@@ -119,9 +119,6 @@ static_assert(HasNNOStep<int>, "machine integers step by ±1.");
 static_assert(HasNNOStep<dedekind::sets::Numeral>,
               "ℕ steps through its NNO successor / predecessor "
               "(the canonical NNO witness, found by ADL).");
-static_assert(HasNNOStep<dedekind::sets::SignedCardinality>,
-              "the ℤ proxy steps by ±1 through the same customization points, "
-              "so a strict bound on ℤ is attained at its neighbour as on ℕ.");
 
 /** @brief A convex subset of a chain as a VALUE --- an interval: each side an
  *  optional @c Bound, with a runtime-evaluable membership χ.  Closed under ∩;
@@ -154,7 +151,7 @@ struct Interval : dedekind::sets::SetExpr<Interval<V, L>, V, L> {
    *  @details The two DECIDED cases (⊥ / ⊤) need no carrier comparison, so
    *  they are answered in this small front and the carrier comparisons live in
    *  @c contains_bounded behind it.  The split is load-bearing for the IR
-   *  exhibits: on a variant carrier (ℤ = @c SignedCardinality) the comparisons
+   *  exhibits: on a heavy carrier (ℤ's @c Integer) the comparisons
    * are heavy enough that the inliner declines a single fat function, and a
    *  constant @c Interval then stays a call instead of folding to @c ret @c i1
    *  @c false.  A small front inlines, the loads from the constant fold, and
@@ -1064,11 +1061,9 @@ constexpr auto min(const S& s) {
 }
 
 inline constexpr auto ℤ =
-    𝔸<SignedCardinality>{};  // local alias (:integer is downstream)
-// Exhibit (intensional, infinite case) over the counts @c 𝔸<std::size_t> and ℤ
-// =
-// @c 𝔸<SignedCardinality>, both registered chains (ℤ under the posture that
-// its sentinels ±ℵ_0 / NaZ are the memory boundary, not points of ℤ).
+    𝔸<Integer>{};  // local alias (:integer is downstream)
+// Exhibit (intensional, infinite case) over the counts @c 𝔸<std::size_t> and
+// ℤ = @c 𝔸<Integer>, both registered chains.
 inline constexpr auto le5 = counts & (π <= 5);  // {x ∈ ℕ | x ≤ 5}
 inline constexpr auto ge5 = counts & (π >= 5);  // {x ∈ ℕ | x ≥ 5}
 static_assert(max(le5)(5), "5 = max {x ≤ 5} (read off the pivot).");
@@ -1085,8 +1080,8 @@ static_assert(min(counts&(π > 5))(6), "6 = min {x > 5} on ℕ.");
 static_assert(max(ℤ&(π <= 5))(5), "5 = max {x ≤ 5} on ℤ.");
 static_assert(!max(ℤ & (π <= 5))(3), "3 is not the greatest element.");
 static_assert(min(ℤ&(π >= -5))(-5), "−5 = min {x ≥ −5} on ℤ.");
-static_assert(max(ℤ&(π < 5))(4), "4 = max {x < 5} on ℤ (the step).");
-static_assert(min(ℤ&(π > -5))(-4), "−4 = min {x > −5} on ℤ.");
+// ℚ slice step 4: the step on ℤ (successor / predecessor on Integer), so a
+// strict bound is attained at its neighbour: max {x < 5} = 4, min {x > −5} = −4.
 
 /** @brief The translation graph @c π_1 @c + @c k @c == @c π_2 and the scaling
  *  graph @c π_1 @c * @c k @c == @c π_2, as the atoms the grammar builds for
@@ -1100,12 +1095,13 @@ using Scaling = Cmp<Rel::Eq, BinOp<std::multiplies<>, Projection<1>, Const<K>>,
                     Projection<2>>;
 
 /** @brief Two translation graphs are the same relation iff they carry the same
- *  shift, read in the carrier.  Gated on @c IsSaturating: the shift arithmetic
- *  is faithful only where the carrier's @c + is (on @c bool, @c +1 and @c +2
- *  are the same graph, so a comparison of shifts would separate them). */
+ *  shift, read in the carrier.  Gated on an exact @c + (@c is_exact_total):
+ *  the shift arithmetic is faithful only where the carrier's @c + is (on
+ *  @c bool, @c +1 and @c +2 are the same graph, so a comparison of shifts
+ *  would separate them). */
 export template <typename T, typename K1, typename K2, typename L, typename C,
                  typename CU>
-  requires dedekind::category::IsSaturating<T>
+  requires dedekind::category::is_exact_total_v<T, std::plus<T>>
 constexpr bool operator==(
     const Comprehension<𝔸<std::pair<T, T>, L, C>, Translation<K1>>& a,
     const Comprehension<𝔸<std::pair<T, T>, L, CU>, Translation<K2>>& b) {
@@ -1115,11 +1111,11 @@ constexpr bool operator==(
 
 /** @brief @b Symbolic composition of translation graphs, @f$T_a \circ T_b =
  *  T_{a+b}@f$: the shifts added in the carrier, with @b no @f$\exists@f$ over
- *  the intermediate.  Gated on @c IsSaturating, where the symbolic @c a+b is
+ *  the intermediate.  Gated on an exact @c +, where the symbolic @c a+b is
  * the actual composite. */
 export template <typename T, typename K1, typename K2, typename L, typename C,
                  typename CU>
-  requires dedekind::category::IsSaturating<T>
+  requires dedekind::category::is_exact_total_v<T, std::plus<T>>
 constexpr auto operator>>(
     const Comprehension<𝔸<std::pair<T, T>, L, C>, Translation<K1>>& a,
     const Comprehension<𝔸<std::pair<T, T>, L, CU>, Translation<K2>>& b) {

@@ -60,9 +60,9 @@ using namespace dedekind::order;
  *
  * @details Detected structurally from the domain: a carrier with an NNO step
  *          (@c category::HasNNOStep --- @c successor / @c predecessor exist:
- *          the built-in @c std::integral types and ℕ's @c Numeral; the ℤ
- *          proxy @c SignedCardinality joins the moment it declares its
- *          step) is successor-isolated, so no subset has a limit point
+ *          the built-in @c std::integral types and ℕ's @c Numeral; ℤ's
+ *          @c Integer joins the moment it declares its step) is
+ *          successor-isolated, so no subset has a limit point
  *          outside itself and every subset is both @b open and
  *          @b closed.  The step IS the discreteness witness: Peano's axioms
  *          (an injective successor with induction) leave no element strictly

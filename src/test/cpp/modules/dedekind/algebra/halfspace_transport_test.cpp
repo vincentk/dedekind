@@ -34,7 +34,7 @@ using namespace dedekind::order;
 using dedekind::sequences::operator>>;
 
 namespace {
-inline constexpr auto ℤ = 𝔸<SignedCardinality>{};
+inline constexpr auto ℤ = 𝔸<Integer>{};
 using dedekind::algebra::𝔽64;  // GF(2⁶): operator+ is XOR (characteristic 2)
 
 // ── #876 finding 2: the translation graph IS a categorical equalizer ─────────
@@ -45,7 +45,7 @@ using dedekind::algebra::𝔽64;  // GF(2⁶): operator+ is XOR (characteristic 
 // pins on the predicate slot of the (domain, codomain, predicate) triple, not
 // on a Set→Ω arrow view.  Pinned via category::IsEqualizer for future/CP
 // reference.
-using ZT = SignedCardinality;
+using ZT = Integer;
 struct Pi1Plus3Arrow {
   using Domain = std::pair<ZT, ZT>;
   using Codomain = ZT;
@@ -108,10 +108,11 @@ static_assert(image((ℕ * ℕ & π_1 * 1u == π_2) & π_1 > 5u) == (ℕ & (π >
 // composition.
 static_assert(
     (image(((ℤ * ℤ & π_1 + 2 == π_2) >> (ℤ * ℤ & π_1 + 3 == π_2)) & π_1 <= 1) &
-     (ℤ & (π > 6))) == Ø<SignedCardinality>{},
+     (ℤ & (π > 6))) == Ø<Integer>{},
     "constrained image of the composite T₂∘T₃ collapses: {y≤6} ∩ {y>6} = ∅.");
 
 // ── is_function / is_entire, and argmax over a partial function ──────────────
+// ℚ slice step 2: the residue atom π_2 % 3 needs % on Integer.
 static_assert(is_function(ℤ * ℤ & π_1 + 3 == π_2),
               "the graph of x+3 is a total function (functional ∧ entire).");
 static_assert(is_entire(ℤ * ℤ & π_1 + 3 == π_2),
@@ -261,7 +262,7 @@ static_assert(preimage(ℤ * ℤ & π_1 + 5 == π_2, ℤ&(π <= 8)) == (ℤ & (�
 TEST_CASE(
     "algebra:halfspace_transport — a function is its graph: inverse/image",
     "[algebra][relation][function][inverse][image]") {
-  constexpr auto Z = 𝔸<SignedCardinality>{};
+  constexpr auto Z = 𝔸<Integer>{};
   const auto f = Z * Z & π_1 + 3 == π_2;  // graph of x ↦ x+3
 
   STATIC_CHECK(is_function(f));
@@ -286,7 +287,8 @@ TEST_CASE(
 // {x≤5 ∧ x≡0 mod3}, and argmax reads the constrained optimum (3) structurally.
 TEST_CASE("algebra:halfspace_transport — argmax over a partial function",
           "[algebra][argmax][partial][optimization]") {
-  constexpr auto Z = 𝔸<SignedCardinality>{};
+  constexpr auto Z = 𝔸<Integer>{};
+  // ℚ slice step 2: % on Integer.
   const auto g = Z * Z & π_1 + 3 == π_2 & (π_2 <= 8 && π_2 % 3 == 0);
   STATIC_CHECK(!is_entire(g));
   STATIC_CHECK(is_entire(Z * Z & π_1 + 3 == π_2));
@@ -303,7 +305,7 @@ TEST_CASE("algebra:halfspace_transport — argmax over a partial function",
 // halfspace pushed forward.  Sound where a lone retract is not; no walk.
 TEST_CASE("algebra:halfspace_transport — image of the sign-fold reflection",
           "[algebra][image][reflection]") {
-  constexpr auto Z = 𝔸<SignedCardinality>{};
+  constexpr auto Z = 𝔸<Integer>{};
   const auto absNeg = Z * Z & π_1 * -1 == π_2 & π_1 < 0;  // x↦-x, x<0
   const auto img = image(absNeg);                         // {y>0}
   volatile int three = 3, minus2 = -2, zero = 0;
@@ -320,7 +322,7 @@ TEST_CASE("algebra:halfspace_transport — image of the sign-fold reflection",
 // ⟺ f(a) ∈ P, checked at the boundary; reflection flips the sense.
 TEST_CASE("algebra:halfspace_transport — preimage, the contravariant inverse",
           "[algebra][preimage][pullback][inverse]") {
-  constexpr auto Z = 𝔸<SignedCardinality>{};
+  constexpr auto Z = 𝔸<Integer>{};
   const auto f = Z * Z & π_1 + 3 == π_2;       // x ↦ x+3
   const auto dom = preimage(f, Z & (π <= 8));  // derived {x ≤ 5}
   volatile int five = 5, six = 6;
@@ -390,13 +392,11 @@ TEST_CASE(
 // direct concept-satisfaction witness.
 // ---------------------------------------------------------------------------
 
-// SignedCardinality (the project's saturating ℤ proxy) is the positive
-// witness: it opts into the translation-invariance marker, so the ordered
-// additive-group concept fires.
-static_assert(
-    dedekind::algebra::is_translation_invariant_ordered_v<SignedCardinality>,
-    "SignedCardinality opts into the translation-invariance marker.");
-static_assert(dedekind::algebra::IsOrderedAdditiveGroup<SignedCardinality>,
+// ℤ's Integer is the positive witness: it opts into the translation-invariance
+// marker, so the ordered additive-group concept fires.
+static_assert(dedekind::algebra::is_translation_invariant_ordered_v<Integer>,
+              "Integer opts into the translation-invariance marker.");
+static_assert(dedekind::algebra::IsOrderedAdditiveGroup<Integer>,
               "ℤ's carrier is an ordered additive group.");
 
 // unsigned int is an additive group (ℤ/2^N ℤ) but MODULAR: its order is not
@@ -419,8 +419,7 @@ TEST_CASE(
     "[algebra][ordered_algebra][concept][smoke]") {
   // The static_asserts above carry the structural claim; this runtime body
   // gives Codecov a visible line (static_asserts are invisible to coverage).
-  CHECK(
-      dedekind::algebra::is_translation_invariant_ordered_v<SignedCardinality>);
+  CHECK(dedekind::algebra::is_translation_invariant_ordered_v<Integer>);
   CHECK_FALSE(
       dedekind::algebra::is_translation_invariant_ordered_v<unsigned int>);
 }

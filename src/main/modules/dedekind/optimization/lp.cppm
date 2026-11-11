@@ -64,7 +64,7 @@
  *   ordering requirement, or to a proper `IsField<T, +, *>` once the
  *   latter lands in `dedekind.category:total`, is tracked under
  *   epic #374 (algebraic concept vocabulary alignment).  Paper-facing
- *   `T = Rational<SignedExtensionalCardinal<>>` covers all the real
+ *   `T = Rational<Integer>` covers all the real
  *   requirements; `Dual<Rational<...>>` layering works for parametric
  *   sensitivity analysis (`[dual]`-tagged test).
  *
@@ -386,7 +386,7 @@ constexpr VertexCandidate<T> maximize_impl_axis_aligned(
 
   // Indexed loop rather than range-for: the range-for's implicit
   // iterator comparison triggers ADL through @c HalfspaceTriple<T> 's
-  // value type and on libstdc++ pulls in @c Rational / @c SignedCardinality
+  // value type and on libstdc++ pulls in @c Rational / @c Integer
   // operators that are not viable for iterator operands but still
   // confuse overload resolution.  Indexed iteration matches the style
   // of the generic Cramer kernel above and avoids the iterator-comparison

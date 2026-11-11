@@ -1,14 +1,18 @@
 # The carrier lattice: ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ at the C++ type level
 
+**Status (2026-11).** ℕ is `Numeral` and ℤ is `Integer` (`sets:cardinality`), both exact, with no sentinels; the figure below uses them.
+The saturating variant carriers the sections after it discuss, `Cardinality` and `SignedCardinality`, are deleted (#1186, #1035).
+Those sections record the design as it was; the ones cited from code (the elementwise dual, the road not taken, the Grothendieck note) still hold.
+
 ## The discrete-foundations slice
 
 ```
-                       SignedCardinality (ℤ-Form: Initial Ring / Grothendieck of ℕ)
+                       Integer (ℤ: Initial Ring / Grothendieck of ℕ)
                       ╱     ↑
-       embed_sint_ℤ_        │ lift_ℕ_ℤ_  (canonical ℕ ↪ ℤ embedding;
+       embed_sint_ℤ_        │ Integer{n}  (canonical ℕ ↪ ℤ embedding;
                   ╱         │              Grothendieck-construction unit
                   ╱         │              at object ℕ)
-                int  ←──── Cardinality  (ℕ-Form: NNO)
+                int  ←──── Numeral  (ℕ: NNO)
                  ↑          ↑     ↑
         embed_𝕂3_ℤ_         │     │ embed_uint_ℕ_
                  │   embed_uint_sint_    │ (PR #441, the named monic arrow)

@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
-#include <limits>
 #include <ranges>
 
 import dedekind.category;
@@ -63,17 +62,4 @@ TEST_CASE("sequences — the orbit's shape is the carrier's posture at the bound
   // ℕ: the orbit walks, with no top to absorb it.
   const SuccessorOrbit<Numeral> nat{Numeral{40u}};
   CHECK(nat.at(2) == Numeral{42u});
-  // ℤ proxy: a + n in O(1) over the whole size_t range, saturating only
-  // where the sum leaves the word, never early from a negative seed.
-  using Word = std::ptrdiff_t;
-  constexpr Word lo = std::numeric_limits<Word>::min();
-  constexpr Word hi = std::numeric_limits<Word>::max();
-  const SuccessorOrbit<SignedCardinality> z{
-      SignedCardinality{SignedExtensionalCardinal<>{lo}}};
-  CHECK(z.at(std::numeric_limits<std::size_t>::max()) ==
-        SignedCardinality{SignedExtensionalCardinal<>{hi}});
-  const SuccessorOrbit<SignedCardinality> one{
-      SignedCardinality{SignedExtensionalCardinal<>{Word{1}}}};
-  CHECK(one.at(std::numeric_limits<std::size_t>::max()) ==
-        SignedCardinality{PositiveInfinity{}});
 }
