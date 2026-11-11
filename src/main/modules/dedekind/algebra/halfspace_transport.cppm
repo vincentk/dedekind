@@ -215,7 +215,9 @@ argmax(const Comprehension<
   const W_ r0 = (w - k) % m_;
   const W_ r = r0 < 0 ? r0 + m_ : r0;  // residue x ≡ (W−k) mod M
   const W_ d0 = (p - r) % m_;
-  return dedekind::sets::singleton<L>(p - (d0 < 0 ? d0 + m_ : d0));
+  // the optimum, read back into the carrier: a set over T, not over W_
+  return dedekind::sets::singleton<L>(
+      carrier_cast<T>(p - (d0 < 0 ? d0 + m_ : d0)));
 }
 
 // ── preimage: the contravariant inverse of image ───────────────────────────
