@@ -39,7 +39,7 @@ This paper characterises a fragment of \Cpp{23} as it ships, with no language mo
 The fragment is type-class-style code under three rules, which we call the Juliet Posture (Jlt):
 i) values are copyable data and functions are pure and evaluable at compile time;
 ii) generic code varies with a type only through that type's concepts and traits;
-iii) recursion is structural, on a type or on a natural number that counts down.
+iii) recursion is structural, over a type or over a value whose rank is bounded before the first step.
 Its kernel, Featherweight Jlt (FJlt), translates into System~F by dictionary passing, as Haskell's type classes do, and the translation is total and preserves types and evaluation, so an FJlt program inherits termination, parametricity and a value.
 What Jlt writes beyond the kernel is sugar, named with its desugaring, and that the desugaring keeps meaning is the paper's working hypothesis.
 Declared laws license overloads, and overload resolution composes them: in one program the action law and associativity, neither aware of the other, turn a fold of $n$ steps into one of $\log n$, even at compile time, where no optimiser runs.

@@ -181,20 +181,9 @@ Peano's $\mathit{succ}$~\cite{peano1889arithmetices}, dashed, never does.
 The user supplies the point $n : \mathbf{1} \to X$, the seed, and $\mathit{prior}$.
 The chain is what $\mathit{prior}$ reaches from $n$: the $n$ elements below it, not $n$ itself.
 So $n$ is the chain's rank, its cardinality, and $0$ the empty chain.
-Order: after Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself.
-The chain of an element is its forward orbit, here the chain of $\mathit{prior}\,n$.
-The carrier needs neither an order nor an origin.
-Reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
-Terms: replace $\mathbf{1} + X$ by a polynomial functor $F$, $X$ by its initial algebra $\mu F$, and $\mathit{prior}$ by Lambek's inverse $\mathit{out} : \mu F \to F\,\mu F$; the chain below $n$ becomes the subterms below a term $t$, $\mathit{sub}(t)$, and $n$ becomes $t$'s height, its rank.
 Algebra: $f$ lands in $S$, and the fold in $M$.
-In the simplest case $S = M$ is a monoid.
-A monoid $S$ may also act on $M$, and a semiring on a semimodule, which adds distributivity.
-Fold: a list has two folds~\cite{gibbons1996third}.
-The one along the walk, $h : M \times S \to M$, runs from $e$ at the seed's end through the intermediate values, $\circ$, to the result, $\bullet$.
-It needs no list: it is a stream and its iterator~\cite{stepanov2009elements}.
-With $\mathit{succ}$ as well, $\mathit{succ} >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}.
-With offsets it is an array~\cite[\S 2.2.2]{knuth1997art1}.
-These are the standard's forward, bidirectional and random-access iterators~\cite{cpp23standard}.
+Fold: the fold along the walk, $h : M \times S \to M$, runs from $e$ at the seed's end through the intermediate values, $\circ$, to the result, $\bullet$.
+With offsets the chain is an array~\cite[\S 2.2.2]{knuth1997art1}, and the walk a scan of it.
 }
 \label{fig:structures}
 \end{figure}
@@ -268,6 +257,19 @@ In the standard's ranges library~\cite{cpp23standard}, Figure~\ref{fig:structure
 The arrow $f$ along it is \cppinline{views::transform}, written \cppinline{>>}, and the fold with the action $h$ is \cppinline{ranges::fold_left}, the native fold, bounds-checked before it starts.}
 \label{lst:rule3}
 \end{listing}
+
+Figure~\ref{fig:structures} reads in four more ways.
+Order: after Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself.
+The chain of an element is its forward orbit, here the chain of $\mathit{prior}\,n$.
+The carrier needs neither an order nor an origin.
+Reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
+Terms: replace $\mathbf{1} + X$ by a polynomial functor $F$, $X$ by its initial algebra $\mu F$, and $\mathit{prior}$ by Lambek's inverse $\mathit{out} : \mu F \to F\,\mu F$; the chain below $n$ becomes the subterms below a term $t$, $\mathit{sub}(t)$, and $n$ becomes $t$'s height, its rank.
+Algebra: in the simplest case $S = M$ is a monoid.
+A monoid $S$ may also act on $M$, and a semiring on a semimodule, which adds distributivity.
+Fold: a list has two folds~\cite{gibbons1996third}.
+The one along the walk needs no list: it is a stream and its iterator~\cite{stepanov2009elements}.
+With $\mathit{succ}$ as well, $\mathit{succ} >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}.
+With offsets it is an array, and these are the standard's forward, bidirectional and random-access iterators~\cite{cpp23standard}.
 
 What the rule buys is termination and, with Rule~2, the System~F reading, data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
 Like System~F, strongly normalising and so unable to express every computable function~\cite{girard1989proofs}, Rule~3 trades expressiveness for termination, since the halting programs are not a decidable set~\cite{turing1936computable}: a bounded search ends without always deciding its question (Section~\ref{sec:binding}).

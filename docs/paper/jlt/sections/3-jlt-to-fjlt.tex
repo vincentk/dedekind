@@ -10,6 +10,10 @@ The target is Featherweight Jlt, a kernel in the style of Featherweight Java~\ci
 FJlt is the subset of \Cpp{23} spelled out in Figure~\ref{fig:fjlt-syntax}: small enough to reason about, large enough to carry the listings.
 Its base types and their \cppinline{constexpr} operators form a many-sorted algebra over a signature $\Sigma$~\cite{birkhoff1970heterogeneous,sannella2012foundations}.
 A type that keeps \RuleOne{}, such as \cppinline{bool} or \cppinline{size_t}, is a \emph{carrier set}, and a total operator between such types, a candidate of $\ominus$ or $\oplus$ in the figure, a \emph{function}, which may leave its carrier set, as \cppinline{==} on \cppinline{std::string} gives a \cppinline{bool}.
+FJlt has two forms of recursion, both primitive recursion, whose step sees the predecessor as well as its result.
+Over a type it is instantiation: a generic function at a term's type calls itself at its children's types, and ends with the type's height.
+Over a value it is a fold over a range whose rank is bounded before the first step, a range of $\mathcal{R}$ (Appendix~\ref{app:fjlt:translation}).
+The library reifies them by default as \cppinline{cata} over a term type and as the standard's \cppinline{ranges::fold_left}, bounds-checked before it starts; everything above them is library.
 Listing~\ref{lst:rule1} is a program in the grammar, its assertions the program's terms (Appendix~\ref{app:fjlt:closure}).
 Listing~\ref{lst:rule3} is Jlt beyond it: its lambda \cppinline{act} is sugar for a function object, and its \cppinline{using} alias for the type it names (Appendix~\ref{app:fjlt:closure}).
 
@@ -62,4 +66,4 @@ Desugaring admits the \Cpp{} that FJlt lacks but that maps easily onto it, as th
 It is a rewrite into the kernel's constructions that computes the same value; no tool runs it.
 Appendix~\ref{app:fjlt:closure} gives it construction by construction, each with its condition and the kernel term it yields (Tables~\ref{tab:adequacy} to~\ref{tab:closure:choice}).
 A branch on a type, the sugar that matters most, becomes a family of generic functions ordered by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent; Listing~\ref{lst:laws}'s two specialisations, each licensed by a law, compose under it.
-That each desugaring keeps the meaning is the paper's working hypothesis, named and not proved: the compiler holds none of the rules in full, and the constructions are complete by measurement for the listings and the library's core, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}).
+That each desugaring keeps the meaning is the paper's working hypothesis, the dashed arrow of Figure~\ref{fig:arrows}, named and not proved: the compiler holds none of the rules in full, and the constructions are complete by measurement for the listings and the library's core, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}).

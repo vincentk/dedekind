@@ -36,6 +36,7 @@ For closed terms of base type, $e$ evaluates to $v$ if and only if $\llbracket e
 
 What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the program computes at run time.
 Section~\ref{sec:binding} is this theorem run twice.
+Inside the calculus it is the bottom edge of Figure~\ref{fig:arrows}, FJlt's own evaluation standing in for \texttt{clang++} and $\mathit{run}$; Appendix~\ref{app:fjlt:ssa} reads the program the compiler emits as the same term.
 The theorem also makes Section~\ref{sec:posture}'s equality exact: two closed terms of a carrier are equal when they evaluate to the same value, a constant of a base type compared bit for bit, and Leibniz's law of Rule~1 holds by substitution.
 
 \begin{corollary}[Termination]
