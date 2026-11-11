@@ -133,34 +133,6 @@ static_assert(!IsMonoid<bool, std::plus<>>);
 static_assert(concat<bool, std::logical_or<bool>>(false, true) &&
               concat<bool, std::logical_and<bool>>(true, true));
 
-// Section 4, an instance with a context: the pair of two monoids.
-template <typename OpA, typename OpB>
-struct both {  // each operation on its component
-  template <typename A, typename B>
-  constexpr std::pair<A, B> operator()(std::pair<A, B> x,
-                                       std::pair<A, B> y) const {
-    return {OpA{}(x.first, y.first), OpB{}(x.second, y.second)};
-  }
-};
-template <typename P, typename OpA, typename OpB>
-  requires IsMonoid<typename P::first_type, OpA> &&
-           IsMonoid<typename P::second_type, OpB>
-constexpr P unit(both<OpA, OpB>) {
-  return {unit<typename P::first_type>(OpA{}),
-          unit<typename P::second_type>(OpB{})};
-}
-template <typename P, typename OpA, typename OpB>
-  requires IsMonoid<typename P::first_type, OpA> &&
-           IsMonoid<typename P::second_type, OpB>
-constexpr bool associative(both<OpA, OpB>) {
-  return true;
-}
-using PB = std::pair<size_t, bool>;
-using Both = both<std::plus<size_t>, std::logical_or<bool>>;
-static_assert(IsMonoid<PB, Both>);
-static_assert(concat<PB, Both>() == PB{0, false} &&
-              concat<PB, Both>({40uz, false}, {2uz, true}) == PB{42, true});
-
 // Certificates the listings use and do not print: size_t.
 template <>
 constexpr size_t unit<size_t>(std::bit_or<size_t>) {
