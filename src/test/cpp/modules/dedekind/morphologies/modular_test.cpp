@@ -13,12 +13,15 @@
  * @c Modular<N> is the canonical carrier that bridges them.
  */
 
+#include <algorithm>  // std::ranges::fold_left: the residue, limb by limb
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
+#include <limits>
+#include <ranges>
 #include <stdexcept>
 #include <type_traits>
-#include <variant>  // SignedCardinality reaches equality via ADL.
 
 import dedekind.algebra;
 import dedekind.category;
@@ -32,9 +35,8 @@ using dedekind::morphologies::is_prime;
 using dedekind::morphologies::IsCyclic;
 using dedekind::morphologies::Modular;
 using dedekind::morphologies::𝔽ₚ;
-using dedekind::sets::finite_signed_cardinality;
-using dedekind::sets::SignedCardinality;
-using dedekind::sets::SignedExtensionalCardinal;
+using dedekind::sets::Integer;
+using dedekind::sets::Numeral;
 
 TEST_CASE("Modular<N>: a prime modulus is a field",
           "[morphologies][modular][field]") {
@@ -174,70 +176,75 @@ TEST_CASE("Modular<N> — Peano successor / generator coherence (#388)",
 }
 
 // ===========================================================================
-// (4) The reduction mod n of a finite SignedCardinality, on small values.
-//     A word wraps, so this is not ℤ's unique ring homomorphism (2^64 is
-//     not 0 mod 5); that waits for ℤ's honest carrier (#1035).
+// (4) The reduction mod n, ℤ's unique ring homomorphism into ℤ/n: ℤ is
+//     initial (algebra:initial_ring), and the reduction is exact past the
+//     word, where 2^64 is 1 mod 5 and not 0.
 // ===========================================================================
 
 namespace {
-// Helper: mod-n reduction of a finite SignedCardinality value.
-// Implements χ_{Modular<n>} for the finite fragment.  Lives in this
-// test file because it composes algebra (@c IsInitialRing) with
-// morphologies (@c Modular<N>) — the universal-property exercise
-// straddles the two partitions.
+/** @brief One limb of a residue, from the top: @f$r \cdot 2^{64} + l
+ *  \bmod n@f$. */
 template <auto N>
-constexpr Modular<N> χ_to_modular(SignedCardinality const& z) noexcept {
-  if (auto const* sec = std::get_if<SignedExtensionalCardinal<>>(&z)) {
-    using ML = typename Modular<N>::machine_type;
-    auto const limb = sec->magnitude().value;
-    using LimbType = std::remove_cv_t<std::remove_reference_t<decltype(limb)>>;
-    auto const reduced_in_limb = limb % static_cast<LimbType>(N);
-    auto const reduced_mag = static_cast<ML>(reduced_in_limb);
-    if (sec->negative() && reduced_mag != 0) {
-      return Modular<N>{static_cast<ML>(N) - reduced_mag};
-    }
-    return Modular<N>{reduced_mag};
+struct ResidueStep {
+  constexpr std::uint64_t operator()(std::uint64_t r, std::uint64_t l) const {
+    return static_cast<std::uint64_t>(
+        ((static_cast<__uint128_t>(r) << 64) + l) %
+        static_cast<std::uint64_t>(N));
   }
-  // Sentinels (±ℵ_0, NaZ): not part of the textbook ℤ; the universal
-  // property does not extend.  Return zero as a placeholder; this
-  // case is out of scope for the test.
-  return Modular<N>{0};
+};
+/** @brief χ_{ℤ/N}: the magnitude's residue, negated for a negative. */
+template <auto N>
+constexpr Modular<N> χ_to_modular(const Integer& z) {
+  using ML = typename Modular<N>::machine_type;
+  const std::uint64_t r =
+      std::ranges::fold_left(z.magnitude().limbs() | std::views::reverse,
+                             std::uint64_t{}, ResidueStep<N>{});
+  const Modular<N> m{static_cast<ML>(r)};
+  return z.negative() ? Modular<N>{} - m : m;
+}
+/** @return @f$2^{64}@f$. */
+constexpr Integer two_64() {
+  return Integer{Numeral{std::numeric_limits<std::uint64_t>::max()} +
+                 Numeral{1u}};
 }
 }  // namespace
 
 TEST_CASE(
-    "modular: the reduction mod 5 sends 1 to 1 and 0 to 0, small integers to "
+    "modular: the reduction mod 5 sends 1 to 1 and 0 to 0, integers to "
     "their residues",
     "[algebra][initial_ring][modular][universal-property]") {
   // Sends 1_ℤ to 1_M (the load-bearing universal-property clause).
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(1)).value == 1);
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(0)).value == 0);
-  // Mod-5 reduction on positive finite values.
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(7)).value == 2);
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(13)).value == 3);
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(25)).value == 0);
-  // Mod-5 reduction on negative values (sign-aware: -3 ≡ 2 (mod 5)).
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(-1)).value == 4);
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(-3)).value == 2);
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(-5)).value == 0);
-  CHECK(χ_to_modular<5>(finite_signed_cardinality(-7)).value == 3);
+  CHECK(χ_to_modular<5>(Integer{1}).value == 1);
+  CHECK(χ_to_modular<5>(Integer{}).value == 0);
+  CHECK(χ_to_modular<5>(Integer{7}).value == 2);
+  CHECK(χ_to_modular<5>(Integer{13}).value == 3);
+  CHECK(χ_to_modular<5>(Integer{25}).value == 0);
+  // Sign-aware: -3 ≡ 2 (mod 5).
+  CHECK(χ_to_modular<5>(Integer{-1}).value == 4);
+  CHECK(χ_to_modular<5>(Integer{-3}).value == 2);
+  CHECK(χ_to_modular<5>(Integer{-5}).value == 0);
+  CHECK(χ_to_modular<5>(Integer{-7}).value == 3);
+  // Past the word: 2^64 = 16^16 ≡ 1 (mod 5), where a word would read 0.
+  STATIC_CHECK(χ_to_modular<5>(two_64()).value == 1);
+  STATIC_CHECK(χ_to_modular<5>(-two_64()).value == 4);
 }
 
-TEST_CASE("modular: the reduction mod n preserves + and * on small values",
+TEST_CASE("modular: the reduction mod n preserves + and *",
           "[algebra][initial_ring][modular][ring-homomorphism]") {
-  auto const z2 = finite_signed_cardinality(2);
-  auto const z3 = finite_signed_cardinality(3);
-  auto const z5 = finite_signed_cardinality(5);
-  // χ(a + b) = χ(a) + χ(b)
-  auto const sum_via_z = χ_to_modular<7>(z2 + z3);
-  auto const sum_via_m = χ_to_modular<7>(z2) + χ_to_modular<7>(z3);
-  CHECK(sum_via_z.value == sum_via_m.value);
-  // χ(a * b) = χ(a) * χ(b)
-  auto const prod_via_z = χ_to_modular<7>(z2 * z5);
-  auto const prod_via_m = χ_to_modular<7>(z2) * χ_to_modular<7>(z5);
-  CHECK(prod_via_z.value == prod_via_m.value);
-  // Wrap example: χ(8) = χ(1) since 8 ≡ 1 (mod 7).
-  CHECK(χ_to_modular<7>(finite_signed_cardinality(8)).value == 1);
+  const Integer z2{2};
+  const Integer z5{5};
+  CHECK(χ_to_modular<7>(z2 + Integer{3}).value ==
+        (χ_to_modular<7>(z2) + χ_to_modular<7>(Integer{3})).value);
+  CHECK(χ_to_modular<7>(z2 * z5).value ==
+        (χ_to_modular<7>(z2) * χ_to_modular<7>(z5)).value);
+  CHECK(χ_to_modular<7>(Integer{8}).value == 1);
+  // Across the word's edge, both signs.
+  STATIC_CHECK(
+      χ_to_modular<7>(two_64() * Integer{-3}).value ==
+      (χ_to_modular<7>(two_64()) * χ_to_modular<7>(Integer{-3})).value);
+  STATIC_CHECK(
+      χ_to_modular<7>(two_64() + Integer{-9}).value ==
+      (χ_to_modular<7>(two_64()) + χ_to_modular<7>(Integer{-9})).value);
 }
 
 // ── The field's terms read as polynomials (algebra:polynomial) ──────────────

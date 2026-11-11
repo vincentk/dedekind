@@ -1,10 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
+#include <climits>  // INT_MAX: the exhibit's edge
+#include <cstdint>
 #include <cstdlib>  // For std::abs in the partial-commuting-square test.
 #include <limits>  // For std::numeric_limits in the abs honest-extension tests.
-#include <variant>  // For std::variant's operator== reached via ADL on
-// SignedCardinality (an alias of std::variant<...>).  Without this include the
-// CHECK assertions below fail to find the comparison
-// operator — see PR #437 review thread.
+#include <utility>  // std::move
 
 import dedekind.category;
 import dedekind.algebra; // AdditiveInverse + IsOrderedAdditiveGroup (#959)
@@ -85,19 +84,8 @@ TEST_CASE(
 
 TEST_CASE("sint: 𝕂3 → sint → ℤ chain via embed_𝕂3_ℤ_ + lift",
           "[numbers][sint][lift][embedding-chain]") {
-  // Post-PR #439, embed_𝕂3_ℤ_ already lands on SignedCardinality
-  // directly.  The textbook-factored chain
-  //
-  //   𝕂3 → std::signed_integral → ℤ
-  //
-  // would route through @c int (the machine layer) on the first leg
-  // and then through @c embed_sint_ℤ on the
-  // second; PR #439's chosen factorisation collapses the two legs
-  // into one for ergonomic reasons.  Exercise the chain claim
-  // directly by relating @c embed_𝕂3_ℤ_'s images to the lifted
-  // canonical machine-int images @c -1 / @c 0 / @c 1, asserting
-  // that both factorisations agree on the canonical value of each
-  // Kleene truth-value.
+  // The two factorisations of 𝕂3 → ℤ, directly and through the machine
+  // integers -1 / 0 / 1, agree on each Kleene truth value.
   CHECK(embed_𝕂3_ℤ_(Ternary::False) == embed_sint_ℤ(-1));
   CHECK(embed_𝕂3_ℤ_(Ternary::Unknown) == embed_sint_ℤ(0));
   CHECK(embed_𝕂3_ℤ_(Ternary::True) == embed_sint_ℤ(1));
@@ -105,33 +93,82 @@ TEST_CASE("sint: 𝕂3 → sint → ℤ chain via embed_𝕂3_ℤ_ + lift",
 
 TEST_CASE("Integer: additive inverse -x is antitone on ℤ (#908/#959)",
           "[numbers][integer][algebra][antitone]") {
-  // ℤ (SignedCardinality) is an ordered additive group, so the unary additive
-  // inverse -x is ORDER-REVERSING: the algebraic dog-food of the antitone
-  // reification, the same shape as the logic NegationArrow's negation on Omega.
-  constexpr AdditiveInverse<SignedCardinality> neg{};
-  const SignedCardinality two = finite_signed_cardinality(2);
-  const SignedCardinality three = finite_signed_cardinality(3);
+  // ℤ is an ordered additive group, so the unary additive inverse -x is
+  // ORDER-REVERSING: the algebraic dog-food of the antitone reification, the
+  // same shape as the logic NegationArrow's negation on Omega.
+  constexpr AdditiveInverse<Integer> neg{};
+  const Integer two{2};
+  const Integer three{3};
 
-  // The inverse maps to the negatives.
-  CHECK(neg(two) == finite_signed_cardinality(-2));
-  CHECK(neg(three) == finite_signed_cardinality(-3));
+  CHECK(neg(two) == Integer{-2});
+  CHECK(neg(three) == Integer{-3});
 
-  // Order-reversal: 2 <= 3, so -3 <= -2, i.e. neg(3) <= neg(2).
+  // Order-reversal: 2 <= 3, so -3 <= -2.
   CHECK(two <= three);
   CHECK(neg(three) <= neg(two));
 
-  // The arrow is a certified antitone / variant morphism.
-  STATIC_CHECK(IsAntiMonotone<AdditiveInverse<SignedCardinality>>);
-  STATIC_CHECK(IsVariant<AdditiveInverse<SignedCardinality>>);
-
-  // Self-adjoint antitone Galois connection: -x is an antitone involution
-  // (-(-x) = x), so (AdditiveInverse, AdditiveInverse) is a Galois connection
-  // and a <= -b iff b <= -a.  The first ANTITONE witness of IsGaloisConnection.
-  STATIC_CHECK(IsGaloisConnection<AdditiveInverse<SignedCardinality>,
-                                  AdditiveInverse<SignedCardinality>>);
-  const SignedCardinality neg_five = finite_signed_cardinality(-5);
-  // both-true side: (-5 <= -2) iff (2 <= 5).
+  // Self-adjoint antitone Galois connection: a <= -b iff b <= -a.  The
+  // concept witnesses are pinned at the definition site,
+  // algebra/ordered_algebra.cppm.
+  const Integer neg_five{-5};
   CHECK((neg_five <= neg(two)) == (two <= neg(neg_five)));
-  // both-false side: (2 <= -3) iff (3 <= -2).
   CHECK((two <= neg(three)) == (three <= neg(two)));
+}
+
+// ===========================================================================
+// (5) The exhibit: int against ℤ
+// ===========================================================================
+//
+// int carries the ring's operators and not the ring: signed overflow is
+// undefined, so constant evaluation refuses it.  The line
+//
+//   static_assert(INT_MAX + 1 > INT_MAX);  // ill-formed: not a constant
+//
+// does not compile, and no static_assert can say so, since a refusal is not
+// a value.  The same term over ℤ is exact, and so is its law.
+namespace int_vs_integer {
+constexpr Integer int_max{INT_MAX};
+static_assert(int_max + Integer{1} > int_max,
+              "INT_MAX + 1 in ℤ: the successor, above the word");
+static_assert(int_max + Integer{1} ==
+                  Integer{Numeral{static_cast<unsigned>(INT_MAX) + 1u}},
+              "where an unsigned word holds the value, ℤ agrees with it");
+static_assert((int_max + Integer{1}) - Integer{1} == int_max &&
+                  Integer{INT_MIN} - Integer{1} < Integer{INT_MIN},
+              "the group laws hold at both ends of int, where int has none");
+static_assert(int_max * int_max * int_max * int_max * int_max >
+                  Integer{std::numeric_limits<long long>::max()},
+              "and past every word: (2^31 - 1)^5 exceeds LLONG_MAX");
+}  // namespace int_vs_integer
+
+TEST_CASE("Integer: int overflows, ℤ does not", "[numbers][integer][exhibit]") {
+  const Integer int_max{INT_MAX};
+  CHECK(int_max + Integer{1} > int_max);
+  CHECK(rank(Integer{INT_MIN}) == Numeral{0u - static_cast<unsigned>(INT_MIN)});
+}
+
+TEST_CASE("numbers:integer: a moved-from integer is a value in normal form",
+          "[numbers][integer][normal-form]") {
+  // -2^64: the magnitude's low limb is zero, so moving the limbs out could
+  // leave a zero magnitude beside the sign.  The accessors read the normal
+  // form, and the additive identity holds on the source.
+  Integer a(Numeral{std::numeric_limits<std::uint64_t>::max()} + Numeral{1u},
+            true);
+  const Integer b = std::move(a);
+  CHECK(b.negative());
+  CHECK(a + Integer{} == a);
+  CHECK((a == Integer{} || a == b));
+}
+
+TEST_CASE("numbers:integer: a borrow runs through maximum-value limbs",
+          "[numbers][integer][limbs]") {
+  // 2^128 - 1: subtracting one from the limbs [0, 0, 1] borrows through
+  // both zero limbs, each becoming the maximum limb with a borrow in.
+  const Numeral w{std::numeric_limits<std::uint64_t>::max()};
+  const Integer two_128{(w + Numeral{1u}) * (w + Numeral{1u})};
+  CHECK(two_128 + Integer{-1} == Integer{w * (w + Numeral{1u}) + w});
+  CHECK((two_128 + Integer{-1}).magnitude().limb_count() == 2);
+  // 2^128 - (2^128 - 1): each subtrahend limb is the maximum and receives a
+  // borrow, so the amount taken is 2^64, wider than a limb.
+  CHECK(two_128 + -Integer{w * (w + Numeral{1u}) + w} == Integer{1});
 }

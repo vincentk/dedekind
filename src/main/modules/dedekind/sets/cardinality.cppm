@@ -10,7 +10,10 @@
  *   - `ExtensionalCardinal<W>` — the machine-total finite cardinal carrier
  *     with wrapping arithmetic, compatible with `dedekind.category:total`.
  *   - `Numeral` — ℕ itself, exact above the word.
- *   - `SignedCardinality` — the ℤ proxy, saturating at `±ℵ_0`.
+ *   - `Integer`: ℤ, Grothendieck's completion of `(Numeral, +)`; `rank`
+ *     and `IsRanked`, the measure both carry.
+ *   - `SignedCardinality`: the saturating ℤ proxy, kept for `Rational`'s
+ *     default carrier and the interval ends (#1035's next slice).
  *
  * Cardinality is a property of sets — how many elements a set contains —
  * so it belongs in the `sets` layer, below `numbers` and `algebra`.
@@ -162,36 +165,37 @@ export struct Numeral {
   /** @brief ℕ is countable: @c :order's halfspaces read this, as they read
    *  ℚ's, since @c IsRingIntegral is false on a numeral. */
   using cardinality_type = ℵ_0;
-  limb low{};  ///< the first limb: an atom is this, and nothing above
-  std::vector<limb>
-      high{};  ///< the limbs above, little-endian, none trailing zero
 
   constexpr Numeral() = default;
   /** @param n an atom: ℕ's atoms are the unsigned words. */
   template <std::unsigned_integral N>
-  constexpr explicit Numeral(N n) : low(static_cast<limb>(n)) {}
+  constexpr explicit Numeral(N n) : low_(static_cast<limb>(n)) {}
   /** @param limbs little-endian; normalised here, trailing zeros dropped. */
   constexpr explicit Numeral(std::vector<limb> limbs)
-      : low(limbs.empty() ? limb{} : limbs.front()),
-        high(limbs.empty()
-                 ? std::vector<limb>{}
-                 : std::vector<limb>(limbs.begin() + 1, limbs.end())) {
-    high.erase(
-        std::ranges::find_if_not(high.rbegin(), high.rend(), IsZeroLimb{})
+      : low_(limbs.empty() ? limb{} : limbs.front()),
+        high_(limbs.empty()
+                  ? std::vector<limb>{}
+                  : std::vector<limb>(limbs.begin() + 1, limbs.end())) {
+    high_.erase(
+        std::ranges::find_if_not(high_.rbegin(), high_.rend(), IsZeroLimb{})
             .base(),
-        high.end());
+        high_.end());
   }
   constexpr bool operator==(const Numeral&) const = default;
+  /** @return the first limb: the numeral modulo @f$2^{64}@f$. */
+  constexpr limb low() const { return low_; }
+  /** @return the number of limbs, the inline one counted: no allocation. */
+  constexpr std::size_t limb_count() const { return 1 + high_.size(); }
   /** @return every limb, little-endian, the inline one first. */
   constexpr std::vector<limb> limbs() const {
-    std::vector<limb> v{low};
-    v.insert(v.end(), high.begin(), high.end());
+    std::vector<limb> v{low_};
+    v.insert(v.end(), high_.begin(), high_.end());
     return v;
   }
   /** @return the word, where the numeral is one: below @f$2^{64}@f$. */
   constexpr std::optional<std::size_t> word() const {
-    if (high.empty() && low <= std::numeric_limits<std::size_t>::max())
-      return static_cast<std::size_t>(low);
+    if (high_.empty() && low_ <= std::numeric_limits<std::size_t>::max())
+      return static_cast<std::size_t>(low_);
     return std::nullopt;
   }
 
@@ -199,6 +203,10 @@ export struct Numeral {
   struct IsZeroLimb {
     constexpr bool operator()(limb l) const { return l == limb{}; }
   };
+  // The normal form: no trailing zero limb, so == is memberwise.  The vector
+  // constructor normalises; writable members would not.
+  limb low_{};  // the first limb: an atom is this, and nothing above
+  std::vector<limb> high_{};  // the limbs above, little-endian
 };
 
 namespace detail_numeral {
@@ -235,13 +243,14 @@ struct ScaleLimbs {
     return s;
   }
 };
-/** @brief One step of @c a @c - @c 1: the limb at @c i less the borrow. */
-struct BorrowLimbs {
-  std::vector<limb> a;
+/** @brief One step of @c a @c - @c b for @c a @c >= @c b: the limbs at @c i
+ *  less the borrow, the carry holding the borrow. */
+struct SubtractLimbs {
+  std::vector<limb> a, b;
   constexpr Carried operator()(Carried s, std::size_t i) const {
-    const limb v = a[i];
-    s.limbs.push_back(v - s.carry);
-    s.carry = v < s.carry ? limb{1} : limb{};
+    const wide taken = wide{at(b, i)} + s.carry;
+    s.limbs.push_back(static_cast<limb>(wide{a[i]} - taken));
+    s.carry = wide{a[i]} < taken ? limb{1} : limb{};
     return s;
   }
 };
@@ -264,6 +273,16 @@ constexpr std::vector<limb> row(const std::vector<limb>& a, limb k,
       Carried{std::vector<limb>(shift, limb{}), limb{}}, ScaleLimbs{a, k});
   s.limbs.push_back(s.carry);
   return s.limbs;
+}
+/** @return @c a @c - @c b, for @c a @c >= @c b: the step down of ℕ and the
+ *  magnitude difference of ℤ's normal form, internal to both; ℕ has no
+ *  subtraction. */
+constexpr std::vector<limb> subtract(std::vector<limb> a, std::vector<limb> b) {
+  const std::size_t n = a.size();
+  return dedekind::category::fold(std::views::iota(std::size_t{0}, n),
+                                  Carried{},
+                                  SubtractLimbs{std::move(a), std::move(b)})
+      .limbs;
 }
 /** @brief One step of @c a @c * @c b: the row for @c b's limb @c j, added. */
 struct AddRow {
@@ -290,7 +309,8 @@ export constexpr Numeral operator*(const Numeral& x, const Numeral& y) {
 /** @brief The order of ℕ: more limbs is larger, else the top limb decides. */
 export constexpr std::strong_ordering operator<=>(const Numeral& x,
                                                   const Numeral& y) {
-  if (x.high.size() != y.high.size()) return x.high.size() <=> y.high.size();
+  if (x.limb_count() != y.limb_count())
+    return x.limb_count() <=> y.limb_count();
   const std::vector<Numeral::limb> a = x.limbs();
   const std::vector<Numeral::limb> b = y.limbs();
   return std::lexicographical_compare_three_way(a.rbegin(), a.rend(),
@@ -302,12 +322,7 @@ export constexpr Numeral successor(const Numeral& n) { return n + Numeral{1u}; }
  *  step is total; @c Prior (@c :nno) stops at @c 0 before asking. */
 export constexpr Numeral predecessor(const Numeral& n) {
   if (n == Numeral{}) return n;
-  const std::vector<Numeral::limb> a = n.limbs();
-  return Numeral(
-      dedekind::category::fold(std::views::iota(std::size_t{0}, a.size()),
-                               detail_numeral::Carried{{}, Numeral::limb{1}},
-                               detail_numeral::BorrowLimbs{a})
-          .limbs);
+  return Numeral(detail_numeral::subtract(n.limbs(), {Numeral::limb{1}}));
 }
 /** @brief An unsigned constant meeting ℕ, the hook @c :terms' @c carrier_cast
  *  reaches by ADL.  A signed constant has no hook here and is refused there:
@@ -329,6 +344,126 @@ export constexpr dedekind::category::In<Numeral> inverse(
     dedekind::category::Prior<Numeral>) {
   return {};
 }
+
+// ---------------------------------------------------------------------------
+// ℤ: Grothendieck's completion of (ℕ, +)
+// ---------------------------------------------------------------------------
+
+/** @section cardinality__Integer  ℤ, the formal differences of ℕ
+ *  Grothendieck's completion of the commutative monoid @f$(\mathbb{N}, +)@f$:
+ *  the pairs @f$a - b@f$ modulo @f$a - b = c - d \iff a + d = c + b@f$.  Each
+ *  class has one normal form, @f$n - 0@f$ or @f$0 - n@f$, so an @c Integer is
+ *  stored as its normal form: a magnitude, a @c Numeral, and a sign, zero
+ *  never negative.  Every constructor and operation lands on it, so @c == is
+ *  memberwise.  The atoms are the words: a signed constant embeds exactly
+ *  (@c INT_MIN included), an unsigned one through ℕ.  The arithmetic is
+ *  ℕ's, the sign carried; opposite signs subtract the smaller magnitude from
+ *  the larger, inside this normalisation and nowhere else: ℕ gains no
+ *  subtraction.  No value is infinite: an @c Integer is arbitrarily large but
+ *  bounded, as a @c Numeral is (#1035). */
+export struct Integer {
+  /** @brief ℤ is countable. */
+  using cardinality_type = ℵ_0;
+
+  constexpr Integer() = default;
+  /** @param s an atom: a signed word, embedded exactly. */
+  template <std::signed_integral S>
+  constexpr explicit Integer(S s)
+      : magnitude_(Numeral{s < S{}
+                               ? static_cast<std::make_unsigned_t<S>>(
+                                     std::make_unsigned_t<S>{} -
+                                     static_cast<std::make_unsigned_t<S>>(s))
+                               : static_cast<std::make_unsigned_t<S>>(s)}),
+        negative_(s < S{}) {
+    static_assert(std::numeric_limits<S>::digits < 64,
+                  "a signed atom's magnitude fits the inline limb");
+  }
+  /** @param n a natural: ℕ ↪ ℤ, @f$n \mapsto n - 0@f$. */
+  constexpr explicit Integer(Numeral n) : magnitude_(std::move(n)) {}
+  /** @param m a magnitude.  @param minus the sign, dropped at zero: the
+   *  normal form. */
+  constexpr Integer(Numeral m, bool minus)
+      : magnitude_(std::move(m)), negative_(minus && magnitude_ != Numeral{}) {}
+  /** @brief Equality of normal forms, read through the accessors. */
+  constexpr bool operator==(const Integer& other) const {
+    return magnitude_ == other.magnitude_ && negative() == other.negative();
+  }
+  /** @return @f$|z|@f$, the rank of the normal form. */
+  constexpr Numeral magnitude() const { return magnitude_; }
+  /** @return the sign: false at zero. */
+  constexpr bool negative() const {
+    return negative_ && magnitude_ != Numeral{};
+  }
+
+ private:
+  // The normal form is what the accessors read: a sign is reported only with
+  // a magnitude, so no value, a moved-from one included, is a negative zero.
+  Numeral magnitude_{};
+  bool negative_{};
+};
+
+/** @brief The additive inverse: the sign flipped, zero kept. */
+export constexpr Integer operator-(const Integer& z) {
+  return Integer(z.magnitude(), !z.negative());
+}
+/** @brief The sum: magnitudes add under one sign; under two, the smaller is
+ *  taken from the larger, which gives its sign. */
+export constexpr Integer operator+(const Integer& x, const Integer& y) {
+  if (x.negative() == y.negative())
+    return Integer(x.magnitude() + y.magnitude(), x.negative());
+  if (y.magnitude() <= x.magnitude())
+    return Integer(Numeral(detail_numeral::subtract(x.magnitude().limbs(),
+                                                    y.magnitude().limbs())),
+                   x.negative());
+  return Integer(Numeral(detail_numeral::subtract(y.magnitude().limbs(),
+                                                  x.magnitude().limbs())),
+                 y.negative());
+}
+/** @brief The difference: the sum with the inverse. */
+export constexpr Integer operator-(const Integer& x, const Integer& y) {
+  return x + -y;
+}
+/** @brief The product: magnitudes multiply, signs multiply. */
+export constexpr Integer operator*(const Integer& x, const Integer& y) {
+  return Integer(x.magnitude() * y.magnitude(), x.negative() != y.negative());
+}
+/** @brief The order of ℤ: the negatives below, ordered by magnitude reversed;
+ *  the naturals above, ordered as ℕ. */
+export constexpr std::strong_ordering operator<=>(const Integer& x,
+                                                  const Integer& y) {
+  if (x.negative() != y.negative()) return y.negative() <=> x.negative();
+  return x.negative() ? y.magnitude() <=> x.magnitude()
+                      : x.magnitude() <=> y.magnitude();
+}
+/** @brief A signed constant meeting ℤ, the hook @c :terms' @c carrier_cast
+ *  reaches by ADL: exact.  @tparam K the constant's type.  @param k it. */
+export template <std::signed_integral K>
+constexpr Integer carrier_cast(std::type_identity<Integer>, K k) {
+  return Integer{k};
+}
+/** @brief An unsigned constant meeting ℤ: through ℕ.  @tparam K the
+ *  constant's type.  @param k it. */
+export template <std::unsigned_integral K>
+constexpr Integer carrier_cast(std::type_identity<Integer>, K k) {
+  return Integer{Numeral{k}};
+}
+
+/** @section cardinality__Rank  The rank of a normal form
+ *  A @c Numeral measuring a value: on ℕ the fold out of the initial algebra
+ *  into itself, the identity (Lambek), the size of Dedekind's chain below
+ *  @c n, the well-founded measure Peano's induction descends; on ℤ the rank
+ *  of the normal form, @f$|z|@f$.  An @c ℵ_0 carrier's @c cardinality_type
+ *  reads as the least upper bound of the ranks, never attained. */
+/** @param n a natural.  @return @c n. */
+export constexpr Numeral rank(const Numeral& n) { return n; }
+/** @param z an integer.  @return @f$|z|@f$. */
+export constexpr Numeral rank(const Integer& z) { return z.magnitude(); }
+/** @concept IsRanked
+ *  @brief Each value has a rank, a @c Numeral.  @tparam T the carrier. */
+export template <typename T>
+concept IsRanked = requires(const T& x) {
+  { rank(x) } -> std::same_as<Numeral>;
+};
 
 // ---------------------------------------------------------------------------
 // Extensional cardinal carrier
@@ -466,10 +601,9 @@ export constexpr ExtensionalCardinal<> inverse(
  *
  *  @details This is the canonical @c inverse(x, @c op) bridge that
  *  @c category::inverse_v (and the reified group-inverse arrow
- *  @c algebra::Inverse<T, @c +>, #959) consume.  It covers @c SignedCardinality
- *  (ℤ) --- which was @b asserted invertible (@c is_invertible_v) but had no
- *  @b computation bridge --- and any sibling additive carrier, so the additive
- *  inverse need not be hand-registered per type.  The @c ExtensionalCardinal<>
+ *  @c algebra::Inverse<T, @c +>, #959) consume.  It covers ℤ's @c Integer
+ *  and any sibling additive carrier, so the additive inverse need not be
+ *  hand-registered per type.  The @c ExtensionalCardinal<>
  *  overload above is a more-specialised non-template and still wins for it.
  *
  *  @note The gate is @b unary @b negation (@c {-x}), the @b computational
@@ -1322,30 +1456,10 @@ constexpr bool operator==(const SignedCardinality& lhs, F rhs) noexcept {
                                         rhs_is_neg ? -rhs : rhs);
 }
 
-/**
- * @brief Canonical embedding K3 ↪ ℤ: Ternary → SignedCardinality.
- * @details Maps False → -1, Unknown → 0, True → 1.  Lands on the
- *          variant ℤ-proxy carrier @c SignedCardinality (closes #430,
- *          a #402 prerequisite); the previous @c int codomain made
- *          the K3 → variant-ℤ chain require an explicit machine-side
- *          extraction step.  The unreachable default returns @c NaZ
- *          for IEEE-NaN-style propagation if a non-canonical
- *          @c Ternary value were ever constructed (cannot happen in
- *          practice — @c Ternary is a closed enum).
- */
-export inline constexpr auto embed_𝕂3_ℤ_ =
-    arrow<Ternary, dedekind::sets::SignedCardinality>(
-        [](const Ternary& t) noexcept -> dedekind::sets::SignedCardinality {
-          switch (t) {
-            case Ternary::False:
-              return dedekind::sets::finite_signed_cardinality(-1);
-            case Ternary::Unknown:
-              return dedekind::sets::finite_signed_cardinality(0);
-            case Ternary::True:
-              return dedekind::sets::finite_signed_cardinality(1);
-          }
-          return dedekind::sets::SignedCardinality{dedekind::sets::NaZ{}};
-        });
+/** @brief Canonical embedding K3 ↪ ℤ: @c False ↦ -1, @c Unknown ↦ 0,
+ *  @c True ↦ 1, the enum's own values, exactly (#430). */
+export inline constexpr auto embed_𝕂3_ℤ_ = arrow<Ternary, Integer>(
+    [](const Ternary& t) { return Integer{std::to_underlying(t)}; });
 
 /** @brief The NNO's step on the extensional cardinals, the wrapping ring
  *  @f$\mathbb{Z}/2^w@f$: @c n + 1 and @c n - 1 modulo the word, as on the
@@ -1741,6 +1855,12 @@ struct SpeciesTraits<dedekind::sets::Numeral> {
 };
 
 template <>
+struct SpeciesTraits<dedekind::sets::Integer> {
+  using Domain = dedekind::sets::Integer;
+  using machine_type = dedekind::sets::Integer;
+};
+
+template <>
 struct SpeciesTraits<dedekind::sets::SignedCardinality> {
   using Domain = dedekind::sets::SignedCardinality;
   using machine_type = dedekind::sets::SignedCardinality;
@@ -1764,6 +1884,8 @@ struct SpeciesTraits<dedekind::sets::SignedExtensionalCardinal<S>> {
 // partitions (cf.\ @c sets:boundaries, where @c ℕ @c = @c 𝔸<Numeral>).
 static_assert(IsSpecies<dedekind::sets::Numeral>,
               "Numeral, ℕ's carrier, must be a recognised Species.");
+static_assert(IsSpecies<dedekind::sets::Integer>,
+              "Integer, ℤ's carrier, must be a recognised Species.");
 static_assert(IsSpecies<dedekind::sets::SignedCardinality>,
               "SignedCardinality must be a recognised Species (post-#413).");
 static_assert(
@@ -1809,6 +1931,10 @@ inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(embed_𝕂3_ℤ_)>>
     true;
 static_assert(IsInjective<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
               "embed_𝕂3_ℤ_ (𝕂3 → ℤ) is registered injective.");
+static_assert(embed_𝕂3_ℤ_(Ternary::False) == dedekind::sets::Integer{-1} &&
+                  embed_𝕂3_ℤ_(Ternary::Unknown) == dedekind::sets::Integer{} &&
+                  embed_𝕂3_ℤ_(Ternary::True) == dedekind::sets::Integer{1},
+              "𝕂3 ↪ ℤ on its three values");
 
 // IsMonotone witness (#664 morphism vocabulary): @c False @c ↦ @c -1,
 // @c Unknown @c ↦ @c 0, @c True @c ↦ @c 1, which respects the canonical
@@ -1909,3 +2035,95 @@ static_assert(prior_(in_(std::nullopt)) == std::nullopt &&
               "the inverse laws on values: Prior after In and In after Prior "
               "are identities, at zero and across the word's edge");
 }  // namespace dedekind::sets::detail_numeral_witness
+
+// ── ℤ's algebra, declared, and its witnesses ────────────────────────────────
+namespace dedekind::category {
+using Int = dedekind::sets::Integer;
+template <>
+struct unit_trait<Int, std::plus<Int>> {
+  using value_type = Int;
+  static constexpr value_type value{};
+};
+template <>
+struct unit_trait<Int, std::multiplies<Int>> {
+  using value_type = Int;
+  static constexpr value_type value{dedekind::sets::Numeral{1u}};
+};
+// Path D to totality, as for ℕ: exact, closed and lossless.  The additive
+// inverse is unary -, read by sets' inverse(x, +): a group without a
+// registration.
+template <>
+struct is_exact_total<Int, std::plus<Int>> : std::true_type {};
+template <>
+struct is_exact_total<Int, std::multiplies<Int>> : std::true_type {};
+template <>
+inline constexpr bool is_associative_v<Int, std::plus<Int>> = true;
+template <>
+inline constexpr bool is_associative_v<Int, std::multiplies<Int>> = true;
+template <>
+inline constexpr bool is_commutative_v<Int, std::plus<Int>> = true;
+template <>
+inline constexpr bool is_commutative_v<Int, std::multiplies<Int>> = true;
+template <>
+inline constexpr bool
+    is_distributive_v<Int, std::multiplies<Int>, std::plus<Int>> = true;
+// The order: the negatives below, by magnitude reversed, then ℕ (operator<=>
+// above), a chain.
+template <>
+inline constexpr bool is_reflexive_v<Int, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_transitive_v<Int, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_antisymmetric_v<Int, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_connex_v<Int, std::less_equal<>> = true;
+}  // namespace dedekind::category
+
+namespace dedekind::sets::detail_integer_witness {
+constexpr std::uint64_t top = std::numeric_limits<std::uint64_t>::max();
+constexpr std::int64_t least = std::numeric_limits<std::int64_t>::min();
+/** @return @f$2^{64}@f$, the first integer above the word. */
+constexpr Integer two_64() { return Integer{Numeral{top} + Numeral{1u}}; }
+static_assert(Integer{-0} == Integer{} && -Integer{} == Integer{} &&
+                  !(-Integer{}).negative() &&
+                  !(Integer{5} - Integer{5}).negative() &&
+                  Integer{Numeral{}, true} == Integer{},
+              "zero is never negative: the normal form");
+static_assert(Integer{least}.magnitude() == Numeral{std::uint64_t{1} << 63} &&
+                  Integer{least} - Integer{1} ==
+                      -Integer{Numeral{(std::uint64_t{1} << 63) + 1u}} &&
+                  -two_64() - Integer{1} < -two_64() &&
+                  -two_64() < Integer{least},
+              "the signed word's least value embeds exactly, and ℤ goes on "
+              "below it");
+static_assert(two_64() - Integer{1} == Integer{Numeral{top}} &&
+                  Integer{3} - two_64() == -Integer{Numeral{top - 2u}} &&
+                  two_64() + -two_64() == Integer{} &&
+                  Integer{-7} * -two_64() == Integer{7} * two_64() &&
+                  Integer{-2} < Integer{-1} && Integer{-1} < Integer{} &&
+                  Integer{} < Integer{1} && Integer{1} < two_64(),
+              "opposite signs subtract magnitudes across the word's edge; the "
+              "order is a chain");
+static_assert((two_64() + Integer{-3}) + -two_64() ==
+                      two_64() + (Integer{-3} + -two_64()) &&
+                  -two_64() * (two_64() + Integer{-1}) ==
+                      -two_64() * two_64() + -two_64() * Integer{-1} &&
+                  (Integer{least} * Integer{least}) * -two_64() ==
+                      Integer{least} * (Integer{least} * -two_64()) &&
+                  Integer{least} + -two_64() == -two_64() + Integer{least},
+              "the ring laws across the word's edge, above 2^64 and below "
+              "-2^63");
+static_assert(
+    dedekind::category::IsCommutativeRing<Integer, std::plus<Integer>,
+                                          std::multiplies<Integer>> &&
+        dedekind::category::IsAbelianGroup<Integer, std::plus<Integer>> &&
+        !dedekind::category::IsField<Integer, std::plus<Integer>,
+                                     std::multiplies<Integer>>,
+    "ℤ is a commutative ring, its + a group; not a field");
+static_assert(IsRanked<Numeral> && IsRanked<Integer> &&
+                  rank(Numeral{top}) == Numeral{top} &&
+                  rank(-two_64()) == rank(two_64()) &&
+                  rank(Integer{least}) == Numeral{std::uint64_t{1} << 63} &&
+                  rank(Integer{}) == Numeral{},
+              "ℕ and ℤ are ranked: the identity on ℕ, |z| on ℤ");
+}  // namespace dedekind::sets::detail_integer_witness

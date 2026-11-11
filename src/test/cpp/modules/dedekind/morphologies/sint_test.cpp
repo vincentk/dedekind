@@ -6,19 +6,17 @@
  * Exercises the @c std::signed_integral family classification shipped
  * by @c numbers:sint (closes part of #418): the dual error-direction
  * to @c :uint (operator surface ✓, axiomatic ring ✗ under UB), the
- * universal machine→variant lift @c
- * embed_sint_ℤ, and the @c 𝕂3 → sint → ℤ
+ * lift @c embed_sint_ℤ into ℤ, and the @c 𝕂3 → sint → ℤ
  * embedding-chain composition (the signed counterpart to @c :uint's
  * @c 𝔹 → uint → ℕ chain).  The compile-time witnesses live inside
  * the partition itself; this file exercises the @b runtime / @b
  * composition surface.
  */
 #include <catch2/catch_test_macros.hpp>
+#include <cstdint>
 #include <functional>  // std::plus
 #include <limits>
 #include <type_traits>
-#include <variant>  // load-bearing for std::variant's operator== reached
-                    // via ADL on SignedCardinality (alias of std::variant<...>)
 
 import dedekind.algebra;
 import dedekind.category;
@@ -32,22 +30,20 @@ using dedekind::morphologies::embed_sint_ℤ;
 using dedekind::morphologies::embed_sint_ℤ_;
 
 // ===========================================================================
-// (1) The universal lift arrow: std::signed_integral → SignedCardinality
+// (1) The universal lift arrow: std::signed_integral ↪ ℤ
 // ===========================================================================
 
 TEST_CASE("sint: embed_sint_ℤ across canonical widths",
           "[numbers][sint][lift][carrier-lattice]") {
-  CHECK(embed_sint_ℤ(0) == finite_signed_cardinality(0));
-  CHECK(embed_sint_ℤ(1) == finite_signed_cardinality(1));
-  CHECK(embed_sint_ℤ(-1) == finite_signed_cardinality(-1));
-  CHECK(embed_sint_ℤ(42) == finite_signed_cardinality(42));
-  CHECK(embed_sint_ℤ(-42) == finite_signed_cardinality(-42));
-  CHECK(embed_sint_ℤ(static_cast<long>(1000)) ==
-        finite_signed_cardinality(1000));
-  CHECK(embed_sint_ℤ(static_cast<long long>(-7)) ==
-        finite_signed_cardinality(-7));
-  CHECK(embed_sint_ℤ(static_cast<short>(-100)) ==
-        finite_signed_cardinality(-100));
+  CHECK(embed_sint_ℤ(0) == Integer{});
+  CHECK(embed_sint_ℤ(1) == Integer{1});
+  CHECK(embed_sint_ℤ(-1) == Integer{-1});
+  CHECK(embed_sint_ℤ(-42) == -Integer{Numeral{42u}});
+  CHECK(embed_sint_ℤ(static_cast<long>(1000)) == Integer{1000});
+  CHECK(embed_sint_ℤ(static_cast<long long>(-7)) == Integer{-7});
+  CHECK(embed_sint_ℤ(static_cast<short>(-100)) == Integer{-100});
+  CHECK(embed_sint_ℤ(std::numeric_limits<long long>::min()).magnitude() ==
+        Numeral{std::uint64_t{1} << 63});
 }
 
 TEST_CASE("sint: embed_sint_ℤ_ named-arrow form",
@@ -55,16 +51,15 @@ TEST_CASE("sint: embed_sint_ℤ_ named-arrow form",
   STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
   STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
   STATIC_CHECK(std::same_as<Dom<std::decay_t<decltype(embed_sint_ℤ_)>>, int>);
-  STATIC_CHECK(std::same_as<Cod<std::decay_t<decltype(embed_sint_ℤ_)>>,
-                            SignedCardinality>);
+  STATIC_CHECK(
+      std::same_as<Cod<std::decay_t<decltype(embed_sint_ℤ_)>>, Integer>);
 
-  CHECK(embed_sint_ℤ_(0) == finite_signed_cardinality(0));
-  CHECK(embed_sint_ℤ_(42) == finite_signed_cardinality(42));
-  CHECK(embed_sint_ℤ_(-42) == finite_signed_cardinality(-42));
+  CHECK(embed_sint_ℤ_(0) == Integer{});
+  CHECK(embed_sint_ℤ_(42) == Integer{42});
+  CHECK(embed_sint_ℤ_(-42) == Integer{-42});
 }
 
-TEST_CASE("sint: lift is injective on the finite fragment",
-          "[numbers][sint][lift][injective]") {
+TEST_CASE("sint: lift is injective", "[numbers][sint][lift][injective]") {
   CHECK(embed_sint_ℤ(0) != embed_sint_ℤ(1));
   CHECK(embed_sint_ℤ(0) != embed_sint_ℤ(-1));
   CHECK(embed_sint_ℤ(41) != embed_sint_ℤ(42));
@@ -118,134 +113,46 @@ TEST_CASE(
 }
 
 // ===========================================================================
-// (3) Structure-completeness on the variant: SignedCardinality IS axiomatic ℤ
+// (3) The lift carries the ring int lacks
 // ===========================================================================
 
-TEST_CASE(
-    "sint: an arithmetic operation that is UB on int becomes well-defined "
-    "on SignedCardinality",
-    "[numbers][sint][lift][carrier-lattice]") {
-  // INT_MAX + 1 is UB on int; on SignedCardinality the same shape is
-  // well-defined (saturates to +ℵ_0 if it would overflow the finite
-  // fragment).  The lift moves the carrier UP the lattice, trading the
-  // UB-on-overflow for total saturating semantics — which is what the
-  // exact-ℤ reading lives on.  Witnesses the structural-completeness
-  // gain at the variant layer.
-  const auto one_lifted = embed_sint_ℤ(1);
-  const auto neg_one_lifted = embed_sint_ℤ(-1);
-  // Pick a finite value that exists on both sides and verify the lift
-  // commutes with negation under the operator surface.
-  CHECK(-one_lifted == neg_one_lifted);
+TEST_CASE("sint: an operation that is UB on int is exact in ℤ",
+          "[numbers][sint][lift][carrier-lattice]") {
+  // INT_MAX + 1 is UB on int; in ℤ it is the successor, and the lift
+  // commutes with negation.
+  const auto top = embed_sint_ℤ(std::numeric_limits<int>::max());
+  CHECK(top + embed_sint_ℤ(1) > top);
+  CHECK(-embed_sint_ℤ(1) == embed_sint_ℤ(-1));
 }
 
-// ===========================================================================
-// (5) Ergonomic-economic parity under Honest Rejection: "Intensional first;
-//     realize when you mean it"
-// ===========================================================================
-//
-// Honest Rejection is structurally correct, but a separate question is
-// whether it imposes a practitioner-ergonomics cost.  The project's
-// answer is @b doctrinal: practitioners are encouraged to work over
-// the @b canonical mathematical set (@c element<𝔸<ℤ>>, predicates,
-// comprehension DSL, abstract algebraic operations on @c
-// SignedCardinality) — @b NOT to write machine-int-style code at the
-// variant layer.  Tests below exercise the idiomatic style.
-
-TEST_CASE(
-    "sint: idiomatic intensional-first style — variant ℤ-proxy as the "
-    "working carrier",
-    "[numbers][sint][ergonomics][intensional-first]") {
-  // Idiomatic-style: assemble values via the explicit constructor
-  // (the canonical entry point), then compose using the abstract
-  // algebraic surface defined in :cardinality.  No machine-int
-  // arithmetic in this fragment — the practitioner stays in the
-  // textbook ℤ even though the underlying variant happens to be
-  // implementable by machine ints internally.
-  const auto a = finite_signed_cardinality(7);
-  const auto b = finite_signed_cardinality(-3);
-  const auto sum = a + b;      // SC + SC
-  const auto neg = -a;         // unary -SC
-  const auto product = a * b;  // SC * SC
-  CHECK(sum == finite_signed_cardinality(4));
-  CHECK(neg == finite_signed_cardinality(-7));
-  CHECK(product == finite_signed_cardinality(-21));
-
-  // Heterogeneous comparison against std::integral (PR #438) bridges
-  // the variant carrier and machine-int literals at the @b boundary
-  // — useful for halfspace pivots and similar comparisons against
-  // compile-time bounds, without forcing the variant arithmetic to
-  // accept int operands.
-  CHECK(sum > 0);
-  CHECK(neg < 0);
-  CHECK(product == -21);
+TEST_CASE("sint: intensional first, ℤ as the working carrier",
+          "[numbers][sint][ergonomics][intensional-first]") {
+  // Values enter through the explicit constructor; the arithmetic is ℤ's,
+  // with no machine-int arithmetic in between.
+  const Integer a{7};
+  const Integer b{-3};
+  CHECK(a + b == Integer{4});
+  CHECK(-a == Integer{-7});
+  CHECK(a * b == Integer{-21});
+  CHECK(a - b == Integer{10});
 }
 
-TEST_CASE(
-    "sint: negafibonacci on SignedCardinality — the canonical intensional "
-    "ℤ-series",
-    "[numbers][sint][ergonomics][intensional-first][negafibonacci]") {
-  // Negafibonacci is Fibonacci extended to negative indices:
-  //   F_{-n} = (-1)^{n+1} · F_n,
-  // equivalently the recurrence F_{n-1} = F_{n+1} - F_n run backwards.
-  // The sequence F_{-5}, F_{-4}, F_{-3}, F_{-2}, F_{-1} = 5, -3, 2, -1, 1.
-  //
-  // The series is the canonical @b intensional ℤ-series counterpart to
-  // Fibonacci on ℕ: each step uses the subtraction operator that
-  // structurally distinguishes ℤ from ℕ.  Computing it on @c
-  // SignedCardinality stays in the canonical mathematical carrier the
-  // whole way through — no machine-int arithmetic; no UB-on-overflow
-  // risk at large |n|; the saturating semantics handles oversize values
-  // honestly via @c ±ℵ_0.
-
-  // Run the backwards recurrence: start from F_0=0, F_1=1 and step
-  // F_{n-1} = F_{n+1} - F_n.
-  auto f_next = finite_signed_cardinality(1);  // F_1
-  auto f_curr = finite_signed_cardinality(0);  // F_0
-  // F_{-1} = F_1 - F_0 = 1
-  auto f_neg1 = f_next - f_curr;
-  // F_{-2} = F_0 - F_{-1} = -1
-  auto f_neg2 = f_curr - f_neg1;
-  // F_{-3} = F_{-1} - F_{-2} = 2
-  auto f_neg3 = f_neg1 - f_neg2;
-  // F_{-4} = F_{-2} - F_{-3} = -3
-  auto f_neg4 = f_neg2 - f_neg3;
-  // F_{-5} = F_{-3} - F_{-4} = 5
-  auto f_neg5 = f_neg3 - f_neg4;
-
-  CHECK(f_neg1 == finite_signed_cardinality(1));
-  CHECK(f_neg2 == finite_signed_cardinality(-1));
-  CHECK(f_neg3 == finite_signed_cardinality(2));
-  CHECK(f_neg4 == finite_signed_cardinality(-3));
-  CHECK(f_neg5 == finite_signed_cardinality(5));
-
-  // The forward Fibonacci sibling on @c Numeral (ℕ), in @c uint_test.cpp,
-  // is the natural pedagogical pair — Fibonacci F_n stays in ℕ
-  // throughout because the recurrence uses only addition.
-}
-
-TEST_CASE(
-    "sint: NO heterogeneous SC + int overload — Honest Rejection is "
-    "structurally preserved",
-    "[numbers][sint][ergonomics][no-smuggling]") {
-  // Negative-shape witness: the partition deliberately does NOT ship
-  // overloads like SignedCardinality + int → SignedCardinality.
-  // Adding such overloads would route machine-int UB-on-overflow
-  // back through the variant arithmetic surface, undoing the
-  // Honest Rejection.  The practitioner who wants to add a finite
-  // value to a SignedCardinality writes:
-  //
-  //   sc + finite_signed_cardinality(3)            // canonical form
-  //
-  // rather than @c sc @c + @c 3.  The slight ergonomic cost is the
-  // load-bearing proof: at the call site, the practitioner has named
-  // the int as a SignedCardinality literal, committing to the variant-
-  // ring semantics rather than the machine-int UB-on-overflow ones.
-  const auto sc = finite_signed_cardinality(5);
-  const auto sum = sc + finite_signed_cardinality(3);  // canonical
-  CHECK(sum == finite_signed_cardinality(8));
-  // The same operation expressed at the machine layer would be the
-  // UB-trap @c 5 + @c 3 (only safe because the values are tiny);
-  // the canonical form is total under the saturating semantics of
-  // @c SignedCardinality (overflows escalate to @c +ℵ_0 rather than
-  // wrapping or being UB).
+TEST_CASE("sint: negafibonacci on ℤ, the canonical intensional ℤ-series",
+          "[numbers][sint][ergonomics][intensional-first][negafibonacci]") {
+  // F_{-n} = (-1)^{n+1} F_n: the recurrence F_{n-1} = F_{n+1} - F_n run
+  // backwards from F_1 = 1, F_0 = 0 gives 1, -1, 2, -3, 5, each step the
+  // subtraction that distinguishes ℤ from ℕ.  The forward sibling on ℕ is in
+  // uint_test.cpp.
+  const Integer f_1{1};
+  const Integer f_0{};
+  const Integer f_neg1 = f_1 - f_0;
+  const Integer f_neg2 = f_0 - f_neg1;
+  const Integer f_neg3 = f_neg1 - f_neg2;
+  const Integer f_neg4 = f_neg2 - f_neg3;
+  const Integer f_neg5 = f_neg3 - f_neg4;
+  CHECK(f_neg1 == Integer{1});
+  CHECK(f_neg2 == Integer{-1});
+  CHECK(f_neg3 == Integer{2});
+  CHECK(f_neg4 == Integer{-3});
+  CHECK(f_neg5 == Integer{5});
 }

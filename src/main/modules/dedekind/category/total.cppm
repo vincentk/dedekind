@@ -246,11 +246,10 @@ concept IsClosedUnderEither = IsClosedUnder<T, Op> || IsClosedUnderUnary<T, Op>;
  *  range); the fourth lets a genuinely exact number field be a Magma --- and
  *  hence reach @c IsField --- rather than being excluded as
  *  "non-machine-total".  It is registered for @c Rational = ℚ and
- *  @c QuadraticReal = ℚ(√D), and for ℕ's @c Numeral.  @c SignedCardinality = ℤ
- *  is total via @c is_saturating (it escalates to @f$\pm\aleph_0@f$), so
- *  @c IsRing<ℤ> holds through the saturating path, witnessed at
- *  @c :integer.  (The two postures are distinct and a carrier
- *  picks exactly one.)  The named concept @c IsSaturating that wraps
+ *  @c QuadraticReal = ℚ(√D), and for ℕ's @c Numeral and ℤ's @c Integer.
+ *  The saturating proxy @c SignedCardinality is total via @c is_saturating
+ *  (it escalates to @f$\pm\aleph_0@f$).  (The two postures are distinct and
+ *  a carrier picks exactly one.)  The named concept @c IsSaturating that wraps
  *  @c is_saturating_v lives in @c dedekind.category:mereology; here we reach
  *  for the underlying trait variables directly so this upstream-foundational
  *  layer does not depend on that partition.
