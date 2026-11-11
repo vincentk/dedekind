@@ -899,6 +899,12 @@ inline constexpr bool is_nonzero_refinement_v =
  *  non-zeros is non-zero, an inverse is, a negation is.  Widens to @c T
  *  implicitly, the inclusion @f$T^* \subset T@f$.  @tparam T the carrier. */
 export template <typename T>
+class NonZero;
+export template <typename T>
+  requires std::equality_comparable<T> && std::default_initializable<T>
+constexpr std::optional<NonZero<T>> nonzero(const T& t);
+
+export template <typename T>
 class NonZero {
  public:
   using Domain = T;
