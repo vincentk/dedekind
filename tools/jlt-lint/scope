@@ -250,7 +250,7 @@ rule2-definition             src/main/modules/dedekind/sets/si*.cppm  sets  0
 rule2-definition             src/main/modules/dedekind/sets/terms.cppm  sets  116
 rule2-decided-resolution     src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
 rule2-decided-resolution     src/main/modules/dedekind/sets/si*.cppm  sets  0
-rule2-decided-resolution     src/main/modules/dedekind/sets/terms.cppm  sets  29
+rule2-decided-resolution     src/main/modules/dedekind/sets/terms.cppm  sets  4
 rule2-no-inline-requires     src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
 rule2-no-inline-requires     src/main/modules/dedekind/sets/si*.cppm  sets  0
 rule2-no-inline-requires     src/main/modules/dedekind/sets/terms.cppm  sets  17
@@ -331,7 +331,7 @@ rule1-rvalue-reference-params src/main/modules/dedekind/order/[!o]*.cppm  order 
 rule2-constrained-templates  src/main/modules/dedekind/order/[!o]*.cppm  order  report
 rule2-decided-resolution     src/main/modules/dedekind/order/[!hor]*.cppm  order  0
 rule2-decided-resolution     src/main/modules/dedekind/order/halfspace.cppm  order  1
-rule2-decided-resolution     src/main/modules/dedekind/order/runs.cppm  order  1
+rule2-decided-resolution     src/main/modules/dedekind/order/runs.cppm  order  0
 rule2-definition             src/main/modules/dedekind/order/[!hor]*.cppm  order  0
 rule2-definition             src/main/modules/dedekind/order/halfspace.cppm  order  0
 rule2-definition             src/main/modules/dedekind/order/runs.cppm  order  2
@@ -584,7 +584,7 @@ rule2-no-inline-requires             src/main/modules/dedekind/sequences/ranges.
 rule2-no-inline-requires             src/main/modules/dedekind/sequences/relprod.cppm  sequences  0
 rule2-no-inline-requires             src/main/modules/dedekind/sequences/tail_equivalence.cppm  sequences  0
 rule2-no-inline-requires             src/main/modules/dedekind/sequences/samples.cppm  sequences  0
-rule2-decided-resolution             src/main/modules/dedekind/sequences/convergence.cppm  sequences  7
+rule2-decided-resolution             src/main/modules/dedekind/sequences/convergence.cppm  sequences  3
 rule2-decided-resolution             src/main/modules/dedekind/sequences/curve.cppm  sequences  0
 rule2-decided-resolution             src/main/modules/dedekind/sequences/finite.cppm  sequences  0
 rule2-decided-resolution             src/main/modules/dedekind/sequences/fold.cppm  sequences  0
@@ -592,7 +592,7 @@ rule2-decided-resolution             src/main/modules/dedekind/sequences/limits.
 rule2-decided-resolution             src/main/modules/dedekind/sequences/net.cppm  sequences  0
 rule2-decided-resolution             src/main/modules/dedekind/sequences/path.cppm  sequences  0
 rule2-decided-resolution             src/main/modules/dedekind/sequences/pst.cppm  sequences  0
-rule2-decided-resolution             src/main/modules/dedekind/sequences/ranges.cppm  sequences  5
+rule2-decided-resolution             src/main/modules/dedekind/sequences/ranges.cppm  sequences  0
 rule2-decided-resolution             src/main/modules/dedekind/sequences/relprod.cppm  sequences  0
 rule2-decided-resolution             src/main/modules/dedekind/sequences/tail_equivalence.cppm  sequences  0
 rule2-decided-resolution             src/main/modules/dedekind/sequences/samples.cppm  sequences  0

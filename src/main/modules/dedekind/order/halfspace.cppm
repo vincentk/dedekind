@@ -1094,13 +1094,13 @@ using Scaling = Cmp<Rel::Eq, BinOp<std::multiplies<>, Projection<1>, Const<K>>,
                     Projection<2>>;
 
 /** @brief Two translation graphs are the same relation iff they carry the same
- *  shift, read in the carrier.  Gated on an exact @c + (@c is_exact_total):
+ *  shift, read in the carrier.  Gated on an exact @c + (@c IsExactTotal):
  *  the shift arithmetic is faithful only where the carrier's @c + is (on
  *  @c bool, @c +1 and @c +2 are the same graph, so a comparison of shifts
  *  would separate them). */
 export template <typename T, typename K1, typename K2, typename L, typename C,
                  typename CU>
-  requires dedekind::category::is_exact_total_v<T, std::plus<T>>
+  requires dedekind::category::IsExactTotal<T>
 constexpr bool operator==(
     const Comprehension<𝔸<std::pair<T, T>, L, C>, Translation<K1>>& a,
     const Comprehension<𝔸<std::pair<T, T>, L, CU>, Translation<K2>>& b) {
@@ -1114,7 +1114,7 @@ constexpr bool operator==(
  * the actual composite. */
 export template <typename T, typename K1, typename K2, typename L, typename C,
                  typename CU>
-  requires dedekind::category::is_exact_total_v<T, std::plus<T>>
+  requires dedekind::category::IsExactTotal<T>
 constexpr auto operator>>(
     const Comprehension<𝔸<std::pair<T, T>, L, C>, Translation<K1>>& a,
     const Comprehension<𝔸<std::pair<T, T>, L, CU>, Translation<K2>>& b) {

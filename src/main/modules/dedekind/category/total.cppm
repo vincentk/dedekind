@@ -173,6 +173,20 @@ export template <typename T, typename Op = std::plus<T>>
 concept IsSaturating = is_saturating_v<T, Op>;
 
 /**
+ * @concept IsExactTotal
+ * @brief Taxonomic Decorator: certifies that an operation is total because it
+ *        is exact, with no edge to wrap, saturate or stop at (ℕ's @c Numeral,
+ *        ℤ's @c Integer, ℚ).
+ *
+ * @details The exact sibling of @c IsSaturating, over the trait variable
+ * @c is_exact_total_v that @c is_total reads as its arm D.  Where a law
+ * holds only if the carrier's @c Op is faithful (the shift arithmetic of a
+ * translation graph), this is the gate.
+ */
+export template <typename T, typename Op = std::plus<T>>
+concept IsExactTotal = is_exact_total_v<T, Op>;
+
+/**
  * @concept IsClosedUnder
  * @brief @c (S, @c Op) is closed under a binary operation: @c
  *        Op{}(s_1, @c s_2) returns a value of type @c S for any
