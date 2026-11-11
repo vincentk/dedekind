@@ -545,6 +545,12 @@ export constexpr std::strong_ordering operator<=>(const Integer& x,
   return x.negative() ? y.magnitude() <=> x.magnitude()
                       : x.magnitude() <=> y.magnitude();
 }
+/** @brief The NNO's step on ℤ: @c z @c + @c 1, past every word's edge. */
+export constexpr Integer successor(const Integer& z) { return z + Integer{1}; }
+/** @brief The step down on ℤ, @c z @c - @c 1: total, ℤ has no floor. */
+export constexpr Integer predecessor(const Integer& z) {
+  return z - Integer{1};
+}
 /** @brief A signed constant meeting ℤ, the hook @c :terms' @c carrier_cast
  *  reaches by ADL: exact.  @tparam K the constant's type.  @param k it. */
 export template <std::signed_integral K>
@@ -758,6 +764,10 @@ namespace dedekind::category {
 template <typename W>
 struct is_integer_chain<dedekind::sets::ExtensionalCardinal<W>>
     : std::true_type {};
+/** @brief ℤ is the integer chain: discrete, unbounded both ways, with the
+ *  step and the arithmetic; the ring is @c IsRing's claim, made below. */
+template <>
+struct is_integer_chain<dedekind::sets::Integer> : std::true_type {};
 }  // namespace dedekind::category
 
 namespace dedekind::sets {
@@ -775,6 +785,7 @@ static_assert(IsRingIntegral<long>);
 static_assert(IsRingIntegral<long long>);
 static_assert(IsRingIntegral<std::size_t>);
 static_assert(IsRingIntegral<bool>);
+static_assert(IsRingIntegral<Integer>, "ℤ is an integer chain.");
 static_assert(IsRingIntegral<ExtensionalCardinal<>>,
               "ExtensionalCardinal<> must satisfy IsRingIntegral — the bounded "
               "word cardinal.");

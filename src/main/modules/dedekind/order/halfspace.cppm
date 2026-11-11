@@ -119,6 +119,9 @@ static_assert(HasNNOStep<int>, "machine integers step by ±1.");
 static_assert(HasNNOStep<dedekind::sets::Numeral>,
               "ℕ steps through its NNO successor / predecessor "
               "(the canonical NNO witness, found by ADL).");
+static_assert(HasNNOStep<dedekind::sets::Integer>,
+              "ℤ steps by ±1 through the same customization points, so a "
+              "strict bound on ℤ is attained at its neighbour as on ℕ.");
 
 /** @brief A convex subset of a chain as a VALUE --- an interval: each side an
  *  optional @c Bound, with a runtime-evaluable membership χ.  Closed under ∩;
@@ -1079,8 +1082,8 @@ static_assert(min(counts&(π > 5))(6), "6 = min {x > 5} on ℕ.");
 static_assert(max(ℤ&(π <= 5))(Integer{5}), "5 = max {x ≤ 5} on ℤ.");
 static_assert(!max(ℤ & (π <= 5))(Integer{3}), "3 is not the greatest element.");
 static_assert(min(ℤ&(π >= -5))(Integer{-5}), "−5 = min {x ≥ −5} on ℤ.");
-// ℚ slice step 4: the step on ℤ (successor / predecessor on Integer), so
-// a strict bound is attained at its neighbour: max {x < 5} = 4.
+static_assert(max(ℤ&(π < 5))(Integer{4}), "4 = max {x < 5} on ℤ (the step).");
+static_assert(min(ℤ&(π > -5))(Integer{-4}), "−4 = min {x > −5} on ℤ.");
 
 /** @brief The translation graph @c π_1 @c + @c k @c == @c π_2 and the scaling
  *  graph @c π_1 @c * @c k @c == @c π_2, as the atoms the grammar builds for
