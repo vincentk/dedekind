@@ -77,7 +77,10 @@ The translation $\llbracket\cdot\rrbracket$ is total on FJlt, and $\mathit{embed
 Its composite with the two inclusions is a partial map from System~F, the embedding that makes Jlt an embedded language.
 \texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits.
 Solid arrows are established: for every closed $t$ of base type in the image, $\mathit{eval}\,t = \mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$.
-The dashed arrow is a working hypothesis: $\mathit{desugar}$ is total on Jlt and a retraction of the inclusion, $\mathit{desugar} \circ \mathit{incl} = \mathit{id}$ exactly, by construction, and $\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ up to the value a program computes, so that the bottom edge holds for every Jlt program $p$, $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.}
+The dashed arrow is a working hypothesis: $\mathit{desugar}$ is total on Jlt and a retraction of the inclusion.
+$\mathit{desugar} \circ \mathit{incl} = \mathit{id}$ holds exactly, by construction.
+$\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ holds up to the value a program computes.
+The bottom edge then holds for every Jlt program $p$: $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.}
 \label{fig:arrows}
 \end{figure}
 
