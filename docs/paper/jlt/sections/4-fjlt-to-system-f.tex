@@ -66,11 +66,31 @@ The second row has no counterpart in a nominal type-class system: concepts are s
 An instance may itself require instances: the unit of a pair is the pair of units, provided both components have one.
 Listing~\ref{lst:rule2}'s instance for the unsigned integrals is the simplest case, one context on one carrier.
 In \Cpp{} that is a generic function with a \cppinline{requires} clause, and the clause is the context.
-Under translation it is a function from the components' records to the composite's:
+Under translation it is a function from the components' records to the composite's; left the \Cpp{}, right its image:
+
+\noindent\begin{minipage}[t]{0.56\linewidth}
+\begin{cpp}
+template <typename OpA, typename OpB>
+struct both { /* each on its component */ };
+template <typename P, typename OpA, typename OpB>
+  requires IsMonoid<typename P::first_type, OpA> &&
+           IsMonoid<typename P::second_type, OpB>
+constexpr P unit(both<OpA, OpB>) {
+  return {unit<typename P::first_type>(OpA{}),
+          unit<typename P::second_type>(OpB{})};
+}
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.42\linewidth}
 \begin{minted}{text}
-pair_unit  =  Λ A. Λ B. λ q_A : Dict_IsMonoid A Op_A. λ q_B : Dict_IsMonoid B Op_B.
-                (q_A.unit, q_B.unit)
+pair_unit = Λ A. Λ B.
+  λ q_A : Dict_IsMonoid A Op_A.
+  λ q_B : Dict_IsMonoid B Op_B.
+    (q_A.unit, q_B.unit)
 \end{minted}
+\end{minipage}
+
+\noindent The head's \cppinline{P} is \cppinline{pair<A, B>}, so $\llbracket P \rrbracket = A \times B$ gives the two $\Lambda$s, and its two constraints give the two record parameters.
 The compiler applies such functions outside in, as often as the composite nests.
 The recursion ends, because a context on a structured head mentions only proper parts of its type arguments, and a context mentions only shapes declared before it.\footnote{The termination conditions on instance contexts are studied by Sulzmann et al.~\cite{sulzmann2007understanding}.
 GHC calls them the Paterson conditions.
