@@ -51,7 +51,7 @@ struct RationalView {
 
 TEST_CASE("Numbers: AlgebraAsProduct pilot witness on Rational (#573 slice 4)",
           "[numbers][rational][algebra][product][parthood]") {
-  using I = Integer;
+  using I = dedekind::sets::Integer;
   using View = rational_as_product_test::RationalView<I>;
 
   // ℚ is the universal set object over Rational; its Ambient matches

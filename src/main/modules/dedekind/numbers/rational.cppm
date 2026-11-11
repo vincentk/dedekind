@@ -61,6 +61,10 @@ export class Rational;
 export class Positive;
 /** @brief ℚ* = ℚ \ {0}, the certified divisors of ℚ (@c :total). */
 export using NonZeroRational = dedekind::category::NonZero<Rational>;
+/** @brief The check into ℚ* and its type, re-exported beside ℚ so that a
+ *  call @c nonzero(q) on a rational finds them by argument-dependent lookup. */
+export using dedekind::category::NonZero;
+export using dedekind::category::nonzero;
 export constexpr std::optional<Positive> positive(const Rational& q);
 export constexpr Positive square(const NonZeroRational& x);
 export constexpr Positive abs(const NonZeroRational& x);
@@ -263,13 +267,13 @@ consteval Rational::Rational(N n, D d)
     : Rational(Rational{n} / nonzero(Rational{d}).value()) {}
 
 /** @brief The literal @f$2 \in@f$ ℚ*: the midpoint's divisor. */
-export inline constexpr NonZeroRational two = NonZeroRational::literal<2>();
+export inline constexpr NonZeroRational two_ℚ = NonZeroRational::literal<2>();
 
 /** @brief The midpoint @f$a + (b - a)/2@f$: ℚ is dense (@c IsDense reads
  *  this by argument-dependent lookup).  @param a one end.  @param b the
  *  other. */
 export constexpr Rational midpoint(const Rational& a, const Rational& b) {
-  return a + (b - a) / two;
+  return a + (b - a) / two_ℚ;
 }
 
 /**
@@ -541,11 +545,11 @@ static_assert(Rational{1, 2} / nonzero(Rational{1, 3}).value() ==
                       Rational{3, 2} &&
                   !nonzero(Rational{}).has_value() &&
                   nonzero(Rational{3}).has_value() &&
-                  Rational{1} / two == Rational{1, 2} &&
-                  (two * two).value() == Rational{4} &&
-                  two.inverse().value() == Rational{1, 2} &&
-                  (two / two).value() == Rational{1} &&
-                  (-two).value() == Rational{-2},
+                  Rational{1} / two_ℚ == Rational{1, 2} &&
+                  (two_ℚ * two_ℚ).value() == Rational{4} &&
+                  two_ℚ.inverse().value() == Rational{1, 2} &&
+                  (two_ℚ / two_ℚ).value() == Rational{1} &&
+                  (-two_ℚ).value() == Rational{-2},
               "ℚ* is closed under ·, /, inverse and negation");
 static_assert(midpoint(Rational{1}, Rational{2}) == Rational{3, 2} &&
                   midpoint(Rational{-1}, Rational{1}) == Rational{},
@@ -558,8 +562,8 @@ static_assert(positive(Rational{1, 2}).has_value() &&
                       Rational{7} &&
                   (Positive::literal<3>() / Positive::literal<4>()).value() ==
                       Rational{3, 4} &&
-                  square(-two).value() == Rational{4} &&
-                  abs(-two).value() == Rational{2} &&
+                  square(-two_ℚ).value() == Rational{4} &&
+                  abs(-two_ℚ).value() == Rational{2} &&
                   Rational{1} / Positive::literal<4>() == Rational{1, 4},
               "ℚ₊ is closed under +, · and /, and holds the squares of ℚ*");
 // Atoms past the word, both signs.
@@ -567,7 +571,7 @@ constexpr Integer two_64() {
   return Integer{Numeral{std::numeric_limits<std::uint64_t>::max()}} +
          Integer{1};
 }
-static_assert(Rational{two_64()} / two == Rational{two_64() / Integer{2}} &&
+static_assert(Rational{two_64()} / two_ℚ == Rational{two_64() / Integer{2}} &&
                   Rational{1} / nonzero(Rational{two_64()}).value() *
                           Rational{two_64()} ==
                       Rational{1} &&

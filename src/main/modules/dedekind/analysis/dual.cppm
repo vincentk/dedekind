@@ -239,6 +239,19 @@ export template <typename F>
 constexpr Dual<F> operator/(const Dual<F>& a, const DualUnit<F>& u) {
   return a * inverse(u);
 }
+}  // namespace dedekind::analysis
+
+namespace dedekind::category {
+/** @brief 𝔻 divides by its units, whatever its scalar: a dual @c {0, t} is
+ *  not zero and has no inverse, so non-zero is not the certificate.  Before
+ *  any witness reads it: a trait read before its specialisation is fixed. */
+template <typename F>
+struct divisor_of<dedekind::analysis::Dual<F>> {
+  using type = dedekind::analysis::DualUnit<F>;
+};
+}  // namespace dedekind::category
+
+namespace dedekind::analysis {
 
 /** @brief Canonical product projections for @c Dual (the ADL @c component hook
  *  of @c dedekind::category::π_1 / @c π_2): 𝔻's storage is @c val / @c der, not
@@ -488,12 +501,6 @@ inline constexpr bool is_invertible_v<dedekind::analysis::Dual<F>,
                                       std::plus<dedekind::analysis::Dual<F>>> =
     true;
 
-/** @brief 𝔻 divides by its units, whatever its scalar: a dual @c {0, t} is
- *  not zero and has no inverse, so non-zero is not the certificate. */
-template <typename F>
-struct divisor_of<dedekind::analysis::Dual<F>> {
-  using type = dedekind::analysis::DualUnit<F>;
-};
 template <typename F>
   requires std::semiregular<F>
 struct inverse_trait<dedekind::analysis::Dual<F>,
