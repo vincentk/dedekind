@@ -808,3 +808,27 @@ TEST_CASE(
   CHECK_FALSE(result(Vec2V<Rat>{Rat{1L}, Rat{1L}}));
   CHECK_FALSE(result(Vec2V<Rat>{Rat{3L}, Rat{1L}}));
 }
+
+TEST_CASE(
+    "optimization:lp — the value path over ℚ divides by a certified "
+    "determinant",
+    "[optimization][lp][rational][divisor]") {
+  // maximize x + y  s.t.  x + 2y ≤ 4,  3x + y ≤ 6,  x ≥ 0,  y ≥ 0.  The
+  // binding pair has det = 1·1 − 2·3 = −5, so the vertex (8/5, 6/5) is not
+  // integral: over a word Cramer's division would truncate it, over ℚ it is
+  // exact.  Each active set's determinant enters ℚ* through the one check
+  // (:total's divisor), and a parallel pair is refused there.
+  using Q = Rational;
+  const std::array<HalfspaceTriple<Q>, 4> polytope = {{
+      {Q{1}, Q{2}, Q{4}},
+      {Q{3}, Q{1}, Q{6}},
+      {Q{-1}, Q{0}, Q{0}},
+      {Q{0}, Q{-1}, Q{0}},
+  }};
+  const auto v = maximize_with_values<Q>(
+      std::span<const HalfspaceTriple<Q>>(polytope), Q{1}, Q{1});
+  CHECK(v(Vec2V<Q>{Q{8, 5}, Q{6, 5}}));
+  CHECK_FALSE(v(Vec2V<Q>{Q{2}, Q{0}}));
+  CHECK_FALSE(v(Vec2V<Q>{Q{0}, Q{2}}));
+  CHECK_FALSE(v(Vec2V<Q>{Q{1}, Q{1}}));
+}
