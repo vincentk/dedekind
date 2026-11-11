@@ -75,10 +75,9 @@ namespace dedekind::category {
 template <>
 struct divisor_of<dedekind::numbers::Rational> {
   using type = NonZero<dedekind::numbers::Rational>;
+  /** @brief The check into ℚ*: defined after @c Rational is complete. */
   static constexpr std::optional<type> check(
-      const dedekind::numbers::Rational& q) {
-    return nonzero(q);
-  }
+      const dedekind::numbers::Rational& q);
 };
 /** @brief ℚ₊ ⊂ ℚ*: declared here, kept by Positive's own constructors. */
 template <>
@@ -184,6 +183,10 @@ export class Rational {
 // ---------------------------------------------------------------------------
 namespace dedekind::category {
 using Q_ = dedekind::numbers::Rational;
+
+constexpr std::optional<NonZero<Q_>> divisor_of<Q_>::check(const Q_& q) {
+  return nonzero(q);
+}
 
 template <>
 struct SpeciesTraits<Q_> {
