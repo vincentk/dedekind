@@ -1076,9 +1076,9 @@ static_assert(max(counts&(π < 5))(4), "4 = max {x < 5} on ℕ.");
 static_assert(!max(counts & (π < 5))(5), "5 ∉ {x < 5}, so not its max.");
 static_assert(min(counts&(π > 5))(6), "6 = min {x > 5} on ℕ.");
 // ℤ: the same extrema, and the negative side ℕ cannot spell.
-static_assert(max(ℤ&(π <= 5))(5), "5 = max {x ≤ 5} on ℤ.");
-static_assert(!max(ℤ & (π <= 5))(3), "3 is not the greatest element.");
-static_assert(min(ℤ&(π >= -5))(-5), "−5 = min {x ≥ −5} on ℤ.");
+static_assert(max(ℤ&(π <= 5))(Integer{5}), "5 = max {x ≤ 5} on ℤ.");
+static_assert(!max(ℤ & (π <= 5))(Integer{3}), "3 is not the greatest element.");
+static_assert(min(ℤ&(π >= -5))(Integer{-5}), "−5 = min {x ≥ −5} on ℤ.");
 // ℚ slice step 4: the step on ℤ (successor / predecessor on Integer), so
 // a strict bound is attained at its neighbour: max {x < 5} = 4.
 
