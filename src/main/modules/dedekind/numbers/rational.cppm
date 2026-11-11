@@ -105,8 +105,7 @@ export class Rational {
    *  @param n the numerator.  @param d the denominator. */
   template <std::integral N, std::integral D>
     requires(!std::same_as<N, bool> && !std::same_as<D, bool>)
-  consteval Rational(N n, D d)
-      : Rational(Rational{n} / nonzero(Rational{d}).value()) {}
+  consteval Rational(N n, D d);
 
   /** @return the numerator, in ℤ: carries the sign. */
   constexpr const Integer& num() const { return num_; }
@@ -139,7 +138,7 @@ export class Rational {
    *  @param d the divisor, certified. */
   friend constexpr Rational operator/(const Rational& a,
                                       const NonZeroRational& d) {
-    const Rational& b = d.value();
+    const Rational b = d.value();
     return reduced(Integer(a.num_.magnitude() * b.den_,
                            a.num_.negative() != b.num_.negative()),
                    a.den_ * b.num_.magnitude());
@@ -168,6 +167,101 @@ export class Rational {
   Numeral den_{1u};
 };
 
+}  // namespace dedekind::numbers
+
+// ---------------------------------------------------------------------------
+// Registrations: the laws of ℚ, over an exact ℤ unconditionally.  Before any
+// use: the first division resolves NonZero's law operators, whose gates read
+// IsField<Rational>, and a trait read before its specialisation is fixed.
+// ---------------------------------------------------------------------------
+namespace dedekind::category {
+using Q_ = dedekind::numbers::Rational;
+
+template <>
+struct SpeciesTraits<Q_> {
+  using Domain = Q_;
+  using machine_type = Q_;
+};
+
+// The chain ℚ.
+template <>
+inline constexpr bool is_reflexive_v<Q_, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_transitive_v<Q_, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_antisymmetric_v<Q_, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_connex_v<Q_, std::less_equal<>> = true;
+
+// The field: Frac(ℤ) is a localisation (Atiyah–Macdonald ch. 3), not a
+// homomorphic image, so the laws are registered directly; over ℤ's exact
+// arithmetic no cross-product wraps, and the fractions obey them.
+template <>
+inline constexpr bool is_associative_v<Q_, std::plus<Q_>> = true;
+template <>
+inline constexpr bool is_associative_v<Q_, std::multiplies<Q_>> = true;
+template <>
+inline constexpr bool is_commutative_v<Q_, std::plus<Q_>> = true;
+template <>
+inline constexpr bool is_commutative_v<Q_, std::multiplies<Q_>> = true;
+template <>
+inline constexpr bool
+    is_distributive_v<Q_, std::multiplies<Q_>, std::plus<Q_>> = true;
+template <>
+struct is_exact_total<Q_, std::plus<Q_>> : std::true_type {};
+template <>
+struct is_exact_total<Q_, std::multiplies<Q_>> : std::true_type {};
+template <>
+struct unit_trait<Q_, std::plus<Q_>> {
+  using value_type = Q_;
+  static constexpr value_type value = Q_{};
+};
+template <>
+struct unit_trait<Q_, std::multiplies<Q_>> {
+  using value_type = Q_;
+  static constexpr value_type value = Q_{1};
+};
+// ℚ is a ℤ-module, n (p/q) = (np)/q (Lang, Algebra §III.1).
+template <>
+struct is_linear_action<Q_, dedekind::sets::Integer, std::plus<Q_>,
+                        std::plus<dedekind::sets::Integer>,
+                        std::multiplies<dedekind::sets::Integer>,
+                        std::multiplies<>> : std::true_type {};
+template <>
+inline constexpr bool is_invertible_v<Q_, std::plus<Q_>> = true;
+template <>
+struct inverse_trait<Q_, std::plus<Q_>> {
+  static constexpr bool exists = true;
+  using value_type = Q_;
+  static constexpr value_type compute(const Q_& q) noexcept { return -q; }
+};
+// Every non-zero rational has an inverse: the convention of IsField, zero
+// excluded; the inverse itself is NonZero<Rational>::inverse, on ℚ*.
+template <>
+inline constexpr bool is_invertible_v<Q_, std::multiplies<Q_>> = true;
+
+}  // namespace dedekind::category
+
+namespace dedekind::algebra {
+// ℚ is an ORDERED field (Lang, Algebra §III.1): the order is compatible with
+// translation (O1) and with scaling by positives (O2).
+template <>
+struct is_translation_invariant_ordered<dedekind::numbers::Rational>
+    : std::true_type {};
+template <>
+struct is_scaling_invariant_ordered<dedekind::numbers::Rational>
+    : std::true_type {};
+}  // namespace dedekind::algebra
+
+namespace dedekind::numbers {
+
+/** @brief A literal fraction @f$n/d@f$; the check into ℚ* refuses @c d = 0
+ *  at compile time, which is the only time a @c consteval runs. */
+template <std::integral N, std::integral D>
+  requires(!std::same_as<N, bool> && !std::same_as<D, bool>)
+consteval Rational::Rational(N n, D d)
+    : Rational(Rational{n} / nonzero(Rational{d}).value()) {}
+
 /** @brief The literal @f$2 \in@f$ ℚ*: the midpoint's divisor. */
 export inline constexpr NonZeroRational two = NonZeroRational::literal<2>();
 
@@ -188,8 +282,8 @@ export constexpr Rational midpoint(const Rational& a, const Rational& b) {
 export class Positive {
  public:
   using Domain = Rational;
-  constexpr const Rational& value() const { return q_; }
-  constexpr operator const Rational&() const { return q_; }  // NOLINT
+  constexpr Rational value() const { return q_; }
+  constexpr operator Rational() const { return q_; }  // NOLINT
   /** @brief A positive literal; zero and the negatives are refused by the
    *  constraint.  @tparam N the literal. */
   template <auto N>
@@ -363,17 +457,9 @@ export using RationalPolynomial = dedekind::algebra::Polynomial<Rational>;
 }  // namespace dedekind::numbers
 
 // ---------------------------------------------------------------------------
-// Registrations: the laws of ℚ, over an exact ℤ unconditionally.
+// Registrations of the arrows and the Kleene surface, defined above.
 // ---------------------------------------------------------------------------
 namespace dedekind::category {
-using Q_ = dedekind::numbers::Rational;
-
-template <>
-struct SpeciesTraits<Q_> {
-  using Domain = Q_;
-  using machine_type = Q_;
-};
-
 // Kleene traits of the partial surface.
 template <>
 inline constexpr bool
@@ -396,63 +482,6 @@ inline constexpr Q_ partial_unit_v<Q_, dedekind::numbers::PartialMulRational> =
 template <>
 inline constexpr bool is_kleene_associative_v<
     Q_, dedekind::numbers::PartialEmbedIntegerToRational> = true;
-
-// The chain ℚ.
-template <>
-inline constexpr bool is_reflexive_v<Q_, std::less_equal<>> = true;
-template <>
-inline constexpr bool is_transitive_v<Q_, std::less_equal<>> = true;
-template <>
-inline constexpr bool is_antisymmetric_v<Q_, std::less_equal<>> = true;
-template <>
-inline constexpr bool is_connex_v<Q_, std::less_equal<>> = true;
-
-// The field: Frac(ℤ) is a localisation (Atiyah–Macdonald ch. 3), not a
-// homomorphic image, so the laws are registered directly; over ℤ's exact
-// arithmetic no cross-product wraps, and the fractions obey them.
-template <>
-inline constexpr bool is_associative_v<Q_, std::plus<Q_>> = true;
-template <>
-inline constexpr bool is_associative_v<Q_, std::multiplies<Q_>> = true;
-template <>
-inline constexpr bool is_commutative_v<Q_, std::plus<Q_>> = true;
-template <>
-inline constexpr bool is_commutative_v<Q_, std::multiplies<Q_>> = true;
-template <>
-inline constexpr bool
-    is_distributive_v<Q_, std::multiplies<Q_>, std::plus<Q_>> = true;
-template <>
-struct is_exact_total<Q_, std::plus<Q_>> : std::true_type {};
-template <>
-struct is_exact_total<Q_, std::multiplies<Q_>> : std::true_type {};
-template <>
-struct unit_trait<Q_, std::plus<Q_>> {
-  using value_type = Q_;
-  static constexpr value_type value = Q_{};
-};
-template <>
-struct unit_trait<Q_, std::multiplies<Q_>> {
-  using value_type = Q_;
-  static constexpr value_type value = Q_{1};
-};
-// ℚ is a ℤ-module, n (p/q) = (np)/q (Lang, Algebra §III.1).
-template <>
-struct is_linear_action<Q_, dedekind::sets::Integer, std::plus<Q_>,
-                        std::plus<dedekind::sets::Integer>,
-                        std::multiplies<dedekind::sets::Integer>,
-                        std::multiplies<>> : std::true_type {};
-template <>
-inline constexpr bool is_invertible_v<Q_, std::plus<Q_>> = true;
-template <>
-struct inverse_trait<Q_, std::plus<Q_>> {
-  static constexpr bool exists = true;
-  using value_type = Q_;
-  static constexpr value_type compute(const Q_& q) noexcept { return -q; }
-};
-// Every non-zero rational has an inverse: the convention of IsField, zero
-// excluded; the inverse itself is NonZero<Rational>::inverse, on ℚ*.
-template <>
-inline constexpr bool is_invertible_v<Q_, std::multiplies<Q_>> = true;
 
 /** @brief ℤ ↪ ℚ is monic, monotone, and a ring homomorphism. */
 template <>
@@ -480,17 +509,6 @@ inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝕃_ℚ)>> =
         true;
 }  // namespace dedekind::category
-
-namespace dedekind::algebra {
-// ℚ is an ORDERED field (Lang, Algebra §III.1): the order is compatible with
-// translation (O1) and with scaling by positives (O2).
-template <>
-struct is_translation_invariant_ordered<dedekind::numbers::Rational>
-    : std::true_type {};
-template <>
-struct is_scaling_invariant_ordered<dedekind::numbers::Rational>
-    : std::true_type {};
-}  // namespace dedekind::algebra
 
 namespace dedekind::numbers {
 

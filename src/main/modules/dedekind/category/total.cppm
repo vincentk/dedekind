@@ -909,9 +909,9 @@ class NonZero {
  public:
   using Domain = T;
   /** @return the value, in @c T. */
-  constexpr const T& value() const { return value_; }
+  constexpr T value() const { return value_; }
   /** @brief The inclusion @f$T^* \subset T@f$. */
-  constexpr operator const T&() const { return value_; }  // NOLINT
+  constexpr operator T() const { return value_; }  // NOLINT
   /** @brief A refinement that declares itself non-zero (@c
    *  is_nonzero_refinement): its value, certified by that law.
    *  @tparam R the refinement.  @param r the value. */
@@ -942,6 +942,7 @@ class NonZero {
    *  applied to its unit. */
   constexpr NonZero inverse() const
     requires requires(const T& t, const NonZero& d) {
+      T{1};
       { t / d } -> std::convertible_to<T>;
     }
   {
@@ -949,10 +950,7 @@ class NonZero {
   }
   /** @brief @f$a / b = a \cdot b^{-1} \neq 0@f$. */
   friend constexpr NonZero operator/(const NonZero& a, const NonZero& b)
-    requires requires(const NonZero& x) {
-      x.inverse();
-      x * x;
-    }
+    requires IsField<T, std::plus<T>, std::multiplies<T>>  // inverse applies
   {
     return a * b.inverse();
   }
@@ -987,14 +985,25 @@ constexpr std::optional<NonZero<T>> nonzero(const T& t) {
  *  @c nonzero where it takes @c NonZero<T>, and the carrier's own hook
  *  @c certify_divisor otherwise (𝔻's units).  @param t the value. */
 export template <typename T>
+  requires std::same_as<divisor_t<T>, T>
+constexpr std::optional<T> divisor(const T& t) {
+  return t;
+}
+export template <typename T>
+  requires std::same_as<divisor_t<T>, NonZero<T>> &&
+           std::equality_comparable<T> && std::default_initializable<T>
+constexpr std::optional<NonZero<T>> divisor(const T& t) {
+  return nonzero(t);
+}
+export template <typename T>
+  requires(!std::same_as<divisor_t<T>, T>) &&
+          (!std::same_as<divisor_t<T>, NonZero<T>>) && requires(const T& t) {
+            {
+              certify_divisor(t)
+            } -> std::convertible_to<std::optional<divisor_t<T>>>;
+          }
 constexpr std::optional<divisor_t<T>> divisor(const T& t) {
-  if constexpr (std::same_as<divisor_t<T>, T>) {
-    return t;
-  } else if constexpr (std::same_as<divisor_t<T>, NonZero<T>>) {
-    return nonzero(t);
-  } else {
-    return certify_divisor(t);
-  }
+  return certify_divisor(t);
 }
 
 /**

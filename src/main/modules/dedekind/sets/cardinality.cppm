@@ -361,8 +361,22 @@ struct DivideBit {
     return Divided{std::move(q), std::move(r)};
   }
 };
+/** @brief One step of @c a @c / @c k for a one-limb @c k, over the limbs from
+ *  the top: the remainder carried into the next limb, the quotient's limb
+ *  written (top first; reversed after). */
+struct DivideLimb {
+  std::vector<limb> a;  // the dividend's limbs
+  limb k;
+  constexpr Carried operator()(Carried s, std::size_t i) const {
+    const wide cur = (wide{s.carry} << 64) | a[a.size() - 1 - i];
+    s.limbs.push_back(static_cast<limb>(cur / k));
+    s.carry = static_cast<limb>(cur % k);
+    return s;
+  }
+};
 /** @return the quotient and remainder of @c a by @c d: on one limb each the
- *  word's; else shift and subtract over the dividend's bits, a fold of 64
+ *  word's; by a one-limb @c d, limb by limb, a fold of one step per limb of
+ *  @c a; else shift and subtract over the dividend's bits, a fold of 64
  *  steps per limb of @c a.  A zero divisor is undefined, as for the words
  *  ([expr.mul]/4), and refused by constant evaluation; a divisor certified
  *  non-zero by its type is ℚ's (#1035). */
@@ -371,6 +385,13 @@ constexpr Divided divide(const Numeral& a, const Numeral& d) {
     return {Numeral{a.low() / d.low()}, Numeral{a.low() % d.low()}};
   if (d == Numeral{}) return {Numeral{limb{1} / d.low()}, Numeral{}};
   if (a < d) return {Numeral{}, a};
+  if (d.limb_count() == 1) {
+    const Carried s = dedekind::category::fold(
+        std::views::iota(std::size_t{0}, a.limb_count()), Carried{},
+        DivideLimb{a.limbs(), d.low()});
+    return {Numeral(std::vector<limb>(s.limbs.rbegin(), s.limbs.rend())),
+            Numeral{s.carry}};
+  }
   return dedekind::category::fold(
       std::views::iota(std::size_t{0}, a.limb_count() * 64), Divided{},
       DivideBit{a.limbs(), d});
