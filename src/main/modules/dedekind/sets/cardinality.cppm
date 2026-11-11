@@ -385,7 +385,7 @@ struct Pair {
 struct EuclidStep {
   constexpr Pair operator()(const Pair& p) const {
     if (p.b == Numeral{}) return p;
-    return Pair{p.b, p.a % p.b};
+    return Pair{p.b, divide(p.a, p.b).r};  // `%` is declared below
   }
 };
 /** @return Lamé's bound on Euclid's steps @cite lame1844note (Knuth
