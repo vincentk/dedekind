@@ -45,7 +45,8 @@ It corresponds to the $-$sugar arrow of Figure~\ref{fig:arrows}, and complements
 It covers the constructions of \Cpp{23} that a Jlt program may write beyond the grammar of Section~\ref{sec:fjlt:syntax}, each with its desugaring and its condition.
 No proof of correctness is provided.
 Three reasons cover the constructions: i)~a spelling, syntactic sugar in Landin's sense~\cite{landin1964mechanical}, when the construction writes a kernel term another way; ii)~local state, when it keeps state that never leaves the call; iii)~branching, which only the kernel's own forms of choice may do.
-Across the three tables, the condition passes from the compiler to the repository's linter to a reader, and each row's mark says who holds it.
+Each condition is held by the compiler, the repository's linter or a reader: a spelling's sentence names its holder, and in the two tables of constructions a row's mark does.
+Listing~\ref{lst:fjlt-reading} first reads a small program against the grammar, each declaration labelled with its form.
 
 \begin{table}[ht]
 \centering
@@ -199,4 +200,4 @@ The rest of the library it reads writes about a hundred kinds, and half a dozen 
 The linter reports the inventory and holds each rule's findings at its count (\texttt{tools/jlt-lint/scope} in the repository).
 A kind does not tell every use apart.
 A binary operator is arithmetic or an assignment, and the assignments are local state, which Rule~3 admits and which reading, not counting, finds.
-With the tables closed, the second direction of Section~\ref{sec:translation:adequacy} reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.
+With the tables closed, the converse of Section~\ref{sec:translation:adequacy}'s inclusion reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.
