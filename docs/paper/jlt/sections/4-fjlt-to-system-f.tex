@@ -8,9 +8,9 @@
 This section is about the translation $\llbracket \cdot \rrbracket$ from Featherweight Jlt into System~F with records and the iterators of inductive types, the left edge of Figure~\ref{fig:arrows}.
 The translation is total on FJlt, and Section~\ref{sec:guarantees} says what the image guarantees.
 It is partial on \Cpp{}, and Section~\ref{sec:translation:adequacy} is the argument for when a \Cpp{} program is an FJlt program.
-
 The translation is defined in full in Figures~\ref{fig:fjlt-dictionaries} to~\ref{fig:fjlt-recursion} of Appendix~\ref{app:fjlt:translation}.
 Listings~\ref{lst:rule2} and~\ref{lst:rule3} exercise six of its rules, and Table~\ref{tab:rules} shows them as worked examples.
+
 A generic function is checked under two contexts: $\Delta$, its template head and \cppinline{requires} clause, the type variables and the constraints assumed on them; and $\Gamma$, its parameters with their types.
 The translation turns $\Delta$'s type variables into System~F's $\Lambda$, and $\Gamma$'s variables into $\lambda$.
 Each constraint $Q$ in $\Delta$ becomes a record parameter $q_Q$, a \emph{dictionary}.
@@ -21,14 +21,14 @@ A dictionary built at concrete types, which a call passes for $q_Q$, is written 
 \small
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.36\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.17\linewidth}@{}}
 \toprule
-FJlt & System~F & in \\
+FJlt & System~F & Listing \\
 \midrule
-\texttt{concept C = Ā} & $\mathit{Dict}_C\,\overline{\alpha} = \{\,\overline{r : \llbracket A \rrbracket}\,\}$ & Listing~\ref{lst:rule2} \\
+\texttt{concept C = Ā} & $\mathit{Dict}_C\,\overline{\alpha} = \{\,\overline{r : \llbracket A \rrbracket}\,\}$ & ~\ref{lst:rule2} \\
 \texttt{constexpr τ f(τ̄) = delete} & nothing & Listing~\ref{lst:rule2} \\
-\texttt{template <>}\newline\texttt{constexpr τ f<τ̄>(x̄) \{ e \}} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & Listing~\ref{lst:rule2} \\
+\texttt{template <>}\newline\texttt{constexpr τ f<τ̄>(x̄) \{ e \}} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & ~\ref{lst:rule2} \\
 \texttt{template <ᾱ> requires }$\overline{C\texttt{<}\overline{\tau}\texttt{>}}$\newline\texttt{constexpr τ f(x̄) \{ e \}} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_C\,\overline{\llbracket \tau \rrbracket}}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & Listing~\ref{lst:rule2} \\
-\texttt{f<τ̄>(ē)} & $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket}$ & Listing~\ref{lst:rule2} \\
-\texttt{fold\_left(r, a, f)}, $r$ a chain & $\pi_2\,(\mathit{iter}\,|r|\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket))$, $\mathit{step}$ the chain's $\mathit{next}$ beside $\llbracket f \rrbracket$ at its $\mathit{head}$ & Listing~\ref{lst:rule3} \\
+\texttt{f<τ̄>(ē)} & $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket}$ & ~\ref{lst:rule2} \\
+\texttt{fold\_left(r, a, f)}, $r$ a chain & $\pi_2\,(\mathit{iter}\,|r|\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket))$, $\mathit{step}$ the chain's $\mathit{next}$ beside $\llbracket f \rrbracket$ at its $\mathit{head}$ & ~\ref{lst:rule3} \\
 \bottomrule
 \end{tabularx}
 \caption{Six translation rules exercised by the listings; a chain is iterated for its length, its position carried beside the accumulator (Figure~\ref{fig:structures}).
@@ -36,10 +36,10 @@ Conditionals, conversions and the remaining operators are routine, and Appendix~
 \label{tab:rules}
 \end{table}
 
+A required call is a field of function type: \cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}, so under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{q.op a b}.
 A law is a field of type \texttt{Bool}, and a shape built from shapes is a record holding their records, which is how a superclass is passed.
 The whole is dictionary passing, Wadler and Blott's translation of type classes, here into System~F, the record being the dictionary~\cite{wadler1989adhoc}.
 Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
-\cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}, so under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{q.op a b}.
 
 \begin{table}[ht]
 \centering
