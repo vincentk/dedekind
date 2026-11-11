@@ -32,6 +32,7 @@ module;
 #include <compare>
 #include <concepts>
 #include <functional>
+#include <optional>  // the check into the certified divisors
 #include <type_traits>
 
 export module dedekind.numbers:quadratic;
@@ -304,6 +305,10 @@ namespace dedekind::category {
 template <long D, typename Q>
 struct divisor_of<dedekind::numbers::QuadraticReal<D, Q>> {
   using type = NonZero<dedekind::numbers::QuadraticReal<D, Q>>;
+  static constexpr std::optional<type> check(
+      const dedekind::numbers::QuadraticReal<D, Q>& x) {
+    return nonzero(x);
+  }
 };
 }  // namespace dedekind::category
 

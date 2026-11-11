@@ -248,6 +248,10 @@ namespace dedekind::category {
 template <typename F>
 struct divisor_of<dedekind::analysis::Dual<F>> {
   using type = dedekind::analysis::DualUnit<F>;
+  static constexpr std::optional<type> check(
+      const dedekind::analysis::Dual<F>& d) {
+    return dedekind::analysis::certify_divisor(d);
+  }
 };
 }  // namespace dedekind::category
 

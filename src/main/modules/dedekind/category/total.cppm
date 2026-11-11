@@ -877,6 +877,17 @@ concept IsField = IsCommutativeRing<T, Add, Mult> && IsAbelianGroup<T, Mult>;
 export template <typename T>
 struct divisor_of {
   using type = T;
+  /** @brief The check where the carrier's division takes the whole carrier
+   *  (the words, IEEE): the value itself except zero.  The type certifies
+   *  nothing there, and a zero divisor is undefined for a word
+   *  ([expr.mul]/4) and an infinity for IEEE, neither a quotient a caller
+   *  asked for.  @param t the value. */
+  static constexpr std::optional<T> check(const T& t)
+    requires std::equality_comparable<T> && std::default_initializable<T>
+  {
+    if (t == T{}) return std::nullopt;
+    return t;
+  }
 };
 /** @brief The type of a certified divisor of @c T.  @tparam T the carrier. */
 export template <typename T>
@@ -981,34 +992,14 @@ constexpr std::optional<NonZero<T>> nonzero(const T& t) {
 }
 
 /** @brief The check into a carrier's certified divisors, whatever their type:
- *  @c nonzero where the carrier divides by @c NonZero<T>, the carrier's own
- *  hook @c certify_divisor otherwise (𝔻's units), and, where the carrier's
- *  division takes the whole carrier (the words, IEEE), the value itself
- *  except zero: there the type certifies nothing, and a zero divisor is
- *  undefined for a word ([expr.mul]/4) and an infinity for IEEE, neither a
- *  quotient a caller asked for.  @param t the value. */
+ *  the one its @c divisor_of names, by the check that names it (@c nonzero
+ *  for @c NonZero<T>, a unit's check for 𝔻, zero refused where the carrier
+ *  divides by itself).  One function, so no overload is left for a caller's
+ *  constraints to decide.  @param t the value. */
 export template <typename T>
-  requires std::same_as<divisor_t<T>, T> && std::equality_comparable<T> &&
-           std::default_initializable<T>
-constexpr std::optional<T> divisor(const T& t) {
-  if (t == T{}) return std::nullopt;
-  return t;
-}
-export template <typename T>
-  requires std::same_as<divisor_t<T>, NonZero<T>> &&
-           std::equality_comparable<T> && std::default_initializable<T>
-constexpr std::optional<NonZero<T>> divisor(const T& t) {
-  return nonzero(t);
-}
-export template <typename T>
-  requires(!std::same_as<divisor_t<T>, T>) &&
-          (!std::same_as<divisor_t<T>, NonZero<T>>) && requires(const T& t) {
-            {
-              certify_divisor(t)
-            } -> std::convertible_to<std::optional<divisor_t<T>>>;
-          }
+  requires requires(const T& t) { divisor_of<T>::check(t); }
 constexpr std::optional<divisor_t<T>> divisor(const T& t) {
-  return certify_divisor(t);
+  return divisor_of<T>::check(t);
 }
 
 /**

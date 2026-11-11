@@ -187,7 +187,7 @@ TEST_CASE(
   CHECK(x / y == -two_64);
   CHECK(x % y == Integer{-1});
   CHECK((x / y) * y + x % y == x);
-  CHECK((-x) / (-y) == two_64);
+  CHECK((-x) / (-y) == -two_64);  // positive by negative: toward zero
   CHECK((-x) % (-y) == Integer{1});
   CHECK(Integer{-7} / Integer{2} == Integer{-3});
   CHECK(Integer{-7} % Integer{2} == Integer{-1});

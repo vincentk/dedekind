@@ -204,11 +204,9 @@ export template <IsRational Q = Rational>
 using PrincipalRay = Interval<Q>;
 
 /** @brief @f$p \mapsto \{q<p\}@f$: the rational embedded as the principal
- *  ray, extensionally @c lower_set(Cut<Q>{p}).
- *  @tparam Q the rational scalar carrier. */
-export template <IsRational Q>
-constexpr PrincipalRay<Q> principal_ray(const Q& p) {
-  return 𝔸<Q>{} & (π < p);
+ *  ray, extensionally @c lower_set(Cut<>{p}).  @param p the rational. */
+export constexpr PrincipalRay<> principal_ray(const Rational& p) {
+  return 𝔸<Rational>{} & (π < p);
 }
 
 }  // namespace dedekind::numbers

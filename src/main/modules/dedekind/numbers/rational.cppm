@@ -75,6 +75,10 @@ namespace dedekind::category {
 template <>
 struct divisor_of<dedekind::numbers::Rational> {
   using type = NonZero<dedekind::numbers::Rational>;
+  static constexpr std::optional<type> check(
+      const dedekind::numbers::Rational& q) {
+    return nonzero(q);
+  }
 };
 /** @brief ℚ₊ ⊂ ℚ*: declared here, kept by Positive's own constructors. */
 template <>
@@ -112,9 +116,9 @@ export class Rational {
   consteval Rational(N n, D d);
 
   /** @return the numerator, in ℤ: carries the sign. */
-  constexpr const Integer& num() const { return num_; }
+  constexpr Integer num() const { return num_; }
   /** @return the denominator, in ℕ, at least @c 1. */
-  constexpr const Numeral& den() const { return den_; }
+  constexpr Numeral den() const { return den_; }
 
   /** @brief Equality of normal forms. */
   constexpr bool operator==(const Rational&) const = default;

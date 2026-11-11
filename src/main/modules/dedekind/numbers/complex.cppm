@@ -18,6 +18,7 @@ module;
 #include <concepts>
 #include <functional>  // std::plus / std::multiplies in trait specialisations
 #include <limits>
+#include <optional>     // the check into the certified divisors
 #include <type_traits>  // std::bool_constant for the composite exactness traits
 #include <utility>
 
@@ -421,6 +422,10 @@ template <typename R>
   requires(!std::same_as<divisor_t<R>, R>)
 struct divisor_of<dedekind::numbers::Complex<R>> {
   using type = NonZero<dedekind::numbers::Complex<R>>;
+  static constexpr std::optional<type> check(
+      const dedekind::numbers::Complex<R>& z) {
+    return nonzero(z);
+  }
 };
 
 }  // namespace dedekind::category

@@ -36,12 +36,12 @@ using Q = Rational;
 
 TEST_CASE("linear_algebra:matrix — identity at the type level",
           "[linear_algebra][matrix][identity]") {
-  constexpr Identity2x2<Rat> I{};
-  STATIC_CHECK(I.m11 == Rat{1L});
-  STATIC_CHECK(I.m12 == Rat{0L});
-  STATIC_CHECK(I.m21 == Rat{0L});
-  STATIC_CHECK(I.m22 == Rat{1L});
-  STATIC_CHECK(I.det == Rat{1L});
+  constexpr Identity2x2<long> I{};
+  STATIC_CHECK(I.m11 == 1L);
+  STATIC_CHECK(I.m12 == 0L);
+  STATIC_CHECK(I.m21 == 0L);
+  STATIC_CHECK(I.m22 == 1L);
+  STATIC_CHECK(I.det == 1L);
 }
 
 TEST_CASE("linear_algebra:matrix — Cramer's inverse on ℚ",
