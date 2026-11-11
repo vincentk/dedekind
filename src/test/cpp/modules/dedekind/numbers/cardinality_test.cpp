@@ -84,3 +84,29 @@ TEST_CASE("Numbers: Numeral, ℕ above the word",
     CHECK(dedekind::sets::predecessor(t + Numeral{1u}) == t);
   }
 }
+
+TEST_CASE("Numbers: Numeral divides, and Euclid runs under Lamé's bound",
+          "[numbers][cardinality][numeral][division]") {
+  const Numeral top{std::numeric_limits<std::uint64_t>::max()};
+  const Numeral two_64 = top + Numeral{1u};
+  SECTION("one limb each: the word's division, no allocation") {
+    CHECK(Numeral{7u} / Numeral{2u} == Numeral{3u});
+    CHECK(Numeral{7u} % Numeral{2u} == Numeral{1u});
+    CHECK((Numeral{7u} / Numeral{2u}).limb_count() == 1);
+  }
+  SECTION("past the word: shift and subtract over the dividend's bits") {
+    const Numeral a = two_64 * Numeral{7u} + Numeral{3u};
+    CHECK(a / Numeral{7u} == two_64);
+    CHECK(a % Numeral{7u} == Numeral{3u});
+    CHECK(a / two_64 == Numeral{7u});
+    CHECK(a % two_64 == Numeral{3u});
+    CHECK((a / two_64) * two_64 + a % two_64 == a);
+    CHECK(two_64 * two_64 / (two_64 * two_64) == Numeral{1u});
+  }
+  SECTION("Euclid: a common factor above the word, and coprime neighbours") {
+    CHECK(gcd(two_64 * Numeral{6u}, two_64 * Numeral{4u}) ==
+          two_64 * Numeral{2u});
+    CHECK(gcd(two_64 + Numeral{1u}, two_64) == Numeral{1u});
+    CHECK(gcd(Numeral{}, two_64) == two_64);
+  }
+}

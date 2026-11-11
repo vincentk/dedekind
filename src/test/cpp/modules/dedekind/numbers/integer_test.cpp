@@ -172,3 +172,25 @@ TEST_CASE("numbers:integer: a borrow runs through maximum-value limbs",
   // borrow, so the amount taken is 2^64, wider than a limb.
   CHECK(two_128 + -Integer{w * (w + Numeral{1u}) + w} == Integer{1});
 }
+
+TEST_CASE(
+    "numbers:integer: division rounds toward zero, the remainder has "
+    "the dividend's sign, past the word",
+    "[numbers][integer][division]") {
+  // The witnesses are static_asserts at the definition site; these runtime
+  // checks make the same facts visible to coverage, and read (x / y) * y +
+  // x % y == x on values int cannot hold.
+  const Numeral w{std::numeric_limits<std::uint64_t>::max()};
+  const Integer two_64{w + Numeral{1u}};
+  const Integer x = two_64 * Integer{-3} + Integer{-1};  // -(3·2^64 + 1)
+  const Integer y{3};
+  CHECK(x / y == -two_64);
+  CHECK(x % y == Integer{-1});
+  CHECK((x / y) * y + x % y == x);
+  CHECK((-x) / (-y) == two_64);
+  CHECK((-x) % (-y) == Integer{1});
+  CHECK(Integer{-7} / Integer{2} == Integer{-3});
+  CHECK(Integer{-7} % Integer{2} == Integer{-1});
+  CHECK(gcd(Integer{-12}, Integer{18}) == Numeral{6u});
+  CHECK(gcd(x, two_64 * Integer{-6}) == Numeral{1u});
+}

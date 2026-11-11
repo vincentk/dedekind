@@ -210,6 +210,14 @@ using wide = __uint128_t;  // a limb product, with its carry
 constexpr limb at(const std::vector<limb>& v, std::size_t i) {
   return i < v.size() ? v[i] : limb{};
 }
+/** @brief Whether both numerals are one limb: the gate of the single-limb
+ *  fast paths.  Each path is a certificate about evaluation: on one limb the
+ *  word's own arithmetic computes the same normal form as the fold over the
+ *  limbs, where its result fits the word, so the fold is skipped and nothing
+ *  is allocated.  Where the result does not fit, the fold runs. */
+constexpr bool words(const Numeral& x, const Numeral& y) {
+  return x.limb_count() == 1 && y.limb_count() == 1;
+}
 /** @brief The state of a carried walk over limbs: those done, and the carry. */
 struct Carried {
   std::vector<limb> limbs{};
@@ -288,12 +296,21 @@ struct AddRow {
 };
 }  // namespace detail_numeral
 
-/** @brief The sum, exact. */
+/** @brief The sum, exact; on one limb each, the word's sum where it fits. */
 export constexpr Numeral operator+(const Numeral& x, const Numeral& y) {
+  if (detail_numeral::words(x, y)) {
+    const detail_numeral::wide w = detail_numeral::wide{x.low()} + y.low();
+    if ((w >> 64) == 0) return Numeral{static_cast<Numeral::limb>(w)};
+  }
   return Numeral(detail_numeral::add(x.limbs(), y.limbs()));
 }
-/** @brief The product, exact: schoolbook, a row per limb of @c y. */
+/** @brief The product, exact: schoolbook, a row per limb of @c y; on one
+ *  limb each, the word's product where it fits. */
 export constexpr Numeral operator*(const Numeral& x, const Numeral& y) {
+  if (detail_numeral::words(x, y)) {
+    const detail_numeral::wide w = detail_numeral::wide{x.low()} * y.low();
+    if ((w >> 64) == 0) return Numeral{static_cast<Numeral::limb>(w)};
+  }
   const std::vector<Numeral::limb> a = x.limbs();
   const std::vector<Numeral::limb> b = y.limbs();
   return Numeral(dedekind::category::fold(
@@ -305,6 +322,7 @@ export constexpr std::strong_ordering operator<=>(const Numeral& x,
                                                   const Numeral& y) {
   if (x.limb_count() != y.limb_count())
     return x.limb_count() <=> y.limb_count();
+  if (detail_numeral::words(x, y)) return x.low() <=> y.low();
   const std::vector<Numeral::limb> a = x.limbs();
   const std::vector<Numeral::limb> b = y.limbs();
   return std::lexicographical_compare_three_way(a.rbegin(), a.rend(),
@@ -317,6 +335,86 @@ export constexpr Numeral successor(const Numeral& n) { return n + Numeral{1u}; }
 export constexpr Numeral predecessor(const Numeral& n) {
   if (n == Numeral{}) return n;
   return Numeral(detail_numeral::subtract(n.limbs(), {Numeral::limb{1}}));
+}
+namespace detail_numeral {
+/** @brief The state of a division by shift and subtract: the quotient's bits
+ *  so far, and the remainder. */
+struct Divided {
+  Numeral q;
+  Numeral r;
+};
+/** @brief One step of @c a @c / @c d over the dividend's bits, from the top:
+ *  the remainder doubles and takes the bit; where it reaches @c d, @c d is
+ *  taken from it and the quotient's bit is set. */
+struct DivideBit {
+  std::vector<limb> a;  // the dividend's limbs
+  Numeral d;
+  constexpr Divided operator()(Divided s, std::size_t i) const {
+    const std::size_t bit = a.size() * 64 - 1 - i;
+    const Numeral taken{(a[bit / 64] >> (bit % 64)) & limb{1}};
+    Numeral r = s.r + s.r + taken;
+    Numeral q = s.q + s.q;
+    if (d <= r) {
+      r = Numeral(subtract(r.limbs(), d.limbs()));
+      q = q + Numeral{1u};
+    }
+    return Divided{std::move(q), std::move(r)};
+  }
+};
+/** @return the quotient and remainder of @c a by @c d: on one limb each the
+ *  word's; else shift and subtract over the dividend's bits, a fold of 64
+ *  steps per limb of @c a.  A zero divisor is undefined, as for the words
+ *  ([expr.mul]/4), and refused by constant evaluation; a divisor certified
+ *  non-zero by its type is ℚ's (#1035). */
+constexpr Divided divide(const Numeral& a, const Numeral& d) {
+  if (words(a, d))
+    return {Numeral{a.low() / d.low()}, Numeral{a.low() % d.low()}};
+  if (d == Numeral{}) return {Numeral{limb{1} / d.low()}, Numeral{}};
+  if (a < d) return {Numeral{}, a};
+  return dedekind::category::fold(
+      std::views::iota(std::size_t{0}, a.limb_count() * 64), Divided{},
+      DivideBit{a.limbs(), d});
+}
+/** @brief Euclid's step on a pair, @f$(a, b) \mapsto (b, a \bmod b)@f$, and
+ *  the pair itself at @f$b = 0@f$: its fixed point, where @c iterate stops. */
+struct Pair {
+  Numeral a;
+  Numeral b;
+  constexpr bool operator==(const Pair&) const = default;
+};
+struct EuclidStep {
+  constexpr Pair operator()(const Pair& p) const {
+    if (p.b == Numeral{}) return p;
+    return Pair{p.b, p.a % p.b};
+  }
+};
+/** @return Lamé's bound on Euclid's steps @cite lame1844note (Knuth
+ *  @cite knuth1997art2 §4.5.3): fewer than @f$1.45@f$ per bit of the smaller
+ *  argument, here its limbs' bits; and two more, the step that sees the fixed
+ *  point and a first swap. */
+constexpr std::size_t lame_bound(const Numeral& smaller) {
+  return (smaller.limb_count() * 64 * 145 + 99) / 100 + 2;
+}
+}  // namespace detail_numeral
+
+/** @brief The quotient, rounded down; see @c detail_numeral::divide for the
+ *  zero divisor. */
+export constexpr Numeral operator/(const Numeral& x, const Numeral& y) {
+  return detail_numeral::divide(x, y).q;
+}
+/** @brief The remainder, @c x @c - @c (x @c / @c y) @c * @c y. */
+export constexpr Numeral operator%(const Numeral& x, const Numeral& y) {
+  return detail_numeral::divide(x, y).r;
+}
+/** @brief The greatest common divisor, Euclid's: the step iterated to its
+ *  fixed point under Lamé's bound, so Rule 3 holds by the declared bound and
+ *  the early exit costs the steps taken (@c iterate, @c :morphism).
+ *  @f$\gcd(n, 0) = n@f$. */
+export constexpr Numeral gcd(const Numeral& x, const Numeral& y) {
+  return dedekind::category::iterate(detail_numeral::EuclidStep{},
+                                     detail_numeral::Pair{x, y},
+                                     detail_numeral::lame_bound(std::min(x, y)))
+      .a;
 }
 /** @brief An unsigned constant meeting ℕ, the hook @c :terms' @c carrier_cast
  *  reaches by ADL.  A signed constant has no hook here and is refused there:
@@ -420,6 +518,24 @@ export constexpr Integer operator-(const Integer& x, const Integer& y) {
 /** @brief The product: magnitudes multiply, signs multiply. */
 export constexpr Integer operator*(const Integer& x, const Integer& y) {
   return Integer(x.magnitude() * y.magnitude(), x.negative() != y.negative());
+}
+/** @brief The quotient, rounded toward zero, and the remainder with the
+ *  dividend's sign, as C++ specifies for its integers ([expr.mul]/4), so
+ *  @c (x / y) * y + x % y == x and ℤ agrees with the words where they have a
+ *  value.  A zero divisor is undefined there too, and refused by constant
+ *  evaluation; the typed divisor is ℚ's (#1035).  Not total, so not
+ *  registered as an operation of ℤ's algebra. */
+export constexpr Integer operator/(const Integer& x, const Integer& y) {
+  return Integer(x.magnitude() / y.magnitude(), x.negative() != y.negative());
+}
+/** @brief The remainder, with the dividend's sign ([expr.mul]/4). */
+export constexpr Integer operator%(const Integer& x, const Integer& y) {
+  return Integer(x.magnitude() % y.magnitude(), x.negative());
+}
+/** @brief The greatest common divisor of two integers, a natural: that of
+ *  their magnitudes. */
+export constexpr Numeral gcd(const Integer& x, const Integer& y) {
+  return gcd(x.magnitude(), y.magnitude());
 }
 /** @brief The order of ℤ: the negatives below, ordered by magnitude reversed;
  *  the naturals above, ordered as ℕ. */
@@ -899,6 +1015,33 @@ static_assert(prior_(in_(std::nullopt)) == std::nullopt &&
                       Numeral{top} + Numeral{1u},
               "the inverse laws on values: Prior after In and In after Prior "
               "are identities, at zero and across the word's edge");
+/** @return @f$2^{64}@f$. */
+constexpr Numeral two_64() { return Numeral{top} + Numeral{1u}; }
+static_assert((two_64() * Numeral{7u} + Numeral{3u}) / Numeral{7u} ==
+                      two_64() &&
+                  (two_64() * Numeral{7u} + Numeral{3u}) % Numeral{7u} ==
+                      Numeral{3u} &&
+                  two_64() * two_64() / two_64() == two_64() &&
+                  (two_64() * two_64() + two_64() + Numeral{1u}) % two_64() ==
+                      Numeral{1u},
+              "division past the word: (7·2^64 + 3) / 7, 2^128 / 2^64");
+static_assert(Numeral{top} / Numeral{top} == Numeral{1u} &&
+                  Numeral{top} % Numeral{top} == Numeral{} &&
+                  Numeral{7u} / Numeral{2u} == Numeral{3u} &&
+                  Numeral{7u} % Numeral{2u} == Numeral{1u} &&
+                  Numeral{3u} / two_64() == Numeral{} &&
+                  Numeral{3u} % two_64() == Numeral{3u},
+              "division on one limb is the word's; a small dividend is its own "
+              "remainder");
+static_assert(gcd(Numeral{12u}, Numeral{18u}) == Numeral{6u} &&
+                  gcd(Numeral{18u}, Numeral{12u}) == Numeral{6u} &&
+                  gcd(Numeral{7u}, Numeral{}) == Numeral{7u} &&
+                  gcd(Numeral{}, Numeral{7u}) == Numeral{7u} &&
+                  gcd(two_64() * Numeral{6u}, two_64() * Numeral{4u}) ==
+                      two_64() * Numeral{2u} &&
+                  gcd(two_64() + Numeral{1u}, two_64()) == Numeral{1u},
+              "Euclid past the word: gcd(6·2^64, 4·2^64) = 2^65, and "
+              "neighbours are coprime");
 }  // namespace dedekind::sets::detail_numeral_witness
 
 // ── ℤ's algebra, declared, and its witnesses ────────────────────────────────
@@ -991,4 +1134,22 @@ static_assert(IsRanked<Numeral> && IsRanked<Integer> &&
                   rank(Integer{least}) == Numeral{std::uint64_t{1} << 63} &&
                   rank(Integer{}) == Numeral{},
               "ℕ and ℤ are ranked: the identity on ℕ, |z| on ℤ");
+static_assert(Integer{-7} / Integer{2} == Integer{-3} &&
+                  Integer{-7} % Integer{2} == Integer{-1} &&
+                  Integer{7} / Integer{-2} == Integer{-3} &&
+                  Integer{7} % Integer{-2} == Integer{1} &&
+                  Integer{-7} / Integer{-2} == Integer{3} &&
+                  Integer{-7} % Integer{-2} == Integer{-1} &&
+                  (-7 / 2 == -3 && -7 % 2 == -1 && 7 % -2 == 1),
+              "the quotient rounds toward zero and the remainder takes the "
+              "dividend's sign, as int's do ([expr.mul]/4)");
+static_assert(
+    (two_64() * Integer{-3} + Integer{-1}) / Integer{3} == -two_64() &&
+        (two_64() * Integer{-3} + Integer{-1}) % Integer{3} == Integer{-1} &&
+        (two_64() * Integer{3} + Integer{1}) / -two_64() == Integer{-3} &&
+        (two_64() * Integer{3} + Integer{1}) % -two_64() == Integer{1} &&
+        gcd(Integer{-12}, Integer{18}) == Numeral{6u} &&
+        gcd(two_64() * Integer{-6}, two_64() * Integer{4}) ==
+            (two_64() * Integer{2}).magnitude(),
+    "division and Euclid past the word, both signs");
 }  // namespace dedekind::sets::detail_integer_witness
