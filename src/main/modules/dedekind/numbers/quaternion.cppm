@@ -65,7 +65,7 @@ static_assert(!IsQuaternionScalar<double> && IsQuaternionScalar<int>,
  * @class Quaternion
  * @brief Hamilton's hypercomplex numbers q = a + bi + cj + dk.
  *
- * @tparam R  The scalar component type (an exact ring, e.g. @c Rational<>).
+ * @tparam R  The scalar component type (an exact ring, e.g. @c Rational).
  *
  * Multiplication is non-commutative: ij = k but ji = -k.
  */
@@ -152,15 +152,12 @@ class Quaternion {
  */
 
 // Basis quaternions over the exact ℚ
-using ℍ_ℚ = Quaternion<Rational<>>;
-inline constexpr ℍ_ℚ q_i{Rational<>{0}, Rational<>{1}, Rational<>{0},
-                         Rational<>{0}};
-inline constexpr ℍ_ℚ q_j{Rational<>{0}, Rational<>{0}, Rational<>{1},
-                         Rational<>{0}};
-inline constexpr ℍ_ℚ q_k{Rational<>{0}, Rational<>{0}, Rational<>{0},
-                         Rational<>{1}};
-inline constexpr ℍ_ℚ q_neg1{Rational<>{-1}, Rational<>{0}, Rational<>{0},
-                            Rational<>{0}};
+using ℍ_ℚ = Quaternion<Rational>;
+inline constexpr ℍ_ℚ q_i{Rational{0}, Rational{1}, Rational{0}, Rational{0}};
+inline constexpr ℍ_ℚ q_j{Rational{0}, Rational{0}, Rational{1}, Rational{0}};
+inline constexpr ℍ_ℚ q_k{Rational{0}, Rational{0}, Rational{0}, Rational{1}};
+inline constexpr ℍ_ℚ q_neg1{Rational{-1}, Rational{0}, Rational{0},
+                            Rational{0}};
 
 // i² = j² = k² = -1
 static_assert(q_i * q_i == q_neg1, "i² = -1");

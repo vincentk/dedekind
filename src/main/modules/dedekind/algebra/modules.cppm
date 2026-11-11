@@ -330,18 +330,18 @@ namespace dedekind::algebra {
  *
  *   @b is_module_v witnesses:
  *
- *   @c is_module_v<Rational<default_integer>, default_integer>
+ *   @c is_module_v<Rational, Integer>
  *     — @c numbers/rational.cppm: ℚ is a ℤ-module via the Frac
  *     construction (the localisation @c S^{-1}ℤ at @c S=ℤ_≠0).
  *
- *   @c is_module_v<Complex<Rational<default_integer>>,
- *                  Rational<default_integer>>
+ *   @c is_module_v<Complex<Rational>,
+ *                  Rational>
  *     — @c numbers/complex.cppm: ℂ over ℚ is a ℚ-module via the
  *     quotient ring @c ℚ[i]/(i²+1) carrying the canonical
  *     componentwise ℚ-action on the (real, imag) pair.
  *
- *   @c is_module_v<Dual<Rational<default_integer>>,
- *                  Rational<default_integer>>
+ *   @c is_module_v<Dual<Rational>,
+ *                  Rational>
  *     — @c analysis/dual.cppm: Dual<ℚ> is a ℚ-module via the
  *     quotient-algebra propagation in @c algebra:quotient (the
  *     exact-arithmetic AD instance).
@@ -350,8 +350,8 @@ namespace dedekind::algebra {
  *     — @c linear_algebra/vec2.cppm: the rank-2 free module over
  *     the unsigned-integer modular ring.
  *
- *   @c is_module_v<Vec2V<Rational<default_integer>>,
- *                  Rational<default_integer>>
+ *   @c is_module_v<Vec2V<Rational>,
+ *                  Rational>
  *     — @c linear_algebra/mat2x2.cppm: Vec2 over ℚ as a ℚ-module
  *     (the rank-2 vector space over the field ℚ, witnessed at the
  *     module tier; under epic #374's @c HasFieldOperators-to-
@@ -367,8 +367,8 @@ namespace dedekind::algebra {
  *     their dual rank-2 free modules over the unsigned-integer
  *     modular ring.
  *
- *   @c is_free_module_v<Vec2V<Rational<default_integer>>,
- *                       Rational<default_integer>, 2>
+ *   @c is_free_module_v<Vec2V<Rational>,
+ *                       Rational, 2>
  *     — @c linear_algebra/mat2x2.cppm: Vec2 over ℚ as a rank-2
  *     free ℚ-module.
  *
@@ -376,8 +376,8 @@ namespace dedekind::algebra {
  *
  *   @c is_endomorphism_ring_v<Matrix2x2V<unsigned int>,
  *                             Vec2V<unsigned int>>
- *     and @c is_endomorphism_ring_v<Matrix2x2V<Rational<default_integer>>,
- *                                   Vec2V<Rational<default_integer>>>
+ *     and @c is_endomorphism_ring_v<Matrix2x2V<Rational>,
+ *                                   Vec2V<Rational>>
  *     — @c linear_algebra/mat2x2.cppm: 2×2 matrices as the
  *     endomorphism ring of the rank-2 free module, on both the
  *     unsigned-integer and ℚ scalar carriers.
@@ -388,7 +388,7 @@ namespace dedekind::algebra {
  *   when @c IsField<F> holds in addition to @c IsModule<V, F>.
  *   Under epic #374's @c HasFieldOperators-to-@c IsField retargeting,
  *   the strict @c category::IsField closes on
- *   @c Rational<default_integer> via the multiplicative-inverse trait
+ *   @c Rational via the multiplicative-inverse trait
  *   registration in @c numbers/rational.cppm (zero excluded by the
  *   @c is_invertible_v convention pinned in @c total.cppm).  So
  *   every @c is_module_v witness above whose scalar is @c ℚ

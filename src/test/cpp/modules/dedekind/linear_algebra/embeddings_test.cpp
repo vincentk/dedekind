@@ -8,7 +8,7 @@
  *
  * Also hosts the operator-shape concept checks
  * (`HasRingOperators`, `HasFieldOperators`) on concrete numeric carriers —
- * those live here because `Rational<long>` cannot be imported into the
+ * those live here because `Rational` cannot be imported into the
  * algebra test directory (module-DAG rule: algebra is upstream of numbers).
  */
 
@@ -30,7 +30,7 @@ using namespace dedekind::numbers;
 
 namespace {
 // ℚ slice step 4: one Rational.
-using Rat = Rational<>;
+using Rat = Rational;
 }  // namespace
 
 TEST_CASE("algebra:modules — operator-shape witnesses for bona fide scalars",

@@ -24,8 +24,13 @@ using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::optimization;
 namespace {
-// ℚ slice step 4: one Rational.
-using Rat = Rational<>;
+// ℚ is not a structural type (its Integer keeps limbs in a std::vector), so
+// nothing of type Rational is a template argument any more.  The typed
+// constants below are over the word, which is exact on these instances: the
+// active sets' determinants are ±1 (the §5 polytope's {H1, H2} has det −1),
+// so Cramer's division is exact in `long`.  ℚ is the value path, tested at
+// the end of this file.
+using Rat = long;
 
 // The paper-facing LP instance (§5 candidate centrepiece):
 //   maximize 3x + 2y

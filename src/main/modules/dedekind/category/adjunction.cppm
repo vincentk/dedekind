@@ -27,7 +27,7 @@
  *     ℤ @c = @c F(ℕ); @c U forgets only the inverses, so @c U(ℤ) is ℤ
  *     read as a rig, and the unit ℕ @c → @c U(F(ℕ)) is the embedding.
  *   * @c F : @c IntegralDomain @c → @c Field (the field of fractions):
- *     @c Rational<Z> @c = @c F(Z) for @c Z @c = @c Integer.
+ *     @c Rational @c = @c F(Z) for @c Z @c = @c Integer.
  *   * @c F : @c OrderedField @c → @c CompleteOrderedField (the
  *     Cauchy completion): @c Real @c = @c F(Rational).
  *   * @c F : @c Field @c → @c AlgebraicallyClosedField (the algebraic

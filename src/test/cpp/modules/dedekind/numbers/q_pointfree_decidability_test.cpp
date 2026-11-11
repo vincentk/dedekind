@@ -39,9 +39,8 @@ using QHalfspace = std::remove_cvref_t<decltype(ℚ & (dedekind::sets::π > 5))>
 // The public expression really does bind the ℚ carrier and the Above cut
 // (value-carrying, so the pivot 5 rides in the instance, not the type).
 static_assert(
-    std::same_as<QHalfspace,
-                 dedekind::order::Interval<Rational<default_integer>,
-                                           dedekind::category::Boole>>,
+    std::same_as<QHalfspace, dedekind::order::Interval<
+                                 Rational, dedekind::category::Boole>>,
     "ℚ & (π > 5) binds to an interval over Rational.");
 // Carrier-axis magnitude is countable ℵ_0, matching the ambient's own C.
 static_assert(

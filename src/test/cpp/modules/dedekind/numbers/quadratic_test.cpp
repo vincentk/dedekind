@@ -24,7 +24,7 @@ import dedekind.order;
 using namespace dedekind::numbers;
 
 namespace {
-using Q = Rational<>;
+using Q = Rational;
 using R2 = QuadraticReal<2>;
 constexpr R2 r2 = R2::root();            // √2 as a field element
 constexpr Cut<> c2 = Cut<>::sqrt(Q{2});  // √2 as an order-leaf
@@ -42,11 +42,11 @@ TEST_CASE("ℚ(√2): a decidable quadratic real field", "[numbers][quadratic]")
   }
 
   SECTION("field ops close and compute exactly (codecov)") {
-    CHECK(r2 * r2 == R2{2});                       // √2·√2 = 2
-    CHECK((R2{1} + r2) * (R2{1} - r2) == R2{-1});  // conjugate norm
-    CHECK(r2 * r2.inverse() == R2{1});             // √2·(1/√2) = 1
-    CHECK(R2{1} / r2 == R2::of(Q{}, Q{1, 2}));     // 1/√2 = ½√2
-    CHECK((r2 + R2{3}) - R2{3} == r2);             // additive inverse
+    CHECK(r2 * r2 == R2{2});                            // √2·√2 = 2
+    CHECK((R2{1} + r2) * (R2{1} - r2) == R2{-1});       // conjugate norm
+    CHECK(r2 * inverse(nonzero(r2).value()) == R2{1});  // √2·(1/√2) = 1
+    CHECK(R2{1} / nonzero(r2).value() == R2::of(Q{}, Q{1, 2}));  // 1/√2 = ½√2
+    CHECK((r2 + R2{3}) - R2{3} == r2);  // additive inverse
   }
 
   SECTION("total, decidable order") {

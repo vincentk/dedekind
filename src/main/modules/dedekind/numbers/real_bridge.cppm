@@ -36,7 +36,7 @@ export module dedekind.numbers:real_bridge;
 import dedekind.algebra;    // EmbedsAsSubalgebra, IsHomomorphism
 import dedekind.category;   // IsArrow, IsMonicArrow, is_monic_arrow_v, IsSet
 import dedekind.relational; // graph(f): the arrow's graph Γ (reified relation)
-import :rational;           // Rational<default_integer> — the ℚ carrier
+import :rational;           // Rational — the ℚ carrier
 import :quadratic;  // QuadraticReal<2> — the ℝ = ℚ(√2) coat-hanger carrier
 
 namespace dedekind::numbers {
@@ -54,14 +54,10 @@ namespace dedekind::numbers {
  * @f$\{a+0\sqrt2\}\subset\mathbb{Q}(\sqrt2)@f$ --- an isomorphic copy of
  * @f$\mathbb{Q}@f$, i.e.\ a genuine subalgebra.
  *
- * @tparam I the integer carrier of the rational field (defaults to
- *         @c default_integer, so @c Codomain is the canonical @c
- * QuadraticReal<2>).
  */
-export template <typename I = default_integer>
-struct EmbedRationalToReal {
-  using Domain = Rational<I>;
-  using Codomain = QuadraticReal<2, Rational<I>>;
+export struct EmbedRationalToReal {
+  using Domain = Rational;
+  using Codomain = QuadraticReal<2, Rational>;
 
   /** @brief @f$q\mapsto q+0\sqrt2@f$ (the @c QuadraticReal(Q) lift). */
   constexpr Codomain operator()(const Domain& q) const { return Codomain{q}; }
@@ -69,7 +65,7 @@ struct EmbedRationalToReal {
 
 /** @brief The canonical S-leg instance
  * @f$\mathbb{Q}\hookrightarrow\mathbb{R}@f$. */
-export inline constexpr EmbedRationalToReal<> embed_ℚ_ℝ{};
+export inline constexpr EmbedRationalToReal embed_ℚ_ℝ{};
 
 }  // namespace dedekind::numbers
 
@@ -81,28 +77,27 @@ export inline constexpr EmbedRationalToReal<> embed_ℚ_ℝ{};
 namespace dedekind::category {
 /** @brief S-leg is structure-preserving (witness: preserves + and ×; 0 and 1
  *  are computed). */
-template <typename I>
+template <>
 struct is_homomorphism<
-    dedekind::numbers::EmbedRationalToReal<I>, dedekind::numbers::Rational<I>,
-    std::plus<dedekind::numbers::Rational<I>>,
-    std::plus<
-        dedekind::numbers::QuadraticReal<2, dedekind::numbers::Rational<I>>>>
+    dedekind::numbers::EmbedRationalToReal, dedekind::numbers::Rational,
+    std::plus<dedekind::numbers::Rational>,
+    std::plus<dedekind::numbers::QuadraticReal<2, dedekind::numbers::Rational>>>
     : std::true_type {};
-template <typename I>
+template <>
 struct is_homomorphism<
-    dedekind::numbers::EmbedRationalToReal<I>, dedekind::numbers::Rational<I>,
-    std::multiplies<dedekind::numbers::Rational<I>>,
+    dedekind::numbers::EmbedRationalToReal, dedekind::numbers::Rational,
+    std::multiplies<dedekind::numbers::Rational>,
     std::multiplies<
-        dedekind::numbers::QuadraticReal<2, dedekind::numbers::Rational<I>>>>
+        dedekind::numbers::QuadraticReal<2, dedekind::numbers::Rational>>>
     : std::true_type {};
 }  // namespace dedekind::category
 
 namespace dedekind::category {
 /** @brief S-leg is monic (witness: @f$a\neq b\Rightarrow embed(a)\neq
  * embed(b)@f$). */
-template <typename I>
-inline constexpr bool
-    is_monic_arrow_v<dedekind::numbers::EmbedRationalToReal<I>> = true;
+template <>
+inline constexpr bool is_monic_arrow_v<dedekind::numbers::EmbedRationalToReal> =
+    true;
 }  // namespace dedekind::category
 
 namespace dedekind::numbers {
@@ -111,8 +106,8 @@ namespace dedekind::numbers {
  *  The S-leg's defining laws, @b computed over inhabited carriers.
  */
 namespace {
-using Emb = EmbedRationalToReal<>;
-using Q = Rational<>;
+using Emb = EmbedRationalToReal;
+using Q = Rational;
 using R2 = QuadraticReal<2>;
 
 constexpr Q a{2, 3};  // 2/3

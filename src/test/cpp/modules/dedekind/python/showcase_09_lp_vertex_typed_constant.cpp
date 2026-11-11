@@ -43,8 +43,11 @@ using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::optimization;
 
-// ℚ slice step 4: one Rational, the vertex as a constexpr value.
-using Rat = Rational<>;
+// ℚ is not a structural type (its Integer keeps limbs in a std::vector), so
+// no Rational is a template argument.  The typed constant is over the word,
+// exact on this instance: the active set's determinant is ±1, so Cramer's
+// division is exact in `long`; `Rat{2}` is the long 2.
+using Rat = long;
 
 // Constraints of the paper-facing LP instance.
 using H1 = Halfspace2D<Rat, Rat{1}, Rat{1}, Rat{4}>;   //  x +  y ≤ 4
@@ -79,7 +82,7 @@ static_assert(OptimumPred::coord_y == Rat{2});
  * comparisons) to the literal numerator of `Rat{2L}` at `-O2`.
  */
 extern "C" __attribute__((noinline)) int64_t witness_lp_optimum_x() {
-  return static_cast<int64_t>(OptimumPred::coord_x.num());
+  return static_cast<int64_t>(OptimumPred::coord_x);
 }
 
 /**
@@ -88,5 +91,5 @@ extern "C" __attribute__((noinline)) int64_t witness_lp_optimum_x() {
  * Expected IR: `ret i64 2`.
  */
 extern "C" __attribute__((noinline)) int64_t witness_lp_optimum_y() {
-  return static_cast<int64_t>(OptimumPred::coord_y.num());
+  return static_cast<int64_t>(OptimumPred::coord_y);
 }

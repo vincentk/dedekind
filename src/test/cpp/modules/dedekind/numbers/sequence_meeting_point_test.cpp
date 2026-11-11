@@ -94,10 +94,10 @@ TEST_CASE(
     "sequence meeting-point — Mandelbrot orbit + DivergencePath "
     "(dynamical-systems leg)",
     "[sequences][meeting-point][mandelbrot]") {
-  const auto orbit = mandelbrot_orbit(Complex<Rational<>>{});
+  const auto orbit = mandelbrot_orbit(Complex<Rational>{});
   STATIC_CHECK(IsSequence<std::remove_cvref_t<decltype(orbit)>>);
   // The escape indicator is eventually constant ⇒ absorptive (row 5).
-  STATIC_CHECK(IsAbsorptiveSequence<DivergencePath<Rational<>>>);
+  STATIC_CHECK(IsAbsorptiveSequence<DivergencePath<Rational>>);
 }
 
 TEST_CASE(
@@ -153,7 +153,7 @@ TEST_CASE(
   // Row 4 (IsSequence) — analytic leg
   STATIC_CHECK(IsSequence<Path<double>>);
   // Row 5 (absorptive) — Mandelbrot leg
-  STATIC_CHECK(IsAbsorptiveSequence<DivergencePath<Rational<>>>);
+  STATIC_CHECK(IsAbsorptiveSequence<DivergencePath<Rational>>);
   // Row 5 (periodic) — orbit-bridge leg
   STATIC_CHECK(IsPeriodicSequence<OrbitSequence<Z6, std::plus<Z6>>, 6>);
   // Row 6 (series) — analytic leg

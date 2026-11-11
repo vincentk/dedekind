@@ -113,17 +113,38 @@ class Complex {
    *
    * Requires `operator/` on the scalar `R`. Defined when `|w|² ≠ 0`; for
    * the zero-division case the behaviour is inherited from `R / R` (e.g.
-   * `Rational<Z>` throws / asserts).
+   * `Rational` throws / asserts).
    *
    * Lifts `Complex<R>` from `HasRingOperators` into `HasFieldOperators`
    * (the `a/b → S` clause), which in turn lets `Dual<Complex<R>>` admit
    * `operator/` for holomorphic forward-mode automatic differentiation
    * at compile time.
    */
-  friend constexpr Complex operator/(const Complex& a, const Complex& b) {
+  friend constexpr Complex operator/(const Complex& a, const Complex& b)
+    requires requires(const R& x, const R& y) {
+      { x / y } -> std::convertible_to<R>;
+    }
+  {
     const R denom = b.first * b.first + b.second * b.second;
     return {(a.first * b.first + a.second * b.second) / denom,
             (a.second * b.first - a.first * b.second) / denom};
+  }
+  /**
+   * @brief Division by a certified non-zero complex, where the scalar divides
+   *        by a certified divisor (ℚ): @f$|w|^2 = c^2 + d^2@f$ is non-zero in
+   *        a formally real @c R (an ordered field: a sum of squares vanishes
+   *        only at zero), so the check into @c R's divisors is consumed, not
+   *        performed; its failure has no witness.
+   */
+  friend constexpr Complex operator/(
+      const Complex& a, const dedekind::category::NonZero<Complex>& w)
+    requires dedekind::algebra::IsOrderedMultiplicativeGroup<R>
+  {
+    const Complex& b = w.value();
+    const R denom = b.first * b.first + b.second * b.second;
+    const auto d = dedekind::category::divisor(denom).value();
+    return {(a.first * b.first + a.second * b.second) / d,
+            (a.second * b.first - a.first * b.second) / d};
   }
 };
 
@@ -389,8 +410,17 @@ struct inverse_trait<dedekind::numbers::Complex<R>,
   static constexpr bool exists = true;
   using value_type = dedekind::numbers::Complex<R>;
   static constexpr value_type compute(const value_type& z) {
-    return value_type{R{1}, R{}} / z;
+    // the inverse of a non-zero complex; zero is excluded by the convention
+    // of is_invertible_v, and the check into the divisors says so
+    return value_type{R{1}, R{}} / dedekind::category::divisor(z).value();
   }
+};
+/** @brief ℂ over a scalar that divides by a certified divisor divides by its
+ *  certified non-zeros. */
+template <typename R>
+  requires(!std::same_as<divisor_t<R>, R>)
+struct divisor_of<dedekind::numbers::Complex<R>> {
+  using type = NonZero<dedekind::numbers::Complex<R>>;
 };
 
 }  // namespace dedekind::category
@@ -445,8 +475,7 @@ export inline constexpr auto root8 =
     arrow<dedekind::morphologies::Modular<8u>, Complex<QuadraticReal<2>>>(
         [](const dedekind::morphologies::Modular<8u>& k) noexcept {
           using Rz = QuadraticReal<2>;
-          const Rz s = Rz::of(Rational<default_integer>{},
-                              Rational<default_integer>{1, 2});  // ½√2
+          const Rz s = Rz::of(Rational{}, Rational{1, 2});  // ½√2
           const Complex<Rz> table[4] = {
               {Rz{1}, Rz{}},  // ζ⁰ = 1
               {s, s},         // ζ¹ = ½√2 + ½√2·i
@@ -687,8 +716,8 @@ namespace dedekind::numbers {
 
 // ½√2 = cos(π/4) — the sole irrational the μ_8 table needs, pinned as a LITERAL
 // so the witnesses below are independent of root8's own definition.
-constexpr QuadraticReal<2> half_root2 = QuadraticReal<2>::of(
-    Rational<default_integer>{}, Rational<default_integer>{1, 2});
+constexpr QuadraticReal<2> half_root2 =
+    QuadraticReal<2>::of(Rational{}, Rational{1, 2});
 
 // de Moivre collapse is exact and a GROUP HOMOMORPHISM μ_8 → ℂ*.  Pin the
 // generator's collapse to its LITERAL value ½√2 + ½√2·i (NOT to ζ8's own
@@ -740,10 +769,8 @@ using Cx_ru = Complex<QuadraticReal<2>>;
 static_assert(root8(M8_ru{2}) == Cx_ru{R2_ru{}, R2_ru{1}}, "ζ₈² = i.");
 static_assert(root8(M8_ru{4}) == -Cx_ru{R2_ru{1}, R2_ru{}}, "ζ₈⁴ = −1.");
 static_assert(root8(M8_ru{0}) == Cx_ru{R2_ru{1}, R2_ru{}}, "ζ₈⁰ = 1.");
-static_assert(ζ8 == Cx_ru{R2_ru::of(Rational<default_integer>{},
-                                    Rational<default_integer>{1, 2}),
-                          R2_ru::of(Rational<default_integer>{},
-                                    Rational<default_integer>{1, 2})},
+static_assert(ζ8 == Cx_ru{R2_ru::of(Rational{}, Rational{1, 2}),
+                          R2_ru::of(Rational{}, Rational{1, 2})},
               "ζ8 = ½√2 + ½√2·i.");
 
 // Primitivity: no proper power (1..7) of ζ₈ is 1 (ζ₈⁸ = ζ₈⁰ = 1 by ℤ/8 wrap).
@@ -876,7 +903,7 @@ namespace dedekind::numbers {
 // ("Named functors that build the library's carriers") with source.
 //
 // FIXME(#498/NEW-A): same naming-convention question as
-// Rational<I>::IntegerCarrier — see the
+// Rational::IntegerCarrier — see the
 // FIXME there.  Aligning IntegerCarrier / ScalarCarrier / value_type
 // with :functor's Σ_cat / Τ_cat / Shape<U> convention is NEW-A
 // trait-registry work.
@@ -959,8 +986,7 @@ namespace dedekind::numbers {
 // wise multiplication on the @c (real, imag) pair).  The witness
 // fires through the quotient-algebra propagation in
 // @c dedekind.algebra:quotient.
-static_assert(dedekind::algebra::is_module_v<Complex<Rational<default_integer>>,
-                                             Rational<default_integer>>,
+static_assert(dedekind::algebra::is_module_v<Complex<Rational>, Rational>,
               "Complex<ℚ> is a module over ℚ.");
 
 }  // namespace dedekind::numbers

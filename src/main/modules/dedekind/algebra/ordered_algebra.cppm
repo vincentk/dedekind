@@ -173,7 +173,7 @@ concept IsOrderedAdditiveGroup =
  * @c std::totally_ordered by representatives yet have @c −1 a square
  * (@f$\mathbb{F}_5@f$), which this concept must reject.  Compatibility is a
  * value-law, carried by the markers at their per-carrier opt-in sites --- the
- * same design as @c IsOrderedAdditiveGroup.  @c Rational<I>, @c QuadraticReal,
+ * same design as @c IsOrderedAdditiveGroup.  @c Rational, @c QuadraticReal,
  * @c Real all opt into both markers; @c Complex<R> never opts into @c O2 (no
  * order compatible with complex @c *).
  */

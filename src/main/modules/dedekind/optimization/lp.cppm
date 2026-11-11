@@ -8,7 +8,7 @@
  *
  * @section lp__Overview
  * Compile-time 2D LP over a structural ring-like scalar (paper-facing
- * carrier: `Rational<long>`). A problem instance is named at the type
+ * carrier: `Rational`). A problem instance is named at the type
  * level — objective as two NTTPs, constraints as a pack of
  * `Halfspace2D<T, a, b, c>` carriers. The reduction
  * `argmax(G, U)` over a polytope-Set `G` and a `LinearFunctional U`
@@ -64,8 +64,8 @@
  *   ordering requirement, or to a proper `IsField<T, +, *>` once the
  *   latter lands in `dedekind.category:total`, is tracked under
  *   epic #374 (algebraic concept vocabulary alignment).  Paper-facing
- *   `T = Rational<Integer>` covers all the real
- *   requirements; `Dual<Rational<...>>` layering works for parametric
+ *   `T = Rational` covers all the real
+ *   requirements; `Dual<Rational>` layering works for parametric
  *   sensitivity analysis (`[dual]`-tagged test).
  *
  * @note "Modellbildung ist die halbe Miete."
@@ -84,7 +84,7 @@ export module dedekind.optimization:lp;
 
 import dedekind.algebra;        // HasRingOperators constraint
 import dedekind.category;       // Boole — Set's logic species (#747)
-import dedekind.numbers;        // Rational<Z>
+import dedekind.numbers;        // Rational
 import dedekind.linear_algebra; // Invertible2x2, Vec2
 import dedekind.sets;           // Set — DSL participants (#747)
 
@@ -256,53 +256,24 @@ struct VertexCandidate {
 namespace detail {
 
 /**
- * @brief Carrier-aware singularity predicate on the Cramer determinant.
- *
- * @details For plain ring-like carriers (`Rational<Z>`, `int`, etc.) a
- * determinant is singular iff it equals the additive identity. For
- * `Dual<F>` (forward-mode AD) the situation is subtler: a dual of the
- * form `{val = 0, der = t}` is *still* singular regardless of `t`,
- * because the first-order primal part is what controls invertibility.
- * A naive `det == T{}` check would miss this because `operator==` on
- * `Dual<F>` compares both components and would treat `{0, t}` with
- * `t != 0` as non-zero.
- *
- * We duck-type on the `.val` / `.der` pair to detect Dual-like
- * carriers without adding a `dedekind.numbers:dual` import: any carrier
- * exposing both fields is treated as having primal-determined
- * singularity; everything else falls back to full equality.
- */
-template <typename T>
-constexpr bool is_singular(const T& det) {
-  if constexpr (requires {
-                  det.val;
-                  det.der;
-                }) {
-    // Dual-like carrier: primal-only check.
-    return det.val == decltype(det.val){};
-  } else {
-    return det == T{};
-  }
-}
-
-/**
  * @brief 2×2 active-set solve for the intersection of two halfspaces,
  *        treated as equalities: `a1 x + b1 y = c1`, `a2 x + b2 y = c2`.
  *
- * Uses `Invertible2x2`'s Cramer inverse if the active-set matrix is
- * full-rank. If singular, returns an infeasible sentinel (the two
- * halfspaces are parallel; no vertex).
+ * Cramer's rule, dividing by the determinant of the active-set matrix.  The
+ * determinant is a divisor only where the carrier certifies it (@c :total's
+ * @c divisor: ℚ's non-zero, 𝔻's units, the word itself), so the vertex is a
+ * value exactly there; a singular matrix (the two halfspaces are parallel; no
+ * vertex) returns the infeasible sentinel.  The check is the one place the
+ * refusal lives; the division is total on what passes it.
  */
 template <typename T>
 constexpr VertexCandidate<T> solve_active_set(const HalfspaceTriple<T>& h1,
                                               const HalfspaceTriple<T>& h2) {
-  // Determinant of the active-set matrix [[a1 b1] [a2 b2]].
   const T det = h1.a * h2.b - h1.b * h2.a;
-  if (is_singular(det)) return {T{}, T{}, false};  // singular — parallel
-
-  // Cramer's rule.
-  const T x = (h1.c * h2.b - h1.b * h2.c) / det;
-  const T y = (h1.a * h2.c - h1.c * h2.a) / det;
+  const auto d = dedekind::category::divisor(det);
+  if (!d) return {T{}, T{}, false};  // singular: parallel
+  const T x = (h1.c * h2.b - h1.b * h2.c) / *d;
+  const T y = (h1.a * h2.c - h1.c * h2.a) / *d;
   return {x, y, true};
 }
 
@@ -320,7 +291,7 @@ constexpr VertexCandidate<T> solve_active_set(const HalfspaceTriple<T>& h1,
  * @c std::span (e.g. over a @c std::vector materialised from a Python
  * list of triples), the same function runs at runtime — same code
  * path, same active-set enumeration, same carrier-aware
- * @c is_singular check.  This is the
+ * divisor check.  This is the
  * paper's two-way bridge made literal: one function, two modes,
  * selection by the constexpr-ness of the arguments at the call site.
  */
@@ -556,15 +527,14 @@ constexpr auto lp_step_arrow =
 
 // Inline type witness: the output Set is an F-algebra for the
 // identity endofunctor — the catamorphism shape on the strict-form
-// side of @ref argmax .  Carrier is @c Rational<long> (matches the
+// side of @ref argmax .  Carrier is @c Rational (matches the
 // paper-facing T = ℚ); the witness lifts uniformly to any carrier
 // satisfying the same shape.
-static_assert(
-    dedekind::category::IsFAlgebra<
-        detail::LPSolutionSet<dedekind::numbers::Rational<long>>,
-        std::decay_t<
-            decltype(detail::lp_step_arrow<dedekind::numbers::Rational<long>>)>,
-        detail::LPSolutionIdF<dedekind::numbers::Rational<long>>>);
+static_assert(dedekind::category::IsFAlgebra<
+              detail::LPSolutionSet<dedekind::numbers::Rational>,
+              std::decay_t<
+                  decltype(detail::lp_step_arrow<dedekind::numbers::Rational>)>,
+              detail::LPSolutionIdF<dedekind::numbers::Rational>>);
 
 /** @section lp__The_Bridge
  *

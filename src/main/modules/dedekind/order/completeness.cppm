@@ -96,19 +96,26 @@ concept IsDiscrete = IsPartiallyOrdered<T> && dedekind::category::HasNNOStep<T>;
  * @concept IsDense
  * @brief A property where a midpoint always exists (a < c < b).
  *
- * @details The midpoint is computed as @c (a + b) / T{2} rather than
- * @c (a + b) / 2 so that the @b carrier itself supplies the value
- * @c 2 (via the @c T{2} structural constructor), rather than relying
- * on mixed-type @c T-vs-int arithmetic.  This matters for variant
- * exact carriers (@c Integer, @c Rational<...> over
- * such) which do not implicitly inter-operate with literal @c int ---
- * forcing the carrier to construct its own @c 2 keeps the concept
- * honest across both built-in (@c int, @c double) and exact carriers.
+ * @details The midpoint is the carrier's @c midpoint(a, b), found by
+ * argument-dependent lookup: a field whose division takes a certified
+ * divisor (ℚ, @c :total's @c divisor_t) spells it @c a + (b - a) / two with
+ * @c two a @c NonZero literal; the generic one below serves a carrier whose
+ * division takes the whole carrier (@c double), as @c (a + b) / T{2}, the
+ * carrier supplying its own @c 2.
  */
+/** @brief The generic midpoint, for a carrier that divides by itself.
+ *  @param a one end.  @param b the other. */
+export template <typename T>
+  requires requires(const T a, const T b) {
+    { (a + b) / T{2} } -> std::convertible_to<T>;
+  }
+constexpr T midpoint(const T& a, const T& b) {
+  return (a + b) / T{2};
+}
 export template <typename T>
 concept IsDense =
     IsTotallyOrdered<T> && !IsDiscrete<T> && requires(const T a, const T b) {
-      { (a + b) / T{2} } -> std::convertible_to<T>;
+      { midpoint(a, b) } -> std::convertible_to<T>;
     };
 
 /**

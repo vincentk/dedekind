@@ -16,7 +16,7 @@ import dedekind.algebra;
 import dedekind.analysis; // Dual<F>
 import dedekind.category;
 import dedekind.linear_algebra; // Vec2V<T>
-import dedekind.numbers;        // Rational, Complex, default_integer
+import dedekind.numbers;        // Rational, Complex, Integer
 
 namespace {
 
@@ -32,10 +32,10 @@ using dedekind::category::IsProductAlgebra;
 using dedekind::category::IsQuotientAlgebra;
 using dedekind::linear_algebra::Vec2V;
 using dedekind::numbers::Complex;
-using dedekind::numbers::default_integer;
 using dedekind::numbers::Rational;
+using dedekind::sets::Integer;
 
-using Q = Rational<default_integer>;
+using Q = Rational;
 using CQ = Complex<Q>;
 using DQ = Dual<Q>;
 using V2u = Vec2V<unsigned int>;
@@ -68,7 +68,7 @@ TEST_CASE(
     "Rational registers its laws; H propagation composes through "
     "Cplx / Dual",
     "[algebra][quotient][propagation]") {
-  // Rational<I> registers associativity directly, gated on I's; the second H
+  // Rational registers associativity directly, gated on I's; the second H
   // (Cplx, Dual) propagates from it.
   STATIC_CHECK(associative<Q>(std::plus<Q>{}));
   STATIC_CHECK(associative<Q>(std::multiplies<Q>{}));
@@ -82,7 +82,7 @@ TEST_CASE("HSP propagation: commutativity lifts componentwise (P)",
   // unsigned int is commutative under +/* (modular arithmetic);
   // P propagation lifts to Vec2V<unsigned int>.
   STATIC_CHECK(commutative<V2u>(std::plus<V2u>{}));
-  // Q under + is commutative (registered on Rational<I>, gated on I's).
+  // Q under + is commutative (registered on Rational, gated on I's).
   STATIC_CHECK(commutative<Q>(std::plus<Q>{}));
 }
 
@@ -119,7 +119,7 @@ TEST_CASE("HSP propagation: no over-firing on undeclared carriers",
 
 TEST_CASE("HSP carrier is_module_v witnesses fire",
           "[algebra][quotient][module]") {
-  STATIC_CHECK(dedekind::algebra::is_module_v<Q, default_integer>);
+  STATIC_CHECK(dedekind::algebra::is_module_v<Q, Integer>);
   STATIC_CHECK(dedekind::algebra::is_module_v<CQ, Q>);
   STATIC_CHECK(dedekind::algebra::is_module_v<DQ, Q>);
   STATIC_CHECK(dedekind::algebra::is_module_v<V2u, unsigned int>);

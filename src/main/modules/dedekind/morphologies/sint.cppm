@@ -74,7 +74,6 @@ module;
 #include <concepts>
 #include <functional>
 #include <limits>
-#include <numeric>      // std::gcd (relocated from :integer per #670 cleanup)
 #include <type_traits>  // std::remove_cvref_t (no-narrowing pin in
                         // embed_sint_ℤ's set-level overload)
 #include <utility>      // std::forward (used in embed_sint_ℤ's set-level lift)
@@ -121,28 +120,6 @@ export template <IsInteger Z>
 constexpr Z integer_abs(Z value) {
   return value < Z{0} ? -value : value;
 }
-
-/** @brief Euclidean GCD over an `IsInteger` carrier. */
-export template <IsInteger Z>
-constexpr Z euclidean_gcd(Z lhs, Z rhs) {
-  if constexpr (std::is_integral_v<Z>) {
-    return std::gcd(lhs, rhs);
-  } else {
-    lhs = integer_abs(lhs);
-    rhs = integer_abs(rhs);
-    while (rhs != Z{0}) {
-      const Z remainder = lhs % rhs;
-      lhs = rhs;
-      rhs = remainder;
-    }
-    return lhs;
-  }
-}
-
-export template <typename Z>
-concept HasEuclideanGcd = IsInteger<Z> && requires(Z a, Z b) {
-  { euclidean_gcd(a, b) } -> std::same_as<Z>;
-};
 
 // ===========================================================================
 // (1) The lift: std::signed_integral ↪ ℤ

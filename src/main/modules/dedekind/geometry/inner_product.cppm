@@ -127,7 +127,7 @@ constexpr F norm(const Vector<F, N>& v) {
  *  @c LinearMap lives in @c :outer_product.  Strict-@c IsField gate
  *  on the scalar @c F: @c double is @b not a strict field
  *  (rounding-non-associativity) and is rejected at this surface.
- *  @c Rational<long> @c / strict-field carriers will become
+ *  @c Rational @c / strict-field carriers will become
  *  admissible once @c Vector / @c LinearMap broaden their
  *  @c IsMatrixScalar gate (#535).
  */
@@ -151,7 +151,7 @@ static_assert(IsInnerProductSpace<Vector<double, 3>, double>,
 
 // operator*(Covector, Vector) is the inner-product face of *: a covector
 // applied to a vector contracts the inner index, yielding a scalar.
-// Witnesses on a concrete strict-field carrier (e.g. Rational<long>) are
+// Witnesses on a concrete strict-field carrier (e.g. Rational) are
 // deferred until Vector<F, N> / LinearMap<F, M, N> admit IsField scalars
 // — today they gate at IsMatrixScalar = std::floating_point. Tracked on
 // #535.

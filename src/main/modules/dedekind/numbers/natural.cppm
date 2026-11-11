@@ -17,7 +17,7 @@
  * We "Bless" the coordinate species by verifying their rungs on the ladder:
  * - IsNatural  : N (ℕ) - The Discrete Monoid.
  * - IsInteger  : Z (ℤ) - The Euclidean Group.
- * - Rational<I> : Q (ℚ) - The Countable Dense Field.
+ * - Rational : Q (ℚ) - The Countable Dense Field.
  * - QuadraticReal<D> / 𝕃<F> : R (ℝ) - Exact and finite-float realisations.
  *
  * @section natural__Structural_Mapping

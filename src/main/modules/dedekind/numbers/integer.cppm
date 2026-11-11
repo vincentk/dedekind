@@ -31,10 +31,6 @@ using namespace dedekind::algebra;
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
-/** @brief The integer carrier @c Rational<I> defaults to: ℤ's @c Integer.
- *  ℚ slice step 3: deleted with @c Rational<Z> (#1035). */
-export using default_integer = dedekind::sets::Integer;
-
 /** @section integer__ℤ
  *  @c ℤ is the universe @c 𝔸<Integer>: Grothendieck's completion of ℕ, exact
  *  above the word as @c ℕ @c = @c 𝔸<Numeral> is, a ring under @c +, @c *

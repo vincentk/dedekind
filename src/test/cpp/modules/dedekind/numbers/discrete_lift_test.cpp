@@ -13,6 +13,8 @@
 
 import dedekind.category;
 import dedekind.numbers;
+import dedekind.sets;
+using dedekind::sets::Integer;
 
 using namespace dedekind::category;
 using namespace dedekind::numbers;
@@ -26,8 +28,8 @@ TEST_CASE("discrete_lift_t fires across the numeric tower",
       ambient_set<unsigned>([](const unsigned& n) { return n < 10u; });
   const auto integers_in_range =
       ambient_set<int>([](const int& n) { return n >= -5 && n <= 5; });
-  const auto positive_rationals = ambient_set<Rational<default_integer>>(
-      [](const Rational<default_integer>& q) { return q.num() > 0; });
+  const auto positive_rationals = ambient_set<Rational>(
+      [](const Rational& q) { return q.num() > Integer{}; });
 
   using NatSubset = decltype(naturals_under_10);
   using IntSubset = decltype(integers_in_range);
@@ -54,23 +56,22 @@ TEST_CASE("discrete_lift_t distinguishes refined subobjects of ℚ",
           "[numbers][category][etcs][discrete][lift][rational]") {
   // Two distinct subobjects of ℚ — the strictly-positive rationals
   // and the rationals strictly between 0 and 1.  Both share the
-  // same Ambient (Rational<default_integer>), but the predicates
+  // same Ambient (Rational), but the predicates
   // pick out different subobjects; the lift should produce
   // distinct discrete categories (the textbook
   // Disc(ℚ_{>0}) /= Disc(ℚ_{(0,1)}) reading).
-  const auto positive = ambient_set<Rational<default_integer>>(
-      [](const Rational<default_integer>& q) { return q.num() > 0; });
-  const auto open_unit_interval = ambient_set<Rational<default_integer>>(
-      [](const Rational<default_integer>& q) {
-        return q.num() > 0 && q.num() < q.den();
-      });
+  const auto positive = ambient_set<Rational>(
+      [](const Rational& q) { return q.num() > Integer{}; });
+  const auto open_unit_interval = ambient_set<Rational>([](const Rational& q) {
+    return q.num() > Integer{} && q.num() < Integer{q.den()};
+  });
 
   using S1 = decltype(positive);
   using S2 = decltype(open_unit_interval);
 
   // Same ambient, distinct types.
-  STATIC_CHECK(std::same_as<typename S1::Domain, Rational<default_integer>>);
-  STATIC_CHECK(std::same_as<typename S2::Domain, Rational<default_integer>>);
+  STATIC_CHECK(std::same_as<typename S1::Domain, Rational>);
+  STATIC_CHECK(std::same_as<typename S2::Domain, Rational>);
   STATIC_CHECK_FALSE(std::same_as<S1, S2>);
 
   // The lift produces distinct discrete categories — subobject
@@ -93,8 +94,8 @@ TEST_CASE("discrete_lift_t adjunction witnesses fire across the numeric tower",
       ambient_set<unsigned>([](const unsigned& n) { return n < 10u; });
   const auto integers_in_range =
       ambient_set<int>([](const int& n) { return n >= -5 && n <= 5; });
-  const auto positive_rationals = ambient_set<Rational<default_integer>>(
-      [](const Rational<default_integer>& q) { return q.num() > 0; });
+  const auto positive_rationals = ambient_set<Rational>(
+      [](const Rational& q) { return q.num() > Integer{}; });
 
   // disc_self_endofunctor_t / disc_self_unit_t (in :natural) take a
   // discrete category C, not the source IsSet directly.  Each tower

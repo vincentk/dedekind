@@ -57,7 +57,7 @@ using dedekind::numbers::root8;
 namespace {
 using R2 = QuadraticReal<2>;  // ℝ = ℚ(√2), the coat-hanger
 using Cx = Complex<R2>;       // ℂ over ℚ(√2), exact
-using Q = Rational<>;
+using Q = Rational;
 
 constexpr Cx operator""_re(unsigned long long n) {
   return Cx{R2{long(n)}, R2{}};

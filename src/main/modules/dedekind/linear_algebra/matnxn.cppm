@@ -600,7 +600,7 @@ struct is_saturating<dedekind::linear_algebra::MatNxNV<S, N>,
  *  @ref dedekind::linear_algebra::Bra is a total magma under its elementwise
  *  @c ⊕ exactly when the @b scalar @c ⊕ is.  Parametric on @c S --- the
  * decision is settled at the call site by which scalar the exhibit uses (a
- * total field such as @c Rational<default_integer> or the max-plus dioid: yes;
+ * total field such as @c Rational or the max-plus dioid: yes;
  * a signed
  *  @c long-backed @c Rational: no), never asserted near the carrier. */
 template <typename S, std::size_t N, typename O>

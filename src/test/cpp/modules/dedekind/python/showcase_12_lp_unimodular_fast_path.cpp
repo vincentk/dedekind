@@ -43,8 +43,11 @@ using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::optimization;
 
-// ℚ slice step 4: one Rational, the vertex as a constexpr value.
-using Rat = Rational<>;
+// ℚ is not a structural type (its Integer keeps limbs in a std::vector), so
+// no Rational is a template argument.  The typed constant is over the word,
+// exact on this instance: the active set's determinant is ±1, so Cramer's
+// division is exact in `long`; `Rat{2}` is the long 2.
+using Rat = long;
 
 // The unit-square pack: signed-unimodular + axis-aligned.
 using U1 = Halfspace2D<Rat, Rat{1}, Rat{0}, Rat{1}>;   //  x ≤ 1
@@ -77,7 +80,7 @@ static_assert(OptimumPred::coord_y == Rat{1});
  * folds entirely at translation time when the inputs are constexpr.
  */
 extern "C" __attribute__((noinline)) int64_t witness_lp_fast_optimum_x() {
-  return static_cast<int64_t>(OptimumPred::coord_x.num());
+  return static_cast<int64_t>(OptimumPred::coord_x);
 }
 
 /** @brief Showcase 12b: the fast-path optimum's y-coordinate.
@@ -85,5 +88,5 @@ extern "C" __attribute__((noinline)) int64_t witness_lp_fast_optimum_x() {
  * Expected IR: @c ret @c i64 @c 1.
  */
 extern "C" __attribute__((noinline)) int64_t witness_lp_fast_optimum_y() {
-  return static_cast<int64_t>(OptimumPred::coord_y.num());
+  return static_cast<int64_t>(OptimumPred::coord_y);
 }

@@ -46,6 +46,7 @@ module;
 #include <cstddef>  // for std::size_t (cyclic_order_v)
 #include <functional>
 #include <limits>       // for std::numeric_limits (cyclic_order_v)
+#include <optional>     // nonzero: a certified divisor, or not
 #include <ranges>       // concat: the free monoid's fold over a range
 #include <type_traits>  // for std::false_type, std::integral_constant
 #include <utility>      // std::pair: the binary method's state
@@ -854,7 +855,7 @@ concept IsCommutativeRing = IsRing<T, Add, Mult> && IsCommutative<T, Mult>;
  *
  * Downstream call sites that currently reach for
  * @c dedekind::algebra::HasFieldOperators will retarget to
- * @c IsField<T, Add, Mult> once carriers such as @c Rational<Z>,
+ * @c IsField<T, Add, Mult> once carriers such as @c Rational,
  * @c Complex<R>, and the relevant composites register the full
  * ring- plus multiplicative-group-trait specialisations. That work
  * is tracked under epic #374 and in particular #371 (axiom-hook
@@ -862,6 +863,133 @@ concept IsCommutativeRing = IsRing<T, Add, Mult> && IsCommutative<T, Mult>;
  */
 export template <typename T, typename Add, typename Mult>
 concept IsField = IsCommutativeRing<T, Add, Mult> && IsAbelianGroup<T, Mult>;
+
+/** @section total__Certified_Divisors  The divisor as a type
+ *  A field's division is total on @f$T \times T^*@f$, never on @f$T \times
+ *  T@f$: the one value it refuses is certified away by the divisor's type, so
+ *  no term denotes @f$1/0@f$ and the refusal has one place, the check into
+ *  @f$T^*@f$.  Which type that is, the carrier says: @c divisor_of<T> names
+ *  it, @c T itself by default, for the carriers whose division is total
+ *  (IEEE: @f$x/0@f$ is a value) or partial by the word's own posture
+ *  ([expr.mul]/4); @c NonZero<T> for a field that certifies.  The generic
+ *  surface (@c HasGroupOperatorsMul, @c IsDivisionRing, @c IsDense) asks for
+ *  division by @c divisor_t<T>. */
+export template <typename T>
+struct divisor_of {
+  using type = T;
+};
+/** @brief The type of a certified divisor of @c T.  @tparam T the carrier. */
+export template <typename T>
+using divisor_t = typename divisor_of<T>::type;
+
+/** @brief Whether the refinement @c R of @c T holds only non-zero values, by
+ *  its own invariant: a declared law, read by @c NonZero's converting
+ *  constructor (ℚ's @c Positive registers itself).  @tparam R the refinement.
+ *  @tparam T the carrier. */
+export template <typename R, typename T>
+struct is_nonzero_refinement : std::false_type {};
+export template <typename R, typename T>
+inline constexpr bool is_nonzero_refinement_v =
+    is_nonzero_refinement<R, T>::value;
+
+/** @brief A value of @c T that is not @c T{}, certified by its type: a
+ *  divisor.  Built by @c nonzero (the one check, an optional), by a literal
+ *  other than zero (refused by constraint), by a refinement that declares
+ *  itself non-zero, or by the closure laws below: in a field a product of
+ *  non-zeros is non-zero, an inverse is, a negation is.  Widens to @c T
+ *  implicitly, the inclusion @f$T^* \subset T@f$.  @tparam T the carrier. */
+export template <typename T>
+class NonZero {
+ public:
+  using Domain = T;
+  /** @return the value, in @c T. */
+  constexpr const T& value() const { return value_; }
+  /** @brief The inclusion @f$T^* \subset T@f$. */
+  constexpr operator const T&() const { return value_; }  // NOLINT
+  /** @brief A refinement that declares itself non-zero (@c
+   *  is_nonzero_refinement): its value, certified by that law.
+   *  @tparam R the refinement.  @param r the value. */
+  template <typename R>
+    requires is_nonzero_refinement_v<R, T> && requires(const R& r) {
+      { r.value() } -> std::convertible_to<T>;
+    }
+  constexpr NonZero(const R& r) : value_(r.value()) {}  // NOLINT
+  /** @brief A literal other than zero: zero is refused by the constraint.
+   *  @tparam N the literal. */
+  template <auto N>
+    requires(N != 0) && requires { T{N}; }
+  static consteval NonZero literal() {
+    return NonZero{T{N}};
+  }
+  constexpr bool operator==(const NonZero&) const = default;
+  /** @brief In a field, @f$ab \neq 0@f$ for @f$a, b \neq 0@f$: no zero
+   *  divisors. */
+  friend constexpr NonZero operator*(const NonZero& a, const NonZero& b)
+    requires IsField<T, std::plus<T>, std::multiplies<T>> &&
+             requires(const T& x, const T& y) {
+               { x * y } -> std::convertible_to<T>;
+             }
+  {
+    return NonZero{T(a.value_ * b.value_)};
+  }
+  /** @brief @f$1/a \neq 0@f$: the field's division by a certified divisor,
+   *  applied to its unit. */
+  constexpr NonZero inverse() const
+    requires requires(const T& t, const NonZero& d) {
+      { t / d } -> std::convertible_to<T>;
+    }
+  {
+    return NonZero{T(T{1} / *this)};
+  }
+  /** @brief @f$a / b = a \cdot b^{-1} \neq 0@f$. */
+  friend constexpr NonZero operator/(const NonZero& a, const NonZero& b)
+    requires requires(const NonZero& x) {
+      x.inverse();
+      x * x;
+    }
+  {
+    return a * b.inverse();
+  }
+  /** @brief @f$-a \neq 0@f$: negation is injective and fixes zero. */
+  constexpr NonZero operator-() const
+    requires requires(const T& t) {
+      { -t } -> std::convertible_to<T>;
+    }
+  {
+    return NonZero{T(-value_)};
+  }
+
+ private:
+  constexpr explicit NonZero(T v) : value_(std::move(v)) {}
+  template <typename U>
+    requires std::equality_comparable<U> && std::default_initializable<U>
+  friend constexpr std::optional<NonZero<U>> nonzero(const U& u);
+  T value_;
+};
+
+/** @brief The check into @f$T^*@f$: the value, certified, or nothing at zero.
+ *  The one refusal point of a field's division.  @param t the value. */
+export template <typename T>
+  requires std::equality_comparable<T> && std::default_initializable<T>
+constexpr std::optional<NonZero<T>> nonzero(const T& t) {
+  if (t == T{}) return std::nullopt;
+  return NonZero<T>{t};
+}
+
+/** @brief The check into a carrier's certified divisors, whatever their type:
+ *  the value itself where the carrier's division takes the whole carrier,
+ *  @c nonzero where it takes @c NonZero<T>, and the carrier's own hook
+ *  @c certify_divisor otherwise (𝔻's units).  @param t the value. */
+export template <typename T>
+constexpr std::optional<divisor_t<T>> divisor(const T& t) {
+  if constexpr (std::same_as<divisor_t<T>, T>) {
+    return t;
+  } else if constexpr (std::same_as<divisor_t<T>, NonZero<T>>) {
+    return nonzero(t);
+  } else {
+    return certify_divisor(t);
+  }
+}
 
 /**
  * @concept IsJoinSemilattice

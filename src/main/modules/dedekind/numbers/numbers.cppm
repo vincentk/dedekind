@@ -36,7 +36,7 @@ export import :boolean;  // Truth<L> and Ω
 export import :natural;  // ℕ (carrier: dedekind::sets::Numeral)
 export import :integer;  // ℤ = 𝔸<Integer>, Grothendieck's completion of ℕ
 /** @section numbers__Algebraic_Extensions */
-export import :rational;    // Rational<default_integer> (The Quotient Field)
+export import :rational;    // Rational (The Quotient Field)
 export import :cut;         // Cut<Q> — decidable Dedekind reals (ℚ + radicals)
 export import :quadratic;   // ℚ(√D) — a decidable quadratic real FIELD
 export import :complex;     // ℂ (The Cayley-Dickson construction)

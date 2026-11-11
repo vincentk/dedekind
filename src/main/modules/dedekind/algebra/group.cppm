@@ -87,7 +87,7 @@ concept HasGroupOperatorsAdd =
  * multiplicative group" lives in @c IsMultiplicativeGroup, gated by
  * the species-trait registry.
  *
- * Canonical positive witness: @c Rational<I> (closes strictly under
+ * Canonical positive witness: @c Rational (closes strictly under
  * @c (*, /, T{1})).  Negative witness (shape refuses): @c bool, @c
  * unsigned char, @c unsigned short --- integer promotion lifts @c *
  * and @c / to @c int.
@@ -97,7 +97,11 @@ concept HasGroupOperatorsAdd =
 export template <typename T>
 concept HasGroupOperatorsMul =
     dedekind::category::IsClosedUnder<T, std::multiplies<>> &&
-    dedekind::category::IsClosedUnder<T, std::divides<>> && requires { T{1}; };
+    requires(const T& a, const dedekind::category::divisor_t<T>& d) {
+      // division by a certified divisor (:total): T itself where the
+      // carrier's division takes the whole carrier, NonZero<T> for a field
+      { a / d } -> std::same_as<T>;
+    } && requires { T{1}; };
 
 /**
  * @concept HasSuccessorOperators

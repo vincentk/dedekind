@@ -26,10 +26,10 @@ TEST_CASE("Group: The Rules of Symmetry", "[algebra][group]") {
     // STATIC_CHECK(IsMultiplicativeMonoid<int>);
 
     // // Rationals satisfy the full Symmetry Axiom
-    // STATIC_CHECK(IsMultiplicativeGroup<Rational<int>>);
+    // STATIC_CHECK(IsMultiplicativeGroup<Rational>);
 
-    // Rational<int> q(2, 3);
-    // Rational<int> unit(1, 1);
+    // Rational q(2, 3);
+    // Rational unit(1, 1);
     // CHECK(q * q.inverse() == unit);
 
     // bool may be a valid algebraic carrier under suitable operations

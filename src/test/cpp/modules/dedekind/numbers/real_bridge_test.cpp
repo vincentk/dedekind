@@ -26,7 +26,7 @@ import dedekind.relational;
 using namespace dedekind::numbers;
 
 namespace {
-using Q = Rational<>;
+using Q = Rational;
 using R2 = QuadraticReal<2>;
 
 // A spread of rationals to drive the element-level laws (num/den, signs).
@@ -35,9 +35,9 @@ constexpr std::array<Q, 5> kSamples{Q{}, Q{1}, Q{2, 3}, Q{-3, 5}, Q{7, 2}};
 
 TEST_CASE("S-leg: ℚ ↪ ℝ classifies as EmbedsAsSubalgebra",
           "[numbers][hsp][subalgebra]") {
-  STATIC_REQUIRE(dedekind::algebra::IsHomomorphism<EmbedRationalToReal<>>);
-  STATIC_REQUIRE(dedekind::category::IsMonicArrow<EmbedRationalToReal<>>);
-  STATIC_REQUIRE(dedekind::algebra::EmbedsAsSubalgebra<EmbedRationalToReal<>>);
+  STATIC_REQUIRE(dedekind::algebra::IsHomomorphism<EmbedRationalToReal>);
+  STATIC_REQUIRE(dedekind::category::IsMonicArrow<EmbedRationalToReal>);
+  STATIC_REQUIRE(dedekind::algebra::EmbedsAsSubalgebra<EmbedRationalToReal>);
 }
 
 TEST_CASE("S-leg: embed preserves the field operations (+, ×, 0, 1)",

@@ -8,7 +8,7 @@
  *
  * @section cut__Reals_As_Cuts
  * A real number @b is a Dedekind lower cut of @f$\mathbb{Q}@f$ (Dedekind 1872).
- * @c Rational<I> names only the @b principal cuts --- one rational
+ * @c Rational names only the @b principal cuts --- one rational
  * bound, so it can name @f$\mathbb{Q}@f$ but no irrational.  @c Cut<Q> is the
  * leaf that adds the first @b non-principal cuts we can still @b decide:
  *   - @b principal @f$q@f$: the cut @f$\{x\in\mathbb{Q}\mid x<q\}@f$;
@@ -65,10 +65,10 @@ using dedekind::sets::𝔸;
  *         its ordered-ring surface is used (@c *, unary @c -, @c <=>, @c Q{}),
  *         so every decision is exact.
  */
-export template <typename Q = Rational<default_integer>>
-  requires IsRational<Q>
+export template <typename Q = Rational>
+  requires IsRational
 class Cut {
-  // Q must be the rational field ℚ = Rational<Z>.  Over ℚ the cut order is
+  // Q must be the rational field ℚ = Rational.  Over ℚ the cut order is
   // exact, decidable and strongly ordered; and (the condition QuadraticReal
   // downstream depends on) a nonsquare integer's √D is irrational.  Restricting
   // to ℚ is the single gate that keeps the real carriers genuine — it subsumes
@@ -187,7 +187,7 @@ struct LowerCut {
 
 /** @brief The lower set of a real, @f$\{q\in\mathbb{Q}\mid q<r\}@f$, as a set
  *  over @f$\mathbb{Q}@f$.  @tparam Q the rational scalar carrier. */
-export template <IsRational Q = Rational<default_integer>>
+export template <IsRational Q = Rational>
 using LowerSet = Comprehension<𝔸<Q, Boole>, LowerCut<Q>>;
 
 /** @brief @f$r \mapsto \{q<r\}@f$: the real read as its lower set.
@@ -200,7 +200,7 @@ constexpr LowerSet<Q> lower_set(const Cut<Q>& r) {
 /** @brief The ray @f$\{q<p\}@f$ over @f$\mathbb{Q}@f$: the lower set of a
  *  principal cut, @f$\mathbb{Q}\hookrightarrow\mathbb{R}@f$ as the order datum.
  *  @tparam Q the rational scalar carrier. */
-export template <IsRational Q = Rational<default_integer>>
+export template <IsRational Q = Rational>
 using PrincipalRay = Interval<Q>;
 
 /** @brief @f$p \mapsto \{q<p\}@f$: the rational embedded as the principal
@@ -225,7 +225,7 @@ struct SpeciesTraits<dedekind::numbers::Cut<Q>> {
 /** @section cut__Order_Fabric
  *  @c Cut<Q>'s @c <=> is a genuine total order (exact on the leaf shapes), so
  *  the poset traits are @b earned, not postulated.  Registered parametrically
- *  over @c Q --- the same shape @c Rational<I> uses --- so no witness is
+ *  over @c Q --- the same shape @c Rational uses --- so no witness is
  *  cloned per instantiation. */
 template <typename Q>
 inline constexpr bool
@@ -258,43 +258,42 @@ static_assert(dedekind::order::IsTotallyOrdered<Cut<>>,
               "arithmetic on the leaf shapes, not postulated.");
 
 // √2 sits strictly between its rational neighbours, decided by q² <=> 2.
-static_assert(Cut<>{1} < Cut<>::sqrt(Rational<>{2}), "1 < √2.");
-static_assert(Cut<>::sqrt(Rational<>{2}) < Cut<>{2}, "√2 < 2.");
-static_assert(-Cut<>::sqrt(Rational<>{2}) < Cut<>{}, "−√2 < 0.");
-static_assert(-Cut<>::sqrt(Rational<>{2}) < Cut<>::sqrt(Rational<>{2}),
+static_assert(Cut<>{1} < Cut<>::sqrt(Rational{2}), "1 < √2.");
+static_assert(Cut<>::sqrt(Rational{2}) < Cut<>{2}, "√2 < 2.");
+static_assert(-Cut<>::sqrt(Rational{2}) < Cut<>{}, "−√2 < 0.");
+static_assert(-Cut<>::sqrt(Rational{2}) < Cut<>::sqrt(Rational{2}),
               "−√2 < √2 (the interval is non-empty).");
 
 // The defining lower cut of √2: contains 1, not 2 (and not √2's own value).
-static_assert(Cut<>::sqrt(Rational<>{2}).contains(Rational<>{1}), "1 < √2.");
-static_assert(!Cut<>::sqrt(Rational<>{2}).contains(Rational<>{2}),
-              "¬(2 < √2).");
+static_assert(Cut<>::sqrt(Rational{2}).contains(Rational{1}), "1 < √2.");
+static_assert(!Cut<>::sqrt(Rational{2}).contains(Rational{2}), "¬(2 < √2).");
 
 // A perfect square radical is exactly its rational root (== via <=>).
-static_assert(Cut<>::sqrt(Rational<>{4}) == Cut<>{2}, "√4 = 2.");
+static_assert(Cut<>::sqrt(Rational{4}) == Cut<>{2}, "√4 = 2.");
 
 using dedekind::category::IsLSet;
 
 // The cut IS its lower set: a set over ℚ, with contains as its χ.
 static_assert(IsLSet<LowerSet<>>,
               "the lower set of a real is a set over ℚ (IsLSet).");
-static_assert(lower_set(Cut<>::sqrt(Rational<>{2}))(Rational<>{1}) &&
-                  !lower_set(Cut<>::sqrt(Rational<>{2}))(Rational<>{2}),
+static_assert(lower_set(Cut<>::sqrt(Rational{2}))(Rational{1}) &&
+                  !lower_set(Cut<>::sqrt(Rational{2}))(Rational{2}),
               "↓√2 ∋ 1, ∌ 2: the radical's lower set is decided by q² <=> 2.");
 // ℚ ↪ ℝ: a principal cut's lower set is the order datum's ray {q < p}.
 static_assert(IsLSet<PrincipalRay<>>,
               "the principal ray is a set over ℚ (IsLSet).");
-static_assert(principal_ray(Rational<>{3})(Rational<>{2}) ==
-                      lower_set(Cut<>{Rational<>{3}})(Rational<>{2}) &&
-                  principal_ray(Rational<>{3})(Rational<>{3}) ==
-                      lower_set(Cut<>{Rational<>{3}})(Rational<>{3}) &&
-                  principal_ray(Rational<>{3})(Rational<>{4}) ==
-                      lower_set(Cut<>{Rational<>{3}})(Rational<>{4}),
+static_assert(principal_ray(Rational{3})(Rational{2}) ==
+                      lower_set(Cut<>{Rational{3}})(Rational{2}) &&
+                  principal_ray(Rational{3})(Rational{3}) ==
+                      lower_set(Cut<>{Rational{3}})(Rational{3}) &&
+                  principal_ray(Rational{3})(Rational{4}) ==
+                      lower_set(Cut<>{Rational{3}})(Rational{4}),
               "the principal cut at p and the ray {q < p} agree on ℚ.");
-static_assert(principal_ray(Rational<>{3}).span()->upper->at == Rational<>{3},
+static_assert(principal_ray(Rational{3}).span()->upper->at == Rational{3},
               "the embedded rational is the ray's bound.");
 
 // Dedekind's density is the absence of a successor: no cover, no step.
-static_assert(!dedekind::category::HasNNOStep<Rational<>> &&
+static_assert(!dedekind::category::HasNNOStep<Rational> &&
                   !dedekind::category::HasNNOStep<Cut<>>,
               "ℚ and ℝ are dense: no element covers another.");
 

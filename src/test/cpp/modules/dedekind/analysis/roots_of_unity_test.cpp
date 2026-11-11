@@ -37,7 +37,7 @@ using dedekind::morphologies::Congruence;
 using dedekind::morphologies::Modular;
 
 namespace {
-using Q = Rational<>;
+using Q = Rational;
 using R2 = QuadraticReal<2>;  // ℝ = ℚ(√2), the coat-hanger
 using Cx = Complex<R2>;       // ℂ over the coat-hanger (the #810 carrier)
 using M8 = Modular<8u>;       // ℤ/8, the domain of the de Moivre map root8

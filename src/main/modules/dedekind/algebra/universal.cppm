@@ -275,7 +275,7 @@ static_assert(
  *        @c arrow_drill_down projector.
  *
  * @details In OO terms, HAS-A composition is mereological parthood: the
- * named-carrier type @c Algebra (e.g.\ a @c Rational<I>, a @c Complex<F>,
+ * named-carrier type @c Algebra (e.g.\ a @c Rational, a @c Complex<F>,
  * a @c Vec2V<T>, or a thin view over a primitive carrier like @c F_2)
  * HAS-A @c Carrier in the sense that the carrier is a @b part of the
  * algebra and the algebra owns access to it.  In universal-algebra
@@ -468,7 +468,7 @@ static_assert(
  * in @c :category:concrete.  Together they encode the nested-product
  * structure  algebra → set → underlying  as typed obligations rather
  * than naming conventions.  The pilot witness on a real named carrier
- * (@c Rational<I>) ships in #573 slice 4 (#646).
+ * (@c Rational) ships in #573 slice 4 (#646).
  *
  * @tparam A    The algebra (whole).
  * @tparam Set  The underlying set object (an @c IsSubobject; the left
@@ -486,7 +486,7 @@ concept AlgebraAsProduct =
     HasCarrier<A, typename Set::Domain, Ops...>;
 
 // Pilot witness for AlgebraAsProduct ships in #573 slice 4 (#646) ---
-// see Rational<I>'s static_assert at its definition site.  Witnesses
+// see Rational's static_assert at its definition site.  Witnesses
 // using ad-hoc :sets:expressions classify<T>(...) constructions live in
 // the test fork (algebra/algebra_as_product_test.cpp) per the project's
 // "no mocks in main" guidance (PR #648 review).

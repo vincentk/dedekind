@@ -894,7 +894,7 @@ static_assert(IsCyclicGroup<C1, std::plus<C1>>,
 // anchor IsSet witnesses (the primary @c SpeciesTraits<T> registration
 // covers @c std::integral / @c std::floating_point / @c bool only).
 //
-// Pattern follows @c SpeciesTraits<Rational<Z>> in @c numbers/rational.cppm:
+// Pattern follows @c SpeciesTraits<Rational> in @c numbers/rational.cppm:
 // @c Domain @c = the carrier itself, @c machine_type @c = the carrier (no
 // separate machine sibling).
 // ---------------------------------------------------------------------------

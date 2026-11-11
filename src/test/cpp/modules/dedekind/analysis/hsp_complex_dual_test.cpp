@@ -32,7 +32,7 @@ using dedekind::analysis::Dual;
 using dedekind::analysis::embed_ℝ_𝔻;
 
 namespace {
-using Q = Rational<>;
+using Q = Rational;
 using R2 = QuadraticReal<2>;
 using Cx = Complex<R2>;  // the canonical ℂ = C<R>
 using Du = Dual<R2>;     // the canonical 𝔻 = D<R>

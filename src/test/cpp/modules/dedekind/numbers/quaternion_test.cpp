@@ -11,7 +11,7 @@ using namespace dedekind::geometry;
 // -----------------------------------------------------------------------
 
 namespace {
-using Q = Rational<>;
+using Q = Rational;
 using H = Quaternion<Q>;
 constexpr H h(Q w, Q x, Q y, Q z) { return H{w, x, y, z}; }
 }  // namespace

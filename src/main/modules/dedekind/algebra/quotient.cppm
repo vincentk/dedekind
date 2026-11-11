@@ -45,7 +45,7 @@
  *   - @c Complex<R>  @c = @c R[i]/(i² @c + @c 1)   (numbers:complex)
  *   - @c Dual<F>     @c = @c F[ε]/(ε²)             (analysis:dual)
  *
- * @c Rational<I> @c = @c Frac(I) is @b not one: the field of fractions is a
+ * @c Rational @c = @c Frac(I) is @b not one: the field of fractions is a
  * localization (ℤ ↪ ℚ embeds, nothing is collapsed; fields are not a variety),
  * so Birkhoff's H leg does not apply and ℚ registers its laws directly
  * (numbers:rational).

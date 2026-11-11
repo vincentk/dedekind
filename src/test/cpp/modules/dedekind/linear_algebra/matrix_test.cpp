@@ -26,11 +26,12 @@ using namespace dedekind::numbers;
 using namespace dedekind::linear_algebra;
 
 namespace {
-// ℚ slice step 4: one Rational.  This file uses Rat as a NON-TYPE template
-// parameter (Invertible2x2<Rat, Rat{1L}, ...>), and ℤ's Integer keeps its
-// limbs in a std::vector, so it is not structural.
-using Rat = Rational<>;
-using Q = Rational<default_integer>;
+// ℚ is not a structural type (its Integer keeps limbs in a std::vector), so
+// no Rational is a template argument: the type-level matrix family is
+// exercised over the words and over double (exact on the dyadic entries
+// below), and ℚ at the value level, Matrix2x2V<Rat>.
+using Rat = Rational;
+using Q = Rational;
 }  // namespace
 
 TEST_CASE("linear_algebra:matrix — identity at the type level",
@@ -47,13 +48,18 @@ TEST_CASE("linear_algebra:matrix — Cramer's inverse on ℚ",
           "[linear_algebra][matrix][inverse]") {
   // M = [[1, 2], [3, 4]],  det = -2,
   // M^{-1} = (-1/2) * [[4, -2], [-3, 1]] = [[-2, 1], [3/2, -1/2]]
-  constexpr Invertible2x2<Rat, Rat{1L}, Rat{2L}, Rat{3L}, Rat{4L}> M{};
-  STATIC_CHECK(M.det == Rat{-2L});
-
-  // Existential proof: the closed-form inverse is the honest two-sided
-  // inverse, not just a left- or right-inverse by luck.
-  STATIC_CHECK(M * M.inverse() == Identity2x2<Rat>{});
-  STATIC_CHECK(M.inverse() * M == Identity2x2<Rat>{});
+  // The ℚ matrix is a value; its inverse is a value where the determinant is
+  // a divisor (the one check), and the identity laws are compile-time facts.
+  constexpr Matrix2x2V<Rat> M{Rat{1L}, Rat{2L}, Rat{3L}, Rat{4L}};
+  constexpr auto M_inv = inverse(M);
+  STATIC_CHECK(M_inv.has_value());
+  STATIC_CHECK(M_inv->m11 == Rat{-2L} && M_inv->m21 == Rat{3L, 2L});
+  constexpr Matrix2x2V<Rat> I{Rat{1L}, Rat{0L}, Rat{0L}, Rat{1L}};
+  STATIC_CHECK(M * *M_inv == I);
+  STATIC_CHECK(*M_inv * M == I);
+  // A singular matrix has no inverse: the check says so, nothing is divided.
+  STATIC_CHECK(!inverse(Matrix2x2V<Rat>{Rat{1L}, Rat{2L}, Rat{2L}, Rat{4L}})
+                    .has_value());
 }
 
 TEST_CASE("linear_algebra:matrix — shear matrix on ℤ (det = 1)",
@@ -94,18 +100,19 @@ TEST_CASE("linear_algebra:matrix — composition is associative",
 
 TEST_CASE("linear_algebra:matrix — Tier 1: DirectSum preserves invertibility",
           "[linear_algebra][matrix][direct_sum]") {
-  // Two independently-invertible 2×2 blocks over ℚ, direct-summed into a
+  // Two independently-invertible 2×2 blocks, direct-summed into a
   // block-diagonal 4×4 operator. Invertibility is preserved structurally:
   // (A ⊕ B)^{-1} = A^{-1} ⊕ B^{-1}, and (A ⊕ B) · (A ⊕ B)^{-1} is the
   // identity direct sum.
-  constexpr Invertible2x2<Rat, Rat{1L}, Rat{2L}, Rat{3L}, Rat{4L}> block_M{};
-  // 90° rotation over ℚ. Naming avoids collisions with ℝ / `R`.
-  constexpr Invertible2x2<Rat, Rat{0L}, Rat{-1L}, Rat{1L}, Rat{0L}> block_rot{};
+  // Over double: the entries and the inverse's are dyadic, so exact.
+  constexpr Invertible2x2<double, 1.0, 2.0, 3.0, 4.0> block_M{};
+  // 90° rotation. Naming avoids collisions with ℝ / `R`.
+  constexpr Invertible2x2<double, 0.0, -1.0, 1.0, 0.0> block_rot{};
 
   constexpr DirectSum<decltype(block_M), decltype(block_rot)> ds{};
   constexpr auto ds_inv = ds.inverse();
 
-  using IdentityDirectSum = DirectSum<Identity2x2<Rat>, Identity2x2<Rat>>;
+  using IdentityDirectSum = DirectSum<Identity2x2<double>, Identity2x2<double>>;
   STATIC_CHECK(ds * ds_inv == IdentityDirectSum{});
   STATIC_CHECK(ds_inv * ds == IdentityDirectSum{});
 }
@@ -128,22 +135,23 @@ TEST_CASE("linear_algebra:matrix — Tier 1: DirectSum composes blockwise",
 
 TEST_CASE("linear_algebra:matrix — Tier 2: BlockUpperTriangular inverse",
           "[linear_algebra][matrix][block_upper_triangular]") {
-  // Build a block-upper-triangular 4×4 over ℚ with A, D invertible and B
+  // Build a block-upper-triangular 4×4 with A, D invertible and B
   // non-singular. The closed-form inverse requires no Schur complement
   // (since C = 0) but IS the non-trivial recurrence beyond DirectSum:
   // A^{-1} appears in the cross-block term.
-  using A_t = Invertible2x2<Rat, Rat{1L}, Rat{2L}, Rat{3L}, Rat{4L}>;  // det -2
-  using D_t = Invertible2x2<Rat, Rat{2L}, Rat{1L}, Rat{1L}, Rat{1L}>;  // det  1
-  using B_t = Matrix2x2<Rat, Rat{1L}, Rat{0L}, Rat{0L}, Rat{1L}>;  // identity-
-                                                                   // shaped but
-                                                                   // lives in B
+  // Over double: dyadic entries, exact.
+  using A_t = Invertible2x2<double, 1.0, 2.0, 3.0, 4.0>;  // det -2
+  using D_t = Invertible2x2<double, 2.0, 1.0, 1.0, 1.0>;  // det  1
+  using B_t = Matrix2x2<double, 1.0, 0.0, 0.0, 1.0>;      // identity-shaped,
+                                                          // lives in B
   using M_t = BlockUpperTriangular<A_t, B_t, D_t>;
 
   constexpr M_t M{};
   constexpr auto M_inv = M.inverse();
 
   using IdentityBlock =
-      BlockUpperTriangular<Identity2x2<Rat>, Zero2x2<Rat>, Identity2x2<Rat>>;
+      BlockUpperTriangular<Identity2x2<double>, Zero2x2<double>,
+                           Identity2x2<double>>;
   STATIC_CHECK(M * M_inv == IdentityBlock{});
   STATIC_CHECK(M_inv * M == IdentityBlock{});
 }
@@ -337,9 +345,9 @@ TEST_CASE("linear_algebra:matrix — runtime-exercised Matrix2x2V operators",
 
 namespace {
 // The certified ℚ for the lattice corners: over the saturating
-// default_integer, whose laws reach ℚ (fractions over a wrapping word are
+// Integer, whose laws reach ℚ (fractions over a wrapping word are
 // not certified a ring, so the structural Rat above cannot sit here).
-using LatticeRat = Rational<default_integer>;
+using LatticeRat = Rational;
 }  // namespace
 
 TEST_CASE("Algebraic Lattice (Figure 1): cube corners on the numeric tower",

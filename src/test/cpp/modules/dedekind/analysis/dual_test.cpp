@@ -13,7 +13,7 @@ import dedekind.algebra; // HasRingOperators, IsAlgebra (witness mirrors)
 import dedekind.analysis;
 import dedekind.category; // Boole, Ternary, var, ...
 import dedekind.geometry; // IsTangentBundle (flat-case tangent-bundle concept)
-import dedekind.numbers;  // Rational<>, Complex<F>, IEEE<F>
+import dedekind.numbers;  // Rational, Complex<F>, IEEE<F>
 import dedekind.sets;     // Set, 𝔸, predicate-set DSL
 
 using namespace dedekind::analysis;
@@ -22,7 +22,7 @@ using namespace dedekind::numbers;
 using namespace dedekind::sets;
 
 TEST_CASE("Analysis: Dual Numbers and Differentiation", "[analysis][dual]") {
-  using Q = Rational<>;
+  using Q = Rational;
   using DualValue = Dual<Q>;
 
   SECTION("Automatic Differentiation: f(x) = x²") {
@@ -45,13 +45,15 @@ TEST_CASE("Analysis: Dual Numbers and Differentiation", "[analysis][dual]") {
   }
 
   SECTION("Inverse: (a + bε)⁻¹ = 1/a - (b/a²)ε") {
-    const DualValue inv = DualValue{Q{2}, Q{1}}.inverse();
+    const DualValue inv =
+        inverse(certify_divisor(DualValue{Q{2}, Q{1}}).value());
     REQUIRE(inv.value() == Q{1, 2});
     REQUIRE(inv.derivative() == Q{-1, 4});
   }
 
   SECTION("Division: AD rule d/dx(1/x)|_{x=2} = -1/4") {
-    const DualValue res = DualValue{Q{1}, Q{0}} / DualValue{Q{2}, Q{1}};
+    const DualValue res =
+        DualValue{Q{1}, Q{0}} / certify_divisor(DualValue{Q{2}, Q{1}}).value();
     REQUIRE(res.value() == Q{1, 2});
     REQUIRE(res.derivative() == Q{-1, 4});
   }
@@ -82,7 +84,7 @@ TEST_CASE(
   // first-order tangent-bundle carrier over F (flat case;
   // Spec(R[ε]/(ε²)) reading).  Bundle-structure on non-flat manifolds
   // is the #185 follow-up.
-  STATIC_CHECK(dedekind::geometry::IsTangentBundle<Dual<Rational<>>>);
+  STATIC_CHECK(dedekind::geometry::IsTangentBundle<Dual<Rational>>);
   STATIC_CHECK(dedekind::geometry::IsTangentBundle<Dual<int>>);
 }
 

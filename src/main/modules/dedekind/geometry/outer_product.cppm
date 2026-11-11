@@ -94,7 +94,7 @@ concept IsOuterProductSpace = requires(U const& u, V const& v) {
  *  past @c IsMatrixScalar (which today admits @c double under the
  *  @c DEDEKIND_ENABLE_DOUBLE_REAL_PROXY policy gate) — @c double is
  *  not a strict field (rounding-non-associativity), so the new
- *  operator surface refuses it.  @c Rational<long> @c / strict-field
+ *  operator surface refuses it.  @c Rational @c / strict-field
  *  carriers will become admissible once @c Vector<F, @c N> /
  *  @c LinearMap<F, @c M, @c N> broaden their @c IsMatrixScalar gate
  *  to admit @c IsField carriers (tracked on #535).
@@ -152,7 +152,7 @@ namespace detail_ops {
 // Discipline pin: @c double is @b not a strict field (rounding-non-
 // associativity), so the strict @c IsField gate on @c dyad / @c
 // operator* refuses it.  Any future witness must use a strict-field
-// carrier (e.g. @c Rational<long>) — but @c Vector<F, @c N> /
+// carrier (e.g. @c Rational) — but @c Vector<F, @c N> /
 // @c LinearMap<F, @c M, @c N> currently insist on
 // @c std::floating_point via @c IsMatrixScalar.  The witness blocks
 // for bilinearity / rank-1 entry laws are deferred until
