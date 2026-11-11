@@ -64,7 +64,7 @@ This direction holds by construction: the grammar of Figure~\ref{fig:fjlt-syntax
 \paragraph{Desugaring.}
 \label{sec:fjlt:desugaring}
 Desugaring admits the \Cpp{} that FJlt lacks but that maps easily onto it, as the standard itself defines a lambda as a class with a call operator.
-It is a rewrite into the kernel's constructions that computes the same value; no tool runs it.
+It is a rewrite into the kernel's constructions that computes the same value.
 Appendix~\ref{app:fjlt:closure} gives it construction by construction, each with its condition and the kernel term it yields (Tables~\ref{tab:adequacy} to~\ref{tab:closure:choice}).
 A loop that shows its end is sugar for the fold it denotes: a counted \cppinline{for (T i = 0; i < n; ++i)}, with counter and bound of one unsigned type and a body that writes neither, is a fold over \cppinline{iota(0, n)}, and a range-\cppinline{for} over a bounded range, whose body does not write that range, a fold over it.
 Its state is no objection: a counter inside a \cppinline{constexpr} function cannot escape it, since constant evaluation lets a function modify only objects whose lifetime began within the call~\cite[{\texttt{expr.const}}]{cpp23standard}, the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.

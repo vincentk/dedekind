@@ -5,10 +5,12 @@
 % example and the rules it uses.  The full calculus (the appendices)
 % is the warranty; a reader who stops here knows the claims and their cost.
 
-This section is about one map, the translation $\llbracket \cdot \rrbracket$ from Featherweight Jlt into System~F with records and the iterators of inductive types, defined in full in Appendix~\ref{app:fjlt:translation}.
-It is total on FJlt, Figure~\ref{fig:arrows}'s left edge, and Section~\ref{sec:guarantees} says what the image guarantees; it is partial on \Cpp{}, and Section~\ref{sec:translation:adequacy} is the argument for when a \Cpp{} program is an FJlt program.
-Six of its rules carry the listings' structure, and Table~\ref{tab:rules} states them.
-Conditionals, conversions and the remaining operators are routine, and Appendix~\ref{app:fjlt:translation} gives them all.
+This section is about the translation $\llbracket \cdot \rrbracket$ from Featherweight Jlt into System~F with records and the iterators of inductive types, the left edge of Figure~\ref{fig:arrows}.
+The translation is total on FJlt, and Section~\ref{sec:guarantees} says what the image guarantees.
+It is partial on \Cpp{}, and Section~\ref{sec:translation:adequacy} is the argument for when a \Cpp{} program is an FJlt program.
+
+The translation is defined in full in Figures~\ref{fig:fjlt-dictionaries} to~\ref{fig:fjlt-recursion} of Appendix~\ref{app:fjlt:translation}.
+Listings~\ref{lst:rule2} and~\ref{lst:rule3} exercise six of its rules, and Table~\ref{tab:rules} shows them as worked examples.
 A generic function is checked under two contexts: $\Delta$, its template head and \cppinline{requires} clause, the type variables and the constraints assumed on them; and $\Gamma$, its parameters with their types.
 The translation turns $\Delta$'s type variables into System~F's $\Lambda$, and $\Gamma$'s variables into $\lambda$.
 Each constraint $Q$ in $\Delta$ becomes a record parameter $q_Q$, a \emph{dictionary}.
@@ -30,7 +32,7 @@ FJlt & System~F & in \\
 \bottomrule
 \end{tabularx}
 \caption{Six translation rules exercised by the listings; a chain is iterated for its length, its position carried beside the accumulator (Figure~\ref{fig:structures}).
-The whole translation is Figures~\ref{fig:fjlt-dictionaries} to~\ref{fig:fjlt-recursion} in Appendix~\ref{app:fjlt:translation}.}
+Conditionals, conversions and the remaining operators are routine, and Appendix~\ref{app:fjlt:translation} gives them all.}
 \label{tab:rules}
 \end{table}
 
