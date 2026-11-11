@@ -66,7 +66,7 @@ using dedekind::sets::𝔸;
  *         so every decision is exact.
  */
 export template <typename Q = Rational>
-  requires IsRational
+  requires IsRational<Q>
 class Cut {
   // Q must be the rational field ℚ = Rational.  Over ℚ the cut order is
   // exact, decidable and strongly ordered; and (the condition QuadraticReal

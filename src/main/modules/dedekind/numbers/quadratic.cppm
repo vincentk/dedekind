@@ -77,7 +77,7 @@ consteval bool is_perfect_square(long n) {
  * @tparam Q the rational coefficient carrier.
  */
 export template <long D, typename Q = Rational>
-  requires(D > 1) && IsRational
+  requires(D > 1) && IsRational<Q>
 class QuadraticReal {
   // Q must be the rational field ℚ = Rational.  Then a nonsquare integer D
   // has √D ∉ ℚ (a theorem), so a+b√D is a GENUINE degree-2 extension: the a/b
@@ -310,7 +310,7 @@ struct divisor_of<dedekind::numbers::QuadraticReal<D, Q>> {
 namespace dedekind::algebra {
 
 /** @brief Carrier-promise: @c QuadraticReal<D,Q> is an ORDERED FIELD.  The
- *  template gate @c (D>1) ∧ @c IsRational makes this unconditional --- every
+ *  template gate @c (D>1) ∧ @c IsRational<Q> makes this unconditional --- every
  *  instantiation is a REAL quadratic field ℚ(√D) with D>1 (no imaginary ℚ(√−n)
  *  case exists), hence formally real (−1 not a sum of squares), with a genuine
  *  total order (strong_ordering @c <=>, by comparing squares).  So both
@@ -387,7 +387,7 @@ static_assert(dedekind::order::IsDedekindComplete<R2>,
 // not a rational field, so QuadraticReal<2, QuadraticReal<2>> (whose conjugate
 // norm a²−b²D vanishes on nonzero elements, breaking inverse() and ==/<=>
 // consistency) is ill-formed and can never be instantiated.
-static_assert(!IsRational,
+static_assert(!IsRational<R2>,
               "ℚ(√2) is not a rational field — nesting it as the coefficient "
               "carrier is the degenerate, ruled-out case.");
 
