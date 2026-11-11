@@ -181,6 +181,7 @@ Peano's $\mathit{succ}$~\cite{peano1889arithmetices}, dashed, never does.
 The user supplies the point $n : \mathbf{1} \to X$, the seed, and $\mathit{prior}$.
 The chain is what $\mathit{prior}$ reaches from $n$: the $n$ elements below it, not $n$ itself.
 So $n$ is the chain's rank, its cardinality, and $0$ the empty chain.
+Terms: replace $\mathbf{1} + X$ by a polynomial functor $F$, $X$ by its initial algebra $\mu F$, and $\mathit{prior}$ by Lambek's inverse $\mathit{out} : \mu F \to F\,\mu F$; the chain below $n$ becomes the subterms below a term $t$, $\mathit{sub}(t)$, and $n$ becomes $t$'s height, its rank: the figure is read for a type as for a value.
 Algebra: $f$ lands in $S$, and the fold in $M$.
 Fold: the fold along the walk, $h : M \times S \to M$, runs from $e$ at the seed's end through the intermediate values, $\circ$, to the result, $\bullet$.
 With offsets the chain is an array~\cite[\S 2.2.2]{knuth1997art1}, and the walk a scan of it.
@@ -258,12 +259,11 @@ The arrow $f$ along it is \cppinline{views::transform}, written \cppinline{>>}, 
 \label{lst:rule3}
 \end{listing}
 
-Figure~\ref{fig:structures} reads in four more ways.
+Figure~\ref{fig:structures} reads in three more ways.
 Order: after Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself.
 The chain of an element is its forward orbit, here the chain of $\mathit{prior}\,n$.
 The carrier needs neither an order nor an origin.
 Reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
-Terms: replace $\mathbf{1} + X$ by a polynomial functor $F$, $X$ by its initial algebra $\mu F$, and $\mathit{prior}$ by Lambek's inverse $\mathit{out} : \mu F \to F\,\mu F$; the chain below $n$ becomes the subterms below a term $t$, $\mathit{sub}(t)$, and $n$ becomes $t$'s height, its rank.
 Algebra: in the simplest case $S = M$ is a monoid.
 A monoid $S$ may also act on $M$, and a semiring on a semimodule, which adds distributivity.
 Fold: a list has two folds~\cite{gibbons1996third}.
