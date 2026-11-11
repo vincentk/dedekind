@@ -213,11 +213,15 @@ struct DualUnit {
   F der;
   /** @brief The inclusion into 𝔻. */
   constexpr operator Dual<F>() const { return {F(val), der}; }  // NOLINT
+  /** @brief @f$(a + b\varepsilon)^{-1}@f$: a unit's inverse, in 𝔻. */
+  constexpr Dual<F> inverse() const {
+    const F inv = F{1} / val;
+    return {inv, -(der * inv * inv)};
+  }
 };
 /** @brief The check into 𝔻's units: the primal part's check.  @param d the
  *  dual. */
 export template <typename F>
-  requires(!std::same_as<dedekind::category::divisor_t<F>, F>)
 constexpr std::optional<DualUnit<F>> certify_divisor(const Dual<F>& d) {
   if (const auto v = dedekind::category::divisor(d.val))
     return DualUnit<F>{*v, d.der};
@@ -227,8 +231,7 @@ constexpr std::optional<DualUnit<F>> certify_divisor(const Dual<F>& d) {
  *  unit: total.  @param u the unit. */
 export template <typename F>
 constexpr Dual<F> inverse(const DualUnit<F>& u) {
-  const F inv = F{1} / u.val;
-  return {inv, -(u.der * inv * inv)};
+  return u.inverse();
 }
 /** @brief Division by a unit: total.  @param a the dividend.  @param u the
  *  unit. */
@@ -485,9 +488,9 @@ inline constexpr bool is_invertible_v<dedekind::analysis::Dual<F>,
                                       std::plus<dedekind::analysis::Dual<F>>> =
     true;
 
-/** @brief 𝔻 over a scalar that certifies its divisors divides by its units. */
+/** @brief 𝔻 divides by its units, whatever its scalar: a dual @c {0, t} is
+ *  not zero and has no inverse, so non-zero is not the certificate. */
 template <typename F>
-  requires(!std::same_as<divisor_t<F>, F>)
 struct divisor_of<dedekind::analysis::Dual<F>> {
   using type = dedekind::analysis::DualUnit<F>;
 };

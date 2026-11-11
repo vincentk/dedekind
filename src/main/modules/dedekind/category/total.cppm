@@ -981,12 +981,17 @@ constexpr std::optional<NonZero<T>> nonzero(const T& t) {
 }
 
 /** @brief The check into a carrier's certified divisors, whatever their type:
- *  the value itself where the carrier's division takes the whole carrier,
- *  @c nonzero where it takes @c NonZero<T>, and the carrier's own hook
- *  @c certify_divisor otherwise (𝔻's units).  @param t the value. */
+ *  @c nonzero where the carrier divides by @c NonZero<T>, the carrier's own
+ *  hook @c certify_divisor otherwise (𝔻's units), and, where the carrier's
+ *  division takes the whole carrier (the words, IEEE), the value itself
+ *  except zero: there the type certifies nothing, and a zero divisor is
+ *  undefined for a word ([expr.mul]/4) and an infinity for IEEE, neither a
+ *  quotient a caller asked for.  @param t the value. */
 export template <typename T>
-  requires std::same_as<divisor_t<T>, T>
+  requires std::same_as<divisor_t<T>, T> && std::equality_comparable<T> &&
+           std::default_initializable<T>
 constexpr std::optional<T> divisor(const T& t) {
+  if (t == T{}) return std::nullopt;
   return t;
 }
 export template <typename T>
