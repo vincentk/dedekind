@@ -1060,8 +1060,7 @@ constexpr auto min(const S& s) {
   return s & lowerbounds(s);
 }
 
-inline constexpr auto ℤ =
-    𝔸<Integer>{};  // local alias (:integer is downstream)
+inline constexpr auto ℤ = 𝔸<Integer>{};  // local alias (:integer is downstream)
 // Exhibit (intensional, infinite case) over the counts @c 𝔸<std::size_t> and
 // ℤ = @c 𝔸<Integer>, both registered chains.
 inline constexpr auto le5 = counts & (π <= 5);  // {x ∈ ℕ | x ≤ 5}
@@ -1080,8 +1079,8 @@ static_assert(min(counts&(π > 5))(6), "6 = min {x > 5} on ℕ.");
 static_assert(max(ℤ&(π <= 5))(5), "5 = max {x ≤ 5} on ℤ.");
 static_assert(!max(ℤ & (π <= 5))(3), "3 is not the greatest element.");
 static_assert(min(ℤ&(π >= -5))(-5), "−5 = min {x ≥ −5} on ℤ.");
-// ℚ slice step 4: the step on ℤ (successor / predecessor on Integer), so a
-// strict bound is attained at its neighbour: max {x < 5} = 4, min {x > −5} = −4.
+// ℚ slice step 4: the step on ℤ (successor / predecessor on Integer), so
+// a strict bound is attained at its neighbour: max {x < 5} = 4.
 
 /** @brief The translation graph @c π_1 @c + @c k @c == @c π_2 and the scaling
  *  graph @c π_1 @c * @c k @c == @c π_2, as the atoms the grammar builds for

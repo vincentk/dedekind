@@ -434,8 +434,7 @@ namespace dedekind::category {
  *  @tparam Op the operation on @c I (@c std::plus / @c std::multiplies). */
 template <typename I, typename Op>
 concept FractionBacking =
-    dedekind::morphologies::IsInteger<I> &&
-    is_exact_total_v<I, Op>;
+    dedekind::morphologies::IsInteger<I> && is_exact_total_v<I, Op>;
 
 template <typename I>
   requires FractionBacking<I, std::plus<I>> &&
@@ -686,9 +685,7 @@ export using machine_integer = int;
  */
 export inline constexpr auto embed_ℤ_ℚ_ =
     arrow<default_integer, Rational<default_integer>>(
-        [](const default_integer& n) {
-          return Rational<default_integer>{n};
-        });
+        [](const default_integer& n) { return Rational<default_integer>{n}; });
 
 }  // namespace dedekind::numbers
 

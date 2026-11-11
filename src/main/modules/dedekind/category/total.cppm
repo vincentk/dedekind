@@ -245,10 +245,11 @@ concept IsClosedUnderEither = IsClosedUnder<T, Op> || IsClosedUnderUnary<T, Op>;
  *  "non-machine-total".  It is registered for @c Rational = ℚ and
  *  @c QuadraticReal = ℚ(√D), and for ℕ's @c Numeral and ℤ's @c Integer.
  *  A saturating carrier is total via @c is_saturating instead.  (The two
- *  postures are distinct and a carrier picks exactly one.)  The named concept @c IsSaturating that wraps
- *  @c is_saturating_v lives in @c dedekind.category:mereology; here we reach
- *  for the underlying trait variables directly so this upstream-foundational
- *  layer does not depend on that partition.
+ *  postures are distinct and a carrier picks exactly one.)  The named
+ *  concept @c IsSaturating that wraps @c is_saturating_v lives in
+ *  @c dedekind.category:mereology; here we reach for the underlying trait
+ *  variables directly so this upstream-foundational layer does not depend on
+ *  that partition.
  */
 
 /** @brief A carrier's @b construction: @c D is built from a base algebra and

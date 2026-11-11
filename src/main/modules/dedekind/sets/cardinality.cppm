@@ -30,7 +30,7 @@
 module;
 
 #include <algorithm>  // std::ranges::find_if_not
-#include <bit>  // the limbs' width
+#include <bit>        // the limbs' width
 #include <compare>
 #include <concepts>
 #include <cstddef>

@@ -110,8 +110,8 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
     // the outer 𝔸<int>.)
     constexpr 𝔸<ExtensionalCardinal<>> sc_universe;
 
-    CHECK(std::is_same_v<decltype(empty | s),
-                         Singleton<ExtensionalCardinal<>>>);
+    CHECK(
+        std::is_same_v<decltype(empty | s), Singleton<ExtensionalCardinal<>>>);
     CHECK(std::is_same_v<decltype(sc_universe & s),
                          Singleton<ExtensionalCardinal<>>>);
   }
