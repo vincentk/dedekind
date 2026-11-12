@@ -24,6 +24,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <variant>
+#include <vector>
 
 import dedekind.algebra;
 import dedekind.category;
@@ -196,7 +197,7 @@ struct ResidueStep {
 /** @brief A node of ℤ's term read in ℤ/N, from the images before it. */
 template <auto N>
 struct InModular {
-  const std::array<Modular<N>, dedekind::sets::IntExpr<>::capacity>& v;
+  const std::vector<Modular<N>>& v;
   constexpr Modular<N> operator()(dedekind::sets::nodes::Atom n) const {
     using ML = typename Modular<N>::machine_type;
     return Modular<N>{static_cast<ML>(n.value % static_cast<std::uint64_t>(N))};
@@ -213,11 +214,11 @@ struct InModular {
 };
 template <auto N>
 struct Images {
-  std::array<Modular<N>, dedekind::sets::IntExpr<>::capacity> v{};
+  std::vector<Modular<N>> v;  // one image per node of the term
 };
 template <auto N>
 struct InModularStep {
-  dedekind::sets::IntExpr<> z;
+  const dedekind::sets::IntExpr<>& z;
   constexpr Images<N> operator()(Images<N> s, std::size_t i) const {
     s.v[i] = std::visit(InModular<N>{s.v}, z.at(i));
     return s;
@@ -228,7 +229,8 @@ struct InModularStep {
 template <auto N>
 constexpr Modular<N> χ_to_modular(const dedekind::sets::IntExpr<>& z) {
   return std::ranges::fold_left(std::views::iota(std::size_t{0}, z.size()),
-                                Images<N>{}, InModularStep<N>{z})
+                                Images<N>{std::vector<Modular<N>>(z.size())},
+                                InModularStep<N>{z})
       .v[z.root()];
 }
 /** @return @f$2^{64}@f$, a term. */

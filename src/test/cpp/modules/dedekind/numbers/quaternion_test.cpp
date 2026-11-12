@@ -5,6 +5,7 @@ import dedekind.geometry;
 
 using namespace dedekind::numbers;
 using namespace dedekind::geometry;
+using dedekind::sets::RatExpr;
 
 // -----------------------------------------------------------------------
 // Quaternion arithmetic over the exact ℚ

@@ -18,6 +18,7 @@ using dedekind::sets::IntExpr;
 
 using namespace dedekind::category;
 using namespace dedekind::numbers;
+using dedekind::sets::RatExpr;
 
 TEST_CASE("discrete_lift_t fires across the numeric tower",
           "[numbers][category][etcs][discrete][lift][tower]") {

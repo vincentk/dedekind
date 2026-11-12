@@ -28,6 +28,7 @@ using dedekind::category::IsLSet;
 using dedekind::order::Direction;
 using dedekind::order::Interval;
 using dedekind::order::Strictness;
+using dedekind::sets::RatExpr;
 using dedekind::topology::is_order_closed;
 using dedekind::topology::is_order_open;
 

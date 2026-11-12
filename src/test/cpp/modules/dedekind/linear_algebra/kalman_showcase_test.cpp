@@ -10,7 +10,9 @@
  * from initial state to posterior estimate by the compiler, in exact
  * rationals.  Embedded sensor fusion under the Axiomatic Systems Programming
  * discipline: fixed topology, exact arithmetic, deterministic, no runtime
- * dependency.
+ * dependency.  The state is stored in canonical form, by an explicit
+ * @c canonical at each store, so a trajectory of any length stays within the
+ * terms' bound.
  */
 
 #include <catch2/catch_test_macros.hpp>
@@ -21,6 +23,7 @@ import dedekind.numbers;
 using dedekind::category::NonZero;
 using dedekind::numbers::Positive;
 using dedekind::numbers::square;
+using dedekind::sets::canonical;
 using dedekind::sets::RatExpr;
 
 namespace {
@@ -42,15 +45,16 @@ struct KalmanFilter1D {
 
   constexpr void predict() {
     // F = 1: x_hat unchanged, the covariance grows by the process noise.
-    P = P + Q;
+    // Each store is normalised, so the state stays within its terms' bound.
+    P = canonical(P + Q);
   }
 
   constexpr void update(const Rat& z) {
     const Rat innovation = z - h.value() * x_hat;
     const Positive S = square(h) * P + R;     // ℚ₊ · ℚ₊ + ℚ₊: positive by law
     const Rat K = h.value() * P.value() / S;  // divides by a certified divisor
-    x_hat = x_hat + K * innovation;
-    P = P * R / S;  // (1 − K h) P = P R / S, in ℚ₊
+    x_hat = canonical(x_hat + K * innovation);
+    P = canonical(P * R / S);  // (1 − K h) P = P R / S, in ℚ₊
   }
 };
 

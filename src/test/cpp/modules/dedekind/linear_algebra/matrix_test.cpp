@@ -24,6 +24,7 @@ import dedekind.sets;
 using namespace dedekind::analysis;
 using namespace dedekind::numbers;
 using namespace dedekind::linear_algebra;
+using dedekind::sets::RatExpr;
 
 namespace {
 // ℚ is not a structural type (its IntExpr keeps limbs in a std::vector), so

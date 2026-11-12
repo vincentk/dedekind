@@ -29,6 +29,7 @@ import dedekind.order;
 import dedekind.sets;
 
 using namespace dedekind::numbers;
+using dedekind::sets::RatExpr;
 
 namespace {
 // Derive the halfspace type from the PUBLIC point-free expression

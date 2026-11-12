@@ -24,6 +24,7 @@ import dedekind.numbers;
 import dedekind.relational;
 
 using namespace dedekind::numbers;
+using dedekind::sets::RatExpr;
 
 namespace {
 using Q = RatExpr<>;

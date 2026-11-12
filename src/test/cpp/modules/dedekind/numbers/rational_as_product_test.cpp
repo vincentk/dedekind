@@ -27,6 +27,7 @@ import dedekind.sets;
 using namespace dedekind::algebra;
 using namespace dedekind::category;
 using namespace dedekind::numbers;
+using dedekind::sets::RatExpr;
 
 // File-scope thin RatExpr view wrapper.  Real-shaped (not mock-shaped):
 // wraps a single RatExpr value and exposes both mereology arms

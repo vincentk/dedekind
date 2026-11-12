@@ -22,6 +22,7 @@ import dedekind.numbers;
 import dedekind.order;
 
 using namespace dedekind::numbers;
+using dedekind::sets::RatExpr;
 
 namespace {
 using Q = RatExpr<>;

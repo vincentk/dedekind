@@ -23,6 +23,7 @@ using namespace dedekind::analysis;  // Dual<F>
 using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::optimization;
+using dedekind::sets::RatExpr;
 namespace {
 // ℚ is not a structural type (its IntExpr keeps limbs in a std::vector), so
 // nothing of type RatExpr is a template argument any more.  The typed

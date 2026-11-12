@@ -27,6 +27,7 @@ using namespace dedekind::algebra;
 using namespace dedekind::analysis;  // Dual<F>
 using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
+using dedekind::sets::RatExpr;
 
 namespace {
 // ℚ slice step 4: one RatExpr.

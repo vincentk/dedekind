@@ -35,6 +35,7 @@ using namespace dedekind::numbers;
 using dedekind::analysis::Dual;
 using dedekind::morphologies::Congruence;
 using dedekind::morphologies::Modular;
+using dedekind::sets::RatExpr;
 
 namespace {
 using Q = RatExpr<>;

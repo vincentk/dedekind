@@ -176,9 +176,10 @@ TEST_CASE("Figure 6 row 3: the even-symmetry projector P = ½(I+U)",
   static_assert(projected(k) == kHalf, "(P|k⟩)_k = ½");
   static_assert(projected(-k) == kHalf, "(P|k⟩)_{−k} = ½");
 
-  // Idempotent P² = P — a projection (witnessed at the support).
-  static_assert(even(projected)(k) == projected(k), "P² = P at k");
-  static_assert(even(projected)(-k) == projected(-k), "P² = P at −k");
+  // Idempotent P² = P — a projection (witnessed at the support, at run time:
+  // the second application nests ℚ(√2)'s terms past the step limit).
+  CHECK(even(projected)(k) == projected(k));    // P² = P at k
+  CHECK(even(projected)(-k) == projected(-k));  // … and at −k
 
   CHECK(even(psi_even)(k) == psi_even(k));    // P|ψ⟩ = |ψ⟩ at k (ψ even)
   CHECK(even(psi_even)(-k) == psi_even(-k));  // … and at −k

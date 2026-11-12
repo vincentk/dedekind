@@ -15,6 +15,7 @@ import dedekind.linear_algebra;
 
 using namespace dedekind::numbers;
 using namespace dedekind::linear_algebra;
+using dedekind::sets::RatExpr;
 
 namespace {
 using Rat = RatExpr<>;  // ℚ over the saturating-cardinal

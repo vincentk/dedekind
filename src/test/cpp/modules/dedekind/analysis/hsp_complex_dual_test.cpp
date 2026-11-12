@@ -30,6 +30,7 @@ import dedekind.relational; // graph(f), the functional relative product >>
 using namespace dedekind::numbers;
 using dedekind::analysis::Dual;
 using dedekind::analysis::embed_ℝ_𝔻;
+using dedekind::sets::RatExpr;
 
 namespace {
 using Q = RatExpr<>;
