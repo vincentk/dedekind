@@ -20,12 +20,12 @@ import dedekind.numbers;
 
 using dedekind::category::NonZero;
 using dedekind::numbers::Positive;
-using dedekind::numbers::Rational;
 using dedekind::numbers::square;
+using dedekind::sets::RatExpr;
 
 namespace {
 
-using Rat = Rational;
+using Rat = RatExpr<>;
 
 /**
  * @brief A stationary scalar Kalman filter.  State transition F = 1 (a

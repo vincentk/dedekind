@@ -12,7 +12,7 @@
  * derivative bridge), @c :forms (differential one-forms), and
  * @c :hamilton (Hamiltonian flow on Dual-carrier symplectic state).
  * The @c :analysis layer is downstream of @c :numbers in the build
- * graph, so all numeric-carrier consumers (@c Rational,
+ * graph, so all numeric-carrier consumers (@c RatExpr,
  * @c Complex<R>, @c IEEE<F>) remain reachable.
  *
  * @copyright 2026 The Dedekind Authors
@@ -101,7 +101,7 @@ export module dedekind.analysis:dual;
 import dedekind.algebra;
 import dedekind.category;
 import dedekind.geometry; // IsTangentBundle (flat-case tangent-bundle concept)
-import dedekind.numbers;  // Rational for the trait-registry witness
+import dedekind.numbers;  // RatExpr<> for the trait-registry witness
 import dedekind.sets;
 
 namespace dedekind::analysis {
@@ -168,19 +168,28 @@ struct Dual {
       return {sv < a.val ? std::numeric_limits<F>::max() : sv,
               sd < a.der ? std::numeric_limits<F>::max() : sd};
     } else {
-      return {a.val + b.val, a.der + b.der};
+      return {canonical(a.val + b.val), canonical(a.der + b.der)};
     }
   }
 
-  friend constexpr Dual operator-(const Dual& a, const Dual& b) {
-    return {a.val - b.val, a.der - b.der};
+  /** @brief The canonical form, part by part: the normalisation point of a
+   *  computation that stores a dual.  @param d the dual. */
+  friend constexpr Dual canonical(const Dual& d) {
+    return {canonical(d.val), canonical(d.der)};
   }
 
-  constexpr Dual operator-() const { return {-val, -der}; }
+  friend constexpr Dual operator-(const Dual& a, const Dual& b) {
+    return {canonical(a.val - b.val), canonical(a.der - b.der)};
+  }
+
+  constexpr Dual operator-() const {
+    return {canonical(-val), canonical(-der)};
+  }
 
   friend constexpr Dual operator*(const Dual& a, const Dual& b) {
     // (a + bε)(c + dε) = ac + (ad + bc)ε + bdε²(→0)
-    return {a.val * b.val, (a.val * b.der) + (a.der * b.val)};
+    return {canonical(a.val * b.val),
+            canonical((a.val * b.der) + (a.der * b.val))};
   }
 
   /**
@@ -215,8 +224,8 @@ struct DualUnit {
   constexpr operator Dual<F>() const { return {F(val), der}; }  // NOLINT
   /** @brief @f$(a + b\varepsilon)^{-1}@f$: a unit's inverse, in 𝔻. */
   constexpr Dual<F> inverse() const {
-    const F inv = F{1} / val;
-    return {inv, -(der * inv * inv)};
+    const F inv = canonical(F{1} / val);
+    return {inv, canonical(-(der * inv * inv))};
   }
 };
 /** @brief The check into 𝔻's units: the primal part's check.  @param d the
@@ -285,8 +294,8 @@ constexpr F component(const Dual<F>& d, dedekind::category::At<2>) {
 /** @section dual__Formal_Verification */
 
 // Basis element ε = Dual(0, 1); the nilpotent axiom ε² = 0.
-using 𝔻_ℚ = Dual<dedekind::numbers::Rational>;
-using ℚ_ = dedekind::numbers::Rational;
+using 𝔻_ℚ = Dual<dedekind::sets::RatExpr<>>;
+using ℚ_ = dedekind::sets::RatExpr<>;
 inline constexpr 𝔻_ℚ eps{ℚ_{0}, ℚ_{1}};
 static_assert(eps * eps == 𝔻_ℚ{ℚ_{0}, ℚ_{0}}, "Nilpotent axiom: ε² = 0.");
 
@@ -328,7 +337,7 @@ static_assert(dedekind::algebra::HasFieldOperators<𝔻_ℚ>,
 // @c algebra:ring and the paper §3.4 footnote a).  For exact
 // integer-coefficient AD the right carrier is
 // @c Dual<IntExpr> or
-// @c Dual<Rational> rather than @c Dual<int> --- the witness
+// @c Dual<RatExpr> rather than @c Dual<int> --- the witness
 // here is structural ("Dual respects whatever the base carrier
 // supplies") rather than a claim about ℤ-faithful semantics on
 // machine ints.
@@ -548,7 +557,7 @@ static_assert(
     "D<C<R>>: Dual over Complex over the coat-hanger ℝ is a quotient algebra.");
 static_assert(
     IsQuotientAlgebra<dedekind::analysis::Dual<
-        dedekind::numbers::Complex<dedekind::numbers::Rational>>>,
+        dedekind::numbers::Complex<dedekind::sets::RatExpr<>>>>,
     "D<C<Q>>: Dual over Complex over ℚ is a quotient algebra (functors nest).");
 // ...and the other way round: Dual<R> is IsComplexScalar (has {}, +, -, *), so
 // Complex<Dual<R>> instantiates too --- the two 2nd-order functors compose in
@@ -584,8 +593,8 @@ namespace dedekind::analysis {
 // NEW-A trait registry witness (#498/#499): @c Dual<F> is a module
 // over @c F.  The witness fires through the quotient-algebra
 // propagation in @c dedekind.algebra:quotient.
-static_assert(dedekind::algebra::is_module_v<Dual<dedekind::numbers::Rational>,
-                                             dedekind::numbers::Rational>,
+static_assert(dedekind::algebra::is_module_v<Dual<dedekind::sets::RatExpr<>>,
+                                             dedekind::sets::RatExpr<>>,
               "Dual<ℚ> is a module over ℚ — the exact-arithmetic AD instance.");
 
 /** @section dual__ℝ_𝔻_S_Leg_Witnesses

@@ -76,10 +76,10 @@ export constexpr Strictness flip(Strictness s) {
 
 /** @brief Cardinality class of a halfspace's carrier @c T (#848/#927).
  *  @details A carrier that declares its own @c cardinality_type is the
- *  authority (e.g.\ @c numbers::Rational → @c ℵ_0, @c ExtensionalCardinal →
+ *  authority (e.g.\ @c RatExpr → @c ℵ_0, @c ExtensionalCardinal →
  *  @c Finite): this partition (@c :order) is @b upstream of @c :numbers, so a
  *  countable @b non-integral carrier such as ℚ cannot be recognised
- *  structurally here (@c IsRingIntegral is false on @c Rational), and must
+ *  structurally here (@c IsRingIntegral is false on @c RatExpr), and must
  *  self-declare so the point-free @c A|pred halfspace classifies identically
  *  to the scout comprehension (which inherits the ambient @c C directly).
  *  Otherwise fall back to the @c IsRingIntegral discriminator: the structural

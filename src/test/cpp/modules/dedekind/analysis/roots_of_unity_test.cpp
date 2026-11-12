@@ -25,7 +25,7 @@
 #include <utility>
 #include <vector>
 
-import dedekind.numbers; // Rational, QuadraticReal, Complex, root8, ζ₈, conj
+import dedekind.numbers; // RatExpr<>, QuadraticReal, Complex, root8, ζ₈, conj
 import dedekind.morphologies; // Modular<8u> — the domain ℤ/8 of root8
 import dedekind.analysis;     // Dual
 import dedekind.sets;         // ambient_set (predicate→set), the native meet &
@@ -37,7 +37,7 @@ using dedekind::morphologies::Congruence;
 using dedekind::morphologies::Modular;
 
 namespace {
-using Q = Rational;
+using Q = RatExpr<>;
 using R2 = QuadraticReal<2>;  // ℝ = ℚ(√2), the coat-hanger
 using Cx = Complex<R2>;       // ℂ over the coat-hanger (the #810 carrier)
 using M8 = Modular<8u>;       // ℤ/8, the domain of the de Moivre map root8

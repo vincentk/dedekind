@@ -10,7 +10,7 @@
  *
  *   1. @c bool                — the smallest Boolean algebra / @c 𝔽₂ / ℤ/2ℤ.
  *   2. @c Modular<6>          — the canonical finite cyclic ring.
- *   3. @c Rational       — ℚ as @c Frac(ℤ), a localization: it refuses
+ *   3. @c RatExpr       — ℚ as @c Frac(ℤ), a localization: it refuses
  *      the H leg, which ℂ over ℚ witnesses instead.
  *   4. parity-quotient @c mod_2 — the @c int @c → @c bool homomorphism
  *      from Slice 4's First-Iso crown.
@@ -34,7 +34,7 @@ import dedekind.numbers;
 
 using namespace dedekind::category;
 using dedekind::morphologies::Modular;
-using dedekind::numbers::Rational;
+using dedekind::sets::RatExpr;
 
 TEST_CASE("quotient meeting-point — bool fires equivalence + congruence rows",
           "[quotient][meeting-point][bool]") {
@@ -100,13 +100,13 @@ TEST_CASE("quotient meeting-point — Set as the categorical context (rows 6–8
   STATIC_CHECK(IsExactCategory<CanonicalSetCCC<int>>);
   STATIC_CHECK(IsExactCategory<CanonicalSetCCC<bool>>);
   STATIC_CHECK(IsExactCategory<CanonicalSetCCC<Modular<6>>>);
-  STATIC_CHECK(IsExactCategory<CanonicalSetCCC<Rational>>);
+  STATIC_CHECK(IsExactCategory<CanonicalSetCCC<RatExpr<>>>);
 
   STATIC_CHECK(IsRegularCategory<CanonicalSetCCC<int>>);
   STATIC_CHECK(IsRegularCategory<CanonicalSetCCC<Modular<6>>>);
 
   STATIC_CHECK(IsFactorisationSystem<CanonicalSetCCC<bool>>);
-  STATIC_CHECK(IsFactorisationSystem<CanonicalSetCCC<Rational>>);
+  STATIC_CHECK(IsFactorisationSystem<CanonicalSetCCC<RatExpr<>>>);
 }
 
 TEST_CASE(
@@ -128,7 +128,7 @@ TEST_CASE(
   using dedekind::morphologies::first_iso_mod_2::connector;
   using dedekind::morphologies::first_iso_mod_2::mod_2_arrow;
   using Z6 = Modular<6>;
-  using Q = Rational;
+  using Q = RatExpr<>;
 
   // Row 1 (IsEquivalence) — bool leg
   STATIC_CHECK(IsEquivalence<bool, std::equal_to<bool>>);

@@ -45,7 +45,7 @@
  *   - @c Complex<R>  @c = @c R[i]/(i² @c + @c 1)   (numbers:complex)
  *   - @c Dual<F>     @c = @c F[ε]/(ε²)             (analysis:dual)
  *
- * @c Rational @c = @c Frac(I) is @b not one: the field of fractions is a
+ * @c RatExpr @c = @c Frac(I) is @b not one: the field of fractions is a
  * localization (ℤ ↪ ℚ embeds, nothing is collapsed; fields are not a variety),
  * so Birkhoff's H leg does not apply and ℚ registers its laws directly
  * (numbers:rational).
@@ -205,7 +205,7 @@ concept IsCongruenceQuotient =
 
 // @note WITNESS, not law-forwarder (Copilot #803).  Law-trait forwarding rides
 // the TYPE-POINTER path (@c IsQuotientAlgebra, above), which lifts laws from a
-// well-behaved base (@c Rational @c = @c Frac(I), @c Complex, @c Dual).
+// well-behaved base (@c RatExpr @c = @c Frac(I), @c Complex, @c Dual).
 // Forwarding via the CONGRUENCE is deliberately NOT done, and would be @b
 // unsound for a machine-carrier quotient: @c Modular<N>'s carrier @c V
 // (@c unsigned/@c int) has broken arithmetic --- @c

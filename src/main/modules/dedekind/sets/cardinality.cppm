@@ -767,7 +767,7 @@ static_assert(IsCyclicGroup<C1, std::plus<C1>>,
 // SpeciesTraits<T> registration covers @c std::integral / @c
 // std::floating_point / @c bool only).
 //
-// Pattern follows @c SpeciesTraits<Rational> in @c numbers/rational.cppm:
+// Pattern follows @c SpeciesTraits<RatExpr> in @c numbers/rational.cppm:
 // @c Domain @c = the carrier itself, @c machine_type @c = the carrier (no
 // separate machine sibling).
 // ---------------------------------------------------------------------------
@@ -799,7 +799,7 @@ struct unit_trait<Nat, std::multiplies<Nat>> {
   static constexpr value_type value{1u};
 };
 // Path D to totality: + and * are exact, closed and lossless, the boundary
-// the machine's memory, as for Rational (is_exact_total names ℕ among them).
+// the machine's memory, as for RatExpr (is_exact_total names ℕ among them).
 template <>
 struct is_exact_total<Nat, std::plus<Nat>> : std::true_type {};
 template <>

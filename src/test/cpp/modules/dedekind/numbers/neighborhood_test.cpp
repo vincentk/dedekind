@@ -20,7 +20,7 @@
 #include <type_traits>  // std::remove_cvref_t
 
 import dedekind.category; // IsSet (the ETCS axioms)
-import dedekind.numbers;  // Rational, Cut
+import dedekind.numbers;  // RatExpr<>, Cut
 import dedekind.order;
 import dedekind.sets; // HasDecidableMembership
 import dedekind.topology; // IsOpen, IsClosed, IsNeighborhood (read off order's shapes)
@@ -33,7 +33,7 @@ using dedekind::topology::is_order_closed;
 using dedekind::topology::is_order_open;
 
 namespace {
-using Q = Rational;
+using Q = RatExpr<>;
 constexpr auto open_ = Strictness::Strict;
 constexpr auto closed_ = Strictness::NonStrict;
 // A rational neighborhood (7/5, 3/2) ⊂ ℚ — an open interval between two ℚ.

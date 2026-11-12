@@ -36,7 +36,7 @@ export module dedekind.numbers:real_bridge;
 import dedekind.algebra;    // EmbedsAsSubalgebra, IsHomomorphism
 import dedekind.category;   // IsArrow, IsMonicArrow, is_monic_arrow_v, IsSet
 import dedekind.relational; // graph(f): the arrow's graph Γ (reified relation)
-import :rational;           // Rational — the ℚ carrier
+import :rational;           // RatExpr<> — the ℚ carrier
 import :quadratic;  // QuadraticReal<2> — the ℝ = ℚ(√2) coat-hanger carrier
 
 namespace dedekind::numbers {
@@ -56,8 +56,8 @@ namespace dedekind::numbers {
  *
  */
 export struct EmbedRationalToReal {
-  using Domain = Rational;
-  using Codomain = QuadraticReal<2, Rational>;
+  using Domain = RatExpr<>;
+  using Codomain = QuadraticReal<2, RatExpr<>>;
 
   /** @brief @f$q\mapsto q+0\sqrt2@f$ (the @c QuadraticReal(Q) lift). */
   constexpr Codomain operator()(const Domain& q) const { return Codomain{q}; }
@@ -79,16 +79,16 @@ namespace dedekind::category {
  *  are computed). */
 template <>
 struct is_homomorphism<
-    dedekind::numbers::EmbedRationalToReal, dedekind::numbers::Rational,
-    std::plus<dedekind::numbers::Rational>,
-    std::plus<dedekind::numbers::QuadraticReal<2, dedekind::numbers::Rational>>>
+    dedekind::numbers::EmbedRationalToReal, dedekind::sets::RatExpr<>,
+    std::plus<dedekind::sets::RatExpr<>>,
+    std::plus<dedekind::numbers::QuadraticReal<2, dedekind::sets::RatExpr<>>>>
     : std::true_type {};
 template <>
 struct is_homomorphism<
-    dedekind::numbers::EmbedRationalToReal, dedekind::numbers::Rational,
-    std::multiplies<dedekind::numbers::Rational>,
+    dedekind::numbers::EmbedRationalToReal, dedekind::sets::RatExpr<>,
+    std::multiplies<dedekind::sets::RatExpr<>>,
     std::multiplies<
-        dedekind::numbers::QuadraticReal<2, dedekind::numbers::Rational>>>
+        dedekind::numbers::QuadraticReal<2, dedekind::sets::RatExpr<>>>>
     : std::true_type {};
 }  // namespace dedekind::category
 
@@ -107,7 +107,7 @@ namespace dedekind::numbers {
  */
 namespace {
 using Emb = EmbedRationalToReal;
-using Q = Rational;
+using Q = RatExpr<>;
 using R2 = QuadraticReal<2>;
 
 constexpr Q a{2, 3};  // 2/3

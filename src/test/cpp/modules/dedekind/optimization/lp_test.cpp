@@ -24,8 +24,8 @@ using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::optimization;
 namespace {
-// ℚ is not a structural type (its Integer keeps limbs in a std::vector), so
-// nothing of type Rational is a template argument any more.  The typed
+// ℚ is not a structural type (its IntExpr keeps limbs in a std::vector), so
+// nothing of type RatExpr is a template argument any more.  The typed
 // constants below are over the word, which is exact on these instances: the
 // active sets' determinants are ±1 (the §5 polytope's {H1, H2} has det −1),
 // so Cramer's division is exact in `long`.  ℚ is the value path, tested at
@@ -377,7 +377,7 @@ TEST_CASE("optimization:lp — fast-path INT_MIN boundary guard (#749)",
   // For signed integer carriers, `zero - h.c` is undefined behaviour
   // when `h.c == INT_MIN`.  The kernel uses `std::numeric_limits<T>`
   // to detect this and collapse to the infeasible sentinel; carriers
-  // without `numeric_limits` specialisation (Rational, Dual) bypass
+  // without `numeric_limits` specialisation (RatExpr, Dual) bypass
   // the check.
   constexpr int kIntMin = std::numeric_limits<int>::min();
   constexpr std::array<HalfspaceTriple<int>, 4> kIntMinPack = {{
@@ -818,7 +818,7 @@ TEST_CASE(
   // integral: over a word Cramer's division would truncate it, over ℚ it is
   // exact.  Each active set's determinant enters ℚ* through the one check
   // (:total's divisor), and a parallel pair is refused there.
-  using Q = Rational;
+  using Q = RatExpr<>;
   const std::array<HalfspaceTriple<Q>, 4> polytope = {{
       {Q{1}, Q{2}, Q{4}},
       {Q{3}, Q{1}, Q{6}},

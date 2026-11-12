@@ -55,7 +55,7 @@
  * wrap.  A wrapping coefficient is the carrier's own arithmetic; a wrapping
  * exponent would change the term (@c π^(2³²−1)·π is not the constant 1), so
  * the monoid is ℕᴺ, certified total on the exact path with the overflow a
- * tripwire, the posture of @c Rational's out-of-memory sentinel.
+ * tripwire, the posture of @c RatExpr's out-of-memory sentinel.
  *
  * Wikipedia: Monoid ring, Polynomial ring, Monomial order
  *

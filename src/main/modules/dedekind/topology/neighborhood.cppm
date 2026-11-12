@@ -69,9 +69,9 @@ using namespace dedekind::order;
  *          between @c n and @c succ(n), so a carrier that overloads
  *          @c successor / @c predecessor asserts exactly that covering relation
  *          --- the same kind of semantic contract as registering
- *          @c is_associative_v.  A dense carrier (@c Rational, @c Cut) has no
+ *          @c is_associative_v.  A dense carrier (@c RatExpr, @c Cut) has no
  *          such step and must not declare one.  This is the structural source
- * of clopen-ness on discrete carriers (#905); a @b dense carrier (@c Rational,
+ * of clopen-ness on discrete carriers (#905); a @b dense carrier (@c RatExpr,
  * @c Cut) has no step, so its open / closed status falls to the boundary
  * structure
  *          --- the genuine @c open @c ⊋ @c clopen witness a discrete carrier

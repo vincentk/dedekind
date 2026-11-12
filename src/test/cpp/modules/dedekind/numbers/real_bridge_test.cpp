@@ -26,7 +26,7 @@ import dedekind.relational;
 using namespace dedekind::numbers;
 
 namespace {
-using Q = Rational;
+using Q = RatExpr<>;
 using R2 = QuadraticReal<2>;
 
 // A spread of rationals to drive the element-level laws (num/den, signs).

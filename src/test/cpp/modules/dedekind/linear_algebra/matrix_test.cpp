@@ -26,12 +26,12 @@ using namespace dedekind::numbers;
 using namespace dedekind::linear_algebra;
 
 namespace {
-// ℚ is not a structural type (its Integer keeps limbs in a std::vector), so
-// no Rational is a template argument: the type-level matrix family is
+// ℚ is not a structural type (its IntExpr keeps limbs in a std::vector), so
+// no RatExpr is a template argument: the type-level matrix family is
 // exercised over the words and over double (exact on the dyadic entries
 // below), and ℚ at the value level, Matrix2x2V<Rat>.
-using Rat = Rational;
-using Q = Rational;
+using Rat = RatExpr<>;
+using Q = RatExpr<>;
 }  // namespace
 
 TEST_CASE("linear_algebra:matrix — identity at the type level",
@@ -345,9 +345,9 @@ TEST_CASE("linear_algebra:matrix — runtime-exercised Matrix2x2V operators",
 
 namespace {
 // The certified ℚ for the lattice corners: over the saturating
-// Integer, whose laws reach ℚ (fractions over a wrapping word are
+// IntExpr, whose laws reach ℚ (fractions over a wrapping word are
 // not certified a ring, so the structural Rat above cannot sit here).
-using LatticeRat = Rational;
+using LatticeRat = RatExpr<>;
 }  // namespace
 
 TEST_CASE("Algebraic Lattice (Figure 1): cube corners on the numeric tower",

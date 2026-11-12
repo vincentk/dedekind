@@ -16,7 +16,7 @@ import dedekind.algebra;
 import dedekind.analysis; // Dual<F>
 import dedekind.category;
 import dedekind.linear_algebra; // Vec2V<T>
-import dedekind.numbers;        // Rational, Complex, Integer
+import dedekind.numbers;        // RatExpr<>, Complex, IntExpr<>
 
 namespace {
 
@@ -32,10 +32,10 @@ using dedekind::category::IsProductAlgebra;
 using dedekind::category::IsQuotientAlgebra;
 using dedekind::linear_algebra::Vec2V;
 using dedekind::numbers::Complex;
-using dedekind::numbers::Rational;
-using dedekind::sets::Integer;
+using dedekind::sets::IntExpr;
+using dedekind::sets::RatExpr;
 
-using Q = Rational;
+using Q = RatExpr<>;
 using CQ = Complex<Q>;
 using DQ = Dual<Q>;
 using V2u = Vec2V<unsigned int>;
@@ -68,7 +68,7 @@ TEST_CASE(
     "Rational registers its laws; H propagation composes through "
     "Cplx / Dual",
     "[algebra][quotient][propagation]") {
-  // Rational registers associativity directly, gated on I's; the second H
+  // RatExpr registers associativity directly, gated on I's; the second H
   // (Cplx, Dual) propagates from it.
   STATIC_CHECK(associative<Q>(std::plus<Q>{}));
   STATIC_CHECK(associative<Q>(std::multiplies<Q>{}));
@@ -82,14 +82,14 @@ TEST_CASE("HSP propagation: commutativity lifts componentwise (P)",
   // unsigned int is commutative under +/* (modular arithmetic);
   // P propagation lifts to Vec2V<unsigned int>.
   STATIC_CHECK(commutative<V2u>(std::plus<V2u>{}));
-  // Q under + is commutative (registered on Rational, gated on I's).
+  // Q under + is commutative (registered on RatExpr, gated on I's).
   STATIC_CHECK(commutative<Q>(std::plus<Q>{}));
 }
 
 TEST_CASE("HSP propagation: IsTotal certificate lifts via the right path",
           "[algebra][quotient][propagation]") {
   // ℚ is total on the exact path: closed, lossless arithmetic up to the
-  // out-of-memory tripwire, which Rational raises rather than saturating.
+  // out-of-memory tripwire, which RatExpr raises rather than saturating.
   STATIC_CHECK(is_total_v<Q, std::plus<Q>>);
   STATIC_CHECK(is_total_v<Q, std::multiplies<Q>>);
   STATIC_CHECK(is_exact_total_v<Q, std::plus<Q>>);
@@ -119,7 +119,7 @@ TEST_CASE("HSP propagation: no over-firing on undeclared carriers",
 
 TEST_CASE("HSP carrier is_module_v witnesses fire",
           "[algebra][quotient][module]") {
-  STATIC_CHECK(dedekind::algebra::is_module_v<Q, Integer>);
+  STATIC_CHECK(dedekind::algebra::is_module_v<Q, IntExpr<>>);
   STATIC_CHECK(dedekind::algebra::is_module_v<CQ, Q>);
   STATIC_CHECK(dedekind::algebra::is_module_v<DQ, Q>);
   STATIC_CHECK(dedekind::algebra::is_module_v<V2u, unsigned int>);

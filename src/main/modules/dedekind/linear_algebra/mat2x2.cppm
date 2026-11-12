@@ -32,7 +32,7 @@
  *
  * The carrier `T` is expected to be a structural (C++20 NTTP-compatible) type
  * with ring-like arithmetic; the paper-facing existential proof uses
- * `Rational` (ℚ as a proxy for ℝ per the #364 / #366 narrowing), since
+ * `RatExpr` (ℚ as a proxy for ℝ per the #364 / #366 narrowing), since
  * exact rational arithmetic sidesteps the rounding / structurality questions
  * that `double` would raise today.
  *
@@ -46,7 +46,7 @@
  *
  * @section matrix__DSL_Surface
  *
- *     using Q = dedekind::numbers::Rational;
+ *     using Q = RatExpr;
  *     // M = [[1, 2], [3, 4]],  det = -2
  *     constexpr Invertible2x2<Q, Q{1L}, Q{2L}, Q{3L}, Q{4L}> M{};
  *     static_assert(M * M.inverse() == Identity2x2<Q>{});
@@ -78,7 +78,7 @@ export module dedekind.linear_algebra:mat2x2;
 
 import dedekind.algebra; // HasRingOperators, HasFieldOperators, HasVectorSpaceOperators
 import dedekind.category; // IsShapedFunctor / Set / arrow (for matrix2x2_functor witness)
-import dedekind.numbers; // Rational — the rational carrier (post-#559 ℚ is the universe value 𝔸<Rational>)
+import dedekind.numbers; // RatExpr<> — the rational carrier (post-#559 ℚ is the universe value 𝔸<RatExpr<>>)
 import dedekind.order; // IsDirectedSet — algebraic gate on operator[] index domain (any net domain)
 import dedekind.sets; // Finite cardinality tag (for dimension_type)
 import :basis;        // is_endomorphism_ring_v trait declaration
@@ -102,10 +102,10 @@ namespace dedekind::linear_algebra {
  *
  * The type carries the entries structurally, so `M * M.inverse()` is a
  * compile-time expression whose result type IS the identity matrix when the
- * inverse is exact over `T` (always true for `T = Rational`).
+ * inverse is exact over `T` (always true for `T = RatExpr`).
  *
  * @tparam T Structural (C++20 NTTP-compatible) carrier type with ring-like
- *           arithmetic. `Rational` over any `IsInteger Z` is the
+ *           arithmetic. `RatExpr` over any `IsInteger Z` is the
  *           canonical choice for the paper-facing ℚ proof.
  * @tparam a,b,c,d Entries as NTTPs of type `T`.
  */
@@ -113,7 +113,7 @@ namespace dedekind::linear_algebra {
 // constraint here, NOT a stopgap.  `inverse_type` divides by `det`,
 // and rings in general do not admit division, so the closed-form
 // Cramer inverse genuinely needs the field-like scalar surface.
-// Over `T = Rational` with integer `Z` the constraint is tight;
+// Over `T = RatExpr` with integer `Z` the constraint is tight;
 // over IEEE-edge carriers (`IEEE<double>`) the operational variant
 // is exactly the right fit, since strict `IsField` would fail under
 // rounding-non-associativity.  The Has*Operators shape concepts
@@ -168,10 +168,10 @@ struct Invertible2x2 {
    *   M^{-1} = (1 / det(M)) · [[ d, -b ],
    *                            [-c,  a ]]
    *
-   * Exact over `T = Rational` (any integer `Z`) and over integer matrices
+   * Exact over `T = RatExpr` (any integer `Z`) and over integer matrices
    * whose determinant is `±1`. For carriers where the division is not exact
    * (e.g. `int` with `|det| > 1`) this expression loses information
-   * silently; use `Rational` for the paper-facing existential proof.
+   * silently; use `RatExpr` for the paper-facing existential proof.
    */
   using inverse_type = Invertible2x2<T, d / det, -b / det, -c / det, a / det>;
 
@@ -197,7 +197,7 @@ struct Invertible2x2 {
  * from `dedekind.order:halfspace`. Callers write
  * `static_assert(M * M.inverse() == Identity2x2<T>{})` without having to
  * spell the entries. `T` defaults to `int` for simple integer-matrix tests;
- * paper-facing ℚ proofs pass `T = Rational` explicitly.
+ * paper-facing ℚ proofs pass `T = RatExpr` explicitly.
  */
 export template <typename T = int>
 using Identity2x2 = Invertible2x2<T, T{1}, T{0}, T{0}, T{1}>;
@@ -303,7 +303,7 @@ struct DirectSum {
    *
    * The closed form `(A ⊕ B)^{-1} = A^{-1} ⊕ B^{-1}` is exact whenever
    * each factor's inverse is exact — here, inherited from `Invertible2x2`
-   * over `Rational`.
+   * over `RatExpr`.
    */
   using inverse_type =
       DirectSum<typename A::inverse_type, typename B::inverse_type>;
@@ -780,16 +780,16 @@ static_assert(
 // NEW-B compositional witness (#498/#500): the rank-axis lift
 // (Vec_2 → M_2) composes cleanly with the carrier-strength choice
 // (ℤ → ℚ).  Pinning M_2(ℚ) = End_ℚ(V_2(ℚ)) over the exact-rationals
-// carrier @c Rational proves Figure 1's vertical
+// carrier @c RatExpr proves Figure 1's vertical
 // (P) and horizontal (Frac, an H step) axes commute at the worked
 // instance.  Builds on the post-#527 HSP architecture: the
 // quotient-algebra propagation lifts species traits from
-// @c IntExpr to @c Rational (H-step) and
-// componentwise from @c Rational to
-// @c Vec2V<Rational> (P-step), so all witnesses
+// @c IntExpr to @c RatExpr (H-step) and
+// componentwise from @c RatExpr to
+// @c Vec2V<RatExpr> (P-step), so all witnesses
 // below fire mechanically without per-carrier opt-in.
 namespace _newb_compositional_pin {
-using Q = dedekind::numbers::Rational;
+using Q = dedekind::sets::RatExpr<>;
 using Vec2_Q = dedekind::linear_algebra::Vec2V<Q>;
 using Mat2_Q = dedekind::linear_algebra::Matrix2x2V<Q>;
 static_assert(dedekind::algebra::is_module_v<Vec2_Q, Q>,
@@ -920,13 +920,13 @@ constexpr Matrix2x2V<T> operator/(const Covec2V<T>& a, const Covec2V<T>& b) {
  */
 namespace detail {
 
-// The canonical total field ℚ = Rational (IntExpr is
+// The canonical total field ℚ = RatExpr (IntExpr is
 // ℤ's IntExpr), NOT the raw signed-`long` shortcut: since
 // #559 these witnesses are strict (they thread through the semimodule
 // contract), and `long`'s `+` is an overflow hazard the honest `IsTotal`
 // refuses.  Totality distributes from this scalar to Vec2V / Matrix2x2V (the §4
 // property law).
-using Rat = dedekind::numbers::Rational;
+using Rat = dedekind::sets::RatExpr<>;
 
 /** @subsection Upstream_Concept_Witnesses — algebra concepts on ℚ carriers.
  *

@@ -660,9 +660,11 @@ constexpr std::partial_ordering operator<=>(const RatExpr<N>& q, F x) {
   return std::partial_ordering::unordered;
 }
 
-/** @brief A word is already canonical in its own algebra, ℤ/2^w: generic code
- *  calls @c canonical uniformly.  @param w the word. */
-export template <std::unsigned_integral W>
+/** @brief A machine value is already canonical in its own algebra (a word in
+ *  ℤ/2^w, a double in IEEE's arithmetic, which carries no law): generic code
+ *  calls @c canonical uniformly.  @param w the value. */
+export template <typename W>
+  requires std::is_arithmetic_v<W>
 constexpr W canonical(W w) {
   return w;
 }

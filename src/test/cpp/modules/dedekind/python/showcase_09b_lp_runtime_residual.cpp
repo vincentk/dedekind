@@ -33,7 +33,7 @@
  *
  * Carrier is `double` for IR readability; the kernel is carrier-
  * parametric (see `src/test/python/showcase_09_lp_runtime.py` for the
- * same call site instantiated at `T = Dual<Rational>` — primal AND
+ * same call site instantiated at `T = Dual<RatExpr>` — primal AND
  * first-order sensitivity, ℚ-exact, the only LP Python binding).
  *
  * @copyright 2026 The Dedekind Authors

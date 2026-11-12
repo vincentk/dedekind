@@ -755,7 +755,7 @@ using Maybe = std::optional<T>;
 // from a base algebra to its H/P/F image are declared in
 // @c dedekind.algebra:quotient (and sibling @c :free).  A consumer
 // querying these traits on a quotient / product / free carrier
-// (@c Rational, @c Complex<R>, @c Dual<F>, @c Vec2V<T>,
+// (@c RatExpr, @c Complex<R>, @c Dual<F>, @c Vec2V<T>,
 // @c Polynomial<R, M>) must transitively reach
 // @c dedekind.algebra for the propagation to fire.  In practice
 // every carrier-defining partition imports @c dedekind.algebra
@@ -894,7 +894,7 @@ inline constexpr bool is_embedding_functor_v = false;
  * embed_𝔹_𝕂3_ (@c bool @c ↪ @c Kleene::Ω), @c embed_uint_ℕ_
  * (@c unsigned @c ↪ @c Numeral), @c embed_sint_ℤ_ (@c int @c ↪
  * @c IntExpr), @c embed_ℤ_ℚ (int @c ↪ @c
- * Rational).  Each is an arrow with @c IsMonicArrow / @c
+ * RatExpr).  Each is an arrow with @c IsMonicArrow / @c
  * IsInjective + a registered @c is_embedding_functor_v specialisation
  * pinning the functor-level structural claim.
  *

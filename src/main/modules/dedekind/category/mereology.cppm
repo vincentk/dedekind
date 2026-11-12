@@ -394,7 +394,7 @@ inline constexpr bool is_connex_v<T, std::less_equal<>> = true;
  * @par Either @c std::less_equal spelling, complete per relation.
  * Carriers register their order traits under one of two conventions: the typed
  * @c std::less_equal<T> (@c int / @c bool via the integral blanket, @c Ternary)
- * or the transparent @c std::less_equal<> (@c safe_float<F>, @c Rational,
+ * or the transparent @c std::less_equal<> (@c safe_float<F>, @c RatExpr,
  * @c Cut<Q>, cardinals).  Both are @c :species traits (no DAG dependency on
  * @c :order, which is downstream), so the gate accepts a certificate under
  * @b either spelling.  The three laws are grouped @b per @b relation and the

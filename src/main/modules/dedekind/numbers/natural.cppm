@@ -17,7 +17,7 @@
  * We "Bless" the coordinate species by verifying their rungs on the ladder:
  * - IsNatural  : N (ℕ) - The Discrete Monoid.
  * - IsInteger  : Z (ℤ) - The Euclidean Group.
- * - Rational : Q (ℚ) - The Countable Dense Field.
+ * - RatExpr : Q (ℚ) - The Countable Dense Field.
  * - QuadraticReal<D> / 𝕃<F> : R (ℝ) - Exact and finite-float realisations.
  *
  * @section natural__Structural_Mapping
@@ -29,7 +29,7 @@
  *
  * @anchors C++ Fundamental Types: bool, char, int, long, float, double.
  *
- * Wikipedia: Number, Natural number, IntExpr, Rational number, Real number
+ * Wikipedia: Number, Natural number, IntExpr, RatExpr number, Real number
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

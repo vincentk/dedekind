@@ -38,7 +38,8 @@ export module dedekind.numbers:quaternion;
 
 import dedekind.category;
 import dedekind.geometry;
-import :rational;  // the exact witnesses below
+import dedekind.sets; // canonical: the normalisation point of a stored part
+import :rational;     // the exact witnesses below
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
@@ -65,7 +66,7 @@ static_assert(!IsQuaternionScalar<double> && IsQuaternionScalar<int>,
  * @class Quaternion
  * @brief Hamilton's hypercomplex numbers q = a + bi + cj + dk.
  *
- * @tparam R  The scalar component type (an exact ring, e.g. @c Rational).
+ * @tparam R  The scalar component type (an exact ring, e.g. @c RatExpr).
  *
  * Multiplication is non-commutative: ij = k but ji = -k.
  */
@@ -89,18 +90,18 @@ class Quaternion {
   /** @brief q + p component-wise. */
   friend constexpr Quaternion operator+(const Quaternion& q,
                                         const Quaternion& p) {
-    return {q.a_ + p.a_, q.b_ + p.b_, q.c_ + p.c_, q.d_ + p.d_};
+    return made(q.a_ + p.a_, q.b_ + p.b_, q.c_ + p.c_, q.d_ + p.d_);
   }
 
   /** @brief q - p component-wise. */
   friend constexpr Quaternion operator-(const Quaternion& q,
                                         const Quaternion& p) {
-    return {q.a_ - p.a_, q.b_ - p.b_, q.c_ - p.c_, q.d_ - p.d_};
+    return made(q.a_ - p.a_, q.b_ - p.b_, q.c_ - p.c_, q.d_ - p.d_);
   }
 
   /** @brief Scalar left-multiplication. */
   friend constexpr Quaternion operator*(const R& s, const Quaternion& q) {
-    return {s * q.a_, s * q.b_, s * q.c_, s * q.d_};
+    return made(s * q.a_, s * q.b_, s * q.c_, s * q.d_);
   }
 
   /** @brief Scalar right-multiplication. */
@@ -116,31 +117,42 @@ class Quaternion {
    */
   friend constexpr Quaternion operator*(const Quaternion& q,
                                         const Quaternion& p) {
-    return {
-        q.a_ * p.a_ - q.b_ * p.b_ - q.c_ * p.c_ - q.d_ * p.d_,  // w
-        q.a_ * p.b_ + q.b_ * p.a_ + q.c_ * p.d_ - q.d_ * p.c_,  // x
-        q.a_ * p.c_ - q.b_ * p.d_ + q.c_ * p.a_ + q.d_ * p.b_,  // y
-        q.a_ * p.d_ + q.b_ * p.c_ - q.c_ * p.b_ + q.d_ * p.a_   // z
-    };
+    return made(q.a_ * p.a_ - q.b_ * p.b_ - q.c_ * p.c_ - q.d_ * p.d_,   // w
+                q.a_ * p.b_ + q.b_ * p.a_ + q.c_ * p.d_ - q.d_ * p.c_,   // x
+                q.a_ * p.c_ - q.b_ * p.d_ + q.c_ * p.a_ + q.d_ * p.b_,   // y
+                q.a_ * p.d_ + q.b_ * p.c_ - q.c_ * p.b_ + q.d_ * p.a_);  // z
   }
 
   /** @brief Additive inverse. */
-  constexpr Quaternion operator-() const { return {-a_, -b_, -c_, -d_}; }
+  constexpr Quaternion operator-() const { return made(-a_, -b_, -c_, -d_); }
 
   /**
    * @brief Conjugate q* = a - bi - cj - dk.
    * Satisfies q * conj(q) = |q|^2.
    */
-  constexpr Quaternion conj() const { return {a_, -b_, -c_, -d_}; }
+  constexpr Quaternion conj() const { return made(a_, -b_, -c_, -d_); }
 
   /**
    * @brief Squared Euclidean norm |q|^2 = a^2 + b^2 + c^2 + d^2.
    */
   constexpr R norm_squared() const {
-    return a_ * a_ + b_ * b_ + c_ * c_ + d_ * d_;
+    using dedekind::sets::canonical;
+    return canonical(a_ * a_ + b_ * b_ + c_ * c_ + d_ * d_);
+  }
+
+  /** @brief The canonical form, part by part.  @param q the quaternion. */
+  friend constexpr Quaternion canonical(const Quaternion& q) {
+    return made(q.a_, q.b_, q.c_, q.d_);
   }
 
  private:
+  /** @brief A result stored part by part, each part's canonical form: the
+   *  explicit normalisation point of every operation above. */
+  static constexpr Quaternion made(const R& a, const R& b, const R& c,
+                                   const R& d) {
+    using dedekind::sets::canonical;
+    return {canonical(a), canonical(b), canonical(c), canonical(d)};
+  }
   R a_, b_, c_, d_;
 };
 
@@ -152,12 +164,15 @@ class Quaternion {
  */
 
 // Basis quaternions over the exact ℚ
-using ℍ_ℚ = Quaternion<Rational>;
-inline constexpr ℍ_ℚ q_i{Rational{0}, Rational{1}, Rational{0}, Rational{0}};
-inline constexpr ℍ_ℚ q_j{Rational{0}, Rational{0}, Rational{1}, Rational{0}};
-inline constexpr ℍ_ℚ q_k{Rational{0}, Rational{0}, Rational{0}, Rational{1}};
-inline constexpr ℍ_ℚ q_neg1{Rational{-1}, Rational{0}, Rational{0},
-                            Rational{0}};
+using ℍ_ℚ = Quaternion<RatExpr<>>;
+inline constexpr ℍ_ℚ q_i{RatExpr<>{0}, RatExpr<>{1}, RatExpr<>{0},
+                         RatExpr<>{0}};
+inline constexpr ℍ_ℚ q_j{RatExpr<>{0}, RatExpr<>{0}, RatExpr<>{1},
+                         RatExpr<>{0}};
+inline constexpr ℍ_ℚ q_k{RatExpr<>{0}, RatExpr<>{0}, RatExpr<>{0},
+                         RatExpr<>{1}};
+inline constexpr ℍ_ℚ q_neg1{RatExpr<>{-1}, RatExpr<>{0}, RatExpr<>{0},
+                            RatExpr<>{0}};
 
 // i² = j² = k² = -1
 static_assert(q_i * q_i == q_neg1, "i² = -1");

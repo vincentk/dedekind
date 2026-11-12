@@ -96,7 +96,7 @@ inline constexpr bool is_saturating_v = is_saturating<T, Op>::value;
  *  @b exact --- arithmetic with no rounding, @c Op(a,b) defined and lossless
  *  up to the carrier's out-of-memory tripwire.  The archetypes are the exact
  * number fields
- *  (@c Rational = ℚ, @c QuadraticReal = ℚ(√D)) under @c + and
+ *  (@c RatExpr = ℚ, @c QuadraticReal = ℚ(√D)) under @c + and
  *  @c *.  Distinct from the three machine-finite paths, which are total by
  *  staying in a bounded range (wrap / stabilise / saturate); an exact carrier
  * is total because its arithmetic is @b closed and exact.
@@ -257,7 +257,7 @@ concept IsClosedUnderEither = IsClosedUnder<T, Op> || IsClosedUnderUnary<T, Op>;
  *  The first three are @b machine-finite (totality by staying in a bounded
  *  range); the fourth lets a genuinely exact number field be a Magma --- and
  *  hence reach @c IsField --- rather than being excluded as
- *  "non-machine-total".  It is registered for @c Rational = ℚ and
+ *  "non-machine-total".  It is registered for @c RatExpr = ℚ and
  *  @c QuadraticReal = ℚ(√D), and for ℕ's @c Numeral and ℤ's @c IntExpr.
  *  A saturating carrier is total via @c is_saturating instead.  (The two
  *  postures are distinct and a carrier picks exactly one.)  The named
@@ -855,7 +855,7 @@ concept IsCommutativeRing = IsRing<T, Add, Mult> && IsCommutative<T, Mult>;
  *
  * Downstream call sites that currently reach for
  * @c dedekind::algebra::HasFieldOperators will retarget to
- * @c IsField<T, Add, Mult> once carriers such as @c Rational,
+ * @c IsField<T, Add, Mult> once carriers such as @c RatExpr,
  * @c Complex<R>, and the relevant composites register the full
  * ring- plus multiplicative-group-trait specialisations. That work
  * is tracked under epic #374 and in particular #371 (axiom-hook

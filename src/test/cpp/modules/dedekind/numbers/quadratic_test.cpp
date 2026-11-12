@@ -24,7 +24,7 @@ import dedekind.order;
 using namespace dedekind::numbers;
 
 namespace {
-using Q = Rational;
+using Q = RatExpr<>;
 using R2 = QuadraticReal<2>;
 constexpr R2 r2 = R2::root();            // √2 as a field element
 constexpr Cut<> c2 = Cut<>::sqrt(Q{2});  // √2 as an order-leaf

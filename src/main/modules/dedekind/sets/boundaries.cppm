@@ -263,7 +263,7 @@ using leg_2_t = std::remove_cvref_t<decltype(dedekind::category::π_2(
 /** @brief A carrier that is the product of its two legs and is built from
  *  them (the pairing ⟨a, b⟩): a set over it answers @c r(a, @c b) as
  *  @c r(⟨a, b⟩) (#1047).  @c IsProduct, plus construction from the legs:
- *  @c std::pair, @c Complex (ℂ ≅ ℝ×ℝ) and @c Rational (the pairing then the
+ *  @c std::pair, @c Complex (ℂ ≅ ℝ×ℝ) and @c RatExpr (the pairing then the
  *  quotient ℤ×ℤ → ℚ, so @c r(n, @c d) asks whether n/d is a member).
  *  @tparam D the carrier. */
 export template <typename D>

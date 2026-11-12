@@ -8,7 +8,7 @@
  *
  * @section lp__Overview
  * Compile-time 2D LP over a structural ring-like scalar (paper-facing
- * carrier: `Rational`). A problem instance is named at the type
+ * carrier: `RatExpr`). A problem instance is named at the type
  * level — objective as two NTTPs, constraints as a pack of
  * `Halfspace2D<T, a, b, c>` carriers. The reduction
  * `argmax(G, U)` over a polytope-Set `G` and a `LinearFunctional U`
@@ -64,8 +64,8 @@
  *   ordering requirement, or to a proper `IsField<T, +, *>` once the
  *   latter lands in `dedekind.category:total`, is tracked under
  *   epic #374 (algebraic concept vocabulary alignment).  Paper-facing
- *   `T = Rational` covers all the real
- *   requirements; `Dual<Rational>` layering works for parametric
+ *   `T = RatExpr` covers all the real
+ *   requirements; `Dual<RatExpr>` layering works for parametric
  *   sensitivity analysis (`[dual]`-tagged test).
  *
  * @note "Modellbildung ist die halbe Miete."
@@ -84,7 +84,7 @@ export module dedekind.optimization:lp;
 
 import dedekind.algebra;        // HasRingOperators constraint
 import dedekind.category;       // Boole — Set's logic species (#747)
-import dedekind.numbers;        // Rational
+import dedekind.numbers;        // RatExpr<>
 import dedekind.linear_algebra; // Invertible2x2, Vec2
 import dedekind.sets;           // Set — DSL participants (#747)
 
@@ -357,7 +357,7 @@ constexpr VertexCandidate<T> maximize_impl_axis_aligned(
 
   // Indexed loop rather than range-for: the range-for's implicit
   // iterator comparison triggers ADL through @c HalfspaceTriple<T> 's
-  // value type and on libstdc++ pulls in @c Rational / @c IntExpr
+  // value type and on libstdc++ pulls in @c RatExpr / @c IntExpr
   // operators that are not viable for iterator operands but still
   // confuse overload resolution.  Indexed iteration matches the style
   // of the generic Cramer kernel above and avoids the iterator-comparison
@@ -388,7 +388,7 @@ constexpr VertexCandidate<T> maximize_impl_axis_aligned(
     // (e.g. signed integral types), reject @c h.c at the lowest
     // representable value.  The negation @c zero @c − @c h.c below would
     // be undefined behaviour on signed integral T at @c T::lowest() ;
-    // carriers without @c numeric_limits specialisation (Rational, Dual)
+    // carriers without @c numeric_limits specialisation (RatExpr, Dual)
     // bypass this check.
     if constexpr (std::numeric_limits<T>::is_specialized) {
       if (h.c == std::numeric_limits<T>::lowest()) return {zero, zero, false};
@@ -527,14 +527,14 @@ constexpr auto lp_step_arrow =
 
 // Inline type witness: the output Set is an F-algebra for the
 // identity endofunctor — the catamorphism shape on the strict-form
-// side of @ref argmax .  Carrier is @c Rational (matches the
+// side of @ref argmax .  Carrier is @c RatExpr (matches the
 // paper-facing T = ℚ); the witness lifts uniformly to any carrier
 // satisfying the same shape.
 static_assert(dedekind::category::IsFAlgebra<
-              detail::LPSolutionSet<dedekind::numbers::Rational>,
+              detail::LPSolutionSet<dedekind::sets::RatExpr<>>,
               std::decay_t<
-                  decltype(detail::lp_step_arrow<dedekind::numbers::Rational>)>,
-              detail::LPSolutionIdF<dedekind::numbers::Rational>>);
+                  decltype(detail::lp_step_arrow<dedekind::sets::RatExpr<>>)>,
+              detail::LPSolutionIdF<dedekind::sets::RatExpr<>>>);
 
 /** @section lp__The_Bridge
  *

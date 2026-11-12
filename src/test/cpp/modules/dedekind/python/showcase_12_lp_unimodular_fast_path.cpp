@@ -43,8 +43,8 @@ using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::optimization;
 
-// ℚ is not a structural type (its Integer keeps limbs in a std::vector), so
-// no Rational is a template argument.  The typed constant is over the word,
+// ℚ is not a structural type (its IntExpr keeps limbs in a std::vector), so
+// no RatExpr is a template argument.  The typed constant is over the word,
 // exact on this instance: the active set's determinant is ±1, so Cramer's
 // division is exact in `long`; `Rat{2}` is the long 2.
 using Rat = long;

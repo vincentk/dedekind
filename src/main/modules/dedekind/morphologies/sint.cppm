@@ -101,7 +101,7 @@ using namespace dedekind::sets;
 // value-level ℤ alias.  The reorganisation separates the @b set-level
 // ℤ (now `𝔸<IntExpr>`, kept in :integer) from the
 // @b carrier-level machinery for machine signed integers (concepts,
-// embedding, GCD --- relocated here).  Downstream consumers (Rational
+// embedding, GCD --- relocated here).  Downstream consumers (RatExpr
 // in :rational) import :sint to pick them up.
 // ---------------------------------------------------------------------------
 

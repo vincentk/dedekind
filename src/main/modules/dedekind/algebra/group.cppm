@@ -87,7 +87,7 @@ concept HasGroupOperatorsAdd =
  * multiplicative group" lives in @c IsMultiplicativeGroup, gated by
  * the species-trait registry.
  *
- * Canonical positive witness: @c Rational (closes strictly under
+ * Canonical positive witness: @c RatExpr (closes strictly under
  * @c (*, /, T{1})).  Negative witness (shape refuses): @c bool, @c
  * unsigned char, @c unsigned short --- integer promotion lifts @c *
  * and @c / to @c int.

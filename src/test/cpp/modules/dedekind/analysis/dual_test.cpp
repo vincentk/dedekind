@@ -13,7 +13,7 @@ import dedekind.algebra; // HasRingOperators, IsAlgebra (witness mirrors)
 import dedekind.analysis;
 import dedekind.category; // Boole, Ternary, var, ...
 import dedekind.geometry; // IsTangentBundle (flat-case tangent-bundle concept)
-import dedekind.numbers;  // Rational, Complex<F>, IEEE<F>
+import dedekind.numbers;  // RatExpr<>, Complex<F>, IEEE<F>
 import dedekind.sets;     // Set, 𝔸, predicate-set DSL
 
 using namespace dedekind::analysis;
@@ -22,7 +22,7 @@ using namespace dedekind::numbers;
 using namespace dedekind::sets;
 
 TEST_CASE("Analysis: Dual Numbers and Differentiation", "[analysis][dual]") {
-  using Q = Rational;
+  using Q = RatExpr<>;
   using DualValue = Dual<Q>;
 
   SECTION("Automatic Differentiation: f(x) = x²") {
@@ -84,7 +84,7 @@ TEST_CASE(
   // first-order tangent-bundle carrier over F (flat case;
   // Spec(R[ε]/(ε²)) reading).  Bundle-structure on non-flat manifolds
   // is the #185 follow-up.
-  STATIC_CHECK(dedekind::geometry::IsTangentBundle<Dual<Rational>>);
+  STATIC_CHECK(dedekind::geometry::IsTangentBundle<Dual<RatExpr<>>>);
   STATIC_CHECK(dedekind::geometry::IsTangentBundle<Dual<int>>);
 }
 

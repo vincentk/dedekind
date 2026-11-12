@@ -89,7 +89,7 @@ concept IsAffine = requires(const V a, const V b, const S s) {
 /**
  * @class Vector
  * @brief An element of a Coordinate Space over a Field F.
- * @tparam F The scalar field (Rational, Real, or Complex).
+ * @tparam F The scalar field (RatExpr, Real, or Complex).
  * @tparam N The dimension of the space.
  */
 export template <IsFloatingScalar F, std::size_t N>
