@@ -705,7 +705,7 @@ constexpr NatExpr<N> successor(const NatExpr<N>& n) {
 export template <std::size_t N>
 constexpr NatExpr<N> predecessor(const NatExpr<N>& n) {
   if (n == NatExpr<N>{}) return n;
-  return detail_expr::natural<NatExpr<N>>(Numeral(
+  return detail_expr::natural<NatSort, N>(Numeral(
       detail_numeral::subtract(value_of(n).limbs(), Numeral{1u}.limbs())));
 }
 /** @brief Lambek on ℕ: @f$[Z, S] : 1 + \mathbb{N} \to \mathbb{N}@f$ is an
