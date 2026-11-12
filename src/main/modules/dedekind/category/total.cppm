@@ -1261,12 +1261,11 @@ template <typename T, typename Op, IsCountWord N>
 constexpr T power(const T& x, N n, Op op) {
   // n's bits, from the top
   const auto bits = static_cast<std::size_t>(std::bit_width(n));
-  return std::ranges::fold_left(
-      std::views::iota(0uz, bits), unit<T>(op),
-      [x, n, op, bits](const T& acc, std::size_t i) {
-        const T sq = op(acc, acc);
-        return (n >> (bits - 1 - i)) % 2 == 1 ? op(sq, x) : sq;
-      });
+  return fold(std::views::iota(0uz, bits), unit<T>(op),
+              [x, n, op, bits](const T& acc, std::size_t i) {
+                const T sq = op(acc, acc);
+                return (n >> (bits - 1 - i)) % 2 == 1 ? op(sq, x) : sq;
+              });
 }
 }  // namespace detail_concat
 /** @brief @c concat on @c n copies of one value: its @c n-th power, by

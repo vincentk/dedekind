@@ -610,6 +610,14 @@ constexpr std::size_t bound(const R& r) {
   else
     return r.bound();
 }
+/** @brief The fold along the walk: the standard's @c fold_left, over a
+ *  bounded range (@c IsBoundedRange).
+ *  @param r the range.  @param v the start.  @param h the action. */
+export template <IsBoundedRange R, std::semiregular M, typename H>
+  requires std::invocable<const H&, M, std::ranges::range_value_t<R>>
+constexpr M fold(R r, M v, H h) {
+  return std::ranges::fold_left(std::move(r), std::move(v), h);
+}
 namespace detail_chain_bounded {
 constexpr std::size_t three = 3;
 constexpr std::array<int, 2> pair{1, 2};

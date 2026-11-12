@@ -70,8 +70,7 @@ constexpr T power(const T& x, N n, Op op) {
   // n's bits, from the top
   const auto bits =
       static_cast<size_t>(bit_width(n));
-  return ranges::fold_left(
-      views::iota(0uz, bits), unit<T>(op),
+  return fold(views::iota(0uz, bits), unit<T>(op),
       [x, n, op, bits](const T& acc, size_t i) {
         const T sq = op(acc, acc);
         return (n >> (bits - 1 - i)) % 2 == 1

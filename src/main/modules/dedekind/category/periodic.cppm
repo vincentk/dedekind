@@ -2083,7 +2083,7 @@ constexpr std::optional<N> checked_power(N b, N e) {
   if (e == 0) return N{1};
   if (b <= 1) return b;
   const auto bits = static_cast<std::size_t>(std::bit_width(e));
-  return std::ranges::fold_left(
+  return fold(
       std::views::iota(std::size_t{0}, bits), std::optional<N>{N{1}},
       [b, e, bits](std::optional<N> acc, std::size_t i) -> std::optional<N> {
         constexpr N top = std::numeric_limits<N>::max();
