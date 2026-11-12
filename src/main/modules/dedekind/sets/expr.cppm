@@ -132,6 +132,10 @@ export inline constexpr std::size_t default_capacity = 64;
 export template <IsSort S, std::size_t N>
   requires(N >= 1 && N <= std::numeric_limits<std::uint32_t>::max())
 class Expr;
+/** @brief Declared here for the comparisons against a floating atom; defined
+ *  in @ref expr__Floating_Atoms. */
+export template <std::size_t N = default_capacity>
+constexpr std::optional<Expr<RatSort, N>> from(double x);
 
 namespace detail_expr {
 /** @brief The value of a certified check, or a deterministic trap where the
@@ -219,6 +223,33 @@ class Expr {
   friend constexpr std::strong_ordering operator<=>(const Expr& x,
                                                     const Expr& y) {
     return order_of(x, y);
+  }
+  /** @return @f$n \cdot q = \iota(n)\, q@f$: ℤ acts on ℚ through its
+   *  embedding, which makes ℚ a ℤ-module (Lang, @e Algebra, §III.1).
+   *  @param n the integer.  @param q the rational. */
+  template <IsSort T>
+    requires(std::same_as<S, RatSort> && std::same_as<T, IntSort>)
+  friend constexpr Expr operator*(const Expr<T, N>& n, const Expr& q) {
+    return widened(n) * q;
+  }
+  /** @brief Order and equality against a floating atom go through ℚ: the
+   *  double is read exactly, and C++'s own conversion of the integer side to
+   *  @c double ([expr.arith.conv]), which rounds above @f$2^{53}@f$, is never
+   *  taken.  NaN is unordered and equal to nothing.  Hidden friends, found by
+   *  argument-dependent lookup only, so no other overload set sees them. */
+  template <std::floating_point F>
+    requires(std::same_as<S, RatSort> &&
+             (std::same_as<F, double> || std::same_as<F, float>))
+  friend constexpr bool operator==(const Expr& q, F x) {
+    const auto r = from<N>(static_cast<double>(x));  // a float is a double
+    return r && *r == q;
+  }
+  template <std::floating_point F>
+    requires(std::same_as<S, RatSort> &&
+             (std::same_as<F, double> || std::same_as<F, float>))
+  friend constexpr std::partial_ordering operator<=>(const Expr& q, F x) {
+    if (const auto r = from<N>(static_cast<double>(x))) return q <=> *r;
+    return std::partial_ordering::unordered;
   }
 
   /** @brief The sum, a term. */
@@ -521,10 +552,11 @@ constexpr std::strong_ordering order_of(const RatExpr<N>& x,
 /** @section expr__Canonical  The canonical forms, written back as terms */
 namespace detail_expr {
 /** @brief One step of writing a natural back: Horner, @c acc·B + l_k, the
- *  limbs from the top, @c B = 2^64 the node at index 1.  @tparam E the term
- *  type written into. */
-template <typename E>
+ *  limbs from the top, @c B = 2^64 the node at index 1.  @tparam S @tparam N
+ *  the sort and the capacity of the term written into. */
+template <IsSort S, std::size_t N>
 struct HornerStep {
+  using E = Expr<S, N>;
   std::vector<Numeral::limb> limbs;  // little-endian
   constexpr E operator()(const E& acc, std::size_t i) const {
     const E shifted = acc.appended(nodes::Mul{acc.root(), 1});
@@ -535,8 +567,9 @@ struct HornerStep {
 /** @return the canonical term of the natural @c n, in the sort of @c E: one
  *  atom where it fits a word, else Horner over @f$B = 2^{32} \cdot 2^{32}@f$
  *  with @c B shared.  @param n the natural. */
-template <typename E>
-constexpr E natural(const Numeral& n) {
+template <IsSort S, std::size_t N>
+constexpr Expr<S, N> natural(const Numeral& n) {
+  using E = Expr<S, N>;
   if (n.limb_count() == 1) return E::atom(n.low());
   const std::vector<Numeral::limb> limbs = n.limbs();
   const E base = E::atom(std::uint64_t{1} << 32)
@@ -544,7 +577,7 @@ constexpr E natural(const Numeral& n) {
                      .appended(nodes::Atom{limbs.back()});
   return dedekind::category::fold(
       std::views::iota(std::size_t{0}, limbs.size() - 1), base,
-      HornerStep<E>{limbs});
+      HornerStep<S, N>{limbs});
 }
 /** @return the magnitude and the sign of the pair's integer.  @param x the
  *  pair. */
@@ -559,9 +592,9 @@ constexpr Signed signed_of(const Pair& x) {
 }
 /** @return the canonical term of a signed integer: the natural, or its
  *  negation (never of zero).  @param z the integer. */
-template <typename E>
-constexpr E integer(const Signed& z) {
-  const E m = natural<E>(z.magnitude);
+template <IsSort S, std::size_t N>
+constexpr Expr<S, N> integer(const Signed& z) {
+  const Expr<S, N> m = natural<S, N>(z.magnitude);
   if (!z.negative || z.magnitude == Numeral{}) return m;
   return m.appended(nodes::Neg{m.root()});
 }
@@ -573,14 +606,14 @@ constexpr E integer(const Signed& z) {
  *  equal iff their canonical forms are.  @param e the term. */
 export template <std::size_t N>
 constexpr NatExpr<N> canonical(const NatExpr<N>& e) {
-  return detail_expr::natural<NatExpr<N>>(value_of(e));
+  return detail_expr::natural<NatSort, N>(value_of(e));
 }
 /** @brief ℤ's canonical form: ℕ's, or the negation of ℕ's, the
  *  @f$(n, 0)@f$ or @f$(0, n)@f$ representative of the Grothendieck class,
  *  zero never negated.  @param e the term. */
 export template <std::size_t N>
 constexpr IntExpr<N> canonical(const IntExpr<N>& e) {
-  return detail_expr::integer<IntExpr<N>>(detail_expr::signed_of(value_of(e)));
+  return detail_expr::integer<IntSort, N>(detail_expr::signed_of(value_of(e)));
 }
 /** @brief ℚ's canonical form: ℤ's where the denominator is 1; otherwise the
  *  reduced fraction, @f$\gcd(|p|, q) = 1@f$ and @f$q > 1@f$, the sign in the
@@ -597,19 +630,18 @@ constexpr RatExpr<N> canonical(const RatExpr<N>& e) {
   const Numeral p = detail_numeral::divide(num.magnitude, g).q;
   const Numeral q = detail_numeral::divide(den.magnitude, g).q;
   const RatExpr<N> top =
-      integer<RatExpr<N>>(Signed{p, num.negative != den.negative});
+      integer<RatSort, N>(Signed{p, num.negative != den.negative});
   if (q == Numeral{1u}) return top;
-  return top / certified(dedekind::category::nonzero(natural<RatExpr<N>>(q)));
+  return top / certified(dedekind::category::nonzero(natural<RatSort, N>(q)));
 }
 
-/** @return @f$2^k@f$ as a canonical term of the sort of @c E, written
- *  directly in Horner form: the dyadic scale of a double.  @param k the
- *  exponent. */
-export template <typename E>
-constexpr E power_of_two(std::size_t k) {
+/** @return @f$2^k@f$ as a canonical term of the sort @c S, written directly
+ *  in Horner form: the dyadic scale of a double.  @param k the exponent. */
+export template <IsSort S, std::size_t N = default_capacity>
+constexpr Expr<S, N> power_of_two(std::size_t k) {
   std::vector<Numeral::limb> limbs(k / 64 + 1, Numeral::limb{});
   limbs.back() = Numeral::limb{1} << (k % 64);
-  return detail_expr::natural<E>(Numeral{std::move(limbs)});
+  return detail_expr::natural<S, N>(Numeral{std::move(limbs)});
 }
 
 /** @section expr__Floating_Atoms  A double enters ℚ exactly
@@ -621,7 +653,7 @@ constexpr E power_of_two(std::size_t k) {
  *  read here, its format being the platform's. */
 /** @return the term of ℚ the double is, or nothing for NaN and ±∞.
  *  @param x the double. */
-export template <std::size_t N = default_capacity>
+export template <std::size_t N>
 constexpr std::optional<RatExpr<N>> from(double x) {
   const auto bits = std::bit_cast<std::uint64_t>(x);
   const bool sign = (bits >> 63) & 1U;
@@ -636,30 +668,14 @@ constexpr std::optional<RatExpr<N>> from(double x) {
   const RatExpr<N> m =
       sign ? -RatExpr<N>::atom(mantissa) : RatExpr<N>::atom(mantissa);
   if (exp >= 0)
-    return m * power_of_two<RatExpr<N>>(static_cast<std::size_t>(exp));
+    return m * power_of_two<RatSort, N>(static_cast<std::size_t>(exp));
   return m / detail_expr::certified(dedekind::category::nonzero(
-                 power_of_two<RatExpr<N>>(static_cast<std::size_t>(-exp))));
+                 power_of_two<RatSort, N>(static_cast<std::size_t>(-exp))));
 }
 /** @overload */
 export template <std::size_t N = default_capacity>
 constexpr std::optional<RatExpr<N>> from(float x) {
   return from<N>(static_cast<double>(x));
-}
-/** @brief Order and equality against a floating atom go through ℚ: the
- *  double is read exactly, and C++'s own conversion of the integer side to
- *  @c double ([expr.arith.conv]), which rounds above @f$2^{53}@f$, is never
- *  taken.  NaN is unordered and equal to nothing. */
-export template <std::size_t N, std::floating_point F>
-  requires(std::same_as<F, double> || std::same_as<F, float>)
-constexpr bool operator==(const RatExpr<N>& q, F x) {
-  const auto r = from<N>(x);
-  return r && *r == q;
-}
-export template <std::size_t N, std::floating_point F>
-  requires(std::same_as<F, double> || std::same_as<F, float>)
-constexpr std::partial_ordering operator<=>(const RatExpr<N>& q, F x) {
-  if (const auto r = from<N>(x)) return q <=> *r;
-  return std::partial_ordering::unordered;
 }
 
 /** @brief A machine value is already canonical in its own algebra (a word in

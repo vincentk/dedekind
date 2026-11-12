@@ -282,6 +282,12 @@ template <>
 struct is_homomorphism<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>,
                        Z_, std::multiplies<Z_>, std::multiplies<Q_>>
     : std::true_type {};
+/** @brief ℚ is a ℤ-module, @f$n (p/q) = (np)/q@f$: the action is the ring
+ *  homomorphism ℤ ↪ ℚ followed by ℚ's product, whose laws it inherits. */
+template <>
+struct is_linear_action<Q_, Z_, std::plus<Q_>, std::plus<Z_>,
+                        std::multiplies<Z_>, std::multiplies<>>
+    : std::true_type {};
 /** @brief The finite doubles embed injectively: distinct doubles are distinct
  *  dyadic rationals (−0.0 and +0.0 are one element of 𝕃). */
 template <>
