@@ -4,8 +4,9 @@
 specialization (`ℕ → ℤ`); migration filed as follow-up.
 
 **Status (2026-11)**: historical.  The carriers in the sketch below,
-`Cardinality` and `SignedCardinality`, are deleted (#1186, #1035); ℕ is
-`Numeral` and ℤ is `Integer`, and `lift_ℕ_ℤ_` is gone with them.
+`Cardinality` and `SignedCardinality`, are deleted (#1186, #1035); ℕ, ℤ
+and ℚ are the term algebras `NatExpr`, `IntExpr`, `RatExpr` (`sets:expr`),
+the embeddings their `widened`, and `lift_ℕ_ℤ_` is gone with them.
 
 **Decision**: **alias-only unification**, not categorical unification.
 The unified surface is a discoverability trait, not a structural claim

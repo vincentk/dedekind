@@ -120,6 +120,21 @@ struct is_exact_total : std::false_type {};
 export template <typename T, typename Op>
 inline constexpr bool is_exact_total_v = is_exact_total<T, Op>::value;
 
+/** @section total__Machine_Carriers  Which algebra each machine type is
+ *  The laws of ℕ, ℤ and ℚ are certified on their term algebras
+ *  (@c sets::NatExpr, @c IntExpr, @c RatExpr), not on machine types.  A
+ *  machine type is the algebra its operations are:
+ *  - an unsigned word of @c w bits is the ring @f$\mathbb{Z}/2^w@f$, its
+ *    operations periodic (below): @c std::size_t is @f$\mathbb{Z}/2^{64}@f$,
+ *    not ℕ, and @c 0 − 1 is its largest value;
+ *  - a signed word is the machine's ℤ with undefined behaviour on overflow:
+ *    an operator surface (@c Has*Operators), no law;
+ *  - @c double and @c float are IEEE 754's arithmetic and carry no law:
+ *    @c + is not associative, and @c == is no equivalence (NaN).
+ *  @c sets::canonical is the identity on each, so generic code calls it
+ *  uniformly; the embeddings into the term algebras are the declared arrows
+ *  (@c embed_uint_ℕ_, @c embed_sint_ℤ_, @c sets::from for a double).
+ */
 /**
  * Unsigned integers are natively periodic under
  * addition/subtraction/multiplication; multiplication where it is defined on
