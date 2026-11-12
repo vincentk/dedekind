@@ -286,12 +286,70 @@ static_assert(is_constant(ans) && is_monotone(ans) && is_antitone(aye) &&
               is_constant(~nil) && (-one)(true) == (~nil)(true) &&
               is_involution(-id_u) && is_constant(-nil) &&
               is_iso(-id_u >> ~id_u) && !is_involution(-id_u >> ~id_u));
+// Arrows compared by their normal forms, the definitions Listing 3 omits.  A
+// term over arrows reduces, by recursion over its type, under three laws:
+// unit (an identity leg drops), associativity (a composite is the path of its
+// atoms) and involution (two adjacent copies of a certified involution
+// cancel).  Unit and associativity alone give the free category's paths;
+// f f -> id is confluent, so the normal form is unique.  Equal normal forms
+// are equal arrows; different ones are undecided, never unequal (Rice), so
+// == answers True or Unknown and converts to bool only when True.
+namespace arrow_normal_form {
+using dedekind::category::Compose;
+using dedekind::category::IsArrow;
+using dedekind::category::IsIdentityArrow;
+using dedekind::category::IsInvolution;
+using dedekind::category::Ternary;
+// The path, last atom first.
+template <typename... A>
+struct Path {};
+template <typename P, typename A>
+struct push {
+  using type = P;
+};
+template <typename... Xs, typename A>
+  requires(!IsIdentityArrow<A>)
+struct push<Path<Xs...>, A> {
+  using type = Path<A, Xs...>;
+};
+template <typename X, typename... Xs>
+  requires IsInvolution<X>
+struct push<Path<X, Xs...>, X> {
+  using type = Path<Xs...>;
+};
+template <typename P, typename T>
+struct reduce : push<P, T> {};
+template <typename P, typename F, typename G>
+struct reduce<P, Compose<F, G>> : reduce<typename reduce<P, F>::type, G> {};
+template <typename T>
+using normal_form_t = typename reduce<Path<>, T>::type;
+template <typename T>
+inline constexpr bool is_compose_v = false;
+template <typename F, typename G>
+inline constexpr bool is_compose_v<Compose<F, G>> = true;
+struct ByTheLaws {
+  Ternary verdict;
+  explicit constexpr operator bool() const { return verdict == Ternary::True; }
+};
+}  // namespace arrow_normal_form
+template <dedekind::category::IsArrow F, dedekind::category::IsArrow G>
+  requires(arrow_normal_form::is_compose_v<F> ||
+           arrow_normal_form::is_compose_v<G>)
+constexpr arrow_normal_form::ByTheLaws operator==(const F&, const G&) {
+  using arrow_normal_form::normal_form_t;
+  using dedekind::category::Ternary;
+  return {std::same_as<normal_form_t<F>, normal_form_t<G>> ? Ternary::True
+                                                           : Ternary::Unknown};
+}
+
 // Listing 3, left: a fold over a type.  The term's shape is its type, a
 // composite of composites, depth 3; it is folded once to a value and once
 // to a law, the law inferred from its legs'.
 constexpr auto dec = -id_u >> ~id_u;  // x - 1
 constexpr auto dec2 = dec >> dec;     // x - 2
 static_assert(dec2(42uz) == 40 && is_iso(dec2));
+static_assert(id_u == ~id_u >> ~id_u);
+static_assert(!static_cast<bool>(id_u == dec));  // undecided, not unequal
 // Products and coproducts:
 constexpr auto fst = Π<1, std::pair<bool, size_t>>{};
 constexpr auto sec = Pairing{id_b, nil};  // ⟨1, 0⟩
@@ -603,36 +661,6 @@ static_assert(closed_term());
 static_assert(IsMagma<std::string> && !IsMagma<int>);
 }  // namespace reading
 
-// Appendix B's listing: recursion over a type with laws in the algebra, the
-// library's lattice reducer.  The leaves and the injected order are the
-// definitions the listing omits: opaque atoms, a value-wrapping literal, and an
-// order that decides nothing, so only the laws decide.
-namespace reducer {
-using dedekind::category::Join;
-using dedekind::category::Kleene;
-using dedekind::category::Meet;
-using dedekind::category::reduce_t;
-struct A {};
-struct B {};
-template <auto V>
-struct Lit {
-  static constexpr auto value = V;
-};
-struct Less {
-  using logic = Kleene;
-  template <typename, typename>
-  static consteval Ternary less() {
-    return Ternary::Unknown;
-  }
-};
-
-// meet(a, join(a, b)): the type is the tree
-using T = Meet<A, Join<A, B>>;
-static_assert(std::same_as<reduce_t<T, Less>, A>);  // absorption
-// meet(3, join(3, a)): a is not certified in 3's lattice
-using U = Meet<Lit<3>, Join<Lit<3>, A>>;
-static_assert(std::same_as<reduce_t<U, Less>, U>);  // kept whole
-}  // namespace reducer
 }  // namespace jlt_listing
 
 TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
