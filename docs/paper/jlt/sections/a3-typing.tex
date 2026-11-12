@@ -84,6 +84,27 @@ That refines GHC's rule for overlapping instances~\cite{ghc2024overlapping}, whi
 \Cpp{} does not hold it.
 A call it would refuse is a body that varies with a type through a constraint it did not declare, a breach of Rule~2, which the repository's linter reports where it can see one (Section~\ref{sec:limits}).
 
+\paragraph{Operators.}
+An operator expression $\ominus e$ or $e_1 \oplus e_2$ is resolved as \Cpp{} resolves it~\cite[{\texttt{over.match.oper}}]{cpp23standard}, the built-in operator a candidate beside the declared functions \texttt{operator}$\oplus$, and the only one when no operand is of class or enumeration type.
+Where the choice is a primitive of $\Sigma$, the expression is typed by the primitive's signature, the rule for the arithmetic of base types; otherwise it is the call \texttt{operator}$\oplus$\texttt{(}$e_1$\texttt{, }$e_2$\texttt{)}, typed by \textsc{T-Call} or \textsc{T-Trait}.
+Where the operands are of different base types, the primitive acts after the conversions the standard specifies for that operator: the usual arithmetic conversions for arithmetic and comparison\cite[{\texttt{expr.arith.conv}}]{cpp23standard}, and for a shift the promotion of each operand on its own, the result of the left operand's type\cite[{\texttt{expr.shift}}]{cpp23standard}.
+Each such conversion is the grammar's $\tau(e)$, placed by the compiler, as Listing~\ref{lst:rule1}'s \cppinline{id_u(42uz) == 42}, a \cppinline{size_t} against an \cppinline{int}.
+A declared \texttt{operator}$\oplus$ needs no common type, since its signature is its own: in Listing~\ref{lst:rule3}'s \cppinline{v * a}, a matrix acting on a vector, the operands' types differ and nothing converts.
+The candidate selected may be a rewritten or a reversed one\cite[{\texttt{over.match.oper}}]{cpp23standard}: then the expression is the call under the standard's rewrite, \cppinline{a != b} as \cppinline{!(a == b)}, a reversed candidate with its arguments swapped, \cppinline{a < b} as \cppinline{(a <=> b) < 0}, and typing, translation and evaluation read the rewritten call.
+
+\paragraph{Inferred laws.}
+\label{app:fjlt:inferred}
+A law at a construction is entailed, not declared.
+The law is a trait call, resolution picks the instance whose context the program entails, and \textsc{E-Law} evaluates its certificate, which must be \texttt{true}.
+Composed, these give a derived rule, the instance rule of the entailment of qualified types~\cite{jones1994qualified}:
+\[
+\textsc{(E-Law-Ctx)}\quad \dfrac{\begin{array}{c} \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \text{ resolves to } \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \mathit{law}\texttt{<}\overline{\tau'}\texttt{>} \\ \overline{\tau} = \overline{\tau'}[\overline{\sigma}/\overline{\alpha}] \qquad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \qquad \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \Downarrow \texttt{true} \end{array}}{\Delta \Vdash \mathit{law}\texttt{<}\overline{\tau}\texttt{>}}
+\]
+A finite power of a semiring is a semimodule over it in this way.
+The library declares the power a product of its base, and one instance, whose context is the base's semiring laws, gives the power's semimodule law, as semimodules over a semiring form a variety, closed under products.
+Each step reads the laws of a term's immediate parts only, so the inference is local~\cite{pierce2000local}.
+It ends by the conditions on contexts that end instance search~\cite{sulzmann2007understanding}.
+
 \paragraph{Conversions between carriers.}
 \textsc{T-Conv} types the conversion $\tau\texttt{(}e\texttt{)}$ between carriers that \Cpp{} inserts implicitly and the kernel term writes.
 It is total by the condition on conversions of Appendix~\ref{app:fjlt:closure}.
@@ -126,21 +147,13 @@ Once instantiated, the candidates denote one operation, by Lemma~\ref{lem:resolv
 A premise $f : \sigma \times \tau \to \sigma$ in \textsc{T-Fold} and \textsc{T-Case} says that $f$ is a function name or a function object.
 Its application to arguments of those types is typed at $\sigma$ by \textsc{T-Call}, \textsc{T-Trait}, \textsc{T-Op}, \textsc{T-App} or, at a type variable, \textsc{T-Req-Assumed}.
 
-\paragraph{Operators.}
-An operator expression $\ominus e$ or $e_1 \oplus e_2$ is resolved as \Cpp{} resolves it~\cite[{\texttt{over.match.oper}}]{cpp23standard}, the built-in operator a candidate beside the declared functions \texttt{operator}$\oplus$, and the only one when no operand is of class or enumeration type.
-Where the choice is a primitive of $\Sigma$, the expression is typed by the primitive's signature, the rule for the arithmetic of base types; otherwise it is the call \texttt{operator}$\oplus$\texttt{(}$e_1$\texttt{, }$e_2$\texttt{)}, typed by \textsc{T-Call} or \textsc{T-Trait}.
-Where the operands are of different base types, the primitive acts after the conversions the standard specifies for that operator: the usual arithmetic conversions for arithmetic and comparison\cite[{\texttt{expr.arith.conv}}]{cpp23standard}, and for a shift the promotion of each operand on its own, the result of the left operand's type\cite[{\texttt{expr.shift}}]{cpp23standard}.
-Each such conversion is the grammar's $\tau(e)$, placed by the compiler, as Listing~\ref{lst:rule1}'s \cppinline{id_u(42uz) == 42}, a \cppinline{size_t} against an \cppinline{int}.
-A declared \texttt{operator}$\oplus$ needs no common type, since its signature is its own: in Listing~\ref{lst:rule3}'s \cppinline{v * a}, a matrix acting on a vector, the operands' types differ and nothing converts.
-The candidate selected may be a rewritten or a reversed one\cite[{\texttt{over.match.oper}}]{cpp23standard}: then the expression is the call under the standard's rewrite, \cppinline{a != b} as \cppinline{!(a == b)}, a reversed candidate with its arguments swapped, \cppinline{a < b} as \cppinline{(a <=> b) < 0}, and typing, translation and evaluation read the rewritten call.
-
 \paragraph{Deduced types and constants.}
 Where a declaration's result type $\rho$ is \cppinline{auto}, its $\tau$ is the type of the body in the premise, and \textsc{T-Call}, \textsc{T-Trait} and \textsc{T-App}'s $\tau_r$ read that type.
 This is \Cpp{}'s return type deduction~\cite[{\texttt{dcl.spec.auto}}]{cpp23standard} and local type inference~\cite{pierce2000local}: the type is synthesised from the body, and nothing flows into it from a use.
 \Cpp{} refuses a use of the function before a return statement has deduced its type, and an FJlt body is a single return, so no body is typed through its own deduced type.
 A trait and its instances write \cppinline{auto} together or not at all, as the standard requires of a specialisation~\cite[{\texttt{dcl.spec.auto}}]{cpp23standard}.
 A call's type arguments are deduced as well: \textsc{T-App}'s $\overline{\sigma}$, and a call $f\texttt{(}\overline{e}\texttt{)}$ is $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)}$ at the $\overline{\sigma}$ the compiler deduces, so the rules check them and do not compute them.
-A constant is typed under the empty contexts, and \textsc{T-Const} types its name at that type in every later declaration and in the program's term, unless a parameter or field of the same name is in $\Gamma$, which shadows it, as in \Cpp{}.
+A constant is typed under the empty contexts, by \textsc{D-Const}, and \textsc{T-Const} types its name at that type in every later declaration and in the program's term, unless a parameter or field of the same name is in $\Gamma$, which shadows it, as in \Cpp{}.
 Its initialiser is a constant expression whose value keeps no allocation alive past the evaluation, as \cppinline{constexpr} requires of a variable and the compiler holds\cite[{\texttt{expr.const}}]{cpp23standard}.
 
 \begin{figure}[htbp]
@@ -203,15 +216,3 @@ A term type is required strictly positive: in the translated field types of its 
 A body calls only declarations it depends on, a generic function itself among them at smaller type arguments, which is the kernel's recursion over a type and which the order makes finite.
 No function calls itself at the same instantiation: a recursion on a value is a fold over a range.
 
-\paragraph{Inferred laws.}
-\label{app:fjlt:inferred}
-A law at a construction is entailed, not declared.
-The law is a trait call, resolution picks the instance whose context the program entails, and \textsc{E-Law} evaluates its certificate, which must be \texttt{true}.
-Composed, these give a derived rule, the instance rule of the entailment of qualified types~\cite{jones1994qualified}:
-\[
-\textsc{(E-Law-Ctx)}\quad \dfrac{\begin{array}{c} \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \text{ resolves to } \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \mathit{law}\texttt{<}\overline{\tau'}\texttt{>} \\ \overline{\tau} = \overline{\tau'}[\overline{\sigma}/\overline{\alpha}] \qquad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \qquad \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \Downarrow \texttt{true} \end{array}}{\Delta \Vdash \mathit{law}\texttt{<}\overline{\tau}\texttt{>}}
-\]
-A finite power of a semiring is a semimodule over it in this way.
-The library declares the power a product of its base, and one instance, whose context is the base's semiring laws, gives the power's semimodule law, as semimodules over a semiring form a variety, closed under products.
-Each step reads the laws of a term's immediate parts only, so the inference is local~\cite{pierce2000local}.
-It ends by the conditions on contexts that end instance search~\cite{sulzmann2007understanding}.
