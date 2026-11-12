@@ -85,7 +85,8 @@ At a type variable no candidate of an operator is known, so an operator on a con
 Its result type is the one the requirement states; the linter holds the spelling and a reader the result type.
 An alias is the type it names, substituted, and \cppinline{decltype(e)} the type the compiler deduces for \cppinline{e}.
 A \cppinline{tuple} is nested pairs, a \cppinline{friend} function a free function, and an access specifier nothing.
-The library's generic \cppinline{cata} over a term type is library: a generic function at the term's node types, each instance calling it at its legs' types, the kernel's recursion over a type, which \textsc{T-Cata} types (Appendix~\ref{app:fjlt:typing}).
+A generic function that calls itself at its legs' types, as the library's \cppinline{cata} over a term type does, is sugar for the kernel's fold over the term's type, \textsc{T-Cata}'s term, its instances at the node types read as one algebra (Appendix~\ref{app:fjlt:typing}).
+A count in a non-type parameter that falls at each call, as in the library's \cppinline{iterate}, is the same fold over the type-level numeral.
 A static member function is a generic function.
 A struct with fields and no call operator is a product, nested pairs.
 \cppinline{std::array<T, n>} is both a product of $n$ copies and a member of $\mathcal{R}$ with length $n$, so a fold over it is already in the grammar.

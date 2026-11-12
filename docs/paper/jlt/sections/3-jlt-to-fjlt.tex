@@ -11,7 +11,7 @@ FJlt is the subset of \Cpp{23} spelled out in Figure~\ref{fig:fjlt-syntax}: smal
 Its base types and their \cppinline{constexpr} operators form a many-sorted algebra over a signature $\Sigma$~\cite{birkhoff1970heterogeneous,sannella2012foundations}.
 A base type is a \emph{carrier set}, and a total operator between carrier sets a \emph{function}, which may leave its carrier set, as \cppinline{==} on \cppinline{std::string} gives a \cppinline{bool}.
 FJlt has two forms of recursion, both primitive recursion.
-Over a type it is instantiation: a generic function at a term's type calls itself at its children's types, and ends with the type's height.
+Over a type it is instantiation, a generic function at a term's type calling itself at its children's types, which the kernel states once, as the fold over the term's type, and which ends with the type's height (Appendix~\ref{app:fjlt:typing}).
 Over a value it is a fold over a range whose rank is bounded before the first step, a range of $\mathcal{R}$ (Appendix~\ref{app:fjlt:translation}).
 The library reifies them by default as \cppinline{cata} over a term type and as the standard's \cppinline{ranges::fold_left}, bounds-checked before it starts; everything above them is library.
 In the terms of Meijer et al.~\cite{meijer1991functional}, \cppinline{fold_left} over the chain is a hylomorphism: the chain is never built as a list, only folded (Appendix~\ref{app:fjlt:translation}).

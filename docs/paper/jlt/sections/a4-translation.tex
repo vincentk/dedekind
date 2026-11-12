@@ -79,7 +79,7 @@ Every definition is placed the same way: the program's image is its definitions 
 A trait has no image of its own; its specialisations are closed terms $f_{\overline{\tau}}$, and a generic function that serves as an instance with a context is the function from records to a record that \textsc{E-Shape} builds its dictionary with.
 Where \cppinline{size_t} is read as $\mathbb{N}$, by a coercion constant from the carrier to the inductive naturals, $\llbracket n \rrbracket$ is the natural number that is $n$'s value; the translation of a term with a run-time \cppinline{n} is the term with $n$ as a free variable of type $\mathbb{N}$, and Theorem~\ref{thm:simulation} is stated for closed terms.
 The call function of a constrained operation abstracts over its dictionaries as a generic function does, and an application supplies them.
-A body calls only declarations it depends on, a generic function itself only at smaller type arguments, which is another definition, so the defined names are acyclic, and a term type is strictly positive, which the iterator and the normalisation results need.
+A body calls only declarations it depends on and never itself, a self-call at smaller type arguments being sugar for the fold over a term type (Appendix~\ref{app:fjlt:closure}), so the defined names are acyclic, and a term type is strictly positive, which the iterator and the normalisation results need.
 
 So the translation needs no recursive binding, and the only recursion in a program is that of the two primitives: the fold over a range, and the recursion over a term type, whose image is the term's iterator (below).
 

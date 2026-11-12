@@ -203,7 +203,7 @@ A constant depends on the declarations its initialiser names.
 An operation also depends on the operations in its field, parameter and result types, each at the types it names.
 The relation is on instantiations, not on bare declarations, since a structured instance may ask for the shape that asks for it, at a smaller type.
 \cppinline{IsMonoid} at a pair calls \cppinline{unit} there, whose instance asks \cppinline{IsMonoid} at the components (Section~\ref{sec:translation:contexts}).
-The measure that falls is the pair of the depth of the type arguments, a count's value among them as Appendix~\ref{app:fjlt:closure} reads a non-type parameter, and the declaration's position.
+The measure that falls is the pair of the depth of the type arguments and the declaration's position.
 Resolution, entailment, \textsc{E-Not}'s negative premise and \textsc{E-Law}'s evaluation all recurse along that relation.
 Its being well founded makes the rules define one relation, and makes resolution terminate.
 \Cpp{} has a rule of its own for a satisfaction that depends on itself, which the condition makes unnecessary.
@@ -213,6 +213,6 @@ An instance whose head has no proper part at a slot, a type variable or a concre
 A shape calling the trait is then never asked for while the trait is resolved.
 A trait's specialisations may follow the shapes that call it, as Listing~\ref{lst:rule2}'s do, since a specialisation depends on the shape only through its body or its context.
 A term type is required strictly positive: in the translated field types of its nodes, the type occurs only directly, never under the domain of a function type.
-A body calls only declarations it depends on, a generic function itself among them at smaller type arguments, which is the kernel's recursion over a type and which the order makes finite.
+A body calls only declarations it depends on, never itself: the kernel's recursion over a type is \textsc{T-Cata}, and a generic function that calls itself at its legs' types is sugar for it (Appendix~\ref{app:fjlt:closure}).
 No function calls itself at the same instantiation: a recursion on a value is a fold over a range.
 
