@@ -22,13 +22,6 @@ template <typename S>
 using DenseVector = std::vector<S>;
 
 template <typename S>
-concept RationalLike = requires(S x) {
-  typename S::Domain;
-  { x.num() } -> std::same_as<typename S::Domain>;
-  { x.den() } -> std::same_as<typename S::Domain>;
-};
-
-template <typename S>
 constexpr auto lift_real(double x) {
   if constexpr (std::floating_point<S>) {
     return static_cast<S>(x);
@@ -49,20 +42,12 @@ constexpr auto lift_real(double x) {
 
 template <typename S>
 constexpr auto scalar_zero() {
-  if constexpr (RationalLike<S>) {
-    return S{typename S::Domain{0}, typename S::Domain{1}};
-  } else {
-    return lift_real<S>(0.0);
-  }
+  return lift_real<S>(0.0);
 }
 
 template <typename S>
 constexpr auto scalar_one() {
-  if constexpr (RationalLike<S>) {
-    return S{typename S::Domain{1}, typename S::Domain{1}};
-  } else {
-    return lift_real<S>(1.0);
-  }
+  return lift_real<S>(1.0);
 }
 
 template <typename S>
@@ -73,8 +58,6 @@ double project_real(const S& x) {
     return static_cast<double>(x);
   } else if constexpr (requires { x.real(); }) {
     return static_cast<double>(x.real());
-  } else if constexpr (RationalLike<S>) {
-    return static_cast<double>(x.num()) / static_cast<double>(x.den());
   } else {
     return static_cast<double>(x);
   }
@@ -93,11 +76,7 @@ constexpr auto spectral_entry(std::size_t i, std::size_t j) {
   const std::size_t ij = i + j;
   const std::size_t denom = ((ij * (ij + 1u)) / 2u) + i + 1u;
 
-  if constexpr (RationalLike<S>) {
-    return S{typename S::Domain{1}, static_cast<typename S::Domain>(denom)};
-  } else {
-    return lift_real<S>(1.0 / static_cast<double>(denom));
-  }
+  return lift_real<S>(1.0 / static_cast<double>(denom));
 }
 
 template <typename S>
