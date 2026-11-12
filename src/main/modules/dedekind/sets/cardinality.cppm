@@ -134,6 +134,15 @@ static_assert(IsCardinality<ℶ_1> && !IsCountable<ℶ_1> &&
 // The finite cardinals as numerals: ℕ, not a word
 // ---------------------------------------------------------------------------
 
+struct Numeral;
+namespace detail_numeral {
+// The operations of the limbs, behind Numeral's hidden friends, so that no
+// overload set outside the module meets them (sets:terms exports its own).
+constexpr Numeral plus(const Numeral& x, const Numeral& y);
+constexpr Numeral times(const Numeral& x, const Numeral& y);
+constexpr std::strong_ordering order(const Numeral& x, const Numeral& y);
+}  // namespace detail_numeral
+
 /** @section cardinality__Numeral  A natural's limbs, internal to ℕ's form
  *  ℕ is its terms (@c :expr's @c NatExpr): @c size_t atoms and @c + and @c *
  *  as nodes, nothing evaluated, so no term overflows.  A @c Numeral is the
@@ -175,6 +184,17 @@ struct Numeral {
         high_.end());
   }
   constexpr bool operator==(const Numeral&) const = default;
+  /** @brief The sum, the product and the order, exact (below). */
+  friend constexpr Numeral operator+(const Numeral& x, const Numeral& y) {
+    return detail_numeral::plus(x, y);
+  }
+  friend constexpr Numeral operator*(const Numeral& x, const Numeral& y) {
+    return detail_numeral::times(x, y);
+  }
+  friend constexpr std::strong_ordering operator<=>(const Numeral& x,
+                                                    const Numeral& y) {
+    return detail_numeral::order(x, y);
+  }
   /** @return the first limb: the numeral modulo @f$2^{64}@f$. */
   constexpr limb low() const { return low_; }
   /** @return the number of limbs, the inline one counted: no allocation. */
@@ -296,7 +316,7 @@ struct AddRow {
 }  // namespace detail_numeral
 
 /** @brief The sum, exact; on one limb each, the word's sum where it fits. */
-constexpr Numeral operator+(const Numeral& x, const Numeral& y) {
+constexpr Numeral detail_numeral::plus(const Numeral& x, const Numeral& y) {
   if (detail_numeral::words(x, y)) {
     const detail_numeral::wide w = detail_numeral::wide{x.low()} + y.low();
     if ((w >> 64) == 0) return Numeral{static_cast<Numeral::limb>(w)};
@@ -305,7 +325,7 @@ constexpr Numeral operator+(const Numeral& x, const Numeral& y) {
 }
 /** @brief The product, exact: schoolbook, a row per limb of @c y; on one
  *  limb each, the word's product where it fits. */
-constexpr Numeral operator*(const Numeral& x, const Numeral& y) {
+constexpr Numeral detail_numeral::times(const Numeral& x, const Numeral& y) {
   if (detail_numeral::words(x, y)) {
     const detail_numeral::wide w = detail_numeral::wide{x.low()} * y.low();
     if ((w >> 64) == 0) return Numeral{static_cast<Numeral::limb>(w)};
@@ -317,7 +337,8 @@ constexpr Numeral operator*(const Numeral& x, const Numeral& y) {
       detail_numeral::AddRow{a, b}));
 }
 /** @brief The order of ℕ: more limbs is larger, else the top limb decides. */
-constexpr std::strong_ordering operator<=>(const Numeral& x, const Numeral& y) {
+constexpr std::strong_ordering detail_numeral::order(const Numeral& x,
+                                                     const Numeral& y) {
   if (x.limb_count() != y.limb_count())
     return x.limb_count() <=> y.limb_count();
   if (detail_numeral::words(x, y)) return x.low() <=> y.low();
@@ -325,14 +346,6 @@ constexpr std::strong_ordering operator<=>(const Numeral& x, const Numeral& y) {
   const std::vector<Numeral::limb> b = y.limbs();
   return std::lexicographical_compare_three_way(a.rbegin(), a.rend(),
                                                 b.rbegin(), b.rend());
-}
-/** @brief The NNO's step on ℕ: @c n @c + @c 1, past the word's edge. */
-constexpr Numeral successor(const Numeral& n) { return n + Numeral{1u}; }
-/** @brief The step down: @c n @c - @c 1, and @c 0 at @c 0, the monus, so the
- *  step is total; @c Prior (@c :nno) stops at @c 0 before asking. */
-constexpr Numeral predecessor(const Numeral& n) {
-  if (n == Numeral{}) return n;
-  return Numeral(detail_numeral::subtract(n.limbs(), {Numeral::limb{1}}));
 }
 namespace detail_numeral {
 /** @brief The state of a division by shift and subtract: the quotient's bits
@@ -736,11 +749,6 @@ static_assert(Numeral{top} + Numeral{1u} ==
 static_assert(Numeral{top} * Numeral{top} ==
                   Numeral(std::vector<std::uint64_t>{1, top - 1}),
               "(2^64 - 1)^2 = 2^128 - 2^65 + 1: the limbs 1 and 2^64 - 2");
-static_assert(successor(Numeral{top}) == Numeral{top} + Numeral{1u} &&
-                  predecessor(successor(Numeral{top})) == Numeral{top} &&
-                  predecessor(Numeral{}) == Numeral{},
-              "the step crosses the word's edge both ways; 0 is the monus' "
-              "fixed point");
 static_assert(Numeral{3u} < Numeral{top} &&
                   Numeral{top} < Numeral{top} + Numeral{1u} &&
                   Numeral(std::vector<std::uint64_t>{5, 0}) == Numeral{5u},
