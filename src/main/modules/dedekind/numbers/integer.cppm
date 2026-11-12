@@ -33,7 +33,7 @@ using namespace dedekind::sets;
 
 /** @section integer__ℤ
  *  @c ℤ is the universe @c 𝔸<IntExpr>: Grothendieck's completion of ℕ, exact
- *  above the word as @c ℕ @c = @c 𝔸<Numeral> is, a ring under @c +, @c *
+ *  above the word as @c ℕ @c = @c 𝔸<NatExpr> is, a ring under @c +, @c *
  *  and unary @c -, ordered compatibly with @c + (@c IsOrderedAdditiveGroup),
  *  and no multiplicative group (ℚ is its field of fractions). */
 export inline constexpr auto ℤ = dedekind::sets::𝔸<dedekind::sets::IntExpr<>>{};

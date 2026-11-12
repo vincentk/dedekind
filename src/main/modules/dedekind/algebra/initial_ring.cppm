@@ -35,7 +35,7 @@
  *     @c ℕ @c - @c ℕ @c → @c ℤ would realise operationally.
  *
  * @c sets::IntExpr inhabits both: the formal differences of ℕ in their
- * normal form, exact above the word as ℕ's @c Numeral is.  A machine word
+ * normal form, exact above the word as ℕ's @c NatExpr is.  A machine word
  * wraps, so it is @c ℤ/2^w, not @c ℤ.
  *
  * @section initial_ring__Honesty_Obligation
@@ -50,7 +50,7 @@
  * @section initial_ring__Architecture
  * Three-layer chain mirroring the NNO story (PR #447):
  *
- *   @c IsInitialRig  →  @c Numeral  →  @c ℕ
+ *   @c IsInitialRig  →  @c NatExpr  →  @c ℕ
  *   @c IsInitialRing, @c IsGrothendieckGroup<·, ℕ>  →  @c IntExpr  →  @c ℤ
  *
  * @section initial_ring__Bridge_to_Limit
@@ -87,7 +87,7 @@ export module dedekind.algebra:initial_ring;
 import dedekind.category;
 import dedekind.sets;
 import :group;
-import :polynomial;  // Poly<Numeral>: ℕ[π] with honest coefficients, the
+import :polynomial;  // Poly<NatExpr>: ℕ[π] with honest coefficients, the
                      // witness
 import :ring;
 
@@ -96,8 +96,8 @@ namespace dedekind::category {
 // Lambek holding on ℕ where it fails on every word (sets:cardinality).
 template <>
 inline constexpr bool is_initial_f_algebra_v<
-    maybe_functor<dedekind::sets::Numeral>, dedekind::sets::Numeral,
-    In<dedekind::sets::Numeral>> = true;
+    maybe_functor<dedekind::sets::NatExpr<>>, dedekind::sets::NatExpr<>,
+    In<dedekind::sets::NatExpr<>>> = true;
 }  // namespace dedekind::category
 
 namespace dedekind::algebra {
@@ -107,7 +107,7 @@ using namespace dedekind::sets;
 // (0) Initial Rig — ℕ as the initial object in CRig (#1035).
 // ===========================================================================
 /** @brief Opt-in: @c R is the initial commutative rig, ℕ.  The one carrier
- *  that is: @c sets::Numeral, exact above the word.  A word is a rig and not
+ *  that is: @c sets::NatExpr, exact above the word.  A word is a rig and not
  *  initial, since it wraps. */
 export template <typename R>
 inline constexpr bool is_initial_rig_v = false;
@@ -121,7 +121,7 @@ concept IsInitialRig =
     dedekind::category::IsCommutative<R, std::multiplies<R>> &&
     is_initial_rig_v<R>;
 template <>
-inline constexpr bool is_initial_rig_v<Numeral> = true;
+inline constexpr bool is_initial_rig_v<NatExpr<>> = true;
 
 // ===========================================================================
 // (1) Initial Ring — ℤ as the initial object in Ring.
@@ -173,7 +173,7 @@ concept IsInitialRing =
  *        commutative monoid @c M.
  *
  * @details Default: @c false.  One pair is registered: @c (IntExpr,
- * Numeral), ℤ over ℕ.
+ * NatExpr), ℤ over ℕ.
  *
  * Universal-property content (existence + uniqueness of the
  * extension @c φ̂ @c : @c G @c → @c A for every abelian group @c A
@@ -225,20 +225,22 @@ namespace detail_initial_rig_witness {
 using dedekind::category::In;
 using dedekind::category::maybe_functor;
 constexpr std::size_t top = std::numeric_limits<std::size_t>::max();
-static_assert(IsInitialRig<Numeral> && !IsInitialRig<ExtensionalCardinal<>>,
+static_assert(IsInitialRig<NatExpr<>> && !IsInitialRig<ExtensionalCardinal<>>,
               "ℕ is the initial rig; a word is a rig that wraps, not initial");
-static_assert(dedekind::category::IsInitialFAlgebra<maybe_functor<Numeral>,
-                                                    Numeral, In<Numeral>>,
+static_assert(dedekind::category::IsInitialFAlgebra<maybe_functor<NatExpr<>>,
+                                                    NatExpr<>, In<NatExpr<>>>,
               "(ℕ, [Z, S]) is the initial Maybe-algebra: the first instance");
 static_assert(
-    canonical<Numeral>(Const<std::size_t>{6u} * Const<std::size_t>{7u}) ==
-            canonical<Numeral>(Const<std::size_t>{42u}) &&
-        canonical<Numeral>(Const<std::size_t>{top} * Const<std::size_t>{top}) ==
-            canonical<Numeral>(Const<std::size_t>{top} *
-                                   Const<std::size_t>{top} +
-                               Const<std::size_t>{0u}) &&
-        canonical<Numeral>(Const<std::size_t>{top} * Const<std::size_t>{top}) !=
-            canonical<Numeral>(Const<std::size_t>{1u}) &&
+    canonical<NatExpr<>>(Const<std::size_t>{6u} * Const<std::size_t>{7u}) ==
+            canonical<NatExpr<>>(Const<std::size_t>{42u}) &&
+        canonical<NatExpr<>>(Const<std::size_t>{top} *
+                             Const<std::size_t>{top}) ==
+            canonical<NatExpr<>>(Const<std::size_t>{top} *
+                                     Const<std::size_t>{top} +
+                                 Const<std::size_t>{0u}) &&
+        canonical<NatExpr<>>(Const<std::size_t>{top} *
+                             Const<std::size_t>{top}) !=
+            canonical<NatExpr<>>(Const<std::size_t>{1u}) &&
         canonical<std::size_t>(Const<std::size_t>{top} *
                                Const<std::size_t>{top}) ==
             canonical<std::size_t>(Const<std::size_t>{1u}),

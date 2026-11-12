@@ -263,7 +263,7 @@ TEST_CASE(
   STATIC_CHECK(is_function(f));
   // A shift ℕ cannot hold is refused when the graph is built, so the
   // entireness certificate only ever meets a bound constant.
-  constexpr auto N = 𝔸<dedekind::sets::Numeral>{};
+  constexpr auto N = 𝔸<dedekind::sets::NatExpr<>>{};
   CHECK_THROWS_AS(N * N & (π_1 + -1 == π_2), std::domain_error);
 
   volatile int ten = 10;
@@ -327,9 +327,10 @@ TEST_CASE("algebra:halfspace_transport: bounded composition over ℕ",
           "[algebra][relprod][numeral]") {
   const auto diag = (ℕ * ℕ & π_1 == π_2) & (π_1 < 3u);
   const auto twice = diag >> diag;
-  CHECK(twice(std::pair{Numeral{2u}, Numeral{2u}}));        // middle b = 2
-  CHECK_FALSE(twice(std::pair{Numeral{1u}, Numeral{2u}}));  // off the diagonal
-  CHECK_FALSE(twice(std::pair{Numeral{3u}, Numeral{3u}}));  // 3 ∉ [0, 3)
+  CHECK(twice(std::pair{NatExpr<>{2u}, NatExpr<>{2u}}));  // middle b = 2
+  CHECK_FALSE(
+      twice(std::pair{NatExpr<>{1u}, NatExpr<>{2u}}));  // off the diagonal
+  CHECK_FALSE(twice(std::pair{NatExpr<>{3u}, NatExpr<>{3u}}));  // 3 ∉ [0, 3)
 }
 
 // A window wider than the middle carrier stops at the carrier's top: B = uint8

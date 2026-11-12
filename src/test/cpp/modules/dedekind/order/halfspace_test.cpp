@@ -200,8 +200,8 @@ TEST_CASE("order:halfspace: point-free ℕ|pred is carrier-axis decidable (#848)
 
   // Runtime membership on {x ∈ ℕ | x > 5}: 6 ∈, 5 ∉ --- exercises operator()
   // for coverage (static_asserts are invisible to Codecov).
-  CHECK(static_cast<bool>(point_free(Numeral{6u})));
-  CHECK_FALSE(static_cast<bool>(point_free(Numeral{5u})));
+  CHECK(static_cast<bool>(point_free(NatExpr<>{6u})));
+  CHECK_FALSE(static_cast<bool>(point_free(NatExpr<>{5u})));
 }
 
 TEST_CASE(

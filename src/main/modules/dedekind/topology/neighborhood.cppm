@@ -60,7 +60,7 @@ using namespace dedekind::order;
  *
  * @details Detected structurally from the domain: a carrier with an NNO step
  *          (@c category::HasNNOStep --- @c successor / @c predecessor exist:
- *          the built-in @c std::integral types and ℕ's @c Numeral; ℤ's
+ *          the built-in @c std::integral types and ℕ's @c NatExpr; ℤ's
  *          @c IntExpr joins the moment it declares its step) is
  *          successor-isolated, so no subset has a limit point
  *          outside itself and every subset is both @b open and

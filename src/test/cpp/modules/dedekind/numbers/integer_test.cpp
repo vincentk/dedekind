@@ -47,7 +47,7 @@ TEST_CASE(
 
 // ===========================================================================
 // (3.5) embed_𝔹_ℕ_ — runtime witness for the variant-layer canonical
-//       mono 𝔹 ↪ ℕ landing on the @c Numeral carrier.  The
+//       mono 𝔹 ↪ ℕ landing on the @c NatExpr carrier.  The
 //       compile-time witnesses live in @c :natural; this exercises
 //       the same equalities at runtime so the arrow's lambda body
 //       shows up as covered for codecov.
@@ -55,10 +55,10 @@ TEST_CASE(
 
 TEST_CASE(
     "carrier-lattice: embed_𝔹_ℕ_ maps true to 1 and false to 0 (𝔹 ↪ ℕ via "
-    "the Numeral carrier)",
+    "the NatExpr carrier)",
     "[carrier-lattice][boolean][cardinality][embed]") {
-  CHECK(embed_𝔹_ℕ_(true) == Numeral{1u});
-  CHECK(embed_𝔹_ℕ_(false) == Numeral{0u});
+  CHECK(embed_𝔹_ℕ_(true) == NatExpr<>{1u});
+  CHECK(embed_𝔹_ℕ_(false) == NatExpr<>{0u});
 }
 
 TEST_CASE(
@@ -70,11 +70,11 @@ TEST_CASE(
   // forwarding-reference body for codecov.
   constexpr Singleton<bool, Boole> s_true{true};
   const auto image_set = embed_𝔹_ℕ(s_true);
-  CHECK(origin(image_set) == Numeral{1u});
+  CHECK(origin(image_set) == NatExpr<>{1u});
 
   constexpr Singleton<bool, Boole> s_false{false};
   const auto image_set_false = embed_𝔹_ℕ(s_false);
-  CHECK(origin(image_set_false) == Numeral{0u});
+  CHECK(origin(image_set_false) == NatExpr<>{0u});
 }
 
 // ===========================================================================

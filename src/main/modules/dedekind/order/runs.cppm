@@ -236,7 +236,7 @@ template <typename V>
 constexpr std::optional<V> least() {
   if constexpr (HasLatticeBottomValue<V>)
     return LatticeBottom<V, std::less_equal<V>>::value;
-  else if constexpr (std::same_as<V, Numeral>)
+  else if constexpr (std::same_as<V, NatExpr<>>)
     return V{};
   else if constexpr (IsPst<V>)
     return unit<V>(Sup{});

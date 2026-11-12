@@ -58,27 +58,27 @@ using namespace dedekind::order;
 using namespace dedekind::sets;
 
 // Source: the intensional set {n ∈ ℕ | n > 5}, structurally a Halfspace with
-// the pivot 5 as a value over ℕ (@c Numeral, which grows a limb rather than
+// the pivot 5 as a value over ℕ (@c NatExpr, which grows a limb rather than
 // wrapping; its constants are unsigned words).
 // A halfspace IS a set object, and image() takes any set object over the
 // arrow's domain; its species is the universe's (Boole here).
 constexpr auto gt_5 = ℕ & (π > 5u);
 
-// The NNO successor on @c Numeral, the canonical ℕ → ℕ arrow.
-constexpr auto succ_arrow = Successor<Numeral>{};
+// The NNO successor on @c NatExpr, the canonical ℕ → ℕ arrow.
+constexpr auto succ_arrow = Successor<NatExpr<>>{};
 
 // Image of an intensional Set under the successor arrow.  Result is
-// itself an intensional Set on Numeral with @c Kleene as the
+// itself an intensional Set on NatExpr with @c Kleene as the
 // logic species and the always-Unknown @c SymbolicImagePredicate as
 // predicate.
 constexpr auto img = image(succ_arrow, gt_5);
 
 // Type-shape witnesses: the result IS a Set on the codomain
-// (Numeral) with Kleene.  These pin the layer-1 API surface
+// (NatExpr) with Kleene.  These pin the layer-1 API surface
 // at the type level — @c image is well-formed on intensional inputs and
 // returns the right structural shape regardless of the (un)decidability
 // of the membership query.
-static_assert(std::same_as<typename decltype(img)::Domain, Numeral>,
+static_assert(std::same_as<typename decltype(img)::Domain, NatExpr<>>,
               "image(f, intensional Set<T>) lands on Cod<f> = ℕ.");
 static_assert(std::same_as<typename decltype(img)::logic_species, Kleene>,
               "image of an intensional Set lifts the result to Kleene — "
@@ -101,11 +101,11 @@ static_assert(!IsExtensional<decltype(img)>,
 // The existential @c ∃x ∈ ℕ. x > 5 ∧ y == x + 1 is undecidable on the
 // transfinite carrier without further structural input — the symbolic
 // predicate honestly admits the indecision.
-static_assert(img(Numeral{7u}) == Ternary::Unknown,
+static_assert(img(NatExpr<>{7u}) == Ternary::Unknown,
               "img(7) is honestly Unknown — even though set-theoretically "
               "7 ∈ image(succ, {n>5}) (since 6>5 and succ(6)=7), the "
               "layer-1 symbolic predicate cannot decide this.");
-static_assert(img(Numeral{0u}) == Ternary::Unknown,
+static_assert(img(NatExpr<>{0u}) == Ternary::Unknown,
               "img(0) is honestly Unknown — even though set-theoretically "
               "0 ∉ image(succ, {n>5}) (since succ has no zero in the image "
               "of a set bounded below by 5), the layer-1 symbolic "
@@ -114,7 +114,7 @@ static_assert(img(Numeral{0u}) == Ternary::Unknown,
 // Concept-level witness: closes the axiomatic flow @c :category →
 // @c :sets for the intensional-image overload.  The result realises
 // the categorical image of @c gt_5 under @c succ_arrow — a Subobject
-// of @c Cod<succ_arrow> = Numeral per @c :category:image.
+// of @c Cod<succ_arrow> = NatExpr per @c :category:image.
 // Sister to the per-arrow-embedding witnesses in @c :numbers:natural /
 // @c :numbers:boolean / @c :numbers:uint / @c :numbers:sint
 // (the four canonical machine→variant mono lifts of #602 layer 1).
@@ -139,5 +139,5 @@ static_assert(
  * Expected IR: @c ret @c i1 @c false
  */
 extern "C" __attribute__((noinline)) bool witness_image_intensional_unknown() {
-  return img(Numeral{7u}) == Ternary::True;
+  return img(NatExpr<>{7u}) == Ternary::True;
 }

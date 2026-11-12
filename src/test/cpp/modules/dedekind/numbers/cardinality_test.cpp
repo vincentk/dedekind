@@ -60,27 +60,24 @@ TEST_CASE("Numbers: ExtensionalCardinal additive inverse",
   }
 }
 
-TEST_CASE("Numbers: Numeral, ℕ above the word",
-          "[numbers][cardinality][numeral]") {
-  using dedekind::sets::Numeral;
+TEST_CASE("Numbers: ℕ's terms, above the word",
+          "[numbers][cardinality][natural]") {
+  using N = dedekind::sets::NatExpr<>;
   constexpr std::uint64_t top = std::numeric_limits<std::uint64_t>::max();
-  const Numeral t{top};
-  SECTION("a cube of 2^64 - 1 has three limbs, and the word is left behind") {
-    const Numeral cube = t * t * t;
-    CHECK(cube.limb_count() == 3);
-    CHECK_FALSE(cube.word().has_value());
-    CHECK(t.word() == std::size_t{top});
-    // (2^64 - 1)^3 = 2^192 - 3·2^128 + 3·2^64 - 1
-    CHECK(cube == Numeral(std::vector<std::uint64_t>{top, 2, top - 2}));
+  const N t = N::atom(top);
+  const N one = N::atom(1);
+  SECTION("(2^64)^3 is the binomial expansion of (t + 1)^3") {
+    const N s = t + one;
+    CHECK(s * s * s == t * t * t + N::atom(3) * t * t + N::atom(3) * t + one);
+    CHECK(dedekind::sets::canonical(s * s * s).size() > 1);
   }
   SECTION("the same value, however written") {
-    CHECK((t + Numeral{1u}) * (t + Numeral{1u}) ==
-          (t + Numeral{1u}) + (t + Numeral{1u}) * t);
-    CHECK(Numeral{2u} + Numeral{2u} == Numeral{2u} * Numeral{2u});
+    CHECK((t + one) * (t + one) == (t + one) + (t + one) * t);
+    CHECK(N::atom(2) + N::atom(2) == N::atom(2) * N::atom(2));
   }
   SECTION("the order crosses the word's edge") {
-    CHECK(t < t + Numeral{1u});
+    CHECK(t < t + one);
     CHECK(t * t > t + t);
-    CHECK(dedekind::sets::predecessor(t + Numeral{1u}) == t);
+    CHECK(dedekind::sets::predecessor(t + one) == t);
   }
 }

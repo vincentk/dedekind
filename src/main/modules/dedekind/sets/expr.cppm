@@ -57,6 +57,7 @@ module;
 export module dedekind.sets:expr;
 
 import dedekind.category;
+import :boundaries;  // 𝔸: ℕ, the universe over its terms
 import :cardinality;
 import :terms;
 
@@ -694,6 +695,55 @@ constexpr W canonical(W w) {
   return w;
 }
 
+/** @brief The successor and predecessor on ℕ, the NNO's step, as canonical
+ *  terms: @c n + 1, and the monus @c n ∸ 1, @c 0 its fixed point.
+ *  @param n the natural. */
+export template <std::size_t N>
+constexpr NatExpr<N> successor(const NatExpr<N>& n) {
+  return canonical(n + NatExpr<N>::atom(1));
+}
+export template <std::size_t N>
+constexpr NatExpr<N> predecessor(const NatExpr<N>& n) {
+  if (n == NatExpr<N>{}) return n;
+  return detail_expr::natural<NatExpr<N>>(Numeral(
+      detail_numeral::subtract(value_of(n).limbs(), Numeral{1u}.limbs())));
+}
+/** @brief Lambek on ℕ: @f$[Z, S] : 1 + \mathbb{N} \to \mathbb{N}@f$ is an
+ *  isomorphism, its inverse @c Prior, where no word's is (the Lambek section
+ *  of @c :nno).  @return the inverse arrow. */
+export template <std::size_t N>
+constexpr dedekind::category::Prior<NatExpr<N>> inverse(
+    dedekind::category::In<NatExpr<N>>) {
+  return {};
+}
+/** @brief The other direction: @c Prior's inverse is @c In.
+ *  @return the inverse arrow. */
+export template <std::size_t N>
+constexpr dedekind::category::In<NatExpr<N>> inverse(
+    dedekind::category::Prior<NatExpr<N>>) {
+  return {};
+}
+/** @brief An unsigned constant meeting ℕ, the hook @c :terms' @c carrier_cast
+ *  reaches by ADL.  A signed constant has no hook here and is refused there:
+ *  ℕ's atoms are the unsigned words.  @tparam K the word's type. */
+export template <std::size_t N, std::unsigned_integral K>
+  requires(!std::same_as<K, bool>)
+constexpr NatExpr<N> carrier_cast(std::type_identity<NatExpr<N>>, K k) {
+  return NatExpr<N>{k};
+}
+
+/** @brief The canonical natural-numbers universe @c ℕ = @c 𝔸<NatExpr<>>.
+ *
+ *  @details Per #559 the named species symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ /
+ *  @c ℝ / @c ℂ / @c 𝔻) denote the @b universe values (constexpr instances of
+ *  @c 𝔸 over the carrier), not carrier @b types; carrier types are spelled
+ *  directly in type positions.  So @c ℕ @c | @c (π @c ⋈ @c c) is the
+ *  spelling of a subset of the natural numbers, close to textbook notation.
+ *  The carrier is ℕ's terms, exact above the word.  The subobject "ℕ ⊂ ℤ"
+ *  over a signed carrier is not a second ℕ: it is the halfspace
+ *  @c 𝔸<int>{} & (π >= 0) in @c :order. */
+export inline constexpr auto ℕ = 𝔸<NatExpr<>>{};
+
 /** @brief The successor and predecessor on ℤ, the NNO's step, as canonical
  *  terms: @c z ± 1, total, ℤ has no floor.  @param z the integer. */
 export template <std::size_t N>
@@ -924,4 +974,19 @@ static_assert(
         dedekind::category::IsField<Q64, std::plus<Q64>, std::multiplies<Q64>>,
     "ℕ is a commutative rig, ℤ a commutative ring, ℚ a field, certified on "
     "their terms");
+static_assert(successor(N64::atom(top)) == two_64() &&
+                  predecessor(two_64()) == N64::atom(top) &&
+                  predecessor(N64{}) == N64{},
+              "ℕ's step crosses the word's edge both ways; 0 is the monus' "
+              "fixed point");
+static_assert(
+    dedekind::category::IsIsomorphism<dedekind::category::In<N64>> &&
+        inverse(dedekind::category::In<N64>{})(two_64()) ==
+            std::optional<N64>{N64::atom(top)},
+    "Lambek holds on ℕ: [Z, S] is an isomorphism, across the word's edge");
+static_assert(std::same_as<std::remove_cvref_t<decltype(ℕ)>, 𝔸<N64>> &&
+                  dedekind::category::IsSet<𝔸<N64>> &&
+                  !dedekind::category::IsFiniteLSet<Ø<N64>>,
+              "ℕ is the universe over its terms, an ETCS set, not a finite "
+              "chain");
 }  // namespace dedekind::sets::detail_expr_witness

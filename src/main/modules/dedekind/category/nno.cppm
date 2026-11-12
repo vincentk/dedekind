@@ -31,7 +31,7 @@
  * downstream @b witness @b sites where the carrier-level
  * @c successor member API is named on a specific carrier
  * (@c morphologies:archimedean for the @c IsCyclic shape;
- * @c numbers:natural for @c Numeral's NNO witness).  See the
+ * @c numbers:natural for @c NatExpr's NNO witness).  See the
  * layering note in §nno__Layering_audit.
  *
  * @section nno__NNO_Universal_Property
@@ -68,7 +68,7 @@
  *     API on @c IsCyclic carriers (@c Modular<N> etc.).  The
  *     numerically-coinciding-with @f$S(x) = x + 1@f$ remark there is
  *     about the @b carrier's API, not about NNO universality.
- *   - @c numbers:natural — registers @c Numeral as the canonical
+ *   - @c numbers:natural — registers @c NatExpr as the canonical
  *     @c IsNNO witness.  This is a (@c z, @c s) pair on a specific
  *     carrier; the universal property it claims-to-witness is what
  *     this partition defines.
@@ -83,25 +83,25 @@
  * Lifts ETCS Axiom 9 from the @c :etcs facade-level mention (where it
  * was previously cross-referenced as @c SpeciesTraits<unsigned>) to a
  * first-class @b concept that any carrier can witness.  Closes part of
- * #445.  Concrete carrier witnesses ( @c Numeral from @c
+ * #445.  Concrete carrier witnesses ( @c NatExpr from @c
  * sets:cardinality, @c Modular<N> from @c morphologies:cyclic) are
  * registered downstream where the carriers are available.
  * Dedekind's chain over the step, as a range, is @c :chain's.
  *
  *
- * @section nno__Form_Bias_NNO_Numeral_ℕ
+ * @section nno__Form_Bias_NNO_NatExpr_ℕ
  * Per the project's Platonist stance ("Forms precede carriers"), the
  * architecture is a three-layer chain:
  *
- *   @c NNO  →  @c Numeral  →  @c ℕ
+ *   @c NNO  →  @c NatExpr  →  @c ℕ
  *
  * @li @b NNO is the @b Form — the universal property defined in this
  *     partition.  Multiple carriers may witness it.
- * @li @b Numeral (in @c sets:cardinality) is the @b canonical @b carrier
+ * @li @b NatExpr (in @c sets:expr) is the @b canonical @b carrier
  *     inhabiting the NNO Form, certified by the @c IsNNO witness in
  *     @c numbers:natural: exact, arbitrarily large but bounded by memory.
  * @li @b ℕ (textbook symbol, in @c sets:boundaries) is the universe
- *     @c 𝔸<Numeral> --- the @b symbol practitioners use.
+ *     @c 𝔸<NatExpr> --- the @b symbol practitioners use.
  *
  * Sibling carrier witnesses ( @c Modular<2^w> as the @b bounded NNO,
  * the textbook ℤ/2^wℤ; @c unsigned @c int with the bounded-NNO
@@ -186,13 +186,13 @@ concept IsNNO = requires(Z z, S s, N n) {
  *  per-carrier flag.  So the order layer's value-determined point collapse of
  *  a bounded meet (@c {x : lo < x < hi} is the single point @c succ(lo) when
  *  @c succ(lo) @c == @c pred(hi)) gates on these, @b not on @c std::integral,
- *  which is a C++ accident that would exclude ℕ's carrier @c Numeral ---
+ *  which is a C++ accident that would exclude ℕ's carrier @c NatExpr ---
  *  itself the canonical NNO witness.
  *
  *  Built-in integral carriers step by @c ±1.  A carrier with the
  *  @c :morphologies static-member convention @c T::successor(n) is bridged.
  *  Any other carrier provides its own overloads in its namespace, found by
- *  ADL (the ℕ proxy does so in @c :sets:cardinality; its predecessor is the
+ *  ADL (ℕ's terms do so in @c :sets:expr; its predecessor is the
  *  monus, 0 a fixpoint dual to @c ℵ_0 under successor).  Callers spell the
  *  two-step (@c using @c dedekind::category::successor; then an unqualified
  *  call) so both the generic defaults and the ADL overloads compete. */
@@ -270,7 +270,7 @@ struct Successor {
 
 /** @brief The zero element @f$Z : 1 \to N@f$, the nullary @c IsNNO witness: the
  *  carrier's default value, which is the NNO's zero for the integrals and for
- *  @c Numeral.  Nullary, so not an @c IsArrow (that concept asks for a
+ *  @c NatExpr.  Nullary, so not an @c IsArrow (that concept asks for a
  *  @c Domain); a composable @f$1 \to N@f$ arrow is not needed here.
  *  @tparam N the carrier. */
 export template <std::default_initializable N>
@@ -376,7 +376,7 @@ struct Prior {
  *  The structure map @f$[Z, S] : 1 + N \to N@f$ of the @b initial algebra is an
  *  isomorphism, with inverse @f$\langle \text{is}\;Z?,\, P\rangle@f$.  Here
  * that reads @c IsIsomorphism<In<N>> (@c :morphism), which an @c inverse(In<N>)
- *  overload would declare.  ℕ's @c Numeral declares one (@c sets:cardinality).
+ *  overload would declare.  ℕ's @c NatExpr declares one (@c sets:expr).
  *  The others do not, each for its own reason, witnessed on values below: ℤ
  *  (@c int, @c IntExpr) is a group, @c S(−1) @c = @c Z; the bounded chains
  *  (K₃) saturate, so @c S is not injective at ⊤; and the signed machine

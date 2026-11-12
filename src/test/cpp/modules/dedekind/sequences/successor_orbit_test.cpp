@@ -60,6 +60,6 @@ TEST_CASE("sequences — the orbit's shape is the carrier's posture at the bound
   CHECK(k3.at(2) == Ternary::True);
   CHECK(k3.at(7) == Ternary::True);
   // ℕ: the orbit walks, with no top to absorb it.
-  const SuccessorOrbit<Numeral> nat{Numeral{40u}};
-  CHECK(nat.at(2) == Numeral{42u});
+  const SuccessorOrbit<NatExpr<>> nat{NatExpr<>{40u}};
+  CHECK(nat.at(2) == NatExpr<>{42u});
 }

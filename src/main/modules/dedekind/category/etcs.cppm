@@ -27,19 +27,19 @@
  * | **6. Exponentiation (B^A)**   | `Exponential<A,B>` / `IsExponential` |
  * | **7. Subobject Classifier**   | `Subobject<A,χ>` / `classify<A>(p)`  |
  * | **8. Empty Set (∅)**          | `Zero` (`std::nullptr_t`)            |
- * | **9. NNO (ℕ)**               | `IsNNO<Numeral,z,s>` (`natural`)      |
+ * | **9. NNO (ℕ)**               | `IsNNO<NatExpr,z,s>` (`natural`)      |
  * | **10. Axiom of Choice** (asp.) | `meet` / `join` power-object lattice |
  *
  * @note Row 9 is a @b witness of the NNO @e role, not an equality.  The genuine
  *       witness (carrying a zero and a successor) is
- *       @c IsNNO<Numeral, ZeroElement<Numeral>, Successor<Numeral>>
+ *       @c IsNNO<NatExpr, ZeroElement<NatExpr>, Successor<NatExpr>>
  *       in @c :numbers (@c natural.cppm), also reachable via
  *       @c :sets:cardinality
  *       (@c IsCountable).  @c unsigned is only a @b finite @b carrier
  *       @b stand-in: @c SpeciesTraits<unsigned> supplies the @c Domain /
  *       @c machine_type, @b not a zero or successor, and it is bounded with an
  *       overflow Sollbruchstelle, whereas ℕ is countably infinite.
- *       @c Numeral is exact, bounded only by memory.  Read "NNO (ℕ)" as
+ *       @c NatExpr is exact, bounded only by memory.  Read "NNO (ℕ)" as
  *       the categorical role, never as "@c unsigned @c = ℕ".
  *
  * @section etcs__What_Concreteness_Pins

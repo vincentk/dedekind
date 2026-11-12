@@ -33,7 +33,7 @@ export import dedekind.topology;  // Rays, half-spaces, intervals, convex shapes
 
 /** @section numbers__Discrete_Foundations */
 export import :boolean;  // Truth<L> and Ω
-export import :natural;  // ℕ (carrier: dedekind::sets::Numeral)
+export import :natural;  // ℕ (carrier: dedekind::sets::NatExpr)
 export import :integer;  // ℤ = 𝔸<IntExpr>, Grothendieck's completion of ℕ
 /** @section numbers__Algebraic_Extensions */
 export import :rational;    // RatExpr<> (The Quotient Field)

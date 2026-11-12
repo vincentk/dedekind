@@ -261,7 +261,7 @@ concept IsCommutativeRing =
  * HasRingOperators), naturals, tropical and other exotic semirings.
  *
  * The unit is spelled from an unsigned literal: ℕ's exact carrier
- * @c Numeral (@c sets:cardinality) takes only unsigned words as atoms
+ * @c NatExpr (@c sets:expr) takes only unsigned words as atoms
  * and refuses a signed constant, while a built-in or a ring carrier
  * constructed from the constant expression @c 1u is not narrowed.
  *

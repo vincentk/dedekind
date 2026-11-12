@@ -17,7 +17,7 @@
  *
  *     constexpr auto big   = ℕ & (π > 5u);
  *     constexpr auto small = ℕ & (π < 3u);
- *     static_assert((big & small) == Ø<Numeral>{});
+ *     static_assert((big & small) == Ø<NatExpr>{});
  *
  * Wikipedia: Half-space (geometry), Separating hyperplane theorem,
  *
@@ -112,11 +112,11 @@ using dedekind::category::HasNNOStep;
 using dedekind::category::IsPst;
 using dedekind::category::predecessor;
 using dedekind::category::successor;
-// The gate is TRUE on both the machine integers and ℕ's Numeral: the latter's
+// The gate is TRUE on both the machine integers and ℕ's NatExpr: the latter's
 // steps are found by ADL in :sets:cardinality.  This is what restores the ℕ
 // point collapse ({x>5} ∩ {x<7} = {6}) that a std::integral gate excluded.
 static_assert(HasNNOStep<int>, "machine integers step by ±1.");
-static_assert(HasNNOStep<dedekind::sets::Numeral>,
+static_assert(HasNNOStep<dedekind::sets::NatExpr<>>,
               "ℕ steps through its NNO successor / predecessor "
               "(the canonical NNO witness, found by ADL).");
 static_assert(HasNNOStep<dedekind::sets::IntExpr<>>,
@@ -201,7 +201,7 @@ struct Interval : dedekind::sets::SetExpr<Interval<V, L>, V, L> {
    *  empty if the bounds cross, the single point where the chain admits exactly
    *  one element, else the interval.  The ONE collapse law every meet rides.
    *  The point collapse gates on the NNO steps (@c HasNNOStep: successor /
-   *  predecessor, an axiom of the category), so ℕ's @c Numeral
+   *  predecessor, an axiom of the category), so ℕ's @c NatExpr
    *  collapses to its point exactly as a machine integer does. */
   static constexpr Interval bounded(V lo, Strictness sl, V hi, Strictness su) {
     const bool either_strict =
@@ -615,8 +615,8 @@ using PointFree = decltype(ℕ & (π > 5u));
 static_assert(HasDecidableMembership<decltype(ℕ & (π > 5u))>,
               "ℕ | x>5 is a decidable (Boole) set.");
 static_assert(IsCountable<typename PointFree::cardinality_type> &&
-                  IsCountable<Interval<Numeral>::cardinality_type>,
-              "ℕ | x>5 is countable: Numeral declares ℵ_0.");
+                  IsCountable<Interval<NatExpr<>>::cardinality_type>,
+              "ℕ | x>5 is countable: NatExpr declares ℵ_0.");
 }  // namespace detail_pointfree_decidability
 
 // The comparison an atom makes, its evaluation and its De Morgan dual, and the
@@ -1034,7 +1034,7 @@ constexpr auto lowerbounds(const 𝔸<bool, L, C>&) {
 }
 
 // #895/#932: a disjoint bare halfspace-meet collapses to the empty set.
-static_assert(((ℕ & (π > 5u)) & (ℕ & (π < 3u))) == Ø<Numeral>{},
+static_assert(((ℕ & (π > 5u)) & (ℕ & (π < 3u))) == Ø<NatExpr<>>{},
               "bare {x>5} ∩ {x<3} collapses to the empty set (#895 / #932).");
 
 /** @brief @c max(S) --- the generic extremum: @c S met (@c ∩) with its own
@@ -1182,9 +1182,9 @@ static_assert(Interval<int>::bounded(3, Strictness::Strict, 5,
                                      Strictness::Strict) ==
                   Interval<int>::point(4),
               "(3, S(S(3))) is the point S(3) = 4.");
-static_assert(Interval<Numeral>::bounded(Numeral{3u}, Strictness::Strict,
-                                         Numeral{4u}, Strictness::Strict) ==
-                  Interval<Numeral>::empty(),
+static_assert(Interval<NatExpr<>>::bounded(NatExpr<>{3u}, Strictness::Strict,
+                                           NatExpr<>{4u}, Strictness::Strict) ==
+                  Interval<NatExpr<>>::empty(),
               "…and on ℕ, through its own successor.");
 static_assert(Interval<Ternary>::bounded(Ternary::False, Strictness::Strict,
                                          Ternary::True, Strictness::Strict) ==

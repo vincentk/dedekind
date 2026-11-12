@@ -9,7 +9,8 @@
  *     `:mereology`, where only the structural concepts now remain).
  *   - `ExtensionalCardinal<W>` — the machine-total finite cardinal carrier
  *     with wrapping arithmetic, compatible with `dedekind.category:total`.
- *   - `Numeral` — ℕ itself, exact above the word.
+ *   - `Numeral` — the limbs of a natural, internal: the value ℕ's canonical
+ *     form is read from (`:expr`), never a carrier a program holds.
  *
  * Cardinality is a property of sets — how many elements a set contains —
  * so it belongs in the `sets` layer, below `numbers` and `algebra`.
@@ -133,12 +134,12 @@ static_assert(IsCardinality<ℶ_1> && !IsCountable<ℶ_1> &&
 // The finite cardinals as numerals: ℕ, not a word
 // ---------------------------------------------------------------------------
 
-/** @section cardinality__Numeral  ℕ, arbitrarily large but bounded
- *  A term over ℕ has @c size_t atoms and @c + and @c * as nodes, the typed
- *  grammar of @c :terms: nothing is evaluated, so no term overflows.  Its
- *  @b normal @b form is a @c Numeral, the exact value, read off by the fold
- *  @c canonical<Numeral> (@c algebra:polynomial, at zero variables); equality
- *  of terms is equality of normal forms, and decides both ways.  The working
+/** @section cardinality__Numeral  A natural's limbs, internal to ℕ's form
+ *  ℕ is its terms (@c :expr's @c NatExpr): @c size_t atoms and @c + and @c *
+ *  as nodes, nothing evaluated, so no term overflows.  A @c Numeral is the
+ *  value a term's canonical form is read from and written back from, not
+ *  exported: equality of terms is equality of canonical forms, and decides
+ *  both ways.  The working
  *  definition of "arbitrarily large, but bounded" (#1035): an atom is a
  *  @c size_t, and a value above @f$2^{64}@f$ exists only as a term or as its
  *  normal form, never as an atom.  The representation says the same: one limb
@@ -150,7 +151,7 @@ static_assert(IsCardinality<ℶ_1> && !IsCountable<ℶ_1> &&
  *  not be fast, it is exact.  The word is this numeral's quotient by
  *  @f$2^{64}@f$ (@c ExtensionalCardinal): below it the two agree exactly,
  *  which is where the paper's listings live. */
-export struct Numeral {
+struct Numeral {
   using limb = std::uint64_t;
   static_assert(std::numeric_limits<std::size_t>::digits <= 64,
                 "an atom, a size_t, fits the inline limb");
@@ -295,7 +296,7 @@ struct AddRow {
 }  // namespace detail_numeral
 
 /** @brief The sum, exact; on one limb each, the word's sum where it fits. */
-export constexpr Numeral operator+(const Numeral& x, const Numeral& y) {
+constexpr Numeral operator+(const Numeral& x, const Numeral& y) {
   if (detail_numeral::words(x, y)) {
     const detail_numeral::wide w = detail_numeral::wide{x.low()} + y.low();
     if ((w >> 64) == 0) return Numeral{static_cast<Numeral::limb>(w)};
@@ -304,7 +305,7 @@ export constexpr Numeral operator+(const Numeral& x, const Numeral& y) {
 }
 /** @brief The product, exact: schoolbook, a row per limb of @c y; on one
  *  limb each, the word's product where it fits. */
-export constexpr Numeral operator*(const Numeral& x, const Numeral& y) {
+constexpr Numeral operator*(const Numeral& x, const Numeral& y) {
   if (detail_numeral::words(x, y)) {
     const detail_numeral::wide w = detail_numeral::wide{x.low()} * y.low();
     if ((w >> 64) == 0) return Numeral{static_cast<Numeral::limb>(w)};
@@ -316,8 +317,7 @@ export constexpr Numeral operator*(const Numeral& x, const Numeral& y) {
       detail_numeral::AddRow{a, b}));
 }
 /** @brief The order of ℕ: more limbs is larger, else the top limb decides. */
-export constexpr std::strong_ordering operator<=>(const Numeral& x,
-                                                  const Numeral& y) {
+constexpr std::strong_ordering operator<=>(const Numeral& x, const Numeral& y) {
   if (x.limb_count() != y.limb_count())
     return x.limb_count() <=> y.limb_count();
   if (detail_numeral::words(x, y)) return x.low() <=> y.low();
@@ -327,10 +327,10 @@ export constexpr std::strong_ordering operator<=>(const Numeral& x,
                                                 b.rbegin(), b.rend());
 }
 /** @brief The NNO's step on ℕ: @c n @c + @c 1, past the word's edge. */
-export constexpr Numeral successor(const Numeral& n) { return n + Numeral{1u}; }
+constexpr Numeral successor(const Numeral& n) { return n + Numeral{1u}; }
 /** @brief The step down: @c n @c - @c 1, and @c 0 at @c 0, the monus, so the
  *  step is total; @c Prior (@c :nno) stops at @c 0 before asking. */
-export constexpr Numeral predecessor(const Numeral& n) {
+constexpr Numeral predecessor(const Numeral& n) {
   if (n == Numeral{}) return n;
   return Numeral(detail_numeral::subtract(n.limbs(), {Numeral::limb{1}}));
 }
@@ -428,42 +428,6 @@ constexpr Numeral gcd(const Numeral& x, const Numeral& y) {
                                      detail_numeral::lame_bound(std::min(x, y)))
       .a;
 }
-/** @brief An unsigned constant meeting ℕ, the hook @c :terms' @c carrier_cast
- *  reaches by ADL.  A signed constant has no hook here and is refused there:
- *  ℕ's atoms are the unsigned words. */
-export template <std::unsigned_integral K>
-constexpr Numeral carrier_cast(std::type_identity<Numeral>, K k) {
-  return Numeral{k};
-}
-/** @brief Lambek on ℕ, honestly: @f$[Z, S] : 1 + \mathbb{N} \to \mathbb{N}@f$
- *  is an isomorphism, its inverse @c Prior, where no word's is (the Lambek
- *  section of @c :nno).  @return the inverse arrow. */
-export constexpr dedekind::category::Prior<Numeral> inverse(
-    dedekind::category::In<Numeral>) {
-  return {};
-}
-/** @brief The other direction: @c Prior's inverse is @c In.
- *  @return the inverse arrow. */
-export constexpr dedekind::category::In<Numeral> inverse(
-    dedekind::category::Prior<Numeral>) {
-  return {};
-}
-
-/** @section cardinality__Rank  The rank of a normal form
- *  A @c Numeral measuring a value: on ℕ the fold out of the initial algebra
- *  into itself, the identity (Lambek), the size of Dedekind's chain below
- *  @c n, the well-founded measure Peano's induction descends.  An @c ℵ_0
- * carrier's @c cardinality_type reads as the least upper bound of the ranks,
- * never attained. */
-/** @param n a natural.  @return @c n. */
-export constexpr Numeral rank(const Numeral& n) { return n; }
-/** @concept IsRanked
- *  @brief Each value has a rank, a @c Numeral.  @tparam T the carrier. */
-export template <typename T>
-concept IsRanked = requires(const T& x) {
-  { rank(x) } -> std::same_as<Numeral>;
-};
-
 // ---------------------------------------------------------------------------
 // Extensional cardinal carrier
 // ---------------------------------------------------------------------------
@@ -472,7 +436,7 @@ concept IsRanked = requires(const T& x) {
  * @brief Finite extensional cardinal: one machine word @c W.
  *
  * @details The bare carrier is the wrapping ring ℤ/2^w (registered periodic
- * and cyclic below); ℕ itself is @c Numeral, exact above the word.
+ * and cyclic below); ℕ itself is its terms, @c NatExpr, exact above the word.
  * It is not a bignum: its width is the width of @c W.  Overflow is detected
  * with the compiler's checked-arithmetic builtins, which compute exactly for
  * any word width, so no promotion to @c int can overflow on the way.
@@ -760,71 +724,6 @@ static_assert(IsCyclicGroup<C1, std::plus<C1>>,
               "ExtensionalCardinal<> under + must satisfy IsCyclicGroup "
               "(bounded ℕ, wraps modulo capacity).");
 
-// ---------------------------------------------------------------------------
-// SpeciesTraits specialisations: lift ℕ's carrier @c Numeral to
-// first-class @c IsSpecies status (per #413), so
-// @c ambient_set<Numeral>(...) anchors IsSet witnesses (the primary @c
-// SpeciesTraits<T> registration covers @c std::integral / @c
-// std::floating_point / @c bool only).
-//
-// Pattern follows @c SpeciesTraits<RatExpr> in @c numbers/rational.cppm:
-// @c Domain @c = the carrier itself, @c machine_type @c = the carrier (no
-// separate machine sibling).
-// ---------------------------------------------------------------------------
-
-template <>
-struct SpeciesTraits<dedekind::sets::Numeral> {
-  using Domain = dedekind::sets::Numeral;
-  using machine_type = dedekind::sets::Numeral;
-};
-
-// IsSpecies witnesses: the carriers are first-class species and can flow
-// into @c ambient_set<...> / ETCS object construction in downstream
-// partitions (cf.\ @c sets:boundaries, where @c ℕ @c = @c 𝔸<Numeral>).
-static_assert(IsSpecies<dedekind::sets::Numeral>,
-              "Numeral, ℕ's carrier, must be a recognised Species.");
-}  // namespace dedekind::category
-
-// ── ℕ's algebra, declared, and its witnesses ────────────────────────────────
-namespace dedekind::category {
-using Nat = dedekind::sets::Numeral;
-template <>
-struct unit_trait<Nat, std::plus<Nat>> {
-  using value_type = Nat;
-  static constexpr value_type value{};
-};
-template <>
-struct unit_trait<Nat, std::multiplies<Nat>> {
-  using value_type = Nat;
-  static constexpr value_type value{1u};
-};
-// Path D to totality: + and * are exact, closed and lossless, the boundary
-// the machine's memory, as for RatExpr (is_exact_total names ℕ among them).
-template <>
-struct is_exact_total<Nat, std::plus<Nat>> : std::true_type {};
-template <>
-struct is_exact_total<Nat, std::multiplies<Nat>> : std::true_type {};
-template <>
-inline constexpr bool is_associative_v<Nat, std::plus<Nat>> = true;
-template <>
-inline constexpr bool is_associative_v<Nat, std::multiplies<Nat>> = true;
-template <>
-inline constexpr bool is_commutative_v<Nat, std::plus<Nat>> = true;
-template <>
-inline constexpr bool is_commutative_v<Nat, std::multiplies<Nat>> = true;
-template <>
-inline constexpr bool
-    is_distributive_v<Nat, std::multiplies<Nat>, std::plus<Nat>> = true;
-// The order: by limbs, the longer the larger, then lexicographic from the
-// top (operator<=> above), a chain.
-template <>
-inline constexpr bool is_reflexive_v<Nat, std::less_equal<>> = true;
-template <>
-inline constexpr bool is_transitive_v<Nat, std::less_equal<>> = true;
-template <>
-inline constexpr bool is_antisymmetric_v<Nat, std::less_equal<>> = true;
-template <>
-inline constexpr bool is_connex_v<Nat, std::less_equal<>> = true;
 }  // namespace dedekind::category
 
 namespace dedekind::sets::detail_numeral_witness {
@@ -854,21 +753,4 @@ static_assert((Numeral{top} + Numeral{top}) * Numeral{3u} ==
                   (Numeral{top} * Numeral{top}) * Numeral{top} ==
                       Numeral{top} * (Numeral{top} * Numeral{top}),
               "the rig laws across the word's edge");
-static_assert(
-    dedekind::category::IsRig<Numeral, std::plus<Numeral>,
-                              std::multiplies<Numeral>> &&
-        dedekind::category::IsCommutative<Numeral, std::multiplies<Numeral>> &&
-        dedekind::category::IsIsomorphism<dedekind::category::In<Numeral>>,
-    "ℕ is a commutative rig, and Lambek holds on it: [Z, S] is an isomorphism");
-constexpr auto in_ = dedekind::category::In<Numeral>{};
-constexpr auto prior_ = inverse(in_);
-static_assert(prior_(in_(std::nullopt)) == std::nullopt &&
-                  prior_(in_(Numeral{top})) == Numeral{top} &&
-                  in_(prior_(Numeral{})) == Numeral{} &&
-                  in_(prior_(Numeral{top} + Numeral{1u})) ==
-                      Numeral{top} + Numeral{1u} &&
-                  inverse(prior_)(prior_(Numeral{top} + Numeral{1u})) ==
-                      Numeral{top} + Numeral{1u},
-              "the inverse laws on values: Prior after In and In after Prior "
-              "are identities, at zero and across the word's edge");
 }  // namespace dedekind::sets::detail_numeral_witness

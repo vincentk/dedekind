@@ -890,9 +890,9 @@ inline constexpr bool is_embedding_functor_v = false;
  * is_embedding_functor_v trait stays the engineer's commitment to the reading.
  *
  * @b Concrete @b witnesses (registered in @c :numbers and adjacent
- * partitions): @c embed_𝔹_ℕ_ (@c bool @c ↪ @c Numeral), @c
+ * partitions): @c embed_𝔹_ℕ_ (@c bool @c ↪ @c NatExpr), @c
  * embed_𝔹_𝕂3_ (@c bool @c ↪ @c Kleene::Ω), @c embed_uint_ℕ_
- * (@c unsigned @c ↪ @c Numeral), @c embed_sint_ℤ_ (@c int @c ↪
+ * (@c unsigned @c ↪ @c NatExpr), @c embed_sint_ℤ_ (@c int @c ↪
  * @c IntExpr), @c embed_ℤ_ℚ (int @c ↪ @c
  * RatExpr).  Each is an arrow with @c IsMonicArrow / @c
  * IsInjective + a registered @c is_embedding_functor_v specialisation

@@ -536,7 +536,7 @@ using dedekind::order::IsTotallyOrdered;
  *  is finite (K₃, @c IsAbsorptiveSequence) --- periodic on a wrapping one.
  *
  *  @c at(n) is @f$O(1)@f$ where the carrier's @c + is the iterated step
- *  (Peano addition, @f$S^{n}(a) = a + n@f$: the integrals, ℕ's @c Numeral),
+ *  (Peano addition, @f$S^{n}(a) = a + n@f$: the integrals, ℕ's @c NatExpr),
  *  and the @f$O(n)@f$ walk otherwise (K₃).
  *  @tparam N the carrier, with the NNO step. */
 export template <dedekind::category::HasNNOStep N>
@@ -547,10 +547,10 @@ struct SuccessorOrbit : Path<N> {
         return static_cast<N>(seed + static_cast<N>(n));
       } else if constexpr (requires {
                              {
-                               seed + dedekind::sets::Numeral { n }
+                               seed + dedekind::sets::NatExpr<> { n }
                              } -> std::same_as<N>;
                            }) {
-        return seed + dedekind::sets::Numeral{n};
+        return seed + dedekind::sets::NatExpr<>{n};
       } else {
         N acc = seed;
         for (std::size_t i = 0; i < n; ++i)
