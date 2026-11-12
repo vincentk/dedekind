@@ -252,7 +252,7 @@ static_assert(fs_10 == V{89, 55});
 \end{minipage}
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in code.
 Left, over a type: a term of height three, Listing~\ref{lst:rule2}'s composite composed with itself, folded once to a value and once to a law, the law inferred from its legs'.
-Last, an identity law: two arrows compared by their normal forms, the composite reduced by unit, associativity and the certified involution $\sim$, so \cppinline{==} answers by the laws, never by the functions, which Rice's theorem keeps undecided.
+Last, an identity law: two arrows compared by their normal forms, their paths in the free category on their atoms~\cite{maclane1971categories}, reduced by unit, associativity and the certified involution $\sim$, so \cppinline{==} answers by the laws, never by the functions, which Rice's theorem keeps undecided.
 Below it, over a value: the chain below the seed $n = 10$, which $\mathit{prior}$ counts down, folded in the simplest case, $S = M$ a monoid, by the library's \cppinline{concat} over a bounded range: the overload that completes Listing~\ref{lst:rule2}'s fixed lengths, defined there before the fold.
 Right: the general fold, $S$ acting on $M$: $f$ maps every element to Fibonacci's matrix, and $h$, \cppinline{act}, multiplies it into a vector from $e = (1, 0)$.
 In the standard's ranges library~\cite{cpp23standard}, Figure~\ref{fig:structures}'s chain is an \cppinline{input_range}.
