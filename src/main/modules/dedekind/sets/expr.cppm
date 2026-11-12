@@ -399,16 +399,14 @@ struct Frac {
   Pair den;
 };
 
-template <std::size_t N>
 struct EvalNat {
-  const std::array<Numeral, N>& v;
+  const std::vector<Numeral>& v;
   constexpr Numeral operator()(nodes::Atom n) const { return Numeral{n.value}; }
   constexpr Numeral operator()(nodes::Add n) const { return v[n.a] + v[n.b]; }
   constexpr Numeral operator()(nodes::Mul n) const { return v[n.a] * v[n.b]; }
 };
-template <std::size_t N>
 struct EvalInt {
-  const std::array<Pair, N>& v;
+  const std::vector<Pair>& v;
   constexpr Pair operator()(nodes::Atom n) const {
     return {Numeral{n.value}, Numeral{}};
   }
@@ -416,9 +414,8 @@ struct EvalInt {
   constexpr Pair operator()(nodes::Mul n) const { return mul(v[n.a], v[n.b]); }
   constexpr Pair operator()(nodes::Neg n) const { return neg(v[n.a]); }
 };
-template <std::size_t N>
 struct EvalRat {
-  const std::array<Frac, N>& v;
+  const std::vector<Frac>& v;
   constexpr Frac operator()(nodes::Atom n) const {
     return {{Numeral{n.value}, Numeral{}}, {Numeral{1u}, Numeral{}}};
   }
@@ -437,32 +434,34 @@ struct EvalRat {
     return {mul(v[n.a].num, v[n.b].den), mul(v[n.a].den, v[n.b].num)};
   }
 };
-template <typename V, std::size_t N>
+/** @brief The values of a term's nodes, one per node it has (not per node it
+ *  could hold), so a fold step moves them in O(1).  @tparam V the value
+ *  type. */
+template <typename V>
 struct Values {
-  std::array<V, N> v{};
+  std::vector<V> v;
 };
 template <std::size_t N>
 struct NatStep {
-  NatExpr<N> e;
-  constexpr Values<Numeral, N> operator()(Values<Numeral, N> s,
-                                          std::size_t i) const {
-    s.v[i] = std::visit(EvalNat<N>{s.v}, e.at(i));
+  const NatExpr<N>& e;
+  constexpr Values<Numeral> operator()(Values<Numeral> s, std::size_t i) const {
+    s.v[i] = std::visit(EvalNat{s.v}, e.at(i));
     return s;
   }
 };
 template <std::size_t N>
 struct IntStep {
-  IntExpr<N> e;
-  constexpr Values<Pair, N> operator()(Values<Pair, N> s, std::size_t i) const {
-    s.v[i] = std::visit(EvalInt<N>{s.v}, e.at(i));
+  const IntExpr<N>& e;
+  constexpr Values<Pair> operator()(Values<Pair> s, std::size_t i) const {
+    s.v[i] = std::visit(EvalInt{s.v}, e.at(i));
     return s;
   }
 };
 template <std::size_t N>
 struct RatStep {
-  RatExpr<N> e;
-  constexpr Values<Frac, N> operator()(Values<Frac, N> s, std::size_t i) const {
-    s.v[i] = std::visit(EvalRat<N>{s.v}, e.at(i));
+  const RatExpr<N>& e;
+  constexpr Values<Frac> operator()(Values<Frac> s, std::size_t i) const {
+    s.v[i] = std::visit(EvalRat{s.v}, e.at(i));
     return s;
   }
 };
@@ -472,22 +471,25 @@ struct RatStep {
  *  from: internal to @c canonical, @c == and @c <=>.  @param e the term. */
 template <std::size_t N>
 constexpr Numeral value_of(const NatExpr<N>& e) {
-  return dedekind::category::fold(std::views::iota(std::size_t{0}, e.size()),
-                                  detail_expr::Values<Numeral, N>{},
-                                  detail_expr::NatStep<N>{e})
+  return dedekind::category::fold(
+             std::views::iota(std::size_t{0}, e.size()),
+             detail_expr::Values<Numeral>{std::vector<Numeral>(e.size())},
+             detail_expr::NatStep<N>{e})
       .v[e.root()];
 }
 template <std::size_t N>
 constexpr detail_expr::Pair value_of(const IntExpr<N>& e) {
   return dedekind::category::fold(std::views::iota(std::size_t{0}, e.size()),
-                                  detail_expr::Values<detail_expr::Pair, N>{},
+                                  detail_expr::Values<detail_expr::Pair>{
+                                      std::vector<detail_expr::Pair>(e.size())},
                                   detail_expr::IntStep<N>{e})
       .v[e.root()];
 }
 template <std::size_t N>
 constexpr detail_expr::Frac value_of(const RatExpr<N>& e) {
   return dedekind::category::fold(std::views::iota(std::size_t{0}, e.size()),
-                                  detail_expr::Values<detail_expr::Frac, N>{},
+                                  detail_expr::Values<detail_expr::Frac>{
+                                      std::vector<detail_expr::Frac>(e.size())},
                                   detail_expr::RatStep<N>{e})
       .v[e.root()];
 }
