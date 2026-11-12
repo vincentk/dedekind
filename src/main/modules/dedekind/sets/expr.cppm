@@ -629,7 +629,23 @@ constexpr IntExpr<N> canonical(const IntExpr<N>& e) {
  *  @c gcd and the division it needs are @c Numeral's, internal to
  *  @c canonical.  @param e the term. */
 export template <std::size_t N>
+constexpr std::optional<RatExpr<N>> checked_canonical(const RatExpr<N>& e);
+export template <std::size_t N>
 constexpr RatExpr<N> canonical(const RatExpr<N>& e) {
+  return detail_expr::certified(checked_canonical(e));
+}
+namespace detail_expr {
+/** @return the nodes of a natural's canonical form: one atom, or three per
+ *  limb in Horner form.  @param n the natural. */
+constexpr std::size_t natural_nodes(const Numeral& n) {
+  return n.limb_count() == 1 ? 1 : 3 * n.limb_count();
+}
+}  // namespace detail_expr
+/** @return ℚ's canonical form where it fits the declared bound, or nothing:
+ *  its size is counted before a node is written, so a caller that cannot
+ *  trap (the Python binding) refuses instead.  @param e the term. */
+export template <std::size_t N>
+constexpr std::optional<RatExpr<N>> checked_canonical(const RatExpr<N>& e) {
   using namespace detail_expr;
   const Frac f = value_of(e);
   const Signed num = signed_of(f.num);
@@ -637,8 +653,11 @@ constexpr RatExpr<N> canonical(const RatExpr<N>& e) {
   const Numeral g = gcd(num.magnitude, den.magnitude);
   const Numeral p = detail_numeral::divide(num.magnitude, g).q;
   const Numeral q = detail_numeral::divide(den.magnitude, g).q;
-  const RatExpr<N> top =
-      integer<RatSort, N>(Signed{p, num.negative != den.negative});
+  const bool negative = num.negative != den.negative && p != Numeral{};
+  const std::size_t nodes = natural_nodes(p) + (negative ? 1 : 0) +
+                            (q == Numeral{1u} ? 0 : natural_nodes(q) + 1);
+  if (nodes > N) return std::nullopt;
+  const RatExpr<N> top = integer<RatSort, N>(Signed{p, negative});
   if (q == Numeral{1u}) return top;
   return top / certified(dedekind::category::nonzero(natural<RatSort, N>(q)));
 }
@@ -686,14 +705,36 @@ constexpr std::optional<RatExpr<N>> from(float x) {
   return from<N>(static_cast<double>(x));
 }
 
-/** @brief A machine value is already canonical in its own algebra (a word in
- *  ℤ/2^w, a double in IEEE's arithmetic, which carries no law): generic code
- *  calls @c canonical uniformly.  @param w the value. */
+namespace detail_expr {
+template <typename T>
+inline constexpr bool is_expr_v = false;
+template <IsSort S, std::size_t N>
+inline constexpr bool is_expr_v<Expr<S, N>> = true;
+}  // namespace detail_expr
+/** @brief A value of a carrier that is not a term is already canonical in
+ *  its own algebra (a word in ℤ/2^w, a double in IEEE's arithmetic, which
+ *  carries no law, a word cardinal): generic code calls @c canonical
+ *  uniformly.  A composite with parts declares its own, part by part, which
+ *  argument-dependent lookup prefers.  @param w the value. */
 export template <typename W>
-  requires std::is_arithmetic_v<W>
+  requires(!detail_expr::is_expr_v<W> && !is_term_v<W>)
 constexpr W canonical(W w) {
   return w;
 }
+/** @concept HasCanonical
+ *  @brief @c T has a canonical form, the explicit normalisation point of
+ *  generic code: a term's, a composite's part by part, or the identity.
+ *  @tparam T the carrier. */
+export template <typename T>
+concept HasCanonical = requires(const T& t) {
+  { canonical(t) } -> std::same_as<T>;
+};
+/** @brief Whether @c T is ℕ's terms, of any capacity: the bound is storage,
+ *  not the set.  @tparam T the carrier. */
+export template <typename T>
+inline constexpr bool is_natural_term_v = false;
+template <std::size_t N>
+inline constexpr bool is_natural_term_v<Expr<NatSort, N>> = true;
 
 /** @brief The successor and predecessor on ℕ, the NNO's step, as canonical
  *  terms: @c n + 1, and the monus @c n ∸ 1, @c 0 its fixed point.
@@ -989,4 +1030,15 @@ static_assert(std::same_as<std::remove_cvref_t<decltype(ℕ)>, 𝔸<N64>> &&
                   !dedekind::category::IsFiniteLSet<Ø<N64>>,
               "ℕ is the universe over its terms, an ETCS set, not a finite "
               "chain");
+static_assert(
+    checked_canonical(Q64{1, 2}).has_value() &&
+        !checked_canonical(RatExpr<3>::atom(top) * RatExpr<3>::atom(top))
+             .has_value(),
+    "a canonical form is counted before it is written: (2^64 - 1)^2 needs "
+    "two limbs, six nodes, past a bound of three");
+static_assert(HasCanonical<Q64> && HasCanonical<int> &&
+                  HasCanonical<ExtensionalCardinal<>> &&
+                  is_natural_term_v<NatExpr<128>> && !is_natural_term_v<Z64>,
+              "every carrier has a canonical form, the identity where it is "
+              "not a term; ℕ's terms are ℕ at every capacity");
 }  // namespace dedekind::sets::detail_expr_witness

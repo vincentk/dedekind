@@ -96,8 +96,8 @@ TEST_CASE(
     "[sequences][meeting-point][mandelbrot]") {
   const auto orbit = mandelbrot_orbit(Complex<RatExpr<>>{});
   STATIC_CHECK(IsSequence<std::remove_cvref_t<decltype(orbit)>>);
-  // The escape indicator is eventually constant ⇒ absorptive (row 5).
-  STATIC_CHECK(IsAbsorptiveSequence<DivergencePath<RatExpr<>>>);
+  // The escape indicator is eventually constant, absorptive (row 5): the
+  // static_assert beside DivergencePath in numbers:mandelbrot.
 }
 
 TEST_CASE(
@@ -133,37 +133,5 @@ TEST_CASE("sequence meeting-point — ℝ = ℚ(√2) is the honest-rejection fo
   STATIC_CHECK(IsCauchySequence<Path<R>>);
   STATIC_CHECK(
       std::is_same_v<convergence_logic<Path<R>>, dedekind::category::Kleene>);
-  STATIC_CHECK_FALSE(IsClassicallyConvergent<Path<R>>);
-}
-
-TEST_CASE(
-    "sequence meeting-point — the carrier family jointly populates the "
-    "sequence Form-chain (crown)",
-    "[sequences][meeting-point][form-chain][crown]") {
-  /** @brief The meeting-point crown: the canonical sequence carriers
-   *         exercising the Form-chain together.  No carrier fires every
-   *         row, but the family jointly populates IsSequence,
-   *         IsCauchySequence, the shape concepts (absorptive / periodic),
-   *         IsSeries, IsStreamComonad, the classical collapse, and the
-   *         Bolzano–Weierstrass crown — with ℝ as the honest-rejection
-   *         foil that keeps the LEM gate load-bearing. */
-  using Z6 = Modular<6>;
-  using R = QuadraticReal<2>;
-
-  // Row 4 (IsSequence) — analytic leg
-  STATIC_CHECK(IsSequence<Path<double>>);
-  // Row 5 (absorptive) — Mandelbrot leg
-  STATIC_CHECK(IsAbsorptiveSequence<DivergencePath<RatExpr<>>>);
-  // Row 5 (periodic) — orbit-bridge leg
-  STATIC_CHECK(IsPeriodicSequence<OrbitSequence<Z6, std::plus<Z6>>, 6>);
-  // Row 6 (series) — analytic leg
-  STATIC_CHECK(IsSeries<Path<double>>);
-  // Row 7 (stream comonad) — analytic leg
-  STATIC_CHECK(IsStreamComonad<Path<double>>);
-  // Row 7 (classical collapse + BW) — countable leg
-  STATIC_CHECK(IsClassicallyConvergent<Path<seq_meet::CountableReal>>);
-  STATIC_CHECK(
-      WitnessesBolzanoWeierstrass<seq_meet::bw_sub, seq_meet::bw_super>);
-  // Honest-rejection foil — continuum leg
   STATIC_CHECK_FALSE(IsClassicallyConvergent<Path<R>>);
 }

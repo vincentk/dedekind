@@ -115,7 +115,7 @@ constexpr auto image(
 export template <IsTotallyOrdered T, typename K, Rel R, typename V,
                  IsOckhamAlgebra L, IsCardinality C>
   requires(is_order_rel(R) && (dedekind::algebra::IsOrderedAdditiveGroup<T> ||
-                               std::same_as<T, dedekind::sets::NatExpr<>>))
+                               dedekind::sets::is_natural_term_v<T>))
 constexpr auto image(
     const Comprehension<𝔸<std::pair<T, T>, L, C>,
                         ProductRestrict<Translation<K>, Cylinder<R, 1, V>>>&

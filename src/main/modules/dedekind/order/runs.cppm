@@ -236,13 +236,17 @@ template <typename V>
 constexpr std::optional<V> least() {
   if constexpr (HasLatticeBottomValue<V>)
     return LatticeBottom<V, std::less_equal<V>>::value;
-  else if constexpr (std::same_as<V, NatExpr<>>)
+  else if constexpr (is_natural_term_v<V>)  // ℕ at any capacity
     return V{};
   else if constexpr (IsPst<V>)
     return unit<V>(Sup{});
   else
     return std::nullopt;
 }
+static_assert(least<NatExpr<128>>() == NatExpr<128>{} &&
+                  least<NatExpr<>>() == NatExpr<>{},
+              "ℕ's floor is 0 at every capacity: the bound is storage, not the "
+              "set");
 /** @brief The carrier's greatest element, where it has one as a value, dual to
  *  @ref least (ℕ has none).  @tparam V the carrier. */
 template <typename V>

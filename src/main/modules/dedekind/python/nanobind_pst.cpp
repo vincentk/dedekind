@@ -2344,8 +2344,22 @@ void bind_rationals(nb::module_ m) {
             return c < 0 ? -1 : (c > 0 ? 1 : 0);
           },
           nb::arg("b"), "The order of the canonical forms: −1, 0 or 1.")
-      .def("canonical",
-           [](const Rat& a) { return dedekind::sets::canonical(a); })
+      .def(
+          "canonical",
+          [](const Rat& a) {
+            // Counted before a node is written: a form past the bound
+            // raises, never reaches the trap.
+            const auto c = dedekind::sets::checked_canonical(a);
+            if (!c) {
+              PyErr_SetString(PyExc_OverflowError,
+                              "Q: the canonical form passes its bound of 64 "
+                              "nodes");
+              throw nb::python_error();
+            }
+            return *c;
+          },
+          "The canonical form, the reduced fraction, where it fits the "
+          "bound; else OverflowError.")
       .def("size", &Rat::size, "The number of nodes.")
       .def(
           "nodes",

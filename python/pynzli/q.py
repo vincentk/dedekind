@@ -38,6 +38,16 @@ OverflowError: Q: the term passes its bound of 64 nodes; canonical() normalises 
 ...     y = (y + y).canonical()
 >>> y
 Q(1024)
+
+A term within its bound may have a canonical form past it: reading it
+raises, as building it would.
+
+>>> z = Q(2**64 - 1)
+>>> for _ in range(5):
+...     z = z * z
+>>> z
+Traceback (most recent call last):
+OverflowError: Q: the canonical form passes its bound of 64 nodes
 """
 
 import math

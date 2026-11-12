@@ -58,6 +58,7 @@ concept IsQuaternionScalar =
       { a * b } -> std::same_as<R>;
       { -a } -> std::same_as<R>;
     } && std::equality_comparable<R> &&
+    dedekind::sets::HasCanonical<R> &&  // each result stored canonical
     !std::floating_point<R>;  // ℍ over raw floats is not a ring (IEEE)
 static_assert(!IsQuaternionScalar<double> && IsQuaternionScalar<int>,
               "IsQuaternionScalar rejects raw floats.");
@@ -175,6 +176,12 @@ inline constexpr ℍ_ℚ q_neg1{RatExpr<>{-1}, RatExpr<>{0}, RatExpr<>{0},
                             RatExpr<>{0}};
 
 // i² = j² = k² = -1
+// A carrier that is not a term instantiates: its canonical form is the
+// identity, here the word cardinal ℤ/2^64.
+using W_ = dedekind::sets::ExtensionalCardinal<>;
+static_assert(IsQuaternionScalar<W_> &&
+                  Quaternion<W_>{W_{1u}, W_{2u}}.norm_squared() == W_{5u},
+              "ℍ over a word cardinal: |1 + 2i|² = 5");
 static_assert(q_i * q_i == q_neg1, "i² = -1");
 static_assert(q_j * q_j == q_neg1, "j² = -1");
 static_assert(q_k * q_k == q_neg1, "k² = -1");

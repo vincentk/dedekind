@@ -98,6 +98,11 @@ static_assert(image((ℕ * ℕ & π_1 + 1u == π_2) & π_1 <= 5u) ==
 static_assert(image((ℕ * ℕ & π_1 + 1u == π_2) & π_1 < 5u) ==
                   ((ℕ & (π >= 1u)) & (ℕ & (π < 6u))),
               "image(succ, {n<5}) = {1,…,5} on ℕ.");
+// The closed form holds for ℕ at every capacity: the bound is storage.
+constexpr auto ℕ128 = 𝔸<NatExpr<128>>{};
+static_assert(image((ℕ128 * ℕ128 & π_1 + 1u == π_2) & π_1 <= 5u) ==
+                  ((ℕ128 & (π >= 1u)) & (ℕ128 & (π <= 6u))),
+              "image(succ, {n≤5}) = {1,…,6} on ℕ at capacity 128.");
 // The identity scale on ℕ: its unit is an unsigned constant, which ℕ meets.
 static_assert(image((ℕ * ℕ & π_1 * 1u == π_2) & π_1 > 5u) == (ℕ & (π > 5u)),
               "image(x ↦ 1·x, {n>5}) = {n>5} on ℕ.");
