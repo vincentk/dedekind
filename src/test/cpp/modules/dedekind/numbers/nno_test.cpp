@@ -98,8 +98,10 @@ TEST_CASE(
   // Initial state (F_1, F_0) = (1, 0); we step n times to get
   // (F_{n+1}, F_n), then read off the second component for F_n.
   const State a0 = {NatExpr<>{1u}, NatExpr<>{0u}};
+  // The new state is stored canonical: the sum, kept as a term, would double
+  // its nodes each step and pass the terms' declared bound (a trap).
   const auto g = [](const State& s) -> State {
-    return {s.first + s.second, s.first};
+    return {dedekind::sets::canonical(s.first + s.second), s.first};
   };
   // F_0 .. F_10 = 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55.
   CHECK(dedekind::category::iterate(g, a0, 0u).second == NatExpr<>{0u});
