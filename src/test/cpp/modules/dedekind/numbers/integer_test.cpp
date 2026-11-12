@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <cstdlib>  // For std::abs in the partial-commuting-square test.
 #include <limits>  // For std::numeric_limits in the abs honest-extension tests.
-#include <utility>  // std::move
 
 import dedekind.category;
 import dedekind.algebra; // AdditiveInverse + IsOrderedAdditiveGroup (#959)
@@ -96,12 +95,12 @@ TEST_CASE("Integer: additive inverse -x is antitone on ℤ (#908/#959)",
   // ℤ is an ordered additive group, so the unary additive inverse -x is
   // ORDER-REVERSING: the algebraic dog-food of the antitone reification, the
   // same shape as the logic NegationArrow's negation on Omega.
-  constexpr AdditiveInverse<Integer> neg{};
-  const Integer two{2};
-  const Integer three{3};
+  constexpr AdditiveInverse<IntExpr<>> neg{};
+  const IntExpr<> two{2};
+  const IntExpr<> three{3};
 
-  CHECK(neg(two) == Integer{-2});
-  CHECK(neg(three) == Integer{-3});
+  CHECK(neg(two) == IntExpr<>{-2});
+  CHECK(neg(three) == IntExpr<>{-3});
 
   // Order-reversal: 2 <= 3, so -3 <= -2.
   CHECK(two <= three);
@@ -110,7 +109,7 @@ TEST_CASE("Integer: additive inverse -x is antitone on ℤ (#908/#959)",
   // Self-adjoint antitone Galois connection: a <= -b iff b <= -a.  The
   // concept witnesses are pinned at the definition site,
   // algebra/ordered_algebra.cppm.
-  const Integer neg_five{-5};
+  const IntExpr<> neg_five{-5};
   CHECK((neg_five <= neg(two)) == (two <= neg(neg_five)));
   CHECK((two <= neg(three)) == (three <= neg(two)));
 }
@@ -127,70 +126,40 @@ TEST_CASE("Integer: additive inverse -x is antitone on ℤ (#908/#959)",
 // does not compile, and no static_assert can say so, since a refusal is not
 // a value.  The same term over ℤ is exact, and so is its law.
 namespace int_vs_integer {
-constexpr Integer int_max{INT_MAX};
-static_assert(int_max + Integer{1} > int_max,
+using Z = IntExpr<>;
+constexpr Z int_max{INT_MAX};
+static_assert(int_max + Z{1} > int_max,
               "INT_MAX + 1 in ℤ: the successor, above the word");
-static_assert(int_max + Integer{1} ==
-                  Integer{Numeral{static_cast<unsigned>(INT_MAX) + 1u}},
+static_assert(int_max + Z{1} == Z{static_cast<unsigned>(INT_MAX) + 1u},
               "where an unsigned word holds the value, ℤ agrees with it");
-static_assert((int_max + Integer{1}) - Integer{1} == int_max &&
-                  Integer{INT_MIN} - Integer{1} < Integer{INT_MIN},
+static_assert((int_max + Z{1}) - Z{1} == int_max &&
+                  Z{INT_MIN} - Z{1} < Z{INT_MIN},
               "the group laws hold at both ends of int, where int has none");
-static_assert(int_max * int_max * int_max * int_max * int_max >
-                  Integer{std::numeric_limits<long long>::max()},
-              "and past every word: (2^31 - 1)^5 exceeds LLONG_MAX");
 }  // namespace int_vs_integer
 
 TEST_CASE("Integer: int overflows, ℤ does not", "[numbers][integer][exhibit]") {
-  const Integer int_max{INT_MAX};
-  CHECK(int_max + Integer{1} > int_max);
-  CHECK(rank(Integer{INT_MIN}) == Numeral{0u - static_cast<unsigned>(INT_MIN)});
+  using Z = IntExpr<>;
+  const Z int_max{INT_MAX};
+  CHECK(int_max + Z{1} > int_max);
+  // Past every word: (2^31 - 1)^5 exceeds LLONG_MAX.
+  CHECK(int_max * int_max * int_max * int_max * int_max >
+        Z{std::numeric_limits<long long>::max()});
+  CHECK(Z{std::numeric_limits<long long>::min()} - Z{1} <
+        Z{std::numeric_limits<long long>::min()});
 }
 
-TEST_CASE("numbers:integer: a moved-from integer is a value in normal form",
-          "[numbers][integer][normal-form]") {
-  // -2^64: the magnitude's low limb is zero, so moving the limbs out could
-  // leave a zero magnitude beside the sign.  The accessors read the normal
-  // form, and the additive identity holds on the source.
-  Integer a(Numeral{std::numeric_limits<std::uint64_t>::max()} + Numeral{1u},
-            true);
-  const Integer b = std::move(a);
-  CHECK(b.negative());
-  CHECK(a + Integer{} == a);
-  CHECK((a == Integer{} || a == b));
-}
-
-TEST_CASE("numbers:integer: a borrow runs through maximum-value limbs",
-          "[numbers][integer][limbs]") {
-  // 2^128 - 1: subtracting one from the limbs [0, 0, 1] borrows through
-  // both zero limbs, each becoming the maximum limb with a borrow in.
-  const Numeral w{std::numeric_limits<std::uint64_t>::max()};
-  const Integer two_128{(w + Numeral{1u}) * (w + Numeral{1u})};
-  CHECK(two_128 + Integer{-1} == Integer{w * (w + Numeral{1u}) + w});
-  CHECK((two_128 + Integer{-1}).magnitude().limb_count() == 2);
-  // 2^128 - (2^128 - 1): each subtrahend limb is the maximum and receives a
-  // borrow, so the amount taken is 2^64, wider than a limb.
-  CHECK(two_128 + -Integer{w * (w + Numeral{1u}) + w} == Integer{1});
-}
-
-TEST_CASE(
-    "numbers:integer: division rounds toward zero, the remainder has "
-    "the dividend's sign, past the word",
-    "[numbers][integer][division]") {
-  // The witnesses are static_asserts at the definition site; these runtime
-  // checks make the same facts visible to coverage, and read (x / y) * y +
-  // x % y == x on values int cannot hold.
-  const Numeral w{std::numeric_limits<std::uint64_t>::max()};
-  const Integer two_64{w + Numeral{1u}};
-  const Integer x = two_64 * Integer{-3} + Integer{-1};  // -(3·2^64 + 1)
-  const Integer y{3};
-  CHECK(x / y == -two_64);
-  CHECK(x % y == Integer{-1});
-  CHECK((x / y) * y + x % y == x);
-  CHECK((-x) / (-y) == -two_64);  // positive by negative: toward zero
-  CHECK((-x) % (-y) == Integer{1});
-  CHECK(Integer{-7} / Integer{2} == Integer{-3});
-  CHECK(Integer{-7} % Integer{2} == Integer{-1});
-  CHECK(gcd(Integer{-12}, Integer{18}) == Numeral{6u});
-  CHECK(gcd(x, two_64 * Integer{-6}) == Numeral{1u});
+TEST_CASE("numbers:integer: canonical forms past the word, both signs",
+          "[numbers][integer][canonical]") {
+  // 2^128 - 1 and 2^128 - (2^128 - 1): the values a borrow runs through, as
+  // terms; their canonical forms are one per value.
+  using Z = IntExpr<>;
+  const Z w = Z::atom(std::numeric_limits<std::uint64_t>::max());
+  const Z two_64 = w + Z{1};
+  const Z two_128 = two_64 * two_64;
+  CHECK(two_128 - Z{1} == w * two_64 + w);
+  CHECK(two_128 - (w * two_64 + w) == Z{1});
+  CHECK(canonical(two_128 - Z{1}) == canonical(w * two_64 + w));
+  CHECK(canonical(Z{5} - Z{5}).size() == 1);
+  CHECK(canonical(-two_64) == -two_64);
+  CHECK(-two_64 < Z{std::numeric_limits<long long>::min()});
 }

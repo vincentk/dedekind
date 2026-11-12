@@ -784,7 +784,7 @@ static_assert(
 // (P) and horizontal (Frac, an H step) axes commute at the worked
 // instance.  Builds on the post-#527 HSP architecture: the
 // quotient-algebra propagation lifts species traits from
-// @c Integer to @c Rational (H-step) and
+// @c IntExpr to @c Rational (H-step) and
 // componentwise from @c Rational to
 // @c Vec2V<Rational> (P-step), so all witnesses
 // below fire mechanically without per-carrier opt-in.
@@ -920,8 +920,8 @@ constexpr Matrix2x2V<T> operator/(const Covec2V<T>& a, const Covec2V<T>& b) {
  */
 namespace detail {
 
-// The canonical total field ℚ = Rational (Integer is
-// ℤ's Integer), NOT the raw signed-`long` shortcut: since
+// The canonical total field ℚ = Rational (IntExpr is
+// ℤ's IntExpr), NOT the raw signed-`long` shortcut: since
 // #559 these witnesses are strict (they thread through the semimodule
 // contract), and `long`'s `+` is an overflow hazard the honest `IsTotal`
 // refuses.  Totality distributes from this scalar to Vec2V / Matrix2x2V (the §4

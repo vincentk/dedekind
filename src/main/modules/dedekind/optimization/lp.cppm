@@ -357,7 +357,7 @@ constexpr VertexCandidate<T> maximize_impl_axis_aligned(
 
   // Indexed loop rather than range-for: the range-for's implicit
   // iterator comparison triggers ADL through @c HalfspaceTriple<T> 's
-  // value type and on libstdc++ pulls in @c Rational / @c Integer
+  // value type and on libstdc++ pulls in @c Rational / @c IntExpr
   // operators that are not viable for iterator operands but still
   // confuse overload resolution.  Indexed iteration matches the style
   // of the generic Cramer kernel above and avoids the iterator-comparison

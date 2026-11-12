@@ -177,7 +177,7 @@ concept IsSaturating = is_saturating_v<T, Op>;
  * @concept IsExactTotal
  * @brief Taxonomic Decorator: certifies that an operation is total because it
  *        is exact, with no edge to wrap, saturate or stop at (ℕ's @c Numeral,
- *        ℤ's @c Integer, ℚ).
+ *        ℤ's @c IntExpr, ℚ).
  *
  * @details The exact sibling of @c IsSaturating, over the trait variable
  * @c is_exact_total_v that @c is_total reads as its arm D.  Where a law
@@ -258,7 +258,7 @@ concept IsClosedUnderEither = IsClosedUnder<T, Op> || IsClosedUnderUnary<T, Op>;
  *  range); the fourth lets a genuinely exact number field be a Magma --- and
  *  hence reach @c IsField --- rather than being excluded as
  *  "non-machine-total".  It is registered for @c Rational = ℚ and
- *  @c QuadraticReal = ℚ(√D), and for ℕ's @c Numeral and ℤ's @c Integer.
+ *  @c QuadraticReal = ℚ(√D), and for ℕ's @c Numeral and ℤ's @c IntExpr.
  *  A saturating carrier is total via @c is_saturating instead.  (The two
  *  postures are distinct and a carrier picks exactly one.)  The named
  *  concept @c IsSaturating that wraps @c is_saturating_v lives in

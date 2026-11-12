@@ -119,7 +119,7 @@ static_assert(HasNNOStep<int>, "machine integers step by ±1.");
 static_assert(HasNNOStep<dedekind::sets::Numeral>,
               "ℕ steps through its NNO successor / predecessor "
               "(the canonical NNO witness, found by ADL).");
-static_assert(HasNNOStep<dedekind::sets::Integer>,
+static_assert(HasNNOStep<dedekind::sets::IntExpr<>>,
               "ℤ steps by ±1 through the same customization points, so a "
               "strict bound on ℤ is attained at its neighbour as on ℕ.");
 
@@ -154,7 +154,7 @@ struct Interval : dedekind::sets::SetExpr<Interval<V, L>, V, L> {
    *  @details The two DECIDED cases (⊥ / ⊤) need no carrier comparison, so
    *  they are answered in this small front and the carrier comparisons live in
    *  @c contains_bounded behind it.  The split is load-bearing for the IR
-   *  exhibits: on a heavy carrier (ℤ's @c Integer) the comparisons
+   *  exhibits: on a heavy carrier (ℤ's @c IntExpr) the comparisons
    * are heavy enough that the inliner declines a single fat function, and a
    *  constant @c Interval then stays a call instead of folding to @c ret @c i1
    *  @c false.  A small front inlines, the loads from the constant fold, and
@@ -1063,9 +1063,10 @@ constexpr auto min(const S& s) {
   return s & lowerbounds(s);
 }
 
-inline constexpr auto ℤ = 𝔸<Integer>{};  // local alias (:integer is downstream)
+inline constexpr auto ℤ =
+    𝔸<IntExpr<>>{};  // local alias (:integer is downstream)
 // Exhibit (intensional, infinite case) over the counts @c 𝔸<std::size_t> and
-// ℤ = @c 𝔸<Integer>, both registered chains.
+// ℤ = @c 𝔸<IntExpr>, both registered chains.
 inline constexpr auto le5 = counts & (π <= 5);  // {x ∈ ℕ | x ≤ 5}
 inline constexpr auto ge5 = counts & (π >= 5);  // {x ∈ ℕ | x ≥ 5}
 static_assert(max(le5)(5), "5 = max {x ≤ 5} (read off the pivot).");
@@ -1079,11 +1080,12 @@ static_assert(max(counts&(π < 5))(4), "4 = max {x < 5} on ℕ.");
 static_assert(!max(counts & (π < 5))(5), "5 ∉ {x < 5}, so not its max.");
 static_assert(min(counts&(π > 5))(6), "6 = min {x > 5} on ℕ.");
 // ℤ: the same extrema, and the negative side ℕ cannot spell.
-static_assert(max(ℤ&(π <= 5))(Integer{5}), "5 = max {x ≤ 5} on ℤ.");
-static_assert(!max(ℤ & (π <= 5))(Integer{3}), "3 is not the greatest element.");
-static_assert(min(ℤ&(π >= -5))(Integer{-5}), "−5 = min {x ≥ −5} on ℤ.");
-static_assert(max(ℤ&(π < 5))(Integer{4}), "4 = max {x < 5} on ℤ (the step).");
-static_assert(min(ℤ&(π > -5))(Integer{-4}), "−4 = min {x > −5} on ℤ.");
+static_assert(max(ℤ&(π <= 5))(IntExpr<>{5}), "5 = max {x ≤ 5} on ℤ.");
+static_assert(!max(ℤ & (π <= 5))(IntExpr<>{3}),
+              "3 is not the greatest element.");
+static_assert(min(ℤ&(π >= -5))(IntExpr<>{-5}), "−5 = min {x ≥ −5} on ℤ.");
+static_assert(max(ℤ&(π < 5))(IntExpr<>{4}), "4 = max {x < 5} on ℤ (the step).");
+static_assert(min(ℤ&(π > -5))(IntExpr<>{-4}), "−4 = min {x > −5} on ℤ.");
 
 /** @brief The translation graph @c π_1 @c + @c k @c == @c π_2 and the scaling
  *  graph @c π_1 @c * @c k @c == @c π_2, as the atoms the grammar builds for

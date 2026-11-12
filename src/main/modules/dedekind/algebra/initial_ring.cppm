@@ -34,7 +34,7 @@
  *   * The Grothendieck reading is what a closure-forcing operator
  *     @c ℕ @c - @c ℕ @c → @c ℤ would realise operationally.
  *
- * @c sets::Integer inhabits both: the formal differences of ℕ in their
+ * @c sets::IntExpr inhabits both: the formal differences of ℕ in their
  * normal form, exact above the word as ℕ's @c Numeral is.  A machine word
  * wraps, so it is @c ℤ/2^w, not @c ℤ.
  *
@@ -51,7 +51,7 @@
  * Three-layer chain mirroring the NNO story (PR #447):
  *
  *   @c IsInitialRig  →  @c Numeral  →  @c ℕ
- *   @c IsInitialRing, @c IsGrothendieckGroup<·, ℕ>  →  @c Integer  →  @c ℤ
+ *   @c IsInitialRing, @c IsGrothendieckGroup<·, ℕ>  →  @c IntExpr  →  @c ℤ
  *
  * @section initial_ring__Bridge_to_Limit
  * @c IsInitialRing instantiates the @b same universal-property
@@ -73,11 +73,14 @@
  */
 module;
 
+#include <array>  // φ̂: the images of a term's nodes
 #include <cstddef>
 #include <cstdint>  // the word's quotient, the extension property's target
 #include <functional>
 #include <limits>
+#include <ranges>  // φ̂: a term's nodes walked as a fold
 #include <type_traits>
+#include <variant>  // φ̂: a term is read by std::visit
 
 export module dedekind.algebra:initial_ring;
 
@@ -129,7 +132,7 @@ inline constexpr bool is_initial_rig_v<Numeral> = true;
  *        of (commutative, unital) rings.
  *
  * @details Default: @c false.  Specialised to @c true on ℤ's carrier,
- * @c sets::Integer, below.
+ * @c sets::IntExpr, below.
  *
  * Universal-property content (existence + uniqueness of the
  * canonical ring homomorphism @c χ_R @c : @c R @c → @c S for every
@@ -169,7 +172,7 @@ concept IsInitialRing =
  * @brief Opt-in trait: @c G is the Grothendieck group of the
  *        commutative monoid @c M.
  *
- * @details Default: @c false.  One pair is registered: @c (Integer,
+ * @details Default: @c false.  One pair is registered: @c (IntExpr,
  * Numeral), ℤ over ℕ.
  *
  * Universal-property content (existence + uniqueness of the
@@ -213,9 +216,9 @@ concept IsGrothendieckGroup =
     is_grothendieck_group_v<G, M>;
 
 template <>
-inline constexpr bool is_initial_ring_v<Integer> = true;
+inline constexpr bool is_initial_ring_v<IntExpr<>> = true;
 template <>
-inline constexpr bool is_grothendieck_group_v<Integer, Numeral> = true;
+inline constexpr bool is_grothendieck_group_v<IntExpr<>, NatExpr<>> = true;
 
 // ── ℕ's witnesses: the initial rig, the initial Maybe-algebra, ℕ[π] ────────
 namespace detail_initial_rig_witness {
@@ -246,34 +249,54 @@ static_assert(
 
 // ── ℤ's witnesses: the initial ring, the Grothendieck group of ℕ ───────────
 namespace detail_initial_ring_witness {
+using Z = IntExpr<>;
 constexpr std::uint64_t top = std::numeric_limits<std::uint64_t>::max();
-/** @return @f$2^{64}@f$, a natural above the word. */
-constexpr Numeral two_64() { return Numeral{top} + Numeral{1u}; }
-/** @brief A monoid homomorphism @f$\varphi : (\mathbb{N}, +) \to
- *  \mathbb{Z}/2^{64}@f$, the word's quotient: the low limb.  @param n a
- *  natural.  @return @f$n \bmod 2^{64}@f$. */
-constexpr std::uint64_t φ(const Numeral& n) { return n.low(); }
-/** @brief Its extension @f$\hat\varphi : \mathbb{Z} \to \mathbb{Z}/2^{64}@f$,
- *  the one group homomorphism with @f$\hat\varphi(n - 0) = \varphi(n)@f$:
- *  @f$\hat\varphi(a - b) = \varphi(a) - \varphi(b)@f$, so on a normal form
- *  @f$\pm\varphi(|z|)@f$.  @param z an integer.  @return its image. */
-constexpr std::uint64_t φ_hat(const Integer& z) {
-  return z.negative() ? std::uint64_t{} - φ(z.magnitude()) : φ(z.magnitude());
+/** @brief A node of ℤ's term read in the word, @f$\mathbb{Z}/2^{64}@f$, from
+ *  the images of the nodes before it. */
+struct InWord {
+  const std::array<std::uint64_t, Z::capacity>& v;
+  constexpr std::uint64_t operator()(nodes::Atom n) const { return n.value; }
+  constexpr std::uint64_t operator()(nodes::Add n) const {
+    return v[n.a] + v[n.b];
+  }
+  constexpr std::uint64_t operator()(nodes::Mul n) const {
+    return v[n.a] * v[n.b];
+  }
+  constexpr std::uint64_t operator()(nodes::Neg n) const {
+    return std::uint64_t{} - v[n.a];
+  }
+};
+struct Images {
+  std::array<std::uint64_t, Z::capacity> v{};
+};
+struct InWordStep {
+  Z z;
+  constexpr Images operator()(Images s, std::size_t i) const {
+    s.v[i] = std::visit(InWord{s.v}, z.at(i));
+    return s;
+  }
+};
+/** @brief The extension @f$\hat\varphi : \mathbb{Z} \to \mathbb{Z}/2^{64}@f$
+ *  of the word's quotient @f$\varphi@f$ of ℕ: the term's fold into the word,
+ *  atoms to themselves and each node to the word's operation.  It is the one
+ *  ring homomorphism extending @f$\varphi@f$, so it agrees on terms with equal
+ *  canonical forms.  @param z an integer.  @return its image. */
+constexpr std::uint64_t φ_hat(const Z& z) {
+  return dedekind::category::fold(std::views::iota(std::size_t{0}, z.size()),
+                                  Images{}, InWordStep{z})
+      .v[z.root()];
 }
-static_assert(IsGrothendieckGroup<Integer, Numeral> && IsInitialRing<Integer> &&
+/** @return @f$2^{64}@f$, an integer above the word. */
+constexpr Z two_64() { return Z::atom(top) + Z::atom(1); }
+static_assert(IsGrothendieckGroup<Z, NatExpr<>> && IsInitialRing<Z> &&
                   !IsInitialRing<ExtensionalCardinal<>>,
-              "ℤ is the Grothendieck group of ℕ and the initial ring; a "
-              "word is ℤ/2^64, neither");
-static_assert(φ_hat(Integer{two_64()}) == φ(two_64()) &&
-                  φ_hat(Integer{Numeral{top}}) == φ(Numeral{top}) &&
-                  φ_hat(Integer{}) == std::uint64_t{},
-              "φ̂ extends φ along ℕ ↪ ℤ, past the word's edge");
-static_assert(φ_hat(Integer{-3} + Integer{two_64()}) ==
-                      φ_hat(Integer{-3}) + φ_hat(Integer{two_64()}) &&
-                  φ_hat(-Integer{two_64()} + Integer{5}) ==
-                      φ_hat(-Integer{two_64()}) + φ_hat(Integer{5}) &&
-                  φ_hat(Integer{7} - Integer{9}) == std::uint64_t{} - 2u,
-              "φ̂ is a group homomorphism on values of both signs: the "
-              "extension property at the target ℤ/2^64");
+              "ℤ is the Grothendieck group of ℕ and the initial ring, on its "
+              "terms; a word is ℤ/2^64, neither");
+static_assert(φ_hat(two_64()) == 0u && φ_hat(Z::atom(top)) == top &&
+                  φ_hat(Z{}) == 0u &&
+                  φ_hat(Z{-3} + two_64()) == φ_hat(Z{-3}) + φ_hat(two_64()) &&
+                  φ_hat(Z{7} - Z{9}) == std::uint64_t{} - 2u,
+              "φ̂ extends φ along ℕ ↪ ℤ and is a homomorphism on values of "
+              "both signs, past the word's edge");
 }  // namespace detail_initial_ring_witness
 }  // namespace dedekind::algebra

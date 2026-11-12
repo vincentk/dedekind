@@ -25,7 +25,7 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
   static_assert(𝔸<Numeral>{}.contains(Numeral{0u}));
 
   constexpr auto integers = ℤ;
-  static_assert(integers(Integer{-7}));
+  static_assert(integers(IntExpr<>{-7}));
 
   // 𝔻 starter-universe construction moved to
   // src/test/cpp/modules/dedekind/analysis/dual_test.cpp at PR #513
@@ -46,8 +46,8 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
   {
     const auto U = ℤ;
     const auto O = !U;
-    CHECK((U | O)(Integer{4}));
-    CHECK_FALSE((U & O)(Integer{4}));
+    CHECK((U | O)(IntExpr<>{4}));
+    CHECK_FALSE((U & O)(IntExpr<>{4}));
   }
 
   // 𝔻 / D / Dual lattice-identity check moved to

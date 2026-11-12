@@ -27,7 +27,7 @@
  * The construction Dual(R) = R[ε]/(ε²) is well-defined over any
  * commutative ring R.  The Dual<F> constraint is `std::semiregular<F>` and not
  * `std::floating_point<F>` (IEEE floats are not a ring): integer carriers
- * (Dual<int>, Dual<Integer>) and the modular ring
+ * (Dual<int>, Dual<IntExpr>) and the modular ring
  * (Dual<unsigned int>) instantiate cleanly and close the ring-operator
  * surface.
  *
@@ -327,7 +327,7 @@ static_assert(dedekind::algebra::HasFieldOperators<𝔻_ℚ>,
 // overflow UB; cf.\ the @c IsRing rejection on @c int across
 // @c algebra:ring and the paper §3.4 footnote a).  For exact
 // integer-coefficient AD the right carrier is
-// @c Dual<Integer> or
+// @c Dual<IntExpr> or
 // @c Dual<Rational> rather than @c Dual<int> --- the witness
 // here is structural ("Dual respects whatever the base carrier
 // supplies") rather than a claim about ℤ-faithful semantics on

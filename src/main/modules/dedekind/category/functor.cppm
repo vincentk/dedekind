@@ -893,7 +893,7 @@ inline constexpr bool is_embedding_functor_v = false;
  * partitions): @c embed_𝔹_ℕ_ (@c bool @c ↪ @c Numeral), @c
  * embed_𝔹_𝕂3_ (@c bool @c ↪ @c Kleene::Ω), @c embed_uint_ℕ_
  * (@c unsigned @c ↪ @c Numeral), @c embed_sint_ℤ_ (@c int @c ↪
- * @c Integer), @c embed_ℤ_ℚ (int @c ↪ @c
+ * @c IntExpr), @c embed_ℤ_ℚ (int @c ↪ @c
  * Rational).  Each is an arrow with @c IsMonicArrow / @c
  * IsInjective + a registered @c is_embedding_functor_v specialisation
  * pinning the functor-level structural claim.

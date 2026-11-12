@@ -10,8 +10,6 @@
  *   - `ExtensionalCardinal<W>` — the machine-total finite cardinal carrier
  *     with wrapping arithmetic, compatible with `dedekind.category:total`.
  *   - `Numeral` — ℕ itself, exact above the word.
- *   - `Integer`: ℤ, Grothendieck's completion of `(Numeral, +)`; `rank`
- *     and `IsRanked`, the measure both carry.
  *
  * Cardinality is a property of sets — how many elements a set contains —
  * so it belongs in the `sets` layer, below `numbers` and `algebra`.
@@ -418,20 +416,13 @@ constexpr std::size_t lame_bound(const Numeral& smaller) {
 }
 }  // namespace detail_numeral
 
-/** @brief The quotient, rounded down; see @c detail_numeral::divide for the
- *  zero divisor. */
-export constexpr Numeral operator/(const Numeral& x, const Numeral& y) {
-  return detail_numeral::divide(x, y).q;
-}
-/** @brief The remainder, @c x @c - @c (x @c / @c y) @c * @c y. */
-export constexpr Numeral operator%(const Numeral& x, const Numeral& y) {
-  return detail_numeral::divide(x, y).r;
-}
 /** @brief The greatest common divisor, Euclid's: the step iterated to its
  *  fixed point under Lamé's bound, so Rule 3 holds by the declared bound and
  *  the early exit costs the steps taken (@c iterate, @c :morphism).
- *  @f$\gcd(n, 0) = n@f$. */
-export constexpr Numeral gcd(const Numeral& x, const Numeral& y) {
+ *  @f$\gcd(n, 0) = n@f$.  It is the definition of ℚ's canonical form, the
+ *  reduced fraction (@c :expr), not ℚ's arithmetic: internal to
+ *  @c canonical, with the division it needs. */
+constexpr Numeral gcd(const Numeral& x, const Numeral& y) {
   return dedekind::category::iterate(detail_numeral::EuclidStep{},
                                      detail_numeral::Pair{x, y},
                                      detail_numeral::lame_bound(std::min(x, y)))
@@ -458,143 +449,14 @@ export constexpr dedekind::category::In<Numeral> inverse(
   return {};
 }
 
-// ---------------------------------------------------------------------------
-// ℤ: Grothendieck's completion of (ℕ, +)
-// ---------------------------------------------------------------------------
-
-/** @section cardinality__Integer  ℤ, the formal differences of ℕ
- *  Grothendieck's completion of the commutative monoid @f$(\mathbb{N}, +)@f$:
- *  the pairs @f$a - b@f$ modulo @f$a - b = c - d \iff a + d = c + b@f$.  Each
- *  class has one normal form, @f$n - 0@f$ or @f$0 - n@f$, so an @c Integer is
- *  stored as its normal form: a magnitude, a @c Numeral, and a sign, zero
- *  never negative.  Every constructor and operation lands on it, so @c == is
- *  memberwise.  The atoms are the words: a signed constant embeds exactly
- *  (@c INT_MIN included), an unsigned one through ℕ.  The arithmetic is
- *  ℕ's, the sign carried; opposite signs subtract the smaller magnitude from
- *  the larger, inside this normalisation and nowhere else: ℕ gains no
- *  subtraction.  No value is infinite: an @c Integer is arbitrarily large but
- *  bounded, as a @c Numeral is (#1035). */
-export struct Integer {
-  /** @brief ℤ is countable. */
-  using cardinality_type = ℵ_0;
-
-  constexpr Integer() = default;
-  /** @param s an atom: a signed word, embedded exactly. */
-  template <std::signed_integral S>
-  constexpr explicit Integer(S s)
-      : magnitude_(Numeral{s < S{}
-                               ? static_cast<std::make_unsigned_t<S>>(
-                                     std::make_unsigned_t<S>{} -
-                                     static_cast<std::make_unsigned_t<S>>(s))
-                               : static_cast<std::make_unsigned_t<S>>(s)}),
-        negative_(s < S{}) {
-    static_assert(std::numeric_limits<S>::digits < 64,
-                  "a signed atom's magnitude fits the inline limb");
-  }
-  /** @param n a natural: ℕ ↪ ℤ, @f$n \mapsto n - 0@f$. */
-  constexpr explicit Integer(Numeral n) : magnitude_(std::move(n)) {}
-  /** @param m a magnitude.  @param minus the sign, dropped at zero: the
-   *  normal form. */
-  constexpr Integer(Numeral m, bool minus)
-      : magnitude_(std::move(m)), negative_(minus && magnitude_ != Numeral{}) {}
-  /** @brief Equality of normal forms, read through the accessors. */
-  constexpr bool operator==(const Integer& other) const {
-    return magnitude_ == other.magnitude_ && negative() == other.negative();
-  }
-  /** @return @f$|z|@f$, the rank of the normal form. */
-  constexpr Numeral magnitude() const { return magnitude_; }
-  /** @return the sign: false at zero. */
-  constexpr bool negative() const {
-    return negative_ && magnitude_ != Numeral{};
-  }
-
- private:
-  // The normal form is what the accessors read: a sign is reported only with
-  // a magnitude, so no value, a moved-from one included, is a negative zero.
-  Numeral magnitude_{};
-  bool negative_{};
-};
-
-/** @brief The additive inverse: the sign flipped, zero kept. */
-export constexpr Integer operator-(const Integer& z) {
-  return Integer(z.magnitude(), !z.negative());
-}
-/** @brief The sum: magnitudes add under one sign; under two, the smaller is
- *  taken from the larger, which gives its sign. */
-export constexpr Integer operator+(const Integer& x, const Integer& y) {
-  if (x.negative() == y.negative())
-    return Integer(x.magnitude() + y.magnitude(), x.negative());
-  if (y.magnitude() <= x.magnitude())
-    return Integer(Numeral(detail_numeral::subtract(x.magnitude().limbs(),
-                                                    y.magnitude().limbs())),
-                   x.negative());
-  return Integer(Numeral(detail_numeral::subtract(y.magnitude().limbs(),
-                                                  x.magnitude().limbs())),
-                 y.negative());
-}
-/** @brief The difference: the sum with the inverse. */
-export constexpr Integer operator-(const Integer& x, const Integer& y) {
-  return x + -y;
-}
-/** @brief The product: magnitudes multiply, signs multiply. */
-export constexpr Integer operator*(const Integer& x, const Integer& y) {
-  return Integer(x.magnitude() * y.magnitude(), x.negative() != y.negative());
-}
-/** @brief The quotient, rounded toward zero, and the remainder with the
- *  dividend's sign, as C++ specifies for its integers ([expr.mul]/4), so
- *  @c (x / y) * y + x % y == x and ℤ agrees with the words where they have a
- *  value.  A zero divisor is undefined there too, and refused by constant
- *  evaluation; the typed divisor is ℚ's (#1035).  Not total, so not
- *  registered as an operation of ℤ's algebra. */
-export constexpr Integer operator/(const Integer& x, const Integer& y) {
-  return Integer(x.magnitude() / y.magnitude(), x.negative() != y.negative());
-}
-/** @brief The remainder, with the dividend's sign ([expr.mul]/4). */
-export constexpr Integer operator%(const Integer& x, const Integer& y) {
-  return Integer(x.magnitude() % y.magnitude(), x.negative());
-}
-/** @brief The greatest common divisor of two integers, a natural: that of
- *  their magnitudes. */
-export constexpr Numeral gcd(const Integer& x, const Integer& y) {
-  return gcd(x.magnitude(), y.magnitude());
-}
-/** @brief The order of ℤ: the negatives below, ordered by magnitude reversed;
- *  the naturals above, ordered as ℕ. */
-export constexpr std::strong_ordering operator<=>(const Integer& x,
-                                                  const Integer& y) {
-  if (x.negative() != y.negative()) return y.negative() <=> x.negative();
-  return x.negative() ? y.magnitude() <=> x.magnitude()
-                      : x.magnitude() <=> y.magnitude();
-}
-/** @brief The NNO's step on ℤ: @c z @c + @c 1, past every word's edge. */
-export constexpr Integer successor(const Integer& z) { return z + Integer{1}; }
-/** @brief The step down on ℤ, @c z @c - @c 1: total, ℤ has no floor. */
-export constexpr Integer predecessor(const Integer& z) {
-  return z - Integer{1};
-}
-/** @brief A signed constant meeting ℤ, the hook @c :terms' @c carrier_cast
- *  reaches by ADL: exact.  @tparam K the constant's type.  @param k it. */
-export template <std::signed_integral K>
-constexpr Integer carrier_cast(std::type_identity<Integer>, K k) {
-  return Integer{k};
-}
-/** @brief An unsigned constant meeting ℤ: through ℕ.  @tparam K the
- *  constant's type.  @param k it. */
-export template <std::unsigned_integral K>
-constexpr Integer carrier_cast(std::type_identity<Integer>, K k) {
-  return Integer{Numeral{k}};
-}
-
 /** @section cardinality__Rank  The rank of a normal form
  *  A @c Numeral measuring a value: on ℕ the fold out of the initial algebra
  *  into itself, the identity (Lambek), the size of Dedekind's chain below
- *  @c n, the well-founded measure Peano's induction descends; on ℤ the rank
- *  of the normal form, @f$|z|@f$.  An @c ℵ_0 carrier's @c cardinality_type
- *  reads as the least upper bound of the ranks, never attained. */
+ *  @c n, the well-founded measure Peano's induction descends.  An @c ℵ_0
+ * carrier's @c cardinality_type reads as the least upper bound of the ranks,
+ * never attained. */
 /** @param n a natural.  @return @c n. */
 export constexpr Numeral rank(const Numeral& n) { return n; }
-/** @param z an integer.  @return @f$|z|@f$. */
-export constexpr Numeral rank(const Integer& z) { return z.magnitude(); }
 /** @concept IsRanked
  *  @brief Each value has a rank, a @c Numeral.  @tparam T the carrier. */
 export template <typename T>
@@ -738,7 +600,7 @@ export constexpr ExtensionalCardinal<> inverse(
  *
  *  @details This is the canonical @c inverse(x, @c op) bridge that
  *  @c category::inverse_v (and the reified group-inverse arrow
- *  @c algebra::Inverse<T, @c +>, #959) consume.  It covers ℤ's @c Integer
+ *  @c algebra::Inverse<T, @c +>, #959) consume.  It covers ℤ's @c IntExpr
  *  and any sibling additive carrier, so the additive inverse need not be
  *  hand-registered per type.  The @c ExtensionalCardinal<>
  *  overload above is a more-specialised non-template and still wins for it.
@@ -757,11 +619,6 @@ export template <typename T>
 constexpr T inverse(const T& x, std::plus<T>) {
   return -x;
 }
-
-/** @brief Canonical embedding K3 ↪ ℤ: @c False ↦ -1, @c Unknown ↦ 0,
- *  @c True ↦ 1, the enum's own values, exactly (#430). */
-export inline constexpr auto embed_𝕂3_ℤ_ = arrow<Ternary, Integer>(
-    [](const Ternary& t) { return Integer{std::to_underlying(t)}; });
 
 /** @brief The NNO's step on the extensional cardinals, the wrapping ring
  *  @f$\mathbb{Z}/2^w@f$: @c n + 1 and @c n - 1 modulo the word, as on the
@@ -785,10 +642,6 @@ namespace dedekind::category {
 template <typename W>
 struct is_integer_chain<dedekind::sets::ExtensionalCardinal<W>>
     : std::true_type {};
-/** @brief ℤ is the integer chain: discrete, unbounded both ways, with the
- *  step and the arithmetic; the ring is @c IsRing's claim, made below. */
-template <>
-struct is_integer_chain<dedekind::sets::Integer> : std::true_type {};
 }  // namespace dedekind::category
 
 namespace dedekind::sets {
@@ -806,7 +659,6 @@ static_assert(IsRingIntegral<long>);
 static_assert(IsRingIntegral<long long>);
 static_assert(IsRingIntegral<std::size_t>);
 static_assert(IsRingIntegral<bool>);
-static_assert(IsRingIntegral<Integer>, "ℤ is an integer chain.");
 static_assert(IsRingIntegral<ExtensionalCardinal<>>,
               "ExtensionalCardinal<> must satisfy IsRingIntegral — the bounded "
               "word cardinal.");
@@ -909,11 +761,11 @@ static_assert(IsCyclicGroup<C1, std::plus<C1>>,
               "(bounded ℕ, wraps modulo capacity).");
 
 // ---------------------------------------------------------------------------
-// SpeciesTraits specialisations: lift ℕ's carrier @c Numeral and ℤ's
-// @c Integer to first-class @c IsSpecies status (per #413), so
-// @c ambient_set<Numeral>(...) and @c ambient_set<Integer>(...)
-// anchor IsSet witnesses (the primary @c SpeciesTraits<T> registration
-// covers @c std::integral / @c std::floating_point / @c bool only).
+// SpeciesTraits specialisations: lift ℕ's carrier @c Numeral to
+// first-class @c IsSpecies status (per #413), so
+// @c ambient_set<Numeral>(...) anchors IsSet witnesses (the primary @c
+// SpeciesTraits<T> registration covers @c std::integral / @c
+// std::floating_point / @c bool only).
 //
 // Pattern follows @c SpeciesTraits<Rational> in @c numbers/rational.cppm:
 // @c Domain @c = the carrier itself, @c machine_type @c = the carrier (no
@@ -926,39 +778,11 @@ struct SpeciesTraits<dedekind::sets::Numeral> {
   using machine_type = dedekind::sets::Numeral;
 };
 
-template <>
-struct SpeciesTraits<dedekind::sets::Integer> {
-  using Domain = dedekind::sets::Integer;
-  using machine_type = dedekind::sets::Integer;
-};
-
 // IsSpecies witnesses: the carriers are first-class species and can flow
 // into @c ambient_set<...> / ETCS object construction in downstream
 // partitions (cf.\ @c sets:boundaries, where @c ℕ @c = @c 𝔸<Numeral>).
 static_assert(IsSpecies<dedekind::sets::Numeral>,
               "Numeral, ℕ's carrier, must be a recognised Species.");
-static_assert(IsSpecies<dedekind::sets::Integer>,
-              "Integer, ℤ's carrier, must be a recognised Species.");
-template <>
-inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(embed_𝕂3_ℤ_)>> =
-    true;
-static_assert(IsInjective<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
-              "embed_𝕂3_ℤ_ (𝕂3 → ℤ) is registered injective.");
-static_assert(embed_𝕂3_ℤ_(Ternary::False) == dedekind::sets::Integer{-1} &&
-                  embed_𝕂3_ℤ_(Ternary::Unknown) == dedekind::sets::Integer{} &&
-                  embed_𝕂3_ℤ_(Ternary::True) == dedekind::sets::Integer{1},
-              "𝕂3 ↪ ℤ on its three values");
-
-// IsMonotone witness (#664 morphism vocabulary): @c False @c ↦ @c -1,
-// @c Unknown @c ↦ @c 0, @c True @c ↦ @c 1, which respects the canonical
-// Kleene three-value order @c False @c < @c Unknown @c < @c True.
-template <>
-inline constexpr bool
-    is_monotone_v<std::decay_t<decltype(embed_𝕂3_ℤ_)>, std::less_equal<>> =
-        true;
-static_assert(IsMonotone<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
-              "embed_𝕂3_ℤ_ (𝕂3 → ℤ) is monotone — preserves the Kleene "
-              "three-value order through the canonical embedding.");
 }  // namespace dedekind::category
 
 // ── ℕ's algebra, declared, and its witnesses ────────────────────────────────
@@ -1047,141 +871,4 @@ static_assert(prior_(in_(std::nullopt)) == std::nullopt &&
                       Numeral{top} + Numeral{1u},
               "the inverse laws on values: Prior after In and In after Prior "
               "are identities, at zero and across the word's edge");
-/** @return @f$2^{64}@f$. */
-constexpr Numeral two_64() { return Numeral{top} + Numeral{1u}; }
-static_assert((two_64() * Numeral{7u} + Numeral{3u}) / Numeral{7u} ==
-                      two_64() &&
-                  (two_64() * Numeral{7u} + Numeral{3u}) % Numeral{7u} ==
-                      Numeral{3u} &&
-                  two_64() * two_64() / two_64() == two_64() &&
-                  (two_64() * two_64() + two_64() + Numeral{1u}) % two_64() ==
-                      Numeral{1u},
-              "division past the word: (7·2^64 + 3) / 7, 2^128 / 2^64");
-static_assert(Numeral{top} / Numeral{top} == Numeral{1u} &&
-                  Numeral{top} % Numeral{top} == Numeral{} &&
-                  Numeral{7u} / Numeral{2u} == Numeral{3u} &&
-                  Numeral{7u} % Numeral{2u} == Numeral{1u} &&
-                  Numeral{3u} / two_64() == Numeral{} &&
-                  Numeral{3u} % two_64() == Numeral{3u},
-              "division on one limb is the word's; a small dividend is its own "
-              "remainder");
-static_assert(gcd(Numeral{12u}, Numeral{18u}) == Numeral{6u} &&
-                  gcd(Numeral{18u}, Numeral{12u}) == Numeral{6u} &&
-                  gcd(Numeral{7u}, Numeral{}) == Numeral{7u} &&
-                  gcd(Numeral{}, Numeral{7u}) == Numeral{7u} &&
-                  gcd(two_64() * Numeral{6u}, two_64() * Numeral{4u}) ==
-                      two_64() * Numeral{2u} &&
-                  gcd(two_64() + Numeral{1u}, two_64()) == Numeral{1u},
-              "Euclid past the word: gcd(6·2^64, 4·2^64) = 2^65, and "
-              "neighbours are coprime");
 }  // namespace dedekind::sets::detail_numeral_witness
-
-// ── ℤ's algebra, declared, and its witnesses ────────────────────────────────
-namespace dedekind::category {
-using Int = dedekind::sets::Integer;
-template <>
-struct unit_trait<Int, std::plus<Int>> {
-  using value_type = Int;
-  static constexpr value_type value{};
-};
-template <>
-struct unit_trait<Int, std::multiplies<Int>> {
-  using value_type = Int;
-  static constexpr value_type value{dedekind::sets::Numeral{1u}};
-};
-// Path D to totality, as for ℕ: exact, closed and lossless.  The additive
-// inverse is unary -, read by sets' inverse(x, +): a group without a
-// registration.
-template <>
-struct is_exact_total<Int, std::plus<Int>> : std::true_type {};
-template <>
-struct is_exact_total<Int, std::multiplies<Int>> : std::true_type {};
-template <>
-inline constexpr bool is_associative_v<Int, std::plus<Int>> = true;
-template <>
-inline constexpr bool is_associative_v<Int, std::multiplies<Int>> = true;
-template <>
-inline constexpr bool is_commutative_v<Int, std::plus<Int>> = true;
-template <>
-inline constexpr bool is_commutative_v<Int, std::multiplies<Int>> = true;
-template <>
-inline constexpr bool
-    is_distributive_v<Int, std::multiplies<Int>, std::plus<Int>> = true;
-// The order: the negatives below, by magnitude reversed, then ℕ (operator<=>
-// above), a chain.
-template <>
-inline constexpr bool is_reflexive_v<Int, std::less_equal<>> = true;
-template <>
-inline constexpr bool is_transitive_v<Int, std::less_equal<>> = true;
-template <>
-inline constexpr bool is_antisymmetric_v<Int, std::less_equal<>> = true;
-template <>
-inline constexpr bool is_connex_v<Int, std::less_equal<>> = true;
-}  // namespace dedekind::category
-
-namespace dedekind::sets::detail_integer_witness {
-constexpr std::uint64_t top = std::numeric_limits<std::uint64_t>::max();
-constexpr std::int64_t least = std::numeric_limits<std::int64_t>::min();
-/** @return @f$2^{64}@f$, the first integer above the word. */
-constexpr Integer two_64() { return Integer{Numeral{top} + Numeral{1u}}; }
-static_assert(Integer{-0} == Integer{} && -Integer{} == Integer{} &&
-                  !(-Integer{}).negative() &&
-                  !(Integer{5} - Integer{5}).negative() &&
-                  Integer{Numeral{}, true} == Integer{},
-              "zero is never negative: the normal form");
-static_assert(Integer{least}.magnitude() == Numeral{std::uint64_t{1} << 63} &&
-                  Integer{least} - Integer{1} ==
-                      -Integer{Numeral{(std::uint64_t{1} << 63) + 1u}} &&
-                  -two_64() - Integer{1} < -two_64() &&
-                  -two_64() < Integer{least},
-              "the signed word's least value embeds exactly, and ℤ goes on "
-              "below it");
-static_assert(two_64() - Integer{1} == Integer{Numeral{top}} &&
-                  Integer{3} - two_64() == -Integer{Numeral{top - 2u}} &&
-                  two_64() + -two_64() == Integer{} &&
-                  Integer{-7} * -two_64() == Integer{7} * two_64() &&
-                  Integer{-2} < Integer{-1} && Integer{-1} < Integer{} &&
-                  Integer{} < Integer{1} && Integer{1} < two_64(),
-              "opposite signs subtract magnitudes across the word's edge; the "
-              "order is a chain");
-static_assert((two_64() + Integer{-3}) + -two_64() ==
-                      two_64() + (Integer{-3} + -two_64()) &&
-                  -two_64() * (two_64() + Integer{-1}) ==
-                      -two_64() * two_64() + -two_64() * Integer{-1} &&
-                  (Integer{least} * Integer{least}) * -two_64() ==
-                      Integer{least} * (Integer{least} * -two_64()) &&
-                  Integer{least} + -two_64() == -two_64() + Integer{least},
-              "the ring laws across the word's edge, above 2^64 and below "
-              "-2^63");
-static_assert(
-    dedekind::category::IsCommutativeRing<Integer, std::plus<Integer>,
-                                          std::multiplies<Integer>> &&
-        dedekind::category::IsAbelianGroup<Integer, std::plus<Integer>> &&
-        !dedekind::category::IsField<Integer, std::plus<Integer>,
-                                     std::multiplies<Integer>>,
-    "ℤ is a commutative ring, its + a group; not a field");
-static_assert(IsRanked<Numeral> && IsRanked<Integer> &&
-                  rank(Numeral{top}) == Numeral{top} &&
-                  rank(-two_64()) == rank(two_64()) &&
-                  rank(Integer{least}) == Numeral{std::uint64_t{1} << 63} &&
-                  rank(Integer{}) == Numeral{},
-              "ℕ and ℤ are ranked: the identity on ℕ, |z| on ℤ");
-static_assert(Integer{-7} / Integer{2} == Integer{-3} &&
-                  Integer{-7} % Integer{2} == Integer{-1} &&
-                  Integer{7} / Integer{-2} == Integer{-3} &&
-                  Integer{7} % Integer{-2} == Integer{1} &&
-                  Integer{-7} / Integer{-2} == Integer{3} &&
-                  Integer{-7} % Integer{-2} == Integer{-1} &&
-                  (-7 / 2 == -3 && -7 % 2 == -1 && 7 % -2 == 1),
-              "the quotient rounds toward zero and the remainder takes the "
-              "dividend's sign, as int's do ([expr.mul]/4)");
-static_assert(
-    (two_64() * Integer{-3} + Integer{-1}) / Integer{3} == -two_64() &&
-        (two_64() * Integer{-3} + Integer{-1}) % Integer{3} == Integer{-1} &&
-        (two_64() * Integer{3} + Integer{1}) / -two_64() == Integer{-3} &&
-        (two_64() * Integer{3} + Integer{1}) % -two_64() == Integer{1} &&
-        gcd(Integer{-12}, Integer{18}) == Numeral{6u} &&
-        gcd(two_64() * Integer{-6}, two_64() * Integer{4}) ==
-            (two_64() * Integer{2}).magnitude(),
-    "division and Euclid past the word, both signs");
-}  // namespace dedekind::sets::detail_integer_witness

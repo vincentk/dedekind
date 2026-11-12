@@ -22,14 +22,14 @@
  *
  * @section natural__Structural_Mapping
  * This is where we perform the final 'Lifting'. We prove that
- * @c Integer satisfies the strict
+ * @c IntExpr satisfies the strict
  * @c IsArithmeticAdditiveGroup / @c IsCommutativeRing witnesses pinned
  * in @c integer.cppm and that @c double is a hardware-constrained
  * approximation of an exact field.
  *
  * @anchors C++ Fundamental Types: bool, char, int, long, float, double.
  *
- * Wikipedia: Number, Natural number, Integer, Rational number, Real number
+ * Wikipedia: Number, Natural number, IntExpr, Rational number, Real number
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

@@ -330,7 +330,7 @@ namespace dedekind::algebra {
  *
  *   @b is_module_v witnesses:
  *
- *   @c is_module_v<Rational, Integer>
+ *   @c is_module_v<Rational, IntExpr>
  *     — @c numbers/rational.cppm: ℚ is a ℤ-module via the Frac
  *     construction (the localisation @c S^{-1}ℤ at @c S=ℤ_≠0).
  *

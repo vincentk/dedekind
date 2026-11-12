@@ -272,7 +272,7 @@ concept IsMultiplicativeGroup = IsGroup<X, Mult>;
  *   - @c HasGroupOperatorsAdd<T> --- the literal C++ operators
  *     @c +, @c -, unary @c - close strictly on @c T.
  *
- * Canonical inhabitant: ℤ's exact carrier @c sets::Integer.  Modular
+ * Canonical inhabitant: ℤ's exact carrier @c sets::IntExpr.  Modular
  * carriers also fire (e.g.\ @c unsigned int): the modular wrap
  * @c Z/2^N Z is a finite additive group and the literal operators
  * close strictly.
@@ -310,7 +310,7 @@ static_assert(!HasGroupOperatorsAdd<unsigned short>,
 // IsArithmeticAdditiveGroup seal: unsigned int as the canonical
 // modular ℤ-deal -- strict (Z/2^N Z is a finite additive group) AND
 // literal (+, -, unary - all close on unsigned int).  The exact ℤ
-// carrier (Integer) lives in dedekind.sets and is
+// carrier (IntExpr) lives in dedekind.sets and is
 // witnessed there to keep the algebra layer free of upward
 // dependencies.
 static_assert(IsArithmeticAdditiveGroup<unsigned int>,

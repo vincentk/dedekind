@@ -34,7 +34,7 @@ export import dedekind.topology;  // Rays, half-spaces, intervals, convex shapes
 /** @section numbers__Discrete_Foundations */
 export import :boolean;  // Truth<L> and Ω
 export import :natural;  // ℕ (carrier: dedekind::sets::Numeral)
-export import :integer;  // ℤ = 𝔸<Integer>, Grothendieck's completion of ℕ
+export import :integer;  // ℤ = 𝔸<IntExpr>, Grothendieck's completion of ℕ
 /** @section numbers__Algebraic_Extensions */
 export import :rational;    // Rational (The Quotient Field)
 export import :cut;         // Cut<Q> — decidable Dedekind reals (ℚ + radicals)

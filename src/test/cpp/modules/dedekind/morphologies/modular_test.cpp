@@ -13,7 +13,8 @@
  * @c Modular<N> is the canonical carrier that bridges them.
  */
 
-#include <algorithm>  // std::ranges::fold_left: the residue, limb by limb
+#include <algorithm>  // std::ranges::fold_left: the residue, node by node
+#include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <cstdint>
@@ -22,6 +23,7 @@
 #include <ranges>
 #include <stdexcept>
 #include <type_traits>
+#include <variant>
 
 import dedekind.algebra;
 import dedekind.category;
@@ -35,8 +37,7 @@ using dedekind::morphologies::is_prime;
 using dedekind::morphologies::IsCyclic;
 using dedekind::morphologies::Modular;
 using dedekind::morphologies::𝔽ₚ;
-using dedekind::sets::Integer;
-using dedekind::sets::Numeral;
+using dedekind::sets::IntExpr;
 
 TEST_CASE("Modular<N>: a prime modulus is a field",
           "[morphologies][modular][field]") {
@@ -192,20 +193,49 @@ struct ResidueStep {
         static_cast<std::uint64_t>(N));
   }
 };
-/** @brief χ_{ℤ/N}: the magnitude's residue, negated for a negative. */
+/** @brief A node of ℤ's term read in ℤ/N, from the images before it. */
 template <auto N>
-constexpr Modular<N> χ_to_modular(const Integer& z) {
-  using ML = typename Modular<N>::machine_type;
-  const std::uint64_t r =
-      std::ranges::fold_left(z.magnitude().limbs() | std::views::reverse,
-                             std::uint64_t{}, ResidueStep<N>{});
-  const Modular<N> m{static_cast<ML>(r)};
-  return z.negative() ? Modular<N>{} - m : m;
+struct InModular {
+  const std::array<Modular<N>, dedekind::sets::IntExpr<>::capacity>& v;
+  constexpr Modular<N> operator()(dedekind::sets::nodes::Atom n) const {
+    using ML = typename Modular<N>::machine_type;
+    return Modular<N>{static_cast<ML>(n.value % static_cast<std::uint64_t>(N))};
+  }
+  constexpr Modular<N> operator()(dedekind::sets::nodes::Add n) const {
+    return v[n.a] + v[n.b];
+  }
+  constexpr Modular<N> operator()(dedekind::sets::nodes::Mul n) const {
+    return v[n.a] * v[n.b];
+  }
+  constexpr Modular<N> operator()(dedekind::sets::nodes::Neg n) const {
+    return Modular<N>{} - v[n.a];
+  }
+};
+template <auto N>
+struct Images {
+  std::array<Modular<N>, dedekind::sets::IntExpr<>::capacity> v{};
+};
+template <auto N>
+struct InModularStep {
+  dedekind::sets::IntExpr<> z;
+  constexpr Images<N> operator()(Images<N> s, std::size_t i) const {
+    s.v[i] = std::visit(InModular<N>{s.v}, z.at(i));
+    return s;
+  }
+};
+/** @brief χ_{ℤ/N}: the fold of ℤ's term into ℤ/N, each node to the residue
+ *  ring's operation: the ring homomorphism out of the initial ring. */
+template <auto N>
+constexpr Modular<N> χ_to_modular(const dedekind::sets::IntExpr<>& z) {
+  return std::ranges::fold_left(std::views::iota(std::size_t{0}, z.size()),
+                                Images<N>{}, InModularStep<N>{z})
+      .v[z.root()];
 }
-/** @return @f$2^{64}@f$. */
-constexpr Integer two_64() {
-  return Integer{Numeral{std::numeric_limits<std::uint64_t>::max()} +
-                 Numeral{1u}};
+/** @return @f$2^{64}@f$, a term. */
+constexpr dedekind::sets::IntExpr<> two_64() {
+  return dedekind::sets::IntExpr<>::atom(
+             std::numeric_limits<std::uint64_t>::max()) +
+         dedekind::sets::IntExpr<>{1};
 }
 }  // namespace
 
@@ -214,37 +244,35 @@ TEST_CASE(
     "their residues",
     "[algebra][initial_ring][modular][universal-property]") {
   // Sends 1_ℤ to 1_M (the load-bearing universal-property clause).
-  CHECK(χ_to_modular<5>(Integer{1}).value == 1);
-  CHECK(χ_to_modular<5>(Integer{}).value == 0);
-  CHECK(χ_to_modular<5>(Integer{7}).value == 2);
-  CHECK(χ_to_modular<5>(Integer{13}).value == 3);
-  CHECK(χ_to_modular<5>(Integer{25}).value == 0);
+  CHECK(χ_to_modular<5>(IntExpr<>{1}).value == 1);
+  CHECK(χ_to_modular<5>(IntExpr<>{}).value == 0);
+  CHECK(χ_to_modular<5>(IntExpr<>{7}).value == 2);
+  CHECK(χ_to_modular<5>(IntExpr<>{13}).value == 3);
+  CHECK(χ_to_modular<5>(IntExpr<>{25}).value == 0);
   // Sign-aware: -3 ≡ 2 (mod 5).
-  CHECK(χ_to_modular<5>(Integer{-1}).value == 4);
-  CHECK(χ_to_modular<5>(Integer{-3}).value == 2);
-  CHECK(χ_to_modular<5>(Integer{-5}).value == 0);
-  CHECK(χ_to_modular<5>(Integer{-7}).value == 3);
+  CHECK(χ_to_modular<5>(IntExpr<>{-1}).value == 4);
+  CHECK(χ_to_modular<5>(IntExpr<>{-3}).value == 2);
+  CHECK(χ_to_modular<5>(IntExpr<>{-5}).value == 0);
+  CHECK(χ_to_modular<5>(IntExpr<>{-7}).value == 3);
   // Past the word: 2^64 = 16^16 ≡ 1 (mod 5), where a word would read 0.
-  STATIC_CHECK(χ_to_modular<5>(two_64()).value == 1);
-  STATIC_CHECK(χ_to_modular<5>(-two_64()).value == 4);
+  CHECK(χ_to_modular<5>(two_64()).value == 1);
+  CHECK(χ_to_modular<5>(-two_64()).value == 4);
 }
 
 TEST_CASE("modular: the reduction mod n preserves + and *",
           "[algebra][initial_ring][modular][ring-homomorphism]") {
-  const Integer z2{2};
-  const Integer z5{5};
-  CHECK(χ_to_modular<7>(z2 + Integer{3}).value ==
-        (χ_to_modular<7>(z2) + χ_to_modular<7>(Integer{3})).value);
+  const IntExpr<> z2{2};
+  const IntExpr<> z5{5};
+  CHECK(χ_to_modular<7>(z2 + IntExpr<>{3}).value ==
+        (χ_to_modular<7>(z2) + χ_to_modular<7>(IntExpr<>{3})).value);
   CHECK(χ_to_modular<7>(z2 * z5).value ==
         (χ_to_modular<7>(z2) * χ_to_modular<7>(z5)).value);
-  CHECK(χ_to_modular<7>(Integer{8}).value == 1);
+  CHECK(χ_to_modular<7>(IntExpr<>{8}).value == 1);
   // Across the word's edge, both signs.
-  STATIC_CHECK(
-      χ_to_modular<7>(two_64() * Integer{-3}).value ==
-      (χ_to_modular<7>(two_64()) * χ_to_modular<7>(Integer{-3})).value);
-  STATIC_CHECK(
-      χ_to_modular<7>(two_64() + Integer{-9}).value ==
-      (χ_to_modular<7>(two_64()) + χ_to_modular<7>(Integer{-9})).value);
+  CHECK(χ_to_modular<7>(two_64() * IntExpr<>{-3}).value ==
+        (χ_to_modular<7>(two_64()) * χ_to_modular<7>(IntExpr<>{-3})).value);
+  CHECK(χ_to_modular<7>(two_64() + IntExpr<>{-9}).value ==
+        (χ_to_modular<7>(two_64()) + χ_to_modular<7>(IntExpr<>{-9})).value);
 }
 
 // ── The field's terms read as polynomials (algebra:polynomial) ──────────────

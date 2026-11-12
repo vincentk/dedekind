@@ -58,7 +58,7 @@ export module dedekind.sets:expressions;
 
 import dedekind.category;
 import :boundaries;     // For 𝔸, Ø
-import :cardinality;    // Numeral / Integer: the ℕ / ℤ carriers
+import :cardinality;    // Numeral / IntExpr: the ℕ / ℤ carriers
 import :computability;  // HasDecidableMembership
 import :terms;          // the term grammar: projections, atoms, RelAnd / RelOr
 

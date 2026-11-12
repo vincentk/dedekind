@@ -378,7 +378,7 @@ struct Prior {
  * that reads @c IsIsomorphism<In<N>> (@c :morphism), which an @c inverse(In<N>)
  *  overload would declare.  ℕ's @c Numeral declares one (@c sets:cardinality).
  *  The others do not, each for its own reason, witnessed on values below: ℤ
- *  (@c int, @c Integer) is a group, @c S(−1) @c = @c Z; the bounded chains
+ *  (@c int, @c IntExpr) is a group, @c S(−1) @c = @c Z; the bounded chains
  *  (K₃) saturate, so @c S is not injective at ⊤; and the signed machine
  *  integers have no value at @c S(max) at all, the same refusal as their ring
  *  claim (@c sets:cardinality). */

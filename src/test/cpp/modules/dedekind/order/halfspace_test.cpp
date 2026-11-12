@@ -347,8 +347,8 @@ TEST_CASE("order:halfspace — a ray at the carrier's end is a value fact",
   // and on ℤ (no floor) {z < 0} is neither.
   STATIC_CHECK((ℕ & (π >= 0u)) == ℕ);
   STATIC_CHECK((𝔸<int>{} & (π > std::numeric_limits<int>::max())) == Ø<int>{});
-  STATIC_CHECK(!((𝔸<Integer>{} & (π < 0)) == Ø<Integer>{}));
-  STATIC_CHECK(!((𝔸<Integer>{} & (π >= 0)) == 𝔸<Integer>{}));
+  STATIC_CHECK(!((𝔸<IntExpr<>>{} & (π < 0)) == Ø<IntExpr<>>{}));
+  STATIC_CHECK(!((𝔸<IntExpr<>>{} & (π >= 0)) == 𝔸<IntExpr<>>{}));
 }
 
 TEST_CASE(
@@ -375,7 +375,7 @@ TEST_CASE("order:halfspace — the carrier gate is the registered chain",
           "[order][halfspace][witness]") {
   STATIC_CHECK(IntervalOver<int>);
   // ℤ: a chain.
-  STATIC_CHECK(IntervalOver<Integer>);
+  STATIC_CHECK(IntervalOver<IntExpr<>>);
   // A raw float has no certified order (NaN breaks reflexivity).
   STATIC_CHECK_FALSE(IntervalOver<double>);
 }
