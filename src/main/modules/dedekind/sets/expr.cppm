@@ -38,6 +38,7 @@
  */
 module;
 
+#include <algorithm>  // std::ranges::transform: one copy per join
 #include <array>
 #include <bit>  // std::bit_cast: a double's bits, exactly
 #include <compare>
@@ -313,9 +314,17 @@ class Expr {
   static constexpr Expr joined(const Expr& a, const Expr& b,
                                const Combine& combine) {
     const auto offset = static_cast<std::uint32_t>(a.size_);
-    const Expr both = dedekind::category::fold(
-        std::views::iota(std::size_t{0}, b.size_), a, AppendShifted{b, offset});
-    return both.appended(combine(a.root(), offset + b.root()));
+    if (a.size_ + b.size_ >= N) __builtin_trap();  // the declared bound
+    // One copy of the term, not one per node: b's nodes are written in place.
+    Expr e = a;
+    std::ranges::transform(
+        b.nodes_.begin(),
+        b.nodes_.begin() + static_cast<std::ptrdiff_t>(b.size_),
+        e.nodes_.begin() + static_cast<std::ptrdiff_t>(offset),
+        ShiftNode{offset});
+    e.nodes_[a.size_ + b.size_] = combine(a.root(), offset + b.root());
+    e.size_ = a.size_ + b.size_ + 1;
+    return e;
   }
 
   struct MakeAdd {
@@ -350,13 +359,11 @@ class Expr {
       return nodes::Div{n.a + by, n.b + by};
     }
   };
-  /** @brief One step of @c joined: the node of @c from at @c i, shifted,
-   *  appended. */
-  struct AppendShifted {
-    Expr from;
-    std::uint32_t offset;
-    constexpr Expr operator()(const Expr& acc, std::size_t i) const {
-      return acc.appended(std::visit(Shift{offset}, from.nodes_[i]));
+  /** @brief A node of @c joined's right operand, its operands shifted. */
+  struct ShiftNode {
+    std::uint32_t by;
+    constexpr node_type operator()(const node_type& n) const {
+      return std::visit(Shift{by}, n);
     }
   };
   /** @brief The word of the first node, always an atom: children come before

@@ -116,7 +116,7 @@ using namespace dedekind::sets;
  *
  * @details Structural C++20 NTTP-compatible layout: primal / tangent fields
  *          are public so the type can be used as a non-type template
- *          parameter (e.g. `Halfspace2D<Dual<Rat>, …>` for parametric LP).
+ *          parameter (e.g. for compile-time parametric LP).
  *          Backward-compatible accessors `value()` / `derivative()` are
  *          kept for existing call sites.
  */

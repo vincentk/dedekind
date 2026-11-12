@@ -68,7 +68,7 @@ SOURCES = [
         _PYTHON_DIR / "showcase_09b_lp_runtime_residual.cpp",
         _PYTHON_DIR / "showcase_09b_lp_runtime_residual.ll",
     ),
-    # showcase_12 is the compile-time NTTP form of the bit-ops fast path
+    # showcase_12 is the compile-time form of the bit-ops fast path
     # (unit-square pack — signed-unimodular + axis-aligned).  The fast
     # path folds at translation time and the witness IR is `ret i64 1`.
     (
@@ -300,15 +300,15 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             if not re.search(r"^\s*ret i64 2\s*$", block, re.MULTILINE):
                 raise AssertionError(
                     f"Expected {symbol} to collapse to `ret i64 2` in IR "
-                    "(the optimum is the typed constant Vec2<Rat, 2, 2>)."
+                    "(the optimum (2, 2) is evaluated at compile time)."
                 )
     elif "showcase_12_lp_unimodular_fast_path" in name:
         # The bit-ops fast path on the unit-square pack (signed-unimodular
-        # + axis-aligned) folds at compile time to Vec2<Rat, 1, 1>.  The
+        # + axis-aligned) is evaluated at compile time to (1, 1).  The
         # two witness symbols should collapse to `ret i64 1` — the
         # numerator of each coordinate as a literal in the emitted IR,
         # the fast-path dispatch having selected `detail::maximize_impl_axis_aligned`
-        # at the NTTP entry @ref maximize.
+        # in `maximize_with_values`.
         for symbol in ("witness_lp_fast_optimum_x", "witness_lp_fast_optimum_y"):
             block = extract_function_block(ir_text, symbol)
             if block is None:
@@ -318,7 +318,7 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             if not re.search(r"^\s*ret i64 1\s*$", block, re.MULTILINE):
                 raise AssertionError(
                     f"Expected {symbol} to collapse to `ret i64 1` in IR "
-                    "(fast-path optimum is the typed constant Vec2<Rat, 1, 1>)."
+                    "(the fast-path optimum (1, 1) is evaluated at compile time)."
                 )
     elif "showcase_12b_lp_unimodular_runtime" in name:
         # The runtime counterpart of showcase_12: the same fast-path

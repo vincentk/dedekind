@@ -2,12 +2,12 @@
  * @file
  * src/test/cpp/modules/dedekind/python/showcase_12b_lp_unimodular_runtime.cpp
  * @brief Showcase 12b — Runtime call site of the bit-ops fast-path kernel.
- *        Companion IR fixture to @c showcase_12 (compile-time NTTP form).
+ *        Companion IR fixture to @c showcase_12 (compile-time form).
  *
  * @section Description
- * Showcase 12 (@c showcase_12_lp_unimodular_fast_path.cpp) folds the
- * fast-path reduction to a typed constant @c Vec2<Rat, 1, 1> via the
- * NTTP entry @c maximize<>(); the witness IR is a literal load.
+ * Showcase 12 (@c showcase_12_lp_unimodular_fast_path.cpp) evaluates the
+ * fast-path reduction at compile time to the constant (1, 1); the witness
+ * IR is a literal load.
  *
  * This fixture calls the @em same kernel through the runtime entry
  * point @c maximize_axis_aligned_with_values<int>(span, cx, cy) — the
@@ -78,8 +78,8 @@ extern "C" __attribute__((noinline)) int witness_lp_axis_aligned_y(
 /**
  * @brief Feasibility flag from a runtime axis-aligned polytope.
  *
- * The runtime entry reports feasibility through a flag rather than
- * the NTTP path's @c static_assert; for the bit-ops fast path this
+ * The runtime entry reports feasibility through a flag; for the
+ * bit-ops fast path this
  * corresponds to "all four axis bounds present and @c lo @c ≤ @c hi".
  */
 extern "C" __attribute__((noinline)) bool witness_lp_axis_aligned_feasible(

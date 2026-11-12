@@ -2,13 +2,12 @@
  * @file
  * src/test/cpp/modules/dedekind/python/showcase_09b_lp_runtime_residual.cpp
  * @brief Showcase 9b — Runtime call site of the same LP kernel as
- *        showcase_09 (compile-time NTTP form).  Companion IR fixture.
+ *        showcase_09 (compile-time form).  Companion IR fixture.
  *
  * @section Description
  * Showcase 9 (`showcase_09_lp_vertex_typed_constant.cpp`) calls
- * `detail::maximize_impl<Rat>` at compile time through the NTTP
- * packaging `maximize<Rat, cx, cy, Hs...>()`; the compiler folds the
- * full active-set enumeration to a typed constant `Vec2<Rat, 2, 2>` and
+ * `maximize_with_values<long>` with constant arguments; the compiler
+ * evaluates the full active-set enumeration to the constant (2, 2) and
  * the emitted IR for `witness_lp_optimum_x` is `ret i64 2`.
  *
  * This fixture calls the *same* kernel through the power-user runtime
@@ -75,8 +74,8 @@ extern "C" __attribute__((noinline)) double witness_lp_runtime_y(
 /**
  * @brief Feasibility flag from a runtime polytope.
  *
- * The runtime entry point reports feasibility through a flag rather
- * than the NTTP path's `static_assert`; Python callers branch on it.
+ * The runtime entry point reports feasibility through a flag; Python
+ * callers branch on it.
  */
 extern "C" __attribute__((noinline)) bool witness_lp_runtime_feasible(
     const HalfspaceTriple<double>* hs, std::size_t n, double cx, double cy) {

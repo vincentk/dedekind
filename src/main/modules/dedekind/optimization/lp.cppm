@@ -1,36 +1,20 @@
 /**
  * @file dedekind/optimization/lp.cppm
  * @partition :lp
- * @brief Linear programming with the optimum as a typed constant.
+ * @brief Linear programming in 2D: one constexpr kernel, its optimum a Set.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
  * @section lp__Overview
- * Compile-time 2D LP over a structural ring-like scalar (paper-facing
- * carrier: `RatExpr`). A problem instance is named at the type
- * level — objective as two NTTPs, constraints as a pack of
- * `Halfspace2D<T, a, b, c>` carriers. The reduction
- * `argmax(G, U)` over a polytope-Set `G` and a `LinearFunctional U`
- * returns the optimum as a Set whose predicate type carries `(x*, y*)`
- * at the type level — "the optimum IS a type", literally, via the
- * Set DSL.
- *
- * @section lp__Comonadic_Framing
- * The reduction is structurally a co-Kleisli arrow. Conceptually:
- *
- *     Path<Vec2<T, x, y>>  →  Vec2<T, x*, y*>
- *
- * i.e. a path of vertex-candidates (one per pair of binding constraints)
- * with an objective-directed argmax extractor. This mirrors the Path
- * co-Kleisli machinery in `dedekind.sequences:path` exactly in shape;
- * the implementation uses NTTP parameter packs rather than a runtime
- * `Path<T>` because the paper-facing claim requires the output at the
- * type level, not as a `constexpr` value.
- *
- * FIXME: unify with `dedekind.sequences:path` co-Kleisli arrows once an
- * NTTP-friendly `Path` carrier lands (tracked informally; the conceptual
- * pattern matches exactly).
+ * A 2D LP over an ordered ring-like scalar: halfspaces `a·x + b·y ≤ c` as
+ * values (@ref HalfspaceTriple), an objective `(cx, cy)`, and one
+ * `constexpr` kernel that enumerates the active sets, solves each by
+ * Cramer's rule, and keeps the feasible vertex with the greatest objective.
+ * The optimum is a Set: the singleton of the vertex, or empty where the LP
+ * is infeasible (@ref LPSolutionPredicate).  Called with constant
+ * arguments the kernel is evaluated at compile time, on values; called at
+ * run time it runs.
  *
  * @section lp__Paper_Facing_Showcase
  *     maximize 3x + 2y
@@ -39,34 +23,21 @@
  *                -x       ≤ 0       (H3:  x ≥ 0)
  *                     -y  ≤ 0       (H4:  y ≥ 0)
  *
- *     → optimum = Vec2<Rat, 2, 2>, objective value = 10.
+ *     → optimum (2, 2), objective value = 10.
  *
- * Active set at the optimum: {H1, H2} — both non-axis-aligned. The 2×2
- * solve uses `Invertible2x2<Rat, 1, 1, 2, 1>` (det = -1), giving the
- * ℚ-exact intersection (2, 2) without rounding.
+ * Active set at the optimum: {H1, H2}, both non-axis-aligned, det = −1.
  *
  * @section lp__Scope
  * - 2D polytopes only (rank-2 narrowing from #364).
- * - **Feasible + bounded** inputs only. An infeasible polytope (empty
- *   feasible region) surfaces as `VertexCandidate::feasible == false`
- *   on the returned candidate; callers inspect that flag on the
- *   result of `maximize_with_values()`.  Unbounded polytopes are *not*
- *   detected by this reduction: enumeration returns the best vertex
- *   among the ${n \choose 2}$ active-set candidates, so an unbounded
- *   objective over an unbounded polytope will yield a finite vertex
- *   that is not the true supremum.  The paper-facing showcases are
- *   bounded by construction; unbounded-LP detection is tracked as a
- *   follow-up.
- * - Carrier must (today) satisfy `HasRingOperators<T>` plus division and
- *   comparison, matching the actual `Invertible2x2` Cramer solve
- *   below. The `requires` clauses are deliberately weaker than what
- *   the body needs — tightening to `HasFieldOperators<T>` plus an
- *   ordering requirement, or to a proper `IsField<T, +, *>` once the
- *   latter lands in `dedekind.category:total`, is tracked under
- *   epic #374 (algebraic concept vocabulary alignment).  Paper-facing
- *   `T = RatExpr` covers all the real
- *   requirements; `Dual<RatExpr>` layering works for parametric
- *   sensitivity analysis (`[dual]`-tagged test).
+ * - **Feasible + bounded** inputs only. An infeasible polytope surfaces as
+ *   the empty optimum.  Unbounded polytopes are *not* detected:
+ *   enumeration returns the best vertex among the ${n \choose 2}$
+ *   active-set candidates, so an unbounded objective yields a finite
+ *   vertex that is not the true supremum.  Unbounded-LP detection is
+ *   tracked as a follow-up.
+ * - Over ℚ (@c RatExpr) every vertex is exact, each store canonical; over a
+ *   word, Cramer's division is exact where the determinants are ±1.
+ *   `Dual<RatExpr>` layers parametric sensitivity analysis.
  *
  * @note "Modellbildung ist die halbe Miete."
  *       (Modelling is half the battle.)
@@ -74,7 +45,6 @@
  */
 module;
 
-#include <array>
 #include <concepts>
 #include <cstddef>
 #include <limits>
@@ -85,82 +55,10 @@ export module dedekind.optimization:lp;
 import dedekind.algebra;        // HasRingOperators constraint
 import dedekind.category;       // Boole — Set's logic species (#747)
 import dedekind.numbers;        // RatExpr<>
-import dedekind.linear_algebra; // Invertible2x2, Vec2
+import dedekind.linear_algebra; // Vec2V: the optimum's point
 import dedekind.sets;           // Set — DSL participants (#747)
 
 namespace dedekind::optimization {
-
-using dedekind::linear_algebra::Vec2;
-
-/**
- * @brief 2D halfspace `a·x + b·y ≤ c`, entries as NTTPs.
- *
- * Convention: constraints are in `≤`-normal form. For `≥` constraints,
- * negate coefficients and bound: `x ≥ 0` becomes
- * `Halfspace2D<T, -1, 0, 0>`.
- */
-// HasRingOperators<T> here: Halfspace2D evaluates `a*x + b*y` and a
-// scalar comparison; it does not depend on ring axioms of T (no
-// associativity / commutativity / identity claim is made), only on the
-// operators compiling and closing.  See #393 for the audit rationale.
-export template <typename T, T a, T b, T c>
-  requires dedekind::algebra::HasRingOperators<T>
-struct Halfspace2D {
-  using scalar_type = T;
-  static constexpr T coeff_x = a;
-  static constexpr T coeff_y = b;
-  static constexpr T bound = c;
-
-  /** @brief `a·x + b·y ≤ c` evaluated at a specific (x, y). */
-  template <T x, T y>
-  static constexpr bool contains() {
-    return !(c < a * x + b * y);
-  }
-
-  /** @brief Value-level membership check, for runtime / constexpr use. */
-  static constexpr bool contains_value(T x, T y) {
-    return !(c < a * x + b * y);
-  }
-};
-
-/** @section lp__Structural_Classifiers
- *
- *  Structural properties of halfspace packs that the @ref maximize NTTP
- *  entry uses to dispatch among the §5 triptych: the signed-unimodular
- *  fast path, the generic Cramer fold, and the @c static_assert refusal
- *  for infeasible packs.  Algebraic gates over the halfspace family —
- *  the dispatch is driven by what the constraints @em are, not by what
- *  the call site says they should be.
- */
-namespace detail {
-
-/** @brief Per-halfspace check: @c (coeff_x, coeff_y) ∈ {−1, 0, +1}².
- *
- *  @details Gated on @c T{-1} being a valid construction so unsigned
- *  halfspace carriers gracefully classify as @c false rather than
- *  ill-forming the classifier (which would otherwise emit a narrowing
- *  conversion error on @c unsigned{-1} under @c -Wconversion ).  Per
- *  Copilot review on PR #751.
- */
-template <typename H>
-constexpr bool entries_in_unit_range_v = []() {
-  using T = typename H::scalar_type;
-  if constexpr (requires { T{-1}; }) {
-    return (H::coeff_x == T{-1} || H::coeff_x == T{} || H::coeff_x == T{1}) &&
-           (H::coeff_y == T{-1} || H::coeff_y == T{} || H::coeff_y == T{1});
-  } else {
-    return false;
-  }
-}();
-
-/** @brief Per-halfspace check: at least one of @c (coeff_x, coeff_y) is zero —
- *  the halfspace is axis-aligned (constrains x or y but not both).
- */
-template <typename H>
-constexpr bool axis_aligned_v = H::coeff_x == typename H::scalar_type{} ||
-                                H::coeff_y == typename H::scalar_type{};
-
-}  // namespace detail
 
 /** @brief Carrier requirements for the bit-ops fast-path kernel.
  *
@@ -182,44 +80,7 @@ concept SuitableForAxisAlignedFastPath =
       requires(T{} - T{1}) < T{};
     };
 
-/** @brief Pack-level concept: every halfspace has entries in {−1, 0, +1}.
- *
- *  @details Necessary structural condition for the bit-ops fast path in
- *  @ref maximize ; the name describes what the concept @em mechanically
- *  checks rather than the proper @c signed-unimodular property (which
- *  would require pairwise @c |det| ≤ 1).  Used in combination with
- *  @ref IsAxisAlignedPolytope as the fast-path dispatch gate: in the
- *  axis-aligned + unit-range scope each pair of halfspaces has
- *  determinant @c a_i·b_j @c − @c b_i·a_j with exactly one of the
- *  products nonzero (the other has a zero coefficient), so @c |det|
- *  ∈ {0, 1} exactly — the combined gate IS proper signed-unimodular
- *  for 2D axis-aligned halfspaces.  The fast-path division therefore
- *  reduces to a sign flip and the carrier multiplications collapse to
- *  additions, subtractions, and sign flips at the IR level.
- *
- *  Algebraic gate per `feedback_algebraic_over_architectural_constraints`.
- */
-export template <typename... Hs>
-concept HasUnitRangeEntries = (detail::entries_in_unit_range_v<Hs> && ...);
-
-/** @brief Pack-level concept: every halfspace is axis-aligned.
- *
- *  @details Combined with @ref HasUnitRangeEntries this is the dispatch
- *  gate for the bit-ops fast path in @ref maximize : axis-aligned halfspaces
- *  with entries in {−1, 0, +1} reduce the LP to per-axis bound extraction,
- *  with vertex selection driven by the sign of the objective coefficients.
- *  No multiplication, no division — only comparisons and sign flips remain
- *  in the IR.
- */
-export template <typename... Hs>
-concept IsAxisAlignedPolytope = (detail::axis_aligned_v<Hs> && ...);
-
-/** @brief Value-level halfspace carrier @c (a, b, c) for the bridge
- *  kernel.  Paired with the NTTP carrier @ref Halfspace2D: an instance
- *  of @c Halfspace2D<T, a, b, c> destructures into a @c HalfspaceTriple
- *  <T>{a, b, c} for the uniform value-vector the kernel consumes.  The
- *  two structures share one role — the halfspace — split across the
- *  type/value boundary the bridge straddles.
+/** @brief A halfspace @c a·x + b·y ≤ c, as the value the kernel consumes.
  */
 export template <typename T>
 struct HalfspaceTriple {
@@ -228,11 +89,8 @@ struct HalfspaceTriple {
   T c;
 };
 
-/** @brief Reduction output: optimum coordinates with a feasibility flag.
- *
- *  The @c .feasible flag distinguishes a genuine optimum from an empty
- *  feasible region — the runtime call site inspects the flag; the NTTP
- *  call site checks it via @c static_assert in @ref maximize.
+/** @brief Reduction output: optimum coordinates with a feasibility flag,
+ *  which distinguishes a genuine optimum from an empty feasible region.
  */
 export template <typename T>
 struct VertexCandidate {
@@ -243,15 +101,10 @@ struct VertexCandidate {
 
 /** @section lp__LP_Reduction_Internals
  *
- *  Value-level helpers used by the bridge kernel.  The kernel itself
- *  (@ref detail::maximize_impl) is one @c constexpr function called from
- *  both modes — the NTTP packaging @ref maximize materialises a
- *  @c constexpr @c std::array of triples and hands its span to the
- *  single public entry @ref maximize_with_values (folds at compile
- *  time); the runtime call site hands a @c std::vector-backed span to
- *  the same @ref maximize_with_values (runs at call time).  Same code
- *  path, two evaluation modes, selected by the constexpr-ness of the
- *  arguments at the call site.
+ *  The kernel (@ref detail::maximize_impl) is one @c constexpr function:
+ *  handed a span over a @c constexpr @c std::array it is evaluated at
+ *  compile time, over a @c std::vector at run time.  Same code path, two
+ *  evaluation modes, selected by the constexpr-ness of the arguments.
  */
 namespace detail {
 
@@ -269,11 +122,14 @@ namespace detail {
 template <typename T>
 constexpr VertexCandidate<T> solve_active_set(const HalfspaceTriple<T>& h1,
                                               const HalfspaceTriple<T>& h2) {
-  const T det = h1.a * h2.b - h1.b * h2.a;
+  using dedekind::sets::canonical;
+  const T det = canonical(h1.a * h2.b - h1.b * h2.a);
   const auto d = dedekind::category::divisor(det);
   if (!d) return {T{}, T{}, false};  // singular: parallel
-  const T x = (h1.c * h2.b - h1.b * h2.c) / *d;
-  const T y = (h1.a * h2.c - h1.c * h2.a) / *d;
+  // Each store is canonical: the identity on a word, the normal form on a
+  // term, so a vertex of ℚ stays within its term's bound.
+  const T x = canonical((h1.c * h2.b - h1.b * h2.c) / *d);
+  const T y = canonical((h1.a * h2.c - h1.c * h2.a) / *d);
   return {x, y, true};
 }
 
@@ -284,10 +140,8 @@ constexpr VertexCandidate<T> solve_active_set(const HalfspaceTriple<T>& h1,
  *        an empty feasible set.
  *
  * @details One @c constexpr kernel for both evaluation modes.  Called
- * with a @c constexpr @c std::span (e.g. from @c maximize_with_values
- * below, when @c maximize materialises the NTTP pack as a fixed-size
- * @c std::array), the reduction folds at translation time and the
- * optimum collapses to a typed constant.  Called with a runtime
+ * with a @c constexpr @c std::span, the reduction is evaluated at
+ * translation time and the optimum is a constant.  Called with a runtime
  * @c std::span (e.g. over a @c std::vector materialised from a Python
  * list of triples), the same function runs at runtime — same code
  * path, same active-set enumeration, same carrier-aware
@@ -318,7 +172,8 @@ constexpr VertexCandidate<T> maximize_impl(
       }
       if (!feasible) continue;
 
-      const T obj = cx * v.x + cy * v.y;
+      using dedekind::sets::canonical;  // a term's, or a hidden friend's
+      const T obj = canonical(cx * v.x + cy * v.y);
       if (!best_set || best_obj < obj) {
         best_set = true;
         best_obj = obj;
@@ -334,9 +189,9 @@ constexpr VertexCandidate<T> maximize_impl(
  *        polytopes.  Sibling of @ref maximize_impl ; same return shape,
  *        same constexpr-callable / runtime-callable bridge property.
  *
- * @details Precondition (caller's responsibility, statically gated by
- * @c HasUnitRangeEntries && @c IsAxisAlignedPolytope at the @ref maximize
- * dispatch site): every halfspace in @c constraints has
+ * @details Precondition (checked by the dispatch in
+ * @ref maximize_with_values , and defended by the kernel itself): every
+ * halfspace in @c constraints has
  * @c (a, b) ∈ {−1, 0, +1}² with at least one coefficient zero.  Under
  * this precondition each halfspace contributes one bound on one axis,
  * the active set degenerates to per-axis bracketing, and the optimum
@@ -366,9 +221,8 @@ constexpr VertexCandidate<T> maximize_impl_axis_aligned(
   for (std::size_t i = 0; i < N; ++i) {
     const auto& h = constraints[i];
     // Precondition guard: each halfspace must be axis-aligned with
-    // @c (a, b) ∈ {−1, 0, +1}².  The NTTP entry @ref maximize gates
-    // this via @c HasUnitRangeEntries && @c IsAxisAlignedPolytope; the
-    // exported runtime entry @ref maximize_axis_aligned_with_values is
+    // @c (a, b) ∈ {−1, 0, +1}².  The exported entry
+    // @ref maximize_axis_aligned_with_values is
     // reachable directly, so the kernel rejects out-of-range coefficients
     // by collapsing to the infeasible sentinel rather than silently
     // mis-solving with @c h.a = 2 read as @c +1·x.  Honest Rejection
@@ -448,10 +302,7 @@ constexpr VertexCandidate<T> maximize_impl_axis_aligned(
  *  @details Used as the predicate of the runtime entries' output Set:
  *  membership is @c feasible @c && @c v @c == @c point , so the Set
  *  is a singleton @c {point} when the LP is feasible and empty when
- *  it isn't.  Mirrors @ref Singleton2DPredicate / @c EmptyPredicate
- *  on the NTTP path; the type-level regime there becomes a value-
- *  level regime here, with the same Set carrier on both sides of the
- *  bridge.  Callers may use @c Set::contains for membership queries
+ *  it isn't.  Callers may use @c Set::contains for membership queries
  *  or inspect the predicate's @c point / @c feasible directly when
  *  scalar extraction is needed (e.g. interop with Python).
  */
@@ -470,8 +321,7 @@ struct LPSolutionPredicate {
 
 /** @brief Lift a runtime optimal locus into a @c :expressions Set
  *  whose predicate carries @c (point, feasible) at the value level.
- *  Mirrors @ref lp_singleton_set / @ref lp_empty_set on the runtime
- *  path: the Set is a singleton @c {point} when feasible, empty when
+ *  The Set is a singleton @c {point} when feasible, empty when
  *  not, with the same Set type either way. */
 export template <typename T>
 constexpr auto lp_runtime_solution_set(dedekind::linear_algebra::Vec2V<T> point,
@@ -484,14 +334,14 @@ constexpr auto lp_runtime_solution_set(dedekind::linear_algebra::Vec2V<T> point,
 
 /** @section lp__F_Algebra_Witness
  *
- *  Inline type-witness: the output Set of @ref argmax is an F-algebra
+ *  Inline type-witness: the output Set of the reduction is an F-algebra
  *  (Mac~Lane ch.~V, Pierce~1991 §5; the project's @c category::IsFAlgebra
  *  concept).  This pins the catamorphism @em shape mechanically — the
  *  output Set carries a structure map @c F<X> @c → @c X for the
  *  carrier @c X @c = @c Set<Vec2V<T>, Boole,
  *  LPSolutionPredicate<T>> .  The witness uses the identity endofunctor
  *  ( @c F(X) @c = @c X ); the catamorphism interpretation — that
- *  @c argmax is the unique morphism into this algebra from the initial
+ *  the reduction is the unique morphism into this algebra from the initial
  *  halfspace-list F-algebra carrying the polytope's pack — additionally
  *  requires F to be the halfspace-list functor and the opt-in
  *  @c is_initial_f_algebra_v registration that captures the universal
@@ -527,7 +377,7 @@ constexpr auto lp_step_arrow =
 
 // Inline type witness: the output Set is an F-algebra for the
 // identity endofunctor — the catamorphism shape on the strict-form
-// side of @ref argmax .  Carrier is @c RatExpr (matches the
+// side of the reduction.  Carrier is @c RatExpr (matches the
 // paper-facing T = ℚ); the witness lifts uniformly to any carrier
 // satisfying the same shape.
 static_assert(dedekind::category::IsFAlgebra<
@@ -544,20 +394,17 @@ static_assert(dedekind::category::IsFAlgebra<
  *  and delegates to the @c constexpr kernel @ref detail::maximize_impl.
  *  Selection between evaluation modes is a property of the call site:
  *
- *  - Called with a span over a @c constexpr @c std::array (e.g. from
- *    @ref maximize, which materialises the NTTP pack), every argument
- *    is a constant expression and the call folds at translation time.
+ *  - Called with a span over a @c constexpr @c std::array, every
+ *    argument is a constant expression and the call is evaluated at
+ *    translation time.
  *
  *  - Called with a span over runtime data (e.g. a @c std::vector
  *    populated from a Python list of triples through the nanobind
  *    facade), the arguments are not constant expressions and the call
  *    runs at runtime.
  *
- *  One function, two modes — the paper's two-way bridge between value
- *  and type-level evaluation literally collapsed onto one definition.
- *  The compile-time @em packaging surface @ref maximize sits on top of
- *  this entry to lift the result back into an NTTP @c Vec2<T, x*, y*>;
- *  it is the only thing in this file that performs the type-level lift.
+ *  One function, two modes: compile-time and run-time evaluation on one
+ *  definition.
  */
 export template <typename T>
   requires dedekind::algebra::HasRingOperators<T>
@@ -566,9 +413,8 @@ constexpr auto maximize_with_values(
   // Mechanical dispatch: scan the span for structural fast-path
   // eligibility (every halfspace has @c (a, b) ∈ {−1, 0, +1}² with at
   // least one zero coefficient) and route to the bit-ops kernel when
-  // it qualifies, else the generic Cramer kernel.  Mirrors the NTTP
-  // entry's @c if @c constexpr dispatch at runtime — the type system
-  // selects the kernel from the input's structure end-to-end.
+  // it qualifies, else the generic Cramer kernel: the kernel is selected
+  // from the input's structure.
   VertexCandidate<T> v{T{}, T{}, false};
   if constexpr (SuitableForAxisAlignedFastPath<T>) {
     const T one{1};
@@ -598,9 +444,8 @@ constexpr auto maximize_with_values(
 }
 
 /** @brief Runtime entry for the bit-ops fast-path kernel.  Same shape as
- *  @ref maximize_with_values ; the NTTP entry @ref maximize statically
- *  gates this path via @c HasUnitRangeEntries and @c IsAxisAlignedPolytope ,
- *  but the runtime entry is also reachable directly, so the kernel
+ *  @ref maximize_with_values , which dispatches here only on an eligible
+ *  pack; this entry is also reachable directly, so the kernel
  *  defensively validates each halfspace and collapses the result to the
  *  empty Set (the output Set's @c LPSolutionPredicate carries
  *  @c feasible @c == @c false at the value level) on:
@@ -652,360 +497,6 @@ constexpr auto maximize_cramer_with_values(
   const auto v = detail::maximize_impl<T>(halfspaces, cx, cy);
   return lp_runtime_solution_set<T>(
       dedekind::linear_algebra::Vec2V<T>{v.x, v.y}, v.feasible);
-}
-
-/** @section lp__Output_Set_Predicates
- *
- *  Predicates for the @em output side of @ref argmax — the optimal
- *  locus expressed as a @c :expressions::Set rather than a typed
- *  @c Vec2 .  The output Set's predicate type encodes the LP's
- *  mathematical regime:
- *
- *  - @ref Singleton2DPredicate carries @c (x*, y*) at the type level
- *    when the LP has a unique optimal vertex.
- *  - The existing @c :expressions::EmptyPredicate carries the empty
- *    set when the LP is infeasible.
- *  - An unbounded-face predicate is deferred until §5 needs it.
- *
- *  @ref argmax (the NTTP combinator) returns a Set whose predicate type
- *  pins the regime (singleton / empty) at the type level.  The runtime
- *  entries @ref maximize_with_values and siblings also return a Set,
- *  with the regime carried at the value level via @ref LPSolutionPredicate
- *  's @c (point, feasible) state — see @ref lp_runtime_solution_set .
- *  The §3 sets-as-rules vocabulary is the same on both sides of
- *  @c argmax — input polytope and output locus alike — at both the NTTP
- *  and runtime entries.
- */
-
-/** @brief @c :expressions predicate for the LP's unique optimal vertex
- *  at NTTP coordinates.
- *
- *  @details Carries @c (x_val, y_val) as NTTPs (structural) and exposes
- *  a stateless @c operator() — the predicate matches @c v iff
- *  @c v.x == x_val @c && @c v.y == y_val .  Cardinality is @c Finite
- *  (size 1).  Used as the output-Set predicate when @ref argmax
- *  produces a unique optimum.
- */
-export template <typename T, T x_val, T y_val>
-struct Singleton2DPredicate {
-  using Domain = dedekind::linear_algebra::Vec2V<T>;
-  static constexpr T coord_x = x_val;
-  static constexpr T coord_y = y_val;
-  using cardinality_type = dedekind::sets::Finite;
-
-  constexpr bool operator()(const Domain& p) const {
-    return p.x == x_val && p.y == y_val;
-  }
-};
-
-/** @brief Lift an NTTP @c (x*, y*) into a @c :expressions Set whose
- *  predicate carries the singleton structurally.  Mirrors
- *  @ref halfspace_set on the input side; together they make the §3 ↔
- *  §5 bridge symmetric — Set goes in, Set comes out. */
-export template <typename T, T x_val, T y_val>
-constexpr auto lp_singleton_set() {
-  return dedekind::sets::Comprehension<
-      dedekind::sets::𝔸<dedekind::linear_algebra::Vec2V<T>,
-                        dedekind::category::Boole>,
-      Singleton2DPredicate<T, x_val, y_val>>{
-      Singleton2DPredicate<T, x_val, y_val>{}};
-}
-
-/** @brief The empty optimum: @c Ø over @c Vec2V<T>, the output of @ref argmax
- *  when the LP is infeasible --- a value, not a compile event. */
-export template <typename T>
-constexpr auto lp_empty_set() {
-  return dedekind::sets::Ø<dedekind::linear_algebra::Vec2V<T>,
-                           dedekind::category::Boole>{};
-}
-
-namespace detail {
-
-/**
- * @brief NTTP packaging on top of @ref maximize_with_values returning a
- *        @c :expressions Set whose predicate type encodes the LP's
- *        mathematical regime.  Implementation of the canonical public
- *        entry @ref argmax ; callers use @ref argmax , not this.
- *
- * @details Same kernel dispatch as the runtime entries (signed-
- * unimodular fast path vs generic Cramer fold), but the return is a
- * Set whose predicate type carries the regime.  When the LP is
- * infeasible the return is a Set with @c :expressions::EmptyPredicate ;
- * no @c static_assert fires — the empty optimum is a value of the
- * output Set type.  Callers who want compile-time refusal can
- * @c static_assert on @c decltype(argmax(G, U)) themselves.
- *
- * Lives in @c detail:: because @c argmax(G, U) is the canonical public
- * Set DSL surface — input polytope and output optimum are both Sets
- * end-to-end, with no NTTP-direct shortcut exposed.
- */
-template <typename T, T cx, T cy, typename... Hs>
-  requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
-constexpr auto maximize_set() {
-  constexpr std::array<HalfspaceTriple<T>, sizeof...(Hs)> cs = {
-      HalfspaceTriple<T>{Hs::coeff_x, Hs::coeff_y, Hs::bound}...};
-  if constexpr (HasUnitRangeEntries<Hs...> && IsAxisAlignedPolytope<Hs...> &&
-                SuitableForAxisAlignedFastPath<T>) {
-    constexpr auto v = detail::maximize_impl_axis_aligned<T>(
-        std::span<const HalfspaceTriple<T>>(cs), cx, cy);
-    if constexpr (v.feasible) {
-      return lp_singleton_set<T, v.x, v.y>();
-    } else {
-      return lp_empty_set<T>();
-    }
-  } else {
-    constexpr auto v = detail::maximize_impl<T>(
-        std::span<const HalfspaceTriple<T>>(cs), cx, cy);
-    if constexpr (v.feasible) {
-      return lp_singleton_set<T, v.x, v.y>();
-    } else {
-      return lp_empty_set<T>();
-    }
-  }
-}
-
-}  // namespace detail
-
-/** @section lp__Comonadic_Extract_Witness
- *
- *  @c argmax(G, U) is structurally a comonadic counit (@c ε in the
- *  Kleisli notation): it takes the polytope-context @c G ⊆ F bundled
- *  with the objective @c U and extracts the optimal locus as a Set
- *  whose predicate type encodes the regime.  The pack-as-context view
- *  matches the textbook co-Kleisli arrow shape @c F<T> → T already
- *  noted in the file header.  The @c Polytope2D wrapper below makes
- *  the extract explicit at the type level so the witness can be
- *  pinned without changing the primary API surface.
- */
-
-/** @brief Polytope context: the (cx, cy, Hs...) pack reified as a type.
- *
- *  Carries no runtime state; it exists only so the comonadic extract
- *  has a context-carrier to consume.  Conceptually @c F<T> in the
- *  @c F<T> → T shape of the LP reduction.  Exported alongside
- *  @c lp_extract so module consumers can name the parameter type.
- */
-export template <typename T, T cx, T cy, typename... Hs>
-  requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
-struct Polytope2D final {
-  using scalar_type = T;
-  static constexpr T objective_x = cx;
-  static constexpr T objective_y = cy;
-
-  /** @brief @c ε: extract the optimal locus as a Set whose predicate
-   *  type pins the regime (singleton at NTTP coords, or empty).  The
-   *  reduction collapses to a typed constant at instantiation — the
-   *  LP-optimum-as-typed-Set claim of §5.
-   */
-  static constexpr auto extract() {
-    return detail::maximize_set<T, cx, cy, Hs...>();
-  }
-};
-
-/** @brief @c ε / extract for the LP comonadic context.  Provided as a
- *  free function so callers can write @c lp_extract(polytope) at the
- *  call site.
- */
-export template <typename T, T cx, T cy, typename... Hs>
-  requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
-constexpr auto lp_extract(Polytope2D<T, cx, cy, Hs...>) {
-  return Polytope2D<T, cx, cy, Hs...>::extract();
-}
-
-/** @section lp__Set_DSL_Slice  Halfspace meets as real `:expressions` Set DSL.
- *
- *  The §5 LP exhibit reads in the textbook frame
- *  `F : ℚ×ℚ, U : F→ℚ, G ⊆ F, opt = argmax(G, U)`, with `G` being a
- *  genuine `:expressions::Set<Vec2V<T>, Boole, P>` instance —
- *  the same DSL §3 builds out of bound-scout comprehensions, applied
- *  to the 2D LP carrier:
- *
- *      constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{})
- *                       & halfspace_set(H3{}) & halfspace_set(H4{});
- *      constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> U{};
- *      constexpr auto opt = argmax(G, U);   //  Vec2<Rat, Rat{2L}, Rat{2L}>
- *      static_assert(G.contains(opt));      //  opt ∈ G via the Set DSL
- *
- *  The integration with `:expressions` rides on the existing
- *  @c structured_and customization point (the same one @c :order:halfspace
- *  uses to collapse one-dimensional halfspace meets to singletons /
- *  intervals / empty).  @c :expressions::operator& discovers our
- *  @c structured_and overloads via ADL on the predicate types and
- *  produces a structurally-typed Set:
- *
- *      Set<Vec2V<T>, Boole,
- *          Polytope2DPredicate<T, H1, H2, H3, H4>>
- *
- *  carrying the halfspace pack inside the predicate's template parameter
- *  list — exactly what @c argmax extracts to call the kernel.  Closes
- *  FIXME(#365) in the 2D-halfspace case: the meet is no longer a lambda
- *  fall-through, it's a structural reduction the DSL recognises.
- */
-
-/** @brief @c :expressions predicate for one 2D halfspace `a·x + b·y ≤ c`.
- *
- *  Carries `(a, b, c)` as NTTPs (structural) and exposes a stateless
- *  @c operator() — the predicate Set DSL participants are built from.
- *  ADL through this type's namespace (`:optimization`) lets the
- *  @c structured_and overloads below intercept halfspace meets inside
- *  @c :expressions::operator& . */
-export template <typename T, T a, T b, T c>
-struct Halfspace2DPredicate {
-  using Domain = dedekind::linear_algebra::Vec2V<T>;
-  // `cardinality_type` here serves @em two purposes for the
-  // `:expressions::operator&` dispatch on the structured result
-  // (see `:expressions::expressions.cppm:708-715`):
-  //
-  //   1. Required for substitution well-formedness.  The Finite-elevation
-  //      branch is spelled
-  //          `requires { typename Result::cardinality_type; } &&
-  //           std::same_as<typename Result::cardinality_type, Finite>`
-  //      and the `&&` short-circuits at @em evaluation but NOT at
-  //      @em substitution: the `std::same_as<typename Result::…, Finite>`
-  //      operand is type-checked regardless of the `requires`'s truth
-  //      value.  Empirically: removing this typedef yields a hard
-  //      `no type named 'cardinality_type'` error at that line.
-  //      (FIXME on the `:expressions` side: lift the second clause into a
-  //      nested `if constexpr` so the requires guard is sufficient on its
-  //      own.)
-  //   2. Classification: matches `Set`'s own default (`ℵ_0`) so the
-  //      structured polytope ends up wrapped via the generic
-  //      `Set<T, L, Result>{…}` path rather than elevated as a Finite
-  //      result.  The right answer for the 2D polytope case.
-  //
-  // The `ℵ_0` tag is a typed defaulting choice for the DSL dispatch —
-  // NOT a paper claim about the cardinality of `Vec2V<T>` for arbitrary
-  // `T` (e.g. uncountable for `T = double`); sharper carrier-axis bounds
-  // (#622) belong on the `:sets:cardinality` ladder, not at the predicate
-  // site.
-  using cardinality_type = dedekind::sets::ℵ_0;
-
-  constexpr bool operator()(const Domain& p) const {
-    return Halfspace2D<T, a, b, c>::contains_value(p.x, p.y);
-  }
-};
-
-/** @brief @c :expressions predicate for the @em meet of N 2D halfspaces:
- *  a polytope as a single conjunctive predicate, with the halfspace
- *  pack carried at the type level so downstream combinators
- *  (@ref argmax , and anything else dispatching on the polytope's
- *  structure) can extract it. */
-export template <typename T, typename... Hs>
-struct Polytope2DPredicate {
-  using Domain = dedekind::linear_algebra::Vec2V<T>;
-  // Same typed-defaulting rationale as @ref Halfspace2DPredicate (1)
-  // substitution well-formedness for `:expressions::operator&`'s
-  // Finite-elevation branch (which references `Result::cardinality_type`
-  // outside a `requires` guard, so the typedef must exist for the body
-  // to type-check), and (2) classification — `ℵ_0` routes the structured
-  // polytope through the generic Set wrapping path.  Not a paper claim
-  // about the cardinality of `Vec2V<T>` for arbitrary `T`.
-  using cardinality_type = dedekind::sets::ℵ_0;
-
-  constexpr bool operator()(const Domain& p) const {
-    return (Hs::contains_value(p.x, p.y) && ...);
-  }
-};
-
-/** @brief Lift a @ref Halfspace2D NTTP value into a `:expressions` Set
- *  whose predicate carries the halfspace structurally. */
-export template <typename T, T a, T b, T c>
-constexpr auto halfspace_set(Halfspace2D<T, a, b, c>) {
-  return dedekind::sets::Comprehension<
-      dedekind::sets::𝔸<dedekind::linear_algebra::Vec2V<T>,
-                        dedekind::category::Boole>,
-      Halfspace2DPredicate<T, a, b, c>>{Halfspace2DPredicate<T, a, b, c>{}};
-}
-
-/** @section lp__structured_and_overloads
- *
- *  Customization point: when @c :expressions::operator& meets two
- *  predicates, it tries @c structured_and(p1, p2) via ADL before
- *  falling back to a lambda meet.  Our overloads here let the DSL
- *  recognise halfspace + halfspace, polytope + halfspace, and halfspace
- *  + polytope meets as structural reductions producing a
- *  @ref Polytope2DPredicate that carries the union of the two
- *  halfspace packs.
- *
- *  Parallels @c :order:halfspace::structured_and on 1D halfspaces; the
- *  difference is that 1D meets land in `Singleton` / `Interval` /
- *  empty (the lattice for 1D), whereas 2D halfspace meets land in
- *  `Polytope2DPredicate` (no cardinality-1 short circuit at this layer —
- *  the optimum-as-typed-constant collapse happens further down in
- *  @ref argmax via @ref maximize ).
- */
-
-/** @brief Halfspace + halfspace → polytope of two halfspaces. */
-export template <typename T, T a1, T b1, T c1, T a2, T b2, T c2>
-constexpr auto structured_and(Halfspace2DPredicate<T, a1, b1, c1>,
-                              Halfspace2DPredicate<T, a2, b2, c2>) {
-  return Polytope2DPredicate<T, Halfspace2D<T, a1, b1, c1>,
-                             Halfspace2D<T, a2, b2, c2>>{};
-}
-
-/** @brief Polytope + halfspace → polytope with the halfspace appended. */
-export template <typename T, typename... Hs, T a, T b, T c>
-constexpr auto structured_and(Polytope2DPredicate<T, Hs...>,
-                              Halfspace2DPredicate<T, a, b, c>) {
-  return Polytope2DPredicate<T, Hs..., Halfspace2D<T, a, b, c>>{};
-}
-
-/** @brief Halfspace + polytope → delegate to the canonical direction. */
-export template <typename T, T a, T b, T c, typename... Hs>
-constexpr auto structured_and(Halfspace2DPredicate<T, a, b, c>,
-                              Polytope2DPredicate<T, Hs...>) {
-  return Polytope2DPredicate<T, Halfspace2D<T, a, b, c>, Hs...>{};
-}
-
-/** @brief Polytope + polytope → concatenate the halfspace packs.  Without
- *  this overload, a right-associative meet `(H1 & H2) & (H3 & H4)` would
- *  fall through to the lambda meet in @c :expressions::operator& ;
- *  the whole point of @c structured_and is that the structural collapse
- *  must not depend on how the source bracketed the meet. */
-export template <typename T, typename... Hs1, typename... Hs2>
-constexpr auto structured_and(Polytope2DPredicate<T, Hs1...>,
-                              Polytope2DPredicate<T, Hs2...>) {
-  return Polytope2DPredicate<T, Hs1..., Hs2...>{};
-}
-
-/** @brief Linear functional `U : F → T` with NTTP-typed coefficients.
- *  Carries the objective as type parameters so @ref argmax can call the
- *  NTTP-driven implementation @ref detail::maximize_set directly without
- *  smuggling the values through function parameters. */
-export template <typename T, T cx_, T cy_>
-struct LinearFunctional {
-  using scalar_type = T;
-  static constexpr T cx = cx_;
-  static constexpr T cy = cy_;
-
-  constexpr T operator()(const dedekind::linear_algebra::Vec2V<T>& p) const {
-    return cx * p.x + cy * p.y;
-  }
-};
-
-/** @brief @c argmax(G, U) on a polytope-Set and a linear functional.
- *
- *  @c G is a Set whose predicate is a @ref Polytope2DPredicate carrying
- *  the halfspace pack; @c U is a @ref LinearFunctional carrying the
- *  objective coefficients as NTTPs.  Extracts both packs from the type
- *  level and dispatches to the kernel via @ref detail::maximize_set , returning
- *  the optimal locus as a Set — singleton @c {(x*, y*)} when the LP has
- *  a unique optimum, empty when infeasible.
- *
- *  Set in, Set out: the textbook @c argmax @c : @c Set @c → @c Set
- *  shape, with both input and output carried by the project's set-
- *  comprehension DSL.  The output Set's predicate type encodes the
- *  mathematical regime — caller pattern-matches on @c decltype(opt) if
- *  they want compile-time regime discrimination.
- */
-export template <typename T, typename L, typename... Hs, T cx, T cy>
-  requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
-constexpr auto argmax(
-    const dedekind::sets::Comprehension<
-        dedekind::sets::𝔸<dedekind::linear_algebra::Vec2V<T>, L>,
-        Polytope2DPredicate<T, Hs...>>&,
-    LinearFunctional<T, cx, cy>) {
-  return detail::maximize_set<T, cx, cy, Hs...>();
 }
 
 }  // namespace dedekind::optimization

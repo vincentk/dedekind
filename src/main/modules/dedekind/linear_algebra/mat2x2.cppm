@@ -565,10 +565,14 @@ constexpr Matrix2x2V<T> inverse(const Matrix2x2V<T>& a,
 export template <typename T>
   requires std::semiregular<T> && dedekind::algebra::HasFieldOperators<T>
 constexpr std::optional<Matrix2x2V<T>> inverse(const Matrix2x2V<T>& a) {
-  const T det = a.m11 * a.m22 - a.m12 * a.m21;
+  using dedekind::sets::canonical;  // a term's, or a hidden friend's
+  const T det = canonical(a.m11 * a.m22 - a.m12 * a.m21);
   const auto d = dedekind::category::divisor(det);
   if (!d) return std::nullopt;
-  return Matrix2x2V<T>{a.m22 / *d, (-a.m12) / *d, (-a.m21) / *d, a.m11 / *d};
+  // Each entry is stored canonical: the identity on a word, the normal form
+  // on a term.
+  return Matrix2x2V<T>{canonical(a.m22 / *d), canonical((-a.m12) / *d),
+                       canonical((-a.m21) / *d), canonical(a.m11 / *d)};
 }
 
 /** @brief @c f on every entry: the matrix2x2_functor's action on an arrow, an
