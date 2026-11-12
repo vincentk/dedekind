@@ -371,7 +371,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     set(DEDEKIND_PYTHON_PACKAGE_DIR "${DEDEKIND_PYTHON_PACKAGE_ROOT}/pynzli")
     # The package's pure-Python modules, staged next to the extensions so the
     # tests and notebooks import the build as it is, and installed alike.
-    set(PYNZLI_MODULES __init__.py _version.py jlt.py pst.py trsk.py)
+    set(PYNZLI_MODULES __init__.py _version.py jlt.py pst.py q.py trsk.py)
     list(TRANSFORM PYNZLI_MODULES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/python/pynzli/"
          OUTPUT_VARIABLE PYNZLI_MODULE_PATHS)
 
