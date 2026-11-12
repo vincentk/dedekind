@@ -138,7 +138,6 @@ The candidate selected may be a rewritten or a reversed one\cite[{\texttt{over.m
 Where a declaration's result type $\rho$ is \cppinline{auto}, its $\tau$ is the type of the body in the premise, and \textsc{T-Call}, \textsc{T-Trait} and \textsc{T-App}'s $\tau_r$ read that type.
 This is \Cpp{}'s return type deduction~\cite[{\texttt{dcl.spec.auto}}]{cpp23standard} and local type inference~\cite{pierce2000local}: the type is synthesised from the body, and nothing flows into it from a use.
 \Cpp{} refuses a use of the function before a return statement has deduced its type, and an FJlt body is a single return, so no body is typed through its own deduced type.
-The one exception's self-call is such a use, and its function writes its result type.
 A trait and its instances write \cppinline{auto} together or not at all, as the standard requires of a specialisation~\cite[{\texttt{dcl.spec.auto}}]{cpp23standard}.
 A call's type arguments are deduced as well: \textsc{T-App}'s $\overline{\sigma}$, and a call $f\texttt{(}\overline{e}\texttt{)}$ is $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)}$ at the $\overline{\sigma}$ the compiler deduces, so the rules check them and do not compute them.
 A constant is typed under the empty contexts, and \textsc{T-Const} types its name at that type in every later declaration and in the program's term, unless a parameter or field of the same name is in $\Gamma$, which shadows it, as in \Cpp{}.
@@ -156,7 +155,7 @@ Its initialiser is a constant expression whose value keeps no allocation alive p
 \textsc{(T-Node)} & \dfrac{\Delta; \Gamma \vdash t : O\texttt{<}\overline{\tau}\texttt{>} \qquad O \text{ a node of } F}{\Delta; \Gamma \vdash t : \mu F}
 \end{array}
 \]
-\caption{The rules for recursion, from the adopted library.
+\caption{The rules for recursion, one per form: over a value, the standard's fold over a range of $\mathcal{R}$; over a type, the recursion at a term type, which the library spells \cppinline{cata}.
 $^{\P}$~At each node of arity $k$.}
 \label{fig:fjlt-typing-recursion}
 \end{figure}
@@ -175,10 +174,11 @@ Listing~\ref{lst:rule3}'s \cppinline{concat} takes a range with a bounds-check, 
 A standard range with no such count, such as \cppinline{views::iota(a)}, is not in the kernel.
 \textsc{T-Fold-R} types a fold at a type variable $R$ through the assumed shape $\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$.
 The length, head and tail are its three requirements, read from the record, and a caller's concrete range supplies the record by \textsc{E-Shape} at instantiation.
-In \textsc{T-Cata}, $\mu F$ is a term type, the inductive type of the nodes that build it.
+\textsc{T-Cata} is the kernel's recursion over a type, stated once at a term type: the instances of one generic function at the nodes of $F$, each calling it at its legs' types, read as one algebra.
+There $\mu F$ is a term type, the inductive type of the nodes that build it.
 A term is a finite composition of nodes, and a node is a function object whose fields are terms.
 The algebra is applied to each node together with the folded values of its legs, the node itself still in hand.
-That is the library's interface (\cppinline{alg(t, cata(alg, leg)...)}), and the paramorphism's.
+That is the library's interface (\cppinline{alg(t, cata(alg, leg)...)}), and the paramorphism's: the library spells the recursion \cppinline{cata}, and \textsc{T-Node} reads a term of node type as $\mu F$ where the rule expects one.
 
 \paragraph{Well-founded declarations.}
 Well-formedness also requires that the declarations, taken at their type arguments, be well founded under \emph{depends on}.
@@ -189,7 +189,7 @@ A constant depends on the declarations its initialiser names.
 An operation also depends on the operations in its field, parameter and result types, each at the types it names.
 The relation is on instantiations, not on bare declarations, since a structured instance may ask for the shape that asks for it, at a smaller type.
 \cppinline{IsMonoid} at a pair calls \cppinline{unit} there, whose instance asks \cppinline{IsMonoid} at the components (Section~\ref{sec:translation:contexts}).
-The measure that falls is the pair of the depth of the type arguments and the declaration's position.
+The measure that falls is the pair of the depth of the type arguments, a count's value among them as Appendix~\ref{app:fjlt:closure} reads a non-type parameter, and the declaration's position.
 Resolution, entailment, \textsc{E-Not}'s negative premise and \textsc{E-Law}'s evaluation all recurse along that relation.
 Its being well founded makes the rules define one relation, and makes resolution terminate.
 \Cpp{} has a rule of its own for a satisfaction that depends on itself, which the condition makes unnecessary.
@@ -199,17 +199,8 @@ An instance whose head has no proper part at a slot, a type variable or a concre
 A shape calling the trait is then never asked for while the trait is resolved.
 A trait's specialisations may follow the shapes that call it, as Listing~\ref{lst:rule2}'s do, since a specialisation depends on the shape only through its body or its context.
 A term type is required strictly positive: in the translated field types of its nodes, the type occurs only directly, never under the domain of a function type.
-With one exception, a body calls only declarations it depends on.
-
-\paragraph{The one exception.}
-A function may call itself at the same instantiation on a value that visibly descends, Rule~3's step down.
-The argument in the slot of a parameter $p$ is $p / c$ with $c \geq 2$, $p \gg c$ with $c \geq 1$, or $p - 1$.
-It stands under a test of $p$ against $0$ whose branch returns without the call.
-The parameter is of an unsigned carrier, or of a type variable under a shape the kernel reads as \cppinline{IsCountWord}.
-That shape's fields are the operations the body uses and a coercion \cppinline{{ size_t(n) } -> same_as<size_t>} that preserves the count, so the count is no wider than \cppinline{size_t}.
-This admits the binary method of Listing~\ref{lst:laws}, whose \cppinline{power} halves its count \cppinline{n} of type \cppinline{N}.
-The library's \cppinline{cata} over typed terms is not this exception, as its recursion is on the type of the term, not on a value.
-It is the kernel's primitive \cppinline{cata} spelled as a generic function, which is sugar (Appendix~\ref{app:fjlt:closure}).
+A body calls only declarations it depends on, a generic function itself among them at smaller type arguments, which is the kernel's recursion over a type and which the order makes finite.
+No function calls itself at the same instantiation: a recursion on a value is a fold over a range.
 
 \paragraph{Inferred laws.}
 \label{app:fjlt:inferred}

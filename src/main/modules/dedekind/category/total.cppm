@@ -1259,12 +1259,13 @@ namespace detail_concat {
 template <typename T, typename Op, IsCountWord N>
   requires IsMonoid<T, Op>
 constexpr T power(const T& x, N n, Op op) {
+  // n's bits, from the top
   const auto bits = static_cast<std::size_t>(std::bit_width(n));
   return std::ranges::fold_left(
-      std::views::iota(std::size_t{0}, bits), unit<T>(op),
+      std::views::iota(0uz, bits), unit<T>(op),
       [x, n, op, bits](const T& acc, std::size_t i) {
         const T sq = op(acc, acc);
-        return (n >> (bits - 1 - i)) % N{2} == N{1} ? op(sq, x) : sq;
+        return (n >> (bits - 1 - i)) % 2 == 1 ? op(sq, x) : sq;
       });
 }
 }  // namespace detail_concat
