@@ -264,6 +264,7 @@ rule3-no-self-recursion      src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
 rule3-bounded-fold           src/main/modules/dedekind/sets/boundaries.cppm  sets  0
 rule3-bounded-fold           src/main/modules/dedekind/sets/cardinality.cppm  sets  0
 rule3-bounded-fold           src/main/modules/dedekind/sets/computability.cppm  sets  0
+rule3-bounded-fold           src/main/modules/dedekind/sets/expr.cppm  sets  0
 rule3-bounded-fold           src/main/modules/dedekind/sets/expressions.cppm  sets  0
 rule3-bounded-fold           src/main/modules/dedekind/sets/extensional.cppm  sets  8
 rule3-bounded-fold           src/main/modules/dedekind/sets/heterogeneous.cppm  sets  0
@@ -289,6 +290,7 @@ rule1-no-reference-returns   src/main/modules/dedekind/sets/si*.cppm  sets  0
 rule1-no-reference-returns   src/main/modules/dedekind/sets/computability.cppm  sets  0
 rule1-no-reference-returns   src/main/modules/dedekind/sets/cardinality.cppm  sets  0
 rule1-forwarding-reference-params src/main/modules/dedekind/sets/[!es]*.cppm  sets  0
+rule1-forwarding-reference-params src/main/modules/dedekind/sets/expr.cppm  sets  0
 rule1-forwarding-reference-params src/main/modules/dedekind/sets/extensional.cppm  sets  0
 rule1-forwarding-reference-params src/main/modules/dedekind/sets/expressions.cppm  sets  8
 rule1-forwarding-reference-params src/main/modules/dedekind/sets/singleton.cppm  sets  3
