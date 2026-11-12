@@ -1,13 +1,8 @@
 # Rule 3: recursion is structural.  A function that calls itself at the same
-# instantiation recurses on a value, which passes only where the descent is
-# visible in the syntax: the argument in the slot of an unsigned parameter
-# p of the function is p / c (c >= 2), p >> c (c >= 1) or p - 1, under an
-# if or ?: whose condition is p, p == 0, p != 0 or p > 0, the base case.  The
-# slot matters: a descent passed in another parameter's place leaves p as it
-# was, and is refused.  The call must sit in the branch the test does not
-# select, the else of p == 0 or the then of p, p != 0, p > 0: a call in the
-# base case's branch is the recursion the test was meant to end.  A syntactic
-# reading, not a proof.
+# instantiation recurses on a value, and is refused: a recursion on a value is
+# the kernel's bounded fold (ranges::fold_left over a bounded range), never a
+# self-call, however visibly its argument descends (the binary method is a fold
+# over the bits of its count).  A syntactic reading, not a proof.
 # Recursion over a type's structure passes by construction: cata on a
 # composite calls cata on its parts, each a different specialisation, and
 # the compiler's instantiation limit bounds the rest.  Instantiations are
@@ -21,5 +16,5 @@
 # recursion; a self-reference inside a requires-expression is (clang-query
 # has no matcher for one) a known false positive.
 set traversal AsIs
-match callExpr(hasAncestor(functionDecl(hasBody(compoundStmt().bind("body")))), callee(functionDecl(hasBody(compoundStmt(equalsBoundNode("body"))))), unless(allOf(forEachArgumentWithParam(ignoringParenImpCasts(binaryOperator(anyOf(allOf(hasOperatorName("/"), hasRHS(ignoringParenImpCasts(integerLiteral(unless(equals(0)), unless(equals(1)))))), allOf(hasOperatorName(">>"), hasRHS(ignoringParenImpCasts(integerLiteral(unless(equals(0)))))), allOf(hasOperatorName("-"), hasRHS(ignoringParenImpCasts(integerLiteral(equals(1)))))), hasLHS(ignoringParenImpCasts(declRefExpr(to(parmVarDecl(hasType(isUnsignedInteger())).bind("descending"))))))), parmVarDecl(equalsBoundNode("descending"))), anyOf(allOf(hasAncestor(ifStmt(hasCondition(ignoringParenImpCasts(binaryOperator(hasOperatorName("=="), hasLHS(ignoringParenImpCasts(declRefExpr(to(parmVarDecl(equalsBoundNode("descending")))))), hasRHS(ignoringParenImpCasts(integerLiteral(equals(0))))))), hasElse(stmt().bind("live")))), anyOf(equalsBoundNode("live"), hasAncestor(stmt(equalsBoundNode("live"))))), allOf(hasAncestor(ifStmt(hasCondition(ignoringParenImpCasts(anyOf(declRefExpr(to(parmVarDecl(equalsBoundNode("descending")))), binaryOperator(hasAnyOperatorName("!=", ">"), hasLHS(ignoringParenImpCasts(declRefExpr(to(parmVarDecl(equalsBoundNode("descending")))))), hasRHS(ignoringParenImpCasts(integerLiteral(equals(0)))))))), hasThen(stmt().bind("live")))), anyOf(equalsBoundNode("live"), hasAncestor(stmt(equalsBoundNode("live"))))), allOf(hasAncestor(conditionalOperator(hasCondition(ignoringParenImpCasts(binaryOperator(hasOperatorName("=="), hasLHS(ignoringParenImpCasts(declRefExpr(to(parmVarDecl(equalsBoundNode("descending")))))), hasRHS(ignoringParenImpCasts(integerLiteral(equals(0))))))), hasFalseExpression(ignoringParenImpCasts(expr().bind("live"))))), anyOf(equalsBoundNode("live"), hasAncestor(stmt(equalsBoundNode("live"))))), allOf(hasAncestor(conditionalOperator(hasCondition(ignoringParenImpCasts(anyOf(declRefExpr(to(parmVarDecl(equalsBoundNode("descending")))), binaryOperator(hasAnyOperatorName("!=", ">"), hasLHS(ignoringParenImpCasts(declRefExpr(to(parmVarDecl(equalsBoundNode("descending")))))), hasRHS(ignoringParenImpCasts(integerLiteral(equals(0)))))))), hasTrueExpression(ignoringParenImpCasts(expr().bind("live"))))), anyOf(equalsBoundNode("live"), hasAncestor(stmt(equalsBoundNode("live")))))))), unless(hasAncestor(unaryExprOrTypeTraitExpr())), unless(hasAncestor(cxxNoexceptExpr())), unless(hasAncestor(typeLoc(loc(decltypeType())))), isExpansionInMainFile(), hasAncestor(scope))
+match callExpr(hasAncestor(functionDecl(hasBody(compoundStmt().bind("body")))), callee(functionDecl(hasBody(compoundStmt(equalsBoundNode("body"))))), unless(hasAncestor(unaryExprOrTypeTraitExpr())), unless(hasAncestor(cxxNoexceptExpr())), unless(hasAncestor(typeLoc(loc(decltypeType())))), isExpansionInMainFile(), hasAncestor(scope))
 match cxxConstructExpr(hasAncestor(cxxConstructorDecl(hasBody(compoundStmt().bind("body")))), hasDeclaration(cxxConstructorDecl(hasBody(compoundStmt(equalsBoundNode("body"))))), unless(hasAncestor(unaryExprOrTypeTraitExpr())), unless(hasAncestor(cxxNoexceptExpr())), unless(hasAncestor(typeLoc(loc(decltypeType())))), isExpansionInMainFile(), hasAncestor(scope))

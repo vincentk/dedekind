@@ -48,6 +48,7 @@ module;
 #include <concepts>
 #include <cstddef>  // std::size_t: the slot of a projection
 #include <functional>
+#include <limits>  // std::numeric_limits: the bits of the budget
 #include <optional>
 #include <type_traits>
 #include <utility>  // std::move  // std::integral_constant: the slot as a type
@@ -1476,23 +1477,26 @@ constexpr Orbit<X> step(const F& f, const Orbit<X>& o, const Equal& equal) {
     next.fixed = static_cast<bool>(std::invoke(equal, next.x, o.x));
   return next;
 }
-/** @brief @f$f^n@f$ on @c o by halving, as @c concat on copies; a known
- *  fixed point is returned as it is; the state is moved, never copied.
- *  @param f the endomorphism.  @param o the point.  @param n the power.
+/** @brief @f$f^n@f$ on @c o for @f$n < 2^J@f$, by halving, as @c concat on
+ *  copies; a known fixed point is returned as it is; the state is moved,
+ *  never copied.  The descent is on the bit index @c J, a template parameter:
+ *  @c power<J> calls @c power<J - 1> twice, so the recursion is over a type
+ *  (Rule 3's first form, instantiation), never a call at the same
+ *  instantiation, and it ends at @c J = 0, where no step is left.
+ *  @tparam J the bits @c n may have.  @param f the endomorphism.
+ *  @param o the point.  @param n the power, below @f$2^J@f$.
  *  @param equal the equality. */
-template <typename X, typename F, typename Equal>
+template <std::size_t J, typename X, typename F, typename Equal>
   requires IsIteration<X, F, Equal>
 constexpr Orbit<X> power(const F& f, Orbit<X> o, std::size_t n,
                          const Equal& equal) {
-  if (n == 0) {
-    return o;
-  } else if (o.fixed) {
-    return o;
-  } else if (n == 1) {
-    return step(f, o, equal);
+  if constexpr (J == 0) {
+    return o;  // n < 1: no step
   } else {
+    if (n == 0 || o.fixed) return o;
     // the two halves, the first moved into the second: one live state
-    Orbit<X> hh = power(f, power(f, std::move(o), n / 2, equal), n / 2, equal);
+    Orbit<X> hh = power<J - 1>(f, power<J - 1>(f, std::move(o), n / 2, equal),
+                               n / 2, equal);
     if (n % 2 == 1 && !hh.fixed) return step(f, hh, equal);
     return hh;  // moved, not copied
   }
@@ -1519,9 +1523,11 @@ constexpr Orbit<X> power(const F& f, Orbit<X> o, std::size_t n,
  *  taken when @c equal applies to @c X, and a fixed point certifies itself.
  *  Its value is the fold of @c f over @c n steps, computed as the power:
  *  @f$f^n = f^{n \bmod 2} \circ f^{\lfloor n/2 \rfloor} \circ
- *  f^{\lfloor n/2 \rfloor}@f$, a descent on @c n by halving (Rule 3), as
- *  @c concat on copies.  @c f is applied as often as by the recursion above,
- *  in the same order, and the depth is the bits of @c n.  The early exit stays
+ *  f^{\lfloor n/2 \rfloor}@f$, by halving, as @c concat on copies, the
+ *  descent on the bit index of @c n, a template parameter: a recursion over a
+ *  type (Rule 3's instantiation), not over the value.  @c f is applied as
+ *  often as by the recursion above, in the same order, and the depth is the
+ *  bits of the word.  The early exit stays
  *  one: once a fixed point is seen every call left returns at once, so a
  *  budget of @c SIZE_MAX costs the steps taken, which a fold over the budget
  *  would not.
@@ -1541,7 +1547,8 @@ export template <typename X, typename F, typename Equal = std::equal_to<>>
   requires detail_morphism_iterate::IsIteration<X, F, Equal>
 constexpr X iterate(const F& f, const X& x0, std::size_t n,
                     const Equal& equal = {}) {
-  return detail_morphism_iterate::power(
+  return detail_morphism_iterate::power<
+             std::numeric_limits<std::size_t>::digits>(
              f, detail_morphism_iterate::Orbit<X>{x0, false}, n, equal)
       .x;
 }

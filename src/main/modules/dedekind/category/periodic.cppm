@@ -2073,23 +2073,26 @@ constexpr FreeMonoid<C, F, N> free_monoid(
 }
 
 namespace detail_periodic {
-/** @brief @f$b^e@f$, or none where the word cannot hold it: by squaring, as
- *  @c concat on copies, so its cost is the bits of @c e; @f$0^e@f$ and
- *  @f$1^e@f$ at once. */
+/** @brief @f$b^e@f$, or none where the word cannot hold it: by Knuth's
+ *  left-to-right binary method, as @c concat on copies, a fold over the bits
+ *  of @c e from the top, so its cost is the bits of @c e; @f$0^e@f$ and
+ *  @f$1^e@f$ at once.  Each step's power divides @f$b^e@f$, so a power the
+ *  word cannot hold is caught at the first step that overflows. */
 template <IsCountWord N>
 constexpr std::optional<N> checked_power(N b, N e) {
-  if (e == 0) {
-    return N{1};
-  } else if (b <= 1) {
-    return b;
-  } else {
-    const std::optional<N> h = checked_power(b, e / 2);  // the first half
-    if (!h || *h > std::numeric_limits<N>::max() / *h) return std::nullopt;
-    const N hh = static_cast<N>(*h * *h);
-    if (e % 2 == 0) return hh;
-    if (hh > std::numeric_limits<N>::max() / b) return std::nullopt;
-    return static_cast<N>(hh * b);
-  }
+  if (e == 0) return N{1};
+  if (b <= 1) return b;
+  const auto bits = static_cast<std::size_t>(std::bit_width(e));
+  return std::ranges::fold_left(
+      std::views::iota(std::size_t{0}, bits), std::optional<N>{N{1}},
+      [b, e, bits](std::optional<N> acc, std::size_t i) -> std::optional<N> {
+        constexpr N top = std::numeric_limits<N>::max();
+        if (!acc || *acc > top / *acc) return std::nullopt;
+        const N sq = static_cast<N>(*acc * *acc);
+        if ((e >> (bits - 1 - i)) % N{2} == N{0}) return sq;
+        if (sq > top / b) return std::nullopt;
+        return static_cast<N>(sq * b);
+      });
 }
 /** @brief One factor into the product, checked. */
 template <IsCountWord N>
