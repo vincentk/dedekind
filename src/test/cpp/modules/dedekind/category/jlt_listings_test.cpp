@@ -602,6 +602,37 @@ constexpr bool closed_term() { return twice("ab"s) + "c"s == "ababc"s; }
 static_assert(closed_term());
 static_assert(IsMagma<std::string> && !IsMagma<int>);
 }  // namespace reading
+
+// Appendix B's listing: recursion over a type with laws in the algebra, the
+// library's lattice reducer.  The leaves and the injected order are the
+// definitions the listing omits: opaque atoms, a value-wrapping literal, and an
+// order that decides nothing, so only the laws decide.
+namespace reducer {
+using dedekind::category::Join;
+using dedekind::category::Kleene;
+using dedekind::category::Meet;
+using dedekind::category::reduce_t;
+struct A {};
+struct B {};
+template <auto V>
+struct Lit {
+  static constexpr auto value = V;
+};
+struct Less {
+  using logic = Kleene;
+  template <typename, typename>
+  static consteval Ternary less() {
+    return Ternary::Unknown;
+  }
+};
+
+// meet(a, join(a, b)): the type is the tree
+using T = Meet<A, Join<A, B>>;
+static_assert(std::same_as<reduce_t<T, Less>, A>);  // absorption
+// meet(3, join(3, a)): a is not certified in 3's lattice
+using U = Meet<Lit<3>, Join<Lit<3>, A>>;
+static_assert(std::same_as<reduce_t<U, Less>, U>);  // kept whole
+}  // namespace reducer
 }  // namespace jlt_listing
 
 TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",

@@ -160,6 +160,23 @@ $^{\P}$~At each node of arity $k$.}
 \label{fig:fjlt-typing-recursion}
 \end{figure}
 
+\begin{listing}[htbp]
+\begin{cpp}
+// meet(a, join(a, b)): the type is the tree
+using T = Meet<A, Join<A, B>>;
+static_assert(same_as<reduce_t<T, Less>, A>);  // absorption
+// meet(3, join(3, a)): a is not certified in 3's lattice
+using U = Meet<Lit<3>, Join<Lit<3>, A>>;
+static_assert(same_as<reduce_t<U, Less>, U>);  // kept whole
+\end{cpp}
+\caption{Recursion over a type with laws in the algebra: the library's lattice reducer.
+\cppinline{reduce_t} folds a term's type node by node, applying the lattice laws the carrier certifies, and is the normal form's type; the same fold computes its value at run time.
+$A$ and $B$ are opaque atoms, and \cppinline{Less} an order that decides nothing, so only the laws decide.
+Top, absorption fires.
+Bottom, a literal and an opaque atom share no certified lattice, so no law fires and the term is kept whole.}
+\label{lst:reducer}
+\end{listing}
+
 \paragraph{Ranges and terms.}
 A range $R\texttt{<}\tau\texttt{>}$ is an instance of a family $\mathcal{R}$ defined by conditions.
 It has a length $|r| \in \mathbb{N}$, fixed before a fold starts, and, when $|r| > 0$, a head and a tail $\mathit{next}\,r$ with $|\mathit{next}\,r| = |r| - 1$.
@@ -175,6 +192,7 @@ A standard range with no such count, such as \cppinline{views::iota(a)}, is not 
 \textsc{T-Fold-R} types a fold at a type variable $R$ through the assumed shape $\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$.
 The length, head and tail are its three requirements, read from the record, and a caller's concrete range supplies the record by \textsc{E-Shape} at instantiation.
 \textsc{T-Cata} is the kernel's recursion over a type, stated once at a term type: the instances of one generic function at the nodes of $F$, each calling it at its legs' types, read as one algebra.
+Listing~\ref{lst:reducer} is one such recursion, with laws in the algebra: Listing~\ref{lst:rule3}'s fold over a type, where each step may also rewrite.
 There $\mu F$ is a term type, the inductive type of the nodes that build it.
 A term is a finite composition of nodes, and a node is a function object whose fields are terms.
 The algebra is applied to each node together with the folded values of its legs, the node itself still in hand.
