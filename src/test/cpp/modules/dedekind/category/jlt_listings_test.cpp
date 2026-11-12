@@ -315,7 +315,7 @@ struct push<Path<Xs...>, A> {
   using type = Path<A, Xs...>;
 };
 template <typename X, typename... Xs>
-  requires IsInvolution<X>
+  requires IsInvolution<X> && dedekind::category::has_one_value_v<X>
 struct push<Path<X, Xs...>, X> {
   using type = Path<Xs...>;
 };

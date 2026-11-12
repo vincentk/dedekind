@@ -1270,7 +1270,8 @@ constexpr T power(const T& x, N n, Op op) {
   return fold(std::views::iota(0uz, bits), Step{unit<T>(op), x, n},
               [op](const Step& s, std::size_t) {
                 return Step{s.rest % 2 == 1 ? op(s.acc, s.base) : s.acc,
-                            op(s.base, s.base), static_cast<N>(s.rest / 2)};
+                            s.rest > 1 ? op(s.base, s.base) : s.base,
+                            static_cast<N>(s.rest / 2)};
               })
       .acc;
 }
