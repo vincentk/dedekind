@@ -293,7 +293,9 @@ static_assert(is_constant(ans) && is_monotone(ans) && is_antitone(aye) &&
 // cancel).  Unit and associativity alone give the free category's paths;
 // f f -> id is confluent, so the normal form is unique.  Equal normal forms
 // are equal arrows; different ones are undecided, never unequal (Rice), so
-// == answers True or Unknown and converts to bool only when True.
+// == answers True or Unknown and converts to bool only when True.  It
+// compares arrows with the same endpoints only, and reads an atom by its type
+// only where the type has one value; a constant's value is not read.
 namespace arrow_normal_form {
 using dedekind::category::Compose;
 using dedekind::category::IsArrow;
@@ -323,6 +325,11 @@ template <typename P, typename F, typename G>
 struct reduce<P, Compose<F, G>> : reduce<typename reduce<P, F>::type, G> {};
 template <typename T>
 using normal_form_t = typename reduce<Path<>, T>::type;
+template <typename P>
+inline constexpr bool one_valued_v = false;
+template <typename... A>
+inline constexpr bool one_valued_v<Path<A...>> =
+    (dedekind::category::has_one_value_v<A> && ...);
 template <typename T>
 inline constexpr bool is_compose_v = false;
 template <typename F, typename G>
@@ -334,13 +341,24 @@ struct ByTheLaws {
 }  // namespace arrow_normal_form
 template <dedekind::category::IsArrow F, dedekind::category::IsArrow G>
   requires(arrow_normal_form::is_compose_v<F> ||
-           arrow_normal_form::is_compose_v<G>)
+           arrow_normal_form::is_compose_v<G>) &&
+          std::same_as<dedekind::category::Dom<F>,
+                       dedekind::category::Dom<G>> &&
+          std::same_as<dedekind::category::Cod<F>, dedekind::category::Cod<G>>
 constexpr arrow_normal_form::ByTheLaws operator==(const F&, const G&) {
   using arrow_normal_form::normal_form_t;
   using dedekind::category::Ternary;
-  return {std::same_as<normal_form_t<F>, normal_form_t<G>> ? Ternary::True
-                                                           : Ternary::Unknown};
+  // Equal paths of atoms that have one value each are equal arrows; an atom
+  // that carries a value (a constant) is not read by the type alone.
+  using arrow_normal_form::one_valued_v;
+  return {std::same_as<normal_form_t<F>, normal_form_t<G>> &&
+                  one_valued_v<normal_form_t<F>>
+              ? Ternary::True
+              : Ternary::Unknown};
 }
+// Whether two arrows compare by the laws at all (found after the operator).
+template <typename A, typename B>
+concept Comparable = requires(const A& a, const B& b) { a == b; };
 
 // Listing 3, left: a fold over a type.  The term's shape is its type, a
 // composite of composites, depth 3; it is folded once to a value and once
@@ -350,6 +368,11 @@ constexpr auto dec2 = dec >> dec;     // x - 2
 static_assert(dec2(42uz) == 40 && is_iso(dec2));
 static_assert(id_u == ~id_u >> ~id_u);
 static_assert(!static_cast<bool>(id_u == dec));  // undecided, not unequal
+// Copilot's two counterexamples: different endpoints do not compare, and
+// constants with different values are not equated by their type.
+static_assert(Comparable<decltype(id_u), decltype(~id_u >> ~id_u)> &&
+              !Comparable<decltype(id_b), decltype(~id_u >> ~id_u)>);
+static_assert(!static_cast<bool>((nil >> nay >> ans) == (nil >> (nay >> one))));
 // Products and coproducts:
 constexpr auto fst = Π<1, std::pair<bool, size_t>>{};
 constexpr auto sec = Pairing{id_b, nil};  // ⟨1, 0⟩
