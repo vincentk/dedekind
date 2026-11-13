@@ -21,7 +21,7 @@
  * std::plus, std::multiplies> and @c IsArithmeticAdditiveGroup<int>
  * do @b not (the axiomatic-ring witness would be a false claim under
  * UB).  The
- * exact-@c ℤ reading lives one carrier step deeper, on @c sets::Integer,
+ * exact-@c ℤ reading lives one carrier step deeper, on @c sets::IntExpr,
  * which every signed word embeds into exactly.
  *
  * @section sint__Symmetric_Honest_Rejection
@@ -49,15 +49,15 @@
  * style is @b "Intensional @b first; @b realize @b when @b you @b
  * mean @b it".  Practitioners write code over the @b canonical
  * mathematical set ( @c var<ℤ>, predicates, comprehension DSL,
- * abstract algebraic operations on @c sets::Integer directly)
+ * abstract algebraic operations on @c sets::IntExpr directly)
  * and only descend to machine integers via an @b explicit
  * realize-step ( @c realize_to_size_t / future @c
  * realize_signed_to_machine, see #429).  The realize-step carries a
  * proof obligation — the caller chooses a sentinel for the
  * transfinite case, and the type system mechanically forces the
  * caller to handle that case.  This posture does NOT add
- * heterogeneous arithmetic overloads (e.g.\ @c Integer
- * @c + @c int → @c Integer) that would smuggle machine-
+ * heterogeneous arithmetic overloads (e.g.\ @c IntExpr
+ * @c + @c int → @c IntExpr) that would smuggle machine-
  * int-style code into the variant carrier; doing so would
  * structurally undo the Honest Rejection by routing machine-int
  * UB-on-overflow back through the variant operator surface.  See
@@ -74,7 +74,6 @@ module;
 #include <concepts>
 #include <functional>
 #include <limits>
-#include <numeric>      // std::gcd (relocated from :integer per #670 cleanup)
 #include <type_traits>  // std::remove_cvref_t (no-narrowing pin in
                         // embed_sint_ℤ's set-level overload)
 #include <utility>      // std::forward (used in embed_sint_ℤ's set-level lift)
@@ -100,9 +99,9 @@ using namespace dedekind::sets;
 //
 // These concepts and aliases previously lived in :integer alongside the
 // value-level ℤ alias.  The reorganisation separates the @b set-level
-// ℤ (now `𝔸<Integer>`, kept in :integer) from the
+// ℤ (now `𝔸<IntExpr>`, kept in :integer) from the
 // @b carrier-level machinery for machine signed integers (concepts,
-// embedding, GCD --- relocated here).  Downstream consumers (Rational
+// embedding, GCD --- relocated here).  Downstream consumers (RatExpr
 // in :rational) import :sint to pick them up.
 // ---------------------------------------------------------------------------
 
@@ -122,34 +121,12 @@ constexpr Z integer_abs(Z value) {
   return value < Z{0} ? -value : value;
 }
 
-/** @brief Euclidean GCD over an `IsInteger` carrier. */
-export template <IsInteger Z>
-constexpr Z euclidean_gcd(Z lhs, Z rhs) {
-  if constexpr (std::is_integral_v<Z>) {
-    return std::gcd(lhs, rhs);
-  } else {
-    lhs = integer_abs(lhs);
-    rhs = integer_abs(rhs);
-    while (rhs != Z{0}) {
-      const Z remainder = lhs % rhs;
-      lhs = rhs;
-      rhs = remainder;
-    }
-    return lhs;
-  }
-}
-
-export template <typename Z>
-concept HasEuclideanGcd = IsInteger<Z> && requires(Z a, Z b) {
-  { euclidean_gcd(a, b) } -> std::same_as<Z>;
-};
-
 // ===========================================================================
 // (1) The lift: std::signed_integral ↪ ℤ
 // ===========================================================================
 
 /**
- * @brief The lift of a machine signed integer into ℤ, @c sets::Integer:
+ * @brief The lift of a machine signed integer into ℤ, @c sets::IntExpr:
  *        exact for every value of every width (#418).
  *
  * @details The machine word carries the ring operators and not the ring
@@ -162,8 +139,8 @@ concept HasEuclideanGcd = IsInteger<Z> && requires(Z a, Z b) {
  * @return @c v in ℤ.
  */
 export template <std::signed_integral S>
-constexpr dedekind::sets::Integer embed_sint_ℤ(S v) {
-  return dedekind::sets::Integer{v};
+constexpr dedekind::sets::IntExpr<> embed_sint_ℤ(S v) {
+  return dedekind::sets::IntExpr<>{v};
 }
 
 /**
@@ -171,7 +148,7 @@ constexpr dedekind::sets::Integer embed_sint_ℤ(S v) {
  *        @c embed_sint_ℤ<int>, registered monic below.
  */
 export inline constexpr auto embed_sint_ℤ_ =
-    dedekind::category::arrow<int, dedekind::sets::Integer>(
+    dedekind::category::arrow<int, dedekind::sets::IntExpr<>>(
         [](const int& i) { return embed_sint_ℤ(i); });
 
 /**
@@ -236,8 +213,8 @@ constexpr auto embed_sint_ℤ(S&& s) {
 
 // Set-level lift witnesses, at the value level: the pivot equality is
 // constant-evaluated, not just the codomain type.
-static_assert(origin(embed_sint_ℤ(η(42))) == dedekind::sets::Integer{42} &&
-                  origin(embed_sint_ℤ(η(-7))) == dedekind::sets::Integer{-7},
+static_assert(origin(embed_sint_ℤ(η(42))) == dedekind::sets::IntExpr<>{42} &&
+                  origin(embed_sint_ℤ(η(-7))) == dedekind::sets::IntExpr<>{-7},
               "embed_sint_ℤ lands η(42) at 42 and η(-7) at -7 in ℤ");
 static_assert(
     embed_sint_ℤ(std::numeric_limits<long long>::min()) <=
@@ -336,7 +313,7 @@ static_assert(dedekind::algebra::HasSuccessorOperators<long long>,
 // Rejection.  Signed-overflow UB defeats closure-under-arithmetic
 // as a stable axiom; the strict abelian-group / ring witnesses
 // must @b not fire on @c std::signed_integral primitives.  The
-// exact-@c ℤ reading lives on @c sets::Integer.
+// exact-@c ℤ reading lives on @c sets::IntExpr.
 static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<int>,
               "int must NOT satisfy IsArithmeticAdditiveGroup: "
               "signed-overflow UB defeats closure-under-arithmetic as a "
@@ -455,7 +432,7 @@ static_assert(IsOrderEmbedding<std::decay_t<decltype(embed_sint_ℤ_)>>,
 // std::equal_to<S> is equivalent (in the Mazur sense) to a bounded slice
 // of @c ℤ for inputs in @c [std::numeric_limits<S>::min(), @c
 // std::numeric_limits<S>::max()].  Outside that bound, signed-overflow
-// UB makes the equivalence non-classical --- ℤ itself, @c sets::Integer,
+// UB makes the equivalence non-classical --- ℤ itself, @c sets::IntExpr,
 // is the home for values past the word.
 //
 // This is the signed-side natural progression of the unsigned-as-ℕ

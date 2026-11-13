@@ -12,20 +12,20 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
           "[numbers][starter][sets]") {
   // Post-#895 the universe value @b is the ambient; wrap it directly:
   //   constexpr auto naturals = Set{ℕ};      // universal Set over ℕ-carrier
-  //   static_assert(naturals(Numeral{7u}));  // value-level membership query
-  // (ℕ = @c 𝔸<Numeral>; the retired @c element / @c % scout is gone.)
+  //   static_assert(naturals(NatExpr{7u}));  // value-level membership query
+  // (ℕ = @c 𝔸<NatExpr>; the retired @c element / @c % scout is gone.)
 
   constexpr auto naturals = ℕ;
-  static_assert(naturals(Numeral{7u}));
-  static_assert(naturals(Numeral{0u}));
+  static_assert(naturals(NatExpr<>{7u}));
+  static_assert(naturals(NatExpr<>{0u}));
   // Direct ambient-call route: ℕ.contains(value) (or equivalently
-  // 𝔸<Numeral>.contains(value), since ℕ = 𝔸<Numeral>) returns
-  // L::True for every Numeral (the universal-set semantics).
-  static_assert(𝔸<Numeral>{}.contains(Numeral{7u}));
-  static_assert(𝔸<Numeral>{}.contains(Numeral{0u}));
+  // 𝔸<NatExpr>.contains(value), since ℕ = 𝔸<NatExpr>) returns
+  // L::True for every NatExpr (the universal-set semantics).
+  static_assert(𝔸<NatExpr<>>{}.contains(NatExpr<>{7u}));
+  static_assert(𝔸<NatExpr<>>{}.contains(NatExpr<>{0u}));
 
   constexpr auto integers = ℤ;
-  static_assert(integers(Integer{-7}));
+  static_assert(integers(IntExpr<>{-7}));
 
   // 𝔻 starter-universe construction moved to
   // src/test/cpp/modules/dedekind/analysis/dual_test.cpp at PR #513
@@ -37,17 +37,17 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
   {
     const auto U = ℕ;
     const auto O = !U;
-    CHECK((U | O)(Numeral{7u}));
-    CHECK_FALSE((U & O)(Numeral{7u}));
-    CHECK((U | O)(Numeral{0u}));
-    CHECK_FALSE((U & O)(Numeral{0u}));
+    CHECK((U | O)(NatExpr<>{7u}));
+    CHECK_FALSE((U & O)(NatExpr<>{7u}));
+    CHECK((U | O)(NatExpr<>{0u}));
+    CHECK_FALSE((U & O)(NatExpr<>{0u}));
   }
 
   {
     const auto U = ℤ;
     const auto O = !U;
-    CHECK((U | O)(Integer{4}));
-    CHECK_FALSE((U & O)(Integer{4}));
+    CHECK((U | O)(IntExpr<>{4}));
+    CHECK_FALSE((U & O)(IntExpr<>{4}));
   }
 
   // 𝔻 / D / Dual lattice-identity check moved to

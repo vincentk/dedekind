@@ -22,7 +22,7 @@
  * @c HasTotalOrderOperatorsWith<T, U> — and its partial-order sibling
  * in @c :poset — fill the seam between the homogeneous @c <=>-shape
  * (which only describes @c T @c <=> @c T) and the real-world need to
- * compare a variant carrier (e.g.\ @c SignedCardinality) with an
+ * compare an exact carrier with an
  * integer NTTP literal (e.g.\ from @c -21).  Names the
  * cross-type shape that the halfspace machinery silently relies on.
  * Per #415 / cross-issue note on PR #422.
@@ -103,10 +103,9 @@ concept HasTotalOrderOperators =
  * The cross-type spaceship-comparison shape: composes
  * @c HasPartialOrderOperatorsWith<T, U, L> with @c
  * std::three_way_comparable_with<T, U>.  Names the surface needed for
- * cross-carrier comparisons — e.g.\ @c SignedCardinality @c <=> @c int
- * (the load-bearing path for the halfspace machinery's
- * @c (x @c > @c Pivot) substitution where @c x is a variant ℤ-proxy
- * and @c Pivot is the @c int NTTP from @c -21).
+ * cross-carrier comparisons — e.g.\ an exact carrier @c <=> @c int
+ * (the halfspace machinery's @c (x @c > @c Pivot) substitution,
+ * @c Pivot an @c int NTTP).
  *
  * Sibling of the homogeneous @c HasTotalOrderOperators above and
  * @c HasPartialOrderOperatorsWith in @c :poset.  @c L defaults to

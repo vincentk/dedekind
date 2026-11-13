@@ -28,11 +28,12 @@ using dedekind::category::IsLSet;
 using dedekind::order::Direction;
 using dedekind::order::Interval;
 using dedekind::order::Strictness;
+using dedekind::sets::RatExpr;
 using dedekind::topology::is_order_closed;
 using dedekind::topology::is_order_open;
 
 namespace {
-using Q = Rational<>;
+using Q = RatExpr<>;
 constexpr Cut<> two_root = Cut<>::sqrt(Q{2});  // √2
 // (−√2, √2) as a real interval — irrational, runtime-pivot bounds.
 constexpr auto band = Interval<Cut<>>::bounded(-two_root, Strictness::Strict,

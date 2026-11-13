@@ -15,7 +15,7 @@
  *
  *   2. @c IsTerminalFCoalgebra<F, A, Alpha> — dual.
  *
- * The Numeral witness ( @c Numeral is the initial F-algebra for
+ * The NatExpr witness ( @c NatExpr is the initial F-algebra for
  * @c F(X) @c = @c 1 @c + @c X) is registered in @c algebra:initial_ring.  This
  * suite pins the concept-layer behaviour: opt-in, defaults to false,
  * fires on explicit registration.

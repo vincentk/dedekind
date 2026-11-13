@@ -87,7 +87,7 @@ static_assert(collatz_rule(std::numeric_limits<std::size_t>::max()) ==
  * ℕ the two parities exhaust and are disjoint), which makes the case split
  *  @b structural rather than two independent guards. */
 /** @brief The counts the exhibit runs on: the set over the machine word,
- *  @c 𝔸<std::size_t>, which has @c %; ℕ itself (@c Numeral) has none. */
+ *  @c 𝔸<std::size_t>, which has @c %; ℕ itself (@c NatExpr) has none. */
 constexpr auto counts = 𝔸<std::size_t>{};
 constexpr auto n_even = counts * counts & π_1 % 2 == 0;
 /** @brief The even step @f$m = n/2@f$, by the word's division by a constant:

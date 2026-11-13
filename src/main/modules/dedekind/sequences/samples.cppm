@@ -31,10 +31,7 @@
  *    role) is what the paper listing cites; alternative
  *    @c IsRingIntegral carriers (@c std::size_t , @c unsigned,
  *    @c ExtensionalCardinal<W>, …) instantiate the same recurrence at
- *    no extra cost.  The variant @c SignedCardinality Form requires a
- *    factory rather than brace-init and is a Sollbruchstelle for a
- *    future arrow-based zero/one oracle (post #602's set-level
- *    embeddings).
+ *    no extra cost.
  *
  *    The structural pattern @em "binary @em op @em applied @em
  *    recursively" is captured by the n-ary @c iterate primitive
@@ -119,11 +116,8 @@ export inline const auto is_even =
  *
  * @tparam T Any @c IsRingIntegral inhabitant constructible from the
  *           unsigned literals @c 0u and @c 1u — i.e.\ @c std::integral
- *           types and the @c ExtensionalCardinal<W> /
- *           @c SignedExtensionalCardinal<S> ring-integral carriers.
- *           The variant @c SignedCardinality Form is excluded by the
- *           brace-init requirement; it needs a factory rather than @c T(0u)
- *           (a Sollbruchstelle named in the partition docstring above).
+ *           types and the @c ExtensionalCardinal<W> ring-integral
+ *           carriers.
  */
 export template <dedekind::sets::IsRingIntegral T>
   requires requires {

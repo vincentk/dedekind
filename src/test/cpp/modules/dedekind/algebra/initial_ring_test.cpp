@@ -30,14 +30,6 @@ using dedekind::algebra::is_initial_ring_v;
 // (1) Concept fires on the canonical witnesses
 // ===========================================================================
 
-TEST_CASE("initial_ring: the saturating proxy is no initial ring",
-          "[algebra][initial_ring][witness]") {
-  // ℤ's witnesses are pinned at the definition site, algebra/initial_ring.cppm.
-  // The saturating proxy is neither: ±ℵ_0 are no integers.
-  STATIC_CHECK(!is_initial_ring_v<SignedCardinality>);
-  STATIC_CHECK(!(is_grothendieck_group_v<SignedCardinality, Numeral>));
-}
-
 TEST_CASE(
     "initial_ring: opt-in trait defaults to false (no initial-ring witness "
     "without explicit registration)",
@@ -45,9 +37,9 @@ TEST_CASE(
   // Default: not initial.  Carriers must opt in explicitly.
   STATIC_CHECK(!is_initial_ring_v<int>);
   STATIC_CHECK(!is_initial_ring_v<unsigned int>);
-  STATIC_CHECK(!is_initial_ring_v<Numeral>);
-  STATIC_CHECK((!is_grothendieck_group_v<unsigned int, Numeral>));
-  STATIC_CHECK((!is_grothendieck_group_v<Numeral, Numeral>));
+  STATIC_CHECK(!is_initial_ring_v<NatExpr<>>);
+  STATIC_CHECK((!is_grothendieck_group_v<unsigned int, NatExpr<>>));
+  STATIC_CHECK((!is_grothendieck_group_v<NatExpr<>, NatExpr<>>));
 }
 
 TEST_CASE(

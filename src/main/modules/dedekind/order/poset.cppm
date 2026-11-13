@@ -144,10 +144,8 @@ concept HasPartialOrderOperators = requires(const T a, const T b) {
  * The cross-type relational-operator shape: requires @c <, @c <=,
  * @c >, @c >= to compile in both directions and yield results in
  * @c L::Ω.  Names the surface needed for cross-carrier comparisons —
- * e.g.\ @c SignedCardinality @c < @c int (the load-bearing path for
- * the halfspace machinery's @c (x @c > @c Pivot) substitution where
- * @c x is the variant ℤ-proxy carrier and @c Pivot is the @c int NTTP
- * from @c -21).
+ * e.g.\ an exact carrier @c < @c int (the halfspace machinery's
+ * @c (x @c > @c Pivot) substitution, @c Pivot an @c int NTTP).
  *
  * @c L defaults to @c Boole, mirroring the homogeneous
  * sibling above and @c IsPreOrdered / @c IsPartiallyOrdered.

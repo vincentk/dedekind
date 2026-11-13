@@ -37,16 +37,16 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
 
   // A :relational test may not import :order, so π/fix is unavailable; use
   // named predicates (comprehension form) rather than inline lambdas.
-  constexpr auto gt_zero = [](const auto& v) { return v > Numeral{0u}; };
-  constexpr auto le_ten = [](const auto& v) { return v <= Numeral{10u}; };
+  constexpr auto gt_zero = [](const auto& v) { return v > NatExpr<>{0u}; };
+  constexpr auto le_ten = [](const auto& v) { return v <= NatExpr<>{10u}; };
   const auto positive = Comprehension{ℕ, gt_zero};
   const auto bounded = Comprehension{ℕ, le_ten};
 
-  // ambient_set<Numeral> lifts the predicate-set into ℕ's ambient
-  // (ℕ = 𝔸<Numeral>).  The characteristic-function χ then reads on
-  // Numeral values.
-  const auto positive_set = ambient_set<Numeral>(positive);
-  const auto bounded_set = ambient_set<Numeral>(bounded);
+  // ambient_set<NatExpr> lifts the predicate-set into ℕ's ambient
+  // (ℕ = 𝔸<NatExpr>).  The characteristic-function χ then reads on
+  // NatExpr values.
+  const auto positive_set = ambient_set<NatExpr<>>(positive);
+  const auto bounded_set = ambient_set<NatExpr<>>(bounded);
   const auto support = positive_set & bounded_set;
 
   STATIC_CHECK(dedekind::category::IsSet<decltype(positive_set)>);
@@ -57,25 +57,25 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
   STATIC_CHECK(dedekind::sets::HasDecidableMembership<decltype(positive)>);
   STATIC_CHECK(dedekind::sets::HasDecidableMembership<decltype(bounded)>);
 
-  CHECK(positive_set.χ(Numeral{5u}));
-  CHECK_FALSE(positive_set.χ(Numeral{0u}));
-  CHECK(support(Numeral{5u}));
-  CHECK_FALSE(support(Numeral{50u}));
+  CHECK(positive_set.χ(NatExpr<>{5u}));
+  CHECK_FALSE(positive_set.χ(NatExpr<>{0u}));
+  CHECK(support(NatExpr<>{5u}));
+  CHECK_FALSE(support(NatExpr<>{50u}));
 }
 
 TEST_CASE("Sets+Category: Set naming boundary is explicit",
           "[sets][category][etcs][alignment]") {
-  constexpr auto gt_zero = [](const auto& v) { return v > Numeral{0u}; };
+  constexpr auto gt_zero = [](const auto& v) { return v > NatExpr<>{0u}; };
   const auto positive = Comprehension{ℕ, gt_zero};
 
   // `sets::Set` (DSL species) and `category::Set` (CCC witness) are distinct.
   STATIC_CHECK(!std::same_as<decltype(positive),
-                             dedekind::category::CanonicalSetCCC<Numeral>>);
+                             dedekind::category::CanonicalSetCCC<NatExpr<>>>);
 
-  // Bridge through ETCS object construction over ℕ's carrier, Numeral.
-  const auto positive_set = ambient_set<Numeral>(positive);
+  // Bridge through ETCS object construction over ℕ's carrier, NatExpr.
+  const auto positive_set = ambient_set<NatExpr<>>(positive);
   STATIC_CHECK(IsSet<decltype(positive_set)>);
 
-  CHECK(positive_set.χ(Numeral{3u}));
-  CHECK_FALSE(positive_set.χ(Numeral{0u}));
+  CHECK(positive_set.χ(NatExpr<>{3u}));
+  CHECK_FALSE(positive_set.χ(NatExpr<>{0u}));
 }

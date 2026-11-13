@@ -29,19 +29,20 @@ using dedekind::morphologies::IsCyclic;
 using dedekind::morphologies::Modular;
 
 // ===========================================================================
-// (1) The universal lift arrow: std::unsigned_integral → Numeral
+// (1) The universal lift arrow: std::unsigned_integral → NatExpr
 // ===========================================================================
 
 TEST_CASE("uint: embed_uint_ℕ across canonical widths",
           "[numbers][uint][lift][carrier-lattice]") {
   // Function-template form covers any std::unsigned_integral width.
-  CHECK(embed_uint_ℕ(0u) == Numeral{0u});
-  CHECK(embed_uint_ℕ(1u) == Numeral{1u});
-  CHECK(embed_uint_ℕ(42u) == Numeral{42u});
-  CHECK(embed_uint_ℕ(static_cast<unsigned long>(1000)) == Numeral{1000u});
-  CHECK(embed_uint_ℕ(static_cast<std::size_t>(7)) == Numeral{7u});
-  CHECK(embed_uint_ℕ(static_cast<unsigned char>(255)) == Numeral{255u});
-  CHECK(embed_uint_ℕ(static_cast<unsigned short>(0xFFFF)) == Numeral{0xFFFFu});
+  CHECK(embed_uint_ℕ(0u) == NatExpr<>{0u});
+  CHECK(embed_uint_ℕ(1u) == NatExpr<>{1u});
+  CHECK(embed_uint_ℕ(42u) == NatExpr<>{42u});
+  CHECK(embed_uint_ℕ(static_cast<unsigned long>(1000)) == NatExpr<>{1000u});
+  CHECK(embed_uint_ℕ(static_cast<std::size_t>(7)) == NatExpr<>{7u});
+  CHECK(embed_uint_ℕ(static_cast<unsigned char>(255)) == NatExpr<>{255u});
+  CHECK(embed_uint_ℕ(static_cast<unsigned short>(0xFFFF)) ==
+        NatExpr<>{0xFFFFu});
 }
 
 TEST_CASE("uint: embed_uint_ℕ_ named-arrow form",
@@ -51,15 +52,15 @@ TEST_CASE("uint: embed_uint_ℕ_ named-arrow form",
   STATIC_CHECK(
       std::same_as<Dom<std::decay_t<decltype(embed_uint_ℕ_)>>, unsigned>);
   STATIC_CHECK(
-      std::same_as<Cod<std::decay_t<decltype(embed_uint_ℕ_)>>, Numeral>);
+      std::same_as<Cod<std::decay_t<decltype(embed_uint_ℕ_)>>, NatExpr<>>);
 
-  CHECK(embed_uint_ℕ_(0u) == Numeral{0u});
-  CHECK(embed_uint_ℕ_(42u) == Numeral{42u});
-  CHECK(embed_uint_ℕ_(1000u) == Numeral{1000u});
+  CHECK(embed_uint_ℕ_(0u) == NatExpr<>{0u});
+  CHECK(embed_uint_ℕ_(42u) == NatExpr<>{42u});
+  CHECK(embed_uint_ℕ_(1000u) == NatExpr<>{1000u});
 }
 
 TEST_CASE("uint: lift is injective", "[numbers][uint][lift][injective]") {
-  // Distinct unsigned values yield distinct Numeral values
+  // Distinct unsigned values yield distinct NatExpr values
   // (witnesses the monic claim).
   CHECK(embed_uint_ℕ(0u) != embed_uint_ℕ(1u));
   CHECK(embed_uint_ℕ(41u) != embed_uint_ℕ(42u));
@@ -120,12 +121,12 @@ TEST_CASE("uint: Modular<N> as the structural cyclic-ring sibling",
 // ===========================================================================
 
 TEST_CASE(
-    "uint: width-ladder + lift compose into a Numeral value (no overflow "
+    "uint: width-ladder + lift compose into a NatExpr value (no overflow "
     "below the ladder)",
     "[numbers][uint][width-ladder][carrier-lattice]") {
-  // unsigned char ↪ unsigned short ↪ unsigned int ↪ Numeral.
+  // unsigned char ↪ unsigned short ↪ unsigned int ↪ NatExpr.
   // On the non-overflow fragment, all four values represent the same
-  // textbook integer; the lift lands them as identical Numeral
+  // textbook integer; the lift lands them as identical NatExpr
   // values.
   const unsigned char uc = 42;
   const unsigned short us = 42;
@@ -135,7 +136,7 @@ TEST_CASE(
   CHECK(embed_uint_ℕ(uc) == embed_uint_ℕ(ui));
   CHECK(embed_uint_ℕ(us) == embed_uint_ℕ(ui));
   CHECK(embed_uint_ℕ(uz) == embed_uint_ℕ(ui));
-  CHECK(embed_uint_ℕ(ui) == Numeral{42u});
+  CHECK(embed_uint_ℕ(ui) == NatExpr<>{42u});
 }
 
 TEST_CASE("uint: lift composes with the bool→unsigned arrow (𝔹 → uint → ℕ)",
@@ -143,6 +144,6 @@ TEST_CASE("uint: lift composes with the bool→unsigned arrow (𝔹 → uint →
   // The composition embed_𝔹_uint_ >> embed_uint_ℕ_ realises
   // the embedding chain 𝔹 → std::unsigned_integral → ℕ documented in
   // the carrier-lattice section of paper.tex / report.tex.
-  CHECK(embed_uint_ℕ_(embed_𝔹_uint_(false)) == Numeral{0u});
-  CHECK(embed_uint_ℕ_(embed_𝔹_uint_(true)) == Numeral{1u});
+  CHECK(embed_uint_ℕ_(embed_𝔹_uint_(false)) == NatExpr<>{0u});
+  CHECK(embed_uint_ℕ_(embed_𝔹_uint_(true)) == NatExpr<>{1u});
 }

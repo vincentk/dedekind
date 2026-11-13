@@ -288,7 +288,7 @@ concept IsProjectedInitialObject =
  *
  * The component is the ADL hook @c component(p, At<k>{}).  Its default reads a
  * tuple-like product by @c std::get (@c std::pair, @c std::tuple) and a
- * pair-like one by @c .first / @c .second (@c Complex, @c Rational, the
+ * pair-like one by @c .first / @c .second (@c Complex, @c RatExpr, the
  * boundary witnesses).  A carrier whose storage is named differently
  * (@c Dual's @c val / @c der, a reducer node's operands) states its own
  * overload in its home namespace.  Sister of the coproduct injections
@@ -465,7 +465,7 @@ static_assert(IsPairProjection<Π<1, std::pair<int, bool>>, 1> &&
  *
  * The membership test is against the canonical projections @c π_1 / @c π_2
  * (above), NOT the raw @c .first / @c .second: @c std::pair, @c Complex and
- * @c Rational satisfy it through the default @c .first / @c .second projection,
+ * @c RatExpr satisfy it through the default @c .first / @c .second projection,
  * while @c Dual satisfies it through its @c val / @c der overload --- the P-leg
  * is uniform across every product-shaped carrier regardless of storage names.
  *
@@ -482,7 +482,7 @@ static_assert(IsPairProjection<Π<1, std::pair<int, bool>>, 1> &&
  * @c IsCoproduct.
  * @details When @c Op is @c AnyOperation (the default) the mediator is
  * unconstrained, so every product / coproduct qualifies on its projections /
- * injections alone --- @c std::pair, @c Complex, @c Dual, @c Rational and
+ * injections alone --- @c std::pair, @c Complex, @c Dual, @c RatExpr and
  * @c std::variant are all (co)products "over any operation".  Naming an @c Op
  * pins the (co)product to a specific @b constructor-like factory: for a product
  * a pairing factory @c A×B → P; for a coproduct the injections @c A → C,
@@ -498,7 +498,7 @@ export template <typename P, typename A, typename B, typename Op = AnyOperation>
 concept IsProduct = requires(P p) {
   // The pair-like projection legs, formerly the standalone IsPairLikeProduct
   // (folded in here as its only caller): π_1 / π_2, canonical over .first /
-  // .second, so std::pair / Complex / Rational (default) and Dual (val / der
+  // .second, so std::pair / Complex / RatExpr (default) and Dual (val / der
   // overload) all qualify.
   { π_1(p) } -> std::convertible_to<A>;
   { π_2(p) } -> std::convertible_to<B>;

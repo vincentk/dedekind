@@ -1,6 +1,6 @@
 """pynzli: Python handles over the dedekind library's C++ core.
 
-The mathematics lives in C++; Python holds handles to it.  Three modules:
+The mathematics lives in C++; Python holds handles to it.  Four modules:
 
 ``pynzli.jlt``
     The arrows: ``id``, ``refl``, ``succ`` and ``pred`` over ``bool`` and
@@ -9,6 +9,9 @@ The mathematics lives in C++; Python holds handles to it.  Three modules:
     The finite carriers and the sets over them: the truth chains ``B`` and
     ``K3``, the canonical ring ``u64`` and field ``𝔽ₚ`` (universes ``U64``, ``GF_p``), and
     the term surface ``A(carrier) & term``, checked when it is built.
+``pynzli.q``
+    ``Q``, the rationals as terms of ℚ, exact: from an ``int``, a
+    ``Fraction`` or a finite ``float``; ``==`` and the order by canonical form.
 ``pynzli.trsk``
     The relations between products of those universes: Kleisli composition
     ``>>``, ``diag`` (η), the Frobenius spiders ``copy`` / ``merge``, the
@@ -35,6 +38,7 @@ from ._pst import UniverseFp, UniverseU64
 from ._version import __version__
 from .pst import A, K3, Fp, Seq, ap, cardinality, carrier, codomain, u64
 from .pst import _attr
+from .q import Q
 from .trsk import arrow, dom, factors, function, kind, operands
 
 
@@ -228,4 +232,4 @@ def _points(S, caller):
     raise TypeError(f"{caller}({S!r}): no set, relation, function or sequence of pynzli")
 
 
-__all__ = ["__version__", "ext", "jlt", "pst", "take", "to_string", "trsk"]
+__all__ = ["Q", "__version__", "ext", "jlt", "pst", "q", "take", "to_string", "trsk"]

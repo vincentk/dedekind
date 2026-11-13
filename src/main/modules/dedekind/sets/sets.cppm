@@ -52,6 +52,7 @@ export import :cardinality;
 export import :boundaries;
 export import :computability;
 export import :terms;  // the term grammar: projections, constants, atoms
+export import :expr;   // μF at the value level: ℕ's terms as one type
 export import :expressions;
 export import :heterogeneous;  // across carriers: A × B, A + B
 export import :extensional;

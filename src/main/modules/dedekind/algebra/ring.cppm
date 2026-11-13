@@ -51,7 +51,7 @@ using namespace dedekind::category;
  * operators.  The two shape concepts are siblings; pick whichever
  * matches the callsite's actual operator surface.
  *
- * Pattern-(b) carriers (e.g.\ @c Rational<long> under the active
+ * Pattern-(b) carriers (e.g.\ @c RatExpr under the active
  * numeric policy, IEEE @c double) satisfy this shape concept while
  * the strict @c category::IsRing refuses --- the literal-shape is
  * the right concept to gate templated bodies whose strict half
@@ -241,7 +241,7 @@ concept IsCommutativeRing =
  *  were collapsed into the literal-shape vocabulary --- the
  *  operational-vs-shape distinction had no structural difference, so
  *  the @c *Like names were redundant aliases.  Pattern-(b) carriers
- *  (e.g.\ @c Rational<long>, IEEE @c double) still satisfy these
+ *  (e.g.\ @c RatExpr, IEEE @c double) still satisfy these
  *  shape concepts via the same mechanism as before; the rationale
  *  for accepting them is now expressed by saying "the strict half
  *  (e.g.\ @c IsRing) does not fire on this carrier under the active
@@ -261,7 +261,7 @@ concept IsCommutativeRing =
  * HasRingOperators), naturals, tropical and other exotic semirings.
  *
  * The unit is spelled from an unsigned literal: ℕ's exact carrier
- * @c Numeral (@c sets:cardinality) takes only unsigned words as atoms
+ * @c NatExpr (@c sets:expr) takes only unsigned words as atoms
  * and refuses a signed constant, while a built-in or a ring carrier
  * constructed from the constant expression @c 1u is not narrowed.
  *

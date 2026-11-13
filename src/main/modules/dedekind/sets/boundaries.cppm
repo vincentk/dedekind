@@ -263,7 +263,7 @@ using leg_2_t = std::remove_cvref_t<decltype(dedekind::category::π_2(
 /** @brief A carrier that is the product of its two legs and is built from
  *  them (the pairing ⟨a, b⟩): a set over it answers @c r(a, @c b) as
  *  @c r(⟨a, b⟩) (#1047).  @c IsProduct, plus construction from the legs:
- *  @c std::pair, @c Complex (ℂ ≅ ℝ×ℝ) and @c Rational (the pairing then the
+ *  @c std::pair, @c Complex (ℂ ≅ ℝ×ℝ) and @c RatExpr (the pairing then the
  *  quotient ℤ×ℤ → ℚ, so @c r(n, @c d) asks whether n/d is a member).
  *  @tparam D the carrier. */
 export template <typename D>
@@ -624,9 +624,9 @@ static_assert(IsSet<Ø<int>> && !IsSet<𝔸<int, Kleene>>,
               "only a Boolean boundary object is an ETCS set: a Kleene-valued "
               "one lives in the Sierpiński topos, which is not well-pointed.");
 static_assert(IsFiniteLSet<Ø<bool>> && IsFiniteLSet<Ø<Ternary>> &&
-                  IsFiniteLSet<Ø<int>> && !IsFiniteLSet<Ø<Numeral>>,
+                  IsFiniteLSet<Ø<int>>,
               "bool, K₃ and the machine integers are finite chain carriers "
-              "(Pst); ℕ's Numeral is not.");
+              "(Pst).");
 static_assert(Is𝔸<𝔸<int>> && !Is𝔸<Ø<int>>,
               "𝔸 is the universe (terminal in Sub(T)); Ø is not.");
 static_assert(IsSetObject<Ø<int>>,
@@ -948,25 +948,6 @@ static_assert(IsSet<decltype(Ø<int>{})>,
 
 static_assert(IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
               "The empty boundary must lift to an ETCS set object.");
-
-/** @brief The canonical natural-numbers universe @c ℕ = @c 𝔸<Numeral>.
- *
- *  @details Per #559 the named species symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ /
- *  @c ℝ / @c ℂ / @c 𝔻) denote the @b universe values (constexpr instances of
- *  @c 𝔸 over the carrier), not carrier @b types; carrier types are spelled
- *  directly (@c bool, @c Numeral, ...) in type positions.  So @c ℕ @c | @c (π
- *  @c ⋈ @c c) is the spelling of a subset of the natural numbers, close to
- *  textbook notation.  The carrier is @c Numeral, ℕ exact above the word.
- */
-export inline constexpr auto ℕ = 𝔸<Numeral>{};
-
-// The canonical witnesses for ℕ; downstream partitions build on these.  The
-// subobject "ℕ ⊂ ℤ" over a signed carrier is not a second ℕ: it is the
-// halfspace 𝔸<int>{} & (π >= 0) in :order.
-static_assert(std::same_as<std::remove_cvref_t<decltype(ℕ)>, 𝔸<Numeral>> &&
-                  std::same_as<𝔸<Numeral>::Domain, Numeral> &&
-                  IsSet<𝔸<Numeral>>,
-              "ℕ is the universe over the Numeral carrier, an ETCS set.");
 
 /** @brief @c 𝔹 --- the canonical Boolean universe @c 𝔸<bool>{}, the finite
  *  set @f$\{\mathtt{false},\mathtt{true}\}@f$.  This is the one symbol

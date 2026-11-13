@@ -77,9 +77,9 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
   }
 
   SECTION("Cardinality bounds for extensional sets are computed explicitly") {
-    constexpr Singleton<SignedExtensionalCardinal<>> s1{1};
-    constexpr Singleton<SignedExtensionalCardinal<>> s2{2};
-    constexpr Ø<SignedExtensionalCardinal<>> empty;
+    constexpr Singleton<ExtensionalCardinal<>> s1{1};
+    constexpr Singleton<ExtensionalCardinal<>> s2{2};
+    constexpr Ø<ExtensionalCardinal<>> empty;
 
     CHECK(bound_meet(s1, s2) == 1);
     CHECK(bound_join(s1, s2) == 2);
@@ -90,8 +90,8 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
 
   SECTION("Cardinality bounds for intensional/transfinite sets use sentinel") {
     constexpr auto naturals = ℕ;
-    constexpr Ø<SignedExtensionalCardinal<>> empty;
-    constexpr Singleton<SignedExtensionalCardinal<>> singleton{7};
+    constexpr Ø<ExtensionalCardinal<>> empty;
+    constexpr Singleton<ExtensionalCardinal<>> singleton{7};
     const auto max_v = std::numeric_limits<std::size_t>::max();
 
     CHECK(bound_meet(universe, naturals) == max_v);
@@ -102,18 +102,18 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
   }
 
   SECTION("Identity optimizations remain structurally valid") {
-    constexpr Singleton<SignedExtensionalCardinal<>> s{42};
-    constexpr Ø<SignedExtensionalCardinal<>> empty;
+    constexpr Singleton<ExtensionalCardinal<>> s{42};
+    constexpr Ø<ExtensionalCardinal<>> empty;
     // Boundaries share the singleton's carrier: 𝔸 & S = S and Ø | S = S are
     // carrier-uniform identities.  (The engine-routed operators fail closed on
     // a mixed carrier, so the universe must be over the same carrier as s, not
     // the outer 𝔸<int>.)
-    constexpr 𝔸<SignedExtensionalCardinal<>> sc_universe;
+    constexpr 𝔸<ExtensionalCardinal<>> sc_universe;
 
-    CHECK(std::is_same_v<decltype(empty | s),
-                         Singleton<SignedExtensionalCardinal<>>>);
+    CHECK(
+        std::is_same_v<decltype(empty | s), Singleton<ExtensionalCardinal<>>>);
     CHECK(std::is_same_v<decltype(sc_universe & s),
-                         Singleton<SignedExtensionalCardinal<>>>);
+                         Singleton<ExtensionalCardinal<>>>);
   }
 
   SECTION("Cartesian Product") {

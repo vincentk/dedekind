@@ -47,7 +47,7 @@ constexpr Ket<Cx, 8> apply_inversion(const Ket<Cx, 8>& v) {
 // The even Reynolds projector P = ½(I + U), spelled on the bra-ket surface:
 //   P|v⟩ = ½ ⊗ (|v⟩ ⊕ U|v⟩),   ⊕ and ⊗ the SemimoduleVec ops (semiring_ops<ℂ>).
 constexpr Ket<Cx, 8> project_even(const Ket<Cx, 8>& v) {
-  const Cx half{R2{1} / R2{2}, R2{}};
+  const Cx half{R2{dedekind::sets::RatExpr<>{1, 2}}, R2{}};
   return half * (v + apply_inversion(v));
 }
 }  // namespace
@@ -58,7 +58,9 @@ TEST_CASE("Bra-ket: P=½(I+U) projects ζ₈ onto cos (the operator S-leg)",
 
   // Shallow COMPILE-TIME witness of the projector at the node k=2:
   //   ½(ζ² + ζ⁶) = ½(i + (−i)) = 0 = cos(π/2).
-  static_assert(Cx{R2{1} / R2{2}, R2{}} * (root8(M8{2}) + root8(M8{6})) == Cx{},
+  static_assert(Cx{R2{dedekind::sets::RatExpr<>{1, 2}}, R2{}} *
+                        (root8(M8{2}) + root8(M8{6})) ==
+                    Cx{},
                 "P at k=2 is cos(π/2) = 0 (exact, compile-time)");
 
   // The even projection IS the cosine: (P|v⟩)_k = cos(2πk/8) = Re ζ₈^k,

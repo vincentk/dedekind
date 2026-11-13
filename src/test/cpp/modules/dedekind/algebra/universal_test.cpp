@@ -21,7 +21,7 @@
  *      different concept witnesses.  This is the textbook
  *      Burris--Sankappanavar §I.1 reading made type-checked.
  *   3. The (A, F) pattern survives composition: @c IsAlgebra fires on
- *      composite carriers (e.g.\ @c Rational<...>) the same way it
+ *      composite carriers (e.g.\ @c RatExpr) the same way it
  *      fires on primitives.
  *
  * @see dedekind/algebra/universal.cppm — the partition-side definition.
@@ -126,9 +126,9 @@ static_assert(dedekind::algebra::IsHomomorphism<
                   dedekind::algebra::Signature<std::negate<unsigned>>> &&
               !dedekind::algebra::IsHomomorphism<int>);
 
-// Note: a composite-carrier exhibit (e.g.\ @c IsAlgebra<Rational<...>,
+// Note: a composite-carrier exhibit (e.g.\ @c IsAlgebra<RatExpr,
 // +, *>) belongs in a downstream test file because @c dedekind.numbers
 // sits below @c dedekind.algebra in the module DAG.  See
 // @c linear_algebra/embeddings_test.cpp for the downstream lattice-
-// corners exhibit pinning Rational, Complex, and Dual carriers
+// corners exhibit pinning RatExpr, Complex, and Dual carriers
 // against the (A, F) pattern.

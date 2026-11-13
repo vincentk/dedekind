@@ -1,7 +1,21 @@
 /**
  * @file dedekind/numbers/rational.cppm
  * @partition :rational
- * @brief ℚ — rationals as numerator/denominator pairs.
+ * @brief ℚ, the field of fractions of ℤ, certified on its terms; ℚ* and ℚ₊ as
+ *        types.
+ *
+ * @details A rational is a term of ℚ (@c sets::RatExpr): atoms of machine
+ * words, sums, products, negations and quotients by certified divisors, its
+ * equality and order those of its canonical form, the reduced fraction with a
+ * positive denominator (@c sets:expr).  Division is total on ℚ × ℚ*, where
+ * ℚ* = @c NonZero<RatExpr<>> (@c :total) is entered by @c nonzero, the one
+ * refusal point; there is no division by a term of ℚ.  ℚ₊ is @c Positive, a
+ * refinement closed under @c +, @c * and @c /, and the squares of ℚ* land in
+ * it, so a norm needs no check.  The atoms of ℚ are every integral type but
+ * @c bool, through the total embedding, and the finite doubles, exactly,
+ * through @c from.  Order between atoms of different types is ℚ's, never
+ * C++'s arithmetic conversion ([expr.arith.conv]), which loses integers above
+ * @f$2^{53}@f$.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -15,15 +29,14 @@
  */
 
 module;
-#include <bit>
 #include <compare>
 #include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <limits>
-#include <numeric>
-#include <stdexcept>
-#include <type_traits>  // std::remove_cvref_t for the post-#559 universe-witness static_asserts
+#include <optional>  // the checks into ℚ* and ℚ₊
+#include <type_traits>
 #include <utility>
 
 export module dedekind.numbers:rational;
@@ -42,1189 +55,298 @@ using namespace dedekind::morphologies;
 using namespace dedekind::order;
 using namespace dedekind::sets;
 
+/** @brief The check into ℚ* and its type, re-exported beside ℚ. */
+export using dedekind::category::NonZero;
+export using dedekind::category::nonzero;
+export using dedekind::sets::from;
+
+/** @brief The literal @f$2 \in@f$ ℚ*: the midpoint's divisor. */
+export inline constexpr NonZero<RatExpr<>> two_ℚ =
+    NonZero<RatExpr<>>::literal<2>();
+
+export class Positive;
+export constexpr std::optional<Positive> positive(const RatExpr<>& q);
+export constexpr Positive square(const NonZero<RatExpr<>>& x);
+export constexpr Positive abs(const NonZero<RatExpr<>>& x);
+}  // namespace dedekind::numbers
+
+namespace dedekind::sets {
+/** @brief The midpoint @f$a + (b - a)/2@f$, a term: ℚ is dense (@c IsDense
+ *  reads this by argument-dependent lookup on @c sets).  @param a one end.
+ *  @param b the other. */
+export template <std::size_t N>
+constexpr RatExpr<N> midpoint(const RatExpr<N>& a, const RatExpr<N>& b) {
+  return a + (b - a) /
+                 dedekind::category::NonZero<RatExpr<N>>::template literal<2>();
+}
+}  // namespace dedekind::sets
+
+namespace dedekind::category {
+/** @brief ℚ₊ ⊂ ℚ*: declared here, kept by Positive's own constructors. */
+template <>
+struct is_nonzero_refinement<dedekind::numbers::Positive,
+                             dedekind::sets::RatExpr<>> : std::true_type {};
+}  // namespace dedekind::category
+
+namespace dedekind::numbers {
+
 /**
- * @class Rational
- * @brief The Field of Fractions over an Integral Domain Z.
- *
- * @details @b The @b countably-infinite @b fiction.  Over the saturating
- * carrier @c SignedCardinality this type @b models ℚ as a faithful,
- * @b strong-totally-ordered field over a countably infinite ℤ --- even though
- * no finite machine can hold arbitrarily large numerators / denominators.  The
- * carrier's sentinels (@c NaZ, @c ±ℵ_0) are @b not inhabitants of that ℚ; they
- * are the out-of-memory boundary of the finite backing.  Reaching one means the
- * computation has run off the edge of the fiction, so a non-finite
- * numerator / denominator is @b rejected (@c std::domain_error, see
- * @c reject_non_finite) rather than admitted as a value --- the OOM tripwire.
- * This is what keeps @c operator<=> a genuine @c std::strong_ordering and
- * preserves @c IsTotal / @c IsField (both load-bearing for the ℝ coat-hanger
- * downstream); a retained @c NaZ/1 would force @c <=> to @c partial_ordering
- * and quietly demote ℚ to a non-total order.
- *
- * @b Comparison is a tripwire too.  @c operator<=> cross-multiplies
- * (@f$a/b \lessgtr c/d \iff ad \lessgtr cb@f$), and on the saturating carrier
- * the cross-products can overflow even for two @b finite canonical rationals
- * (e.g. @f$M/2@f$ vs @f$(M{-}1)/3@f$ near @c UINT64_MAX).  Rather than let a
- * saturated intermediate read them EQUAL while @c == reads them unequal,
- * @c <=> @b rejects an overflowed cross-product (@c reject_non_finite_product)
- * --- the same OOM tripwire.  So the strong-total-order guarantee is precise:
- * @b every @c <=> that @b returns is a genuine strong-total verdict; a
- * comparison that would leave the finite backing throws instead.  Over the
- * client-contracted finite subset the branch is never taken.
- *
- * @par Client contract.
- * The fiction is @b deliberate: client code @b may pretend ℚ is truly infinite,
- * at the risk of hitting the OOM tripwire (in construction @b or comparison).
- * @b Robust client code constrains itself to a finite subset a priori --- e.g.
- * integers @f$-\text{max} < x < \text{max}@f$, or the canonicalised rationals
- * over that range --- so the tripwire is never reached.  The library does @b
- * not silently clamp on the client's behalf; it @b throws, so the boundary
- * stays visible (Honest Rejection, the same posture as division-by-zero).
+ * @class Positive
+ * @brief ℚ₊ = {q > 0}: a refinement of ℚ closed under @c +, @c * and @c /, and
+ *        the home of the squares of ℚ*.  Entered by @c positive, a literal,
+ *        or those laws; widens to ℚ* (a declared law, @c
+ *        is_nonzero_refinement) and to ℚ.  Its value is a term; a computation
+ *        that iterates calls @c canonical where it stores one.
  */
-/** @brief The rejection contract a saturating backing must offer ℚ's
- *  tripwire: @c is_finite(i), found by ADL, says whether @c i is a point of ℤ
- *  or a sentinel (@c ±ℵ_0 / @c NaZ).  @c Rational rejects a non-finite value
- *  wherever one can arise (construction, comparison); a saturating carrier
- *  without this hook would clamp silently and is not admitted as a backing
- *  (see @c FractionBacking).
- *  @tparam I the integer carrier. */
-export template <typename I>
-concept RejectsNonFinite = requires(const I& i) {
-  { is_finite(i) } -> std::same_as<bool>;
-};
-
-export template <IsInteger Z = default_integer>
-class Rational {
+export class Positive {
  public:
-  // Self-Domain: `Variable<Rational<Z>>::T` becomes `Rational<Z>` so
-  // the symbolic-scout factory `var<ℚ>` ranges over rationals (the
-  // intended math reading), not over the underlying integer carrier.
-  // The integer carrier is still accessible via the @c IntegerCarrier
-  // alias below.
-  using Domain = Rational;
-  using IntegerCarrier = Z;
-
-  /** @brief Cardinality class of the ℚ carrier: @c ℵ_0 (#848/#927).
-   *  ℚ = (ℤ × ℤ_≠0)/~ is countable, and this matches the ambient's own tag
-   *  (@c ℚ = @c 𝔸<Rational<default_integer>> carries @c C = @c ℵ_0 below).
-   *  A point-free halfspace @c {x∈ℚ & π>c} is carved in @c :order, which is
-   *  @b upstream of @c :numbers and so cannot recognise a countable
-   *  non-integral carrier structurally (@c IsRingIntegral is false on ℚ); the
-   *  carrier therefore self-declares, and @c order::Halfspace reads this to
-   *  classify identically to the scout comprehension (which inherits @c C
-   *  directly).  Mirrors @c ExtensionalCardinal's own @c cardinality_type
-   *  (@c :sets:cardinality). */
-  using cardinality_type = ℵ_0;
-
-  // Numerator and denominator as a canonical pair (second always positive).
-  // Public to satisfy IsProduct<Rational<Z>, Z, Z> (ℚ ≅ ℤ × ℤ / ~).
-  Z first, second;
-
-  /** @brief Default: 0/1, the value-initialised @c T{} of the generic
-   * witnesses. */
-  constexpr Rational() : first(Z{}), second(Z{1}) {}
-
-  constexpr Rational(Z num, Z den) : first(num), second(den) { simplify(); }
-
-  /** @brief Embedding of an integer as a rational n/1.
-   *  Implicit to allow @c Rational<Z>{Z_value} to flow into the
-   *  @c (a @c + @c b) @c / @c T{2} midpoint expression that the
-   *  @c IsDense concept (in @c order:completeness) requires.
-   *  When @c T = @c Rational<Z>, @c T{2} resolves through the
-   *  @c Rational(std::integral) overload below (@c int → @c Rational<Z>
-   *  in one UDC), bypassing the two-UDC chain
-   *  @c int @c → @c Z @c → @c Rational<Z> that C++ would otherwise
-   *  reject.  This @c Rational(Z) form remains the canonical embedding
-   *  when the caller already has a @c Z value in hand. */
-  constexpr Rational(Z n)
-      : first(n), second(Z{1}) {  // NOLINT(google-explicit-constructor)
-    reject_non_finite();  // ℚ has no sentinels — reject a non-finite n (#680).
+  using Domain = RatExpr<>;
+  /** @return the value, a term of ℚ. */
+  constexpr RatExpr<> value() const { return q_; }
+  /** @brief The inclusion ℚ₊ ⊂ ℚ. */
+  constexpr operator RatExpr<>() const { return q_; }  // NOLINT
+  /** @brief A positive literal; zero and the negatives are refused by the
+   *  constraint.  @tparam N the literal. */
+  template <auto N>
+    requires(N > 0)
+  static consteval Positive literal() {
+    return Positive{RatExpr<>{N}};
+  }
+  constexpr bool operator==(const Positive&) const = default;
+  /** @brief Closure: a sum of positives is positive. */
+  friend constexpr Positive operator+(const Positive& a, const Positive& b) {
+    return Positive{a.q_ + b.q_};
+  }
+  /** @brief Closure: a product of positives is positive. */
+  friend constexpr Positive operator*(const Positive& a, const Positive& b) {
+    return Positive{a.q_ * b.q_};
+  }
+  /** @brief Closure: a quotient of positives is positive. */
+  friend constexpr Positive operator/(const Positive& a, const Positive& b) {
+    return Positive{a.q_ / NonZero<RatExpr<>>{b}};
+  }
+  /** @brief @f$1/p > 0@f$. */
+  constexpr Positive inverse() const {
+    return Positive{RatExpr<>{1} / NonZero<RatExpr<>>{*this}};
+  }
+  /** @brief The canonical form of a positive: still positive.  The explicit
+   *  normalisation point of a computation that stores one.  @param p the
+   *  positive. */
+  friend constexpr Positive canonical(const Positive& p) {
+    return Positive{canonical(p.q_)};
   }
 
-  /** @brief Embedding of any standard integral as a rational n/1, in @b one
-   *  user-defined conversion.
-   *
-   *  @details Without this constructor, building a @c Rational<Z> from an
-   *  @c int literal would require two UDCs (@c int → @c Z → @c Rational<Z>),
-   *  which C++ does not permit in implicit-conversion chains.  This template
-   *  collapses both steps into a single UDC, enabling:
-   *
-   *    * @c Rational<Z>{2} for the @c (a @c + @c b) @c / @c T{2}
-   *      midpoint expression in the @c IsDense concept (the @c T{2}
-   *      reformulation, landed under this PR, replaces the previous
-   *      bare-int @c 2 so the carrier is in control of its own
-   *      value-2);
-   *    * generally, any context where an @c int literal lifts into
-   *      @c Rational<Z> across one UDC.
-   *
-   *  Canonical example post-retarget: @c Z @c = @c
-   *  SignedExtensionalCardinal<>, whose @c S → @c SEC<> constructor
-   *  is itself a one-UDC step.
-   */
-  template <std::integral S>
-    requires(!std::same_as<S, Z>)
-  constexpr Rational(S n)  // NOLINT(google-explicit-constructor)
-      : first(Z{n}), second(Z{1}) {}
-
-  /** @brief #680: ℚ has no sentinels.  On the saturating @c SignedCardinality a
-   *  non-finite numerator/denominator (@c NaZ / @c ±ℵ_0) is @b not a rational,
-   *  so @b reject it with @c std::domain_error (Honest Rejection at the carrier
-   *  boundary, the same posture as division-by-zero, cf. the @c embed_𝕃_ℚ
-   *  no-sentinels contract below).  This also avoids @c euclidean_gcd's
-   *  non-termination (@c NaZ @c % anything @c == @c NaZ) and the ordering
-   *  incoherence a retained @c NaZ/1 would cause (@c <=> would read it EQUAL to
-   *  @c 1/1 while @c == reads it unequal).  Generic over the backing through
-   *  @c RejectsNonFinite (the @c is_finite hook); a compile-time no-op for
-   *  carriers without sentinels (plain integers). */
-  constexpr void reject_non_finite() const {
-    if constexpr (RejectsNonFinite<Z>) {
-      if (!is_finite(first) || !is_finite(second))
-        throw std::domain_error(
-            "Rational: non-finite ℤ (NaZ / ±ℵ_0) is not a rational.");
-    }
-  }
-
-  /** @brief #680: the comparison-side OOM tripwire.  Throws @c
-   *  std::domain_error when a cross-product @c a.first*b.second (or its twin)
-   *  has saturated to a non-finite value, i.e. the comparison has left the
-   *  finite backing.  Compile-time no-op for carriers with no sentinels. */
-  static constexpr void reject_non_finite_product(const Z& lhs, const Z& rhs) {
-    if constexpr (RejectsNonFinite<Z>) {
-      if (!is_finite(lhs) || !is_finite(rhs))
-        throw std::domain_error(
-            "Rational: comparison cross-product overflowed the finite backing "
-            "(OOM tripwire).");
-    }
-  }
-
-  /** @section rational__The_Simplification_Morphism */
-  constexpr void simplify() {
-    if (second == Z{0}) throw std::domain_error("Rational: Division by zero.");
-    reject_non_finite();  // #680: non-finite ℤ is not a rational (throw).
-
-    Z common = euclidean_gcd(first, second);
-    first = first / common;
-    second = second / common;
-
-    // Canonical sign: denominator is always positive
-    if (second < Z{0}) {
-      first = -first;
-      second = -second;
-    }
-  }
-
-  /** @section rational__Relational_Morphisms */
-
-  // Three-way comparison: a/b <=> c/d iff a*d <=> c*b (positive denominators).
-  // Providing <=> gives <, <=, >, >= automatically (C++20).
-  friend constexpr std::strong_ordering operator<=>(const Rational& a,
-                                                    const Rational& b) {
-    const auto lhs = a.first * b.second;
-    const auto rhs = b.first * a.second;
-    // #680: the cross-products are the OOM tripwire too.  On the saturating
-    // carrier, two *finite* canonical rationals can have cross-products that
-    // both overflow to the same +ℵ_0 (e.g. M/2 vs (M-1)/3 near UINT64_MAX);
-    // a silent fall-through would then read them EQUAL while == reads them
-    // unequal.  So a comparison whose cross-product leaves the finite backing
-    // is itself off the edge of the fiction — reject it (Honest Rejection),
-    // exactly as construction does.  Every <=> that RETURNS is therefore a
-    // genuine strong-total verdict.  (An overflow-free comparison over the
-    // full carrier would need a Stern-Brocot / continued-fraction walk; the
-    // client-contract finite subset never reaches this branch.)
-    reject_non_finite_product(lhs, rhs);
-    if (lhs < rhs) return std::strong_ordering::less;
-    if (rhs < lhs) return std::strong_ordering::greater;
-    return std::strong_ordering::equal;
-  }
-
-  friend constexpr bool operator==(const Rational&, const Rational&) = default;
-
-  constexpr Z num() const { return first; }
-  constexpr Z den() const { return second; }
-
-  /** @section rational__Multiplicative_Inverse: The Reciprocal */
-  constexpr Rational inverse() const {
-    if (first == Z{0}) {
-      throw std::domain_error("Rational: Zero has no multiplicative inverse.");
-    }
-    // To invert (a/b), we return (b/a)
-    return Rational(second, first);
-  }
-
-  /** @section rational__Field_Operators */
-
-  // Multiplication: (a/b) * (c/d) = (ac / bd)
-  friend constexpr Rational operator*(const Rational& a, const Rational& b) {
-    return Rational(a.first * b.first, a.second * b.second);
-  }
-
-  friend constexpr Rational operator+(const Rational& a, const Rational& b) {
-    return Rational((a.first * b.second) + (b.first * a.second),
-                    a.second * b.second);
-  }
-
-  friend constexpr Rational operator-(const Rational& a, const Rational& b) {
-    return a + (-b);
-  }
-
-  // Division: (a/b) / (c/d) = (a/b) * (d/c)
-  friend constexpr Rational operator/(const Rational& a, const Rational& b) {
-    return a * b.inverse();
-  }
-
-  // Additive Inverse: -(a/b) = (-a/b)
-  constexpr Rational operator-() const { return Rational(-first, second); }
+ private:
+  constexpr explicit Positive(RatExpr<> q) : q_(std::move(q)) {}
+  friend constexpr std::optional<Positive> positive(const RatExpr<>& q);
+  friend constexpr Positive square(const NonZero<RatExpr<>>& x);
+  friend constexpr Positive abs(const NonZero<RatExpr<>>& x);
+  RatExpr<> q_;
 };
 
-namespace detail_rational {
-template <typename>
-struct is_rational : std::false_type {};
-template <typename Z>
-struct is_rational<Rational<Z>> : std::true_type {};
-}  // namespace detail_rational
+/** @brief The check into ℚ₊: the value, certified, or nothing at zero and
+ *  below.  @param q the value. */
+export constexpr std::optional<Positive> positive(const RatExpr<>& q) {
+  if (q <= RatExpr<>{}) return std::nullopt;
+  return Positive{q};
+}
+/** @brief @f$x^2 > 0@f$ for @f$x \neq 0@f$: the law that makes a norm a
+ *  certified divisor.  @param x a non-zero rational. */
+export constexpr Positive square(const NonZero<RatExpr<>>& x) {
+  return Positive{x.value() * x.value()};
+}
+/** @brief @f$|x| > 0@f$ for @f$x \neq 0@f$.  @param x a non-zero rational. */
+export constexpr Positive abs(const NonZero<RatExpr<>>& x) {
+  return x.value() < RatExpr<>{} ? Positive{-x.value()} : Positive{x.value()};
+}
 
 /** @concept IsRational
- *  @brief @c Q @b is the rational field @c Rational<Z> --- the canonical exact,
- *  dense, strongly-ordered coefficient carrier.  Used to gate the real carriers
- *  (@c Cut, @c QuadraticReal): over @f$\mathbb{Q}@f$ a nonsquare integer @c D
- * has
- *  @f$\sqrt D\notin\mathbb{Q}@f$ (a theorem), so those carriers are genuine
- *  (canonical representation, sound conjugate/norm) --- which fails for a
- *  coefficient field that already contains @f$\sqrt D@f$ (e.g. the degenerate
- *  @c QuadraticReal<2, QuadraticReal<2>>). */
+ *  @brief @c Q is ℚ.  Gates the real carriers (@c Cut, @c QuadraticReal):
+ *  over ℚ a nonsquare integer @c D has @f$\sqrt D \notin \mathbb{Q}@f$, so
+ *  those carriers are genuine. */
 export template <typename Q>
-concept IsRational =
-    detail_rational::is_rational<std::remove_cvref_t<Q>>::value;
+concept IsRational = std::same_as<std::remove_cvref_t<Q>, RatExpr<>>;
 
-/** @section rational__Partial_Arithmetic_with_Ternary_Logic */
-
-/**
- * @brief Partial addition transform for Rational<I>.
- *
- * Since rational arithmetic is mathematically exact (no rounding loss),
- * this always returns Ternary::True. The status could be Unknown
- * if we wanted to check for integer overflow, but we delegate that
- * responsibility to I's overflow predicates.
- */
-export template <IsInteger I>
-struct PartialAddRational {
-  using value_type = Rational<I>;
+/** @section rational__Partial_Arithmetic_with_Ternary_Logic
+ *  The Kleene surface: exact arithmetic answers @c True; division answers
+ *  @c False at a zero divisor, where the typed division has no term. */
+export struct PartialAddRational {
+  using value_type = RatExpr<>;
   using logic_species = Kleene;
-
-  TernaryResult<Rational<I>> operator()(
-      std::pair<const Rational<I>&, const Rational<I>&> p) const {
-    auto [a, b] = p;
-    return {Ternary::True, a + b};
+  constexpr TernaryResult<RatExpr<>> operator()(
+      std::pair<const RatExpr<>&, const RatExpr<>&> p) const {
+    return {Ternary::True, p.first + p.second};
   }
 };
-
-/**
- * @brief Partial multiplication transform for Rational<I>.
- *
- * Since rational arithmetic is mathematically exact (no rounding loss),
- * this always returns Ternary::True.
- */
-export template <IsInteger I>
-struct PartialMulRational {
-  using value_type = Rational<I>;
+export struct PartialMulRational {
+  using value_type = RatExpr<>;
   using logic_species = Kleene;
-
-  TernaryResult<Rational<I>> operator()(
-      std::pair<const Rational<I>&, const Rational<I>&> p) const {
-    auto [a, b] = p;
-    return {Ternary::True, a * b};
+  constexpr TernaryResult<RatExpr<>> operator()(
+      std::pair<const RatExpr<>&, const RatExpr<>&> p) const {
+    return {Ternary::True, p.first * p.second};
   }
 };
-
-/**
- * @brief Division transform for Rational<I>.
- *
- * Since Rational<I> models exact arithmetic in the quotient field,
- * division does not truncate the way integer division can. Accordingly,
- * this returns Ternary::True whenever the rational quotient is formed.
- * Division by zero propagates via Rational::inverse(), which may throw.
- */
-export template <IsInteger I>
-struct HonestDivRational {
-  using value_type = Rational<I>;
+export struct HonestDivRational {
+  using value_type = RatExpr<>;
   using logic_species = Kleene;
-
-  TernaryResult<Rational<I>> operator()(
-      std::pair<const Rational<I>&, const Rational<I>&> p) const {
-    auto [a, b] = p;
-    if (b.num() == I{0}) {
-      return {Ternary::False, a};
-    }
-    return {Ternary::True, a / b};  // Rational division is exact when defined
+  constexpr TernaryResult<RatExpr<>> operator()(
+      std::pair<const RatExpr<>&, const RatExpr<>&> p) const {
+    if (const auto d = nonzero(p.second)) return {Ternary::True, p.first / *d};
+    return {Ternary::False, p.first};
   }
 };
-
-/**
- * @brief Identity and Associativity traits for Rational arithmetic.
- *
- * Rational<I> arithmetic over exact field operations satisfies:
- * - Kleene associativity: if both sides are defined, they are equal
- * - Kleene commutativity (for addition/multiplication)
- * - Partial identities: 0 for addition, 1 for multiplication
- *
- * Specializations are declared in the dedekind::category namespace (see below).
- */
-
-/**
- * @brief Embedding transform: ℤ ↪ ℚ with Ternary acknowledgment.
- *
- * The embedding of an integer Z into the rationals is **exact**:
- * every integer n corresponds uniquely to n/1.
- * This transform returns Ternary::True to signal no information loss.
- *
- * @see @c embed_ℤ_ℚ_ (below) --- the same @f$n\mapsto n/1@f$ as a categorical
- * @c arrow over @c default_integer, carrying the monic/homomorphism/monotone
- * registrations the tower S-leg needs.  This Ternary transform is the Kleene
- * surface; the two are distinct, not a redundant fork.
- */
-export template <IsInteger I>
-struct PartialEmbedIntegerToRational {
-  using value_type = Rational<I>;
+/** @brief ℤ ↪ ℚ on the Kleene surface: exact, so always @c True. */
+export struct PartialEmbedIntegerToRational {
+  using value_type = RatExpr<>;
   using logic_species = Kleene;
-
-  TernaryResult<Rational<I>> operator()(I n) const noexcept {
-    // #680: a non-finite ℤ (NaZ / ±ℵ_0) is off the edge of the countably-
-    // infinite fiction, so it does not embed as a rational.  This is the
-    // PARTIAL (Kleene) twin of the total arrow @c embed_ℤ_ℚ_: where that arrow
-    // THROWS at the boundary, the ternary surface models the same partiality
-    // with @c Ternary::False and stays honestly @c noexcept.  (Constructing
-    // @c Rational<I>{n,1} on a sentinel would reject with @c domain_error and,
-    // under this @c noexcept, terminate.)  The default 0/1 is finite, so its
-    // construction cannot throw.
-    if constexpr (std::same_as<I, dedekind::sets::SignedCardinality>) {
-      if (!dedekind::sets::is_finite(n)) return {Ternary::False, Rational<I>{}};
-    }
-    return {Ternary::True, Rational<I>{n, static_cast<I>(1)}};
+  constexpr TernaryResult<RatExpr<>> operator()(const IntExpr<>& n) const {
+    return {Ternary::True, RatExpr<>::widened(n)};
   }
 };
 
-}  // namespace dedekind::numbers
+/** @brief The subalgebra embedding ℤ ↪ ℚ, every node of the integer's term
+ *  kept: a monic ring homomorphism preserving the order, the tower rung below
+ *  @c embed_ℚ_ℝ. */
+export inline constexpr auto embed_ℤ_ℚ_ = arrow<IntExpr<>, RatExpr<>>(
+    [](const IntExpr<>& n) { return RatExpr<>::widened(n); });
 
-/**
- * @section rational__Kleene_Traits_in_Category_Namespace
- *
- * Specializations of Kleene traits for Rational<I> types.
- * These must be in the dedekind::category namespace where the traits
- * template variables are declared.
- */
-namespace dedekind::category {
-
-// NOTE: ℚ = @c Rational<Z> is @c IsTotal on the EXACT path (@c is_exact_total,
-// registered with the law registrations below): its arithmetic is closed and
-// lossless up to the out-of-memory tripwire, which @c Rational raises rather
-// than saturating.  The strict @c category::IsField<ℚ> rests on that; the
-// witness is pinned at the (3)-Semantics static_assert below.
-
-/** @brief Kleene traits for rational arithmetic. */
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool is_kleene_associative_v<
-    dedekind::numbers::Rational<I>, dedekind::numbers::PartialAddRational<I>> =
-    true;
-
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool is_kleene_commutative_v<
-    dedekind::numbers::Rational<I>, dedekind::numbers::PartialAddRational<I>> =
-    true;
-
-template <dedekind::morphologies::IsInteger I>
-inline constexpr dedekind::numbers::Rational<I> partial_unit_v<
-    dedekind::numbers::Rational<I>, dedekind::numbers::PartialAddRational<I>> =
-    dedekind::numbers::Rational<I>(I{0}, I{1});
-
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool is_kleene_associative_v<
-    dedekind::numbers::Rational<I>, dedekind::numbers::PartialMulRational<I>> =
-    true;
-
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool is_kleene_commutative_v<
-    dedekind::numbers::Rational<I>, dedekind::numbers::PartialMulRational<I>> =
-    true;
-
-template <dedekind::morphologies::IsInteger I>
-inline constexpr dedekind::numbers::Rational<I> partial_unit_v<
-    dedekind::numbers::Rational<I>, dedekind::numbers::PartialMulRational<I>> =
-    dedekind::numbers::Rational<I>(I{1}, I{1});
-
-/** @brief Kleene traits for integer→rational embedding (exact). */
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool is_kleene_associative_v<
-    dedekind::numbers::Rational<I>,
-    dedekind::numbers::PartialEmbedIntegerToRational<I>> = true;
-
-/** @brief Ordering traits: Rational<I> is a total order (ℚ ≤ is a chain). */
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool
-    is_reflexive_v<dedekind::numbers::Rational<I>, std::less_equal<>> = true;
-
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool
-    is_transitive_v<dedekind::numbers::Rational<I>, std::less_equal<>> = true;
-
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool
-    is_antisymmetric_v<dedekind::numbers::Rational<I>, std::less_equal<>> =
-        true;
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool
-    is_connex_v<dedekind::numbers::Rational<I>, std::less_equal<>> = true;
-
-}  // namespace dedekind::category
-
-namespace dedekind::numbers {
-
-/** @section rational__Formal_Verification */
-
-// Proof: The inverse of 2/3 is 3/2.
-static_assert((Rational<default_integer>(default_integer{2}, default_integer{3})
-                   .inverse()
-                   .num() == default_integer{3}));
-
-// Functor identification: Rational<I> = Frac(I).  The Frac functor
-// (field-of-fractions; left adjoint to the inclusion / forgetful functor
-// Fields → IntegralDomains; cf. Lang §II.4) takes an integral domain
-// I to its quotient field; for any IsInteger I, Rational<I> IS that
-// quotient field.  Pinning this mechanically aligns the paper §2
-// prose ("Named functors that build the library's carriers") with the
-// source: the IntegerCarrier alias is the source-side projection of
-// the Frac functor, so any consumer can read off "what does this
-// rational sit over?" by inspecting Rational<I>::IntegerCarrier.
-//
-// FIXME(#498/NEW-A): IntegerCarrier is the ad-hoc source-projection
-// alias on Rational<I>; sibling carriers use ScalarCarrier
-// (Complex<R>) and value_type (Dual<F>, IsTangentBundle).
-// The dedekind.category:functor partition meanwhile establishes the
-// canonical convention --- Σ_cat / Τ_cat for source/target category
-// and Shape<U> for the on-objects action (cf. maybe_functor<T> at
-// src/main/modules/dedekind/category/functor.cppm).  Unifying the carrier-side
-// projections with the :functor convention is NEW-A trait-registry
-// work and tracked under #498; this static_assert is the smallest
-// honest pinning available today.
-static_assert(std::same_as<typename Rational<default_integer>::IntegerCarrier,
-                           default_integer>,
-              "Rational<I> is the Frac-functor image of I; the "
-              "IntegerCarrier alias names I mechanically.");
-
-}  // namespace dedekind::numbers
-
-// ---------------------------------------------------------------------------
-// Law registrations for Rational<I> = Frac(I), the field of fractions.
-//
-// Frac is a LOCALIZATION (Atiyah–Macdonald ch. 3), not a homomorphic image:
-// ℤ ↪ ℚ embeds, nothing is collapsed, and fields are not a variety, so
-// Birkhoff's H leg does not apply and Rational<I> declares no
-// quotient_algebra_base.  The laws are registered directly, each gated on the
-// same law holding for I AND on I not wrapping (FractionBacking): the law of
-// fractions is proved from the law on I only when no intermediate product
-// a*d, b*c wraps, so I must saturate or be exact under the op.  Over a
-// wrapping word (SignedExtensionalCardinal<W>) ℚ's laws are not certified.
-// Totality is the EXACT path (is_exact_total): ℚ's arithmetic is closed and
-// lossless up to the carrier's out-of-memory tripwire, which Rational raises
-// as std::domain_error rather than saturating.  The carrier-specific bits
-// (identities 0/1 and 1/1, inverses) remain explicit below.
-// ---------------------------------------------------------------------------
-
-namespace dedekind::category {
-
-/** @brief An integer backing over which fraction arithmetic obeys ℚ's laws
- *  under @c Op: it does not wrap, so a wrapped intermediate cross-product
- *  cannot silently break a law.  Either it is exact, or it saturates @b and
- *  offers the @c is_finite hook (@c RejectsNonFinite) through which ℚ's
- *  tripwire rejects the saturated value instead of clamping.
- *  @tparam I the integer carrier.
- *  @tparam Op the operation on @c I (@c std::plus / @c std::multiplies). */
-template <typename I, typename Op>
-concept FractionBacking =
-    dedekind::morphologies::IsInteger<I> &&
-    (is_exact_total_v<I, Op> ||
-     (is_saturating_v<I, Op> && dedekind::numbers::RejectsNonFinite<I>));
-
-template <typename I>
-  requires FractionBacking<I, std::plus<I>> &&
-               FractionBacking<I, std::multiplies<I>> &&
-               (associative<I>(std::plus<I>{}))
-inline constexpr bool is_associative_v<
-    dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
-    true;
-template <typename I>
-  requires FractionBacking<I, std::multiplies<I>> &&
-               (associative<I>(std::multiplies<I>{}))
-inline constexpr bool
-    is_associative_v<dedekind::numbers::Rational<I>,
-                     std::multiplies<dedekind::numbers::Rational<I>>> = true;
-template <typename I>
-  requires FractionBacking<I, std::plus<I>> &&
-               FractionBacking<I, std::multiplies<I>> &&
-               (commutative<I>(std::plus<I>{}))
-inline constexpr bool is_commutative_v<
-    dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
-    true;
-template <typename I>
-  requires FractionBacking<I, std::multiplies<I>> &&
-               (commutative<I>(std::multiplies<I>{}))
-inline constexpr bool
-    is_commutative_v<dedekind::numbers::Rational<I>,
-                     std::multiplies<dedekind::numbers::Rational<I>>> = true;
-template <typename I>
-  requires FractionBacking<I, std::plus<I>> &&
-               FractionBacking<I, std::multiplies<I>> &&
-               (distributive<I>(std::multiplies<I>{}, std::plus<I>{}))
-inline constexpr bool
-    is_distributive_v<dedekind::numbers::Rational<I>,
-                      std::multiplies<dedekind::numbers::Rational<I>>,
-                      std::plus<dedekind::numbers::Rational<I>>> = true;
-
-// Fraction + uses I's + and ×; fraction × uses I's ×.  Exact over a
-// non-wrapping backing.
-template <typename I>
-  requires FractionBacking<I, std::plus<I>> &&
-           FractionBacking<I, std::multiplies<I>>
-struct is_exact_total<dedekind::numbers::Rational<I>,
-                      std::plus<dedekind::numbers::Rational<I>>>
-    : std::true_type {};
-template <typename I>
-  requires FractionBacking<I, std::multiplies<I>>
-struct is_exact_total<dedekind::numbers::Rational<I>,
-                      std::multiplies<dedekind::numbers::Rational<I>>>
-    : std::true_type {};
-
-// Carrier-specific identity values (0/1 → 0/1 for plus, 1/1 for multiplies):
-// these don't propagate trivially because the quotient witness has its
-// own constructor shape.
-template <dedekind::morphologies::IsInteger I>
-struct unit_trait<dedekind::numbers::Rational<I>,
-                  std::plus<dedekind::numbers::Rational<I>>> {
-  using value_type = dedekind::numbers::Rational<I>;
-  static constexpr value_type value = value_type{I{0}, I{1}};
-};
-
-template <dedekind::morphologies::IsInteger I>
-struct unit_trait<dedekind::numbers::Rational<I>,
-                  std::multiplies<dedekind::numbers::Rational<I>>> {
-  using value_type = dedekind::numbers::Rational<I>;
-  static constexpr value_type value = value_type{I{1}, I{1}};
-};
-
-// ℚ is a ℤ-module: the field of fractions Frac(ℤ), the integers acting by
-// n (p / q) = (n p) / q (Lang, Algebra §III.1), so a semimodule.  The law of
-// the intended carriers: FIXME(#1035), the machine ℕ and ℤ are not yet the
-// initial rig and ring, and this certificate inherits their gaps.
-template <dedekind::morphologies::IsInteger I>
-struct is_linear_action<dedekind::numbers::Rational<I>, I,
-                        std::plus<dedekind::numbers::Rational<I>>, std::plus<I>,
-                        std::multiplies<I>, std::multiplies<>>
-    : std::true_type {};
-
-// Carrier-specific additive inverse: the defining ℚ trait — every
-// rational has an additive inverse via numerator-negation.  This too
-// is carrier-specific (the construction depends on Rational's layout).
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool is_invertible_v<
-    dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
-    true;
-
-template <dedekind::morphologies::IsInteger I>
-struct inverse_trait<dedekind::numbers::Rational<I>,
-                     std::plus<dedekind::numbers::Rational<I>>> {
-  static constexpr bool exists = true;
-  using value_type = dedekind::numbers::Rational<I>;
-  static constexpr value_type compute(
-      const dedekind::numbers::Rational<I>& q) noexcept {
-    return -q;
-  }
-};
-
-// Multiplicative invertibility on ℚ (zero excluded by the
-// @c is_invertible_v convention pinned in @c total.cppm).  Closes
-// @c IsAbelianGroup<Rational<I>, std::multiplies> and hence
-// @c IsField on ℚ.
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool
-    is_invertible_v<dedekind::numbers::Rational<I>,
-                    std::multiplies<dedekind::numbers::Rational<I>>> = true;
-
-}  // namespace dedekind::category
-
-namespace dedekind::algebra {
-
-// Carrier-promise: @c Rational<I> is an ORDERED FIELD (Lang, @em Algebra
-// §III.1), so its order is compatible with BOTH operations.  @c Rational 's
-// @c <=> is @c std::strong_ordering, so the structural totality holds at this
-// opt-in site; we assert the two order-compatibility axiom markers:
-//   * O1 (@c is_translation_invariant_ordered) --- closes the marker half of
-//     @c IsOrderedAdditiveGroup<Rational<I>> (scout-algebra additive slice,
-//     #664 Slice 2).
-//   * O2 (@c is_scaling_invariant_ordered) --- closes the marker half of
-//     @c IsOrderedMultiplicativeGroup<Rational<I>> (multiplicative/ring-retract
-//     slice).  Formerly this concept leaned on @c order::IsTotallyOrdered; it
-//     now requires this explicit axiom marker, since syntactic comparability
-//     does not prove scaling-compatibility (the 𝔽₅ trap, #818).
-template <dedekind::numbers::IsInteger I>
-struct is_translation_invariant_ordered<dedekind::numbers::Rational<I>>
-    : std::true_type {};
-template <dedekind::numbers::IsInteger I>
-struct is_scaling_invariant_ordered<dedekind::numbers::Rational<I>>
-    : std::true_type {};
-
-}  // namespace dedekind::algebra
-
-namespace dedekind::numbers {
-
-// Algebraic witness: @c Rational<default_integer> satisfies the
-// @c IsOrderedMultiplicativeGroup concept --- @c algebra::IsField<T>
-// (closes via the @c is_invertible_v / @c IsField cert in this file, PR #674)
-// plus the two order-compatibility axiom markers (O1/O2) registered just
-// above.  Cross-partition invariant, pinned in main per the
-// static_assert-in-main pattern.
-static_assert(
-    dedekind::algebra::IsOrderedMultiplicativeGroup<Rational<default_integer>>,
-    "ℚ (Rational<default_integer>) satisfies IsOrderedMultiplicativeGroup: "
-    "ordered field (Lang, Algebra §III.1).");
-
-// NEW-A trait registry witness (#498/#499): @c Rational<I> is a
-// module over its @c IntegerCarrier @c I.  Textbook reading: ℚ is a
-// ℤ-module (and ℚ is the field of fractions @c Frac(ℤ); the Frac
-// construction preserves the source-side scalar action).  The trait
-// itself is concept-based (in @c dedekind::algebra:modules); the
-// witness fires through the species-trait specialisations above.
-static_assert(
-    dedekind::algebra::is_module_v<Rational<default_integer>, default_integer>,
-    "Rational<I> is a module over its IntegerCarrier I.");
-
-/** @brief The canonical rational-number universe ℚ =
- * 𝔸<Rational<default_integer>> (post-#559).
- *
- *  @details Per #559's chosen direction (option A): the named species
- *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
- *  @b universe values (constexpr instances of @c 𝔸 over the
- *  carrier), not carrier @b types.  Carrier types are spelled directly
- *  (@c Rational<default_integer>, or @c Rational<I> for the
- *  parameterised form over an arbitrary @c IsInteger I) in
- *  template-type-parameter positions; @c ℚ alone is the universe
- *  value the set-builder DSL takes as ambient.
- *
- *  This makes @c element<ℚ> the canonical scout spelling — closer to
- *  textbook math notation than the pre-#559 @c element<𝔸<ℚ>> form.
- *  Pre-#559 the spelling was @c using @c ℚ @c = @c ℚ_t<> (a carrier-
- *  type alias); the type-context sites in concept gates and
- *  static_asserts were migrated to @c Rational<default_integer>
- *  directly in step 1 of this slice.
- *
- *  @c algebra::IsField fires on @c Rational<default_integer>; see
- *  the probe near the bottom of this file.
- */
-export inline constexpr 𝔸<Rational<default_integer>, Boole, ℵ_0> ℚ =
-    dedekind::sets::𝔸<Rational<default_integer>>{};
-
-static_assert(
-    std::same_as<std::remove_cvref_t<decltype(ℚ)>,
-                 dedekind::sets::𝔸<Rational<default_integer>, Boole, ℵ_0>>,
-    "ℚ is the universe 𝔸<Rational<default_integer>> (post-#559).");
-static_assert(
-    std::same_as<typename std::remove_cvref_t<decltype(ℚ)>::Domain,
-                 Rational<default_integer>>,
-    "ℚ's underlying carrier IS Rational<default_integer> — the textbook "
-    "universe-over-carrier reading.");
-
-// ℚ inhabits Ddk: it is an algebraic set.  The universe ℚ is an IsSet over
-// the Rational<default_integer> carrier, which is closed under its field
-// operations +, *, and unary - (IsField fires on the carrier; see the probe
-// near the bottom of this file).  So IsAlgebraOnSet fires: ℚ as an object of
-// Ddk = Trsk ∩ Alg, the field completing the ℕ → ℤ → ℚ tower.
-static_assert(dedekind::algebra::IsAlgebraOnSet<
-                  decltype(ℚ), std::plus<Rational<default_integer>>,
-                  std::multiplies<Rational<default_integer>>,
-                  std::negate<Rational<default_integer>>>,
-              "ℚ is an algebraic set (Ddk): a set whose carrier "
-              "Rational<default_integer> is closed under the field operations "
-              "+, *, and unary -.");
-
-// #573 slice 4 pilot witness: ℚ walks SetAsProduct.  Post-#681 structural
-// refactor: @c SetAsProduct's Classifier dimension is now the codomain
-// of the carrier-as-predicate (the @c L::Ω value at any @c a), not the
-// predicate-type wrapper itself.  For ℚ under @c Boole the
-// codomain is @c bool.  Same CT content (the universe value is a
-// Universe over Rational<default_integer> classified by Ω), now
-// expressed structurally rather than via a named @c .χ projector.
-static_assert(dedekind::category::SetAsProduct<std::remove_cvref_t<decltype(ℚ)>,
-                                               Rational<default_integer>, bool>,
-              "#573 slice 4: ℚ must witness SetAsProduct over "
-              "(Rational<default_integer>, Boole::Ω = bool).  The universe "
-              "value is a Universe whose Ambient matches the rational carrier "
-              "and whose classifier codomain is bool.");
-
-// `Q` constant + `RationalSet` alias removed under ℚ-retarget
-// chiselling --- callers spell @c element<ℚ> directly off the universe
-// value @c ℚ above.
-
-// `embed_ℤ_ℚ` machine-layer arrow removed: its source type
-// @c machine_integer (= @c int) was the deprecated machine-layer
-// integer carrier.  Callers that need ℤ ↪ ℚ realisation should
-// construct @c Rational<I>{n, I{1}} directly at the call site.
-//
-// Pragmatic alias kept for downstream callers that still reach for it:
-export using machine_integer = int;
-
-// `Frac` set-level lift removed under ℚ-retarget chiselling: depended
-// transitively on @c embed_ℤ_ℚ (removed above).  The carrier-lattice
-// functor zoo (@c Frac / @c Cplx / @c Dual / ...) at the set level
-// remains a valid target — the next iteration will restore @c Frac
-// on the new @c ℤ carrier (@c SignedCardinality) via @c embed_sint_ℤ
-// rather than the deprecated machine-layer arrow.
-
-/**
- * @brief Restored variant-layer subalgebra embedding @b ℤ ↪ ℚ:
- *        @c SignedCardinality → @c Rational<default_integer>, @f$n\mapsto
- * n/1@f$.
- *
- * @details Restores the arrow the comment above anticipated ("on the new @b ℤ
- * carrier @c SignedCardinality"), replacing the removed machine-layer
- * @c arrow<int,…>.  @f$n\mapsto n/1@f$ is the genuine ring embedding of ℤ into
- * its field of fractions ℚ: an @c EmbedsAsSubalgebra @b S-leg (the canonical
- * tower rung below @c embed_ℚ_ℝ) that is also @b order-preserving
- * (@c is_monotone_v) — the property the halfspace strength-reduction pulls back
- * through.  The homomorphism/injectivity laws are @b witnessed by computation
- * below on the ring ℤ.
- *
- * @see @c PartialEmbedIntegerToRational --- the @b same map @f$n\mapsto n/1@f$
- * on the @b Ternary/Kleene surface, generic over @c I.  @c embed_ℤ_ℚ_ is the
- * categorical @c arrow over the canonical @c default_integer, carrying the
- * monic / homomorphism / monotone registrations the tower's S-leg needs; the
- * two are distinct surfaces, not a redundant fork.
- */
-export inline constexpr auto embed_ℤ_ℚ_ =
-    arrow<default_integer, Rational<default_integer>>(
-        [](const default_integer& n) {
-          // NOT noexcept: Rational(Z) rejects a non-finite ℤ (NaZ/±ℵ_0) with
-          // std::domain_error (#680), which must escape this arrow rather than
-          // hit std::terminate.
-          return Rational<default_integer>{n};
+/** @brief The exact dyadic embedding of the finite doubles into ℚ: @c from on
+ *  the domain that excludes NaN and ±∞ by type, so total and monic. */
+export inline constexpr auto embed_𝕃_ℚ =
+    arrow<dedekind::morphologies::𝕃<double>, RatExpr<>>(
+        [](const dedekind::morphologies::𝕃<double>& f) {
+          const auto q = from(f.value());  // 𝕃 certifies finiteness
+          if (!q) __builtin_trap();
+          return *q;
         });
 
+/** @brief The universe ℚ = 𝔸<RatExpr<>>: the named species symbols denote
+ *  universe values (#559). */
+export inline constexpr 𝔸<RatExpr<>, Boole, ℵ_0> ℚ =
+    dedekind::sets::𝔸<RatExpr<>>{};
+
 }  // namespace dedekind::numbers
 
+// ---------------------------------------------------------------------------
+// Registrations: ℚ's order with its field, the Kleene surface, the arrows.
+// ℚ's field laws are certified on its terms in sets:expr.
+// ---------------------------------------------------------------------------
+namespace dedekind::algebra {
+// ℚ is an ORDERED field (Lang, Algebra §III.1): the order is compatible with
+// translation (O1) and with scaling by positives (O2).
+template <>
+struct is_translation_invariant_ordered<dedekind::sets::RatExpr<>>
+    : std::true_type {};
+template <>
+struct is_scaling_invariant_ordered<dedekind::sets::RatExpr<>>
+    : std::true_type {};
+}  // namespace dedekind::algebra
+
 namespace dedekind::category {
-/** @brief ℤ ↪ ℚ is monic: @f$n/1 = m/1 \iff n = m@f$. */
+using Q_ = dedekind::sets::RatExpr<>;
+using Z_ = dedekind::sets::IntExpr<>;
+template <>
+inline constexpr bool
+    is_kleene_associative_v<Q_, dedekind::numbers::PartialAddRational> = true;
+template <>
+inline constexpr bool
+    is_kleene_commutative_v<Q_, dedekind::numbers::PartialAddRational> = true;
+template <>
+inline constexpr Q_ partial_unit_v<Q_, dedekind::numbers::PartialAddRational> =
+    Q_{};
+template <>
+inline constexpr bool
+    is_kleene_associative_v<Q_, dedekind::numbers::PartialMulRational> = true;
+template <>
+inline constexpr bool
+    is_kleene_commutative_v<Q_, dedekind::numbers::PartialMulRational> = true;
+template <>
+inline constexpr Q_ partial_unit_v<Q_, dedekind::numbers::PartialMulRational> =
+    Q_{1};
+template <>
+inline constexpr bool is_kleene_associative_v<
+    Q_, dedekind::numbers::PartialEmbedIntegerToRational> = true;
+/** @brief ℤ ↪ ℚ is monic, monotone, and a ring homomorphism. */
 template <>
 inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>> =
         true;
-/** @brief ℤ ↪ ℚ preserves order — the monotonicity the strength-reduction
- *  pullback rests on. */
 template <>
 inline constexpr bool is_monotone_v<
     std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>, std::less_equal<>> =
     true;
-}  // namespace dedekind::category
-
-namespace dedekind::category {
-/** @brief ℤ ↪ ℚ preserves @f$+,\times,0,1@f$ — the field-of-fractions ring
- *  embedding, between two @b strict-total algebras: ℤ is @c category::IsRing
- *  (saturating totality, @c :cardinality) and ℚ is @c category::IsField (exact
- *  totality, registered in this partition).  So the declarations here make a
- *  fully-certified ring homomorphism, not merely an operational declaration.
- *
- *  @b Boundary behaviour (#680, resolved): ℚ has @b no sentinels.  ℕ/ℤ
- *  saturate at the OOM/±ℵ_0 boundary; ℚ instead @b rejects a non-finite ℤ
- *  (@c NaZ / @c ±ℵ_0) at construction with @c std::domain_error --- the same
- *  Honest-Rejection posture as @c 1/0.  This is why @c embed_ℤ_ℚ_'s arrow is
- *  @b not @c noexcept: @c embed_ℤ_ℚ_(non-finite ℤ) propagates that
- *  @c domain_error rather than diverging in @c euclidean_gcd (the old hang) or
- *  fabricating an order-incoherent @c NaZ/1.  A retained sentinel would break
- *  ℚ's total order (@c NaZ/1 @c <=> @c 1/1 equal while @c == false), so
- *  rejection --- not saturation --- is the coherent fix.  The finite fragment
- *  is unaffected and still gcd-normalises at compile time. */
-template <>
-struct is_homomorphism<
-    std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>,
-    dedekind::numbers::default_integer,
-    std::plus<dedekind::numbers::default_integer>,
-    std::plus<dedekind::numbers::Rational<dedekind::numbers::default_integer>>>
-    : std::true_type {};
 template <>
 struct is_homomorphism<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>,
-                       dedekind::numbers::default_integer,
-                       std::multiplies<dedekind::numbers::default_integer>,
-                       std::multiplies<dedekind::numbers::Rational<
-                           dedekind::numbers::default_integer>>>
+                       Z_, std::plus<Z_>, std::plus<Q_>> : std::true_type {};
+template <>
+struct is_homomorphism<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>,
+                       Z_, std::multiplies<Z_>, std::multiplies<Q_>>
     : std::true_type {};
-}  // namespace dedekind::category
-
-namespace dedekind::numbers {
-
-/** @section rational__ℤ_ℚ_S_Leg_Witnesses
- *  @c embed_ℤ_ℚ_ is a genuine Birkhoff S-leg, witnessed by computation. */
-namespace {
-using ℤ_carrier = default_integer;
-static_assert(
-    dedekind::category::IsMonicArrow<std::decay_t<decltype(embed_ℤ_ℚ_)>>,
-    "ℤ ↪ ℚ is monic.");
-static_assert(
-    dedekind::algebra::EmbedsAsSubalgebra<std::decay_t<decltype(embed_ℤ_ℚ_)>>,
-    "ℤ ↪ ℚ is a Birkhoff S-leg: a monic ring embedding into the field of "
-    "fractions (the tower rung below embed_ℚ_ℝ).");
-// Homomorphism, computed on the finite fragment (n ↦ n/1 preserves +, ×, 0, 1).
-static_assert(embed_ℤ_ℚ_(ℤ_carrier{2} + ℤ_carrier{3}) ==
-                  embed_ℤ_ℚ_(ℤ_carrier{2}) + embed_ℤ_ℚ_(ℤ_carrier{3}),
-              "ℤ ↪ ℚ preserves +.");
-static_assert(embed_ℤ_ℚ_(ℤ_carrier{2} * ℤ_carrier{3}) ==
-                  embed_ℤ_ℚ_(ℤ_carrier{2}) * embed_ℤ_ℚ_(ℤ_carrier{3}),
-              "ℤ ↪ ℚ preserves ×.");
-// Monic / order-preserving, computed.
-static_assert(embed_ℤ_ℚ_(ℤ_carrier{2}) != embed_ℤ_ℚ_(ℤ_carrier{3}),
-              "ℤ ↪ ℚ is injective on distinct integers.");
-static_assert(embed_ℤ_ℚ_(ℤ_carrier{2}) < embed_ℤ_ℚ_(ℤ_carrier{3}),
-              "ℤ ↪ ℚ preserves order (2/1 < 3/1).");
-}  // namespace
-
-/**
- * @brief Exact dyadic embedding of the finite doubles into ℚ:
- *        @c 𝕃<double> → @c Rational<I>.
- *
- * @details Every finite IEEE 754 @c double is exactly the dyadic rational
- * @c m·2^e for integers @c m, @c e (mantissa, exponent).  This arrow extracts
- * the bit-pattern via @c std::bit_cast and constructs
- * @c Rational<I>{numerator, denominator} where the denominator is the
- * relevant power of two.  NaN and +/-inf cannot reach it: the domain
- * @c 𝕃<double> excludes them by type, so under ℚ's faithful-field posture
- * the arrow is total on its domain, and it is injective by the exactness of
- * the dyadic decomposition (Knuth, @em TAOCP, Vol. 2, §4.2), hence
- * registered monic below.
- *
- * @section rational__Precision
- * The integer carrier @c I must hold the reduced 53-bit mantissa and the
- * power-of-two scaling.  For built-in signed @c I the arrow checks each step
- * against @c std::numeric_limits<I> and throws @c std::overflow_error rather
- * than trip signed-overflow UB.  The default @c default_integer
- * (@c SignedCardinality) stands in for ℤ, and its saturation sentinel is
- * ℚ's out-of-memory tripwire: @c Rational rejects it with
- * @c std::domain_error.  On the current one-word carrier the tripwire sits
- * at 2^63, so a double whose mantissa or power-of-two scaling exceeds that
- * (e.g. 1e20, 1e-20, every subnormal) trips it.
- */
-export template <IsInteger I = default_integer>
-inline constexpr auto embed_𝕃_ℚ =
-    arrow<dedekind::morphologies::𝕃<double>, Rational<I>>(
-        [](const dedekind::morphologies::𝕃<double>& f) -> Rational<I> {
-          const double x = f.value();
-
-          // ±0 collapses to canonical zero.
-          if (x == 0.0) {
-            return Rational<I>{I{0}, I{1}};
-          }
-
-          // Decompose IEEE 754 double via bit_cast (constexpr in C++20):
-          //   sign      bit  : 1 bit at position 63
-          //   biased exp     : 11 bits at positions 62..52, biased by 1023
-          //   mantissa frac  : 52 bits at positions 51..0 (with implicit
-          //                    leading 1 for normals; absent for subnormals)
-          const auto bits = std::bit_cast<std::uint64_t>(x);
-          const bool sign = (bits >> 63) & 1U;
-          const auto biased_exp = static_cast<unsigned>((bits >> 52) & 0x7FFU);
-          const auto mantissa_frac = bits & 0x000F'FFFF'FFFF'FFFFULL;
-
-          // Recover the integer mantissa (with implicit-1 for normals) and
-          // the binary exponent.  After this block, x = (sign? -1 : 1) *
-          // mantissa * 2^exp exactly.
-          std::uint64_t mantissa;
-          int exp;
-          if (biased_exp == 0) {
-            // Subnormal: no implicit leading 1; smallest exponent is -1074.
-            mantissa = mantissa_frac;
-            exp = -1074;
-          } else {
-            mantissa = (1ULL << 52) | mantissa_frac;
-            exp = static_cast<int>(biased_exp) - 1023 - 52;
-          }
-
-          // Reduce to lowest terms in the dyadic form: strip factors of 2
-          // from the mantissa, raising the exponent.  This keeps the
-          // numerator / denominator small for cleanly-representable values
-          // (e.g. -21.0 lands as mantissa=21, exp=0 → Rational<I>{-21, 1}).
-          while ((mantissa & 1U) == 0U && mantissa != 0U) {
-            mantissa >>= 1;
-            ++exp;
-          }
-
-          // Mantissa-fit check: for built-in signed I, throw if the reduced
-          // mantissa exceeds I::max() (otherwise the static_cast below
-          // would silently truncate or invoke implementation-defined
-          // behaviour).  For non-built-in carriers, trust the carrier.
-          if constexpr (std::integral<I>) {
-            using L = std::numeric_limits<I>;
-            if (mantissa > static_cast<std::uint64_t>(L::max())) {
-              throw std::overflow_error(
-                  "embed_𝕃_ℚ: reduced mantissa exceeds I::max(); use a "
-                  "wider integer carrier (e.g. long long).");
-            }
-          }
-
-          // Form the rational: numerator carries the sign and the reduced
-          // mantissa; denominator is 2^|exp| when exp < 0, else 1 (with
-          // the mantissa carrying the 2^exp factor in the numerator).
-          // Overflow-checked doubling: for built-in signed I, throw before
-          // a multiplication that would overflow; for non-built-in
-          // carriers, trust the carrier's own arithmetic discipline.
-          const auto checked_double = [](I value) -> I {
-            if constexpr (std::integral<I>) {
-              using L = std::numeric_limits<I>;
-              if (value > L::max() / I{2} || value < L::min() / I{2}) {
-                throw std::overflow_error(
-                    "embed_𝕃_ℚ: power-of-two scaling overflows I; use "
-                    "a wider integer carrier.");
-              }
-            }
-            return value * I{2};
-          };
-
-          I num = sign ? -static_cast<I>(mantissa) : static_cast<I>(mantissa);
-          if (exp >= 0) {
-            for (int i = 0; i < exp; ++i) num = checked_double(num);
-            return Rational<I>{num, I{1}};
-          } else {
-            I den = I{1};
-            for (int i = 0; i < -exp; ++i) den = checked_double(den);
-            return Rational<I>{num, den};
-          }
-        });
-
-}  // namespace dedekind::numbers
-
-namespace dedekind::category {
-template <dedekind::morphologies::IsInteger Z>
-struct SpeciesTraits<dedekind::numbers::Rational<Z>> {
-  using Domain = dedekind::numbers::Rational<Z>;
-  using machine_type = dedekind::numbers::Rational<Z>;
-};
-
-// embed_ℤ_ℚ monicity / IsEmbeddingFunctor / is_homomorphism
-// registrations removed under ℚ-retarget chiselling — the arrow
-// itself was removed (machine-layer ℕ → ℤ scaffolding).  Restoring
-// on the new ℤ carrier (SignedCardinality) lands as a follow-up.
-
-}  // namespace dedekind::category
-
-namespace dedekind::category {
-
-/** @brief The finite doubles embed injectively into ℚ: distinct finite
- *  doubles have distinct dyadic values (@c -0.0 and @c +0.0 are one element
- *  of @c 𝕃). */
+/** @brief ℚ is a ℤ-module, @f$n (p/q) = (np)/q@f$: the action is the ring
+ *  homomorphism ℤ ↪ ℚ followed by ℚ's product, whose laws it inherits. */
+template <>
+struct is_linear_action<Q_, Z_, std::plus<Q_>, std::plus<Z_>,
+                        std::multiplies<Z_>, std::multiplies<>>
+    : std::true_type {};
+/** @brief The finite doubles embed injectively: distinct doubles are distinct
+ *  dyadic rationals (−0.0 and +0.0 are one element of 𝕃). */
 template <>
 inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝕃_ℚ<>)>> =
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝕃_ℚ)>> =
         true;
 }  // namespace dedekind::category
 
 namespace dedekind::numbers {
-
-/** @section rational__Canonical_Species_Spine (ℚ)
- *
- * The canonical rational-number universe is @c ℚ @c = @c
- * 𝔸<Rational<default_integer>>{} above.  The spine witnesses below pin ℚ's
- * syntax / semantics / arrow-fabric witnesses against drift; the layout mirrors
- * the @c numbers:integer spine for ℤ so that downstream code can scan one block
- * per textbook carrier and find the same five witness slots.
- */
-
-// (1) IsSet for ℚ is witnessed via the universe value ℚ above.
-
-// (2) Syntax (the C++ operator surface that maps to ℚ's algebra).  Post-
-// #559, ℚ is the universe value 𝔸<Rational<default_integer>>; the carrier
-// in concept-gate type-parameter slots is Rational<default_integer>
-// directly.
-//   - HasRingOperators<Rational<default_integer>>: literal +, binary -,
-//     unary -, * close on the carrier.
-//   - HasFieldOperators<Rational<default_integer>>: literal +, -, *, /
-//     close on the carrier (HasRingOperators + closure under /).
-//   - HasGroupOperatorsAdd<Rational<default_integer>>: literal +, binary -,
-//     unary - close on the carrier.
-//   - HasGroupOperatorsMul<Rational<default_integer>>: literal *, / close
-//     on the carrier \ {0}.
-static_assert(dedekind::algebra::HasRingOperators<Rational<default_integer>>,
-              "ℚ closes the literal ring operator surface (+, binary -, "
-              "unary -, *).");
-static_assert(dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
-              "ℚ closes the literal field operator surface (+, -, *, /).");
-static_assert(
-    dedekind::algebra::HasGroupOperatorsAdd<Rational<default_integer>>,
-    "ℚ closes the additive-group operator surface (+, binary -, "
-    "unary -).");
-static_assert(
-    dedekind::algebra::HasGroupOperatorsMul<Rational<default_integer>>,
-    "ℚ closes the multiplicative-group operator surface "
-    "(*, /), modulo division-by-zero (the field carrier "
-    "of ℚ is total only off the multiplicative-zero set).");
-
-// (3) Semantics (the algebraic structures Rational<default_integer> actually
-//     carries).  The strict @c category::IsField<ℚ, std::plus, std::multiplies>
-//     witness: ℚ passes the @c IsTotal gate on the exact path
-//     (@c is_exact_total, registered above), its laws are registered on the
-//     carrier gated on ℤ's, and the inverses are explicit.  The additive-group
-//     / commutative-ring pins on the integer carrier of ℚ live at @c :integer.
-static_assert(
-    dedekind::category::IsField<Rational<default_integer>,
-                                std::plus<Rational<default_integer>>,
-                                std::multiplies<Rational<default_integer>>>,
-    "ℚ = Rational<default_integer> is a strict category::IsField (exact "
-    "totality, laws registered on the carrier).");
-// ℚ does not saturate: the tripwire rejects, and the certificate says so.
-static_assert(
-    !dedekind::category::is_saturating_v<Rational<default_integer>,
-                                         std::plus<Rational<default_integer>>>,
-    "ℚ is exact, not saturating.");
-// Over a WRAPPING word the fraction laws are not certified: a wrapped
-// cross-product breaks associativity silently, so no field claim is made.
-static_assert(
-    !dedekind::category::associative<Rational<SignedExtensionalCardinal<>>>(
-        std::plus<Rational<SignedExtensionalCardinal<>>>{}) &&
-        !dedekind::category::IsField<
-            Rational<SignedExtensionalCardinal<>>,
-            std::plus<Rational<SignedExtensionalCardinal<>>>,
-            std::multiplies<Rational<SignedExtensionalCardinal<>>>>,
-    "fractions over a wrapping word are not certified a field.");
-// A field is a fortiori a ring and a semiring --- the full ladder on ℚ, pinned.
-static_assert(
-    dedekind::category::IsRing<Rational<default_integer>,
-                               std::plus<Rational<default_integer>>,
-                               std::multiplies<Rational<default_integer>>> &&
-        dedekind::category::IsSemiring<
-            Rational<default_integer>, std::plus<Rational<default_integer>>,
-            std::multiplies<Rational<default_integer>>>,
-    "ℚ is a fortiori a strict category::IsRing and IsSemiring.");
-
-// (4) Primitive-type arrows on ℚ:
-//   - Forward (machine → ℚ): @c embed_ℤ_ℚ promotes a @c machine_integer
-//     to a rational n/1 (registered monic; injective by construction).
-//   - Forward (finite float → ℚ): @c embed_𝕃_ℚ extracts the exact dyadic
-//     rational m·2^e from the IEEE 754 bit-pattern of an @c 𝕃<double>
-//     (registered monic; NaN / ±∞ are excluded by the domain).
-// Both arrows are defined further up in this partition; their
-// IsMonicArrow / IsInjective registrations live in the
-// @c dedekind::category-namespace block below those definitions.
-
-// (5) Adjacent-set arrows on ℚ:
-//   - Forward predecessor: @c ℤ ↪ ℚ via @c embed_ℤ_ℚ (n ↦ n/1; same
-//     arrow as (4)).
-//   - Forward successor:    @c ℚ ↪ ℝ via @c embed_ℚ_ℝ in @c :real_bridge.
-//   - Reverse direction (ℚ → machine):  intentionally not a single
-//     primitive on @c Rational<I>: ℚ → @c double is the realisation
-//     crossing into IEEE 754 numerics, and the carrier-lattice
-//     convention routes that through the ℝ-proxy so the
-//     IEEE-754 friction is named at the right partition.
-
-static_assert(
-    dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
-    "Rational<I> must satisfy the operational field-like witness (ℚ is a "
-    "field).");
-
-static_assert(
-    dedekind::algebra::HasFieldOperators<Rational<SignedExtensionalCardinal<>>>,
-    "Rational<SignedExtensionalCardinal<>> must satisfy "
-    "HasFieldOperators: the fixed-width signed-rational carrier for ℚ.");
-
-// ---------------------------------------------------------------------------
-// Algebraic-soul concept certifications (dogfood the library's own concepts)
-// ---------------------------------------------------------------------------
-//
-// These assertions are the library's contract with itself: the carriers the
-// paper and downstream code instantiate must satisfy the algebraic-soul
-// concepts they *claim* to realize. When a future certification fails to
-// hold (e.g. because a downstream change breaks a species-trait), the build
-// breaks here, at the point of the claim, rather than silently downstream.
-
-// ℚ as the field of rationals: the canonical rational carrier that the
-// paper-facing showcases instantiate on.  Both the
-// operational @c HasFieldOperators surface AND the axiomatic
-// @c category::IsField / @c algebra::IsField close on
-// @c Rational<default_integer> (see the probes below).
-
-// ℚ-deal (#394, surface only): HasFieldOperators is the literal field-
-// operator surface (+, -, unary -, *, /, T{1}).  Rational<I>'s friend
-// operators and inverse-via-T{1}/x route close strictly on Rational<I>
-// for any operationally-ring-like I; the witness fires regardless of
-// the strict-IsField FIXME above, since it is a syntactic shape claim
-// and not an axiomatic one.
-static_assert(dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
-              "Rational<default_integer> has the literal field-operator "
-              "surface: +, -, unary -, *, / all close on Rational, and "
-              "Rational{1} is the multiplicative unit.");
-static_assert(
-    dedekind::algebra::HasFieldOperators<Rational<SignedExtensionalCardinal<>>>,
-    "Rational<SignedExtensionalCardinal<>> --- the canonical exact ℚ "
-    "carrier --- has the field-operator surface.");
-
-// Canonical-spine syntactic witnesses on Rational<default_integer>:
-// the ring / additive-group / multiplicative-group surfaces are all
-// implied by HasFieldOperators above (which is HasRingOperators ∧
-// HasGroupOperatorsMul), but pinning them explicitly here surfaces
-// each shape concept in the partition's witness ledger.
-static_assert(dedekind::algebra::HasRingOperators<Rational<default_integer>>,
-              "Rational<default_integer> closes the ring operator surface.");
-static_assert(
-    dedekind::algebra::HasGroupOperatorsAdd<Rational<default_integer>>,
-    "Rational<default_integer> closes the additive-group operator "
-    "surface (+, binary -, unary -).");
-static_assert(
-    dedekind::algebra::HasGroupOperatorsMul<Rational<default_integer>>,
-    "Rational<default_integer> closes the multiplicative-group operator "
-    "surface (*, /, T{1}).");
-
-// Algebraic witness: @c Rational<default_integer> is a field
-// (Lang, @em Algebra §III.1).  This asserts the axiomatic
-// @c category::IsField directly on the carrier; the set-indexed
-// @c algebra::IsField lifts the same axioms over a set object
-// (e.g.\ @c 𝔸<Rational<default_integer>>).
-static_assert(dedekind::category::IsField<
-              Rational<default_integer>, std::plus<Rational<default_integer>>,
-              std::multiplies<Rational<default_integer>>>);
-
-/**
- * @brief The polynomial ring over the rationals in one variable, ℚ[x]:
- *        @c algebra::Polynomial over the quotient field of the integer
- *        carrier @c I.
- */
-export template <IsInteger I = default_integer>
-using RationalPolynomial = dedekind::algebra::Polynomial<Rational<I>>;
-
-static_assert(dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
-              "RationalPolynomial coefficient type must be field-like.");
-
-// Ordering and density proofs for ℚ.
-static_assert(IsTotallyOrdered<Rational<default_integer>>,
-              "Rational<Z> must satisfy IsTotallyOrdered (ℚ is a total "
-              "order).");
-static_assert(IsDense<Rational<default_integer>>,
-              "Rational<Z> must satisfy IsDense (ℚ is dense in itself: "
-              "between any two rationals lies another).");
-
-// ℚ is also a valid net domain: the total order makes it directed
-// (every pair {a, b} has a common upper bound, e.g.\ max(a, b)).
-// Cf.\ Munkres / Kelley: a net is a function from a directed set,
-// not necessarily ℕ.
-static_assert(dedekind::order::IsDirectedSet<Rational<default_integer>>,
-              "Rational<Z> is a directed set --- ℚ is a valid net "
-              "domain (totally ordered, every pair has a common "
-              "upper bound).");
-
-// Structural product proof: ℚ is constructed as pairs (num, den) from ℤ × ℤ.
-static_assert(
-    dedekind::category::IsProduct<Rational<default_integer>, default_integer,
-                                  default_integer>,
-    "Rational<Z> must satisfy IsProduct<Rational<Z>, Z, Z> (ℚ ≅ ℤ × ℤ / ~).");
-
-// The canonical projections π_1 / π_2 agree with the num() / den() aliases ---
-// ℚ's specialized names for the ℤ×ℤ/~ left/right components (the same
-// projection scheme ℂ carries as re/im, 𝔻 as val/der).
+/** @section rational__Formal_Verification  Small values only: the big-value
+ *  cases are runtime tests, so constant evaluation stays cheap. */
 namespace {
-constexpr Rational<default_integer> q_proj{3, 5};  // 3/5
-static_assert(dedekind::category::π_1(q_proj) == q_proj.num(),
-              "π_1 = numerator (the ℤ×ℤ/~ left projection).");
-static_assert(dedekind::category::π_2(q_proj) == q_proj.den(),
-              "π_2 = denominator (the ℤ×ℤ/~ right projection).");
+using Q = RatExpr<>;
+static_assert(Q{2, 4} == Q{1, 2} && Q{2, -4} == Q{-1, 2} && Q{0, 7} == Q{} &&
+                  Q{1, 2} + Q{1, 3} == Q{5, 6} &&
+                  Q{1, 2} * Q{1, 3} == Q{1, 6} && Q{1, 3} < Q{1, 2},
+              "ℚ's operations and order, through the canonical form");
+static_assert(Q{1, 2} / nonzero(Q{1, 3}).value() == Q{3, 2} &&
+                  !nonzero(Q{}).has_value() && Q{1} / two_ℚ == Q{1, 2} &&
+                  (two_ℚ * two_ℚ).value() == Q{4} &&
+                  two_ℚ.inverse().value() == Q{1, 2},
+              "ℚ* is closed under · and inverse; division is by ℚ* only");
+static_assert(midpoint(Q{1}, Q{2}) == Q{3, 2}, "the midpoint, ℚ dense");
+static_assert(positive(Q{1, 2}).has_value() && !positive(Q{}).has_value() &&
+                  !positive(Q{-1}).has_value() &&
+                  (Positive::literal<3>() + Positive::literal<4>()).value() ==
+                      Q{7} &&
+                  square(-two_ℚ).value() == Q{4} && abs(-two_ℚ).value() == Q{2},
+              "ℚ₊ is closed under + and ·, and holds the squares of ℚ*");
+static_assert(from(0.5) == Q{1, 2} && from(-0.75) == Q{-3, 4} &&
+                  from(-0.0) == Q{} &&
+                  !from(std::numeric_limits<double>::quiet_NaN()).has_value() &&
+                  !from(std::numeric_limits<double>::infinity()).has_value(),
+              "a double is the dyadic rational its bits spell");
+// C++'s own comparison converts the integer to double and rounds: 2^53 + 1
+// reads equal to 2^53.  ℚ's does not.
+static_assert(
+    (1LL << 53) + 1 == static_cast<double>(1LL << 53),
+    "[expr.arith.conv]: the usual arithmetic conversions lose 2^53 + 1");
+static_assert(Q{(1LL << 53) + 1} != static_cast<double>(1LL << 53) &&
+                  Q{(1LL << 53) + 1} > static_cast<double>(1LL << 53) &&
+                  Q{1, 2} == 0.5,
+              "ℚ compares atoms of different types in ℚ, exactly");
+static_assert(dedekind::algebra::HasFieldOperators<Q> &&
+                  dedekind::algebra::IsDivisionRing<Q> &&
+                  dedekind::algebra::IsOrderedMultiplicativeGroup<Q> &&
+                  IsTotallyOrdered<Q> && IsDense<Q> &&
+                  !dedekind::category::HasNNOStep<Q>,
+              "ℚ is an ordered field and a dense chain");
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(ℚ)>::Domain, Q> &&
+        dedekind::algebra::IsAlgebraOnSet<decltype(ℚ), std::plus<Q>,
+                                          std::multiplies<Q>, std::negate<Q>>,
+    "ℚ is the universe 𝔸<RatExpr<>>, an algebraic set");
+static_assert(embed_ℤ_ℚ_(IntExpr<>{2} + IntExpr<>{3}) ==
+                      embed_ℤ_ℚ_(IntExpr<>{2}) + embed_ℤ_ℚ_(IntExpr<>{3}) &&
+                  embed_ℤ_ℚ_(IntExpr<>{2}) < embed_ℤ_ℚ_(IntExpr<>{3}) &&
+                  dedekind::algebra::EmbedsAsSubalgebra<
+                      std::decay_t<decltype(embed_ℤ_ℚ_)>>,
+              "ℤ ↪ ℚ is a monic, monotone ring homomorphism");
 }  // namespace
-
 }  // namespace dedekind::numbers

@@ -127,7 +127,7 @@ constexpr auto operator&(const 𝔸<T, L, C>& u,
   return u & Point<T>{carrier_cast<T>(c.b.value)};
 }
 
-static_assert(std::equality_comparable<std::optional<Numeral>>,
+static_assert(std::equality_comparable<std::optional<ExtensionalCardinal<>>>,
               "the standard's == on an optional of a sets type is its own: the "
               "grammar's == enters the candidate set by ADL and is rejected "
               "as non-viable without probing equality on T.");

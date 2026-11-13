@@ -21,7 +21,7 @@
  * values, spelled as the literals themselves (@c π_1 @c + @c 1 @c == @c π_2),
  * so a term built at run time --- from Python --- is the same term.  A constant
  * meets the sort of the term it is combined with, converted when the term is
- * evaluated and checked to be representable (ℕ, @c Numeral, takes an unsigned
+ * evaluated and checked to be representable (ℕ, @c NatExpr, takes an unsigned
  * constant and refuses a signed one).  Facts about a constant's value (a
  * divisor is not zero) are checked when the term is built: in @c constexpr code
  * a violation is a compile error.
@@ -112,7 +112,7 @@ export module dedekind.sets:terms;
 
 import dedekind.category;
 import :boundaries;   // the set objects
-import :cardinality;  // IsRingIntegral; Numeral, the ℕ carrier constants
+import :cardinality;  // IsRingIntegral
                       // meet
 
 namespace dedekind::sets {

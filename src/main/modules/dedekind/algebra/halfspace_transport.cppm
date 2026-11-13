@@ -3,13 +3,13 @@
  * @partition :halfspace_transport
  * @brief Transport of halfspaces along the additive group: the @b ordered-group
  *        slice of the point-free relational DSL (@c image / @c inverse /
- *        @c argmax and the entireness inference).
+ *        the entireness inference).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
  * @section halfspace_transport__Why_Here
- * The DSL surface (the @c image / @c inverse / @c argmax / @c is_function /
+ * The DSL surface (the @c image / @c inverse / @c is_function /
  * @c is_entire spellings) lives in @c namespace @c dedekind::order so that the
  * point-free calls resolve by ADL on their order/relation argument types.  Its
  * @b implementation, however, lives here in @c dedekind.algebra, because these
@@ -49,7 +49,7 @@ module;
 export module dedekind.algebra:halfspace_transport;
 
 import dedekind.category; // IsAbelianGroup, is_left_total_v (the trait primary)
-import dedekind.sets;     // Set, 𝔸, Singleton, Numeral, SignedCardinality
+import dedekind.sets;     // Set, 𝔸, Singleton, NatExpr, IntExpr
 import dedekind.order;    // Translation / Scaling, ProductRestrict, rays
 import dedekind.relational; // ComposePred (Tarski :dyadic), the >> trait NODE (#792)
 import :ordered_algebra;  // IsOrderedAdditiveGroup (the canonical gate)
@@ -115,7 +115,7 @@ constexpr auto image(
 export template <IsTotallyOrdered T, typename K, Rel R, typename V,
                  IsOckhamAlgebra L, IsCardinality C>
   requires(is_order_rel(R) && (dedekind::algebra::IsOrderedAdditiveGroup<T> ||
-                               std::same_as<T, dedekind::sets::Numeral>))
+                               dedekind::sets::is_natural_term_v<T>))
 constexpr auto image(
     const Comprehension<𝔸<std::pair<T, T>, L, C>,
                         ProductRestrict<Translation<K>, Cylinder<R, 1, V>>>&
@@ -166,7 +166,7 @@ consteval bool is_function(const R&) {
 }
 
 /** @brief @c is_entire(R): true for a relation certified entire; a codomain
- *  bound (alone or with a residue) on the unbounded ℤ-like carrier pulls the
+ *  bound on the unbounded ℤ-like carrier pulls the
  *  domain back to a proper subset.  ℕ is not matched for the codomain cases: a
  *  lower bound there can be vacuous, so no false non-entire claim is made. */
 export template <typename R>
@@ -182,42 +182,6 @@ consteval bool is_entire(
                         ProductRestrict<Translation<K>, Cylinder<R, 2, V>>>&) {
   return false;
 }
-export template <typename T, typename K, Rel R, typename V, typename M,
-                 typename W, typename L, typename C>
-  requires dedekind::algebra::IsOrderedAdditiveGroup<T>
-consteval bool is_entire(
-    const Comprehension<
-        𝔸<std::pair<T, T>, L, C>,
-        ProductRestrict<Translation<K>,
-                        RelAnd<Cylinder<R, 2, V>, Residue<2, M, W>>>>&) {
-  return false;
-}
-
-/** @brief @c argmax over a partial function: the translation @c x↦x+k into a
- *  codomain bounded above (@c π_2≤P) and restricted to a residue class
- *  (@c π_2≡W mod M), read off structurally.  Gated on an ordered additive group
- *  of integers: the domain is unbounded below, so the feasible set is never
- *  empty and the read-off is the optimum. */
-export template <typename T, typename K, typename V, typename M, typename W,
-                 IsOckhamAlgebra L, IsCardinality C>
-  requires(dedekind::algebra::IsOrderedAdditiveGroup<T> &&
-           dedekind::sets::IsRingIntegral<T>)
-constexpr auto
-argmax(const Comprehension<
-       𝔸<std::pair<T, T>, L, C>,
-       ProductRestrict<Translation<K>,
-                       RelAnd<Cylinder<Rel::Le, 2, V>, Residue<2, M, W>>>>& s) {
-  using W_ = long long;  // wider than the pivot: no overflow in P−k
-  const W_ k = W_(s.predicate.product.a.b.value);
-  const W_ m_ = W_(s.predicate.rp.b.a.b.value);
-  const W_ w = W_(s.predicate.rp.b.b.value);
-  const W_ p = W_(s.predicate.rp.a.b.value) - k;  // domain bound {x ≤ P−k}
-  const W_ r0 = (w - k) % m_;
-  const W_ r = r0 < 0 ? r0 + m_ : r0;  // residue x ≡ (W−k) mod M
-  const W_ d0 = (p - r) % m_;
-  return dedekind::sets::singleton<L>(p - (d0 < 0 ? d0 + m_ : d0));
-}
-
 // ── preimage: the contravariant inverse of image ───────────────────────────
 // image pushes a domain halfspace forward along an affine map; preimage pulls a
 // codomain halfspace back, in closed form.  preimage(f, P)(a) == P(f(a)).

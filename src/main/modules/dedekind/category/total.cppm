@@ -46,6 +46,7 @@ module;
 #include <cstddef>  // for std::size_t (cyclic_order_v)
 #include <functional>
 #include <limits>       // for std::numeric_limits (cyclic_order_v)
+#include <optional>     // nonzero: a certified divisor, or not
 #include <ranges>       // concat: the free monoid's fold over a range
 #include <type_traits>  // for std::false_type, std::integral_constant
 #include <utility>      // std::pair: the binary method's state
@@ -76,10 +77,9 @@ inline constexpr bool is_periodic_v = is_periodic<T, Op>::value;
 /** @section total__Property_Ledger_2: Saturation
  *  A type is saturating under @c Op if it defines an extended-range
  *  topology where "stepping off the edge" escalates to a saturating
- *  value (e.g.\ @f$\pm \aleph_0@f$) rather than wrapping.  The
- *  archetypal carrier is @c sets::SignedCardinality (#377) ---
- *  the ℤ ∪ {±ℵ_0, NaZ} extended-integer carrier whose @c + is total
- *  by escalation, not by wrap.
+ *  value (e.g.\ the top of a bounded chain) rather than wrapping.  The
+ *  archetypal carrier is a finite chain such as K₃, whose join is total
+ *  by absorption at ⊤, not by wrap.
  *
  *  Distinct from @c is_idempotent_v, which says the operation is
  *  globally stable (a*a = a for all a).  Saturation is the milder
@@ -96,7 +96,7 @@ inline constexpr bool is_saturating_v = is_saturating<T, Op>::value;
  *  @b exact --- arithmetic with no rounding, @c Op(a,b) defined and lossless
  *  up to the carrier's out-of-memory tripwire.  The archetypes are the exact
  * number fields
- *  (@c Rational = ℚ, @c QuadraticReal = ℚ(√D)) under @c + and
+ *  (@c RatExpr = ℚ, @c QuadraticReal = ℚ(√D)) under @c + and
  *  @c *.  Distinct from the three machine-finite paths, which are total by
  *  staying in a bounded range (wrap / stabilise / saturate); an exact carrier
  * is total because its arithmetic is @b closed and exact.
@@ -120,6 +120,21 @@ struct is_exact_total : std::false_type {};
 export template <typename T, typename Op>
 inline constexpr bool is_exact_total_v = is_exact_total<T, Op>::value;
 
+/** @section total__Machine_Carriers  Which algebra each machine type is
+ *  The laws of ℕ, ℤ and ℚ are certified on their term algebras
+ *  (@c sets::NatExpr, @c IntExpr, @c RatExpr), not on machine types.  A
+ *  machine type is the algebra its operations are:
+ *  - an unsigned word of @c w bits is the ring @f$\mathbb{Z}/2^w@f$, its
+ *    operations periodic (below): @c std::size_t is @f$\mathbb{Z}/2^{64}@f$,
+ *    not ℕ, and @c 0 − 1 is its largest value;
+ *  - a signed word is the machine's ℤ with undefined behaviour on overflow:
+ *    an operator surface (@c Has*Operators), no law;
+ *  - @c double and @c float are IEEE 754's arithmetic and carry no law:
+ *    @c + is not associative, and @c == is no equivalence (NaN).
+ *  @c sets::canonical is the identity on each, so generic code calls it
+ *  uniformly; the embeddings into the term algebras are the declared arrows
+ *  (@c embed_uint_ℕ_, @c embed_sint_ℤ_, @c sets::from for a double).
+ */
 /**
  * Unsigned integers are natively periodic under
  * addition/subtraction/multiplication; multiplication where it is defined on
@@ -169,11 +184,23 @@ concept IsPeriodic = is_periodic_v<T, Op>;
  * variables; @c IsTotal in @c :total reaches for the trait
  * variable @c is_saturating_v directly so the upstream layer does
  * not depend on this partition's concept-level surface.
- *
- * Introduced under #377 for @c sets::SignedCardinality.
  */
 export template <typename T, typename Op = std::plus<T>>
 concept IsSaturating = is_saturating_v<T, Op>;
+
+/**
+ * @concept IsExactTotal
+ * @brief Taxonomic Decorator: certifies that an operation is total because it
+ *        is exact, with no edge to wrap, saturate or stop at (ℕ's @c NatExpr,
+ *        ℤ's @c IntExpr, ℚ).
+ *
+ * @details The exact sibling of @c IsSaturating, over the trait variable
+ * @c is_exact_total_v that @c is_total reads as its arm D.  Where a law
+ * holds only if the carrier's @c Op is faithful (the shift arithmetic of a
+ * translation graph), this is the gate.
+ */
+export template <typename T, typename Op = std::plus<T>>
+concept IsExactTotal = is_exact_total_v<T, Op>;
 
 /**
  * @concept IsClosedUnder
@@ -245,14 +272,14 @@ concept IsClosedUnderEither = IsClosedUnder<T, Op> || IsClosedUnderUnary<T, Op>;
  *  The first three are @b machine-finite (totality by staying in a bounded
  *  range); the fourth lets a genuinely exact number field be a Magma --- and
  *  hence reach @c IsField --- rather than being excluded as
- *  "non-machine-total".  It is registered for @c Rational = ℚ and
- *  @c QuadraticReal = ℚ(√D), and for ℕ's @c Numeral and ℤ's @c Integer.
- *  The saturating proxy @c SignedCardinality is total via @c is_saturating
- *  (it escalates to @f$\pm\aleph_0@f$).  (The two postures are distinct and
- *  a carrier picks exactly one.)  The named concept @c IsSaturating that wraps
- *  @c is_saturating_v lives in @c dedekind.category:mereology; here we reach
- *  for the underlying trait variables directly so this upstream-foundational
- *  layer does not depend on that partition.
+ *  "non-machine-total".  It is registered for @c RatExpr = ℚ and
+ *  @c QuadraticReal = ℚ(√D), and for ℕ's @c NatExpr and ℤ's @c IntExpr.
+ *  A saturating carrier is total via @c is_saturating instead.  (The two
+ *  postures are distinct and a carrier picks exactly one.)  The named
+ *  concept @c IsSaturating that wraps @c is_saturating_v lives in
+ *  @c dedekind.category:mereology; here we reach for the underlying trait
+ *  variables directly so this upstream-foundational layer does not depend on
+ *  that partition.
  */
 
 /** @brief A carrier's @b construction: @c D is built from a base algebra and
@@ -647,7 +674,6 @@ static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
  * all finite cyclic carriers that matter --- @c unsigned int /
  * @c unsigned long / @c size_t under @c std::plus (wrapping at
  * @f$2^w@f$), @c ExtensionalCardinal<W> under @c std::plus,
- * @c SignedExtensionalCardinal<S> under @c std::plus,
  * @c morphologies::Modular<N> under @c std::plus --- are cyclic
  * specialisations of the abelian-group case.
  *
@@ -844,7 +870,7 @@ concept IsCommutativeRing = IsRing<T, Add, Mult> && IsCommutative<T, Mult>;
  *
  * Downstream call sites that currently reach for
  * @c dedekind::algebra::HasFieldOperators will retarget to
- * @c IsField<T, Add, Mult> once carriers such as @c Rational<Z>,
+ * @c IsField<T, Add, Mult> once carriers such as @c RatExpr,
  * @c Complex<R>, and the relevant composites register the full
  * ring- plus multiplicative-group-trait specialisations. That work
  * is tracked under epic #374 and in particular #371 (axiom-hook
@@ -852,6 +878,144 @@ concept IsCommutativeRing = IsRing<T, Add, Mult> && IsCommutative<T, Mult>;
  */
 export template <typename T, typename Add, typename Mult>
 concept IsField = IsCommutativeRing<T, Add, Mult> && IsAbelianGroup<T, Mult>;
+
+/** @section total__Certified_Divisors  The divisor as a type
+ *  A field's division is total on @f$T \times T^*@f$, never on @f$T \times
+ *  T@f$: the one value it refuses is certified away by the divisor's type, so
+ *  no term denotes @f$1/0@f$ and the refusal has one place, the check into
+ *  @f$T^*@f$.  Which type that is, the carrier says: @c divisor_of<T> names
+ *  it, @c T itself by default, for the carriers whose division is total
+ *  (IEEE: @f$x/0@f$ is a value) or partial by the word's own posture
+ *  ([expr.mul]/4); @c NonZero<T> for a field that certifies.  The generic
+ *  surface (@c HasGroupOperatorsMul, @c IsDivisionRing, @c IsDense) asks for
+ *  division by @c divisor_t<T>. */
+export template <typename T>
+struct divisor_of {
+  using type = T;
+  /** @brief The check where the carrier's division takes the whole carrier
+   *  (the words, IEEE): the value itself except zero.  The type certifies
+   *  nothing there, and a zero divisor is undefined for a word
+   *  ([expr.mul]/4) and an infinity for IEEE, neither a quotient a caller
+   *  asked for.  @param t the value. */
+  static constexpr std::optional<T> check(const T& t)
+    requires std::equality_comparable<T> && std::default_initializable<T>
+  {
+    if (t == T{}) return std::nullopt;
+    return t;
+  }
+};
+/** @brief The type of a certified divisor of @c T.  @tparam T the carrier. */
+export template <typename T>
+using divisor_t = typename divisor_of<T>::type;
+
+/** @brief Whether the refinement @c R of @c T holds only non-zero values, by
+ *  its own invariant: a declared law, read by @c NonZero's converting
+ *  constructor (ℚ's @c Positive registers itself).  @tparam R the refinement.
+ *  @tparam T the carrier. */
+export template <typename R, typename T>
+struct is_nonzero_refinement : std::false_type {};
+export template <typename R, typename T>
+inline constexpr bool is_nonzero_refinement_v =
+    is_nonzero_refinement<R, T>::value;
+
+/** @brief A value of @c T that is not @c T{}, certified by its type: a
+ *  divisor.  Built by @c nonzero (the one check, an optional), by a literal
+ *  other than zero (refused by constraint), by a refinement that declares
+ *  itself non-zero, or by the closure laws below: in a field a product of
+ *  non-zeros is non-zero, an inverse is, a negation is.  Widens to @c T
+ *  implicitly, the inclusion @f$T^* \subset T@f$.  @tparam T the carrier. */
+export template <typename T>
+class NonZero;
+export template <typename T>
+  requires std::equality_comparable<T> && std::default_initializable<T>
+constexpr std::optional<NonZero<T>> nonzero(const T& t);
+
+export template <typename T>
+class NonZero {
+ public:
+  using Domain = T;
+  /** @return the value, in @c T. */
+  constexpr T value() const { return value_; }
+  /** @brief The inclusion @f$T^* \subset T@f$. */
+  constexpr operator T() const { return value_; }  // NOLINT
+  /** @brief A refinement that declares itself non-zero (@c
+   *  is_nonzero_refinement): its value, certified by that law.
+   *  @tparam R the refinement.  @param r the value. */
+  template <typename R>
+    requires is_nonzero_refinement_v<R, T> && requires(const R& r) {
+      { r.value() } -> std::convertible_to<T>;
+    }
+  constexpr NonZero(const R& r) : value_(r.value()) {}  // NOLINT
+  /** @brief A literal other than zero: zero is refused by the constraint.
+   *  @tparam N the literal. */
+  template <auto N>
+    requires(N != 0) && requires { T{N}; }
+  static consteval NonZero literal() {
+    return NonZero{T{N}};
+  }
+  constexpr bool operator==(const NonZero&) const = default;
+  /** @brief In a field, @f$ab \neq 0@f$ for @f$a, b \neq 0@f$: no zero
+   *  divisors. */
+  friend constexpr NonZero operator*(const NonZero& a, const NonZero& b)
+    requires IsField<T, std::plus<T>, std::multiplies<T>> &&
+             requires(const T& x, const T& y) {
+               { x * y } -> std::convertible_to<T>;
+             }
+  {
+    return NonZero{T(a.value_ * b.value_)};
+  }
+  /** @brief @f$1/a \neq 0@f$: the field's division by a certified divisor,
+   *  applied to its unit. */
+  constexpr NonZero inverse() const
+    requires requires(const T& t, const NonZero& d) {
+      T{1};
+      { t / d } -> std::convertible_to<T>;
+    }
+  {
+    return NonZero{T(T{1} / *this)};
+  }
+  /** @brief @f$a / b = a \cdot b^{-1} \neq 0@f$. */
+  friend constexpr NonZero operator/(const NonZero& a, const NonZero& b)
+    requires IsField<T, std::plus<T>, std::multiplies<T>>  // inverse applies
+  {
+    return a * b.inverse();
+  }
+  /** @brief @f$-a \neq 0@f$: negation is injective and fixes zero. */
+  constexpr NonZero operator-() const
+    requires requires(const T& t) {
+      { -t } -> std::convertible_to<T>;
+    }
+  {
+    return NonZero{T(-value_)};
+  }
+
+ private:
+  constexpr explicit NonZero(T v) : value_(std::move(v)) {}
+  template <typename U>
+    requires std::equality_comparable<U> && std::default_initializable<U>
+  friend constexpr std::optional<NonZero<U>> nonzero(const U& u);
+  T value_;
+};
+
+/** @brief The check into @f$T^*@f$: the value, certified, or nothing at zero.
+ *  The one refusal point of a field's division.  @param t the value. */
+export template <typename T>
+  requires std::equality_comparable<T> && std::default_initializable<T>
+constexpr std::optional<NonZero<T>> nonzero(const T& t) {
+  if (t == T{}) return std::nullopt;
+  return NonZero<T>{t};
+}
+
+/** @brief The check into a carrier's certified divisors, whatever their type:
+ *  the one its @c divisor_of names, by the check that names it (@c nonzero
+ *  for @c NonZero<T>, a unit's check for 𝔻, zero refused where the carrier
+ *  divides by itself).  One function, so no overload is left for a caller's
+ *  constraints to decide.  @param t the value. */
+export template <typename T>
+  requires requires(const T& t) { divisor_of<T>::check(t); }
+constexpr std::optional<divisor_t<T>> divisor(const T& t) {
+  return divisor_of<T>::check(t);
+}
 
 /**
  * @concept IsJoinSemilattice

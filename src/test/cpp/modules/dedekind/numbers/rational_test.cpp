@@ -1,8 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <compare>
 #include <concepts>
+#include <cstdint>
 #include <limits>
-#include <stdexcept>  // std::domain_error (the #680 rejection)
+#include <optional>
 
 import dedekind.algebra;
 import dedekind.category;
@@ -12,248 +13,82 @@ import dedekind.sets;
 
 using namespace dedekind::morphologies;
 using namespace dedekind::numbers;
+using dedekind::sets::canonical;
+using dedekind::sets::IntExpr;
+using dedekind::sets::RatExpr;
 
-TEST_CASE("Numbers: Rational Simplification", "[numbers][rational]") {
-  SECTION("Euclidean GCD Lives In The Integer Spine") {
-    REQUIRE(euclidean_gcd(default_integer{12}, default_integer{18}) ==
-            default_integer{6});
-    REQUIRE(euclidean_gcd(default_integer{-12}, default_integer{18}) ==
-            default_integer{6});
-  }
-
-  SECTION("Integer Fractions") {
-    Rational<default_integer> q(12, 18);
-
-    // 12/18 simplified via GCD(12, 18)=6 -> 2/3
-    REQUIRE(q.num() == 2);
-    REQUIRE(q.den() == 3);
-  }
+TEST_CASE("Numbers: ℚ's canonical form is the reduced fraction",
+          "[numbers][rational][canonical]") {
+  using Q = RatExpr<>;
+  // 12/18 is 2/3: the canonical form is reduced, its size that of Div(2, 3).
+  const Q q{12, 18};
+  CHECK(q == Q{2, 3});
+  CHECK(canonical(q).size() == 3);
+  // The sign moves to the numerator; a unit denominator leaves ℤ's form.
+  CHECK(canonical(Q{2, -4}) == Q{-1, 2});
+  CHECK(canonical(Q{6, 3}).size() == 1);
+  CHECK(canonical(Q{0, 7}).size() == 1);
 }
 
-TEST_CASE("Numbers: Rational Ordering", "[numbers][rational][ordering]") {
-  using Q = Rational<default_integer>;
-
-  SECTION("Less-than comparison") {
-    CHECK((Q{1, 3} <=> Q{1, 2}) == std::strong_ordering::less);
-  }
-
-  SECTION("Greater-than comparison") {
-    CHECK((Q{3, 4} <=> Q{1, 2}) == std::strong_ordering::greater);
-  }
-
-  SECTION("Equal comparison") {
-    CHECK((Q{2, 4} <=> Q{1, 2}) == std::strong_ordering::equal);
-  }
+TEST_CASE("Numbers: ℚ's order", "[numbers][rational][ordering]") {
+  using Q = RatExpr<>;
+  CHECK((Q{1, 3} <=> Q{1, 2}) == std::strong_ordering::less);
+  CHECK((Q{3, 4} <=> Q{1, 2}) == std::strong_ordering::greater);
+  CHECK((Q{2, 4} <=> Q{1, 2}) == std::strong_ordering::equal);
+  CHECK(Q{-1, 2} < Q{});
 }
 
-TEST_CASE("Numbers: The Rational Field", "[numbers][field]") {
-  using RationalValue = Rational<default_integer>;
+TEST_CASE("Numbers: the field ℚ, dividing by ℚ*", "[numbers][field]") {
+  using Q = RatExpr<>;
+  const Q a{3, 4};
+  const auto a_inv = nonzero(a).value().inverse();  // 4/3, in ℚ*
+  CHECK(a * a_inv == Q{1});
+  CHECK(Q{1, 2} / nonzero(Q{1, 4}).value() == Q{2});
+  // Zero has no inverse: the check into ℚ* refuses it.
+  CHECK_FALSE(nonzero(Q{}).has_value());
+  CHECK(nonzero(Q{0, 1}) == std::nullopt);
+}
 
-  SECTION("Multiplicative Identity: (a/b) * (b/a) = 1") {
-    RationalValue a(3, 4);
-    auto a_inv = a.inverse();  // 4/3
-
-    auto identity = a * a_inv;
-
-    // Should simplify to 1/1
-    REQUIRE(identity.num() == 1);
-    REQUIRE(identity.den() == 1);
-  }
-
-  SECTION("Division Morphism") {
-    RationalValue a(1, 2);
-    RationalValue b(1, 4);
-
-    // (1/2) / (1/4) = 2
-    auto res = a / b;
-    REQUIRE(res.num() == 2);
-    REQUIRE(res.den() == 1);
-  }
-
-  SECTION("Zero-Denominator Protection") {
-    // Reciprocal of zero must throw
-    REQUIRE_THROWS_AS(RationalValue(0, 1).inverse(), std::domain_error);
-  }
+TEST_CASE("Numbers: ℚ past the word, both signs",
+          "[numbers][rational][canonical]") {
+  using Q = RatExpr<>;
+  const Q w = Q::atom(std::numeric_limits<std::uint64_t>::max());
+  const Q two_64 = w + Q{1};
+  // (2^64)/(2^64·3) is 1/3, reduced through a gcd above the word.
+  CHECK(two_64 / nonzero(two_64 * Q{3}).value() == Q{1, 3});
+  CHECK(-two_64 / nonzero(two_64 * Q{-6}).value() == Q{1, 6});
+  CHECK(Q{1} / nonzero(two_64).value() > Q{});
+  // 2^53 + 1 and the double 2^53: equal under C++'s conversion, not in ℚ.
+  CHECK(Q{(1LL << 53) + 1} != static_cast<double>(1LL << 53));
 }
 
 // =============================================================================
-// embed_𝕃_ℚ — the exact dyadic embedding of the finite doubles into ℚ
+// from / embed_𝕃_ℚ — the exact dyadic embedding of the finite doubles into ℚ
 // =============================================================================
 
-TEST_CASE("embed_𝕃_ℚ: integer-valued doubles round-trip exactly",
+TEST_CASE("embed_𝕃_ℚ: doubles are the dyadic rationals their bits spell",
           "[numbers][rational][embedding][float]") {
-  using Rat = Rational<default_integer>;
-
-  // Small positive integer-valued double.
-  const Rat r_three = embed_𝕃_ℚ<>(𝕃<double>{3.0});
-  CHECK(r_three.num() == 3);
-  CHECK(r_three.den() == 1);
-
-  // Negative integer-valued double — the showcase-7 bound case.
-  const Rat r_minus_twenty_one = embed_𝕃_ℚ<>(𝕃<double>{-21.0});
-  CHECK(r_minus_twenty_one.num() == -21);
-  CHECK(r_minus_twenty_one.den() == 1);
-
-  // Zero (both ±0).
-  const Rat r_zero = embed_𝕃_ℚ<>(𝕃<double>{0.0});
-  CHECK(r_zero.num() == 0);
-  CHECK(r_zero.den() == 1);
-  const Rat r_neg_zero = embed_𝕃_ℚ<>(𝕃<double>{-0.0});
-  CHECK(r_neg_zero.num() == 0);
-  CHECK(r_neg_zero.den() == 1);
-}
-
-TEST_CASE("embed_𝕃_ℚ: dyadic rationals decompose to lowest terms",
-          "[numbers][rational][embedding][float][dyadic]") {
-  using Rat = Rational<default_integer>;
-
-  // 0.5 = 1/2.
-  const Rat r_half = embed_𝕃_ℚ<>(𝕃<double>{0.5});
-  CHECK(r_half.num() == 1);
-  CHECK(r_half.den() == 2);
-
-  // 0.25 = 1/4.
-  const Rat r_quarter = embed_𝕃_ℚ<>(𝕃<double>{0.25});
-  CHECK(r_quarter.num() == 1);
-  CHECK(r_quarter.den() == 4);
-
-  // -0.75 = -3/4.
-  const Rat r_minus_three_quarters = embed_𝕃_ℚ<>(𝕃<double>{-0.75});
-  CHECK(r_minus_three_quarters.num() == -3);
-  CHECK(r_minus_three_quarters.den() == 4);
-
-  // 1.5 = 3/2.
-  const Rat r_three_halves = embed_𝕃_ℚ<>(𝕃<double>{1.5});
-  CHECK(r_three_halves.num() == 3);
-  CHECK(r_three_halves.den() == 2);
-}
-
-TEST_CASE("embed_𝕃_ℚ: precision-overflow inputs throw on built-in signed I",
-          "[numbers][rational][embedding][float][overflow]") {
-  // 0.1 has reduced mantissa 7205759403792794 (well above INT_MAX) and a
-  // -56 exponent (denominator 2^56, also above INT_MAX).  Both the
-  // mantissa-fit check and the scaling-overflow check are valid
-  // rejections; the arrow throws std::overflow_error on either branch.
-  REQUIRE_THROWS_AS(embed_𝕃_ℚ<int>(𝕃<double>{0.1}), std::overflow_error);
-
-  // 1e20 has biased exponent 1089 → exp ≈ 13, with a non-trivial
-  // mantissa; scaling by 2^13 in int overflows.
-  REQUIRE_THROWS_AS(embed_𝕃_ℚ<int>(𝕃<double>{1.0e20}), std::overflow_error);
-
-  // For `long long` the range is much wider: 0.1 still requires a
-  // 56-bit denominator, which fits in long long (63-bit signed range).
-  // Just confirm the call succeeds on a wide enough carrier.
-  CHECK_NOTHROW(embed_𝕃_ℚ<long long>(𝕃<double>{0.1}));
-
-  // The default carrier is fixed-width too: 1e20 needs 2^66 and saturates it,
-  // and Rational rejects the sentinel.
-  REQUIRE_THROWS_AS(embed_𝕃_ℚ<>(𝕃<double>{1.0e20}), std::domain_error);
+  using Q = RatExpr<>;
+  CHECK(embed_𝕃_ℚ(𝕃<double>{3.0}) == Q{3});
+  CHECK(embed_𝕃_ℚ(𝕃<double>{-21.0}) == Q{-21});
+  CHECK(embed_𝕃_ℚ(𝕃<double>{0.0}) == Q{});
+  CHECK(embed_𝕃_ℚ(𝕃<double>{-0.0}) == Q{});
+  CHECK(embed_𝕃_ℚ(𝕃<double>{0.5}) == Q{1, 2});
+  CHECK(embed_𝕃_ℚ(𝕃<double>{-0.75}) == Q{-3, 4});
+  CHECK(embed_𝕃_ℚ(𝕃<double>{1.5}) == Q{3, 2});
+  // The extremes stay within the declared bound of a term.
+  CHECK(from(std::numeric_limits<double>::denorm_min()).has_value());
+  CHECK(from(std::numeric_limits<double>::max()).has_value());
+  CHECK_FALSE(from(std::numeric_limits<double>::quiet_NaN()).has_value());
+  CHECK_FALSE(from(-std::numeric_limits<double>::infinity()).has_value());
 }
 
 TEST_CASE("embed_𝕃_ℚ: injectivity (the monic property)",
           "[numbers][rational][embedding][float][injectivity]") {
-  // The arrow is registered monic; this exercises injectivity on values.
   STATIC_CHECK(
-      dedekind::category::IsMonicArrow<std::decay_t<decltype(embed_𝕃_ℚ<>)>>);
-  using Rat = Rational<default_integer>;
-  const Rat r_three_a = embed_𝕃_ℚ<>(𝕃<double>{3.0});
-  const Rat r_three_b =
-      embed_𝕃_ℚ<>(𝕃<double>{3.0});  // same input → same output
-  CHECK(r_three_a == r_three_b);
-
-  // Distinct in-range inputs map to distinct rationals.
-  CHECK(embed_𝕃_ℚ<>(𝕃<double>{3.0}) != embed_𝕃_ℚ<>(𝕃<double>{2.0}));
-  CHECK(embed_𝕃_ℚ<>(𝕃<double>{0.5}) != embed_𝕃_ℚ<>(𝕃<double>{0.25}));
-  CHECK(embed_𝕃_ℚ<>(𝕃<double>{-0.75}) != embed_𝕃_ℚ<>(𝕃<double>{0.75}));
-}
-
-// #680: ℚ has no sentinels — a non-finite SignedCardinality numerator/
-// denominator is REJECTED (std::domain_error), the same posture as /0.  So
-// simplify()'s euclidean_gcd never runs on a NaZ (no hang), and no
-// ordering-incoherent NaZ/1 is ever constructed.  The finite fragment still
-// gcd-normalises at COMPILE TIME (6/4 → 3/2).
-namespace {
-using Q680 = Rational<>;  // default carrier = SignedCardinality
-// A commutative semiring acts on itself by its multiplication: a scalar.
-static_assert(dedekind::algebra::IsScalar<Rational<default_integer>>);
-constexpr Q680 r680_half{dedekind::sets::finite_signed_cardinality(6),
-                         dedekind::sets::finite_signed_cardinality(4)};
-static_assert(r680_half.first == dedekind::sets::finite_signed_cardinality(3) &&
-                  r680_half.second ==
-                      dedekind::sets::finite_signed_cardinality(2),
-              "#680: finite rationals still normalise (6/4 = 3/2).");
-}  // namespace
-
-TEST_CASE("Rational: non-finite ℤ is rejected, no hang (#680)",
-          "[numbers][rational][saturating]") {
-  const auto one = dedekind::sets::finite_signed_cardinality(1);
-  const auto naz = dedekind::sets::SignedCardinality{dedekind::sets::NaZ{}};
-  const auto inf =
-      dedekind::sets::SignedCardinality{dedekind::sets::PositiveInfinity{}};
-  // Two-arg ctor (via simplify) rejects a non-finite numerator or denominator
-  // — domain_error, NOT a hang (the gcd never runs on the sentinel).
-  CHECK_THROWS_AS((Q680{naz, one}), std::domain_error);
-  CHECK_THROWS_AS((Q680{one, naz}), std::domain_error);
-  CHECK_THROWS_AS((Q680{inf, one}), std::domain_error);
-  // Single-arg Rational(Z) ctor (bypasses simplify) rejects too.
-  CHECK_THROWS_AS((Q680{naz}), std::domain_error);
-  // The finite fragment is unaffected: 6/4 = 3/2.
-  const Q680 half{dedekind::sets::finite_signed_cardinality(6),
-                  dedekind::sets::finite_signed_cardinality(4)};
-  CHECK(half.first == dedekind::sets::finite_signed_cardinality(3));
-}
-
-TEST_CASE(
-    "Rational: embed_ℤ_ℚ_ of a non-finite ℤ throws, not terminates (#680)",
-    "[numbers][rational][embedding][saturating]") {
-  // The public S-leg arrow ℤ ↪ ℚ is deliberately NOT noexcept: a non-finite
-  // ℤ must propagate Rational's domain_error, not trip std::terminate.
-  const auto naz = dedekind::sets::SignedCardinality{dedekind::sets::NaZ{}};
-  const auto inf =
-      dedekind::sets::SignedCardinality{dedekind::sets::PositiveInfinity{}};
-  CHECK_THROWS_AS(embed_ℤ_ℚ_(naz), std::domain_error);
-  CHECK_THROWS_AS(embed_ℤ_ℚ_(inf), std::domain_error);
-  // The finite fragment embeds cleanly: 5 ↦ 5/1.
-  const auto five = embed_ℤ_ℚ_(dedekind::sets::finite_signed_cardinality(5));
-  CHECK(five.first == dedekind::sets::finite_signed_cardinality(5));
-  CHECK(five.second == dedekind::sets::finite_signed_cardinality(1));
-}
-
-TEST_CASE(
-    "Rational: comparison cross-product overflow is the OOM tripwire (#680)",
-    "[numbers][rational][saturating][ordering]") {
-  const auto one = dedekind::sets::finite_signed_cardinality(1);
-  // M = 2^40: both operands are FINITE canonical rationals, but comparing
-  // M/1 against 1/M forms the cross-product M*M = 2^80, which overflows the
-  // 1-limb (2^63) finite backing and saturates to +ℵ_0.  The comparison has
-  // left the finite backing, so <=> rejects (throws) rather than fabricate an
-  // incoherent `equal`.
-  const auto big = dedekind::sets::finite_signed_cardinality(1LL << 40);
-  const Q680 a{big, one};  // M/1
-  const Q680 b{one, big};  // 1/M
-  CHECK_THROWS_AS((a <=> b), std::domain_error);
-  // Small finite rationals compare fine — the tripwire branch is not taken.
-  CHECK((Q680{one, dedekind::sets::finite_signed_cardinality(2)} <=>
-         Q680{one, dedekind::sets::finite_signed_cardinality(3)}) ==
-        std::strong_ordering::greater);  // 1/2 > 1/3
-}
-
-TEST_CASE(
-    "PartialEmbedIntegerToRational: non-finite ℤ → Ternary::False, no "
-    "terminate (#680)",
-    "[numbers][rational][saturating][ternary]") {
-  using SC = dedekind::sets::SignedCardinality;
-  const PartialEmbedIntegerToRational<SC> embed{};
-  const auto naz = SC{dedekind::sets::NaZ{}};
-  const auto inf = SC{dedekind::sets::PositiveInfinity{}};
-  // Off the edge of the fiction: the PARTIAL (Kleene) surface answers False
-  // (no throw, no terminate) where the total arrow embed_ℤ_ℚ_ throws.
-  CHECK(embed(naz).status == dedekind::category::Ternary::False);
-  CHECK(embed(inf).status == dedekind::category::Ternary::False);
-  // A finite integer embeds: True, value n/1.
-  const auto five = dedekind::sets::finite_signed_cardinality(5);
-  const auto r = embed(five);
-  CHECK(r.status == dedekind::category::Ternary::True);
-  CHECK(r.value.num() == five);
-  CHECK(r.value.den() == dedekind::sets::finite_signed_cardinality(1));
+      dedekind::category::IsMonicArrow<std::decay_t<decltype(embed_𝕃_ℚ)>>);
+  CHECK(embed_𝕃_ℚ(𝕃<double>{3.0}) == embed_𝕃_ℚ(𝕃<double>{3.0}));
+  CHECK(embed_𝕃_ℚ(𝕃<double>{3.0}) != embed_𝕃_ℚ(𝕃<double>{2.0}));
+  CHECK(embed_𝕃_ℚ(𝕃<double>{0.5}) != embed_𝕃_ℚ(𝕃<double>{0.25}));
+  CHECK(embed_𝕃_ℚ(𝕃<double>{-0.75}) != embed_𝕃_ℚ(𝕃<double>{0.75}));
 }

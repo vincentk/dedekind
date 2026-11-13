@@ -132,7 +132,7 @@ constexpr typename S::logic_species::Ω forall(const S& s, P p) {
 /** @section quantifier__Formal_Verification */
 
 // The finite-quotient witnesses (𝔸<bool> with a structural Singleton predicate,
-// 𝔸<Numeral> with a Congruence) live in :numbers, where the structural
+// 𝔸<NatExpr> with a Congruence) live in :numbers, where the structural
 // IsPredicate operands (dedekind.order Singleton, morphologies Congruence) are
 // in scope.  Source for the §3.1 exhibit (lst:quantifiers_def).
 

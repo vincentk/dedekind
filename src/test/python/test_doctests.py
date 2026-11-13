@@ -15,9 +15,18 @@ import pynzli._jlt
 import pynzli._pst
 import pynzli.jlt
 import pynzli.pst
+import pynzli.q
 import pynzli.trsk
 
-MODULES = (pynzli, pynzli.jlt, pynzli.pst, pynzli.trsk, pynzli._jlt, pynzli._pst)
+MODULES = (
+    pynzli,
+    pynzli.jlt,
+    pynzli.pst,
+    pynzli.q,
+    pynzli.trsk,
+    pynzli._jlt,
+    pynzli._pst,
+)
 
 
 class Doctests(unittest.TestCase):

@@ -17,12 +17,10 @@
  */
 module;
 
-#include <algorithm>  // std::min, offset_signed
 #include <cmath>
 #include <concepts>
 #include <cstddef>
 #include <functional>  // std::less_equal
-#include <limits>      // the ℤ proxy's word bound, offset_signed
 #include <type_traits>
 #include <vector>
 
@@ -528,33 +526,6 @@ using dedekind::category::HasNNOStep;
 using dedekind::category::Ternary;
 using dedekind::order::IsTotallyOrdered;
 
-/** @brief A part of an offset, at most @c PTRDIFF_MAX, read into the ℤ proxy.
- *  @param n the part. */
-constexpr dedekind::sets::SignedCardinality signed_chunk(
-    std::size_t n) noexcept {
-  return dedekind::sets::SignedCardinality{
-      dedekind::sets::SignedExtensionalCardinal<>{
-          static_cast<std::ptrdiff_t>(n)}};
-}
-
-/** @brief @f$a + n@f$ on the saturating ℤ proxy, for an offset @c n over the
- *  whole @c size_t range: three non-negative parts, each at most
- *  @c PTRDIFF_MAX (so @c n fits, @f$2^{64} - 1 \le 3 (2^{63} - 1)@f$), added
- *  by the carrier's own exact @c +.  The partial sums increase from @c a to
- *  @f$a + n@f$, so they saturate exactly when the sum does, never early (a
- *  negative seed absorbs the first part).
- *  @param seed the orbit's start.
- *  @param n the offset. */
-constexpr dedekind::sets::SignedCardinality offset_signed(
-    const dedekind::sets::SignedCardinality& seed, std::size_t n) noexcept {
-  constexpr auto most =
-      static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max());
-  const std::size_t first = std::min(n, most);
-  const std::size_t second = std::min(n - first, most);
-  return seed + signed_chunk(first) + signed_chunk(second) +
-         signed_chunk(n - first - second);
-}
-
 /** @brief The orbit of a seed under the NNO step, @f$n \mapsto S^{n}(a)@f$:
  *  the unique morphism the universal property gives from ℕ into the carrier
  *  (@f$f(0) = a,\; f(n+1) = S(f(n))@f$), as a sequence --- the unfold
@@ -565,9 +536,10 @@ constexpr dedekind::sets::SignedCardinality offset_signed(
  *  is finite (K₃, @c IsAbsorptiveSequence) --- periodic on a wrapping one.
  *
  *  @c at(n) is @f$O(1)@f$ where the carrier's @c + is the iterated step
- *  (Peano addition, @f$S^{n}(a) = a + n@f$: the integrals, ℕ's @c Numeral, the
- *  ℤ proxy @c SignedCardinality), and
- *  the @f$O(n)@f$ walk otherwise (K₃).
+ *  (Peano addition, @f$S^{n}(a) = a + n@f$: the integrals, and ℕ's and ℤ's
+ *  terms at any capacity, @c sets::plus_word: the atom @c n added in a
+ *  scratch of twice the capacity, the canonical result copied back), and the
+ *  @f$O(n)@f$ walk otherwise (K₃).  @c at(0) is the seed itself.
  *  @tparam N the carrier, with the NNO step. */
 export template <dedekind::category::HasNNOStep N>
 struct SuccessorOrbit : Path<N> {
@@ -575,14 +547,15 @@ struct SuccessorOrbit : Path<N> {
     this->generator = [seed](std::size_t n) -> N {
       if constexpr (std::integral<N>) {
         return static_cast<N>(seed + static_cast<N>(n));
-      } else if constexpr (requires {
-                             {
-                               seed + dedekind::sets::Numeral { n }
-                             } -> std::same_as<N>;
-                           }) {
-        return seed + dedekind::sets::Numeral{n};
-      } else if constexpr (std::same_as<N, dedekind::sets::SignedCardinality>) {
-        return offset_signed(seed, n);
+      } else if constexpr (dedekind::sets::is_natural_term_v<N> ||
+                           dedekind::sets::is_integer_term_v<N>) {
+        // The offset is added in a scratch of twice the capacity and the
+        // canonical result copied back: a seed at its bound has no room for
+        // one more node here, its successor's form may.
+        if (n == 0) return seed;
+        const auto r = dedekind::sets::plus_word(seed, n);
+        if (!r) __builtin_trap();  // the canonical result past the bound
+        return *r;
       } else {
         N acc = seed;
         for (std::size_t i = 0; i < n; ++i)
