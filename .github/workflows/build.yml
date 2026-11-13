@@ -117,8 +117,8 @@ jobs:
       run: make format-check CLANG_FORMAT="$CLANG_FORMAT"
 
     # The linter's own binary changes rarely and takes many minutes to build;
-    # kept between runs, keyed on its sources and the toolchain, so that the
-    # lint of each layer starts as soon as that layer is built.
+    # kept between runs, keyed on its sources and the toolchain, it no longer
+    # competes with the compilation for the cores.
     - name: Toolchain key
       id: toolchain
       run: echo "llvm=$("$CXX" --version | head -1 | tr -c 'A-Za-z0-9.' '-')" >> "$GITHUB_OUTPUT"
@@ -130,8 +130,8 @@ jobs:
         path: .jlt-lint-tool
         key: jlt-lint-tool-${{ runner.os }}-${{ steps.toolchain.outputs.llvm }}-${{ hashFiles('tools/jlt-lint/tool/**') }}
 
-    # The build lints and tests each layer as soon as it is built, beside
-    # the compilation of the layers above (CMake's `check`).
+    # Build, then the lint in one pass over the whole tree and the tests
+    # (CMake's `check`).
     - name: Build, Lint & Test
       run: |
         tool=""
@@ -145,8 +145,8 @@ jobs:
     # The report (gates, reported counts, the syntax inventory) is kept as an
     # artifact: the paper's closure table rests on the inventory as
     # supplementary material, so the counts live here and not in the paper.
-    # report.txt joins the layers' reports (parts/), and exists only when
-    # every layer linted; the parts are kept for a failure.
+    # report.txt is the lint's report, written when the lint passes; parts/
+    # keeps the findings (all.txt) for a failure.
     - name: Publish the lint report
       if: always()
       uses: actions/upload-artifact@v7
