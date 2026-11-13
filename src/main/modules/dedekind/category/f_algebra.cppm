@@ -269,10 +269,6 @@ static_assert(IsFCoalgebra<Zero, decltype(zero<Zero>()),
               "identity_functor on InitialCategory with carrier Zero.");
 
 namespace detail_f_algebra {
-template <typename T>
-inline constexpr bool is_compose_v = false;
-template <typename F, typename G>
-inline constexpr bool is_compose_v<Compose<F, G>> = true;
 /** @brief Two adjacent copies of @c X cancel: a certified involution whose
  *  type has one value, so the two copies are the same arrow.  A valued
  *  involution (an XOR by a mask, say) is not cancelled by its type. */
@@ -596,15 +592,15 @@ constexpr bool same_path(const P& p, const Q& q) {
  *  (Rice), so the answer is @c Unknown, never @c False.  A term node defines
  *  no equality of its own: a node-by-node @c == would answer @c False where
  *  the laws say @c Unknown (cf. @c :lattice_term, #1116).  Reassociating is
- *  sound because a composite converts at every boundary (@c Compose).
- *  Defined on arrows
- *  with one domain and one codomain, at least one of them a composite.
+ *  sound because a composite converts at every boundary (@c Compose).  The
+ *  @c == of a composite is this, as a hidden friend of @c Compose found by
+ *  argument-dependent lookup only, so it adds no candidate to the @c == of
+ *  any other type.  Defined on arrows
+ *  with one domain and one codomain.
  *  @param f an arrow.  @param g an arrow.  @return the verdict. */
 export template <IsArrow F, IsArrow G>
-  requires(detail_f_algebra::is_compose_v<F> ||
-           detail_f_algebra::is_compose_v<G>) &&
-          std::same_as<Dom<F>, Dom<G>> && std::same_as<Cod<F>, Cod<G>>
-constexpr ByTheLaws operator==(const F& f, const G& g) {
+  requires std::same_as<Dom<F>, Dom<G>> && std::same_as<Cod<F>, Cod<G>>
+constexpr ByTheLaws equal_by_the_laws(const F& f, const G& g) {
   return {detail_f_algebra::same_path(cata(f), cata(g)) ? Ternary::True
                                                         : Ternary::Unknown};
 }

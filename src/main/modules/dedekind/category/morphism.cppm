@@ -655,6 +655,10 @@ constexpr auto id() {
  *  @tparam F the first arrow @c A→B (applied first).
  *  @tparam G the second arrow @c B→C (applied second); @c Cod<F> must be
  *          @c Dom<G>. */
+/** @brief Whether @c T is a composite (a @c Compose node).  @tparam T the
+ *  type. */
+export template <typename T>
+inline constexpr bool is_compose_v = false;
 export template <IsArrow F, IsArrow G>
   requires std::same_as<Cod<F>, Dom<G>>
 struct Compose final {
@@ -662,8 +666,23 @@ struct Compose final {
   using Codomain = Cod<G>;
   [[no_unique_address]] F f;
   [[no_unique_address]] G g;
-  // No == of its own: a term node is compared through its normal form, by
-  // the laws (@c :f_algebra's @c operator==, #1116).
+  /** @brief Compared by the laws, through the normal form (@c :f_algebra's
+   *  @c equal_by_the_laws), never node by node (#1116): @c True where the laws
+   *  prove the arrows equal, @c Unknown otherwise.  A hidden friend, found by
+   *  argument-dependent lookup only, so no other type's @c == sees it; both
+   *  orders are stated, as a reversed candidate must return @c bool.
+   *  @param c the composite.  @param h an arrow on the same objects. */
+  template <IsArrow H>
+    requires std::same_as<Dom<H>, Domain> && std::same_as<Cod<H>, Codomain>
+  friend constexpr auto operator==(const Compose& c, const H& h) {
+    return equal_by_the_laws(c, h);
+  }
+  template <IsArrow H>
+    requires(!is_compose_v<H>) && std::same_as<Dom<H>, Domain> &&
+            std::same_as<Cod<H>, Codomain>
+  friend constexpr auto operator==(const H& h, const Compose& c) {
+    return equal_by_the_laws(h, c);
+  }
   /** @brief A result at a boundary, as produced (its own value category):
    *  converted to the declared codomain @c To where it converts, passed on as
    *  it is where it does not (an object presented by another type).  One
@@ -697,6 +716,8 @@ struct Compose final {
     return at_codomain<Codomain>(g(at_codomain<Cod<F>>(f(x))));
   }
 };
+template <typename F, typename G>
+inline constexpr bool is_compose_v<Compose<F, G>> = true;
 
 /** @brief Trait: the type @c T has exactly one value, so that two of its
  *  values are equal without comparing them: an empty type, or a composite
