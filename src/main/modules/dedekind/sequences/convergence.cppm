@@ -537,9 +537,9 @@ using dedekind::order::IsTotallyOrdered;
  *
  *  @c at(n) is @f$O(1)@f$ where the carrier's @c + is the iterated step
  *  (Peano addition, @f$S^{n}(a) = a + n@f$: the integrals, and ℕ's and ℤ's
- *  terms at any capacity, the seed's canonical form plus the atom @c n,
- *  stored canonical), and the @f$O(n)@f$ walk otherwise (K₃).  @c at(0) is
- *  the seed itself.
+ *  terms at any capacity, @c sets::plus_word: the atom @c n added in a
+ *  scratch of twice the capacity, the canonical result copied back), and the
+ *  @f$O(n)@f$ walk otherwise (K₃).  @c at(0) is the seed itself.
  *  @tparam N the carrier, with the NNO step. */
 export template <dedekind::category::HasNNOStep N>
 struct SuccessorOrbit : Path<N> {
@@ -549,11 +549,13 @@ struct SuccessorOrbit : Path<N> {
         return static_cast<N>(seed + static_cast<N>(n));
       } else if constexpr (dedekind::sets::is_natural_term_v<N> ||
                            dedekind::sets::is_integer_term_v<N>) {
-        // The seed's canonical form, not the seed: a seed at its bound has
-        // no room for one more node.
+        // The offset is added in a scratch of twice the capacity and the
+        // canonical result copied back: a seed at its bound has no room for
+        // one more node here, its successor's form may.
         if (n == 0) return seed;
-        return dedekind::sets::canonical(dedekind::sets::canonical(seed) +
-                                         N::atom(n));
+        const auto r = dedekind::sets::plus_word(seed, n);
+        if (!r) __builtin_trap();  // the canonical result past the bound
+        return *r;
       } else {
         N acc = seed;
         for (std::size_t i = 0; i < n; ++i)

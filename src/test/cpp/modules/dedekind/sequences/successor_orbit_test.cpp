@@ -75,6 +75,15 @@ TEST_CASE(
   const SuccessorOrbit<NatExpr<>> at_bound{seed};
   CHECK(at_bound.at(0) == seed);
   CHECK(at_bound.at(3) == NatExpr<>{35u});
+  // A seed whose canonical form fills the capacity: 2^1280, 21 limbs, 63
+  // nodes.  Its successor's form fits too, though seed + 1 as a term does
+  // not: the offset is added in a scratch.
+  const NatExpr<> full = power_of_two<NatSort>(1280);
+  REQUIRE(full.size() == 63u);
+  const SuccessorOrbit<NatExpr<>> filled{full};
+  CHECK(filled.at(1) == successor(full));
+  CHECK(filled.at(1) > full);
+  CHECK(filled.at(1).size() == 63u);
   // The capacity is kept: ℕ at 128, and ℤ, a large offset in one addition.
   const SuccessorOrbit<NatExpr<128>> wide{NatExpr<128>{5u}};
   CHECK(wide.at(1000000) == NatExpr<128>{1000005u});

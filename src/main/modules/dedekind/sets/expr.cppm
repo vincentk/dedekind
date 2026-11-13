@@ -742,12 +742,74 @@ inline constexpr bool is_integer_term_v = false;
 template <std::size_t N>
 inline constexpr bool is_integer_term_v<Expr<IntSort, N>> = true;
 
+/** @section expr__Scratch  An operation in a larger capacity
+ *  The capacity bounds the term a program stores, not the terms an
+ *  operation passes through: a term whose canonical form fills its capacity
+ *  has no room for one more node, though its successor's form fits.  The
+ *  operation is run on a copy at a larger capacity, its result normalised
+ *  there and copied back, refused only where the canonical result does not
+ *  fit. */
+namespace detail_expr {
+/** @brief One step of @c rescaled: the node at @c i, appended.  @tparam S
+ *  the sort.  @tparam N @tparam M the capacities. */
+template <IsSort S, std::size_t N, std::size_t M>
+struct AppendFrom {
+  const Expr<S, N>& from;
+  constexpr Expr<S, M> operator()(const Expr<S, M>& acc, std::size_t i) const {
+    return acc.appended(from.at(i));
+  }
+};
+/** @brief The term @c e ± the word @c w, in the term's own capacity.
+ *  @tparam E the term type. */
+template <typename E>
+struct Offset {
+  std::uint64_t w;
+  bool negative;
+  constexpr E operator()(const E& e) const {
+    if constexpr (std::same_as<typename E::sort, NatSort>)
+      return e + E::atom(w);
+    else
+      return negative ? e - E::atom(w) : e + E::atom(w);
+  }
+};
+}  // namespace detail_expr
+/** @return the term at capacity @c M, its nodes kept, or nothing where they
+ *  do not fit.  @tparam M the capacity.  @param e the term. */
+export template <std::size_t M, IsSort S, std::size_t N>
+constexpr std::optional<Expr<S, M>> rescaled(const Expr<S, N>& e) {
+  if (e.size() > M) return std::nullopt;
+  return dedekind::category::fold(
+      std::views::iota(std::size_t{1}, e.size()),
+      Expr<S, M>::atom(std::get<nodes::Atom>(e.at(0)).value),  // a leaf first
+      detail_expr::AppendFrom<S, N, M>{e});
+}
+/** @return @c f applied to @c e at the larger capacity @c M, normalised there
+ *  and copied back to @c e's capacity, or nothing where the canonical result
+ *  does not fit it.  @tparam M the scratch capacity.  @param e the term.
+ *  @param f the operation, on terms at @c M. */
+export template <std::size_t M, IsSort S, std::size_t N, typename F>
+  requires(M >= N) && std::regular_invocable<const F&, const Expr<S, M>&>
+constexpr std::optional<Expr<S, N>> in_scratch(const Expr<S, N>& e,
+                                               const F& f) {
+  return rescaled<N>(canonical(f(*rescaled<M>(e))));
+}
+/** @return @c e + w (or − w on ℤ), canonical, at @c e's capacity, through a
+ *  scratch of twice it.  @param e the term.  @param w the word.
+ *  @param negative subtract, on ℤ. */
+export template <IsSort S, std::size_t N>
+constexpr std::optional<Expr<S, N>> plus_word(const Expr<S, N>& e,
+                                              std::uint64_t w,
+                                              bool negative = false) {
+  return in_scratch<2 * N>(e, detail_expr::Offset<Expr<S, 2 * N>>{w, negative});
+}
+
 /** @brief The successor and predecessor on ℕ, the NNO's step, as canonical
- *  terms: @c n + 1, and the monus @c n ∸ 1, @c 0 its fixed point.
- *  @param n the natural. */
+ *  terms: @c n + 1, and the monus @c n ∸ 1, @c 0 its fixed point.  The
+ *  successor of a term that fills its capacity is reached through a scratch
+ *  (@c plus_word).  @param n the natural. */
 export template <std::size_t N>
 constexpr NatExpr<N> successor(const NatExpr<N>& n) {
-  return canonical(n + NatExpr<N>::atom(1));
+  return detail_expr::certified(plus_word(n, 1));
 }
 export template <std::size_t N>
 constexpr NatExpr<N> predecessor(const NatExpr<N>& n) {
@@ -795,11 +857,11 @@ export inline constexpr auto ℕ = 𝔸<NatExpr<>>{};
  *  terms: @c z ± 1, total, ℤ has no floor.  @param z the integer. */
 export template <std::size_t N>
 constexpr IntExpr<N> successor(const IntExpr<N>& z) {
-  return canonical(z + IntExpr<N>::atom(1));
+  return detail_expr::certified(plus_word(z, 1));
 }
 export template <std::size_t N>
 constexpr IntExpr<N> predecessor(const IntExpr<N>& z) {
-  return canonical(z - IntExpr<N>::atom(1));
+  return detail_expr::certified(plus_word(z, 1, true));
 }
 /** @brief A machine integer meeting ℤ, the hook @c :terms' @c carrier_cast
  *  reaches by ADL: the total embedding.  @tparam K the integer's type. */
@@ -1047,4 +1109,8 @@ static_assert(HasCanonical<Q64> && HasCanonical<int> &&
                   is_natural_term_v<NatExpr<128>> && !is_natural_term_v<Z64>,
               "every carrier has a canonical form, the identity where it is "
               "not a term; ℕ's terms are ℕ at every capacity");
+static_assert(power_of_two<NatSort>(1280).size() == 63 &&
+                  successor(power_of_two<NatSort>(1280)).size() == 63,
+              "a term whose canonical form fills its capacity has a "
+              "successor: the step runs in a scratch of twice the capacity");
 }  // namespace dedekind::sets::detail_expr_witness
