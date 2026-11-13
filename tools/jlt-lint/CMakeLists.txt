@@ -101,6 +101,8 @@ add_jlt_lint_part(fixtures)
 # (Part by part, in sequence, the lint took four times as long: each part's
 # pool idled on its tail, and a small layer used few of the cores.)
 add_custom_target(lint
+    # The report is this run's or none: an earlier pass's report goes first.
+    COMMAND ${CMAKE_COMMAND} -E rm -f ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/jlt_lint.py
             ${DEDEKIND_CLANG_QUERY} ${CMAKE_BINARY_DIR} ${_jlt_tool} --out ${_jlt_parts}
     COMMAND ${CMAKE_COMMAND} -E copy ${_jlt_parts}/all.txt ${CMAKE_BINARY_DIR}/jlt-lint/report.txt

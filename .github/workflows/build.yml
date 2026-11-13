@@ -135,7 +135,11 @@ jobs:
     - name: Build, Lint & Test
       run: |
         tool=""
-        if [ -x .jlt-lint-tool/jlt-lint ]; then tool="-DDEDEKIND_JLT_LINT_TOOL=$PWD/.jlt-lint-tool/jlt-lint"; fi
+        # A restored binary is used only if it starts: a toolchain update can move
+        # the libraries it loads without changing the version line in the key.
+        if [ -x .jlt-lint-tool/jlt-lint ] && .jlt-lint-tool/jlt-lint --help >/dev/null 2>&1; then
+          tool="-DDEDEKIND_JLT_LINT_TOOL=$PWD/.jlt-lint-tool/jlt-lint"
+        fi
         make check CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON $tool"
 
     - name: Keep the jlt-lint tool
