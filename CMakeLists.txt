@@ -242,6 +242,11 @@ endfunction()
 
 # --- THE PROPOSITIONS (Serialized by Libraries) ---
 add_dedekind_layer(category "")
+# Catch2 first: every test links it, and ninja, left to itself, builds it
+# last, so every test (and the lint of every layer after it) waited for the
+# end of the compilation.  Its real targets, not the Catch2:: aliases, which
+# add_dependencies does not take.
+add_dependencies(dedekind_category Catch2 Catch2WithMain)
 add_dedekind_layer(ieee dedekind_category)
 add_dedekind_layer(sets dedekind_ieee)
 # dedekind.relational (#792) — the relation-algebra's own module, popped OUT of
