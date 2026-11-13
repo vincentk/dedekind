@@ -41,14 +41,25 @@ set(_jlt_tool_args
 if(CMAKE_C_COMPILER)
     list(APPEND _jlt_tool_args -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER})
 endif()
-ExternalProject_Add(jlt-lint-tool
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tool
-    BINARY_DIR ${CMAKE_BINARY_DIR}/jlt-lint
-    CMAKE_ARGS ${_jlt_tool_args}
-    INSTALL_COMMAND ""
-    BUILD_ALWAYS ON
-    BUILD_BYPRODUCTS ${_jlt_tool}
-    EXCLUDE_FROM_ALL ON)
+# A binary built earlier from the same tool sources and LLVM (CI keeps one in
+# its cache) is used as it is: the lint of each part then waits for that part
+# only, not for the tool's own build, which compiles LibTooling's headers for
+# many minutes and so held every part back until the compilation had ended.
+set(DEDEKIND_JLT_LINT_TOOL "" CACHE FILEPATH
+    "A jlt-lint binary built from these tool sources and this LLVM; empty builds it")
+if(DEDEKIND_JLT_LINT_TOOL AND EXISTS "${DEDEKIND_JLT_LINT_TOOL}")
+    set(_jlt_tool ${DEDEKIND_JLT_LINT_TOOL})
+    add_custom_target(jlt-lint-tool)
+else()
+    ExternalProject_Add(jlt-lint-tool
+        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tool
+        BINARY_DIR ${CMAKE_BINARY_DIR}/jlt-lint
+        CMAKE_ARGS ${_jlt_tool_args}
+        INSTALL_COMMAND ""
+        BUILD_ALWAYS ON
+        BUILD_BYPRODUCTS ${_jlt_tool}
+        EXCLUDE_FROM_ALL ON)
+endif()
 
 if(NOT Python_EXECUTABLE)
     find_package(Python COMPONENTS Interpreter REQUIRED)

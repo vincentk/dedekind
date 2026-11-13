@@ -116,10 +116,31 @@ jobs:
     - name: Check Code Formatting
       run: make format-check CLANG_FORMAT="$CLANG_FORMAT"
 
+    # The linter's own binary changes rarely and takes many minutes to build;
+    # kept between runs, keyed on its sources and the toolchain, so that the
+    # lint of each layer starts as soon as that layer is built.
+    - name: Toolchain key
+      id: toolchain
+      run: echo "llvm=$("$CXX" --version | head -1 | tr -c 'A-Za-z0-9.' '-')" >> "$GITHUB_OUTPUT"
+
+    - name: Restore the jlt-lint tool
+      id: jlt-tool
+      uses: actions/cache@v6
+      with:
+        path: .jlt-lint-tool
+        key: jlt-lint-tool-${{ runner.os }}-${{ steps.toolchain.outputs.llvm }}-${{ hashFiles('tools/jlt-lint/tool/**') }}
+
     # The build lints and tests each layer as soon as it is built, beside
     # the compilation of the layers above (CMake's `check`).
     - name: Build, Lint & Test
-      run: make check CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+      run: |
+        tool=""
+        if [ -x .jlt-lint-tool/jlt-lint ]; then tool="-DDEDEKIND_JLT_LINT_TOOL=$PWD/.jlt-lint-tool/jlt-lint"; fi
+        make check CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON $tool"
+
+    - name: Keep the jlt-lint tool
+      if: steps.jlt-tool.outputs.cache-hit != 'true'
+      run: mkdir -p .jlt-lint-tool && cp build/jlt-lint/jlt-lint .jlt-lint-tool/
 
     # The report (gates, reported counts, the syntax inventory) is kept as an
     # artifact: the paper's closure table rests on the inventory as
