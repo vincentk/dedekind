@@ -286,77 +286,8 @@ static_assert(is_constant(ans) && is_monotone(ans) && is_antitone(aye) &&
               is_constant(~nil) && (-one)(true) == (~nil)(true) &&
               is_involution(-id_u) && is_constant(-nil) &&
               is_iso(-id_u >> ~id_u) && !is_involution(-id_u >> ~id_u));
-// Arrows compared by their normal forms, the definitions Listing 3 omits.  A
-// term over arrows reduces, by recursion over its type, under three laws:
-// unit (an identity leg drops), associativity (a composite is the path of its
-// atoms) and involution (two adjacent copies of a certified involution
-// cancel).  Unit and associativity alone give the free category's paths;
-// f f -> id is confluent, so the normal form is unique.  Equal normal forms
-// are equal arrows; different ones are undecided, never unequal (Rice), so
-// == answers True or Unknown and converts to bool only when True.  It
-// compares arrows with the same endpoints only, and reads an atom by its type
-// only where the type has one value; a constant's value is not read.
-namespace arrow_normal_form {
-using dedekind::category::Compose;
-using dedekind::category::IsArrow;
-using dedekind::category::IsIdentityArrow;
-using dedekind::category::IsInvolution;
-using dedekind::category::Ternary;
-// The path, last atom first.
-template <typename... A>
-struct Path {};
-template <typename P, typename A>
-struct push {
-  using type = P;
-};
-template <typename... Xs, typename A>
-  requires(!IsIdentityArrow<A>)
-struct push<Path<Xs...>, A> {
-  using type = Path<A, Xs...>;
-};
-template <typename X, typename... Xs>
-  requires IsInvolution<X> && dedekind::category::has_one_value_v<X>
-struct push<Path<X, Xs...>, X> {
-  using type = Path<Xs...>;
-};
-template <typename P, typename T>
-struct reduce : push<P, T> {};
-template <typename P, typename F, typename G>
-struct reduce<P, Compose<F, G>> : reduce<typename reduce<P, F>::type, G> {};
-template <typename T>
-using normal_form_t = typename reduce<Path<>, T>::type;
-template <typename P>
-inline constexpr bool one_valued_v = false;
-template <typename... A>
-inline constexpr bool one_valued_v<Path<A...>> =
-    (dedekind::category::has_one_value_v<A> && ...);
-template <typename T>
-inline constexpr bool is_compose_v = false;
-template <typename F, typename G>
-inline constexpr bool is_compose_v<Compose<F, G>> = true;
-struct ByTheLaws {
-  Ternary verdict;
-  explicit constexpr operator bool() const { return verdict == Ternary::True; }
-};
-}  // namespace arrow_normal_form
-template <dedekind::category::IsArrow F, dedekind::category::IsArrow G>
-  requires(arrow_normal_form::is_compose_v<F> ||
-           arrow_normal_form::is_compose_v<G>) &&
-          std::same_as<dedekind::category::Dom<F>,
-                       dedekind::category::Dom<G>> &&
-          std::same_as<dedekind::category::Cod<F>, dedekind::category::Cod<G>>
-constexpr arrow_normal_form::ByTheLaws operator==(const F&, const G&) {
-  using arrow_normal_form::normal_form_t;
-  using dedekind::category::Ternary;
-  // Equal paths of atoms that have one value each are equal arrows; an atom
-  // that carries a value (a constant) is not read by the type alone.
-  using arrow_normal_form::one_valued_v;
-  return {std::same_as<normal_form_t<F>, normal_form_t<G>> &&
-                  one_valued_v<normal_form_t<F>>
-              ? Ternary::True
-              : Ternary::Unknown};
-}
-// Whether two arrows compare by the laws at all (found after the operator).
+// Whether two arrows compare by the laws at all (the library's == on arrow
+// terms, :f_algebra).
 template <typename A, typename B>
 concept Comparable = requires(const A& a, const B& b) { a == b; };
 
@@ -373,6 +304,10 @@ static_assert(!static_cast<bool>(id_u == dec));  // undecided, not unequal
 static_assert(Comparable<decltype(id_u), decltype(~id_u >> ~id_u)> &&
               !Comparable<decltype(id_b), decltype(~id_u >> ~id_u)>);
 static_assert(!static_cast<bool>((nil >> nay >> ans) == (nil >> (nay >> one))));
+// Two composites of one type compare through their normal forms too.
+static_assert((~id_u >> ~id_u) == (~id_u >> ~id_u) &&
+              (dec >> ~id_u) == (-id_u >> (~id_u >> ~id_u)) &&
+              !static_cast<bool>(dec == (~id_u >> -id_u)));
 // Products and coproducts:
 constexpr auto fst = Π<1, std::pair<bool, size_t>>{};
 constexpr auto sec = Pairing{id_b, nil};  // ⟨1, 0⟩

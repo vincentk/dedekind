@@ -662,8 +662,8 @@ struct Compose final {
   using Codomain = Cod<G>;
   [[no_unique_address]] F f;
   [[no_unique_address]] G g;
-  /** @brief Equal when the legs are (@c :cartesian's @c Arrows). */
-  constexpr bool operator==(const Compose&) const = default;
+  // No == of its own: a term node is compared through its normal form, by
+  // the laws (@c :f_algebra's @c operator==, #1116).
   /** @brief Run the pipeline @c (g∘f)(x) = g(f(x)), at any presentation of
    *  the domain (@c morphism__Objects_And_Their_Presentations): two arrows
    *  between objects presented by many types compose like any other.  Where
