@@ -574,7 +574,7 @@ rule2-definition                     src/main/modules/dedekind/sequences/tail_eq
 rule2-definition                     src/main/modules/dedekind/sequences/samples.cppm  sequences  0
 rule2-constrained-templates          src/main/modules/dedekind/sequences/[!s]*.cppm  sequences  report
 rule2-constrained-templates          src/main/modules/dedekind/sequences/samples.cppm  sequences  report
-rule2-no-inline-requires             src/main/modules/dedekind/sequences/convergence.cppm  sequences  1
+rule2-no-inline-requires             src/main/modules/dedekind/sequences/convergence.cppm  sequences  0
 rule2-no-inline-requires             src/main/modules/dedekind/sequences/curve.cppm  sequences  0
 rule2-no-inline-requires             src/main/modules/dedekind/sequences/finite.cppm  sequences  0
 rule2-no-inline-requires             src/main/modules/dedekind/sequences/fold.cppm  sequences  0
