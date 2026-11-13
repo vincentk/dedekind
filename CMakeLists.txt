@@ -287,11 +287,11 @@ add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
     # `ret i64 2` IR, this exhibits the bridge in IR form — one
     # constexpr kernel, two evaluation modes selected by the call site.
     src/test/cpp/modules/dedekind/python/showcase_09b_lp_runtime_residual.cpp
-    # showcase_12 is the compile-time NTTP form of the bit-ops fast path
-    # (signed-unimodular + axis-aligned pack — the unit square).  The
-    # NTTP entry maximize<>() dispatches to detail::maximize_impl_axis_aligned
-    # under that gate and the fold collapses to a typed constant
-    # `Vec2<Rat, 1, 1>`; witness IR is `ret i64 1`.  Middle panel of the
+    # showcase_12 is the compile-time form of the bit-ops fast path
+    # (signed-unimodular + axis-aligned pack — the unit square).
+    # maximize_with_values dispatches to detail::maximize_impl_axis_aligned
+    # and, its arguments constant, is evaluated at compile time to (1, 1);
+    # witness IR is `ret i64 1`.  Middle panel of the
     # §5 triptych (compile-time fast path); showcase_09 holds the
     # generic Cramer compile-time panel.
     src/test/cpp/modules/dedekind/python/showcase_12_lp_unimodular_fast_path.cpp
@@ -371,7 +371,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     set(DEDEKIND_PYTHON_PACKAGE_DIR "${DEDEKIND_PYTHON_PACKAGE_ROOT}/pynzli")
     # The package's pure-Python modules, staged next to the extensions so the
     # tests and notebooks import the build as it is, and installed alike.
-    set(PYNZLI_MODULES __init__.py _version.py jlt.py pst.py trsk.py)
+    set(PYNZLI_MODULES __init__.py _version.py jlt.py pst.py q.py trsk.py)
     list(TRANSFORM PYNZLI_MODULES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/python/pynzli/"
          OUTPUT_VARIABLE PYNZLI_MODULE_PATHS)
 

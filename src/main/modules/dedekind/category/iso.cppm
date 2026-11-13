@@ -132,8 +132,8 @@ constexpr auto retract(F f) {
  * canonical project use case is the @c embed_* family of carrier-
  * lattice embeddings, each of which is monic and admits a natural
  * partial inverse (e.g.\ @c embed_𝔹_ℕ has retract
- * @c Numeral @c → @c std::optional<bool>; @c embed_uint_ℕ has
- * retract @c Numeral @c → @c std::optional<unsigned> that fires on
+ * @c NatExpr @c → @c std::optional<bool>; @c embed_uint_ℕ has
+ * retract @c NatExpr @c → @c std::optional<unsigned> that fires on
  * the finite-representable range).
  *
  * @par Concept shape

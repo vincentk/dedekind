@@ -9,29 +9,29 @@ using namespace dedekind::sets;
 
 TEST_CASE("Geometry: square_natural_grid", "[geometry][lattice]") {
   // The natural-grid carrier is NaturalLatticePoint2D
-  // (= pair<Numeral, Numeral>), so braced initialisers spell numerals.
+  // (= pair<NatExpr, NatExpr>), so braced initialisers spell numerals.
   // The "rejects negatives" reading moves to the integer-grid tests below.
   SECTION("Contains expected interior points") {
     const auto grid = square_natural_grid(4u);
     using Logic = typename decltype(grid)::logic_species;
-    REQUIRE(grid({Numeral{0u}, Numeral{0u}}) == Logic::True);
-    REQUIRE(grid({Numeral{3u}, Numeral{3u}}) == Logic::True);
-    REQUIRE(grid({Numeral{0u}, Numeral{3u}}) == Logic::True);
-    REQUIRE(grid({Numeral{2u}, Numeral{1u}}) == Logic::True);
+    REQUIRE(grid({NatExpr<>{0u}, NatExpr<>{0u}}) == Logic::True);
+    REQUIRE(grid({NatExpr<>{3u}, NatExpr<>{3u}}) == Logic::True);
+    REQUIRE(grid({NatExpr<>{0u}, NatExpr<>{3u}}) == Logic::True);
+    REQUIRE(grid({NatExpr<>{2u}, NatExpr<>{1u}}) == Logic::True);
   }
 
   SECTION("Excludes out-of-bounds points (above the upper bound)") {
     const auto grid = square_natural_grid(4u);
     using Logic = typename decltype(grid)::logic_species;
-    REQUIRE(grid({Numeral{4u}, Numeral{0u}}) == Logic::False);
-    REQUIRE(grid({Numeral{0u}, Numeral{4u}}) == Logic::False);
-    REQUIRE(grid({Numeral{100u}, Numeral{100u}}) == Logic::False);
+    REQUIRE(grid({NatExpr<>{4u}, NatExpr<>{0u}}) == Logic::False);
+    REQUIRE(grid({NatExpr<>{0u}, NatExpr<>{4u}}) == Logic::False);
+    REQUIRE(grid({NatExpr<>{100u}, NatExpr<>{100u}}) == Logic::False);
   }
 
   SECTION("Empty grid contains no points") {
     const auto grid = square_natural_grid(0u);
     using Logic = typename decltype(grid)::logic_species;
-    REQUIRE(grid({Numeral{0u}, Numeral{0u}}) == Logic::False);
+    REQUIRE(grid({NatExpr<>{0u}, NatExpr<>{0u}}) == Logic::False);
   }
 }
 
@@ -57,7 +57,7 @@ TEST_CASE("Geometry: square_integer_grid", "[geometry][lattice]") {
     // natural grid; the integer grid accepts the same points as ints.
     for (unsigned int x = 0u; x <= n; ++x) {
       for (unsigned int y = 0u; y <= n; ++y) {
-        if (nat_grid({Numeral{x}, Numeral{y}}) == NatLogic::True) {
+        if (nat_grid({NatExpr<>{x}, NatExpr<>{y}}) == NatLogic::True) {
           REQUIRE(int_grid({static_cast<int>(x), static_cast<int>(y)}) ==
                   IntLogic::True);
         }
@@ -78,12 +78,12 @@ TEST_CASE("Geometry: unbounded lattice relations", "[geometry][lattice]") {
     using ZLineLogic = typename decltype(z_line)::logic_species;
     using ZPlaneLogic = typename decltype(z_plane)::logic_species;
 
-    // The ℕ-lattice is the universe over Numeral; "rejects negative" is
+    // The ℕ-lattice is the universe over NatExpr; "rejects negative" is
     // the subobject ℕ ⊂ ℤ, an :order halfspace over int, not this lattice.
-    REQUIRE(n_line(Numeral{0u}) == NLineLogic::True);
-    REQUIRE(n_line(Numeral{7u}) == NLineLogic::True);
-    REQUIRE(n_plane({Numeral{1u}, Numeral{2u}}) == NPlaneLogic::True);
-    REQUIRE(n_plane({Numeral{0u}, Numeral{0u}}) == NPlaneLogic::True);
+    REQUIRE(n_line(NatExpr<>{0u}) == NLineLogic::True);
+    REQUIRE(n_line(NatExpr<>{7u}) == NLineLogic::True);
+    REQUIRE(n_plane({NatExpr<>{1u}, NatExpr<>{2u}}) == NPlaneLogic::True);
+    REQUIRE(n_plane({NatExpr<>{0u}, NatExpr<>{0u}}) == NPlaneLogic::True);
 
     REQUIRE(z_line(-7) == ZLineLogic::True);
     REQUIRE(z_line(9) == ZLineLogic::True);
@@ -103,7 +103,7 @@ TEST_CASE("Geometry: unbounded lattice relations", "[geometry][lattice]") {
     // integer lattice.
     for (unsigned int x = 0u; x <= 3u; ++x) {
       for (unsigned int y = 0u; y <= 3u; ++y) {
-        if (nat({Numeral{x}, Numeral{y}}) == NatLogic::True) {
+        if (nat({NatExpr<>{x}, NatExpr<>{y}}) == NatLogic::True) {
           REQUIRE(integers({static_cast<int>(x), static_cast<int>(y)}) ==
                   IntLogic::True);
         }
@@ -114,14 +114,14 @@ TEST_CASE("Geometry: unbounded lattice relations", "[geometry][lattice]") {
   SECTION(
       "Bounded natural grid can be derived from unbounded natural lattice") {
     constexpr auto bounded_grid = [](const NaturalLatticePoint2D& q) {
-      return (q.first < Numeral{4u}) && (q.second < Numeral{4u});
+      return (q.first < NatExpr<>{4u}) && (q.second < NatExpr<>{4u});
     };
     const auto bounded = Comprehension{natural_lattice_2d(), bounded_grid};
     using Logic = typename decltype(bounded)::logic_species;
-    REQUIRE(bounded({Numeral{0u}, Numeral{0u}}) == Logic::True);
-    REQUIRE(bounded({Numeral{3u}, Numeral{3u}}) == Logic::True);
-    REQUIRE(bounded({Numeral{4u}, Numeral{0u}}) == Logic::False);
-    REQUIRE(bounded({Numeral{5u}, Numeral{5u}}) == Logic::False);
+    REQUIRE(bounded({NatExpr<>{0u}, NatExpr<>{0u}}) == Logic::True);
+    REQUIRE(bounded({NatExpr<>{3u}, NatExpr<>{3u}}) == Logic::True);
+    REQUIRE(bounded({NatExpr<>{4u}, NatExpr<>{0u}}) == Logic::False);
+    REQUIRE(bounded({NatExpr<>{5u}, NatExpr<>{5u}}) == Logic::False);
   }
 
   SECTION("Half-space and interval restrictions from integer lattice") {

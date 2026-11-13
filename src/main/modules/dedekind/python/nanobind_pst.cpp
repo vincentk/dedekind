@@ -2258,6 +2258,120 @@ struct Forall {
     return s == former_runtime(s, p);  // S ⊆ P
   }
 };
+
+// ── ℚ's terms (#1035): a handle on RatExpr<>, its arithmetic the term
+// algebra's, its equality and order those of the canonical form ──
+using Rat = dedekind::sets::RatExpr<>;
+
+/** @brief The declared bound, checked before a node is added: a term past it
+ *  raises OverflowError, never reaches the trap.  @param nodes the count. */
+void within_bound(std::size_t nodes) {
+  if (nodes > Rat::capacity) {
+    PyErr_SetString(PyExc_OverflowError,
+                    "Q: the term passes its bound of 64 nodes; "
+                    "canonical() normalises it");
+    throw nb::python_error();
+  }
+}
+
+/** @brief A node, as Python reads it: its kind and its operands. */
+struct NodeTuple {
+  nb::object operator()(dedekind::sets::nodes::Atom n) const {
+    return nb::make_tuple("atom", py_int(n.value));
+  }
+  nb::object operator()(dedekind::sets::nodes::Add n) const {
+    return nb::make_tuple("add", n.a, n.b);
+  }
+  nb::object operator()(dedekind::sets::nodes::Mul n) const {
+    return nb::make_tuple("mul", n.a, n.b);
+  }
+  nb::object operator()(dedekind::sets::nodes::Neg n) const {
+    return nb::make_tuple("neg", n.a);
+  }
+  nb::object operator()(dedekind::sets::nodes::Div n) const {
+    return nb::make_tuple("div", n.a, n.b);
+  }
+};
+
+void bind_rationals(nb::module_ m) {
+  nb::class_<Rat>(m, "RatTerm",
+                  "A term of ℚ (RatExpr<>), the handle pynzli.Q holds: + · − "
+                  "and / build terms, == and the order are the canonical "
+                  "form's.")
+      .def_static(
+          "atom", [](uint64_t w) { return Rat::atom(w); }, nb::arg("w"),
+          "The atom w, a machine word.")
+      .def_static(
+          "from_float",
+          [](double x) {
+            const auto q = dedekind::sets::from(x);
+            if (!q) throw nb::value_error("Q: NaN and ±inf are not rationals");
+            return *q;
+          },
+          nb::arg("x"), "The dyadic rational a finite double is, exactly.")
+      .def(
+          "add",
+          [](const Rat& a, const Rat& b) {
+            within_bound(a.size() + b.size() + 1);
+            return a + b;
+          },
+          nb::arg("b"))
+      .def(
+          "mul",
+          [](const Rat& a, const Rat& b) {
+            within_bound(a.size() + b.size() + 1);
+            return a * b;
+          },
+          nb::arg("b"))
+      .def("neg",
+           [](const Rat& a) {
+             within_bound(a.size() + 1);
+             return -a;
+           })
+      .def(
+          "div",
+          [](const Rat& a, const Rat& b) {
+            const auto d = dedekind::category::nonzero(b);  // the check
+            if (!d) zero_division("Q: division by zero");
+            within_bound(a.size() + b.size() + 1);
+            return a / *d;
+          },
+          nb::arg("b"))
+      .def(
+          "compare",
+          [](const Rat& a, const Rat& b) {
+            const auto c = a <=> b;
+            return c < 0 ? -1 : (c > 0 ? 1 : 0);
+          },
+          nb::arg("b"), "The order of the canonical forms: −1, 0 or 1.")
+      .def(
+          "canonical",
+          [](const Rat& a) {
+            // Counted before a node is written: a form past the bound
+            // raises, never reaches the trap.
+            const auto c = dedekind::sets::checked_canonical(a);
+            if (!c) {
+              PyErr_SetString(PyExc_OverflowError,
+                              "Q: the canonical form passes its bound of 64 "
+                              "nodes");
+              throw nb::python_error();
+            }
+            return *c;
+          },
+          "The canonical form, the reduced fraction, where it fits the "
+          "bound; else OverflowError.")
+      .def("size", &Rat::size, "The number of nodes.")
+      .def(
+          "nodes",
+          [](const Rat& a) {
+            nb::list out;
+            for (std::size_t i = 0; i < a.size(); ++i)
+              out.append(std::visit(NodeTuple{}, a.at(i)));
+            return out;
+          },
+          "The nodes, children before parents, the root last.");
+}
+
 }  // namespace
 
 /** @brief The readings of a term, as free functions: @c dom(R), @c
@@ -2804,4 +2918,7 @@ NB_MODULE(_pst, m) {
 
   // ── the readings, one spelling each (#1054) ──
   bind_readings(m);
+
+  // ── ℚ's terms, the handle under pynzli.Q (#1035) ──
+  bind_rationals(m);
 }

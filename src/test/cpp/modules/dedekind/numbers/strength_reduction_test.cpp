@@ -47,12 +47,11 @@ static_assert(
 // ==============  Arithmetic on the intermediate sets (ring rungs) ============
 // The upper rungs preserve +, × (they are ring embeddings) — arithmetic done in
 // ℤ / ℚ agrees with arithmetic done after embedding into ℝ.
-static_assert(embed_ℤ_ℚ_(default_integer{4} + default_integer{6}) ==
-                  embed_ℤ_ℚ_(default_integer{4}) +
-                      embed_ℤ_ℚ_(default_integer{6}),
+static_assert(embed_ℤ_ℚ_(IntExpr<>{4} + IntExpr<>{6}) ==
+                  embed_ℤ_ℚ_(IntExpr<>{4}) + embed_ℤ_ℚ_(IntExpr<>{6}),
               "ℤ ↪ ℚ preserves + on the intermediate ℤ set.");
-static_assert(embed_ℚ_ℝ(Rational<>{3, 2} * Rational<>{4, 1}) ==
-                  embed_ℚ_ℝ(Rational<>{3, 2}) * embed_ℚ_ℝ(Rational<>{4, 1}),
+static_assert(embed_ℚ_ℝ(RatExpr<>{3, 2} * RatExpr<>{4, 1}) ==
+                  embed_ℚ_ℝ(RatExpr<>{3, 2}) * embed_ℚ_ℝ(RatExpr<>{4, 1}),
               "ℚ ↪ ℝ preserves × on the intermediate ℚ set.");
 
 // ================  Modular quotient: unsigned = ℤ/2^w is the base ============
@@ -67,8 +66,8 @@ static_assert(!IsCongruenceQuotient<Modular<12u>, std::plus<unsigned>>,
 // intermediate discharged by functionality (§graph.cppm).  This is the payoff
 // the user asked for: an arithmetic arrow (×2 on ℚ) sits BETWEEN two inclusion
 // relations, all composed relationally.
-constexpr auto scale2 = dedekind::category::arrow<Rational<>, Rational<>>(
-    [](const Rational<>& q) { return q * Rational<>{2}; });
+constexpr auto scale2 = dedekind::category::arrow<RatExpr<>, RatExpr<>>(
+    [](const RatExpr<>& q) { return q * RatExpr<>{2}; });
 
 // Γ(ℤ↪ℚ) ; Γ(×2 on ℚ) ; Γ(ℚ↪ℝ)  :  a functional relation ℤ ↬ ℝ, r == 2·z.
 constexpr auto Γ_scaled = graph(embed_ℤ_ℚ_) >> graph(scale2) >>
@@ -76,13 +75,13 @@ constexpr auto Γ_scaled = graph(embed_ℤ_ℚ_) >> graph(scale2) >>
 static_assert(IsSet<decltype(Γ_scaled)>,
               "the relational composite is again a functional graph ℤ ↬ ℝ.");
 static_assert(
-    Γ_scaled(std::pair{default_integer{5}, R2{10}}),
+    Γ_scaled(std::pair{IntExpr<>{5}, R2{10}}),
     "(5, 10) ∈ Γ: 2·5 = 10 in ℝ — arithmetic embedded between rungs.");
-static_assert(!Γ_scaled(std::pair{default_integer{5}, R2{11}}), "(5, 11) ∉ Γ.");
+static_assert(!Γ_scaled(std::pair{IntExpr<>{5}, R2{11}}), "(5, 11) ∉ Γ.");
 // Relational composition and arrow composition coincide (Γ_f;Γ_g == Γ_{f;g}).
-static_assert(Γ_scaled(std::pair{default_integer{3}, R2{6}}) ==
+static_assert(Γ_scaled(std::pair{IntExpr<>{3}, R2{6}}) ==
                   graph(embed_ℤ_ℚ_ >> scale2 >>
-                        embed_ℚ_ℝ)(std::pair{default_integer{3}, R2{6}}),
+                        embed_ℚ_ℝ)(std::pair{IntExpr<>{3}, R2{6}}),
               "relational ; and arrow ∘ agree pointwise.");
 
 }  // namespace
@@ -95,7 +94,7 @@ TEST_CASE(
   const auto Γ = graph(embed_ℤ_ℚ_) >> graph(scale2) >> graph(embed_ℚ_ℝ);
   for (int z = 0; z <= 6; ++z) {
     CAPTURE(z);
-    CHECK(Γ(std::pair{default_integer{z}, R2{2 * z}}));
-    CHECK_FALSE(Γ(std::pair{default_integer{z}, R2{2 * z + 1}}));
+    CHECK(Γ(std::pair{IntExpr<>{z}, R2{2 * z}}));
+    CHECK_FALSE(Γ(std::pair{IntExpr<>{z}, R2{2 * z + 1}}));
   }
 }

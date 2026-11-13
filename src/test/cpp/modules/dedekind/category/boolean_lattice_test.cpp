@@ -13,7 +13,7 @@
  *     be discharged at type level.
  *
  * Canonical witness: @c bool under @c std::less_equal with
- * @c std::logical_not<bool>.  Integer carriers under
+ * @c std::logical_not<bool>.  IntExpr carriers under
  * @c std::less_equal with @c std::bit_not are deliberately @b
  * excluded — the bitwise Boolean algebra under a bit-subset relation
  * is tracked under #710 as a separate canonical witness.

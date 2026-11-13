@@ -33,12 +33,10 @@ export import dedekind.topology;  // Rays, half-spaces, intervals, convex shapes
 
 /** @section numbers__Discrete_Foundations */
 export import :boolean;  // Truth<L> and Ω
-export import :natural;  // ℕ (carrier: dedekind::sets::Numeral)
-export import :integer;  // ℤ = 𝔸<SignedCardinality> (saturating variant
-                         // ℤ-proxy, post-#670); default_integer alias also
-                         // anchored on SignedCardinality (post-PR #676).
+export import :natural;  // ℕ (carrier: dedekind::sets::NatExpr)
+export import :integer;  // ℤ = 𝔸<IntExpr>, Grothendieck's completion of ℕ
 /** @section numbers__Algebraic_Extensions */
-export import :rational;    // Rational<default_integer> (The Quotient Field)
+export import :rational;    // RatExpr<> (The Quotient Field)
 export import :cut;         // Cut<Q> — decidable Dedekind reals (ℚ + radicals)
 export import :quadratic;   // ℚ(√D) — a decidable quadratic real FIELD
 export import :complex;     // ℂ (The Cayley-Dickson construction)

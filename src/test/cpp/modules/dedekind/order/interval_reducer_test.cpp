@@ -99,16 +99,16 @@ TEST_CASE(
   }
 
   SECTION("ℕ: the point collapse gates on the NNO, not on std::integral") {
-    // The carrier is ℕ's Numeral --- not a machine integer.
+    // The carrier is ℕ's NatExpr --- not a machine integer.
     // The one-point collapse needs successor / predecessor, which are an axiom
     // of the CATEGORY (the NNO) that the carrier witnesses, so (3,5) on ℕ folds
     // to {4} exactly as it does on int, and (5,5) to the empty set.
     const auto point = subobject_reduce<Boole, SetCombine>(
-        MakeMeet{}(Up(Numeral{3u}), Down(Numeral{5u})));
-    CHECK(point == Interval<Numeral>::point(Numeral{4u}));
+        MakeMeet{}(Up(NatExpr<>{3u}), Down(NatExpr<>{5u})));
+    CHECK(point == Interval<NatExpr<>>::point(NatExpr<>{4u}));
     const auto empty = subobject_reduce<Boole, SetCombine>(
-        MakeMeet{}(Up(Numeral{5u}), Down(Numeral{5u})));
-    CHECK(empty == Ø<Numeral>{});
+        MakeMeet{}(Up(NatExpr<>{5u}), Down(NatExpr<>{5u})));
+    CHECK(empty == Ø<NatExpr<>>{});
   }
 
   SECTION("without the value leg the reducer keeps the Meet (type fallback)") {

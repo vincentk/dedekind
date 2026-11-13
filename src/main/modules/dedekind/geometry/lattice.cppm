@@ -66,7 +66,7 @@ export module dedekind.geometry:lattice;
 
 import :affine;  // for Vector<F, N>
 import dedekind.category;
-import dedekind.sets; // for Set, element, 𝔸, Numeral, N, cartesian_product
+import dedekind.sets; // for Set, element, 𝔸, NatExpr, N, cartesian_product
 
 namespace dedekind::geometry {
 
@@ -76,15 +76,15 @@ using namespace dedekind::category;
 // Canonical lattice species in the geometry layer: the universes ℕ and ℤ as
 // types (the factory below is keyed on the set type; the values are @c ℕ and
 // @c 𝔸<int>{}).
-export using NaturalLatticeSet = 𝔸<Numeral>;
+export using NaturalLatticeSet = 𝔸<NatExpr<>>;
 export using IntegerLatticeSet = 𝔸<int>;
 export using IntegerLatticeScalar = typename IntegerLatticeSet::Domain;
 export using IntegerLatticePoint2D =
     std::pair<IntegerLatticeScalar, IntegerLatticeScalar>;
-// Natural-lattice scalar is ℕ's carrier, Numeral.  ℕ is the universe value
-// 𝔸<Numeral>; the carrier in concept gates and template-type-parameter
-// positions is Numeral directly.
-export using NaturalLatticeScalar = Numeral;
+// Natural-lattice scalar is ℕ's carrier, NatExpr.  ℕ is the universe value
+// 𝔸<NatExpr>; the carrier in concept gates and template-type-parameter
+// positions is NatExpr directly.
+export using NaturalLatticeScalar = NatExpr<>;
 export using NaturalLatticePoint2D =
     std::pair<NaturalLatticeScalar, NaturalLatticeScalar>;
 
@@ -118,8 +118,8 @@ struct LatticeFactory;
 template <>
 struct LatticeFactory<NaturalLatticeSet> {
   constexpr auto line() const {
-    // Every Numeral is in ℕ by construction; the universe value @c ℕ
-    // (= @c 𝔸<Numeral>) IS the line ---
+    // Every NatExpr is in ℕ by construction; the universe value @c ℕ
+    // (= @c 𝔸<NatExpr>) IS the line ---
     // an ambient set needs no @c Set{...} wrapper.
     return ℕ;
   }
@@ -166,7 +166,7 @@ export constexpr auto integer_lattice_2d() {
  * @details Built as the cartesian product of two finite bounded naturals using
  *          the set-builder DSL. This is the lattice domain before any
  *          continuous embedding.  The grid coordinates are
- *          @c NaturalLatticePoint2D @c = @c pair<Numeral, Numeral>.
+ *          @c NaturalLatticePoint2D @c = @c pair<NatExpr, NatExpr>.
  *
  * @param n  Side length of the grid (number of points per axis).
  * @return A Set<NaturalLatticePoint2D, Kleene, ...>.
@@ -175,7 +175,7 @@ export constexpr auto square_natural_grid(unsigned int n) {
   const auto unbounded = natural_lattice_2d();
   // Runtime window @c n: a NAMED local predicate over the unbounded lattice.
   const auto in_window = [n](const NaturalLatticePoint2D& q) {
-    return (q.first < Numeral{n}) && (q.second < Numeral{n});
+    return (q.first < NatExpr<>{n}) && (q.second < NatExpr<>{n});
   };
   return Comprehension{unbounded, in_window};
 }

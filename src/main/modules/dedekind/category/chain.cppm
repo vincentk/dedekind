@@ -384,7 +384,7 @@ struct Below {
  *  covering step --- @c bool, @f$K_3@f$, the integrals, ℕ's proxy: the unfold
  *  of @c lo by @c cover, ending after @c hi, or at a saturating top short of
  *  it.  @c std::views::iota cannot do this (@c Ternary has no @c ++,
- *  @c Numeral no @c difference_type), so @c sequences::to_iota_view is
+ *  @c NatExpr no @c difference_type), so @c sequences::to_iota_view is
  *  this view's integral face.  Holds an @c unfold_view over the state
  *  @f$1 + C@f$ (#981): no arithmetic of its own on the bounds, and no base
  *  class, since the posture has no subtyping.

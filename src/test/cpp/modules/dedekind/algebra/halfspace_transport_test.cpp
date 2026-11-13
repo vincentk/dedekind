@@ -2,7 +2,7 @@
  *
  * Coverage for the ordered-group transport of halfspaces
  * (dedekind.algebra:halfspace_transport): the DSL's @c image / @c inverse /
- * @c argmax / @c is_function / @c is_entire spellings (in @c namespace
+ * @c is_function / @c is_entire spellings (in @c namespace
  * dedekind::order, backed by the @c algebra layer) and the entireness
  * inference.
  *
@@ -34,7 +34,7 @@ using namespace dedekind::order;
 using dedekind::sequences::operator>>;
 
 namespace {
-inline constexpr auto ℤ = 𝔸<SignedCardinality>{};
+inline constexpr auto ℤ = 𝔸<IntExpr<>>{};
 using dedekind::algebra::𝔽64;  // GF(2⁶): operator+ is XOR (characteristic 2)
 
 // ── #876 finding 2: the translation graph IS a categorical equalizer ─────────
@@ -45,7 +45,7 @@ using dedekind::algebra::𝔽64;  // GF(2⁶): operator+ is XOR (characteristic 
 // pins on the predicate slot of the (domain, codomain, predicate) triple, not
 // on a Set→Ω arrow view.  Pinned via category::IsEqualizer for future/CP
 // reference.
-using ZT = SignedCardinality;
+using ZT = IntExpr<>;
 struct Pi1Plus3Arrow {
   using Domain = std::pair<ZT, ZT>;
   using Codomain = ZT;
@@ -81,9 +81,9 @@ static_assert(image(ℤ * ℤ & π_1 * 1 == π_2 & π_1 >= 0) == (ℤ & π >= 0)
               "image of the identity branch on {x≥0} = {y≥0}.");
 static_assert(image(ℤ * ℤ & π_1 * -1 == π_2 & π_1 < 0) == (ℤ & π > 0),
               "image of the negate branch on {x<0} = {y>0} (the sense flips).");
-static_assert(image(ℤ * ℤ & π_1 * -1 == π_2 & π_1 < 0)(3),
+static_assert(image(ℤ * ℤ & π_1 * -1 == π_2 & π_1 < 0)(IntExpr<>{3}),
               "3 ∈ image(negate branch) via −3 (the canonical +3 ∉ {x<0}).");
-static_assert(!image(ℤ * ℤ & π_1 * -1 == π_2 & π_1 < 0)(-2),
+static_assert(!image(ℤ * ℤ & π_1 * -1 == π_2 & π_1 < 0)(IntExpr<>{-2}),
               "the branch image is non-negative: −2 ∉ it.");
 // The successor graph over ℕ (the carrier admitted for K≥0): the image the
 // OPAQUE arrow leaves Unknown is DECIDED by the pushforward.
@@ -98,6 +98,11 @@ static_assert(image((ℕ * ℕ & π_1 + 1u == π_2) & π_1 <= 5u) ==
 static_assert(image((ℕ * ℕ & π_1 + 1u == π_2) & π_1 < 5u) ==
                   ((ℕ & (π >= 1u)) & (ℕ & (π < 6u))),
               "image(succ, {n<5}) = {1,…,5} on ℕ.");
+// The closed form holds for ℕ at every capacity: the bound is storage.
+constexpr auto ℕ128 = 𝔸<NatExpr<128>>{};
+static_assert(image((ℕ128 * ℕ128 & π_1 + 1u == π_2) & π_1 <= 5u) ==
+                  ((ℕ128 & (π >= 1u)) & (ℕ128 & (π <= 6u))),
+              "image(succ, {n≤5}) = {1,…,6} on ℕ at capacity 128.");
 // The identity scale on ℕ: its unit is an unsigned constant, which ℕ meets.
 static_assert(image((ℕ * ℕ & π_1 * 1u == π_2) & π_1 > 5u) == (ℕ & (π > 5u)),
               "image(x ↦ 1·x, {n>5}) = {n>5} on ℕ.");
@@ -108,21 +113,17 @@ static_assert(image((ℕ * ℕ & π_1 * 1u == π_2) & π_1 > 5u) == (ℕ & (π >
 // composition.
 static_assert(
     (image(((ℤ * ℤ & π_1 + 2 == π_2) >> (ℤ * ℤ & π_1 + 3 == π_2)) & π_1 <= 1) &
-     (ℤ & (π > 6))) == Ø<SignedCardinality>{},
+     (ℤ & (π > 6))) == Ø<IntExpr<>>{},
     "constrained image of the composite T₂∘T₃ collapses: {y≤6} ∩ {y>6} = ∅.");
 
-// ── is_function / is_entire, and argmax over a partial function ──────────────
+// ── is_function / is_entire
+// ───────────────────────────────────────────────────
 static_assert(is_function(ℤ * ℤ & π_1 + 3 == π_2),
               "the graph of x+3 is a total function (functional ∧ entire).");
 static_assert(is_entire(ℤ * ℤ & π_1 + 3 == π_2),
               "the bare translation graph is total (entire).");
-static_assert(!is_entire(ℤ * ℤ & π_1 + 3 == π_2 & (π_2 <= 8 && π_2 % 3 == 0)),
+static_assert(!is_entire(ℤ * ℤ & π_1 + 3 == π_2 & π_2 <= 8),
               "constraining the codomain makes the graph a partial function.");
-static_assert(argmax(ℤ * ℤ & π_1 + 3 == π_2 & (π_2 <= 8 && π_2 % 3 == 0))(3),
-              "argmax = max{x ≤ 5 ∧ x ≡ 0 mod 3} = 3: a compile-time "
-              "constrained optimum.");
-static_assert(!argmax(ℤ * ℤ & π_1 + 3 == π_2 & (π_2 <= 8 && π_2 % 3 == 0))(4),
-              "4 is feasible-adjacent but not the optimiser (4 ≢ 0 mod 3).");
 
 // ── The translation group, at compile time: closure (T₂∘T₃ = T₅), the converse
 // as inverse (T₃⁻¹ = T₋₃), and the abelian cancellation f∘g∘h∘g⁻¹ = f∘h (g and
@@ -238,9 +239,9 @@ static_assert(IsFunctional<decltype((ℤ * ℤ & π_1 + 3 == π_2) & π_1 <= 5)>
 static_assert(preimage(ℤ * ℤ & π_1 + 3 == π_2, ℤ&(π <= 8)) == (ℤ & (π <= 5)),
               "preimage(x+3, {y≤8}) = {x≤5}: the exact inverse of image.");
 // The DEFINING property preimage(f,P)(a) ⟺ P(f(a)), pointwise on the boundary.
-static_assert(preimage(ℤ * ℤ & π_1 + 3 == π_2, ℤ&(π <= 8))(5),
+static_assert(preimage(ℤ * ℤ & π_1 + 3 == π_2, ℤ&(π <= 8))(IntExpr<>{5}),
               "5 ∈ preimage: f(5)=8 ≤ 8.");
-static_assert(!preimage(ℤ * ℤ & π_1 + 3 == π_2, ℤ&(π <= 8))(6),
+static_assert(!preimage(ℤ * ℤ & π_1 + 3 == π_2, ℤ&(π <= 8))(IntExpr<>{6}),
               "6 ∉ preimage: f(6)=9 ≰ 8.");
 // Reflection x↦−x: {y≤5} pulls back to {x≥−5}, the sense FLIPS.
 static_assert(preimage(ℤ * ℤ & π_1 * -1 == π_2, ℤ&(π <= 5)) == (ℤ & (π >= -5)),
@@ -261,41 +262,26 @@ static_assert(preimage(ℤ * ℤ & π_1 + 5 == π_2, ℤ&(π <= 8)) == (ℤ & (�
 TEST_CASE(
     "algebra:halfspace_transport — a function is its graph: inverse/image",
     "[algebra][relation][function][inverse][image]") {
-  constexpr auto Z = 𝔸<SignedCardinality>{};
+  constexpr auto Z = 𝔸<IntExpr<>>{};
   const auto f = Z * Z & π_1 + 3 == π_2;  // graph of x ↦ x+3
 
   STATIC_CHECK(is_function(f));
   // A shift ℕ cannot hold is refused when the graph is built, so the
   // entireness certificate only ever meets a bound constant.
-  constexpr auto N = 𝔸<dedekind::sets::Numeral>{};
+  constexpr auto N = 𝔸<dedekind::sets::NatExpr<>>{};
   CHECK_THROWS_AS(N * N & (π_1 + -1 == π_2), std::domain_error);
 
   volatile int ten = 10;
-  CHECK(inverse(f)(std::pair{int(ten), 7}));        // (10,7) ∈ f⁻¹ (converse)
-  CHECK_FALSE(inverse(f)(std::pair{int(ten), 8}));  // (10,8) ∉ f⁻¹
+  CHECK(inverse(f)(std::pair{IntExpr<>{int(ten)},
+                             IntExpr<>{7}}));  // (10,7) ∈ f⁻¹ (converse)
+  CHECK_FALSE(inverse(f)(
+      std::pair{IntExpr<>{int(ten)}, IntExpr<>{8}}));  // (10,8) ∉ f⁻¹
 
   const auto s = image(f & π_1 <= 5);  // range over {x≤5} = {y≤8}
   volatile int eight = 8, nine = 9;
-  CHECK(s(int(eight)));       // 8 ≤ 8
-  CHECK_FALSE(s(int(nine)));  // 9 ≰ 8
-  CHECK(image(f) == Z);       // the whole range: a translation is onto
-}
-
-// Runtime coverage for argmax over a PARTIAL function: constrain the codomain
-// and the graph becomes partial; its feasible domain is the pullback
-// {x≤5 ∧ x≡0 mod3}, and argmax reads the constrained optimum (3) structurally.
-TEST_CASE("algebra:halfspace_transport — argmax over a partial function",
-          "[algebra][argmax][partial][optimization]") {
-  constexpr auto Z = 𝔸<SignedCardinality>{};
-  const auto g = Z * Z & π_1 + 3 == π_2 & (π_2 <= 8 && π_2 % 3 == 0);
-  STATIC_CHECK(!is_entire(g));
-  STATIC_CHECK(is_entire(Z * Z & π_1 + 3 == π_2));
-
-  const auto opt = argmax(g);
-  volatile int three = 3, four = 4, zero = 0;
-  CHECK(opt(int(three)));       // 3 = max{x≤5, x≡0 mod3}
-  CHECK_FALSE(opt(int(four)));  // 4 ≢ 0 mod 3
-  CHECK_FALSE(opt(int(zero)));  // 0 feasible but not maximal
+  CHECK(s(IntExpr<>{int(eight)}));       // 8 ≤ 8
+  CHECK_FALSE(s(IntExpr<>{int(nine)}));  // 9 ≰ 8
+  CHECK(image(f) == Z);  // the whole range: a translation is onto
 }
 
 // Runtime coverage for the point-free non-injective image: the sign-fold epi
@@ -303,16 +289,18 @@ TEST_CASE("algebra:halfspace_transport — argmax over a partial function",
 // halfspace pushed forward.  Sound where a lone retract is not; no walk.
 TEST_CASE("algebra:halfspace_transport — image of the sign-fold reflection",
           "[algebra][image][reflection]") {
-  constexpr auto Z = 𝔸<SignedCardinality>{};
+  constexpr auto Z = 𝔸<IntExpr<>>{};
   const auto absNeg = Z * Z & π_1 * -1 == π_2 & π_1 < 0;  // x↦-x, x<0
   const auto img = image(absNeg);                         // {y>0}
   volatile int three = 3, minus2 = -2, zero = 0;
-  CHECK(img(int(three)));  // 3 ∈ abs({x<0}) via -3 (canonical +3 ∉ {x<0})
-  CHECK_FALSE(img(int(minus2)));  // abs is never negative
-  CHECK_FALSE(img(int(zero)));    // 0 not > 0 (the x<0 branch is strict)
+  CHECK(img(
+      IntExpr<>{int(three)}));  // 3 ∈ abs({x<0}) via -3 (canonical +3 ∉ {x<0})
+  CHECK_FALSE(img(IntExpr<>{int(minus2)}));  // abs is never negative
+  CHECK_FALSE(
+      img(IntExpr<>{int(zero)}));  // 0 not > 0 (the x<0 branch is strict)
   const auto absPos = Z * Z & π_1 * 1 == π_2 & π_1 >= 0;  // x↦x, x≥0
   const auto imgP = image(absPos);                        // {y≥0}
-  CHECK(imgP(int(zero)));  // 0 ≥ 0: the identity branch includes it
+  CHECK(imgP(IntExpr<>{int(zero)}));  // 0 ≥ 0: the identity branch includes it
 }
 
 // Runtime coverage for preimage: the contravariant inverse of image.  The
@@ -320,19 +308,19 @@ TEST_CASE("algebra:halfspace_transport — image of the sign-fold reflection",
 // ⟺ f(a) ∈ P, checked at the boundary; reflection flips the sense.
 TEST_CASE("algebra:halfspace_transport — preimage, the contravariant inverse",
           "[algebra][preimage][pullback][inverse]") {
-  constexpr auto Z = 𝔸<SignedCardinality>{};
+  constexpr auto Z = 𝔸<IntExpr<>>{};
   const auto f = Z * Z & π_1 + 3 == π_2;       // x ↦ x+3
   const auto dom = preimage(f, Z & (π <= 8));  // derived {x ≤ 5}
   volatile int five = 5, six = 6;
-  CHECK(dom(int(five)));       // 5 ≤ 5, and f(5)=8 ≤ 8
-  CHECK_FALSE(dom(int(six)));  // 6 ≰ 5, and f(6)=9 ≰ 8
+  CHECK(dom(IntExpr<>{int(five)}));       // 5 ≤ 5, and f(5)=8 ≤ 8
+  CHECK_FALSE(dom(IntExpr<>{int(six)}));  // 6 ≰ 5, and f(6)=9 ≰ 8
   CHECK(dom == (Z & (π <= 5)));
 
   const auto neg = Z * Z & π_1 * -1 == π_2;       // x ↦ −x
   const auto back = preimage(neg, Z & (π <= 5));  // {x ≥ −5}
   volatile int m5 = -5, m6 = -6;
-  CHECK(back(int(m5)));        // −5 ≥ −5, and −(−5)=5 ≤ 5
-  CHECK_FALSE(back(int(m6)));  // −6 ≱ −5, and −(−6)=6 ≰ 5
+  CHECK(back(IntExpr<>{int(m5)}));        // −5 ≥ −5, and −(−5)=5 ≤ 5
+  CHECK_FALSE(back(IntExpr<>{int(m6)}));  // −6 ≱ −5, and −(−6)=6 ≰ 5
 
   // ℕ's identity scale: the preimage is the interval itself.
   CHECK(preimage(ℕ * ℕ & π_1 * 1u == π_2, ℕ & (π <= 8u)) == (ℕ & (π <= 8u)));
@@ -344,9 +332,10 @@ TEST_CASE("algebra:halfspace_transport: bounded composition over ℕ",
           "[algebra][relprod][numeral]") {
   const auto diag = (ℕ * ℕ & π_1 == π_2) & (π_1 < 3u);
   const auto twice = diag >> diag;
-  CHECK(twice(std::pair{Numeral{2u}, Numeral{2u}}));        // middle b = 2
-  CHECK_FALSE(twice(std::pair{Numeral{1u}, Numeral{2u}}));  // off the diagonal
-  CHECK_FALSE(twice(std::pair{Numeral{3u}, Numeral{3u}}));  // 3 ∉ [0, 3)
+  CHECK(twice(std::pair{NatExpr<>{2u}, NatExpr<>{2u}}));  // middle b = 2
+  CHECK_FALSE(
+      twice(std::pair{NatExpr<>{1u}, NatExpr<>{2u}}));  // off the diagonal
+  CHECK_FALSE(twice(std::pair{NatExpr<>{3u}, NatExpr<>{3u}}));  // 3 ∉ [0, 3)
 }
 
 // A window wider than the middle carrier stops at the carrier's top: B = uint8
@@ -390,13 +379,11 @@ TEST_CASE(
 // direct concept-satisfaction witness.
 // ---------------------------------------------------------------------------
 
-// SignedCardinality (the project's saturating ℤ proxy) is the positive
-// witness: it opts into the translation-invariance marker, so the ordered
-// additive-group concept fires.
-static_assert(
-    dedekind::algebra::is_translation_invariant_ordered_v<SignedCardinality>,
-    "SignedCardinality opts into the translation-invariance marker.");
-static_assert(dedekind::algebra::IsOrderedAdditiveGroup<SignedCardinality>,
+// ℤ's IntExpr<> is the positive witness: it opts into the
+// translation-invariance marker, so the ordered additive-group concept fires.
+static_assert(dedekind::algebra::is_translation_invariant_ordered_v<IntExpr<>>,
+              "Integer opts into the translation-invariance marker.");
+static_assert(dedekind::algebra::IsOrderedAdditiveGroup<IntExpr<>>,
               "ℤ's carrier is an ordered additive group.");
 
 // unsigned int is an additive group (ℤ/2^N ℤ) but MODULAR: its order is not
@@ -419,8 +406,7 @@ TEST_CASE(
     "[algebra][ordered_algebra][concept][smoke]") {
   // The static_asserts above carry the structural claim; this runtime body
   // gives Codecov a visible line (static_asserts are invisible to coverage).
-  CHECK(
-      dedekind::algebra::is_translation_invariant_ordered_v<SignedCardinality>);
+  CHECK(dedekind::algebra::is_translation_invariant_ordered_v<IntExpr<>>);
   CHECK_FALSE(
       dedekind::algebra::is_translation_invariant_ordered_v<unsigned int>);
 }

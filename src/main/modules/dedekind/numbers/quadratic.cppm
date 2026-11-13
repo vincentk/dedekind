@@ -32,7 +32,7 @@ module;
 #include <compare>
 #include <concepts>
 #include <functional>
-#include <stdexcept>  // std::domain_error (zero-inverse guard)
+#include <optional>  // the check into the certified divisors
 #include <type_traits>
 
 export module dedekind.numbers:quadratic;
@@ -77,10 +77,10 @@ consteval bool is_perfect_square(long n) {
  *         fields.
  * @tparam Q the rational coefficient carrier.
  */
-export template <long D, typename Q = Rational<default_integer>>
+export template <long D, typename Q = RatExpr<>>
   requires(D > 1) && IsRational<Q>
 class QuadraticReal {
-  // Q must be the rational field ℚ = Rational<Z>.  Then a nonsquare integer D
+  // Q must be the rational field ℚ = RatExpr.  Then a nonsquare integer D
   // has √D ∉ ℚ (a theorem), so a+b√D is a GENUINE degree-2 extension: the a/b
   // representation is canonical, and the conjugate norm a²−b²D is nonzero on
   // every nonzero element — the properties root() / inverse() / == rely on.  A
@@ -119,34 +119,54 @@ class QuadraticReal {
   constexpr Q radical_part() const { return b_; }
 
   /** @name Field operations (closed, exact) @{ */
-  constexpr QuadraticReal operator-() const { return of(-a_, -b_); }
+  /** @brief The canonical form, part by part.  @param x the real. */
+  friend constexpr QuadraticReal canonical(const QuadraticReal& x) {
+    return made(x.a_, x.b_);
+  }
+  constexpr QuadraticReal operator-() const { return made(-a_, -b_); }
   friend constexpr QuadraticReal operator+(const QuadraticReal& x,
                                            const QuadraticReal& y) {
-    return of(x.a_ + y.a_, x.b_ + y.b_);
+    return made(x.a_ + y.a_, x.b_ + y.b_);
   }
   friend constexpr QuadraticReal operator-(const QuadraticReal& x,
                                            const QuadraticReal& y) {
-    return of(x.a_ - y.a_, x.b_ - y.b_);
+    return made(x.a_ - y.a_, x.b_ - y.b_);
   }
   friend constexpr QuadraticReal operator*(const QuadraticReal& x,
                                            const QuadraticReal& y) {
     // (a+b√D)(a'+b'√D) = (aa' + bb'D) + (ab' + a'b)√D
-    return of(x.a_ * y.a_ + x.b_ * y.b_ * Q{D}, x.a_ * y.b_ + y.a_ * x.b_);
+    return made(x.a_ * y.a_ + x.b_ * y.b_ * Q{D}, x.a_ * y.b_ + y.a_ * x.b_);
   }
-  /** @brief @f$1/(a+b\sqrt D)@f$ via the conjugate; the norm @f$a^2-b^2D@f$ is
-   *  nonzero for every nonzero element (@f$\sqrt D@f$ irrational). */
-  constexpr QuadraticReal inverse() const {
-    const Q norm = a_ * a_ - b_ * b_ * Q{D};
-    if (norm == Q{})  // norm = 0 iff *this = 0 (√D ∉ ℚ); reject like
-                      // Rational::inverse, not an NDEBUG-only assert
-      throw std::domain_error("QuadraticReal::inverse: zero has no inverse");
-    return of(a_ / norm, -b_ / norm);
+  /** @brief @f$1/(a+b\sqrt D)@f$ via the conjugate, on the certified
+   *  non-zeros: the norm @f$a^2-b^2D@f$ is non-zero for every non-zero
+   *  element (@f$\sqrt D \notin \mathbb{Q}@f$, a theorem), so the check into
+   *  ℚ* is consumed, not performed; its failure has no witness. */
+  friend constexpr QuadraticReal inverse(
+      const dedekind::category::NonZero<QuadraticReal>& x) {
+    const QuadraticReal v = x.value();
+    const Q norm = canonical(v.a_ * v.a_ - v.b_ * v.b_ * Q{D});
+    const auto n = nonzero(norm).value();
+    return made(v.a_ / n, -v.b_ / n);
   }
-  friend constexpr QuadraticReal operator/(const QuadraticReal& x,
-                                           const QuadraticReal& y) {
-    return x * y.inverse();
+  /** @brief Division, total on the certified non-zeros. */
+  friend constexpr QuadraticReal operator/(
+      const QuadraticReal& x,
+      const dedekind::category::NonZero<QuadraticReal>& y) {
+    return x * inverse(y);
+  }
+  /** @brief The midpoint, componentwise in ℚ: ℚ(√D) is dense. */
+  friend constexpr QuadraticReal midpoint(const QuadraticReal& x,
+                                          const QuadraticReal& y) {
+    return made(midpoint(x.a_, y.a_), midpoint(x.b_, y.b_));
   }
   /** @} */
+
+  /** @brief A result stored part by part: each part's canonical form, the
+   *  explicit normalisation point of every operation above.
+   *  @param a the rational part.  @param b the radical part. */
+  static constexpr QuadraticReal made(const Q& a, const Q& b) {
+    return of(canonical(a), canonical(b));
+  }
 
   /** @brief Extrema of the singleton @f$\{*this\}@f$ (inf = sup = the value).
    *  Supplies @c HasExtrema, the structural prerequisite for
@@ -291,6 +311,18 @@ struct inverse_trait<dedekind::numbers::QuadraticReal<D, Q>,
 
 }  // namespace dedekind::category
 
+namespace dedekind::category {
+/** @brief ℚ(√D) divides by its certified non-zeros. */
+template <long D, typename Q>
+struct divisor_of<dedekind::numbers::QuadraticReal<D, Q>> {
+  using type = NonZero<dedekind::numbers::QuadraticReal<D, Q>>;
+  static constexpr std::optional<type> check(
+      const dedekind::numbers::QuadraticReal<D, Q>& x) {
+    return nonzero(x);
+  }
+};
+}  // namespace dedekind::category
+
 namespace dedekind::algebra {
 
 /** @brief Carrier-promise: @c QuadraticReal<D,Q> is an ORDERED FIELD.  The
@@ -335,8 +367,9 @@ static_assert(R2{1} < root2 && root2 < R2{2}, "1 < √2 < 2.");
 static_assert((R2{1} + root2) * (R2{1} - root2) == R2{-1},
               "(1+√2)(1−√2) = −1.");
 // Multiplicative inverse closes: √2 · (1/√2) = 1.
-static_assert(root2 * root2.inverse() == R2{1}, "√2 · (1/√2) = 1.");
-static_assert(R2{1} / root2 == R2::of(Rational<>{}, Rational<>{1, 2}),
+constexpr auto root2_nz = nonzero(root2).value();  // √2 ≠ 0, checked once
+static_assert(root2 * inverse(root2_nz) == R2{1}, "√2 · (1/√2) = 1.");
+static_assert(R2{1} / root2_nz == R2::of(RatExpr<>{}, RatExpr<>{1, 2}),
               "1/√2 = ½√2.");
 // Associativity / commutativity / distributivity, WITNESSED (not postulated).
 static_assert((root2 + R2{3}) + R2{5} == root2 + (R2{3} + R2{5}), "+ assoc.");
@@ -347,7 +380,7 @@ static_assert(root2 * (R2{2} + root2) == root2 * R2{2} + root2 * root2,
 // The concept-level payoff: ℚ(√2) is a bona-fide FIELD — not just field-shaped
 // operators, but the axiomatic IsField, now that Path-D (exact) totality lifts
 // it to a Magma.  𝔸⟨ℚ(√2)⟩ is a real field as a first-class C++ value, exactly
-// the way ℚ = 𝔸⟨Rational⟩ is — the algebraic coat-hanger, on the reals.
+// the way ℚ = 𝔸⟨RatExpr⟩ is — the algebraic coat-hanger, on the reals.
 static_assert(
     dedekind::category::IsField<R2, std::plus<R2>, std::multiplies<R2>>,
     "ℚ(√2)'s carrier satisfies the axiomatic IsField.");
@@ -361,7 +394,7 @@ static_assert(
 // dense + extrema), which ℚ itself also passes; ℚ(√2) is countable and so not
 // genuinely order-complete.  What is honest here is the concept pair holding on
 // one real value: a field AND the completeness surrogate — like ℚ =
-// 𝔸⟨Rational⟩.
+// 𝔸⟨RatExpr⟩.
 static_assert(dedekind::order::IsDedekindComplete<R2>,
               "ℚ(√2) satisfies the structural IsDedekindComplete surrogate, "
               "paired with IsField on the same real value.");

@@ -15,7 +15,7 @@
  * "natural numbers" is a category-theoretic error in the direction of
  * claiming @b more structure than @c ℕ has: the textbook @c ℕ is a
  * commutative semiring @b without additive inverses.  The library's
- * textbook @c ℕ lives one carrier step deeper, on @c Numeral (exact above
+ * textbook @c ℕ lives one carrier step deeper, on @c NatExpr (exact above
  * the word).
  *
  * @section uint__Three_Layers
@@ -28,7 +28,7 @@
  *      structurally below.
  *
  *   2. @b Machine → ℕ forgetful: @c embed_uint_ℕ
- *      lifts the modular ring into the commutative rig @c Numeral,
+ *      lifts the modular ring into the commutative rig @c NatExpr,
  *      @b forgetting the additive inverse the source carries via mod
  *      wrap.
  *
@@ -114,25 +114,25 @@ export inline constexpr auto embed_𝔹_uint_ =
     arrow<bool, unsigned>([](const bool& b) noexcept { return b ? 1u : 0u; });
 
 // ===========================================================================
-// (1) Universal machine→ℕ lift: std::unsigned_integral → Numeral
+// (1) Universal machine→ℕ lift: std::unsigned_integral → NatExpr
 // ===========================================================================
 
 /**
  * @brief Universal machine-to-ℕ lift: @c std::unsigned_integral
- *        @c → @c Numeral.  Closes part of #417.
+ *        @c → @c NatExpr.  Closes part of #417.
  *
  * @details The structure-forgetting lift from the modular finite ring
  * @c ℤ/2^wℤ (which is what @c std::unsigned_integral honestly is — a
  * commutative ring with full additive inverses via mod wrap, NOT @c ℕ
- * in the textbook sense) into the commutative rig @c Numeral (ℕ, exact;
+ * in the textbook sense) into the commutative rig @c NatExpr (ℕ, exact;
  * no additive inverse).
  *
  * Categorically the arrow @b forgets the modular ring structure: the
  * source has additive inverses (every @c u admits @c (2^w - u) as its
- * additive inverse via mod wrap), while @c Numeral has none.  The
+ * additive inverse via mod wrap), while @c NatExpr has none.  The
  * arrow is @b not a ring homomorphism (it cannot be — the codomain is
  * not a ring).  It is the canonical Set-injection, lifting the machine
- * value @c u to @c Numeral{u}.
+ * value @c u to @c NatExpr{u}.
  *
  * Companion to @c embed_sint_ℤ (filed under #418),
  * which provides the symmetric lift on the @c std::signed_integral
@@ -143,27 +143,27 @@ export inline constexpr auto embed_𝔹_uint_ =
  * @tparam U Any @c std::unsigned_integral source type.
  */
 export template <std::unsigned_integral U>
-constexpr dedekind::sets::Numeral embed_uint_ℕ(U v) {
+constexpr dedekind::sets::NatExpr<> embed_uint_ℕ(U v) {
   static_assert(std::numeric_limits<U>::digits <=
                     std::numeric_limits<std::size_t>::digits,
                 "embed_uint_ℕ requires every value of U to "
                 "be representable as std::size_t, an atom of ℕ; otherwise the "
                 "conversion would silently truncate and break injectivity.");
-  return dedekind::sets::Numeral{v};
+  return dedekind::sets::NatExpr<>{v};
 }
 
 /**
- * @brief Concrete monic arrow: unsigned ↪ Numeral (ℕ).
+ * @brief Concrete monic arrow: unsigned ↪ NatExpr (ℕ).
  *
  * @details The named-arrow form of @c
  * embed_uint_ℕ<unsigned>, registered as monic in
  * @c is_monic_arrow_v so downstream @c IsMonicArrow / @c
  * IsRingHomomorphism callsites can find it.  Distinct unsigned values
- * yield distinct @c Numeral values (injective).
+ * yield distinct @c NatExpr values (injective).
  */
 export inline constexpr auto embed_uint_ℕ_ =
-    dedekind::category::arrow<unsigned, dedekind::sets::Numeral>(
-        [](const unsigned& u) noexcept -> dedekind::sets::Numeral {
+    dedekind::category::arrow<unsigned, dedekind::sets::NatExpr<>>(
+        [](const unsigned& u) noexcept -> dedekind::sets::NatExpr<> {
           return embed_uint_ℕ(u);
         });
 
@@ -190,7 +190,7 @@ export inline constexpr auto embed_uint_ℕ_ =
  * @c image to be well-formed, and no @c U satisfies both at once.
  *
  * Mathematically: the image of @c S under the canonical mono
- * @c unsigned @c ↪ @c ℕ is a subset of @c Numeral containing whichever
+ * @c unsigned @c ↪ @c ℕ is a subset of @c NatExpr containing whichever
  * @c unsigned values are in @c S.
  */
 // No-narrowing pin: the source set's element type must be EXACTLY
@@ -233,22 +233,22 @@ constexpr auto embed_uint_ℕ(S&& s) {
 // runtime tests in @c uint_test.cpp instead.)
 
 // Set-level lift witness: @c embed_uint_ℕ on @c η(42)
-// lands at @c Numeral{42u}.  Pinned at the @b value level so
+// lands at @c NatExpr{42u}.  Pinned at the @b value level so
 // the pivot equality is constant-evaluated, not just the codomain type.
 // Mirrors PR #624's witnesses for @c embed_𝔹_ℕ and PR #626's for
 // @c embed_𝔹_𝕂3 — same shape, different (carrier, codomain) pair.
-static_assert(origin(embed_uint_ℕ(η(42u))) == dedekind::sets::Numeral{42u},
-              "embed_uint_ℕ(η(42)) lands at 42 on the Numeral carrier.");
-static_assert(origin(embed_uint_ℕ(η(0u))) == dedekind::sets::Numeral{0u},
-              "embed_uint_ℕ(η(0)) lands at 0 on the Numeral carrier.");
+static_assert(origin(embed_uint_ℕ(η(42u))) == dedekind::sets::NatExpr<>{42u},
+              "embed_uint_ℕ(η(42)) lands at 42 on the NatExpr carrier.");
+static_assert(origin(embed_uint_ℕ(η(0u))) == dedekind::sets::NatExpr<>{0u},
+              "embed_uint_ℕ(η(0)) lands at 0 on the NatExpr carrier.");
 
 // Concept-level witness: the result realises the categorical image of
 // the source set under the canonical mono unsigned ↪ ℕ — Subobject
-// of @c Cod<embed_uint_ℕ_> = Numeral per @c :category:image.
+// of @c Cod<embed_uint_ℕ_> = NatExpr per @c :category:image.
 static_assert(
     IsImageOf<decltype(embed_uint_ℕ(η(42u))), decltype(embed_uint_ℕ_)>,
     "embed_uint_ℕ(S) realises IsImageOf<result, embed_uint_ℕ_>: result "
-    "is a Subobject of Cod<embed_uint_ℕ_> = Numeral, witnessing the "
+    "is a Subobject of Cod<embed_uint_ℕ_> = NatExpr, witnessing the "
     "categorical image of S under the canonical mono unsigned ↪ ℕ.");
 
 // ===========================================================================
@@ -453,12 +453,12 @@ template <>
 inline constexpr bool is_monic_arrow_v<std::decay_t<decltype(embed_uint_ℕ_)>> =
     true;
 static_assert(IsInjective<std::decay_t<decltype(embed_uint_ℕ_)>>,
-              "embed_uint_ℕ_ (unsigned → Numeral) is "
+              "embed_uint_ℕ_ (unsigned → NatExpr) is "
               "registered injective.");
 
 // IsEmbeddingFunctor witness (#633): @c embed_uint_ℕ_ is fully faithful
 // (discrete source) + injective on objects (machine unsigned values map
-// bijectively to their Numeral witnesses in @c [0, 2^width)).
+// bijectively to their NatExpr witnesses in @c [0, 2^width)).
 template <>
 inline constexpr bool
     is_embedding_functor_v<std::decay_t<decltype(embed_uint_ℕ_)>> = true;
@@ -467,14 +467,14 @@ static_assert(
     "embed_uint_ℕ_ realises IsEmbeddingFunctor per #633's Mac Lane reading.");
 
 // IsMonotone witness (#664 morphism vocabulary): the canonical inclusion
-// @c unsigned @c → @c Numeral preserves order — both carriers are
-// totally ordered and the embedding sends @c k to @c Numeral{k}.
+// @c unsigned @c → @c NatExpr preserves order — both carriers are
+// totally ordered and the embedding sends @c k to @c NatExpr{k}.
 template <>
 inline constexpr bool
     is_monotone_v<std::decay_t<decltype(embed_uint_ℕ_)>, std::less_equal<>> =
         true;
 static_assert(IsMonotone<std::decay_t<decltype(embed_uint_ℕ_)>>,
-              "embed_uint_ℕ_ (unsigned → Numeral) is monotone — "
+              "embed_uint_ℕ_ (unsigned → NatExpr) is monotone — "
               "the canonical inclusion preserves the numeric order.");
 
 // ===========================================================================
@@ -492,11 +492,11 @@ static_assert(IsMonotone<std::decay_t<decltype(embed_uint_ℕ_)>>,
 // IS a textbook equivalence relation on T (reflexive / symmetric /
 // transitive by the std::regular contract that std::unsigned_integral
 // inherits).  Together with the @c embed_uint_ℕ_ injection above
-// (T-as-modular-ring → Numeral-as-ℕ, registered monic / injective),
+// (T-as-modular-ring → NatExpr-as-ℕ, registered monic / injective),
 // this pins the structural reading: @c T modulo @c std::equal_to<T> is
 // equivalent (in the Mazur sense) to a bounded prefix of @c ℕ for inputs
 // strictly less than @c 2^width(T).  Above the bound, modular wraparound
-// makes the equivalence non-classical --- ℕ's @c Numeral, exact above the
+// makes the equivalence non-classical --- ℕ's @c NatExpr, exact above the
 // word, is the right home there.
 //
 // This is the unsigned-side @b first @b slice of the Mazur-equivalence

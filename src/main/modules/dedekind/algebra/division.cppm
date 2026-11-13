@@ -52,13 +52,15 @@ using namespace dedekind::order;
  */
 export template <typename T, typename Add = std::plus<T>,
                  typename Mult = std::multiplies<T>,
-                 typename Div = std::divides<T>>
-concept IsDivisionRing =
-    dedekind::category::IsRing<T, Add, Mult> && requires(T a, T b) {
-      { a.inverse() } -> std::same_as<T>;
-      { a / b } -> std::same_as<T>;
-      { Div{}(a, b) } -> std::same_as<T>;
-    };
+                 typename Div = std::divides<>>
+concept IsDivisionRing = dedekind::category::IsRing<T, Add, Mult> &&
+                         requires(T a, dedekind::category::divisor_t<T> d) {
+                           // the inverse and the division are of a certified
+                           // divisor (:total)
+                           { d.inverse() } -> std::convertible_to<T>;
+                           { a / d } -> std::same_as<T>;
+                           { Div{}(a, d) } -> std::same_as<T>;
+                         };
 
 /**
  * @concept IsEuclidean

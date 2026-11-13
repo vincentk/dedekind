@@ -21,7 +21,7 @@ using namespace dedekind::sequences;
 using namespace dedekind::numbers;
 
 namespace {
-using Q = Rational<>;
+using Q = RatExpr<>;
 using C = Complex<Q>;
 constexpr C c_of(Q re) { return C{re, Q{}}; }
 }  // namespace

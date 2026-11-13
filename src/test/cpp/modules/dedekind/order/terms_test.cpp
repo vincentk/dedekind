@@ -69,7 +69,7 @@ TEST_CASE("order:terms: a constant meets the carrier beside it",
 
 TEST_CASE("order:terms: a constant is checked when the term is bound",
           "[sets][terms][constants]") {
-  CHECK_THROWS_AS(𝔸<Numeral>{} & (π + -1 == 3), std::domain_error);
+  CHECK_THROWS_AS(𝔸<NatExpr<>>{} & (π + -1 == 3), std::domain_error);
   CHECK_THROWS_AS(carrier_cast<int>(1.5), std::domain_error);
   CHECK_THROWS_AS(carrier_cast<int>(1e12), std::domain_error);
   CHECK(carrier_cast<int>(2.0) == 2);

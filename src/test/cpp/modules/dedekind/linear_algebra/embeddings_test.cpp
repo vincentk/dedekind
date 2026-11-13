@@ -8,7 +8,7 @@
  *
  * Also hosts the operator-shape concept checks
  * (`HasRingOperators`, `HasFieldOperators`) on concrete numeric carriers —
- * those live here because `Rational<long>` cannot be imported into the
+ * those live here because `RatExpr` cannot be imported into the
  * algebra test directory (module-DAG rule: algebra is upstream of numbers).
  */
 
@@ -27,11 +27,11 @@ using namespace dedekind::algebra;
 using namespace dedekind::analysis;  // Dual<F>
 using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
-using dedekind::sets::SignedExtensionalCardinal;
+using dedekind::sets::RatExpr;
 
 namespace {
-// Fixed-width (one-limb) signed rational — the canonical ℚ carrier.
-using Rat = Rational<SignedExtensionalCardinal<>>;
+// ℚ slice step 4: one RatExpr.
+using Rat = RatExpr<>;
 }  // namespace
 
 TEST_CASE("algebra:modules — operator-shape witnesses for bona fide scalars",

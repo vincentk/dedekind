@@ -290,7 +290,7 @@ namespace dedekind::category {
 
 // The finite invariant restores the order axioms that raw @c double lacks
 // (NaN breaks reflexivity); on @c safe_float they hold SOUNDLY.  Mirrors the
-// Rational<I> registration in numbers/rational.cppm.
+// RatExpr registration in numbers/rational.cppm.
 template <std::floating_point F>
 inline constexpr bool
     is_reflexive_v<dedekind::morphologies::safe_float<F>, std::less_equal<>> =

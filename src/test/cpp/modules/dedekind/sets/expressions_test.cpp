@@ -182,12 +182,12 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   }
 
   SECTION("Natural-numbers membership") {
-    // ℕ is the universe value 𝔸<Numeral>; its elements are numerals,
+    // ℕ is the universe value 𝔸<NatExpr>; its elements are numerals,
     // built from unsigned words.
-    constexpr auto gt_zero = [](const auto& v) { return v > Numeral{0u}; };
+    constexpr auto gt_zero = [](const auto& v) { return v > NatExpr<>{0u}; };
     auto infinite = Comprehension{ℕ, gt_zero};
-    REQUIRE(infinite(Numeral{5u}));
-    REQUIRE_FALSE(infinite(Numeral{0u}));
+    REQUIRE(infinite(NatExpr<>{5u}));
+    REQUIRE_FALSE(infinite(NatExpr<>{0u}));
   }
 }
 
@@ -386,22 +386,22 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
     // Here we combine the symbolic predicates
     // On ℕ, not the word: there the compiler folds the comparison away.
     constexpr auto gt10_and_lt5 = [](const auto& v) {
-      return (v > Numeral{10u}) && (v < Numeral{5u});
+      return (v > NatExpr<>{10u}) && (v < NatExpr<>{5u});
     };
     auto S = Comprehension{ℕ, gt10_and_lt5};
 
     // For a non-trivial polish, we verify it is 'Total Absence'
-    REQUIRE_FALSE(S(Numeral{0u}));
-    REQUIRE_FALSE(S(Numeral{7u}));
-    REQUIRE_FALSE(S(Numeral{12u}));
+    REQUIRE_FALSE(S(NatExpr<>{0u}));
+    REQUIRE_FALSE(S(NatExpr<>{7u}));
+    REQUIRE_FALSE(S(NatExpr<>{12u}));
   }
 
   SECTION("Tautology: {x ∈ ℕ | x > 10 ∨ x <= 10} is 𝔸") {
     constexpr auto gt10_or_le10 = [](const auto& v) {
-      return (v > Numeral{10u}) || (v <= Numeral{10u});
+      return (v > NatExpr<>{10u}) || (v <= NatExpr<>{10u});
     };
     auto S = Comprehension{ℕ, gt10_or_le10};
-    REQUIRE(S(Numeral{7u}));
+    REQUIRE(S(NatExpr<>{7u}));
   }
 }
 

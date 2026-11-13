@@ -5,13 +5,14 @@ import dedekind.geometry;
 
 using namespace dedekind::numbers;
 using namespace dedekind::geometry;
+using dedekind::sets::RatExpr;
 
 // -----------------------------------------------------------------------
 // Quaternion arithmetic over the exact ℚ
 // -----------------------------------------------------------------------
 
 namespace {
-using Q = Rational<>;
+using Q = RatExpr<>;
 using H = Quaternion<Q>;
 constexpr H h(Q w, Q x, Q y, Q z) { return H{w, x, y, z}; }
 }  // namespace

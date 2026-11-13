@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
-#include <limits>
 #include <ranges>
 
 import dedekind.category;
@@ -61,19 +60,35 @@ TEST_CASE("sequences — the orbit's shape is the carrier's posture at the bound
   CHECK(k3.at(2) == Ternary::True);
   CHECK(k3.at(7) == Ternary::True);
   // ℕ: the orbit walks, with no top to absorb it.
-  const SuccessorOrbit<Numeral> nat{Numeral{40u}};
-  CHECK(nat.at(2) == Numeral{42u});
-  // ℤ proxy: a + n in O(1) over the whole size_t range, saturating only
-  // where the sum leaves the word, never early from a negative seed.
-  using Word = std::ptrdiff_t;
-  constexpr Word lo = std::numeric_limits<Word>::min();
-  constexpr Word hi = std::numeric_limits<Word>::max();
-  const SuccessorOrbit<SignedCardinality> z{
-      SignedCardinality{SignedExtensionalCardinal<>{lo}}};
-  CHECK(z.at(std::numeric_limits<std::size_t>::max()) ==
-        SignedCardinality{SignedExtensionalCardinal<>{hi}});
-  const SuccessorOrbit<SignedCardinality> one{
-      SignedCardinality{SignedExtensionalCardinal<>{Word{1}}}};
-  CHECK(one.at(std::numeric_limits<std::size_t>::max()) ==
-        SignedCardinality{PositiveInfinity{}});
+  const SuccessorOrbit<NatExpr<>> nat{NatExpr<>{40u}};
+  CHECK(nat.at(2) == NatExpr<>{42u});
+}
+
+TEST_CASE(
+    "sequences — the orbit on ℕ's and ℤ's terms adds the offset, at any "
+    "capacity",
+    "[sequences][nno][orbit][terms]") {
+  // A seed at its bound: 63 nodes, the sum 1 + 1 doubled five times.
+  NatExpr<> seed = NatExpr<>::atom(1);
+  for (int i = 0; i < 5; ++i) seed = seed + seed;
+  REQUIRE(seed.size() == 63u);
+  const SuccessorOrbit<NatExpr<>> at_bound{seed};
+  CHECK(at_bound.at(0) == seed);
+  CHECK(at_bound.at(3) == NatExpr<>{35u});
+  // A seed whose canonical form fills the capacity: 2^1280, 21 limbs, 63
+  // nodes.  Its successor's form fits too, though seed + 1 as a term does
+  // not: the offset is added in a scratch.
+  const NatExpr<> full = power_of_two<NatSort>(1280);
+  REQUIRE(full.size() == 63u);
+  const SuccessorOrbit<NatExpr<>> filled{full};
+  CHECK(filled.at(1) == successor(full));
+  CHECK(filled.at(1) > full);
+  CHECK(filled.at(1).size() == 63u);
+  // The capacity is kept: ℕ at 128, and ℤ, a large offset in one addition.
+  const SuccessorOrbit<NatExpr<128>> wide{NatExpr<128>{5u}};
+  CHECK(wide.at(1000000) == NatExpr<128>{1000005u});
+  constexpr std::size_t big = std::size_t{1} << 62;
+  const SuccessorOrbit<IntExpr<>> integers{IntExpr<>{-5}};
+  CHECK(integers.at(big) == IntExpr<>{-5} + IntExpr<>::atom(big));
+  CHECK(integers.at(big).size() <= 3u);
 }

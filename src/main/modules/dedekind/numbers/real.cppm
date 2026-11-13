@@ -41,7 +41,7 @@ export using machine_real_scalar = double;
  *  @details Per #559 the named species symbols denote @b universe values
  *  (constexpr @c 𝔸 instances over the carrier).  @c ℝ's carrier is
  *  the decidable FIELD @c QuadraticReal<2> @c = ℚ(√2): the @b universe @c ℝ is
- * a set-indexed field (@c algebra::IsField, as @c ℚ @c = @c 𝔸<Rational> is),
+ * a set-indexed field (@c algebra::IsField, as @c ℚ @c = @c 𝔸<RatExpr> is),
  * and its @b carrier is order-complete in the library's @b structural surrogate
  *  sense (totally ordered + dense + extrema).  So the Ddk algebra hangs off
  *  @c ℝ the way analysis bootstraps from the reals.
@@ -72,7 +72,7 @@ static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℝ)>::Domain,
 
 // The coat-hanger is load-bearing at TWO distinct levels (not one value
 // satisfying both concepts): the set-indexed @c algebra::IsField holds on the
-// UNIVERSE ℝ (exactly as it does on ℚ = 𝔸⟨Rational⟩), while order-completeness
+// UNIVERSE ℝ (exactly as it does on ℚ = 𝔸⟨RatExpr⟩), while order-completeness
 // is a CARRIER property — @c IsDedekindComplete is an order concept a
 // Universe does not itself model — so it is asserted on ℚ(√2).  The claim
 // is therefore: ℝ is a field, and its carrier is order-complete (surrogate).

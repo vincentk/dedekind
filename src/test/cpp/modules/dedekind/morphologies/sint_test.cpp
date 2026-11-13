@@ -35,15 +35,15 @@ using dedekind::morphologies::embed_sint_ℤ_;
 
 TEST_CASE("sint: embed_sint_ℤ across canonical widths",
           "[numbers][sint][lift][carrier-lattice]") {
-  CHECK(embed_sint_ℤ(0) == Integer{});
-  CHECK(embed_sint_ℤ(1) == Integer{1});
-  CHECK(embed_sint_ℤ(-1) == Integer{-1});
-  CHECK(embed_sint_ℤ(-42) == -Integer{Numeral{42u}});
-  CHECK(embed_sint_ℤ(static_cast<long>(1000)) == Integer{1000});
-  CHECK(embed_sint_ℤ(static_cast<long long>(-7)) == Integer{-7});
-  CHECK(embed_sint_ℤ(static_cast<short>(-100)) == Integer{-100});
-  CHECK(embed_sint_ℤ(std::numeric_limits<long long>::min()).magnitude() ==
-        Numeral{std::uint64_t{1} << 63});
+  CHECK(embed_sint_ℤ(0) == IntExpr<>{});
+  CHECK(embed_sint_ℤ(1) == IntExpr<>{1});
+  CHECK(embed_sint_ℤ(-1) == IntExpr<>{-1});
+  CHECK(embed_sint_ℤ(-42) == -IntExpr<>{42u});
+  CHECK(embed_sint_ℤ(static_cast<long>(1000)) == IntExpr<>{1000});
+  CHECK(embed_sint_ℤ(static_cast<long long>(-7)) == IntExpr<>{-7});
+  CHECK(embed_sint_ℤ(static_cast<short>(-100)) == IntExpr<>{-100});
+  CHECK(embed_sint_ℤ(std::numeric_limits<long long>::min()) ==
+        -IntExpr<>{std::uint64_t{1} << 63});
 }
 
 TEST_CASE("sint: embed_sint_ℤ_ named-arrow form",
@@ -52,11 +52,11 @@ TEST_CASE("sint: embed_sint_ℤ_ named-arrow form",
   STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
   STATIC_CHECK(std::same_as<Dom<std::decay_t<decltype(embed_sint_ℤ_)>>, int>);
   STATIC_CHECK(
-      std::same_as<Cod<std::decay_t<decltype(embed_sint_ℤ_)>>, Integer>);
+      std::same_as<Cod<std::decay_t<decltype(embed_sint_ℤ_)>>, IntExpr<>>);
 
-  CHECK(embed_sint_ℤ_(0) == Integer{});
-  CHECK(embed_sint_ℤ_(42) == Integer{42});
-  CHECK(embed_sint_ℤ_(-42) == Integer{-42});
+  CHECK(embed_sint_ℤ_(0) == IntExpr<>{});
+  CHECK(embed_sint_ℤ_(42) == IntExpr<>{42});
+  CHECK(embed_sint_ℤ_(-42) == IntExpr<>{-42});
 }
 
 TEST_CASE("sint: lift is injective", "[numbers][sint][lift][injective]") {
@@ -129,12 +129,12 @@ TEST_CASE("sint: intensional first, ℤ as the working carrier",
           "[numbers][sint][ergonomics][intensional-first]") {
   // Values enter through the explicit constructor; the arithmetic is ℤ's,
   // with no machine-int arithmetic in between.
-  const Integer a{7};
-  const Integer b{-3};
-  CHECK(a + b == Integer{4});
-  CHECK(-a == Integer{-7});
-  CHECK(a * b == Integer{-21});
-  CHECK(a - b == Integer{10});
+  const IntExpr<> a{7};
+  const IntExpr<> b{-3};
+  CHECK(a + b == IntExpr<>{4});
+  CHECK(-a == IntExpr<>{-7});
+  CHECK(a * b == IntExpr<>{-21});
+  CHECK(a - b == IntExpr<>{10});
 }
 
 TEST_CASE("sint: negafibonacci on ℤ, the canonical intensional ℤ-series",
@@ -143,16 +143,16 @@ TEST_CASE("sint: negafibonacci on ℤ, the canonical intensional ℤ-series",
   // backwards from F_1 = 1, F_0 = 0 gives 1, -1, 2, -3, 5, each step the
   // subtraction that distinguishes ℤ from ℕ.  The forward sibling on ℕ is in
   // uint_test.cpp.
-  const Integer f_1{1};
-  const Integer f_0{};
-  const Integer f_neg1 = f_1 - f_0;
-  const Integer f_neg2 = f_0 - f_neg1;
-  const Integer f_neg3 = f_neg1 - f_neg2;
-  const Integer f_neg4 = f_neg2 - f_neg3;
-  const Integer f_neg5 = f_neg3 - f_neg4;
-  CHECK(f_neg1 == Integer{1});
-  CHECK(f_neg2 == Integer{-1});
-  CHECK(f_neg3 == Integer{2});
-  CHECK(f_neg4 == Integer{-3});
-  CHECK(f_neg5 == Integer{5});
+  const IntExpr<> f_1{1};
+  const IntExpr<> f_0{};
+  const IntExpr<> f_neg1 = f_1 - f_0;
+  const IntExpr<> f_neg2 = f_0 - f_neg1;
+  const IntExpr<> f_neg3 = f_neg1 - f_neg2;
+  const IntExpr<> f_neg4 = f_neg2 - f_neg3;
+  const IntExpr<> f_neg5 = f_neg3 - f_neg4;
+  CHECK(f_neg1 == IntExpr<>{1});
+  CHECK(f_neg2 == IntExpr<>{-1});
+  CHECK(f_neg3 == IntExpr<>{2});
+  CHECK(f_neg4 == IntExpr<>{-3});
+  CHECK(f_neg5 == IntExpr<>{5});
 }

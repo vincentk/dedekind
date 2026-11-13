@@ -65,7 +65,7 @@ import :singleton;    // π == v, for the witnesses
 namespace dedekind::sets {
 
 /** @brief A carrier a descent terminates on: the unsigned words, ℕ's shadows,
- *  with 0 at the bottom.  (@c Numeral joins once its monus is a term.) */
+ *  with 0 at the bottom.  (@c NatExpr joins once its monus is a term.) */
 export template <typename T>
 concept WellFounded = std::unsigned_integral<T>;
 

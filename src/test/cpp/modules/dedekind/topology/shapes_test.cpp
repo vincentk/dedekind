@@ -103,7 +103,7 @@ TEST_CASE("Topology: Ø/𝔸 in the clopen ∩ decidable boundary core (Stone)",
   }
 
   SECTION("ℕ is a discrete carrier too (#937): its ray is clopen") {
-    using NatRay = Interval<Numeral>;
+    using NatRay = Interval<NatExpr<>>;
     STATIC_CHECK(HasDiscreteCarrier<NatRay>);
     STATIC_CHECK(IsClopen<NatRay>);
     CHECK(IsClopen<NatRay>);

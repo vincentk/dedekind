@@ -12,21 +12,20 @@
  *      sequence: IsSequence, IsCauchySequence, IsSeries, IsStreamComonad.
  *      Sits in the Ternary regime (float↔ℝ gap) ⇒ IsClassicallyConvergent
  *      honestly rejects.
- *   2. Mandelbrot orbit + @c DivergencePath — the dynamical-systems leg:
- *      @c mandelbrot_orbit(c) is an IsSequence; its escape-indicator
- *      @c DivergencePath is an IsAbsorptiveSequence (eventually constant).
- *   3. @c OrbitSequence<Modular<6>, +>      — the group-orbit / periodic
+ *   2. @c OrbitSequence<Modular<6>, +>      — the group-orbit / periodic
  *      leg: the orbit bridge lifts the carrier's cyclic order 6 to
  *      IsPeriodicSequence<…, 6>.
- *   4. a countable carrier (cardinality_type = ℵ_0) — the classical
+ *   3. a countable carrier (cardinality_type = ℵ_0) — the classical
  *      logical-collapse crown: IsClassicallyConvergent fires and a
  *      (bounded Sup, subsequence Sub) pair witnesses Bolzano–Weierstrass.
- *   5. @c QuadraticReal<2> (ℝ)              — the honest-rejection foil:
+ *   4. @c QuadraticReal<2> (ℝ)              — the honest-rejection foil:
  *      Cauchy-shaped but in the Ternary / continuum regime, so the
  *      Cauchy⇒convergent collapse (and hence BW) is Specker-blocked —
  *      exactly the carrier on which BW is classically famous.
  *
- * No carrier fires every row; the family jointly populates the chain. A
+ * No carrier fires every row; the family jointly populates the chain.  The
+ * dynamical-systems leg (the Mandelbrot orbit, its absorptive escape
+ * indicator) is asserted beside @c DivergencePath in @c numbers:mandelbrot. A
  * regression in any concept body or trait registration fails one leg here.
  */
 
@@ -42,11 +41,7 @@ import dedekind.sets;
 
 using namespace dedekind::sequences;
 using dedekind::morphologies::Modular;
-using dedekind::numbers::Complex;
-using dedekind::numbers::DivergencePath;
-using dedekind::numbers::mandelbrot_orbit;
 using dedekind::numbers::QuadraticReal;
-using dedekind::numbers::Rational;
 
 namespace seq_meet {
 
@@ -91,16 +86,6 @@ TEST_CASE("sequence meeting-point — Path<double> fires the analytic rows",
 }
 
 TEST_CASE(
-    "sequence meeting-point — Mandelbrot orbit + DivergencePath "
-    "(dynamical-systems leg)",
-    "[sequences][meeting-point][mandelbrot]") {
-  const auto orbit = mandelbrot_orbit(Complex<Rational<>>{});
-  STATIC_CHECK(IsSequence<std::remove_cvref_t<decltype(orbit)>>);
-  // The escape indicator is eventually constant ⇒ absorptive (row 5).
-  STATIC_CHECK(IsAbsorptiveSequence<DivergencePath<Rational<>>>);
-}
-
-TEST_CASE(
     "sequence meeting-point — OrbitSequence<Modular<6>, +> (orbit bridge)",
     "[sequences][meeting-point][orbit][periodic]") {
   /** @brief The group-orbit leg: the orbit bridge lifts Modular<6>'s
@@ -133,37 +118,5 @@ TEST_CASE("sequence meeting-point — ℝ = ℚ(√2) is the honest-rejection fo
   STATIC_CHECK(IsCauchySequence<Path<R>>);
   STATIC_CHECK(
       std::is_same_v<convergence_logic<Path<R>>, dedekind::category::Kleene>);
-  STATIC_CHECK_FALSE(IsClassicallyConvergent<Path<R>>);
-}
-
-TEST_CASE(
-    "sequence meeting-point — the carrier family jointly populates the "
-    "sequence Form-chain (crown)",
-    "[sequences][meeting-point][form-chain][crown]") {
-  /** @brief The meeting-point crown: the canonical sequence carriers
-   *         exercising the Form-chain together.  No carrier fires every
-   *         row, but the family jointly populates IsSequence,
-   *         IsCauchySequence, the shape concepts (absorptive / periodic),
-   *         IsSeries, IsStreamComonad, the classical collapse, and the
-   *         Bolzano–Weierstrass crown — with ℝ as the honest-rejection
-   *         foil that keeps the LEM gate load-bearing. */
-  using Z6 = Modular<6>;
-  using R = QuadraticReal<2>;
-
-  // Row 4 (IsSequence) — analytic leg
-  STATIC_CHECK(IsSequence<Path<double>>);
-  // Row 5 (absorptive) — Mandelbrot leg
-  STATIC_CHECK(IsAbsorptiveSequence<DivergencePath<Rational<>>>);
-  // Row 5 (periodic) — orbit-bridge leg
-  STATIC_CHECK(IsPeriodicSequence<OrbitSequence<Z6, std::plus<Z6>>, 6>);
-  // Row 6 (series) — analytic leg
-  STATIC_CHECK(IsSeries<Path<double>>);
-  // Row 7 (stream comonad) — analytic leg
-  STATIC_CHECK(IsStreamComonad<Path<double>>);
-  // Row 7 (classical collapse + BW) — countable leg
-  STATIC_CHECK(IsClassicallyConvergent<Path<seq_meet::CountableReal>>);
-  STATIC_CHECK(
-      WitnessesBolzanoWeierstrass<seq_meet::bw_sub, seq_meet::bw_super>);
-  // Honest-rejection foil — continuum leg
   STATIC_CHECK_FALSE(IsClassicallyConvergent<Path<R>>);
 }

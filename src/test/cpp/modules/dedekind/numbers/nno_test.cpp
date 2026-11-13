@@ -6,14 +6,14 @@
  * Exercises the Natural Numbers Object reification (closes part of
  * #445): the @c IsNNO concept's structural shape, the @c
  * iterate operational discharge of the universal property, and
- * the canonical @c Numeral witness registered in @c
+ * the canonical @c NatExpr witness registered in @c
  * numbers:natural.
  *
  * The architecture under test:
  *
- *   @c NNO  →  @c Numeral  →  @c ℕ
+ *   @c NNO  →  @c NatExpr  →  @c ℕ
  *
- * — NNO is the Form (universal property), Numeral is the
+ * — NNO is the Form (universal property), NatExpr is the
  * canonical carrier witness, ℕ is the universe over it.
  */
 #include <catch2/catch_test_macros.hpp>
@@ -34,34 +34,34 @@ using namespace dedekind::sets;
 //     itself is asserted at the definition site, numbers:natural)
 // ===========================================================================
 
-TEST_CASE("category:nno — Successor<Numeral> is an arrow ℕ → ℕ",
+TEST_CASE("category:nno — Successor<NatExpr> is an arrow ℕ → ℕ",
           "[category][nno][cardinality][witness]") {
-  STATIC_CHECK(IsArrow<Successor<Numeral>>);
-  STATIC_CHECK(std::same_as<Dom<Successor<Numeral>>, Numeral> &&
-               std::same_as<Cod<Successor<Numeral>>, Numeral>);
+  STATIC_CHECK(IsArrow<Successor<NatExpr<>>>);
+  STATIC_CHECK(std::same_as<Dom<Successor<NatExpr<>>>, NatExpr<>> &&
+               std::same_as<Cod<Successor<NatExpr<>>>, NatExpr<>>);
 }
 
 // ===========================================================================
-// (2) Zero and successor on Numeral behave as the textbook NNO requires
+// (2) Zero and successor on NatExpr behave as the textbook NNO requires
 // ===========================================================================
 
-TEST_CASE("category:nno — ZeroElement<Numeral> returns Numeral{0u}",
+TEST_CASE("category:nno — ZeroElement<NatExpr> returns NatExpr{0u}",
           "[category][nno][cardinality][zero]") {
-  constexpr ZeroElement<Numeral> z{};
-  CHECK(z() == Numeral{0u});
+  constexpr ZeroElement<NatExpr<>> z{};
+  CHECK(z() == NatExpr<>{0u});
 }
 
-TEST_CASE("category:nno — Successor<Numeral> generates 1, 2, 3, ...",
+TEST_CASE("category:nno — Successor<NatExpr> generates 1, 2, 3, ...",
           "[category][nno][cardinality][successor]") {
-  constexpr ZeroElement<Numeral> z{};
-  constexpr Successor<Numeral> s{};
+  constexpr ZeroElement<NatExpr<>> z{};
+  constexpr Successor<NatExpr<>> s{};
   const auto zero = z();
   const auto one = s(zero);
   const auto two = s(one);
   const auto three = s(two);
-  CHECK(one == Numeral{1u});
-  CHECK(two == Numeral{2u});
-  CHECK(three == Numeral{3u});
+  CHECK(one == NatExpr<>{1u});
+  CHECK(two == NatExpr<>{2u});
+  CHECK(three == NatExpr<>{3u});
 }
 
 // ===========================================================================
@@ -75,12 +75,12 @@ TEST_CASE(
   // Identity recursion: a₀ = 0, g = succ.  The unique f : ℕ → ℕ
   // produced by the universal property is the identity, materialised
   // at finite indices via iterate.
-  const auto zero = ZeroElement<Numeral>{}();
-  const auto step = Successor<Numeral>{};
-  CHECK(dedekind::category::iterate(step, zero, 0u) == Numeral{0u});
-  CHECK(dedekind::category::iterate(step, zero, 1u) == Numeral{1u});
-  CHECK(dedekind::category::iterate(step, zero, 5u) == Numeral{5u});
-  CHECK(dedekind::category::iterate(step, zero, 42u) == Numeral{42u});
+  const auto zero = ZeroElement<NatExpr<>>{}();
+  const auto step = Successor<NatExpr<>>{};
+  CHECK(dedekind::category::iterate(step, zero, 0u) == NatExpr<>{0u});
+  CHECK(dedekind::category::iterate(step, zero, 1u) == NatExpr<>{1u});
+  CHECK(dedekind::category::iterate(step, zero, 5u) == NatExpr<>{5u});
+  CHECK(dedekind::category::iterate(step, zero, 42u) == NatExpr<>{42u});
 }
 
 TEST_CASE(
@@ -94,20 +94,22 @@ TEST_CASE(
   // The unique morphism f : ℕ → A produced by the NNO universal
   // property over this coalgebra is the Fibonacci sequence;
   // iterate materialises f(n) for finite n.
-  using State = std::pair<Numeral, Numeral>;
+  using State = std::pair<NatExpr<>, NatExpr<>>;
   // Initial state (F_1, F_0) = (1, 0); we step n times to get
   // (F_{n+1}, F_n), then read off the second component for F_n.
-  const State a0 = {Numeral{1u}, Numeral{0u}};
+  const State a0 = {NatExpr<>{1u}, NatExpr<>{0u}};
+  // The new state is stored canonical: the sum, kept as a term, would double
+  // its nodes each step and pass the terms' declared bound (a trap).
   const auto g = [](const State& s) -> State {
-    return {s.first + s.second, s.first};
+    return {dedekind::sets::canonical(s.first + s.second), s.first};
   };
   // F_0 .. F_10 = 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55.
-  CHECK(dedekind::category::iterate(g, a0, 0u).second == Numeral{0u});
-  CHECK(dedekind::category::iterate(g, a0, 1u).second == Numeral{1u});
-  CHECK(dedekind::category::iterate(g, a0, 2u).second == Numeral{1u});
-  CHECK(dedekind::category::iterate(g, a0, 3u).second == Numeral{2u});
-  CHECK(dedekind::category::iterate(g, a0, 5u).second == Numeral{5u});
-  CHECK(dedekind::category::iterate(g, a0, 10u).second == Numeral{55u});
+  CHECK(dedekind::category::iterate(g, a0, 0u).second == NatExpr<>{0u});
+  CHECK(dedekind::category::iterate(g, a0, 1u).second == NatExpr<>{1u});
+  CHECK(dedekind::category::iterate(g, a0, 2u).second == NatExpr<>{1u});
+  CHECK(dedekind::category::iterate(g, a0, 3u).second == NatExpr<>{2u});
+  CHECK(dedekind::category::iterate(g, a0, 5u).second == NatExpr<>{5u});
+  CHECK(dedekind::category::iterate(g, a0, 10u).second == NatExpr<>{55u});
 }
 
 // ===========================================================================
@@ -116,9 +118,9 @@ TEST_CASE(
 
 TEST_CASE("category:nno — the cover is partial at ⊤",
           "[category][nno][cover][saturation]") {
-  const auto c41 = cover(Numeral{41u});
+  const auto c41 = cover(NatExpr<>{41u});
   REQUIRE(c41.has_value());
-  CHECK(*c41 == Numeral{42u});
+  CHECK(*c41 == NatExpr<>{42u});
   CHECK(cover(Ternary::Unknown) == Ternary::True);
   CHECK_FALSE(cover(Ternary::True).has_value());
 }
@@ -128,9 +130,9 @@ TEST_CASE(
     "[category][nno][lambek]") {
   // ℕ: [Z, S] is an iso.
   for (std::size_t k = 0; k < 6; ++k) {
-    const auto n = Numeral{k};
-    CHECK(In<Numeral>{}(Prior<Numeral>{}(n)) == n);
-    const auto back = Prior<Numeral>{}(In<Numeral>{}(n));
+    const auto n = NatExpr<>{k};
+    CHECK(In<NatExpr<>>{}(Prior<NatExpr<>>{}(n)) == n);
+    const auto back = Prior<NatExpr<>>{}(In<NatExpr<>>{}(n));
     REQUIRE(back.has_value());
     CHECK(*back == n);
   }
@@ -140,16 +142,16 @@ TEST_CASE(
   CHECK_FALSE(Prior<int>{}(In<int>{}(-1)).has_value());
 }
 
-TEST_CASE("category:nno — Lambek on Numeral: In and Prior are inverse",
+TEST_CASE("category:nno — Lambek on NatExpr: In and Prior are inverse",
           "[category][nno][numeral][lambek]") {
-  const auto in_ = In<Numeral>{};
+  const auto in_ = In<NatExpr<>>{};
   const auto prior_ = inverse(in_);
   const auto back = inverse(prior_);
-  const Numeral top{std::numeric_limits<std::size_t>::max()};
-  const Numeral past = top + Numeral{1u};
+  const NatExpr<> top{std::numeric_limits<std::size_t>::max()};
+  const NatExpr<> past = top + NatExpr<>{1u};
   CHECK(prior_(in_(std::nullopt)) == std::nullopt);
   CHECK(prior_(in_(top)) == top);
-  CHECK(back(prior_(Numeral{})) == Numeral{});
+  CHECK(back(prior_(NatExpr<>{})) == NatExpr<>{});
   CHECK(back(prior_(past)) == past);
   CHECK(prior_(past) == top);
 }

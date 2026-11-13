@@ -200,8 +200,8 @@ TEST_CASE("order:halfspace: point-free ℕ|pred is carrier-axis decidable (#848)
 
   // Runtime membership on {x ∈ ℕ | x > 5}: 6 ∈, 5 ∉ --- exercises operator()
   // for coverage (static_asserts are invisible to Codecov).
-  CHECK(static_cast<bool>(point_free(Numeral{6u})));
-  CHECK_FALSE(static_cast<bool>(point_free(Numeral{5u})));
+  CHECK(static_cast<bool>(point_free(NatExpr<>{6u})));
+  CHECK_FALSE(static_cast<bool>(point_free(NatExpr<>{5u})));
 }
 
 TEST_CASE(
@@ -347,9 +347,8 @@ TEST_CASE("order:halfspace — a ray at the carrier's end is a value fact",
   // and on ℤ (no floor) {z < 0} is neither.
   STATIC_CHECK((ℕ & (π >= 0u)) == ℕ);
   STATIC_CHECK((𝔸<int>{} & (π > std::numeric_limits<int>::max())) == Ø<int>{});
-  STATIC_CHECK(!((𝔸<SignedCardinality>{} & (π < 0)) == Ø<SignedCardinality>{}));
-  STATIC_CHECK(
-      !((𝔸<SignedCardinality>{} & (π >= 0)) == 𝔸<SignedCardinality>{}));
+  STATIC_CHECK(!((𝔸<IntExpr<>>{} & (π < 0)) == Ø<IntExpr<>>{}));
+  STATIC_CHECK(!((𝔸<IntExpr<>>{} & (π >= 0)) == 𝔸<IntExpr<>>{}));
 }
 
 TEST_CASE(
@@ -375,8 +374,8 @@ concept IntervalOver = requires { typename Interval<T>; };
 TEST_CASE("order:halfspace — the carrier gate is the registered chain",
           "[order][halfspace][witness]") {
   STATIC_CHECK(IntervalOver<int>);
-  // ℤ: a chain under the posture that ±ℵ_0 / NaZ are the memory boundary.
-  STATIC_CHECK(IntervalOver<SignedCardinality>);
+  // ℤ: a chain.
+  STATIC_CHECK(IntervalOver<IntExpr<>>);
   // A raw float has no certified order (NaN breaks reflexivity).
   STATIC_CHECK_FALSE(IntervalOver<double>);
 }

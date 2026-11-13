@@ -52,48 +52,35 @@ module;
 export module dedekind.algebra:ordered_algebra;
 
 import dedekind.category; // IsAbelianGroup, IsCommutativeRing, IsField
-import dedekind.sets;     // Integer, SignedCardinality
+import dedekind.sets;     // IntExpr
 import :group;            // Inverse<G, Op>: the reified group-inverse arrow
 
 namespace dedekind::algebra {
 
 /**
  * @brief Marker trait: @c T is a non-cyclic ordered additive group
- *        whose order is translation-invariant, with the saturating
- *        escape contract for values that would exceed representable
- *        capacity.
+ *        whose order is translation-invariant.
  *
  * @details
  * Defaults to @c false.  Carriers opt in via specialisation when their
- * arithmetic is @b not @b cyclic --- i.e.\ they @b saturate or
- * @b escalate (e.g.\ to @f$\pm \aleph_0@f$ sentinels) rather than
- * wrapping at the representable bound.  Saturation preserves the
- * partial order @f$\le@f$ under translation (if @c a @c <= @c b then
- * @c a+c @c <= @c b+c, including the case where both saturate to the
- * same sentinel); wrapping does @b not (the modular wrap reverses the
- * order at the boundary).
+ * arithmetic is @b not @b cyclic: translation preserves the order
+ * @f$\le@f$ (if @c a @c <= @c b then @c a+c @c <= @c b+c); wrapping does
+ * @b not (the modular wrap reverses the order at the boundary).
  *
  * @note The fact this marker discriminates is @b cyclicity, not
- *       boundedness: an exact carrier (ℤ = @c sets::Integer, ℚ) and a
- *       saturating one stay order-preserving under translation; a modular
- *       carrier (@c unsigned @c int, @c sets::SignedExtensionalCardinal<S>)
+ *       boundedness: an exact carrier (ℤ = @c sets::IntExpr, ℚ) stays
+ *       order-preserving under translation; a modular
+ *       carrier (@c unsigned @c int, @c sets::ExtensionalCardinal<W>)
  *       wraps, reversing the order at the boundary, and fails the marker by
  *       default.
  */
 export template <typename T>
 struct is_translation_invariant_ordered : std::false_type {};
 
-/** @brief ℤ, @c sets::Integer: exact, so translation preserves the order
+/** @brief ℤ, @c sets::IntExpr: exact, so translation preserves the order
  *  everywhere, with no boundary to escalate at. */
 export template <>
-struct is_translation_invariant_ordered<dedekind::sets::Integer>
-    : std::true_type {};
-/** @brief The saturating proxy @c sets::SignedCardinality, for the interval
- *  pipe that still reads its ends as @f$\pm\aleph_0@f$ (#1035's next slice):
- *  translation preserves the order on the finite fragment, and both sides
- *  saturate to one sentinel past it. */
-export template <>
-struct is_translation_invariant_ordered<dedekind::sets::SignedCardinality>
+struct is_translation_invariant_ordered<dedekind::sets::IntExpr<>>
     : std::true_type {};
 
 export template <typename T>
@@ -146,7 +133,7 @@ inline constexpr bool is_scaling_invariant_ordered_v =
  *       (translation invariance is an axiom of the ordered group, not a
  *       consequence of the carrier being a chain), and the chain itself is
  *       certified where the carrier registers its order laws (ℤ,
- *       @c sets::Integer, is a registered @c IsTotallyOrdered chain).
+ *       @c sets::IntExpr, is a registered @c IsTotallyOrdered chain).
  *
  * Modular carriers (@c unsigned @c int as @f$\mathbb{Z}/2^N\mathbb{Z}@f$)
  * satisfy @c IsAdditiveGroup but NOT this concept --- they fail the
@@ -186,7 +173,7 @@ concept IsOrderedAdditiveGroup =
  * @c std::totally_ordered by representatives yet have @c −1 a square
  * (@f$\mathbb{F}_5@f$), which this concept must reject.  Compatibility is a
  * value-law, carried by the markers at their per-carrier opt-in sites --- the
- * same design as @c IsOrderedAdditiveGroup.  @c Rational<I>, @c QuadraticReal,
+ * same design as @c IsOrderedAdditiveGroup.  @c RatExpr, @c QuadraticReal,
  * @c Real all opt into both markers; @c Complex<R> never opts into @c O2 (no
  * order compatible with complex @c *).
  */
@@ -210,7 +197,7 @@ concept IsOrderedMultiplicativeGroup =
  *     positive-scalar multiplication automatically preserves order
  *     and negative-scalar multiplication automatically reverses).
  *
- * @c ℤ (@c sets::Integer) satisfies this; @c ℚ also does (a field
+ * @c ℤ (@c sets::IntExpr) satisfies this; @c ℚ also does (a field
  * is a fortiori a commutative ring), and the two are distinguished by
  * the stronger @c IsOrderedMultiplicativeGroup gate where only the
  * ring structure is available.
@@ -257,22 +244,22 @@ inline constexpr bool
 }  // namespace dedekind::category
 
 namespace dedekind::algebra {
-// Dog-food: ℤ (Integer) is an ordered additive group, so its additive
+// Dog-food: ℤ (IntExpr) is an ordered additive group, so its additive
 // inverse -x is a certified antitone arrow --- the algebraic mirror of
 // NegationArrow's logic ¬.
 static_assert(dedekind::category::IsAntiMonotone<
-                  AdditiveInverse<dedekind::sets::Integer>>,
+                  AdditiveInverse<dedekind::sets::IntExpr<>>>,
               "the additive inverse -x on ℤ (an ordered additive group) is "
               "antitone: a ≤ b ⟹ -b ≤ -a.");
 static_assert(
-    dedekind::category::IsVariant<AdditiveInverse<dedekind::sets::Integer>>,
+    dedekind::category::IsVariant<AdditiveInverse<dedekind::sets::IntExpr<>>>,
     "-x has a definite variance (antitone), hence IsVariant.");
 // ... and hence a CONTRAVARIANT FUNCTOR (#908), witnessed HERE in :algebra,
 // downstream of :adjunction: -x is exactly the order-reversing leg that
 // IsGaloisConnection consumes in the antitone witness below. The variance-
 // functor concept classifies a real carrier arrow, not a toy.
 static_assert(dedekind::category::IsContravariantFunctor<
-                  AdditiveInverse<dedekind::sets::Integer>>,
+                  AdditiveInverse<dedekind::sets::IntExpr<>>>,
               "-x on ℤ is a contravariant functor (order-reversing): "
               "variance-functor concept witnessed downstream.");
 
@@ -282,8 +269,8 @@ namespace dedekind::category {
  *  @f$a \le -b \iff b \le -a@f$.  The law leg of the witness below. */
 template <>
 inline constexpr bool
-    is_adjoint_v<dedekind::algebra::AdditiveInverse<dedekind::sets::Integer>,
-                 dedekind::algebra::AdditiveInverse<dedekind::sets::Integer>,
+    is_adjoint_v<dedekind::algebra::AdditiveInverse<dedekind::sets::IntExpr<>>,
+                 dedekind::algebra::AdditiveInverse<dedekind::sets::IntExpr<>>,
                  std::less_equal<>> = true;
 }  // namespace dedekind::category
 namespace dedekind::algebra {
@@ -296,8 +283,8 @@ namespace dedekind::algebra {
 // (#959).
 static_assert(
     dedekind::category::IsGaloisConnection<
-        AdditiveInverse<dedekind::sets::Integer>,
-        AdditiveInverse<dedekind::sets::Integer>>,
+        AdditiveInverse<dedekind::sets::IntExpr<>>,
+        AdditiveInverse<dedekind::sets::IntExpr<>>>,
     "the additive inverse -x is a self-adjoint antitone Galois connection "
     "(a <= -b iff b <= -a).");
 }  // namespace dedekind::algebra

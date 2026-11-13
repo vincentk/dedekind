@@ -21,7 +21,7 @@
  * regular representation of 𝔻 = T[ε]/(ε²), with the nilpotent ε ↦ strict
  * upper-triangular block.
  *
- * Paper-facing carrier is `T = Rational<long>` (ℚ as an exact proxy for ℝ
+ * Paper-facing carrier is `T = RatExpr` (ℚ as an exact proxy for ℝ
  * per the #364 / #366 narrowing). The two embeddings are witnessed by
  * `static_assert`s that each map preserves the additive and multiplicative
  * units and commutes with + and ·.
@@ -40,7 +40,7 @@ export module dedekind.linear_algebra:embeddings;
 
 import dedekind.algebra; // HasRingOperators + IsRingHomomorphism (constraint / witness)
 import dedekind.analysis; // Dual<T>: 𝔻 ↪ M₂ regular representation (relocated from :numbers at PR #513)
-import dedekind.numbers; // Complex<T>, Rational<Z>, IsComplexScalar
+import dedekind.numbers; // Complex<T>, RatExpr<>, IsComplexScalar
 import :mat2x2;  // Matrix2x2V<T>, identity / zero constants for the target
 
 namespace dedekind::linear_algebra {
@@ -57,7 +57,7 @@ using dedekind::numbers::Complex;
  * An injective ring homomorphism: preserves +, ·, 0, and 1. The image is
  * exactly the subring of `rotation-and-scaling` 2×2 matrices — matrices
  * commuting with the canonical `J = [[0, -1], [1, 0]]` and closed under
- * matrix addition and multiplication. Over `T = Rational<Z>` the map is
+ * matrix addition and multiplication. Over `T = RatExpr` the map is
  * exact and invertible on its image via `complex_from_matrix2x2`.
  *
  * @tparam T A carrier supporting `+`, `-` (unary and binary), and `*` in the
@@ -128,12 +128,12 @@ constexpr Dual<T> dual_from_matrix2x2(const Matrix2x2V<T>& M) {
 /** @section embeddings__Ring_Homomorphism_Witnesses_over_ℚ
  *
  *  The paper-facing existential proofs that both embeddings are ring
- *  homomorphisms — exact at compile time over ℚ = `Rational<default_integer>`
+ *  homomorphisms — exact at compile time over ℚ = `RatExpr`
  *  (the saturating-cardinal field, not the signed-`long` shortcut).
  */
 namespace detail {
 
-using Rat = dedekind::numbers::Rational<dedekind::numbers::default_integer>;
+using Rat = dedekind::sets::RatExpr<>;
 
 // Two concrete ℚ-valued complex numbers with non-trivial real and imaginary
 // parts, chosen so that z*w has distinct real and imaginary components and

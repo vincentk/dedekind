@@ -75,7 +75,7 @@ using namespace dedekind::sets;
  * names the full set of operators a field-style callsite needs to
  * write plain field arithmetic in C++ syntax.
  *
- * Canonical positive witness: @c Rational<I> for any
+ * Canonical positive witness: @c RatExpr for any
  * @c HasRingOperators @c I.
  *
  * Shape vs.\ semantics: @c HasFieldOperators<unsigned int> @b fires
@@ -102,7 +102,7 @@ using namespace dedekind::sets;
  *
  *   - @c HasFieldOperators is @b broader: it accepts user-defined
  *     types whose literal field operator surface closes
- *     (@c Rational<I>, @c Complex<F>, @c QuadraticReal<D>); @c
+ *     (@c RatExpr, @c Complex<F>, @c QuadraticReal<D>); @c
  *     std::is_arithmetic does not lift to user types.
  *
  *   - @c HasFieldOperators is @b narrower at the integer-promotion

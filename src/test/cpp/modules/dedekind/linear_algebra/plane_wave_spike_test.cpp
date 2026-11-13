@@ -31,7 +31,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import dedekind.category;     // IsArrow
-import dedekind.numbers;      // Complex, QuadraticReal, Rational, root8, conj
+import dedekind.numbers;      // Complex, QuadraticReal, RatExpr<>, root8, conj
 import dedekind.morphologies; // Modular<N> — the ℤ/N index for the DFT bra-ket
 import dedekind.linear_algebra; // scaled / pointwise_sum, inner_product, OuterProduct, eigenvalue
 import dedekind.sets;       // IsRelation, Graph
@@ -51,13 +51,13 @@ using dedekind::numbers::character;
 using dedekind::numbers::Complex;
 using dedekind::numbers::conj;
 using dedekind::numbers::QuadraticReal;
-using dedekind::numbers::Rational;
 using dedekind::numbers::root8;
+using dedekind::sets::RatExpr;
 
 namespace {
 using R2 = QuadraticReal<2>;  // ℝ = ℚ(√2), the coat-hanger
 using Cx = Complex<R2>;       // ℂ over ℚ(√2), exact
-using Q = Rational<>;
+using Q = RatExpr<>;
 
 constexpr Cx operator""_re(unsigned long long n) {
   return Cx{R2{long(n)}, R2{}};
@@ -161,7 +161,7 @@ TEST_CASE("Figure 6 row 3: the even-symmetry projector P = ½(I+U)",
   // An already-even wave: spectrum symmetric under k ↦ −k  ⇒  P fixes it.
   // Witnessed at RUNTIME (CHECK, below), not static_assert: over the
   // SUPERPOSITION psi_even the even-projector's exact ℂ=ℚ(√2) arithmetic
-  // (Complex × bottoms out in the big-integer limb comparisons of the Rational
+  // (Complex × bottoms out in the big-integer limb comparisons of the RatExpr
   // carrier, through std::variant/std::array operator<=>) crosses clang's
   // -fconstexpr-steps limit at this depth --- but only under libstdc++ (CI
   // Linux), whose variant/array constexpr comparisons cost more steps than
@@ -176,9 +176,10 @@ TEST_CASE("Figure 6 row 3: the even-symmetry projector P = ½(I+U)",
   static_assert(projected(k) == kHalf, "(P|k⟩)_k = ½");
   static_assert(projected(-k) == kHalf, "(P|k⟩)_{−k} = ½");
 
-  // Idempotent P² = P — a projection (witnessed at the support).
-  static_assert(even(projected)(k) == projected(k), "P² = P at k");
-  static_assert(even(projected)(-k) == projected(-k), "P² = P at −k");
+  // Idempotent P² = P — a projection (witnessed at the support, at run time:
+  // the second application nests ℚ(√2)'s terms past the step limit).
+  CHECK(even(projected)(k) == projected(k));    // P² = P at k
+  CHECK(even(projected)(-k) == projected(-k));  // … and at −k
 
   CHECK(even(psi_even)(k) == psi_even(k));    // P|ψ⟩ = |ψ⟩ at k (ψ even)
   CHECK(even(psi_even)(-k) == psi_even(-k));  // … and at −k
