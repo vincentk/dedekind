@@ -1494,6 +1494,7 @@ constexpr Orbit<X> power(const F& f, Orbit<X> o, std::size_t n,
     return o;  // n < 1: no step
   } else {
     if (n == 0 || o.fixed) return o;
+    if (n == 1) return step(f, o, equal);  // one step, no halves
     // the two halves, the first moved into the second: one live state
     Orbit<X> hh = power<J - 1>(f, power<J - 1>(f, std::move(o), n / 2, equal),
                                n / 2, equal);

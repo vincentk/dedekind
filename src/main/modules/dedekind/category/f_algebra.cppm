@@ -569,7 +569,9 @@ namespace detail_f_algebra {
  *  carries one and has no @c ==, not known to be the same. */
 template <IsArrow P, IsArrow Q>
 constexpr bool same_path(const P& p, const Q& q) {
-  if constexpr (!std::same_as<P, Q>) {
+  if constexpr (IsIdentityArrow<P> && IsIdentityArrow<Q>) {
+    return std::same_as<Dom<P>, Dom<Q>>;  // the empty path, on one object
+  } else if constexpr (!std::same_as<P, Q>) {
     return false;
   } else if constexpr (is_compose_v<P>) {
     return same_path(π_1(p), π_1(q)) && same_path(π_2(p), π_2(q));
@@ -581,6 +583,24 @@ constexpr bool same_path(const P& p, const Q& q) {
     return false;
   }
 }
+/** @brief Every atom of the term returns exactly its declared codomain at its
+ *  domain.  @c IsArrow admits a result that only converts to the codomain, and
+ *  a composite converts only its own result: then reassociating can change
+ *  the value (a result passed raw to the next leg's overload in one grouping,
+ *  converted first in the other), so the normal form decides nothing there. */
+template <typename A>
+inline constexpr bool exact_atoms_v = [] {
+  if constexpr (std::invocable<const A&, const Dom<A>&>) {
+    return std::same_as<
+        std::remove_cvref_t<std::invoke_result_t<const A&, const Dom<A>&>>,
+        Cod<A>>;
+  } else {
+    return false;
+  }
+}();
+template <typename F, typename G>
+inline constexpr bool exact_atoms_v<Compose<F, G>> =
+    exact_atoms_v<F> && exact_atoms_v<G>;
 }  // namespace detail_f_algebra
 /** @brief Arrow terms compared @b by the laws, through their normal forms.
  *  @details The normal form of an arrow term is its path in the free category
@@ -593,7 +613,9 @@ constexpr bool same_path(const P& p, const Q& q) {
  *  forms are not known to differ, as equality of functions is undecidable
  *  (Rice), so the answer is @c Unknown, never @c False.  A term node defines
  *  no equality of its own: a node-by-node @c == would answer @c False where
- *  the laws say @c Unknown (cf. @c :lattice_term, #1116).  Defined on arrows
+ *  the laws say @c Unknown (cf. @c :lattice_term, #1116).  @c True also
+ *  needs every atom to return exactly its codomain (@c exact_atoms_v), since
+ *  a composite converts only its own result.  Defined on arrows
  *  with one domain and one codomain, at least one of them a composite.
  *  @param f an arrow.  @param g an arrow.  @return the verdict. */
 export template <IsArrow F, IsArrow G>
@@ -601,8 +623,11 @@ export template <IsArrow F, IsArrow G>
            detail_f_algebra::is_compose_v<G>) &&
           std::same_as<Dom<F>, Dom<G>> && std::same_as<Cod<F>, Cod<G>>
 constexpr ByTheLaws operator==(const F& f, const G& g) {
-  return {detail_f_algebra::same_path(cata(f), cata(g)) ? Ternary::True
-                                                        : Ternary::Unknown};
+  return {detail_f_algebra::exact_atoms_v<F> &&
+                  detail_f_algebra::exact_atoms_v<G> &&
+                  detail_f_algebra::same_path(cata(f), cata(g))
+              ? Ternary::True
+              : Ternary::Unknown};
 }
 
 // The term functor @c F(X) @c = @c Atom @c + @c X @c × @c X over arrows: its
