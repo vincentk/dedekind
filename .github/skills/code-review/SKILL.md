@@ -113,6 +113,14 @@ Coherence checks:
 - **static_assert / concept-binding is the safety boundary**, not prose. Prefer a
   compile-time witness over a comment vouching that an invariant holds. Note that
   `static_assert`s are invisible to coverage tooling.
+- **A settled module's witnesses live in its tests, not its interface.** A
+  `static_assert` in a module interface instantiates what it checks into the
+  module's BMI, which every importer loads again, the compiler and the linter
+  alike (#1201: the lint's parse is a full front end, constant evaluation
+  included). While a module is in flux, a witness beside its code is fine and
+  keeps things consistent; once the module settles, move its witnesses to the
+  layer's tests, one copy, and flag a diff that adds heavy witnesses to a
+  settled interface.
 - **Python bindings are handle-only; no second reducer, and fail fast.** The C++
   value-first / `constexpr` reducer is the single implementation across every
   phase: compile-time (`static_assert`), runtime C++, and Python via the native
