@@ -664,19 +664,38 @@ struct Compose final {
   [[no_unique_address]] G g;
   // No == of its own: a term node is compared through its normal form, by
   // the laws (@c :f_algebra's @c operator==, #1116).
+  /** @brief A leg's result at the boundary: converted to the leg's declared
+   *  codomain where it converts, passed on as it is where it does not (an
+   *  object presented by another type).  @param y the leg's result. */
+  template <typename Y>
+  static constexpr auto at_codomain(const Y& y) {
+    if constexpr (std::convertible_to<const Y&, Cod<F>>)
+      return static_cast<Cod<F>>(y);
+    else
+      return y;
+  }
   /** @brief Run the pipeline @c (g∘f)(x) = g(f(x)), at any presentation of
    *  the domain (@c morphism__Objects_And_Their_Presentations): two arrows
-   *  between objects presented by many types compose like any other.  Where
-   *  the result converts to the codomain's value type it is returned as that
-   *  type, as before. */
+   *  between objects presented by many types compose like any other.
+   *  @details Every boundary converts by one rule: @c f's result reaches @c g
+   *  converted to @c f's declared codomain where it converts, and the
+   *  composite's own result to its codomain likewise.  So each leg receives
+   *  its predecessor's result at the declared type in either bracketing, and
+   *  composition is associative by construction, as the laws' normal form
+   *  assumes (@c :f_algebra).  It is FJlt's rule for conversions: a body
+   *  uses a converted result only at the declared type, never the richer
+   *  type it was computed at (Rule 2).  Where a result does not convert, an
+   *  object presented by another type (#1042), it passes as it is. */
   template <typename X>
     requires Presents<X, Domain> &&
-             requires(const F& f_, const G& g_, const X& x_) { g_(f_(x_)); }
+             requires(const F& f_, const G& g_, const X& x_) {
+               g_(at_codomain(f_(x_)));
+             }
   constexpr auto operator()(const X& x) const {
-    if constexpr (std::convertible_to<decltype(g(f(x))), Codomain>)
-      return static_cast<Codomain>(g(f(x)));
+    if constexpr (std::convertible_to<decltype(g(at_codomain(f(x)))), Codomain>)
+      return static_cast<Codomain>(g(at_codomain(f(x))));
     else
-      return g(f(x));
+      return g(at_codomain(f(x)));
   }
 };
 

@@ -34,9 +34,9 @@ using namespace dedekind::category;
 //     explicit registration.
 // ===========================================================================
 
-// A result that only converts to the codomain: a composite converts its own
-// result, so the grouping changes the value (Copilot, #1199), and == by the
-// laws answers Unknown, not True.
+// A result that only converts to the codomain (Copilot, #1199): a composite
+// converts at every boundary, so both groupings hand H the declared bool, the
+// value is the same, and == by the laws answers True.
 namespace converting_codomain {
 struct F {
   using Domain = unsigned;
@@ -56,8 +56,7 @@ struct H {
 };
 constexpr auto left = Compose<Compose<F, G>, H>{{F{}, G{}}, H{}};
 constexpr auto right = Compose<F, Compose<G, H>>{F{}, {G{}, H{}}};
-static_assert(left(0u) == 1u && right(0u) == 2u &&
-              (left == right).verdict == Ternary::Unknown);
+static_assert(left(0u) == 1u && right(0u) == 1u && left == right);
 }  // namespace converting_codomain
 
 namespace {
