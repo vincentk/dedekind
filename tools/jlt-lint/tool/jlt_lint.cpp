@@ -1,11 +1,19 @@
-// jlt-lint: the Jlt linter's checks that need code rather than a pattern.
+// jlt-lint: the Jlt linter, every rule of a file over one parse.
 //
-//   jlt-lint --check=<name>[,<name>...] --scope=<namespace> <file>
-//            [-p <build>] [-- <flags>]
+//   jlt-lint [--check=<name>[,<name>...]] [--query=<rule.query>[,...]]
+//            --scope=<namespace> <file> [-p <build>] [-- <flags>]
 //
-// Prints one finding per line as "path:line:col"; the driver counts them.
-// Several checks share one parse: each check's findings then follow a line
-// "== <check>", in the order named.
+// Prints one finding per line as "path:line:col", each rule's findings after
+// a line naming it, which the driver counts: "== scope" first, the scope
+// namespace's own declarations in the main file (none means the scope is
+// absent, and every count would be a vacuous zero); then "== query <rule>"
+// for each rule file, "== <check>" for each check, in the order named.
+// A rule file holds clang-query matchers (`match <matcher>`, and at most one
+// `set traversal <kind>`, IgnoreUnlessSpelledInSource otherwise), parsed by
+// clang's dynamic matcher parser as clang-query parses them, with `scope`
+// bound to the scope namespace, and run on the same AST as the checks; a
+// match is a finding, located where clang-query's `set output diag` puts its
+// "root" binding, or "-" where that binding has no location.
 // Checks:
 //   mutual-recursion  functions of the scope namespace, defined in the file,
 //                     that lie on a call cycle of length >= 2 (a function
@@ -93,22 +101,32 @@
 #include "clang/AST/ExprConcepts.h"
 #include "clang/AST/ParentMapContext.h"
 #include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/ASTMatchers/ASTMatchFinder.h"
+#include "clang/ASTMatchers/Dynamic/Parser.h"
 #include "clang/Analysis/CallGraph.h"
 #include "clang/Basic/OperatorKinds.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Frontend/MultiplexConsumer.h"
+#include "clang/Frontend/TextDiagnostic.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/Path.h"
+#include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace {
 
 llvm::cl::OptionCategory category("jlt-lint options");
-llvm::cl::opt<std::string> check("check", llvm::cl::desc("the check to run"),
-                                 llvm::cl::Required, llvm::cl::cat(category));
+llvm::cl::opt<std::string> check("check",
+                                 llvm::cl::desc("the checks to run, by name"),
+                                 llvm::cl::cat(category));
+llvm::cl::list<std::string> queryFiles(
+    "query", llvm::cl::desc("the rule files of clang-query matchers to run"),
+    llvm::cl::CommaSeparated, llvm::cl::cat(category));
 llvm::cl::opt<std::string> scope("scope",
                                  llvm::cl::desc("the namespace judged"),
                                  llvm::cl::Required, llvm::cl::cat(category));
@@ -1812,14 +1830,219 @@ class Section : public clang::ASTConsumer {
   std::unique_ptr<clang::ASTConsumer> inner;
 };
 
+// ---------------------------------------------------------------------------
+// query rules: clang-query's matchers, on the checks' parse
+// ---------------------------------------------------------------------------
+
+using clang::ast_matchers::MatchFinder;
+using clang::ast_matchers::internal::DynTypedMatcher;
+
+/// A rule file's matchers and the traversal they match under: what
+/// clang-query would run for it, one `match` command per matcher.
+struct QueryRule {
+  std::string name;
+  clang::TraversalKind traversal;
+  std::vector<DynTypedMatcher> matchers;
+};
+
+/// The scope probe first (its own rule), then the rule files in the order
+/// named.  Parsed before the file is, so a rule that does not parse fails
+/// the run without a parse of the file.
+std::vector<QueryRule> queryRules;
+
+/// The traversal of a rule that names none, the driver's default for
+/// clang-query: the code as written.
+constexpr clang::TraversalKind defaultTraversal =
+    clang::TK_IgnoreUnlessSpelledInSource;
+
+/// A matcher expression as clang-query's `match` and `let` parse it: the
+/// dynamic parser, the default registry, the session's named values.  The
+/// expression must fill its line.
+std::optional<DynTypedMatcher> parseMatcher(
+    llvm::StringRef code,
+    const clang::ast_matchers::dynamic::Parser::NamedValueMap& named,
+    llvm::StringRef where) {
+  clang::ast_matchers::dynamic::Diagnostics diag;
+  llvm::StringRef rest = code.ltrim();
+  std::optional<DynTypedMatcher> m =
+      clang::ast_matchers::dynamic::Parser::parseMatcherExpression(
+          rest, nullptr, &named, &diag);
+  if (!m) {
+    llvm::errs() << "jlt-lint: " << where << ": " << diag.toStringFull()
+                 << '\n';
+    return std::nullopt;
+  }
+  if (!rest.trim().empty()) {
+    llvm::errs() << "jlt-lint: " << where
+                 << ": text after the matcher: " << rest.trim() << '\n';
+    return std::nullopt;
+  }
+  // Whether the finder takes it as a top-level matcher, as clang-query asks.
+  struct Ignore : MatchFinder::MatchCallback {
+    void run(const MatchFinder::MatchResult&) override {}
+  } ignore;
+  MatchFinder probe;
+  if (!probe.addDynamicMatcher(*m, &ignore)) {
+    llvm::errs() << "jlt-lint: " << where
+                 << ": not a valid top-level matcher\n";
+    return std::nullopt;
+  }
+  return m;
+}
+
+/// Read the scope probe and the rule files into queryRules: in a file, each
+/// line `match <matcher>` is a matcher and the first `set traversal <kind>`
+/// the traversal; every other line is commentary, as it was when the driver
+/// gave clang-query those lines alone.
+bool readQueryRules() {
+  const std::string ns = scope;
+  clang::ast_matchers::dynamic::Parser::NamedValueMap named;
+  {
+    clang::ast_matchers::dynamic::Diagnostics diag;
+    clang::ast_matchers::dynamic::VariantValue value;
+    const std::string code = "namespaceDecl(hasName(\"" + ns + "\"))";
+    llvm::StringRef rest = code;
+    if (!clang::ast_matchers::dynamic::Parser::parseExpression(
+            rest, nullptr, &named, &value, &diag)) {
+      llvm::errs() << "jlt-lint: the scope " << ns << ": "
+                   << diag.toStringFull() << '\n';
+      return false;
+    }
+    named["scope"] = value;
+  }
+  auto probe = parseMatcher(
+      "namespaceDecl(hasName(\"" + ns + "\"), isExpansionInMainFile())", named,
+      "the scope probe");
+  if (!probe) return false;
+  queryRules.push_back({"", defaultTraversal, {*probe}});
+
+  for (const std::string& path : queryFiles) {
+    auto buffer = llvm::MemoryBuffer::getFile(path);
+    if (!buffer) {
+      llvm::errs() << "jlt-lint: cannot open " << path << ": "
+                   << buffer.getError().message() << '\n';
+      return false;
+    }
+    QueryRule rule{llvm::sys::path::stem(path).str(), defaultTraversal, {}};
+    bool traversalNamed = false;
+    llvm::SmallVector<llvm::StringRef, 16> lines;
+    (*buffer)->getBuffer().split(lines, '\n');
+    for (unsigned n = 0; n < lines.size(); ++n) {
+      llvm::StringRef line = lines[n].rtrim("\r");
+      const std::string where = path + ":" + std::to_string(n + 1);
+      if (line.consume_front("set traversal ")) {
+        if (traversalNamed) continue;  // the first one counts
+        traversalNamed = true;
+        llvm::StringRef kind = line.trim();
+        if (kind == "AsIs")
+          rule.traversal = clang::TK_AsIs;
+        else if (kind == "IgnoreUnlessSpelledInSource")
+          rule.traversal = clang::TK_IgnoreUnlessSpelledInSource;
+        else {
+          llvm::errs() << "jlt-lint: " << where
+                       << ": expected traversal kind, got '" << kind << "'\n";
+          return false;
+        }
+      } else if (line.consume_front("match ")) {
+        auto m = parseMatcher(line, named, where);
+        if (!m) return false;
+        rule.matchers.push_back(*m);
+      }
+    }
+    if (rule.matchers.empty()) {
+      llvm::errs() << "jlt-lint: " << path
+                   << ": want at least one match line\n";
+      return false;
+    }
+    queryRules.push_back(std::move(rule));
+  }
+  return true;
+}
+
+/// Where clang-query's diag output puts a match: the note on its "root"
+/// binding, rendered by TextDiagnostic as clang-query renders it, read by
+/// the pattern the driver read clang-query's output with; "-" where the
+/// binding has no location (clang-query prints no note, but counts it).
+std::string rootLocation(const clang::ast_matchers::BoundNodes& nodes,
+                         clang::ASTContext& ctx) {
+  const auto& map = nodes.getMap();
+  const auto root = map.find("root");
+  if (root == map.end()) return "-";
+  const clang::SourceRange range = root->second.getSourceRange();
+  if (range.isInvalid()) return "-";
+  std::string text;
+  llvm::raw_string_ostream os(text);
+  clang::TextDiagnostic diag(os, ctx.getLangOpts(),
+                             ctx.getDiagnostics().getDiagnosticOptions());
+  diag.emitDiagnostic(
+      clang::FullSourceLoc(range.getBegin(), ctx.getSourceManager()),
+      clang::DiagnosticsEngine::Note, "\"root\" binds here",
+      clang::CharSourceRange::getTokenRange(range), {});
+  os.flush();
+  static const llvm::Regex binds(
+      "^([^[:space:]]+:[0-9]+:[0-9]+): note: \"root\" binds here",
+      llvm::Regex::Newline);
+  llvm::SmallVector<llvm::StringRef, 2> m;
+  if (!binds.match(text, &m)) return "-";
+  return m[1].str();
+}
+
+/// One matcher's findings, in the order the finder reports them, under the
+/// rule's traversal: the finder wraps the matcher in it, as clang-tidy does
+/// for a check, which is what clang-query's session traversal does to a
+/// matcher run alone.
+class Collect : public MatchFinder::MatchCallback {
+ public:
+  explicit Collect(clang::TraversalKind tk) : traversal(tk) {}
+  void run(const MatchFinder::MatchResult& result) override {
+    found.push_back(rootLocation(result.Nodes, *result.Context));
+  }
+  std::optional<clang::TraversalKind> getCheckTraversalKind() const override {
+    return traversal;
+  }
+  std::vector<std::string> found;
+
+ private:
+  clang::TraversalKind traversal;
+};
+
+/// Every rule's matchers on one finder, one traversal of the AST; each
+/// rule's findings in a section, its matchers' in the order of its file,
+/// as clang-query ran them one after another.
+class Queries : public clang::ASTConsumer {
+ public:
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    MatchFinder finder;
+    std::vector<std::vector<std::unique_ptr<Collect>>> collected;
+    for (const QueryRule& rule : queryRules) {
+      collected.emplace_back();
+      for (const DynTypedMatcher& m : rule.matchers) {
+        collected.back().push_back(std::make_unique<Collect>(rule.traversal));
+        const std::optional<DynTypedMatcher> bound = m.tryBind("root");
+        finder.addDynamicMatcher(bound ? *bound : m,
+                                 collected.back().back().get());
+      }
+    }
+    finder.matchAST(ctx);
+    for (unsigned i = 0; i < queryRules.size(); ++i) {
+      if (queryRules[i].name.empty())
+        llvm::outs() << "== scope\n";
+      else
+        llvm::outs() << "== query " << queryRules[i].name << '\n';
+      for (const auto& c : collected[i])
+        for (const std::string& loc : c->found) llvm::outs() << loc << '\n';
+    }
+  }
+};
+
 class Action : public clang::ASTFrontendAction {
  public:
   std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
       clang::CompilerInstance&, llvm::StringRef) override {
     llvm::SmallVector<llvm::StringRef, 8> names;
     llvm::StringRef(check).split(names, ',', -1, false);
-    if (names.size() == 1) return checkNamed(names.front());
     std::vector<std::unique_ptr<clang::ASTConsumer>> sections;
+    sections.push_back(std::make_unique<Queries>());
     for (llvm::StringRef name : names) {
       auto c = checkNamed(name);
       if (!c) return nullptr;
@@ -1838,6 +2061,7 @@ int main(int argc, const char** argv) {
     llvm::errs() << llvm::toString(parser.takeError());
     return 2;
   }
+  if (!readQueryRules()) return 2;
   clang::tooling::ClangTool tool(parser->getCompilations(),
                                  parser->getSourcePathList());
   return tool.run(clang::tooling::newFrontendActionFactory<Action>().get());
