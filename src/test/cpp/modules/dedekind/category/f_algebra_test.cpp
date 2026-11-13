@@ -57,6 +57,25 @@ struct H {
 constexpr auto left = Compose<Compose<F, G>, H>{{F{}, G{}}, H{}};
 constexpr auto right = Compose<F, Compose<G, H>>{F{}, {G{}, H{}}};
 static_assert(left(0u) == 1u && right(0u) == 1u && left == right);
+// A result that converts only as an rvalue (Copilot round 4): every boundary
+// converts the result as produced, so both groupings still hand H a bool.
+struct Proxy {
+  constexpr operator bool() && { return true; }
+};
+struct GP {
+  using Domain = unsigned;
+  using Codomain = bool;
+  constexpr Proxy operator()(unsigned) const { return {}; }
+};
+struct HP {
+  using Domain = bool;
+  using Codomain = unsigned;
+  constexpr unsigned operator()(bool b) const { return b ? 1u : 0u; }
+  constexpr unsigned operator()(Proxy) const { return 2u; }
+};
+constexpr auto left_p = Compose<Compose<F, GP>, HP>{{F{}, GP{}}, HP{}};
+constexpr auto right_p = Compose<F, Compose<GP, HP>>{F{}, {GP{}, HP{}}};
+static_assert(left_p(0u) == 1u && right_p(0u) == 1u && left_p == right_p);
 }  // namespace converting_codomain
 
 namespace {

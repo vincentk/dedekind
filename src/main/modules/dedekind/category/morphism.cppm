@@ -664,15 +664,17 @@ struct Compose final {
   [[no_unique_address]] G g;
   // No == of its own: a term node is compared through its normal form, by
   // the laws (@c :f_algebra's @c operator==, #1116).
-  /** @brief A leg's result at the boundary: converted to the leg's declared
-   *  codomain where it converts, passed on as it is where it does not (an
-   *  object presented by another type).  @param y the leg's result. */
-  template <typename Y>
-  static constexpr auto at_codomain(const Y& y) {
-    if constexpr (std::convertible_to<const Y&, Cod<F>>)
-      return static_cast<Cod<F>>(y);
+  /** @brief A result at a boundary, as produced (its own value category):
+   *  converted to the declared codomain @c To where it converts, passed on as
+   *  it is where it does not (an object presented by another type).  One
+   *  rule for every boundary, the composite's own end included, so the two
+   *  cannot drift.  @tparam To the declared codomain.  @param y the result. */
+  template <typename To, typename Y>
+  static constexpr auto at_codomain(Y&& y) {
+    if constexpr (std::convertible_to<Y, To>)
+      return static_cast<To>(std::forward<Y>(y));
     else
-      return y;
+      return std::forward<Y>(y);
   }
   /** @brief Run the pipeline @c (g∘f)(x) = g(f(x)), at any presentation of
    *  the domain (@c morphism__Objects_And_Their_Presentations): two arrows
@@ -689,13 +691,10 @@ struct Compose final {
   template <typename X>
     requires Presents<X, Domain> &&
              requires(const F& f_, const G& g_, const X& x_) {
-               g_(at_codomain(f_(x_)));
+               g_(at_codomain<Cod<F>>(f_(x_)));
              }
   constexpr auto operator()(const X& x) const {
-    if constexpr (std::convertible_to<decltype(g(at_codomain(f(x)))), Codomain>)
-      return static_cast<Codomain>(g(at_codomain(f(x))));
-    else
-      return g(at_codomain(f(x)));
+    return at_codomain<Codomain>(g(at_codomain<Cod<F>>(f(x))));
   }
 };
 
