@@ -735,6 +735,12 @@ export template <typename T>
 inline constexpr bool is_natural_term_v = false;
 template <std::size_t N>
 inline constexpr bool is_natural_term_v<Expr<NatSort, N>> = true;
+/** @brief Whether @c T is ℤ's terms, of any capacity.  @tparam T the
+ *  carrier. */
+export template <typename T>
+inline constexpr bool is_integer_term_v = false;
+template <std::size_t N>
+inline constexpr bool is_integer_term_v<Expr<IntSort, N>> = true;
 
 /** @brief The successor and predecessor on ℕ, the NNO's step, as canonical
  *  terms: @c n + 1, and the monus @c n ∸ 1, @c 0 its fixed point.

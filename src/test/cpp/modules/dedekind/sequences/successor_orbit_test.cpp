@@ -63,3 +63,23 @@ TEST_CASE("sequences — the orbit's shape is the carrier's posture at the bound
   const SuccessorOrbit<NatExpr<>> nat{NatExpr<>{40u}};
   CHECK(nat.at(2) == NatExpr<>{42u});
 }
+
+TEST_CASE(
+    "sequences — the orbit on ℕ's and ℤ's terms adds the offset, at any "
+    "capacity",
+    "[sequences][nno][orbit][terms]") {
+  // A seed at its bound: 63 nodes, the sum 1 + 1 doubled five times.
+  NatExpr<> seed = NatExpr<>::atom(1);
+  for (int i = 0; i < 5; ++i) seed = seed + seed;
+  REQUIRE(seed.size() == 63u);
+  const SuccessorOrbit<NatExpr<>> at_bound{seed};
+  CHECK(at_bound.at(0) == seed);
+  CHECK(at_bound.at(3) == NatExpr<>{35u});
+  // The capacity is kept: ℕ at 128, and ℤ, a large offset in one addition.
+  const SuccessorOrbit<NatExpr<128>> wide{NatExpr<128>{5u}};
+  CHECK(wide.at(1000000) == NatExpr<128>{1000005u});
+  constexpr std::size_t big = std::size_t{1} << 62;
+  const SuccessorOrbit<IntExpr<>> integers{IntExpr<>{-5}};
+  CHECK(integers.at(big) == IntExpr<>{-5} + IntExpr<>::atom(big));
+  CHECK(integers.at(big).size() <= 3u);
+}

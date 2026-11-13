@@ -12,21 +12,20 @@
  *      sequence: IsSequence, IsCauchySequence, IsSeries, IsStreamComonad.
  *      Sits in the Ternary regime (float↔ℝ gap) ⇒ IsClassicallyConvergent
  *      honestly rejects.
- *   2. Mandelbrot orbit + @c DivergencePath — the dynamical-systems leg:
- *      @c mandelbrot_orbit(c) is an IsSequence; its escape-indicator
- *      @c DivergencePath is an IsAbsorptiveSequence (eventually constant).
- *   3. @c OrbitSequence<Modular<6>, +>      — the group-orbit / periodic
+ *   2. @c OrbitSequence<Modular<6>, +>      — the group-orbit / periodic
  *      leg: the orbit bridge lifts the carrier's cyclic order 6 to
  *      IsPeriodicSequence<…, 6>.
- *   4. a countable carrier (cardinality_type = ℵ_0) — the classical
+ *   3. a countable carrier (cardinality_type = ℵ_0) — the classical
  *      logical-collapse crown: IsClassicallyConvergent fires and a
  *      (bounded Sup, subsequence Sub) pair witnesses Bolzano–Weierstrass.
- *   5. @c QuadraticReal<2> (ℝ)              — the honest-rejection foil:
+ *   4. @c QuadraticReal<2> (ℝ)              — the honest-rejection foil:
  *      Cauchy-shaped but in the Ternary / continuum regime, so the
  *      Cauchy⇒convergent collapse (and hence BW) is Specker-blocked —
  *      exactly the carrier on which BW is classically famous.
  *
- * No carrier fires every row; the family jointly populates the chain. A
+ * No carrier fires every row; the family jointly populates the chain.  The
+ * dynamical-systems leg (the Mandelbrot orbit, its absorptive escape
+ * indicator) is asserted beside @c DivergencePath in @c numbers:mandelbrot. A
  * regression in any concept body or trait registration fails one leg here.
  */
 
@@ -42,11 +41,7 @@ import dedekind.sets;
 
 using namespace dedekind::sequences;
 using dedekind::morphologies::Modular;
-using dedekind::numbers::Complex;
-using dedekind::numbers::DivergencePath;
-using dedekind::numbers::mandelbrot_orbit;
 using dedekind::numbers::QuadraticReal;
-using dedekind::sets::RatExpr;
 
 namespace seq_meet {
 
@@ -88,16 +83,6 @@ TEST_CASE("sequence meeting-point — Path<double> fires the analytic rows",
   STATIC_CHECK(IsSeries<Path<double>>);
   STATIC_CHECK(IsStreamComonad<Path<double>>);
   STATIC_CHECK_FALSE(IsClassicallyConvergent<Path<double>>);  // float↔ℝ gap
-}
-
-TEST_CASE(
-    "sequence meeting-point — Mandelbrot orbit + DivergencePath "
-    "(dynamical-systems leg)",
-    "[sequences][meeting-point][mandelbrot]") {
-  const auto orbit = mandelbrot_orbit(Complex<RatExpr<>>{});
-  STATIC_CHECK(IsSequence<std::remove_cvref_t<decltype(orbit)>>);
-  // The escape indicator is eventually constant, absorptive (row 5): the
-  // static_assert beside DivergencePath in numbers:mandelbrot.
 }
 
 TEST_CASE(

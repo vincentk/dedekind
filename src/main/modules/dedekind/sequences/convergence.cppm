@@ -536,8 +536,10 @@ using dedekind::order::IsTotallyOrdered;
  *  is finite (K₃, @c IsAbsorptiveSequence) --- periodic on a wrapping one.
  *
  *  @c at(n) is @f$O(1)@f$ where the carrier's @c + is the iterated step
- *  (Peano addition, @f$S^{n}(a) = a + n@f$: the integrals, ℕ's @c NatExpr),
- *  and the @f$O(n)@f$ walk otherwise (K₃).
+ *  (Peano addition, @f$S^{n}(a) = a + n@f$: the integrals, and ℕ's and ℤ's
+ *  terms at any capacity, the seed's canonical form plus the atom @c n,
+ *  stored canonical), and the @f$O(n)@f$ walk otherwise (K₃).  @c at(0) is
+ *  the seed itself.
  *  @tparam N the carrier, with the NNO step. */
 export template <dedekind::category::HasNNOStep N>
 struct SuccessorOrbit : Path<N> {
@@ -545,12 +547,13 @@ struct SuccessorOrbit : Path<N> {
     this->generator = [seed](std::size_t n) -> N {
       if constexpr (std::integral<N>) {
         return static_cast<N>(seed + static_cast<N>(n));
-      } else if constexpr (requires {
-                             {
-                               seed + dedekind::sets::NatExpr<> { n }
-                             } -> std::same_as<N>;
-                           }) {
-        return seed + dedekind::sets::NatExpr<>{n};
+      } else if constexpr (dedekind::sets::is_natural_term_v<N> ||
+                           dedekind::sets::is_integer_term_v<N>) {
+        // The seed's canonical form, not the seed: a seed at its bound has
+        // no room for one more node.
+        if (n == 0) return seed;
+        return dedekind::sets::canonical(dedekind::sets::canonical(seed) +
+                                         N::atom(n));
       } else {
         N acc = seed;
         for (std::size_t i = 0; i < n; ++i)
