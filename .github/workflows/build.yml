@@ -119,7 +119,24 @@ jobs:
     # The build lints and tests each layer as soon as it is built, beside
     # the compilation of the layers above (CMake's `check`).
     - name: Build, Lint & Test
-      run: make check CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+      run: make check CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON -DCMAKE_CXX_FLAGS=-ftime-trace"
+
+    # MEASUREMENT ONLY (not for merge): per-file wall time and clang's
+    # time traces, to find what the build spends its time on.
+    - name: Publish build timings
+      if: always() && runner.os == 'Linux'
+      run: |
+        cd build
+        find . -name "*.json" -path "*CMakeFiles*" -size +1k | tar czf time-traces.tar.gz -T - || true
+    - name: Upload build timings
+      if: always() && runner.os == 'Linux'
+      uses: actions/upload-artifact@v7
+      with:
+        name: build-timings
+        if-no-files-found: warn
+        path: |
+          build/.ninja_log
+          build/time-traces.tar.gz
 
     # The report (gates, reported counts, the syntax inventory) is kept as an
     # artifact: the paper's closure table rests on the inventory as
