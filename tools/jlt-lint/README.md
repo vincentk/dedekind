@@ -3,19 +3,26 @@
 A linter for the Jlt fragment (#1060): the three rules of the Jlt paper
 (`docs/paper/jlt/jlt.tex`, Section 2), turned from a reading into a verdict.
 
-It runs **after** a layer's build: it reparses each file in scope through
+It runs **after** the build: it reparses each file in scope through
 `build/compile_commands.json`, which carries the module maps CMake wrote, so
-the prebuilt module files must exist.  The build owns it: `lint-<layer>`
-lints a layer's lines of `scope` once the layer and its tests are built,
-beside the compilation of the layers above, `lint-fixtures` the rest, and
-`lint` joins their reports into `build/jlt-lint/report.txt`.
+the prebuilt module files must exist.  The build owns it: `lint` (and so
+`make check` and `make jlt-lint`) lints the whole scope in one pass once
+everything is built, one pool of `NCPU` workers over every file, and writes
+`build/jlt-lint/report.txt` when it passes.  Its findings are kept in
+`build/jlt-lint/parts/all.txt` (and `all.json`) either way, so a failed run's
+findings are read there.  `lint-<layer>` lints one layer's lines of `scope`
+once that layer and its tests are built, and `lint-fixtures` the fixtures,
+for a look at one part; each writes `parts/<part>.txt`.
 
 ## Layout
 
 - `rules/<rule>.query`: one `clang-query` matcher per check, named for the rule
-  of the paper it checks.  A match is a finding.
+  of the paper it checks.  A match is a finding.  The tool parses them with
+  clang's dynamic matcher parser, as `clang-query` does, and runs them on the
+  parse its own checks read.
 - A rule file may name its own traversal (`set traversal AsIs`) when it needs
-  implicit nodes; the driver restores the default after it.
+  implicit nodes; the others match the code as written
+  (`IgnoreUnlessSpelledInSource`).
 - `scope`: one line per `<rule> <file-glob> <namespace> <expected|report>`.
   The rule matches beneath the namespace; a number is a gate, `report` is
   counted and printed, never failed.  Growing the linter is adding a rule file
@@ -26,9 +33,9 @@ beside the compilation of the layers above, `lint-fixtures` the rest, and
 - A listing's test file keeps the listing in a namespace of its own and the
   test cases outside it: Catch2's macros expand to loops and non-`constexpr`
   functions, which the rules would count against the listing.
-- `jlt_lint.py`: parses each file twice, once by `clang-query` with all its
-  matcher rules and once by the tool with all its checks
-  (`--check=a,b,...`, each check's findings in its own section), prints gate
+- `jlt_lint.py`: parses each file once, by the tool, with all its rules
+  (`--query=<rule files>` and `--check=a,b,...`, each rule's findings in its
+  own section), prints gate
   results, reported counts and a coverage table per rule, and fails on a gate
   mismatch, or if a file does not parse or a matcher does not run.  Files run
   in parallel, `NCPU` at a time (default: the number of cores); the report is
@@ -39,13 +46,15 @@ Run it with `make jlt-lint`, or with the tests as `make check`.
 
 ## The tool
 
-`tool/` is `jlt-lint`, a small LibTooling binary for the checks that need code
-rather than a pattern.  The build makes it (`jlt-lint-tool`) against the LLVM
-that compiles the tree, whose CMake packages and `clang-query` it finds next to
-the compiler (`-DClang_DIR`, `-DLLVM_DIR`, `-DDEDEKIND_CLANG_QUERY` name them
+`tool/` is `jlt-lint`, a small LibTooling binary that runs every rule of a
+file over one parse: the rule files' matchers, and its checks, the rules that
+need code rather than a pattern.  Each parse is a whole front end, constant
+evaluation of every `static_assert` included, so a file is parsed once.  The
+build makes it (`jlt-lint-tool`) against the LLVM
+that compiles the tree, whose CMake packages it finds next to
+the compiler (`-DClang_DIR`, `-DLLVM_DIR` name them
 otherwise; CI installs `libclang-23-dev` and `libclang-cpp23-dev` for them;
-without them `lint` fails and says so, and `-DDEDEKIND_JLT_LINT=OFF` drops it),
-and the linter runs it beside the clang-query rules on the same compilation database.  A
+without them `lint` fails and says so, and `-DDEDEKIND_JLT_LINT=OFF` drops it).  A
 rule file names one of its checks with `tool <check>` instead of match lines;
 the tool prints one finding per line as `path:line:col`, and the driver counts
 them like any other rule.  Checks so far: `mutual-recursion` (functions of the

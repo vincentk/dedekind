@@ -1,7 +1,8 @@
-# jlt-lint: the Jlt linter's checks that need code rather than a pattern
-# (#1060).  A standalone LibTooling binary on clang's shared library, run on
-# the compilation database like clang-query; built against the same LLVM that
-# built the tree (Clang_DIR / LLVM_DIR point at it).
+# jlt-lint: the Jlt linter (#1060), every rule of a file over one parse: the
+# rule files' clang-query matchers, through clang's dynamic matcher parser, and
+# the checks that need code rather than a pattern.  A standalone LibTooling
+# binary on clang's shared library, run on the compilation database; built
+# against the same LLVM that built the tree (Clang_DIR / LLVM_DIR point at it).
 cmake_minimum_required(VERSION 3.25)
 project(jlt-lint C CXX)  # C too: LLVM's CMake modules probe headers in C
 set(CMAKE_CXX_STANDARD 20)
@@ -22,6 +23,7 @@ endif()
 if(TARGET clang-cpp)
   target_link_libraries(jlt-lint PRIVATE clang-cpp LLVM)
 else()
-  target_link_libraries(jlt-lint PRIVATE clangTooling clangFrontend clangAnalysis
-    clangAST clangBasic clangLex clangSerialization clangDriver LLVMSupport)
+  target_link_libraries(jlt-lint PRIVATE clangTooling clangDynamicASTMatchers
+    clangASTMatchers clangFrontend clangAnalysis clangAST clangBasic clangLex
+    clangSerialization clangDriver LLVMSupport)
 endif()
