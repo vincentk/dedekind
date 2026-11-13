@@ -670,11 +670,11 @@ struct Compose final {
    *  rule for every boundary, the composite's own end included, so the two
    *  cannot drift.  @tparam To the declared codomain.  @param y the result. */
   template <typename To, typename Y>
-  static constexpr auto at_codomain(Y&& y) {
+  static constexpr auto at_codomain(Y y) {  // by value: the result as produced
     if constexpr (std::convertible_to<Y, To>)
-      return static_cast<To>(std::forward<Y>(y));
+      return static_cast<To>(std::move(y));
     else
-      return std::forward<Y>(y);
+      return y;
   }
   /** @brief Run the pipeline @c (g∘f)(x) = g(f(x)), at any presentation of
    *  the domain (@c morphism__Objects_And_Their_Presentations): two arrows
