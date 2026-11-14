@@ -96,5 +96,7 @@ add_custom_target(lint
             ${DEDEKIND_CLANG_QUERY} ${CMAKE_BINARY_DIR} ${_jlt_tool} --out ${_jlt_parts}
     COMMAND ${CMAKE_COMMAND} -E copy ${_jlt_parts}/all.txt ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    # Its NCPU workers share the pool with lint-<part>, never both at once.
+    JOB_POOL jlt_lint
     VERBATIM)
 add_dependencies(lint jlt-lint-tool ${_jlt_all_built})
