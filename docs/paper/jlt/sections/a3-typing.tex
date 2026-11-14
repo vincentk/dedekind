@@ -22,15 +22,15 @@ Four things rest on the programmer's discipline instead: a generic body held to 
 \begin{array}{@{}l@{\quad}l@{}}
 \textsc{(E-Assume)} & \dfrac{Q \in \Delta}{\Delta \Vdash Q}
 \\[12pt]
-\textsc{(E-Law)} & \dfrac{\varnothing; \varnothing \vdash e : \texttt{bool} \qquad e \Downarrow \texttt{true}}{\Delta \Vdash e}
+\textsc{(E-Law)} & \dfrac{\varnothing; \varnothing \vdash e : \texttt{bool} \quad e \Downarrow \texttt{true}}{\Delta \Vdash e}
 \\[12pt]
-\textsc{(E-Law-Assumed)} & \dfrac{\texttt{concept } C \texttt{ = } \overline{A} \qquad C\texttt{<}\overline{\tau}\texttt{>} \in \Delta \qquad e = A_i[\overline{\tau}/\overline{\alpha}] \text{ a law}}{\Delta \Vdash e}
+\textsc{(E-Law-Assumed)} & \dfrac{\texttt{concept } C \texttt{ = } \overline{A} \quad C\texttt{<}\overline{\tau}\texttt{>} \in \Delta \quad e = A_i[\overline{\tau}/\overline{\alpha}] \text{ a law}}{\Delta \Vdash e}
 \\[12pt]
-\textsc{(E-Shape)} & \dfrac{\texttt{concept } C \texttt{ = } \overline{A} \qquad C\texttt{<}\overline{\tau}\texttt{>} \notin \Delta \qquad \Delta \Vdash A_i[\overline{\tau}/\overline{\alpha}] \text{ for each } i}{\Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>}}
+\textsc{(E-Shape)} & \dfrac{\texttt{concept } C \texttt{ = } \overline{A} \quad C\texttt{<}\overline{\tau}\texttt{>} \notin \Delta \quad \Delta \Vdash A_i[\overline{\tau}/\overline{\alpha}] \text{ for each } i}{\Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>}}
 \\[12pt]
-\textsc{(E-Op)} & \dfrac{\Delta; \overline{x : \tau_x} \vdash e : \tau' \qquad \tau' \mathrel{S} \tau}{\Delta \Vdash \texttt{requires (}\overline{\texttt{const }\tau_x\; x}\texttt{) \{ \{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>; \}}}
+\textsc{(E-Op)} & \dfrac{\Delta; \overline{x : \tau_x} \vdash e : \tau' \quad \tau' \mathrel{S} \tau}{\Delta \Vdash \texttt{requires (}\overline{\texttt{const }\tau_x\; x}\texttt{) \{ \{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>; \}}}
 \\[12pt]
-\textsc{(E-Not)} & \dfrac{\overline{\tau} \text{ concrete} \qquad \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \notin \Delta \qquad \Delta \not\Vdash C\texttt{<}\overline{\tau}\texttt{>}}{\Delta \Vdash \texttt{!}C\texttt{<}\overline{\tau}\texttt{>}}
+\textsc{(E-Not)} & \dfrac{\overline{\tau} \text{ concrete} \quad \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \notin \Delta \quad \Delta \not\Vdash C\texttt{<}\overline{\tau}\texttt{>}}{\Delta \Vdash \texttt{!}C\texttt{<}\overline{\tau}\texttt{>}}
 \end{array}
 \]
 \caption{The rules of entailment, $\Delta \Vdash Q$.
@@ -51,17 +51,17 @@ A negated constraint \cppinline{!C<T>} carries no evidence.
 \begin{figure}[htbp]
 \[
 \begin{array}{@{}l@{\quad}l@{}}
-\textsc{(T-Op)} & \dfrac{O\texttt{<}\overline{\tau}\texttt{>} : \overline{\sigma} \to \sigma^{\ast} \qquad \Delta; \Gamma \vdash \overline{e : \sigma}}{\Delta; \Gamma \vdash O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{e}\texttt{)} : \sigma}
+\textsc{(T-Op)} & \dfrac{O\texttt{<}\overline{\tau}\texttt{>} : \overline{\sigma} \to \sigma^{\ast} \quad \Delta; \Gamma \vdash \overline{e : \sigma}}{\Delta; \Gamma \vdash O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{e}\texttt{)} : \sigma}
 \\[12pt]
-\textsc{(T-Conv)} & \dfrac{\Delta; \Gamma \vdash e : \tau' \qquad \tau' \text{ converts to } \tau}{\Delta; \Gamma \vdash \tau\texttt{(}e\texttt{)} : \tau}
+\textsc{(T-Conv)} & \dfrac{\Delta; \Gamma \vdash e : \tau' \quad \tau' \text{ converts to } \tau}{\Delta; \Gamma \vdash \tau\texttt{(}e\texttt{)} : \tau}
 \\[12pt]
-\textsc{(T-App)} & \dfrac{\begin{array}{c} O\text{'s call operator is } \forall\overline{\beta}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau_r \\ \Delta; \Gamma \vdash e : O\texttt{<}\overline{\tau}\texttt{>} \qquad \Delta \Vdash \overline{Q}[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}] \qquad \Delta; \Gamma \vdash \overline{e' : \tau_x[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}]} \end{array}}{\Delta; \Gamma \vdash e\texttt{(}\overline{e'}\texttt{)} : \tau_r[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}]}
+\textsc{(T-App)} & \dfrac{\begin{array}{c} O\text{'s call operator is } \forall\overline{\beta}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau_r \\ \Delta; \Gamma \vdash e : O\texttt{<}\overline{\tau}\texttt{>} \quad \Delta \Vdash \overline{Q}[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}] \quad \Delta; \Gamma \vdash \overline{e' : \tau_x[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}]} \end{array}}{\Delta; \Gamma \vdash e\texttt{(}\overline{e'}\texttt{)} : \tau_r[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}]}
 \\[12pt]
-\textsc{(T-Call)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to } f_i : \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau \qquad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \qquad \Delta; \Gamma \vdash \overline{e : \tau_x[\overline{\sigma}/\overline{\alpha}]}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau[\overline{\sigma}/\overline{\alpha}]}
+\textsc{(T-Call)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to } f_i : \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau \quad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \quad \Delta; \Gamma \vdash \overline{e : \tau_x[\overline{\sigma}/\overline{\alpha}]}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau[\overline{\sigma}/\overline{\alpha}]}
 \\[12pt]
-\textsc{(T-Trait)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to } \overline{\tau_x} \to \tau \qquad \Delta; \Gamma \vdash \overline{e : \tau_x}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau}
+\textsc{(T-Trait)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to } \overline{\tau_x} \to \tau \quad \Delta; \Gamma \vdash \overline{e : \tau_x}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau}
 \\[12pt]
-\textsc{(T-Const)} & \dfrac{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \text{ at } \tau^{\S} \qquad x \notin \Gamma}{\Delta; \Gamma \vdash x : \tau}
+\textsc{(T-Const)} & \dfrac{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \text{ at } \tau^{\S} \quad x \notin \Gamma}{\Delta; \Gamma \vdash x : \tau}
 \end{array}
 \]
 \caption{The rules for terms, $\Delta; \Gamma \vdash e : \tau$: calls, conversions and constants.
@@ -99,7 +99,7 @@ A law at a construction is entailed, not declared.
 The law is a trait call, resolution picks the instance whose context the program entails, and \textsc{E-Law} evaluates its certificate, which must be \texttt{true}.
 Composed, these give a derived rule, the instance rule of the entailment of qualified types~\cite{jones1994qualified}:
 \[
-\textsc{(E-Law-Ctx)}\quad \dfrac{\begin{array}{c} \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \text{ resolves to } \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \mathit{law}\texttt{<}\overline{\tau'}\texttt{>} \\ \overline{\tau} = \overline{\tau'}[\overline{\sigma}/\overline{\alpha}] \qquad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \qquad \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \Downarrow \texttt{true} \end{array}}{\Delta \Vdash \mathit{law}\texttt{<}\overline{\tau}\texttt{>}}
+\textsc{(E-Law-Ctx)}\quad \dfrac{\begin{array}{c} \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \text{ resolves to } \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \mathit{law}\texttt{<}\overline{\tau'}\texttt{>} \\ \overline{\tau} = \overline{\tau'}[\overline{\sigma}/\overline{\alpha}] \quad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \quad \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \Downarrow \texttt{true} \end{array}}{\Delta \Vdash \mathit{law}\texttt{<}\overline{\tau}\texttt{>}}
 \]
 A finite power of a semiring is a semimodule over it in this way.
 The library declares the power a product of its base, and one instance, whose context is the base's semiring laws, gives the power's semimodule law, as semimodules over a semiring form a variety, closed under products.
@@ -120,15 +120,15 @@ The library needs the conversion form in three cases: an expression that is a re
 \begin{figure}[htbp]
 \[
 \begin{array}{@{}l@{\quad}l@{}}
-\textsc{(T-Req-Assumed)} & \dfrac{C\texttt{<}\overline{\tau}\texttt{>} \in \Delta \qquad \texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \in C,\ \overline{a : \tau_a}^{\dagger} \qquad \Delta; \Gamma \vdash \overline{e : \tau_a}}{\Delta; \Gamma \vdash \tau^{S}\texttt{(}e_r[\overline{e}/\overline{a}]\texttt{)} : \tau}
+\textsc{(T-Req-Assumed)} & \dfrac{C\texttt{<}\overline{\tau}\texttt{>} \in \Delta \quad \texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \in C,\ \overline{a : \tau_a}^{\dagger} \quad \Delta; \Gamma \vdash \overline{e : \tau_a}}{\Delta; \Gamma \vdash \tau^{S}\texttt{(}e_r[\overline{e}/\overline{a}]\texttt{)} : \tau}
 \\[12pt]
-\textsc{(D-Generic)} & \dfrac{\overline{\alpha}, \overline{Q};\; \overline{x : \tau_x} \vdash e : \tau \qquad \rho \in \{\tau, \texttt{auto}\}}{\vdash \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q}\; \texttt{constexpr } \rho\; f\texttt{(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}}
+\textsc{(D-Generic)} & \dfrac{\overline{\alpha}, \overline{Q};\; \overline{x : \tau_x} \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\}}{\begin{array}[t]{@{}l@{}}\vdash \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q}\\ \quad\texttt{constexpr } \rho\; f\texttt{(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}\end{array}}
+\\[30pt]
+\textsc{(D-Instance)} & \dfrac{\varnothing;\; \overline{x : \tau_x} \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\}}{\vdash \texttt{template <> constexpr } \rho\; f\texttt{<}\overline{\sigma}\texttt{>(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}}
 \\[12pt]
-\textsc{(D-Instance)} & \dfrac{\varnothing;\; \overline{x : \tau_x} \vdash e : \tau \qquad \rho \in \{\tau, \texttt{auto}\}}{\vdash \texttt{template <> constexpr } \rho\; f\texttt{<}\overline{\sigma}\texttt{>(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}}
-\\[12pt]
-\textsc{(D-Op)} & \dfrac{\overline{\alpha}, \overline{\beta}, \overline{Q};\; \overline{y : \tau_y}, \overline{x : \tau_x} \vdash e : \tau \qquad \rho \in \{\tau, \texttt{auto}\}}{\vdash \begin{array}[t]{@{}l@{}}\texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau_y\; y}\texttt{; template <typename }\overline{\beta}\texttt{> requires } \overline{Q}\\ \quad\texttt{constexpr } \rho \texttt{ operator()(}\overline{\tau_x\; x}\texttt{) const \{ return } e\texttt{; \} \};}\end{array}}
-\\[12pt]
-\textsc{(D-Const)} & \dfrac{\varnothing; \varnothing \vdash e : \tau \qquad \rho \in \{\tau, \texttt{auto}\} \qquad e^{\ddagger}}{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;}}
+\textsc{(D-Op)} & \dfrac{\overline{\alpha}, \overline{\beta}, \overline{Q};\; \overline{y : \tau_y}, \overline{x : \tau_x} \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\}}{\begin{array}[t]{@{}l@{}}\vdash \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau_y\; y}\texttt{;}\\ \quad\texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q}\\ \quad\texttt{constexpr } \rho \texttt{ operator()(}\overline{\tau_x\; x}\texttt{) const \{ return } e\texttt{; \} \};}\end{array}}
+\\[44pt]
+\textsc{(D-Const)} & \dfrac{\varnothing; \varnothing \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\} \quad e^{\ddagger}}{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;}}
 \end{array}
 \]
 \caption{The definition check and the declarations, $\vdash D$: a generic body sees its constraints' requirements only.
@@ -161,13 +161,13 @@ A constant is typed once, closed, by \textsc{D-Const}, and its name has that typ
 \begin{figure}[htbp]
 \[
 \begin{array}{@{}l@{\quad}l@{}}
-\textsc{(T-Fold)} & \dfrac{\Delta; \Gamma \vdash r : R\texttt{<}\tau\texttt{>} \text{, } R \in \mathcal{R} \qquad \Delta; \Gamma \vdash a : \sigma \qquad \Delta; \Gamma \vdash f : \sigma \times \tau \to \sigma}{\Delta; \Gamma \vdash \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} : \sigma}
+\textsc{(T-Fold)} & \dfrac{\Delta; \Gamma \vdash r : R\texttt{<}\tau\texttt{>} \text{, } R \in \mathcal{R} \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma \vdash f : \sigma \times \tau \to \sigma}{\Delta; \Gamma \vdash \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} : \sigma}
 \\[12pt]
-\textsc{(T-Fold-R)} & \dfrac{\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \in \Delta \qquad \Delta; \Gamma \vdash r : R \qquad \Delta; \Gamma \vdash a : \sigma \qquad \Delta; \Gamma \vdash f : \sigma \times \tau \to \sigma}{\Delta; \Gamma \vdash \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} : \sigma}
+\textsc{(T-Fold-R)} & \dfrac{\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \in \Delta \quad \Delta; \Gamma \vdash r : R \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma \vdash f : \sigma \times \tau \to \sigma}{\Delta; \Gamma \vdash \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} : \sigma}
 \\[12pt]
-\textsc{(T-Cata)} & \dfrac{\Delta; \Gamma \vdash t : \mu F \qquad \Delta; \Gamma \vdash \mathit{alg} : \mu F \times \sigma^{k} \to \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{cata(}\mathit{alg}\texttt{, }t\texttt{)} : \sigma}
+\textsc{(T-Cata)} & \dfrac{\Delta; \Gamma \vdash t : \mu F \quad \Delta; \Gamma \vdash \mathit{alg} : \mu F \times \sigma^{k} \to \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{cata(}\mathit{alg}\texttt{, }t\texttt{)} : \sigma}
 \\[12pt]
-\textsc{(T-Node)} & \dfrac{\Delta; \Gamma \vdash t : O\texttt{<}\overline{\tau}\texttt{>} \qquad O \text{ a node of } F}{\Delta; \Gamma \vdash t : \mu F}
+\textsc{(T-Node)} & \dfrac{\Delta; \Gamma \vdash t : O\texttt{<}\overline{\tau}\texttt{>} \quad O \text{ a node of } F}{\Delta; \Gamma \vdash t : \mu F}
 \end{array}
 \]
 \caption{The rules for recursion, one per form: over a value, the standard's fold over a range of $\mathcal{R}$; over a type, the recursion at a term type, which the library spells \cppinline{cata}.

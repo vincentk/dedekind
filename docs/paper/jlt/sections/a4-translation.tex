@@ -1,7 +1,7 @@
 % !TEX root = ../jlt.tex
 \section{Translation into System F}
 \label{app:fjlt:translation}
-\newcommand{\note}[1]{\parbox[t]{0.33\linewidth}{\raggedright\footnotesize #1}}
+\newcommand{\note}[1]{\parbox[t]{0.31\linewidth}{\raggedright\footnotesize #1}}
 
 This appendix defines in full the arrow $\llbracket\cdot\rrbracket$ of Figure~\ref{fig:arrows} and Section~\ref{sec:translation} on the programs of Appendix~\ref{app:fjlt:typing}, by dictionary passing~\cite{wadler1989adhoc}: a constraint becomes a record type, an entailment derivation a record, and a generic function a function of those records.
 A template is always fully applied: $\alpha$ ranges over types, and there is no template template parameter, so System~F suffices as the target.
@@ -18,7 +18,8 @@ Records are nested pairs.
 \llbracket R\texttt{<}\tau\texttt{>} \rrbracket = \llbracket R \rrbracket \qquad \llbracket \mu F \rrbracket = \mu F & \\
 \qquad \text{with } F\,X = \textstyle\sum_{O} \prod \overline{\llbracket \tau_y \rrbracket}[X / \text{the leg types}] & \note{a range's state; a term type, the sum of its nodes' fields, a leg's type replaced by $X$} \\[6pt]
 \multicolumn{2}{l}{\textit{constraints, as record types}} \\
-\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \mathit{Dict}_C\,\overline{\llbracket \tau \rrbracket} = \{\,\overline{r_i : \llbracket A_i \rrbracket[\overline{\tau}/\overline{\alpha}]}\,\} \text{ where } \texttt{concept } C \texttt{ = } \overline{A} & \note{one field per requirement} \\
+\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \mathit{Dict}_C\,\overline{\llbracket \tau \rrbracket} = \{\,\overline{r_i : \llbracket A_i \rrbracket[\overline{\tau}/\overline{\alpha}]}\,\} & \note{one field per requirement} \\
+\qquad \text{where } \texttt{concept } C \texttt{ = } \overline{A} & \\
 \llbracket Q \rrbracket \text{ for a nested shape } Q & \note{its record type} \\
 \llbracket \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = 1 & \note{a negation carries no evidence} \\
 \llbracket e \rrbracket = \mathit{Bool} \text{ for a law } e & \\
@@ -95,7 +96,8 @@ So the translation needs no recursive binding, and the only recursion in a progr
 \multicolumn{2}{l}{\textit{recursion on a count, and on a term}} \\
 \llbracket \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} \rrbracket = {} & \\
 \qquad \pi_2\,(\mathit{iter}\,[\llbracket R \rrbracket \times \sigma]\,(\mathit{toNat}\,|\llbracket r \rrbracket|)\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket)) & \note{the iterator, over the range's length read as a natural} \\
-\qquad \text{where } \mathit{step} = \lambda p.\,\mathit{case}\,(\mathit{uncons}\,(\pi_1 p),\; \lambda u.\,p,\; \lambda c.\,(\pi_2 c,\; \llbracket f \rrbracket^{\!\circ}\,(\pi_2 p)\,(\pi_1 c))) & \note{the empty branch, which $\mathit{iter}$ never takes, keeps the state} \\
+\qquad \text{where } \mathit{step} = \lambda p.\,\mathit{case}\,(\mathit{uncons}\,(\pi_1 p),\; \lambda u.\,p, & \note{the empty branch, which $\mathit{iter}$ never takes, keeps the state} \\
+\qquad\qquad \lambda c.\,(\pi_2 c,\; \llbracket f \rrbracket^{\!\circ}\,(\pi_2 p)\,(\pi_1 c))) & \note{the other steps the callable on the head, beside the tail} \\
 \qquad \text{with } |\cdot|, \mathit{uncons} \text{ the operations of } R & \\
 \qquad \text{at a type variable } R \text{ (\textsc{T-Fold-R}):} & \\
 \qquad\quad \mathit{toNat} \circ q_Q.\mathit{size}, q_Q.\mathit{uncons} \text{ in their place} & \note{$q_Q$  the record of $Q = \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$  in $\Delta$} \\
