@@ -62,7 +62,7 @@ O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \note{a stand
 \llbracket e\texttt{(}\overline{e'}\texttt{)} \rrbracket = (\pi_2\,\llbracket e \rrbracket)\,[\overline{\llbracket \sigma \rrbracket}]\,\overline{d}\,\overline{\llbracket e' \rrbracket} & \note{\textsc{T-Op}, \textsc{T-App}: application; $\pi_2$ takes the call function out of the object's pair (construction, the line above)} \\
 \qquad \text{with } \overline{d} = \overline{\llbracket \Delta \Vdash Q[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}] \rrbracket} & \note{the call operator's dictionaries} \\
 \llbracket e_1 \oplus e_2 \rrbracket = \oplus\,\llbracket e_1 \rrbracket\,\llbracket e_2 \rrbracket \text{ or } \llbracket \texttt{operator}\oplus\texttt{(}e_1\texttt{, }e_2\texttt{)} \rrbracket & \note{a primitive of $\Sigma$, its constant; otherwise the call it resolves to, under the standard's rewrite where the candidate is rewritten or reversed; $\ominus$ alike} \\
-\llbracket e\texttt{.}y_i \rrbracket = \pi_i\,(\pi_1\,\llbracket e \rrbracket) & \note{a field, through the fields' pair} \\
+\llbracket e\texttt{.}y_i \rrbracket = \pi_i\,(\pi_1\,\llbracket e \rrbracket) & \note{a field: $\pi_1$ takes the fields out of the object's pair (construction, above), $\pi_i$ the field} \\
 \llbracket \tau\texttt{(}e\texttt{)} \rrbracket = \mathit{conv}_{\tau',\tau}\,\llbracket e \rrbracket & \note{a conversion between distinct carriers, a constant of type $\llbracket \tau' \rrbracket \to \llbracket \tau \rrbracket$; at $\tau' = \tau$, $\mathit{conv}_{\tau,\tau} = \lambda x.\,x$} \\
 \end{array}
 \]
