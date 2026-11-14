@@ -119,9 +119,18 @@ jobs:
     # The linter's own binary changes rarely and takes many minutes to build;
     # kept between runs, keyed on its sources and the toolchain, it no longer
     # competes with the compilation for the cores.
+    # The key names the packages' revisions, not only the compiler's version
+    # line: a rebuilt package can move the libraries the tool loads, and a
+    # cache entry is never overwritten under its key.
     - name: Toolchain key
       id: toolchain
-      run: echo "llvm=$("$CXX" --version | head -1 | tr -c 'A-Za-z0-9.' '-')" >> "$GITHUB_OUTPUT"
+      run: |
+        if [ "$RUNNER_OS" = Linux ]; then
+          pkgs=$(dpkg-query -W -f='${Package}=${Version} ' 'libclang-cpp23*' 'libllvm23*' 2>/dev/null || true)
+        else
+          pkgs=$(brew list --versions llvm || true)
+        fi
+        echo "llvm=$(printf '%s %s' "$("$CXX" --version | head -1)" "$pkgs" | tr -c 'A-Za-z0-9.' '-')" >> "$GITHUB_OUTPUT"
 
     - name: Restore the jlt-lint tool
       id: jlt-tool
@@ -135,8 +144,8 @@ jobs:
     - name: Build, Lint & Test
       run: |
         tool=""
-        # A restored binary is used only if it starts: a toolchain update can move
-        # the libraries it loads without changing the version line in the key.
+        # A restored binary is used only if it starts; otherwise the build makes
+        # its own, as on a miss.
         if [ -x .jlt-lint-tool/jlt-lint ] && .jlt-lint-tool/jlt-lint --help >/dev/null 2>&1; then
           tool="-DDEDEKIND_JLT_LINT_TOOL=$PWD/.jlt-lint-tool/jlt-lint"
         fi
