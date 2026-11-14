@@ -114,7 +114,7 @@ namespace dedekind::category {
 //   2. @c F @c >> @c G, functors composed, which must compose their
 //      actions on arrows too: its overload (@c :functor) repeats the
 //      arrow overload's constraints and adds its own, so resolution
-//      prefers it by subsumption, as it does the unit laws below.
+//      prefers it by subsumption.
 //
 // A functor's action on an arrow is no composition and has no @c >>: it is
 // @c F(f).
@@ -870,10 +870,9 @@ constexpr auto operator>>(F f, G g) {
   return Compose<std::decay_t<F>, std::decay_t<G>>{std::move(f), std::move(g)};
 }
 
-/** @brief The unit law, decided at the type: an identity on the matching
- *  object composes to the other leg itself, not to a @c Compose around it.
- *  The overloads repeat the generic one's constraints and add one, so
- *  resolution orders them by subsumption (Jlt paper, Listing 1). */
+/** @brief Trait: an identity arrow, by its type.
+ *  @c >> composes an identity like any arrow; the unit law is read in the
+ *  normal form (@c :f_algebra), never at the composite's construction. */
 template <typename T>
 inline constexpr bool is_identity_v = false;
 template <typename A>
@@ -894,37 +893,6 @@ template <typename Cat>
 inline constexpr bool is_identity_v<IdentityIn<Cat>> = true;
 export template <typename T>
 concept IsIdentityArrow = IsArrow<T> && is_identity_v<std::remove_cvref_t<T>>;
-export template <typename F, typename G>
-  requires IsArrow<std::decay_t<F>> && IsArrow<std::decay_t<G>> &&
-           std::same_as<typename std::decay_t<F>::Codomain,
-                        typename std::decay_t<G>::Domain> &&
-           IsIdentityArrow<F>
-constexpr auto operator>>(F, G g) {
-  return g;
-}
-export template <typename F, typename G>
-  requires IsArrow<std::decay_t<F>> && IsArrow<std::decay_t<G>> &&
-           std::same_as<typename std::decay_t<F>::Codomain,
-                        typename std::decay_t<G>::Domain> &&
-           IsIdentityArrow<G>
-constexpr auto operator>>(F f, G) {
-  return f;
-}
-export template <typename F, typename G>
-  requires IsArrow<std::decay_t<F>> && IsArrow<std::decay_t<G>> &&
-           std::same_as<typename std::decay_t<F>::Codomain,
-                        typename std::decay_t<G>::Domain> &&
-           IsIdentityArrow<F> && IsIdentityArrow<G>
-constexpr auto operator>>(F f, G) {
-  return f;
-}
-static_assert(
-    std::same_as<decltype(id<int>() >> endo<int>(std::negate<int>{})),
-                 decltype(endo<int>(std::negate<int>{}))> &&
-        std::same_as<decltype(endo<int>(std::negate<int>{}) >> id<int>()),
-                     decltype(endo<int>(std::negate<int>{}))> &&
-        std::same_as<decltype(id<int>() >> id<int>()), Identity<int>>,
-    "id >> f is f, f >> id is f and id >> id is id, by resolution");
 
 /** @brief Composition as an operation, the function object whose call is
  *  @c f >> g, so that a fold or a shape can take it as it takes
@@ -994,35 +962,12 @@ constexpr auto operator>>(F f, G g) {
   return arrow<A>(std::move(f)) >> std::move(g);
 }
 
-/** @section morphism__Categorical_2 Verification: The Unit Laws (f ∘ id = f =
- * id ∘ f) */
-
-// 1. Proof: Morphism Identity (Existence & Tagging)
-// We verify that id exists and chains with tagged morphisms.
-static_assert(
-    IsArrow<decltype(id<int>() >> arrow<int, int>(std::negate<int>{}))>,
-    "Unit Law: id_A must be a left-identity for morphisms out of A.");
-
-static_assert(IsArrow<decltype(endo<int>(std::negate<int>{}) >> id<int>())>,
-              "Unit Law: id_B must be a right-identity for morphisms into B.");
-
-// 2. Proof: Cross-Species Identity
-// id_Z combined with a Z -> B bridge must result in a Z -> B bridge
+// Proof: Cross-Species Morphism
 /** @section morphism__Cross_Species_Proof: Z -> B */
 static_assert(
     IsArrow<decltype(arrow<int, bool>([](int x) { return x > 0; }))>,
     "Skeletal Failure: Failed to construct an anonymous cross-species "
     "Morphism.");
-
-// 3. Proof: Extensional Equality (The Action)
-// The composite morphism (f ∘ id) must yield the same value as f.
-static_assert((endo<int>(std::negate<int>{}) >> id<int>())(42) == -42,
-              "Action Proof: Composition with id must be value-invariant.");
-
-// 4. Proof: Categorical Unity (id ∘ id = id)
-static_assert(
-    IsArrow<decltype(id<int>() >> id<int>())>,
-    "Unity: id composed with itself must remain the Identity Morphism.");
 
 /** @brief Hook: an arrow that is its own inverse (@f$f \circ f =
  * \mathrm{id}@f$). Declared here, with the @c inverse it licenses, ahead of @c
@@ -1480,8 +1425,8 @@ concept HasArrowComposeOperators =
       { f >> g } -> IsArrow;
     };
 
-// Witness: Identity arrows compose (id_int >> id_int = id_int) — the
-// canonical syntactic check of @c >> availability on the simplest pair.
+// Witness: Identity arrows compose: the canonical syntactic check of @c >>
+// availability on the simplest pair.
 static_assert(HasArrowComposeOperators<Identity<int>, Identity<int>>,
               "Identity<int> must support @c >> arrow composition with "
               "itself; this is the canonical fish-operator witness.");
