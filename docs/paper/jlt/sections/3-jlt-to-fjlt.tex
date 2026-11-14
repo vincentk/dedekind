@@ -1,7 +1,6 @@
 % !TEX root = ../jlt.tex
 \section{From Jlt to Featherweight Jlt}
-\label{sec:translation:adequacy}
-\label{sec:fjlt:syntax}
+\label{sec:jlt-to-fjlt}
 
 This section describes the $-$sugar arrow of Figure~\ref{fig:arrows}.
 The source is Jlt, a fragment of \Cpp{23} circumscribed by the three rules of Section~\ref{sec:posture}.
@@ -70,3 +69,4 @@ A loop that shows its end is sugar for the fold it denotes: a counted \cppinline
 Its state is no objection: a counter inside a \cppinline{constexpr} function cannot escape it, since constant evaluation lets a function modify only objects whose lifetime began within the call~\cite[{\texttt{expr.const}}]{cpp23standard}, the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
 A branch on a type, the sugar that matters most, becomes a family of generic functions ordered by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent; Listing~\ref{lst:laws}'s two specialisations, each licensed by a law, compose under it.
 That each desugaring keeps the meaning is the paper's working hypothesis, the dashed arrow of Figure~\ref{fig:arrows}, named and not proved: the compiler holds none of the rules in full, and the constructions are complete by measurement for the listings and the library's core, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}).
+The two directions together are the paper's adequacy argument: the inclusion by construction, the converse by the working hypothesis.

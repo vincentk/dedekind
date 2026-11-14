@@ -94,10 +94,10 @@ So the translation needs no recursive binding, and the only recursion in a progr
 \multicolumn{2}{l}{\textit{recursion on a count, and on a term}} \\
 \llbracket \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} \rrbracket = {} & \\
 \qquad \pi_2\,(\mathit{iter}\,[\llbracket R \rrbracket \times \sigma]\,(\mathit{toNat}\,|\llbracket r \rrbracket|)\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket)) & \note{the iterator, over the range's length read as a natural} \\
-\qquad \text{where } \mathit{step} = \lambda p.\,(\mathit{next}\,(\pi_1 p),\; \llbracket f \rrbracket^{\!\circ}\,(\pi_2 p)\,(\mathit{head}\,(\pi_1 p))) & \note{the position carried beside the state} \\
-\qquad \text{with } |\cdot|, \mathit{head}, \mathit{next} \text{ the operations of } R & \\
+\qquad \text{where } \mathit{step} = \lambda p.\,\mathit{case}\,(\mathit{uncons}\,(\pi_1 p),\; \lambda u.\,p,\; \lambda c.\,(\pi_2 c,\; \llbracket f \rrbracket^{\!\circ}\,(\pi_2 p)\,(\pi_1 c))) & \note{the empty branch, which $\mathit{iter}$ never takes, keeps the state} \\
+\qquad \text{with } |\cdot|, \mathit{uncons} \text{ the operations of } R & \\
 \qquad \text{at a type variable } R \text{ (\textsc{T-Fold-R}):} & \\
-\qquad\quad \mathit{toNat} \circ q_Q.\mathit{size}, q_Q.\mathit{head}, q_Q.\mathit{next} \text{ in their place} & \note{$q_Q$  the record of $Q = \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$  in $\Delta$} \\
+\qquad\quad \mathit{toNat} \circ q_Q.\mathit{size}, q_Q.\mathit{uncons} \text{ in their place} & \note{$q_Q$  the record of $Q = \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$  in $\Delta$} \\
 \llbracket \texttt{cata(}\mathit{alg}\texttt{, }t\texttt{)} \rrbracket = \pi_2\,(\mathit{fold}_F\,[\mu F \times \sigma]\,\beta\,\llbracket t \rrbracket) & \note{a recursion over a term type, the library's \texttt{cata}} \\
 \qquad \text{where } \beta = \lambda n'.\,(\mathrm{in}\,(F\,\pi_1\,n'), & \\
 \qquad\qquad \llbracket \mathit{alg} \rrbracket^{\!\circ}\,(\mathrm{in}\,(F\,\pi_1\,n'))\,(F\,\pi_2\,n')) & \note{the node rebuilt beside its result} \\
@@ -118,9 +118,10 @@ The kernel's ranges are library adapters, and any instance of $\mathcal{R}$ woul
 \cppinline{n >> chain(prior)} is the chain of a count under Figure~\ref{fig:structures}'s $\mathit{prior}$: head \cppinline{prior(n)}, tail \cppinline{prior(n) >> chain(prior)}, empty where \cppinline{prior(n)} is nothing, finite because the step descends (Section~\ref{sec:posture}).
 \cppinline{transform(r, g)} is Listing~\ref{lst:rule3}'s \cppinline{r >> g}: head \cppinline{g(head r)}, tail \cppinline{transform(next r, g)}, length $|r|$.
 \cppinline{iota(i, j)}, with $i \le j$, as reversed endpoints are undefined behaviour and not an empty range, has head $i$ and tail \cppinline{iota(i + 1, j)}.
-Each instance $R$ of $\mathcal{R}$ over $\tau$ contributes a state type $\llbracket R \rrbracket$, a constructor constant $c_R$, and $|\cdot| : \llbracket R \rrbracket \to \llbracket \texttt{size\_t} \rrbracket$, $\mathit{head} : \llbracket R \rrbracket \to \llbracket \tau \rrbracket$ and $\mathit{next} : \llbracket R \rrbracket \to \llbracket R \rrbracket$, constants for a base range and terms over the parts for a range built on another.
-A range translates to $c_R\,\overline{\llbracket e \rrbracket}$ on its arguments, and \cppinline{size}, \cppinline{head} and \cppinline{next} to those three.
-The state of \cppinline{n >> chain(prior)} is $\llbracket N \rrbracket$, that of \cppinline{transform(r, g)} is $\llbracket R \rrbracket \times \llbracket g \rrbracket$, the arrow carried so that $\mathit{head}$ applies it and $\mathit{next}$ keeps it, and that of \cppinline{iota(i, j)} is $\mathbb{N} \times \mathbb{N}$.
+Each instance $R$ of $\mathcal{R}$ over $\tau$ contributes a state type $\llbracket R \rrbracket$, a constructor constant $c_R$, and $|\cdot| : \llbracket R \rrbracket \to \llbracket \texttt{size\_t} \rrbracket$ and $\mathit{uncons} : \llbracket R \rrbracket \to 1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket$, the empty case or the head and the tail, constants for a base range and terms over the parts for a range built on another.
+Both are total, as System~F's functions are: the empty state is the first injection, a branch the step has and $\mathit{iter}$ never takes, since it runs $|r|$ times.
+A range translates to $c_R\,\overline{\llbracket e \rrbracket}$ on its arguments, and the record of $\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$ at an instance $R$ is $\{\mathit{size} = |\cdot|, \mathit{uncons}\}$.
+The state of \cppinline{n >> chain(prior)} is $\llbracket N \rrbracket$, that of \cppinline{transform(r, g)} is $\llbracket R \rrbracket \times \llbracket g \rrbracket$, the arrow carried so that the head applies it and the tail keeps it, and that of \cppinline{iota(i, j)} is $\mathbb{N} \times \mathbb{N}$.
 
 \paragraph{Boxes.}
 A box translates to a unary product rather than to nothing, on purpose, \cppinline{make_shared} to $((), \llbracket e \rrbracket)$ and $\texttt{*}e$ to $\pi_2\,\llbracket e \rrbracket$: a box's only observable is its content, as no \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes is a term, so which box holds it is erased, and the unit component keeps unboxing a step on both sides, which Lemma~\ref{lem:forward} needs.
@@ -139,7 +140,7 @@ $\tau \times \sigma$, $(a, b)$, $\pi_1$, $\pi_2$~\cite{pierce1991basic} & \textt
 $1 + \tau$, inl, inr, case & \texttt{optional<τ>}, $\iota_1\,e$, $\iota_2\,e$, \texttt{case(s, f, g)} & \texttt{nullopt}, \texttt{optional\{e\}}, \texttt{s.transform(g).value\_or(f)}, $f$ the value for the empty one & an encoding has junk in the unused field \\
 $\tau + \sigma$, inl, inr, case & \texttt{variant<τ, σ>}, $\iota_1\,e$, $\iota_2\,e$, \texttt{case(s, f, g)} & \texttt{variant<τ, σ>(in\_place\_index<i-1>, e)}, a dispatch on the index, as the library's \texttt{Copairing} & the same \\
 a unary product & \texttt{shared\_ptr<const τ>}, \texttt{make\_shared}, \texttt{*} & the same & a box has no identity to observe \\
-a state $\llbracket R \rrbracket$, \textit{iter} & $R\texttt{<}\tau\texttt{>}$, \texttt{fold\_left(r, a, f)}, \texttt{size}, \texttt{head}, \texttt{next} & \texttt{std::ranges::fold\_left}, \texttt{ranges::size}, \texttt{*ranges::begin} under a guard, the instance's own & it is the recursion \\
+a state $\llbracket R \rrbracket$, \textit{iter} & $R\texttt{<}\tau\texttt{>}$, \texttt{fold\_left(r, a, f)} & \texttt{std::ranges::fold\_left}, \texttt{ranges::size}, \texttt{*ranges::begin} under a guard, the instance's own & it is the recursion \\
 $\mu F$, its fold & nested nodes $O\texttt{<}\overline{\tau}\texttt{>}$, \texttt{cata(alg, t)} & the library's & it is the recursion \\
 \bottomrule
 \end{tabularx}

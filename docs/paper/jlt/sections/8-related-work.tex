@@ -4,7 +4,7 @@
 
 \paragraph{Type classes.}
 Dictionary passing is Wadler and Blott's~\cite{wadler1989adhoc}.
-Table~\ref{tab:dictionary} is that translation with \Cpp{}'s names in the left column, and the row without a counterpart there, structural satisfaction, is a difference Bernardy et al.~\cite{bernardy2010generic} weigh in their comparison of concepts and type classes.
+Table~\ref{tab:rules} is that translation, and its \textsc{E-Op} row, structural satisfaction, has no counterpart in a nominal type-class system, a difference Bernardy et al.~\cite{bernardy2010generic} weigh in their comparison of concepts and type classes.
 Coherence, that a program has one meaning however its constraints are resolved, is where the designs diverge: Racordon et al.~\cite{racordon2025coherence} survey how Haskell, Swift, Rust and Scala keep or trade it, between unique instances and context-dependent resolution.
 FJlt takes the strict side by construction, since an instance is a function specialisation and the one-definition rule admits one per head.
 Theorem~\ref{thm:coherence} is that choice stated as a property of the translation, and the price, that instances for families of types declared after their shape do not fit, is in Section~\ref{sec:limits}.

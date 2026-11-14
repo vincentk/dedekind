@@ -202,7 +202,7 @@ In \Cpp{}, a fold over a type is a function template instantiated once per node,
 Each node of a term is a class template whose type names its children's, as \cppinline{dec >> dec} composes two composites, with \cppinline{dec = -id_u >> ~id_u}, so the term's shape is its type.
 The recursion is then the compiler's instantiation, which ends with the type's finite height.
 A fold over a value is the standard's \cppinline{ranges::fold_left} over a range whose rank is bounded before the first step, by its length or by a budget declared with it.
-A loop whose end nothing shows stays out; one that shows it is sugar for the fold it denotes (Section~\ref{sec:translation:adequacy}).
+A loop whose end nothing shows stays out; one that shows it is sugar for the fold it denotes (Section~\ref{sec:jlt-to-fjlt}).
 
 
 \begin{listing}[htbp]
