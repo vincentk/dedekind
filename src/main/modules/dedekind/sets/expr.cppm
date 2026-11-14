@@ -666,8 +666,9 @@ constexpr std::optional<RatExpr<N>> checked_canonical(const RatExpr<N>& e) {
  *  in Horner form: the dyadic scale of a double.  @param k the exponent. */
 export template <IsSort S, std::size_t N = default_capacity>
 constexpr Expr<S, N> power_of_two(std::size_t k) {
-  std::vector<Numeral::limb> limbs(k / 64 + 1, Numeral::limb{});
-  limbs.back() = Numeral::limb{1} << (k % 64);
+  // The zero limbs, then the top one: built in order, no limb assigned.
+  std::vector<Numeral::limb> limbs(k / 64, Numeral::limb{});
+  limbs.push_back(Numeral::limb{1} << (k % 64));
   return detail_expr::natural<S, N>(Numeral{std::move(limbs)});
 }
 

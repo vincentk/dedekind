@@ -1,9 +1,8 @@
-# The Jlt linter in the build (#1060): lint-<part> lints one part of the scope
-# (a layer, or the fixtures) as soon as that part is built, beside the
-# compilation of the layers above, and `lint` joins the parts' findings into
-# build/jlt-lint/report.txt.  Which line belongs to which part, jlt_lint.py
+# The Jlt linter in the build (#1060): `lint` lints the whole scope in one pass
+# once everything is built, into build/jlt-lint/report.txt; lint-<part> lints
+# one part of it (a layer, or the fixtures).  Which line belongs to which part, jlt_lint.py
 # says (part_of); the build only names the parts.
-option(DEDEKIND_JLT_LINT "Lint each layer with tools/jlt-lint as it is built" ON)
+option(DEDEKIND_JLT_LINT "Lint the tree with tools/jlt-lint once it is built" ON)
 if(NOT DEDEKIND_JLT_LINT)
     return()
 endif()
@@ -71,7 +70,9 @@ function(add_jlt_lint_part PART)
     set_property(GLOBAL APPEND PROPERTY DEDEKIND_LINT_PARTS lint-${PART})
 endfunction()
 
-# A layer's files: its library, and its tests where it has them.
+# A layer's files: its library, and its tests where it has them.  lint-<PART>
+# lints one part, for a look at one layer.
+set(_jlt_all_built)
 get_property(_jlt_layers GLOBAL PROPERTY DEDEKIND_LAYERS)
 foreach(layer IN LISTS _jlt_layers)
     set(_jlt_built dedekind_${layer})
@@ -79,14 +80,21 @@ foreach(layer IN LISTS _jlt_layers)
         list(APPEND _jlt_built test_${layer})
     endif()
     add_jlt_lint_part(${layer} ${_jlt_built})
+    list(APPEND _jlt_all_built ${_jlt_built})
 endforeach()
 # The fixtures are standalone: they need only the linter.
 add_jlt_lint_part(fixtures)
 
-# The report of the whole scope; it fails if a part of the scope has no target.
-get_property(_jlt_lint_parts GLOBAL PROPERTY DEDEKIND_LINT_PARTS)
+# The whole scope in one pass, once everything is built: one pool of NCPU
+# workers over every file, so no part waits for another part's last files.
+# (Part by part, in sequence, the lint took four times as long: each part's
+# pool idled on its tail, and a small layer used few of the cores.)
 add_custom_target(lint
-    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/jlt_lint.py --join ${_jlt_parts}
+    # The report is this run's or none: an earlier pass's report goes first.
+    COMMAND ${CMAKE_COMMAND} -E rm -f ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/jlt_lint.py
+            ${DEDEKIND_CLANG_QUERY} ${CMAKE_BINARY_DIR} ${_jlt_tool} --out ${_jlt_parts}
+    COMMAND ${CMAKE_COMMAND} -E copy ${_jlt_parts}/all.txt ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     VERBATIM)
-add_dependencies(lint ${_jlt_lint_parts})
+add_dependencies(lint jlt-lint-tool ${_jlt_all_built})

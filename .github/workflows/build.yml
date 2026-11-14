@@ -116,16 +116,16 @@ jobs:
     - name: Check Code Formatting
       run: make format-check CLANG_FORMAT="$CLANG_FORMAT"
 
-    # The build lints and tests each layer as soon as it is built, beside
-    # the compilation of the layers above (CMake's `check`).
+    # Build, then the lint in one pass over the whole tree and the tests
+    # (CMake's `check`).
     - name: Build, Lint & Test
       run: make check CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
     # The report (gates, reported counts, the syntax inventory) is kept as an
     # artifact: the paper's closure table rests on the inventory as
     # supplementary material, so the counts live here and not in the paper.
-    # report.txt joins the layers' reports (parts/), and exists only when
-    # every layer linted; the parts are kept for a failure.
+    # report.txt is the lint's report, written when the lint passes; parts/
+    # keeps the findings (all.txt) for a failure.
     - name: Publish the lint report
       if: always()
       uses: actions/upload-artifact@v7
