@@ -59,6 +59,9 @@ struct ConstantMorphism final {
   B value;
 
   constexpr B operator()(const A&) const noexcept { return value; }
+  /** @brief Equal where the values are: then the arrows are.  What the laws'
+   *  normal form compares a constant by (@c :f_algebra). */
+  constexpr bool operator==(const ConstantMorphism&) const = default;
 };
 
 /**

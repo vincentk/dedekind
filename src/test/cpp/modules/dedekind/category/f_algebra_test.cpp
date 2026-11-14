@@ -22,8 +22,10 @@
  */
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <cstddef>
 #include <functional>
 #include <type_traits>
+#include <utility>
 
 import dedekind.category;
 
@@ -305,4 +307,29 @@ static_assert(is_identity(id_u >> id_u) && is_identity(~id_u >> ~id_u) &&
                   !is_identity(~id_u) && is_involution(~id_u) &&
                   is_antitone(~id_u) && is_monotone(id_u >> id_u),
               "the laws asked on the value read the normal form");
+
+// Two more laws on adjacent atoms: a constant absorbs the arrow before it,
+// c ∘ f = c, and a projection after a pairing selects its leg, π₁ ∘ ⟨f, g⟩ =
+// f (the product's β).  The arrows are the Jlt paper's Listing 1.
+constexpr auto id_b = id<bool>();
+constexpr auto nil = constant<bool>(0uz);
+constexpr auto one = constant<bool>(1uz);
+constexpr auto ans = constant<bool>(42uz);
+constexpr auto nay = constant<std::size_t>(false);
+constexpr auto fst = Π<1, std::pair<bool, std::size_t>>{};
+constexpr auto snd = Π<2, std::pair<bool, std::size_t>>{};
+constexpr auto sec = Pairing{id_b, nil};  // ⟨1, 0⟩
+static_assert(ans == nil >> nay >> ans && ans == !id_b >> nil >> nay >> ans &&
+                  std::same_as<decltype(cata(nil >> nay >> ans)),
+                               std::remove_cvref_t<decltype(ans)>> &&
+                  ((nil >> nay >> ans) == (nil >> nay >> one)).verdict ==
+                      Ternary::Unknown,
+              "a constant absorbs what precedes it; two constants of one "
+              "type compare by their values");
+static_assert(id_b == sec >> fst && nil == sec >> snd &&
+                  std::same_as<decltype(cata(sec >> fst)), Identity<bool>> &&
+                  is_iso(sec >> fst) && !IsMonicArrow<decltype(sec >> fst)>,
+              "a projection after a pairing is its leg, so sec >> fst is the "
+              "identity, an iso, which the engine on the composite's legs "
+              "does not see");
 }  // namespace normal_form_laws
