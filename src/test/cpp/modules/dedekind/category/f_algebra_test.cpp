@@ -78,6 +78,13 @@ struct HP {
 constexpr auto left_p = Compose<Compose<F, GP>, HP>{{F{}, GP{}}, HP{}};
 constexpr auto right_p = Compose<F, Compose<GP, HP>>{F{}, {GP{}, HP{}}};
 static_assert(left_p(0u) == 1u && right_p(0u) == 1u && left_p == right_p);
+// The product's β drops no conversion (Copilot, #1204): G returns 2u where
+// it declares bool, which the pairing converts, so π₁ after ⟨G, G⟩ is not G
+// alone, and the composite stays as it is, converting still.
+constexpr auto first_of_g = Pairing{G{}, G{}} >> Π<1, std::pair<bool, bool>>{};
+static_assert(first_of_g(0u) == true &&
+              is_compose_v<decltype(cata(first_of_g))> &&
+              cata(first_of_g)(0u) == true);
 }  // namespace converting_codomain
 
 namespace {
@@ -334,4 +341,20 @@ static_assert(id_b == sec >> fst && nil == sec >> snd &&
               "a projection after a pairing is its leg, so sec >> fst is the "
               "identity, an iso, which the engine on the composite's legs "
               "does not see");
+// Every node a reduce_β rebuilds is reduced before a law is read, a pairing's
+// legs too; the swapped projections, each then an identity, are Flip.
+using Bools = std::pair<bool, bool>;
+constexpr auto swap_ids = Pairing{Π<2, Bools>{} >> id_b, Π<1, Bools>{} >> id_b};
+static_assert(is_monic(Pairing{sec >> fst, nil}) &&
+                  std::same_as<decltype(cata(swap_ids)), Flip<bool, bool>> &&
+                  is_involution(swap_ids) && !IsInvolution<decltype(swap_ids)>,
+              "the laws read the normal form of every node cata reduces");
+// A node with legs but no reduce_β, a lattice's Meet, is opaque to the normal
+// form: an atom, not descended into.
+constexpr auto both = Meet{id_b, id_b};
+static_assert(std::same_as<decltype(cata(both >> id_b)),
+                           std::remove_cvref_t<decltype(both)>> &&
+                  !is_identity(both >> id_b) &&
+                  ((both >> id_b) == both).verdict == Ternary::Unknown,
+              "a node no reduce_β rebuilds is an atom of the normal form");
 }  // namespace normal_form_laws

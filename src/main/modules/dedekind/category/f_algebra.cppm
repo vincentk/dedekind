@@ -278,15 +278,25 @@ concept CancelsAdjacent = IsInvolution<X> && has_one_value_v<X>;
 /** @brief A constant arrow, by its type. */
 template <typename Y>
 concept IsConstantAtom = std::same_as<Y, ConstantMorphism<Dom<Y>, Cod<Y>>>;
-template <typename P>
-inline constexpr bool is_pairing_v = false;
+/** @brief An arrow whose call returns its declared codomain itself, so that
+ *  no boundary has a conversion to make on its result. */
+template <typename F>
+concept ReturnsItsCodomain = std::same_as<
+    std::remove_cvref_t<std::invoke_result_t<const F&, const Dom<F>&>>, Cod<F>>;
+/** @brief The leg @c K of a pairing may stand for the pairing then @c π_K:
+ *  the pairing converts each leg's result to its declared codomain, so the
+ *  leg alone is the same arrow only where it returns that codomain. */
+template <typename P, std::size_t K>
+inline constexpr bool selects_v = false;
 template <typename F, typename G>
-inline constexpr bool is_pairing_v<Pairing<F, G>> = true;
+inline constexpr bool selects_v<Pairing<F, G>, 1> = ReturnsItsCodomain<F>;
+template <typename F, typename G>
+inline constexpr bool selects_v<Pairing<F, G>, 2> = ReturnsItsCodomain<G>;
 /** @brief A projection after a pairing: @f$\pi_k \circ \langle f_1, f_2
- *  \rangle = f_k@f$, the product's β. */
+ *  \rangle = f_k@f$, the product's β, where the leg returns its codomain. */
 template <typename P, typename Y>
-concept ProjectsPairing =
-    is_pairing_v<P> && (IsPairProjection<Y, 1> || IsPairProjection<Y, 2>);
+concept ProjectsPairing = (IsPairProjection<Y, 1> && selects_v<P, 1>) ||
+                          (IsPairProjection<Y, 2> && selects_v<P, 2>);
 /** @brief Two adjacent atoms, @c p then @c y, that a law rewrites: a copy
  *  that @c CancelsAdjacent, a constant after any arrow, or a projection
  *  after a pairing. */
@@ -509,16 +519,41 @@ constexpr auto cata(const β& alg, const T& t) {
   }
 }
 
+namespace detail_f_algebra {
+/** @brief A node @c N has a @c reduce_β over legs of types @c L. */
+template <typename N, typename... L>
+concept ReducesOver =
+    requires(const N& n, const L&... l) { reduce_β(n, l...); };
+template <typename N, typename Ls>
+struct reduces_over_legs : std::false_type {};
+template <typename N, typename... L>
+struct reduces_over_legs<N, std::tuple<L...>>
+    : std::bool_constant<ReducesOver<N, L...>> {};
+/** @brief A node no @c reduce_β rebuilds (a lattice's @c Meet, say): opaque
+ *  to the normal form, read as an atom. */
+template <typename N>
+concept IsOpaqueNode =
+    IsTermNode<N> &&
+    !reduces_over_legs<N, std::remove_cvref_t<decltype(legs(
+                              std::declval<const N&>()))>>::value;
+}  // namespace detail_f_algebra
+
 /** @brief The β-reduction algebra: a leaf is its own normal form; a node is
  *  @c reduce_β over its reduced legs.  @c reduce_β is a dependent call
  *  resolved by ADL against the node type, so a law lives next to its node:
  *  the composition unit law above is the canonical exhibit, and further node
  *  laws add their own overloads beside their vocabulary.  No node carries an
- *  is-this-kind tag; dispatch is on the node type. */
+ *  is-this-kind tag; dispatch is on the node type.  A node with no
+ *  @c reduce_β is not descended into: it is its own normal form, an atom. */
 export struct BetaReduction {
   template <typename A>
   constexpr A operator()(const A& atom) const {
     return atom;
+  }
+  template <typename N>
+    requires detail_f_algebra::IsOpaqueNode<N>
+  constexpr N steer(const N& node) const {
+    return node;
   }
   template <typename N, typename... R>
     requires requires(const N& n, const R&... r) { reduce_β(n, r...); }
@@ -676,7 +711,7 @@ constexpr ByTheLaws equal_by_the_laws(const F& f, const G& g) {
 }
 
 /** @section f_algebra__Laws_Asked_On_The_Value
- *  @brief The laws of an arrow asked on its value (the Jlt paper's Listing 1):
+ *  @brief The laws of an arrow asked on its value (the Jlt paper's Listing 2):
  *  each reads, at compile time, the registration its concept reads, at the
  *  term's type and at its normal form's, so @c is_monic(f) is
  *  @c IsMonicArrow<F> or @c IsMonicArrow at the type of @c cata(f).
@@ -687,19 +722,12 @@ constexpr ByTheLaws equal_by_the_laws(const F& f, const G& g) {
  *  registration.  @param f the arrow.  @param op the order a variance is read
  *  under. */
 namespace detail_f_algebra {
-/** @brief The type of an arrow's normal form: a composite's is @c cata's
- *  result; any other arrow is read at its own type.  @tparam F the arrow. */
+/** @brief The type of an arrow's normal form, @c cata's result: every node
+ *  a @c reduce_β rebuilds is reduced, any other is an atom.  @tparam F the
+ *  arrow. */
 template <typename F>
-struct normal_form {
-  using type = F;
-};
-template <IsArrow F, IsArrow G>
-struct normal_form<Compose<F, G>> {
-  using type =
-      std::remove_cvref_t<decltype(cata(std::declval<const Compose<F, G>&>()))>;
-};
-template <typename F>
-using normal_form_t = typename normal_form<std::remove_cvref_t<F>>::type;
+using normal_form_t =
+    std::remove_cvref_t<decltype(cata(std::declval<const F&>()))>;
 }  // namespace detail_f_algebra
 export template <IsArrow F>
 constexpr bool is_identity(const F&) {
@@ -723,9 +751,17 @@ export template <IsArrow F>
 constexpr bool is_iso(const F&) {
   return IsIsomorphism<F> || IsIsomorphism<detail_f_algebra::normal_form_t<F>>;
 }
+/** @brief An arrow's involution law: certified at its type, or read off its
+ *  normal form, where the laws leave another arrow (a pairing of the swapped
+ *  projections, say, which is @c Flip).  @param f the arrow. */
 export template <IsArrow F>
-constexpr bool is_involution(const F&) {
-  return IsInvolution<F>;
+constexpr bool is_involution(const F& f) {
+  if constexpr (IsInvolution<F> ||
+                std::same_as<detail_f_algebra::normal_form_t<F>, F>) {
+    return IsInvolution<F>;
+  } else {
+    return is_involution(cata(f));
+  }
 }
 /** @brief A composite's involution law: of two commuting involutions, one,
  *  @f$(g f)^2 = g g f f = \mathrm{id}@f$, its law derived from its legs'
