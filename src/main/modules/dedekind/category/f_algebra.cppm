@@ -605,6 +605,88 @@ constexpr ByTheLaws equal_by_the_laws(const F& f, const G& g) {
                                                         : Ternary::Unknown};
 }
 
+/** @section f_algebra__Laws_Asked_On_The_Value
+ *  @brief The laws of an arrow asked on its value (the Jlt paper's Listing 1):
+ *  each reads, at compile time, the registration its concept reads, at the
+ *  term's type and at its normal form's, so @c is_monic(f) is
+ *  @c IsMonicArrow<F> or @c IsMonicArrow at the type of @c cata(f).
+ *  The normal form's type is decided by the laws (unit, associativity,
+ *  cancellation), so a law the term's own type hides, @c ~id an involution
+ *  for one, is read off it.
+ *  A concept gates a template, a predicate states a fact; both read one
+ *  registration.  @param f the arrow.  @param op the order a variance is read
+ *  under. */
+namespace detail_f_algebra {
+/** @brief The type of an arrow's normal form: a composite's is @c cata's
+ *  result; any other arrow is read at its own type.  @tparam F the arrow. */
+template <typename F>
+struct normal_form {
+  using type = F;
+};
+template <IsArrow F, IsArrow G>
+struct normal_form<Compose<F, G>> {
+  using type =
+      std::remove_cvref_t<decltype(cata(std::declval<const Compose<F, G>&>()))>;
+};
+template <typename F>
+using normal_form_t = typename normal_form<std::remove_cvref_t<F>>::type;
+}  // namespace detail_f_algebra
+export template <IsArrow F>
+constexpr bool is_identity(const F&) {
+  return IsIdentityArrow<F> ||
+         IsIdentityArrow<detail_f_algebra::normal_form_t<F>>;
+}
+export template <IsArrow F>
+constexpr bool is_constant(const F&) {
+  return IsConstantArrow<F> ||
+         IsConstantArrow<detail_f_algebra::normal_form_t<F>>;
+}
+export template <IsArrow F>
+constexpr bool is_monic(const F&) {
+  return IsMonicArrow<F> || IsMonicArrow<detail_f_algebra::normal_form_t<F>>;
+}
+export template <IsArrow F>
+constexpr bool is_epic(const F&) {
+  return IsEpicArrow<F> || IsEpicArrow<detail_f_algebra::normal_form_t<F>>;
+}
+export template <IsArrow F>
+constexpr bool is_iso(const F&) {
+  return IsIsomorphism<F> || IsIsomorphism<detail_f_algebra::normal_form_t<F>>;
+}
+export template <IsArrow F>
+constexpr bool is_involution(const F&) {
+  return IsInvolution<F>;
+}
+/** @brief A composite's involution law: of two commuting involutions, one,
+ *  @f$(g f)^2 = g g f f = \mathrm{id}@f$, its law derived from its legs'
+ *  (@c commutes, @c :involution), each decided on its value; otherwise
+ *  certified at its type, or read off its normal form, where the laws leave
+ *  another arrow.  @c - after @c ~ is none.  @param c the composite. */
+export template <IsArrow F, IsArrow G>
+constexpr bool is_involution(const Compose<F, G>& c) {
+  if constexpr (commutes_v<F, G>) {
+    return is_involution(c.f) && is_involution(c.g);
+  } else if constexpr (IsInvolution<Compose<F, G>>) {
+    return true;
+  } else if constexpr (std::same_as<
+                           detail_f_algebra::normal_form_t<Compose<F, G>>,
+                           Compose<F, G>>) {
+    return false;  // already normal: nothing more to read
+  } else {
+    return is_involution(cata(c));
+  }
+}
+export template <IsArrow F, typename Op = std::less_equal<>>
+constexpr bool is_monotone(const F&, Op = {}) {
+  return IsMonotone<F, Op> ||
+         IsMonotone<detail_f_algebra::normal_form_t<F>, Op>;
+}
+export template <IsArrow F, typename Op = std::less_equal<>>
+constexpr bool is_antitone(const F&, Op = {}) {
+  return IsAntiMonotone<F, Op> ||
+         IsAntiMonotone<detail_f_algebra::normal_form_t<F>, Op>;
+}
+
 // The term functor @c F(X) @c = @c Atom @c + @c X @c × @c X over arrows: its
 // two injections (leaf / node) are exhaustive and exclusive.  We cannot PROVE
 // the coproduct sealed (C++ type universes are open), so these witnesses STATE

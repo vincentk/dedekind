@@ -750,7 +750,8 @@ constexpr auto operator!(P p) {
     return Not<std::decay_t<P>>{std::move(p)};  // carries the species
   } else {
     // ¬ ∘ p: the negation arrow post-composed, so the traits read the
-    // composite (constant stays constant); on an identity it is ¬ itself.
+    // composite (constant stays constant); on an identity its normal form is
+    // ¬ itself (:f_algebra).
     return std::move(p) >> NegationArrow<L>{};
   }
 }

@@ -286,3 +286,23 @@ TEST_CASE(
   STATIC_CHECK(is_involutive_v<ReflBool, bool>);  // refl(bool), from :logic
   STATIC_CHECK(is_involutive_v<ReflInt, int>);    // refl(int), from :logic
 }
+
+// ===========================================================================
+// (4) The laws live in the normal form only.
+//
+// >> builds the composite whatever its legs; the unit law, associativity and
+// the cancellation of a one-valued involution are read off cata's result, so
+// a law the composite's own type hides is asked on its value.
+// ===========================================================================
+
+namespace normal_form_laws {
+constexpr auto id_u = id<unsigned>();
+static_assert(is_compose_v<decltype(id_u >> id_u)> &&
+                  is_compose_v<decltype(~id_u)> &&
+                  !IsInvolution<decltype(~id_u)>,
+              ">> builds the composite: no law is decided at its type");
+static_assert(is_identity(id_u >> id_u) && is_identity(~id_u >> ~id_u) &&
+                  !is_identity(~id_u) && is_involution(~id_u) &&
+                  is_antitone(~id_u) && is_monotone(id_u >> id_u),
+              "the laws asked on the value read the normal form");
+}  // namespace normal_form_laws
