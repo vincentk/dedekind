@@ -323,9 +323,11 @@ static_assert(ans == nil >> nay >> ans && ans == !id_b >> nil >> nay >> ans &&
                   std::same_as<decltype(cata(nil >> nay >> ans)),
                                std::remove_cvref_t<decltype(ans)>> &&
                   ((nil >> nay >> ans) == (nil >> nay >> one)).verdict ==
-                      Ternary::Unknown,
-              "a constant absorbs what precedes it; two constants of one "
-              "type compare by their values");
+                      Ternary::Unknown &&
+                  !std::equality_comparable<decltype(ans)>,
+              "a constant absorbs what precedes it; two constants compare by "
+              "the laws only, True on equal values, Unknown otherwise, never "
+              "False: a constant has no == of its own");
 static_assert(id_b == sec >> fst && nil == sec >> snd &&
                   std::same_as<decltype(cata(sec >> fst)), Identity<bool>> &&
                   is_iso(sec >> fst) && !IsMonicArrow<decltype(sec >> fst)>,

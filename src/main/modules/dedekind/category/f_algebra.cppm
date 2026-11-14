@@ -609,9 +609,24 @@ export struct ByTheLaws {
   explicit constexpr operator bool() const { return verdict == Ternary::True; }
 };
 namespace detail_f_algebra {
+/** @brief Two constants of one type with one value: the same arrow.  With
+ *  two values they are not known to differ (out of an empty domain they are
+ *  equal), so a constant has no @c == of its own and the laws answer
+ *  @c Unknown.  @param c a constant.  @param d another.  @return whether
+ *  their values are equal. */
+template <typename A, std::equality_comparable B>
+constexpr bool same_value(const ConstantMorphism<A, B>& c,
+                          const ConstantMorphism<A, B>& d) {
+  return static_cast<bool>(c.value == d.value);
+}
+/** @brief A constant whose values compare. */
+template <typename P>
+concept IsComparableConstant =
+    IsConstantAtom<P> && std::equality_comparable<Cod<P>>;
 /** @brief Two normal paths are the same, atom by atom: by the type where an
- *  atom has one value, by the atom's own @c == where it carries one; where it
- *  carries one and has no @c ==, not known to be the same. */
+ *  atom has one value, by the values of two constants, by the atom's own
+ *  @c == where it carries one; where it carries one and has no @c ==, not
+ *  known to be the same. */
 template <IsArrow P, IsArrow Q>
 constexpr bool same_path(const P& p, const Q& q) {
   if constexpr (IsIdentityArrow<P> && IsIdentityArrow<Q>) {
@@ -622,6 +637,8 @@ constexpr bool same_path(const P& p, const Q& q) {
     return same_path(π_1(p), π_1(q)) && same_path(π_2(p), π_2(q));
   } else if constexpr (IsIdentityArrow<P> || has_one_value_v<P>) {
     return true;
+  } else if constexpr (IsComparableConstant<P>) {
+    return same_value(p, q);
   } else if constexpr (std::equality_comparable<P>) {
     return static_cast<bool>(p == q);
   } else {
