@@ -85,6 +85,19 @@ constexpr auto first_of_g = Pairing{G{}, G{}} >> Π<1, std::pair<bool, bool>>{};
 static_assert(first_of_g(0u) == true &&
               is_compose_v<decltype(cata(first_of_g))> &&
               cata(first_of_g)(0u) == true);
+// The unit law drops no conversion either (Copilot, #1204): an identity
+// beside G stays, so the composite still converts G's 2u to bool, and the
+// laws do not equate it with G alone.
+constexpr auto right_unit = G{} >> id<bool>();
+constexpr auto left_unit = id<unsigned>() >> G{};
+static_assert(right_unit(0u) == true &&
+              is_compose_v<decltype(cata(right_unit))> &&
+              cata(right_unit)(0u) == true &&
+              (right_unit == G{}).verdict == Ternary::Unknown &&
+              left_unit(0u) == true &&
+              is_compose_v<decltype(cata(left_unit))> &&
+              cata(left_unit)(0u) == true &&
+              (left_unit == G{}).verdict == Ternary::Unknown);
 }  // namespace converting_codomain
 
 namespace {

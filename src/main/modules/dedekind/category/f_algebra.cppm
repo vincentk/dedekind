@@ -333,17 +333,19 @@ constexpr auto rewrite(const P& p, const Y& y) {
     return Identity<Dom<P>>{};  // x x = id
   }
 }
-/** @brief The concatenation of two normal paths: identities drop (unit), the
- *  result associates to the right (associativity), and two adjacent atoms that
- *  a law @c Rewrites are rewritten (involution, constant, product), across
- *  the junction as often as it recurs.  A recursion over the paths' types.
+/** @brief The concatenation of two normal paths: identities drop (unit)
+ *  beside a path that returns its codomain, as the composite would convert
+ *  it, the result associates to the right (associativity), and two adjacent
+ *  atoms that a law @c Rewrites are rewritten (involution, constant,
+ *  product), across the junction as often as it recurs.  A recursion over
+ *  the paths' types.
  *  @param p the first path.  @param q the second.  @return the normal path. */
 template <IsArrow P, IsArrow Q>
   requires std::same_as<Cod<P>, Dom<Q>>
 constexpr auto path_concat(const P& p, const Q& q) {
-  if constexpr (IsIdentityArrow<P>) {
+  if constexpr (IsIdentityArrow<P> && ReturnsItsCodomain<Q>) {
     return q;
-  } else if constexpr (IsIdentityArrow<Q>) {
+  } else if constexpr (IsIdentityArrow<Q> && ReturnsItsCodomain<P>) {
     return p;
   } else if constexpr (is_compose_v<P>) {
     return path_concat(π_1(p), path_concat(π_2(p), q));
@@ -369,7 +371,9 @@ constexpr auto path_concat(const P& p, const Q& q) {
  *  This overload set is the @b canonical exhibit: the reducer's first law,
  *  the @b monoid law of composition, co-located with the @c cata engine.
  *  The identity is the @b unit (@c id∘f @c = @c f @c = @c f∘id), so an
- *  @c Identity in a @b reduced leg is dropped.
+ *  @c Identity in a @b reduced leg is dropped, where the other leg returns its
+ *  declared codomain: the composite converts a leg's result at every
+ *  boundary, and the leg alone would not.
  *
  *  Dispatch is @b structural on @c Identity<T> in the reduced leg (no
  *  is-identity tag): the overloads pattern-match the leg types, and partial
@@ -388,10 +392,12 @@ constexpr auto reduce_β(const Compose<F, G>&, const RF& rf, const RG& rg) {
   return detail_f_algebra::path_concat(rf, rg);
 }
 export template <IsArrow F, IsArrow G, typename T, IsArrow RG>
+  requires detail_f_algebra::ReturnsItsCodomain<RG>
 constexpr RG reduce_β(const Compose<F, G>&, const Identity<T>&, const RG& rg) {
   return rg;  // id ∘ g = g
 }
 export template <IsArrow F, IsArrow G, IsArrow RF, typename T>
+  requires detail_f_algebra::ReturnsItsCodomain<RF>
 constexpr RF reduce_β(const Compose<F, G>&, const RF& rf, const Identity<T>&) {
   return rf;  // f ∘ id = f
 }
