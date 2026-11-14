@@ -3,12 +3,16 @@
 A linter for the Jlt fragment (#1060): the three rules of the Jlt paper
 (`docs/paper/jlt/jlt.tex`, Section 2), turned from a reading into a verdict.
 
-It runs **after** a layer's build: it reparses each file in scope through
+It runs **after** the build: it reparses each file in scope through
 `build/compile_commands.json`, which carries the module maps CMake wrote, so
-the prebuilt module files must exist.  The build owns it: `lint-<layer>`
-lints a layer's lines of `scope` once the layer and its tests are built,
-beside the compilation of the layers above, `lint-fixtures` the rest, and
-`lint` joins their reports into `build/jlt-lint/report.txt`.
+the prebuilt module files must exist.  The build owns it: `lint` (and so
+`make check` and `make jlt-lint`) lints the whole scope in one pass once
+everything is built, one pool of `NCPU` workers over every file, and writes
+`build/jlt-lint/report.txt` when it passes.  Its findings are kept in
+`build/jlt-lint/parts/all.txt` (and `all.json`) either way, so a failed run's
+findings are read there.  `lint-<layer>` lints one layer's lines of `scope`
+once that layer and its tests are built, and `lint-fixtures` the fixtures,
+for a look at one part; each writes `parts/<part>.txt`.
 
 ## Layout
 

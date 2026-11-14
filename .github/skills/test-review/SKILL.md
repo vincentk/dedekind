@@ -32,6 +32,9 @@ finding.
   `static_assert` at the definition site adds nothing. The module is the single
   source of that truth; the test is a second copy that drifts. (Example: a
   `same_as<decltype(ℝ), 𝔸<…>>` check in a test when `real.cppm` asserts it.)
+  For a settled module the direction reverses: its witnesses belong in the
+  tests, out of the interface's BMI (see the code-review skill), so keep the
+  test's copy and recommend removing the interface's.
 - **It tests retired behaviour.** The subject is a deleted type, a deleted
   deduction guide, a wrapper, a tag, a species re-tag that no longer happens, or
   a law that only held under an earlier representation. Look for `pre-#NNN`,

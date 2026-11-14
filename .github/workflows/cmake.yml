@@ -50,10 +50,6 @@ jobs:
       contents: read
       pull-requests: write
 
-  # The wheel, as a check: at 0.0.0.dev0, manylinux-tagged and checked
-  # (make wheel), installed and used (make wheel-verify).  A PR labelled
-  # `wheel` builds it too; one labelled `testpypi` at 0.0.0.dev<run id>, and
-  # publishes it (testpypi-dev).  A release builds its own, from its tag.
   # Whether a PR changes docs/ beyond the papers, which papers.yml builds.
   changes:
     runs-on: ubuntu-26.04
@@ -76,13 +72,19 @@ jobs:
             echo "docs=true" >> "$GITHUB_OUTPUT"
           fi
 
+  # The wheel, as a check: at 0.0.0.dev0, manylinux-tagged and checked
+  # (make wheel), installed and used (make wheel-verify).  A PR labelled
+  # `wheel` builds it too; one labelled `testpypi` at 0.0.0.dev<run id>, and
+  # publishes it (testpypi-dev).  A release builds its own, from its tag.
+  # It builds the wheel itself (./.github/actions/wheel), so it runs beside
+  # build-and-deploy, not after it.
   python-dist:
     if: >-
       ((github.ref == 'refs/heads/main' && github.event_name != 'pull_request') ||
        contains(github.event.pull_request.labels.*.name, 'wheel') ||
        needs.changes.outputs.docs == 'true' ||
        contains(github.event.pull_request.labels.*.name, 'testpypi'))
-    needs: [build-and-deploy, changes]
+    needs: changes
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: read  # checkout only; no PR write or pages needed
@@ -115,12 +117,12 @@ jobs:
 
   # The benchmark, on main and for a PR labelled `benchmark`.  Times on a shared
   # runner are noisy, so it fails only on what they cannot explain: the ways of
-  # counting disagree, or the library falls far behind its yardsticks.
+  # counting disagree, or the library falls far behind its yardsticks.  It
+  # builds what it times itself, so it runs beside build-and-deploy.
   benchmark:
     if: >-
       (github.ref == 'refs/heads/main' && github.event_name != 'pull_request') ||
       contains(github.event.pull_request.labels.*.name, 'benchmark')
-    needs: build-and-deploy
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: read
@@ -240,8 +242,7 @@ jobs:
   # build or test code; trusted publishing refuses a reusable workflow, so
   # the job is top-level.
   testpypi-dev:
-    # !cancelled(): python-dist's own need, release-plan, is skipped on a PR,
-    # and a job downstream of a skipped one is skipped unless it says so.
+    # Both wheels built, their results named: the condition reads by itself.
     if: >-
       !cancelled() && needs.python-dist.result == 'success' &&
       needs.python-dist-macos.result == 'success' &&

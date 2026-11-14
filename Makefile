@@ -77,10 +77,10 @@ test-compile: compile ## compile, plus the IR-fixture showcases: type-checks eve
 test: test-compile ## Build, then run the full test suite
 	cmake --build $(BUILD_DIR) --target run-test --parallel $(JOBS)
 
-# The build lints and tests each layer as soon as it is built (CMake's `check`:
-# lint-<layer>, run-test-<layer>), beside the compilation of the layers above;
-# -k 0 reports every failure, not the first.  CI's one entry.
-check: $(BUILD_DIR)/CMakeCache.txt ## Build, lint and test, each layer as soon as it is built
+# Build, then the lint in one pass over the whole tree and each layer's tests
+# (CMake's `check`: lint, run-test-<layer>); -k 0 reports every failure, not
+# the first.  CI's one entry.
+check: $(BUILD_DIR)/CMakeCache.txt ## Build, then lint and test
 	cmake --build $(BUILD_DIR) --target all check --parallel $(JOBS) -- -k 0
 
 coverage: compile ## Build, run tests, and produce the LLVM coverage report
