@@ -1,7 +1,7 @@
 % !TEX root = ../jlt.tex
 \section{Translation into System F}
 \label{app:fjlt:translation}
-\newcommand{\note}[1]{\parbox[t]{0.27\linewidth}{\raggedright\footnotesize #1}}
+\newcommand{\note}[1]{\parbox[t]{0.33\linewidth}{\raggedright\footnotesize #1}}
 
 This appendix defines in full the arrow $\llbracket\cdot\rrbracket$ of Figure~\ref{fig:arrows} and Section~\ref{sec:translation} on the programs of Appendix~\ref{app:fjlt:typing}, by dictionary passing~\cite{wadler1989adhoc}: a constraint becomes a record type, an entailment derivation a record, and a generic function a function of those records.
 A template is always fully applied: $\alpha$ ranges over types, and there is no template template parameter, so System~F suffices as the target.
@@ -51,7 +51,7 @@ A converted result is used only at its declared type (Appendix~\ref{app:fjlt:typ
 \qquad \mapsto\; f = \Lambda\overline{\alpha}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \\
 \texttt{struct } O \texttt{ \{ } \overline{y}\texttt{; ... operator()(}\overline{x}\texttt{) ... } e \texttt{ ... \};} & \note{a function object's call function} \\
 \qquad \mapsto\; O_{\mathrm{call}} = \lambda\overline{y}.\,\Lambda\overline{\beta}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \\
-O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \note{the standard's function $o$  as a constant} \\
+O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \note{a standard-library function object, such as \texttt{std::plus}: its function $o$, a constant of the target} \\
 \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \;\mapsto\; x = \llbracket e \rrbracket & \note{a constant, a definition} \\
 \texttt{concept}, \texttt{= delete} \;\mapsto\; \text{nothing} & \\[6pt]
 \multicolumn{2}{l}{\textit{terms}} \\
