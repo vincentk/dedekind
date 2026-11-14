@@ -9,7 +9,9 @@ Each rule has a listing of a few lines, verbatim from the repository's test up t
 \phantomsection\label{def:rule1}
 Every type a Jlt program passes around is \cppinline{std::semiregular}, and its copy is as good as the original: nothing else is assumed.
 Every function is \cppinline{constexpr}, every member function \cppinline{const}, and each depends on its arguments alone.
-What the rule conserves is what has come to be called Leibniz's law, that equals cannot be told apart by any operation, at either binding time, whose converse is the principle Leibniz himself stated~\cite{leibniz1686discours,leibniz1686discourse}: a call may be replaced by its value, $e[f(x)] = e[v]$ whenever $f(x)$ evaluates to $v$.
+What the rule conserves is Leibniz's law, as it has come to be called: equals cannot be told apart by any operation, at either binding time.
+Leibniz himself stated the converse, that what cannot be told apart is equal~\cite{leibniz1686discours,leibniz1686discourse}.
+So a call may be replaced by its value: $e[f(x)] = e[v]$ whenever $f(x)$ evaluates to $v$.
 The compiler makes that replacement while compiling, where its optimisations begin.
 In a programming language the law is referential transparency~\cite{strachey2000fundamental}, and a language where $a = b$ but $f(a) \neq f(b)$ for some $f$ has an equality one cannot reason with.
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at run time.
@@ -174,27 +176,17 @@ A carrier with its operations is an algebra of a signature, in the sense of univ
   & & \circ \arrow[ll, "h"']
   & & e \arrow[ll, "h"']
 \end{tikzcd}
-\caption{Where each structure lives.
+\caption{Structural recursion in FJlt, a sketch.
 Seed: after Lambek~\cite{lambek1968fixpoint}, the structure map $[0, \mathit{succ}] : \mathbf{1} + X \to X$ of the naturals is an isomorphism.
 Its inverse $\mathit{prior} : X \to \mathbf{1} + X$ steps down and always ends.
 Peano's $\mathit{succ}$~\cite{peano1889arithmetices}, dashed, never does.
 The user supplies the point $n : \mathbf{1} \to X$, the seed, and $\mathit{prior}$.
 The chain is what $\mathit{prior}$ reaches from $n$: the $n$ elements below it, not $n$ itself.
 So $n$ is the chain's rank, its cardinality, and $0$ the empty chain.
-Order: after Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself.
-The chain of an element is its forward orbit, here the chain of $\mathit{prior}\,n$.
-The carrier needs neither an order nor an origin.
-Reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
-Terms: replace $\mathbf{1} + X$ by a polynomial functor $F$, $X$ by its initial algebra $\mu F$, and $\mathit{prior}$ by Lambek's inverse $\mathit{out} : \mu F \to F\,\mu F$; the chain below $n$ becomes the subterms below a term $t$, $\mathit{sub}(t)$, and $n$ becomes $t$'s height, its rank.
+Terms: replace $\mathbf{1} + X$ by a polynomial functor $F$, $X$ by its initial algebra $\mu F$, and $\mathit{prior}$ by Lambek's inverse $\mathit{out} : \mu F \to F\,\mu F$; the chain below $n$ becomes the subterms below a term $t$, $\mathit{sub}(t)$, and $n$ becomes $t$'s height, its rank: the figure is read for a type as for a value.
 Algebra: $f$ lands in $S$, and the fold in $M$.
-In the simplest case $S = M$ is a monoid.
-A monoid $S$ may also act on $M$, and a semiring on a semimodule, which adds distributivity.
-Fold: a list has two folds~\cite{gibbons1996third}.
-The one along the walk, $h : M \times S \to M$, runs from $e$ at the seed's end through the intermediate values, $\circ$, to the result, $\bullet$.
-It needs no list: it is a stream and its iterator~\cite{stepanov2009elements}.
-With $\mathit{succ}$ as well, $\mathit{succ} >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}.
-With offsets it is an array~\cite[\S 2.2.2]{knuth1997art1}.
-These are the standard's forward, bidirectional and random-access iterators~\cite{cpp23standard}.
+Fold: the fold along the walk, $h : M \times S \to M$, runs from $e$ at the seed's end through the intermediate values, $\circ$, to the result, $\bullet$.
+With offsets the chain is an array~\cite[\S 2.2.2]{knuth1997art1}, and the walk a scan of it.
 }
 \label{fig:structures}
 \end{figure}
@@ -210,10 +202,7 @@ In \Cpp{}, a fold over a type is a function template instantiated once per node,
 Each node of a term is a class template whose type names its children's, as \cppinline{dec >> dec} composes two composites, with \cppinline{dec = -id_u >> ~id_u}, so the term's shape is its type.
 The recursion is then the compiler's instantiation, which ends with the type's finite height.
 A fold over a value is the standard's \cppinline{ranges::fold_left} over a range whose rank is bounded before the first step, by its length or by a budget declared with it.
-In the terms of Meijer et al.~\cite{meijer1991functional}, \cppinline{fold_left} over the chain is a hylomorphism: the chain is never built as a list, only folded (Appendix~\ref{app:fjlt:translation}).
-A loop that shows its end is sugar for the fold it denotes: a counted \cppinline{for (T i = 0; i < n; ++i)}, with counter and bound of one unsigned type and a body that writes neither, is a fold over \cppinline{iota(0, n)}, and a range-\cppinline{for} over a bounded range, whose body does not write that range, a fold over it (Appendix~\ref{app:fjlt:closure}).
-Its state is no objection: a counter inside a \cppinline{constexpr} function cannot escape it, since constant evaluation lets a function modify only objects whose lifetime began within the call, the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
-A loop whose end nothing shows stays out.
+A loop whose end nothing shows stays out; one that shows it is sugar for the fold it denotes (Section~\ref{sec:translation:adequacy}).
 
 
 \begin{listing}[htbp]
@@ -223,6 +212,7 @@ A loop whose end nothing shows stays out.
 constexpr auto dec = -id_u >> ~id_u;  // x - 1
 constexpr auto dec2 = dec >> dec;     // x - 2
 static_assert(dec2(42uz) == 40 && is_iso(dec2));
+static_assert(id_u == ~id_u >> ~id_u);
 \end{cpp}
 \smallskip
 \begin{cpp}
@@ -262,12 +252,25 @@ static_assert(fs_10 == V{89, 55});
 \end{minipage}
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in code.
 Left, over a type: a term of height three, Listing~\ref{lst:rule2}'s composite composed with itself, folded once to a value and once to a law, the law inferred from its legs'.
+Last, an identity law: two arrows compared by their normal forms, their paths in the free category on their atoms~\cite{maclane1971categories}, reduced by unit, associativity and the certified involution $\sim$, so \cppinline{==} answers by the laws, never by the functions, which Rice's theorem keeps undecided.
 Below it, over a value: the chain below the seed $n = 10$, which $\mathit{prior}$ counts down, folded in the simplest case, $S = M$ a monoid, by the library's \cppinline{concat} over a bounded range: the overload that completes Listing~\ref{lst:rule2}'s fixed lengths, defined there before the fold.
 Right: the general fold, $S$ acting on $M$: $f$ maps every element to Fibonacci's matrix, and $h$, \cppinline{act}, multiplies it into a vector from $e = (1, 0)$.
 In the standard's ranges library~\cite{cpp23standard}, Figure~\ref{fig:structures}'s chain is an \cppinline{input_range}.
 The arrow $f$ along it is \cppinline{views::transform}, written \cppinline{>>}, and the fold with the action $h$ is \cppinline{ranges::fold_left}, the native fold, bounds-checked before it starts.}
 \label{lst:rule3}
 \end{listing}
+
+Figure~\ref{fig:structures} reads in three more ways.
+Order: after Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself.
+The chain of an element is its forward orbit, here the chain of $\mathit{prior}\,n$.
+The carrier needs neither an order nor an origin.
+Reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
+Algebra: in the simplest case $S = M$ is a monoid.
+A monoid $S$ may also act on $M$, and a semiring on a semimodule, which adds distributivity.
+Fold: a list has two folds~\cite{gibbons1996third}.
+The one along the walk needs no list: it is a stream and its iterator~\cite{stepanov2009elements}.
+With $\mathit{succ}$ as well, $\mathit{succ} >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}.
+With offsets it is an array, and these are the standard's forward, bidirectional and random-access iterators~\cite{cpp23standard}.
 
 What the rule buys is termination and, with Rule~2, the System~F reading, data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
 Like System~F, strongly normalising and so unable to express every computable function~\cite{girard1989proofs}, Rule~3 trades expressiveness for termination, since the halting programs are not a decidable set~\cite{turing1936computable}: a bounded search ends without always deciding its question (Section~\ref{sec:binding}).

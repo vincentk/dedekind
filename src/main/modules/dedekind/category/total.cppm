@@ -42,6 +42,7 @@
 module;
 
 #include <algorithm>
+#include <bit>  // std::bit_width: the binary method's steps
 #include <concepts>
 #include <cstddef>  // for std::size_t (cyclic_order_v)
 #include <functional>
@@ -1412,22 +1413,31 @@ concept IsCopies = std::ranges::input_range<R> && requires(const R& r) {
   { copies_value(r) } -> std::convertible_to<std::ranges::range_value_t<R>>;
 };
 namespace detail_concat {
-/** @brief @f$x^n@f$ as the square of @f$x^{\lfloor n/2 \rfloor}@f$, one
- *  @c x more where @c n is odd: the concat of the first half of the copies,
- *  used twice, since the halves are equal.  A descent on @c n by halving to
- *  its base case, one call per bit of @c n, licensed by associativity.
+/** @brief @f$x^n@f$ by Knuth's right-to-left binary method (TAOCP 2,
+ *  §4.6.3, Algorithm A): a fold over the bits of @c n from the bottom, each
+ *  step multiplying the product so far by @f$x^{2^i}@f$ where the bit is set,
+ *  then squaring.  One step per bit of @c n, @f$\lceil \log_2 (n + 1)
+ *  \rceil@f$ in all, licensed by associativity; a bounded fold, no recursion
+ *  on the count.  The count is read by @c % 2 and @c / 2, a literal divisor, so
+ *  every operator the step uses is total (no shift by a variable).
  *  @param x the value.  @param n the copies.  @param op the operation.
  *  @return the concat of the @c n copies. */
 template <typename T, typename Op, IsCountWord N>
   requires IsMonoid<T, Op>
 constexpr T power(const T& x, N n, Op op) {
-  if (n == 0) {
-    return unit<T>(op);
-  } else {
-    const T h = power(x, n / 2, op);  // the first half
-    const T hh = op(h, h);
-    return n % 2 == 1 ? op(hh, x) : hh;
-  }
+  // n's bits, from the bottom: the product, x^(2^i), and n / 2^i
+  struct Step {
+    T acc, base;
+    N rest;
+  };
+  const auto bits = static_cast<std::size_t>(std::bit_width(n));
+  return fold(std::views::iota(0uz, bits), Step{unit<T>(op), x, n},
+              [op](const Step& s, std::size_t) {
+                return Step{s.rest % 2 == 1 ? op(s.acc, s.base) : s.acc,
+                            s.rest > 1 ? op(s.base, s.base) : s.base,
+                            static_cast<N>(s.rest / 2)};
+              })
+      .acc;
 }
 }  // namespace detail_concat
 /** @brief @c concat on @c n copies of one value: its @c n-th power, by

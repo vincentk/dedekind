@@ -1,8 +1,7 @@
 // Negative control for rules/rule3-no-self-recursion.query: recursion on a
-// value is a finding unless its descent is visible (p / c, p >> c, p - 1 on
-// an unsigned parameter, under a test of it against 0, the call in the branch
-// the test does not select); recursion over a
-// type's structure is a fold and passes.  Standalone.
+// value is a finding, however visibly it descends (the kernel's recursion on a
+// value is the bounded fold); recursion over a type's structure is
+// instantiation and passes.  Standalone.
 #include <cstddef>
 
 namespace jlt_listing {
@@ -68,18 +67,19 @@ constexpr bool safe(int n) {  // fine: noexcept does not evaluate
   return noexcept(safe(n));
 }
 
-// Recursion on a value that visibly descends to a base case: structural.
-constexpr std::size_t down(std::size_t n) {  // fine: n - 1, guarded by n == 0
+// Recursion on a value that visibly descends to a base case: still a value,
+// so still a finding; the bounded fold over its count is the kernel's form.
+constexpr std::size_t down(std::size_t n) {  // self-recursion 12: n - 1
   return n == 0 ? 0 : down(n - 1);
 }
-constexpr std::size_t bits(std::size_t n) {  // fine: n / 2, guarded by n == 0
+constexpr std::size_t bits(std::size_t n) {  // self-recursion 13: n / 2
   if (n == 0) {
     return 0;
   } else {
     return 1 + bits(n / 2);
   }
 }
-constexpr std::size_t shifts(std::size_t n) {  // fine: n >> 1, guarded by n
+constexpr std::size_t shifts(std::size_t n) {  // self-recursion 14: n >> 1
   return n ? 1 + shifts(n >> 1) : 0;
 }
 static_assert(down(3) == 0 && bits(8) == 4 && shifts(8) == 4);

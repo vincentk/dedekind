@@ -78,7 +78,7 @@ Each rule is one file under `rules/`, named for the rule of the paper it checks.
 | `rule1-boxed-mutable-pointee` | a `make_shared<T>` call or `shared_ptr<T>` member (in a template too) with `T` not `const` |
 | `rule1-boxed-identity` | `get()`, `use_count()`, `owner_before()`, or `==` between two `shared_ptr`s |
 | `rule3-no-loops` | a `for`, range-`for`, `while` or `do` |
-| `rule3-no-self-recursion` | a function calling itself at the same instantiation: recursion on a value, unless the descent is visible (`p / c`, `p >> c`, `p - 1` on an unsigned parameter, under a test of `p` against 0, the call in the branch the test does not select); recursion over a type's structure (`cata`) passes |
+| `rule3-no-self-recursion` | a function calling itself at the same instantiation: recursion on a value, which the kernel writes as a bounded fold, however visibly it descends; recursion over a type's structure (instantiation, as `cata` and a template on a smaller count) passes |
 | `rule3-no-mutual-recursion` | functions on a call cycle of length two or more (the tool's `mutual-recursion` check) |
 | `rule3-bounded-fold` | a standard fold (`std::ranges::fold_left`, `fold_right`, …) outside a function whose range parameter is `IsBoundedRange` (#1172; the tool's `bounded-fold` check) |
 | `rule2-constrained-templates` | a function template with an unconstrained type parameter and no `requires` clause: a **proxy** for Rule 2, reported only (a parameter the body never uses needs no constraint) |

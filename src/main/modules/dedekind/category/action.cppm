@@ -284,14 +284,6 @@ concept IsRightAction =
       { h(std::move(v), std::move(s)) } -> std::convertible_to<M>;
     } && requires { typename acting_monoid<std::remove_cvref_t<H>>::type; } &&
     IsMonoid<S, typename acting_monoid<std::remove_cvref_t<H>>::type>;
-/** @brief The fold along the walk: the standard's @c fold_left, over a
- *  bounded range (@c IsBoundedRange).
- *  @param r the range.  @param v the start.  @param h the action. */
-export template <IsBoundedRange R, std::semiregular M, typename H>
-  requires std::invocable<const H&, M, std::ranges::range_value_t<R>>
-constexpr M fold(R r, M v, H h) {
-  return std::ranges::fold_left(std::move(r), std::move(v), h);
-}
 /** @brief The fold under a monoid action of a sequence whose product has a
  *  fast form: @c v acted on once, by the product in the walk's order.  The
  *  action law @f$h(h(v, a), b) = h(v, a \cdot b)@f$ licenses this on any

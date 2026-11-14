@@ -48,6 +48,7 @@ module;
 #include <concepts>
 #include <cstddef>  // std::size_t: the slot of a projection
 #include <functional>
+#include <limits>  // std::numeric_limits: the bits of the budget
 #include <optional>
 #include <type_traits>
 #include <utility>  // std::move  // std::integral_constant: the slot as a type
@@ -654,6 +655,10 @@ constexpr auto id() {
  *  @tparam F the first arrow @c A→B (applied first).
  *  @tparam G the second arrow @c B→C (applied second); @c Cod<F> must be
  *          @c Dom<G>. */
+/** @brief Whether @c T is a composite (a @c Compose node).  @tparam T the
+ *  type. */
+export template <typename T>
+inline constexpr bool is_compose_v = false;
 export template <IsArrow F, IsArrow G>
   requires std::same_as<Cod<F>, Dom<G>>
 struct Compose final {
@@ -661,23 +666,58 @@ struct Compose final {
   using Codomain = Cod<G>;
   [[no_unique_address]] F f;
   [[no_unique_address]] G g;
-  /** @brief Equal when the legs are (@c :cartesian's @c Arrows). */
-  constexpr bool operator==(const Compose&) const = default;
+  /** @brief Compared by the laws, through the normal form (@c :f_algebra's
+   *  @c equal_by_the_laws), never node by node (#1116): @c True where the laws
+   *  prove the arrows equal, @c Unknown otherwise.  A hidden friend, found by
+   *  argument-dependent lookup only, so no other type's @c == sees it; both
+   *  orders are stated, as a reversed candidate must return @c bool.
+   *  @param c the composite.  @param h an arrow on the same objects. */
+  template <IsArrow H>
+    requires std::same_as<Dom<H>, Domain> && std::same_as<Cod<H>, Codomain>
+  friend constexpr auto operator==(const Compose& c, const H& h) {
+    return equal_by_the_laws(c, h);
+  }
+  template <IsArrow H>
+    requires(!is_compose_v<H>) && std::same_as<Dom<H>, Domain> &&
+            std::same_as<Cod<H>, Codomain>
+  friend constexpr auto operator==(const H& h, const Compose& c) {
+    return equal_by_the_laws(h, c);
+  }
+  /** @brief A result at a boundary, as produced (its own value category):
+   *  converted to the declared codomain @c To where it converts, passed on as
+   *  it is where it does not (an object presented by another type).  One
+   *  rule for every boundary, the composite's own end included, so the two
+   *  cannot drift.  @tparam To the declared codomain.  @param y the result. */
+  template <typename To, typename Y>
+  static constexpr auto at_codomain(Y y) {  // by value: the result as produced
+    if constexpr (std::convertible_to<Y, To>)
+      return static_cast<To>(std::move(y));
+    else
+      return y;
+  }
   /** @brief Run the pipeline @c (g∘f)(x) = g(f(x)), at any presentation of
    *  the domain (@c morphism__Objects_And_Their_Presentations): two arrows
-   *  between objects presented by many types compose like any other.  Where
-   *  the result converts to the codomain's value type it is returned as that
-   *  type, as before. */
+   *  between objects presented by many types compose like any other.
+   *  @details Every boundary converts by one rule: @c f's result reaches @c g
+   *  converted to @c f's declared codomain where it converts, and the
+   *  composite's own result to its codomain likewise.  So each leg receives
+   *  its predecessor's result at the declared type in either bracketing, and
+   *  composition is associative by construction, as the laws' normal form
+   *  assumes (@c :f_algebra).  It is FJlt's rule for conversions: a body
+   *  uses a converted result only at the declared type, never the richer
+   *  type it was computed at (Rule 2).  Where a result does not convert, an
+   *  object presented by another type (#1042), it passes as it is. */
   template <typename X>
     requires Presents<X, Domain> &&
-             requires(const F& f_, const G& g_, const X& x_) { g_(f_(x_)); }
+             requires(const F& f_, const G& g_, const X& x_) {
+               g_(at_codomain<Cod<F>>(f_(x_)));
+             }
   constexpr auto operator()(const X& x) const {
-    if constexpr (std::convertible_to<decltype(g(f(x))), Codomain>)
-      return static_cast<Codomain>(g(f(x)));
-    else
-      return g(f(x));
+    return at_codomain<Codomain>(g(at_codomain<Cod<F>>(f(x))));
   }
 };
+template <typename F, typename G>
+inline constexpr bool is_compose_v<Compose<F, G>> = true;
 
 /** @brief Trait: the type @c T has exactly one value, so that two of its
  *  values are equal without comparing them: an empty type, or a composite
@@ -1476,23 +1516,27 @@ constexpr Orbit<X> step(const F& f, const Orbit<X>& o, const Equal& equal) {
     next.fixed = static_cast<bool>(std::invoke(equal, next.x, o.x));
   return next;
 }
-/** @brief @f$f^n@f$ on @c o by halving, as @c concat on copies; a known
- *  fixed point is returned as it is; the state is moved, never copied.
- *  @param f the endomorphism.  @param o the point.  @param n the power.
+/** @brief @f$f^n@f$ on @c o for @f$n < 2^J@f$, by halving, as @c concat on
+ *  copies; a known fixed point is returned as it is; the state is moved,
+ *  never copied.  The descent is on the bit index @c J, a template parameter:
+ *  @c power<J> calls @c power<J - 1> twice, so the recursion is over a type
+ *  (Rule 3's first form, instantiation), never a call at the same
+ *  instantiation, and it ends at @c J = 0, where no step is left.
+ *  @tparam J the bits @c n may have.  @param f the endomorphism.
+ *  @param o the point.  @param n the power, below @f$2^J@f$.
  *  @param equal the equality. */
-template <typename X, typename F, typename Equal>
+template <std::size_t J, typename X, typename F, typename Equal>
   requires IsIteration<X, F, Equal>
 constexpr Orbit<X> power(const F& f, Orbit<X> o, std::size_t n,
                          const Equal& equal) {
-  if (n == 0) {
-    return o;
-  } else if (o.fixed) {
-    return o;
-  } else if (n == 1) {
-    return step(f, o, equal);
+  if constexpr (J == 0) {
+    return o;  // n < 1: no step
   } else {
+    if (n == 0 || o.fixed) return o;
+    if (n == 1) return step(f, o, equal);  // one step, no halves
     // the two halves, the first moved into the second: one live state
-    Orbit<X> hh = power(f, power(f, std::move(o), n / 2, equal), n / 2, equal);
+    Orbit<X> hh = power<J - 1>(f, power<J - 1>(f, std::move(o), n / 2, equal),
+                               n / 2, equal);
     if (n % 2 == 1 && !hh.fixed) return step(f, hh, equal);
     return hh;  // moved, not copied
   }
@@ -1519,9 +1563,11 @@ constexpr Orbit<X> power(const F& f, Orbit<X> o, std::size_t n,
  *  taken when @c equal applies to @c X, and a fixed point certifies itself.
  *  Its value is the fold of @c f over @c n steps, computed as the power:
  *  @f$f^n = f^{n \bmod 2} \circ f^{\lfloor n/2 \rfloor} \circ
- *  f^{\lfloor n/2 \rfloor}@f$, a descent on @c n by halving (Rule 3), as
- *  @c concat on copies.  @c f is applied as often as by the recursion above,
- *  in the same order, and the depth is the bits of @c n.  The early exit stays
+ *  f^{\lfloor n/2 \rfloor}@f$, by halving, as @c concat on copies, the
+ *  descent on the bit index of @c n, a template parameter: a recursion over a
+ *  type (Rule 3's instantiation), not over the value.  @c f is applied as
+ *  often as by the recursion above, in the same order, and the depth is the
+ *  bits of the word.  The early exit stays
  *  one: once a fixed point is seen every call left returns at once, so a
  *  budget of @c SIZE_MAX costs the steps taken, which a fold over the budget
  *  would not.
@@ -1541,7 +1587,8 @@ export template <typename X, typename F, typename Equal = std::equal_to<>>
   requires detail_morphism_iterate::IsIteration<X, F, Equal>
 constexpr X iterate(const F& f, const X& x0, std::size_t n,
                     const Equal& equal = {}) {
-  return detail_morphism_iterate::power(
+  return detail_morphism_iterate::power<
+             std::numeric_limits<std::size_t>::digits>(
              f, detail_morphism_iterate::Orbit<X>{x0, false}, n, equal)
       .x;
 }

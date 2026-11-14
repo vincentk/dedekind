@@ -286,12 +286,39 @@ static_assert(is_constant(ans) && is_monotone(ans) && is_antitone(aye) &&
               is_constant(~nil) && (-one)(true) == (~nil)(true) &&
               is_involution(-id_u) && is_constant(-nil) &&
               is_iso(-id_u >> ~id_u) && !is_involution(-id_u >> ~id_u));
+// Whether two arrows compare by the laws at all (the library's == on arrow
+// terms, :f_algebra).
+template <typename A, typename B>
+concept Comparable = requires(const A& a, const B& b) { a == b; };
+
 // Listing 3, left: a fold over a type.  The term's shape is its type, a
 // composite of composites, depth 3; it is folded once to a value and once
 // to a law, the law inferred from its legs'.
 constexpr auto dec = -id_u >> ~id_u;  // x - 1
 constexpr auto dec2 = dec >> dec;     // x - 2
 static_assert(dec2(42uz) == 40 && is_iso(dec2));
+static_assert(id_u == ~id_u >> ~id_u);
+static_assert((id_u == dec).verdict ==
+              dedekind::category::Ternary::Unknown);  // undecided, not unequal
+// Copilot's two counterexamples: different endpoints do not compare, and
+// constants with different values are not equated by their type.
+static_assert(Comparable<decltype(id_u), decltype(~id_u >> ~id_u)> &&
+              !Comparable<decltype(id_b), decltype(~id_u >> ~id_u)>);
+static_assert(((nil >> nay >> ans) == (nil >> (nay >> one))).verdict ==
+              dedekind::category::Ternary::Unknown);
+// Two composites of one type compare through their normal forms too.
+static_assert((~id_u >> ~id_u) == (~id_u >> ~id_u) &&
+              (dec >> ~id_u) == (-id_u >> (~id_u >> ~id_u)) &&
+              (dec == (~id_u >> -id_u)).verdict ==
+                  dedekind::category::Ternary::Unknown);
+// A category's identity on size_t is the empty path too (the unit law for
+// every identity arrow).
+struct OnCounts {
+  using Species = size_t;
+  using Arrow = dedekind::category::Identity<size_t>;
+  static constexpr Arrow unit_arrow() { return {}; }
+};
+static_assert(dedekind::category::IdentityIn<OnCounts>{} == ~id_u >> ~id_u);
 // Products and coproducts:
 constexpr auto fst = Π<1, std::pair<bool, size_t>>{};
 constexpr auto sec = Pairing{id_b, nil};  // ⟨1, 0⟩
@@ -602,6 +629,7 @@ constexpr bool closed_term() { return twice("ab"s) + "c"s == "ababc"s; }
 static_assert(closed_term());
 static_assert(IsMagma<std::string> && !IsMagma<int>);
 }  // namespace reading
+
 }  // namespace jlt_listing
 
 TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",

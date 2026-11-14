@@ -30,12 +30,13 @@ At each call, the instance the compiler resolved supplies a record of the type t
 
 \begin{theorem}[Simulation]
 \label{thm:simulation}
-If $e \longrightarrow e'$ in FJlt (Appendix~\ref{app:fjlt:evaluation}), then $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e' \rrbracket$ in the target, up to the reduction of a fold's count, a descending self-call's fuel and a node's reading (Appendix~\ref{app:fjlt:theorems}), and a value of base type translates to a constant.
+If $e \longrightarrow e'$ in FJlt (Appendix~\ref{app:fjlt:evaluation}), then $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e' \rrbracket$ in the target, up to the reduction of a fold's count and a node's reading (Appendix~\ref{app:fjlt:theorems}), and a value of base type translates to a constant.
 For closed terms of base type, $e$ evaluates to $v$ if and only if $\llbracket e \rrbracket$ reduces to $\llbracket v \rrbracket$.
 \end{theorem}
 
 What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the program computes at run time.
 Section~\ref{sec:binding} is this theorem run twice.
+Inside the calculus it is the bottom edge of Figure~\ref{fig:arrows}, FJlt's own evaluation standing in for \texttt{clang++} and $\mathit{run}$; Appendix~\ref{app:fjlt:ssa} reads the program the compiler emits as the same term.
 The theorem also makes Section~\ref{sec:posture}'s equality exact: two closed terms of a carrier are equal when they evaluate to the same value, a constant of a base type compared bit for bit, and Leibniz's law of Rule~1 holds by substitution.
 
 \begin{corollary}[Termination]
@@ -66,13 +67,18 @@ template <typename T, typename Op,
           IsCountWord N>
   requires IsMonoid<T, Op>
 constexpr T power(const T& x, N n, Op op) {
-  if (n == 0) {
-    return unit<T>(op);
-  } else {  // the halves are equal: one, twice
-    const T h = power(x, n / 2, op);
-    const T hh = op(h, h);
-    return n % 2 == 1 ? op(hh, x) : hh;
-  }
+  // n's bits, from the bottom
+  struct Step { T acc, base; N rest; };
+  const auto bits =
+      static_cast<size_t>(bit_width(n));
+  return fold(views::iota(0uz, bits),
+      Step{unit<T>(op), x, n},
+      [op](const Step& s, size_t) {
+        return Step{s.rest % 2 == 1
+            ? op(s.acc, s.base) : s.acc,
+          s.rest > 1 ? op(s.base, s.base) : s.base,
+          static_cast<N>(s.rest / 2)}; })
+      .acc;
 }
 template <IsBoundedRange R,
           typename T = ranges::range_value_t<R>,
@@ -117,7 +123,7 @@ fibonacci = λ n. π₂ (fold act (1, 0) ms)      -- ms = map (const M) (chain p
           = λ n. π₂ (act (1, 0) (Mⁿ))                 -- by associativity, squaring
 \end{minted}
 \caption{Laws composing, on Listing~\ref{lst:rule3}'s chain.
-Top left: the monoid concatenation $M \cdot M \cdots M$ is replaced by the power $M^n$, implemented by repeated squaring~\cite[\S 4.6.3]{knuth1997art2}.
+Top left: the monoid concatenation $M \cdot M \cdots M$ is replaced by the power $M^n$, by the right-to-left binary method~\cite[\S 4.6.3]{knuth1997art2}, a fold over the bits of $n$ that reads them by \texttt{\% 2} and \texttt{/ 2}, a literal divisor.
 Top right: the type constraints license the power method (Rule~2 for the specialisation, Theorem~\ref{thm:coherence} for the composition).
 Middle: the power method keeps the $10^8$ terms of the Fibonacci sequence within the compile-time step limit (Table~\ref{tab:binding}).
 Bottom: the System~F translation closely resembles the \Cpp{} above (Figure~\ref{fig:arrows}).}

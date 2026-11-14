@@ -49,8 +49,6 @@ A converted result is used only at its declared type (Appendix~\ref{app:fjlt:typ
 \qquad \mapsto\; f_{\overline{\tau}} = \lambda\overline{x}.\,\llbracket e \rrbracket & \\
 \texttt{template <}\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ ... } f\texttt{(}\overline{x}\texttt{) ... } e & \note{a generic function} \\
 \qquad \mapsto\; f = \Lambda\overline{\alpha}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \\
-\text{the same with a descending self-call on } p \in \overline{x} & \\
-\qquad \mapsto\; f = \Lambda\overline{\alpha}.\,\lambda\overline{q}.\,\lambda\overline{x}.\,(\mathit{iter}\,(\mathit{toNat}\,p + 1)\,F\,\mathit{base})\,\overline{x} & \note{the one exception, $F = \lambda f.\,\lambda\overline{x}.\,\llbracket e \rrbracket$} \\
 \texttt{struct } O \texttt{ \{ } \overline{y}\texttt{; ... operator()(}\overline{x}\texttt{) ... } e \texttt{ ... \};} & \note{a function object's call function} \\
 \qquad \mapsto\; O_{\mathrm{call}} = \lambda\overline{y}.\,\Lambda\overline{\beta}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \\
 O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \note{the standard's function $o$  as a constant} \\
@@ -81,14 +79,9 @@ Every definition is placed the same way: the program's image is its definitions 
 A trait has no image of its own; its specialisations are closed terms $f_{\overline{\tau}}$, and a generic function that serves as an instance with a context is the function from records to a record that \textsc{E-Shape} builds its dictionary with.
 Where \cppinline{size_t} is read as $\mathbb{N}$, by a coercion constant from the carrier to the inductive naturals, $\llbracket n \rrbracket$ is the natural number that is $n$'s value; the translation of a term with a run-time \cppinline{n} is the term with $n$ as a free variable of type $\mathbb{N}$, and Theorem~\ref{thm:simulation} is stated for closed terms.
 The call function of a constrained operation abstracts over its dictionaries as a generic function does, and an application supplies them.
-With one exception, below, a body calls only declarations it depends on, so the defined names are acyclic, and a term type is strictly positive, which the iterator and the normalisation results need.
+A body calls only declarations it depends on and never itself, a self-call at smaller type arguments being sugar for the fold over a term type (Appendix~\ref{app:fjlt:closure}), so the defined names are acyclic, and a term type is strictly positive, which the iterator and the normalisation results need.
 
-\paragraph{The one exception.}
-A descending self-call, the one exception of Appendix~\ref{app:fjlt:typing}, translates to a fold: along any path of calls each takes $p$ to a smaller value and none is made at $0$, so a path has at most $p + 1$ calls, the last for the base case.
-So $f = \lambda\overline{x}.\, (\mathit{iter}\; (\mathit{toNat}\,p + 1)\; F\; \mathit{base})\; \overline{x}$ over all its parameters $\overline{x}$, $p$ among them, the count read into the target's naturals by the carrier's coercion or the shape's field, where the successor does not wrap.
-$F = \lambda f.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ is the body abstracted over the function its self-call names, a self-call at the same instantiation translating to $f\,\overline{\llbracket e \rrbracket}$ on that binder, with no type arguments and no dictionaries, which are those of the enclosing abstraction.
-$\mathit{base}$ is the constant function to $\mathit{default}$ of the result type (Figure~\ref{fig:fjlt-eval}), which at a type variable is the one field of \cppinline{std::semiregular}'s record that the translation uses, and which no evaluation reaches.
-So the translation needs no recursive binding, and the only recursion in a program is that of the two folds.
+So the translation needs no recursive binding, and the only recursion in a program is that of the two primitives: the fold over a range, and the recursion over a term type, whose image is the term's iterator (below).
 
 \begin{figure}[htbp]
 \[
@@ -105,7 +98,7 @@ So the translation needs no recursive binding, and the only recursion in a progr
 \qquad \text{with } |\cdot|, \mathit{head}, \mathit{next} \text{ the operations of } R & \\
 \qquad \text{at a type variable } R \text{ (\textsc{T-Fold-R}):} & \\
 \qquad\quad \mathit{toNat} \circ q_Q.\mathit{size}, q_Q.\mathit{head}, q_Q.\mathit{next} \text{ in their place} & \note{$q_Q$  the record of $Q = \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$  in $\Delta$} \\
-\llbracket \texttt{cata(}\mathit{alg}\texttt{, }t\texttt{)} \rrbracket = \pi_2\,(\mathit{fold}_F\,[\mu F \times \sigma]\,\beta\,\llbracket t \rrbracket) & \note{a fold over a term} \\
+\llbracket \texttt{cata(}\mathit{alg}\texttt{, }t\texttt{)} \rrbracket = \pi_2\,(\mathit{fold}_F\,[\mu F \times \sigma]\,\beta\,\llbracket t \rrbracket) & \note{a recursion over a term type, the library's \texttt{cata}} \\
 \qquad \text{where } \beta = \lambda n'.\,(\mathrm{in}\,(F\,\pi_1\,n'), & \\
 \qquad\qquad \llbracket \mathit{alg} \rrbracket^{\!\circ}\,(\mathrm{in}\,(F\,\pi_1\,n'))\,(F\,\pi_2\,n')) & \note{the node rebuilt beside its result} \\
 \llbracket t \rrbracket_{\mu F} = \mathit{node}_{O\texttt{<}\overline{\tau}\texttt{>}}\,\llbracket t \rrbracket & \note{\textsc{T-Node}: any term of node type read where $\mu F$  is expected} \\
@@ -118,7 +111,7 @@ A term is read into its inductive type where one is expected.}
 \end{figure}
 
 \paragraph{Folds and ranges.}
-The iterator is the catamorphism of the chain of a natural number, a fold over any range of $\mathcal{R}$ is that catamorphism at the range's length with the range's position carried beside the state, and \cppinline{cata} is the catamorphism of a term's inductive type.
+The iterator is the catamorphism of the chain of a natural number, a fold over any range of $\mathcal{R}$ is that catamorphism at the range's length with the range's position carried beside the state, and a recursion over a term type, which the library spells \cppinline{cata}, is the catamorphism of the term's inductive type.
 The paramorphism, which also hands each node itself to the algebra, is the iterator at $\mu F \times \sigma$ with the node rebuilt beside the result.
 A term type translates to $\mu F$, whose constructors are its node operations, and \textsc{T-Node} reads a construction as a term of that type, $\mathrm{in}_O$ of its fields, exactly where a term of type $\mu F$ is expected, the argument of a \cppinline{cata} or of an algebra, so that a term keeps one derivation.
 The kernel's ranges are library adapters, and any instance of $\mathcal{R}$ would do.

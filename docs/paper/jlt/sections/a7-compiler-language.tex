@@ -2,7 +2,7 @@
 \section{The compiler's own functional language}
 \label{app:fjlt:ssa}
 
-This appendix is the argument Figure~\ref{fig:arrows} cites for its right-hand leg: that for a closed term $t$ of base type in the image of $\llbracket\cdot\rrbracket$, $\mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$ is $\mathit{eval}\,t$.
+This appendix is the argument for the right-hand leg of Figure~\ref{fig:arrows}: that for a closed term $t$ of base type in the image of $\llbracket\cdot\rrbracket$, $\mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$ is $\mathit{eval}\,t$.
 Theorem~\ref{thm:simulation} gives that inside the calculus.
 Here the program the compiler emits is read as the same term.
 It is a reason, not a theorem: the compiler is not among the hypotheses, and its lowering is trusted, as every \Cpp{} program trusts it.

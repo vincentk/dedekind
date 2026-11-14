@@ -138,11 +138,13 @@ export module dedekind.category:f_algebra;
 
 export import :functor;
 import :limit;
-import :posetal;    // ArrowLaws, arrow_node, arrow_laws_v: the law engine
-                    // LawAlgebra folds
-import :cartesian;  // the formers ⟨,⟩ [,] and the defining forms of × +
-import :morphism;   // IsArrow, Compose, π_1 / π_2: the first concrete term
-import :logic;      // Ternary: the bounded chain, the non-example
+import :posetal;     // ArrowLaws, arrow_node, arrow_laws_v: the law engine
+                     // LawAlgebra folds
+import :cartesian;   // the formers ⟨,⟩ [,] and the defining forms of × +
+import :involution;  // IsInvolution: the certificate the path's cancellation
+                     // reads
+import :morphism;    // IsArrow, Compose, π_1 / π_2: the first concrete term
+import :logic;       // Ternary: the bounded chain, the non-example
 import :nno;  // In = [Z, S] and Prior, its inverse: the NNO's structure maps
               // functor
 
@@ -266,6 +268,41 @@ static_assert(IsFCoalgebra<Zero, decltype(zero<Zero>()),
               "structurally the F-coalgebra structure map for "
               "identity_functor on InitialCategory with carrier Zero.");
 
+namespace detail_f_algebra {
+/** @brief Two adjacent copies of @c X cancel: a certified involution whose
+ *  type has one value, so the two copies are the same arrow.  A valued
+ *  involution (an XOR by a mask, say) is not cancelled by its type. */
+template <typename X>
+concept CancelsAdjacent = IsInvolution<X> && has_one_value_v<X>;
+/** @brief The concatenation of two normal paths: identities drop (unit), the
+ *  result associates to the right (associativity), and an atom meeting a copy
+ *  of itself that @c CancelsAdjacent cancels with it (involution), across the
+ *  junction as often as it recurs.  A recursion over the paths' types.
+ *  @param p the first path.  @param q the second.  @return the normal path. */
+template <IsArrow P, IsArrow Q>
+  requires std::same_as<Cod<P>, Dom<Q>>
+constexpr auto path_concat(const P& p, const Q& q) {
+  if constexpr (IsIdentityArrow<P>) {
+    return q;
+  } else if constexpr (IsIdentityArrow<Q>) {
+    return p;
+  } else if constexpr (is_compose_v<P>) {
+    return path_concat(π_1(p), path_concat(π_2(p), q));
+  } else if constexpr (is_compose_v<Q>) {
+    using Y = std::remove_cvref_t<decltype(π_1(q))>;
+    if constexpr (std::same_as<P, Y> && CancelsAdjacent<P>) {
+      return π_2(q);  // x x r = r
+    } else {
+      return Compose<P, Q>{p, q};
+    }
+  } else if constexpr (std::same_as<P, Q> && CancelsAdjacent<P>) {
+    return Identity<Dom<P>>{};  // x x = id
+  } else {
+    return Compose<P, Q>{p, q};
+  }
+}
+}  // namespace detail_f_algebra
+
 /** @name reduce_β for a Compose node --- the canonical β exhibit
  *
  *  @brief @c reduce_β is the @b β (F-algebra structure map, i.e. the
@@ -287,7 +324,9 @@ static_assert(IsFCoalgebra<Zero, decltype(zero<Zero>()),
  *  @{ */
 export template <IsArrow F, IsArrow G, IsArrow RF, IsArrow RG>
 constexpr auto reduce_β(const Compose<F, G>&, const RF& rf, const RG& rg) {
-  return Compose<RF, RG>{rf, rg};  // neither leg is the unit → inert composite
+  // Neither leg is the unit: the two normal paths concatenated, associated to
+  // the right, a certified involution meeting itself cancelled.
+  return detail_f_algebra::path_concat(rf, rg);
 }
 export template <IsArrow F, IsArrow G, typename T, IsArrow RG>
 constexpr RG reduce_β(const Compose<F, G>&, const Identity<T>&, const RG& rg) {
@@ -511,6 +550,59 @@ struct LawAlgebra {
 export template <IsArrow T>
 constexpr auto cata(const T& t) {
   return cata(BetaReduction{}, t);
+}
+
+/** @brief A verdict by the laws: @c True where the laws prove two arrows
+ *  equal, @c Unknown otherwise, never @c False.  It converts to @c bool only
+ *  where @c True, so @c static_assert(a @c == @c b) asserts a proof. */
+export struct ByTheLaws {
+  Ternary verdict;
+  explicit constexpr operator bool() const { return verdict == Ternary::True; }
+};
+namespace detail_f_algebra {
+/** @brief Two normal paths are the same, atom by atom: by the type where an
+ *  atom has one value, by the atom's own @c == where it carries one; where it
+ *  carries one and has no @c ==, not known to be the same. */
+template <IsArrow P, IsArrow Q>
+constexpr bool same_path(const P& p, const Q& q) {
+  if constexpr (IsIdentityArrow<P> && IsIdentityArrow<Q>) {
+    return std::same_as<Dom<P>, Dom<Q>>;  // the empty path, on one object
+  } else if constexpr (!std::same_as<P, Q>) {
+    return false;
+  } else if constexpr (is_compose_v<P>) {
+    return same_path(π_1(p), π_1(q)) && same_path(π_2(p), π_2(q));
+  } else if constexpr (IsIdentityArrow<P> || has_one_value_v<P>) {
+    return true;
+  } else if constexpr (std::equality_comparable<P>) {
+    return static_cast<bool>(p == q);
+  } else {
+    return false;
+  }
+}
+}  // namespace detail_f_algebra
+/** @brief Arrow terms compared @b by the laws, through their normal forms.
+ *  @details The normal form of an arrow term is its path in the free category
+ *  on its atoms (Mac Lane, @e Categories for the Working Mathematician, §II.7):
+ *  identities dropped, composition associated, and a certified one-valued
+ *  involution cancelled against itself (@c reduce_β above).  The rewriting
+ *  @f$f f \to \mathrm{id}@f$ is terminating and confluent, so the normal
+ *  form is unique.  Two terms with the same normal form are equal in every
+ *  model of the laws (Birkhoff), so equal arrows; two with different normal
+ *  forms are not known to differ, as equality of functions is undecidable
+ *  (Rice), so the answer is @c Unknown, never @c False.  A term node defines
+ *  no equality of its own: a node-by-node @c == would answer @c False where
+ *  the laws say @c Unknown (cf. @c :lattice_term, #1116).  Reassociating is
+ *  sound because a composite converts at every boundary (@c Compose).  The
+ *  @c == of a composite is this, as a hidden friend of @c Compose found by
+ *  argument-dependent lookup only, so it adds no candidate to the @c == of
+ *  any other type.  Defined on arrows
+ *  with one domain and one codomain.
+ *  @param f an arrow.  @param g an arrow.  @return the verdict. */
+export template <IsArrow F, IsArrow G>
+  requires std::same_as<Dom<F>, Dom<G>> && std::same_as<Cod<F>, Cod<G>>
+constexpr ByTheLaws equal_by_the_laws(const F& f, const G& g) {
+  return {detail_f_algebra::same_path(cata(f), cata(g)) ? Ternary::True
+                                                        : Ternary::Unknown};
 }
 
 // The term functor @c F(X) @c = @c Atom @c + @c X @c × @c X over arrows: its

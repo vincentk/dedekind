@@ -622,7 +622,16 @@ struct Arrows {
   constexpr T operator()(const T& x) const {
     return std::visit(detail_arrows::At<T>{x}, v);
   }
-  constexpr bool operator==(const Arrows&) const = default;
+  /** @brief Equal by representation: the same summand, and in it the same
+   *  morphism, or the same two stored legs.  This is the carrier's equality,
+   *  not the laws' (@c Compose, a term node, has none of its own). */
+  constexpr bool operator==(const Arrows& o) const {
+    if (v.index() != o.v.index()) return false;
+    if (v.index() == 0) return std::get<0>(v) == std::get<0>(o.v);
+    const Composite& c = std::get<1>(v);
+    const Composite& d = std::get<1>(o.v);
+    return c.f == d.f && c.g == d.g;
+  }
 };
 namespace detail_arrows {
 /** @brief Whether a morphism is the identity, read off its tags, so that
