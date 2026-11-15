@@ -41,7 +41,7 @@ Records are nested pairs.
 \llbracket \texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket & \note{an operation on parameters $\overline{x : \tau_x}$} \\
 \end{array}
 \]
-\caption{The translation of constraints: a constraint becomes a record type, one field per requirement.}
+\caption{The translation of constraints: a constraint becomes a record type, one field per requirement, the kernel's $\mathit{IsRange}$ excepted.}
 \label{fig:fjlt-records}
 \end{figure}
 
@@ -147,7 +147,7 @@ The kernel's three ranges are library adapters, and any instance of $\mathcal{R}
 range & state & head & tail \\
 \midrule
 \texttt{n >> chain(prior)} & $\llbracket N \rrbracket$ & \texttt{prior(n)} & \texttt{prior(n) >> chain(prior)} \\
-\texttt{transform(r, g)} & $\llbracket R \rrbracket \times \llbracket g \rrbracket$ & \texttt{g(head r)} & \texttt{transform(next r, g)} \\
+\texttt{transform(r, g)} & $\llbracket R \rrbracket \times \llbracket g \rrbracket$ & $g\,(\mathit{head}\,r)$ & \texttt{transform}$(\mathit{next}\,r, g)$ \\
 \texttt{iota(i, j)}, $i \le j$ & $\mathbb{N} \times \mathbb{N}$ & \texttt{i} & \texttt{iota(i + 1, j)} \\
 \bottomrule
 \end{tabular}
@@ -193,7 +193,7 @@ $1 + \tau$, inl, inr, case & \texttt{optional<τ>}, $\iota_1\,e$, $\iota_2\,e$, 
 $\tau + \sigma$, inl, inr, case & \texttt{variant<τ, σ>}, $\iota_1\,e$, $\iota_2\,e$, \texttt{case(s, f, g)} & \texttt{variant<τ, σ>(in\_place\_index<i-1>, e)}, a dispatch on the index, as the library's \texttt{Copairing} & \textsc{T-Inj}, \textsc{T-Case}; \textsc{S-Case} \\
 $\tau \times \sigma$, $(a, b)$, $\pi_1$, $\pi_2$~\cite{pierce1991basic} & \texttt{pair<τ, σ>}, \texttt{pair\{a, b\}}, \texttt{.first}, \texttt{.second} & the same & \textsc{T-Construct}, \textsc{T-Field}; \textsc{S-Proj} \\
 a unary product & \texttt{shared\_ptr<const τ>}, \texttt{make\_shared}, \texttt{*} & the same & \textsc{S-Unbox} \\
-a state $\llbracket R \rrbracket$, \textit{iter} & $R\texttt{<}\tau\texttt{>}$, \texttt{fold\_left(r, a, f)} & \texttt{std::ranges::fold\_left}, \texttt{ranges::size}, \texttt{*ranges::begin} under a guard, the instance's own & \textsc{T-Fold}, \textsc{T-Fold-R}, \textsc{E-Range}; \textsc{S-Fold} \\
+a state $\llbracket R \rrbracket$, \textit{iter} & $R\texttt{<}\tau\texttt{>}$, \texttt{fold\_left(r, a, f)} & \texttt{std::ranges::fold\_left}, the instance's $|\cdot|$ and $\mathit{uncons}$ spelt \texttt{ranges::size} and \texttt{*ranges::begin} under a guard & \textsc{T-Fold}, \textsc{T-Fold-R}, \textsc{E-Range}; \textsc{S-Fold} \\
 $\mu F$, its fold & nested nodes $O\texttt{<}\overline{\tau}\texttt{>}$, \texttt{cata(alg, t)} & the library's & \textsc{T-Cata}, \textsc{T-Node}; \textsc{S-Cata} \\
 \bottomrule
 \end{tabularx}

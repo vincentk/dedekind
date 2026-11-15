@@ -46,7 +46,7 @@ The primitives' translations compute the standard's functions on constants: a $\
 \begin{assumption}[Ranges]
 \label{ass:ranges}
 \cppinline{fold_left} over the ranges of $\mathcal{R}$ is a primitive with the evaluation rule of Figure~\ref{fig:fjlt-eval}, the standard library trusted for \cppinline{iota} (Section~\ref{sec:limits}).
-The conditions of \textsc{T-Range} are semantic, so the termination of a fold is in part assumed in the typing of its range.
+A range's conditions are semantic, so the termination of a fold is in part assumed in the typing of its range.
 \end{assumption}
 
 The omitted cases are the textbook ones, and the inductions are on paper, with no mechanisation; their mechanisation is future work.
@@ -62,7 +62,7 @@ The translation is a function of the program: two resolutions of the same constr
 \begin{proof}
 Resolution is a function by well-formedness: at concrete types one specialisation at a head and a unique most specific generic function among the entailed candidates, and at a type variable only a call its context decides, so that the declaration a body's call resolves to is the same at every instantiation of the body and the dictionary built at the type variable is the one built after substitution; contexts are well-founded, so the recursion through contexts terminates with one answer.
 \textsc{E-Not} applies only at concrete types, where entailment is decided, and only to a negation not already assumed, as \textsc{E-Shape} applies only to a shape not in $\Delta$, so it adds no choice.
-The entailment rules are syntax-directed, exactly one rule per constraint: \textsc{E-Assume} for a constraint in $\Delta$, \textsc{E-Shape} for a shape not in $\Delta$, by its side condition, \textsc{E-Op} for a required call, and \textsc{E-Law} or \textsc{E-Law-Assumed} for a law, which build the same $\mathit{true}$.
+The entailment rules are syntax-directed, exactly one rule per constraint: \textsc{E-Assume} for a constraint in $\Delta$, \textsc{E-Shape} for a shape not in $\Delta$, by its side condition, \textsc{E-Op} for a required call, \textsc{E-Law} or \textsc{E-Law-Assumed} for a law, which build the same $\mathit{true}$, \textsc{E-Not} for a negation, and \textsc{E-Range} for $\mathit{IsRange}$ not in $\Delta$, by its side condition.
 So two derivations of $\Delta \Vdash Q$ have the same shape, and by induction on that shape they build the same dictionary: the same variable, the same record of fields by the induction hypothesis, the same $\mathit{true}$, the same $\lambda\overline{x}.\,\llbracket e \rrbracket$ in which every trait call resolved the same way.
 \textsc{T-Req-Assumed} and \textsc{E-Law-Assumed} are deterministic as well, taking the leftmost assumed shape and its first matching requirement in declaration order, nested shapes included, so the translation of a body is a function of the body.
 \textsc{T-Req-Assumed}, with \textsc{T-Conv} where its requirement converts, is tried before \textsc{T-Call} and \textsc{T-Trait}, \textsc{T-Node} applies exactly where a term of type $\mu F$ is expected, and \textsc{T-Call} names the declaration resolution selects, so a call has one derivation even where several generic functions of one name have entailed contexts.
