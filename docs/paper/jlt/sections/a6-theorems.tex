@@ -255,12 +255,29 @@ The field is built by \textsc{E-Op} as $\lambda\overline{a}.\,\llbracket \tau^{S
 \noindent\emph{Sketch.}\ A generic body's dictionary variables are replaced by the records built at the concrete types, and each \textsc{T-Req-Assumed} site then reduces to the resolved call by Lemma~\ref{lem:resolve}.
 
 \begin{proof}
-Both together, by induction on the entailment and typing derivations.
-\case{\textsc{E-Assume}}the dictionary is $q_Q$, and the substitution puts $d$, the dictionary built at $\overline{\sigma}$, in its place.
-\case{\textsc{E-Shape}}the record is rebuilt field by field, each by the induction hypothesis.
+Both together, by induction on the entailment and typing derivations, one row per rule; ${}^{\textsc{ih}}$ marks the induction hypothesis, ${}^{\dagger}$ Lemma~\ref{lem:resolve}, and the row with work follows the table.
+\begingroup
+\small
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}p{0.28\linewidth}>{\raggedright\arraybackslash}p{\dimexpr 0.480\linewidth-4\tabcolsep\relax}@{}}
+\toprule
+rule & what the substitution changes & reduces to the concrete side, because \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+\multicolumn{3}{@{}l}{\textit{(i), dictionaries}} \\
+\textsc{E-Assume} & $q_Q$ becomes $d$ & $d$ is the dictionary built at $\overline{\sigma}$ \\
+\textsc{E-Shape} & the record, field by field & each field${}^{\textsc{ih}}$ \\
+\textsc{E-Op} & the field & below \\
+\textsc{E-Law}, \textsc{E-Law-Assumed}, \textsc{E-Not}, \textsc{E-Range} & nothing & the same closed term on both sides \\
+\multicolumn{3}{@{}l}{\textit{(ii), terms}} \\
+\textsc{T-Req-Assumed} & $q_Q.r\,\ldots$ becomes $d.r\,\ldots$ & it reduces to the resolved instance's translation${}^{\dagger}$ \\
+\textsc{T-Call}, \textsc{T-App} & their dictionaries & they reduce by (i) \\
+\textsc{T-Fold-R} & its record & it reduces by (i) \\
+every other rule & its subterms & structural${}^{\textsc{ih}}$ \\
+\end{longtable}
+\endgroup
 \case{\textsc{E-Op}}the field is $\lambda\overline{a}.\,\llbracket \tau^{S}\texttt{(}e_r\texttt{)} \rrbracket$, and $e_r$ is typed under $\Delta$, so (ii) reduces it to the field \textsc{E-Op} builds at $\overline{\sigma}$.
-\case{\textsc{E-Law}, \textsc{E-Law-Assumed}, \textsc{E-Not} and \textsc{E-Range}}the same closed term on both sides.
-(ii): a \textsc{T-Req-Assumed} site, $q_Q.r\,\ldots$, has become $d.r\,\ldots$ and reduces by Lemma~\ref{lem:resolve} to the resolved instance's translation; the dictionaries of a \textsc{T-Call} or \textsc{T-App} site, and the record of a \textsc{T-Fold-R} site, reduce by (i); every other row is structural in its subterms.
 \end{proof}
 
 \begin{lemma}[Progress]
@@ -270,15 +287,27 @@ A closed well-typed term is a value or takes a step.
 \noindent\emph{Sketch.}\ The leftmost non-value subterm steps by induction; a redex of each remaining shape steps because every primitive, conversion and range operation is total.
 
 \begin{proof}
-By induction on the typing derivation.
-If some proper subterm in an evaluation position is not a value, the leftmost such subterm steps by the induction hypothesis, and \textsc{S-Ctx} lifts the step.
-Otherwise the term is a value, or a redex of one of the following shapes, each of which steps.
-A constant's name: \textsc{S-Const}.
-A call $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)}$ typed by \textsc{T-Call} or \textsc{T-Trait}: the premise says the call resolves (for \textsc{T-Call}, the constraints are entailed, so resolution finds the generic function or, through its context, a specialisation), so \textsc{S-Call} applies; \textsc{T-Req-Assumed} cannot occur in a closed term, since $\Delta$ is empty.
-An application $O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)}$: \textsc{S-Op} for a declared function object, \textsc{S-Std} for a standard one, total by the choice of $O$.
-An operator $\ominus v$ or $v_1 \oplus v_2$: \textsc{S-Prim} where it resolves to a primitive of $\Sigma$, total by the choice of $\Sigma$, on constants by canonical forms, and otherwise the call it resolves to, as above.
-A conversion $\tau\texttt{(}c\texttt{)}$: \textsc{S-Conv}, total by the condition on conversions.
-A conditional on a constant of type \cppinline{bool}, a case on a value of a sum, which by \textsc{T-Case} and canonical forms is an injection, a projection of a pair or of a constructed object, an unbox of a box, a fold whose count is a constant, and a \cppinline{cata} on a node: \textsc{S-If}, \textsc{S-Case}, \textsc{S-Proj}, \textsc{S-Unbox}, \textsc{S-Fold}, \textsc{S-Cata}, with \textsc{S-Fold}'s two cases covering every constant and \textsc{S-Cata} covering every node, leaves included.
+By induction on the typing derivation: a closed well-typed term is a value, or it holds a redex of one of these shapes, each of which steps; ${}^{\textsc{ih}}$ marks the induction hypothesis.
+\begingroup
+\small
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}p{0.22\linewidth}>{\raggedright\arraybackslash}p{\dimexpr 0.510\linewidth-4\tabcolsep\relax}@{}}
+\toprule
+redex & steps by & because \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+a non-value in an evaluation position & \textsc{S-Ctx} & the leftmost such subterm steps${}^{\textsc{ih}}$ \\
+a constant's name & \textsc{S-Const} & its definition \\
+a call $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)}$ & \textsc{S-Call} & the premise of \textsc{T-Call} or \textsc{T-Trait} says it resolves; \textsc{T-Req-Assumed} cannot occur, $\Delta$ being empty \\
+$O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)}$ & \textsc{S-Op}, \textsc{S-Std} & the choice of $O$ \\
+$\ominus v$, $v_1 \oplus v_2$ & \textsc{S-Prim}, or the call it resolves to & the choice of $\Sigma$, on constants by canonical forms \\
+$\tau\texttt{(}c\texttt{)}$ & \textsc{S-Conv} & the condition on conversions \\
+a conditional, a case, a projection, an unbox & \textsc{S-If}, \textsc{S-Case}, \textsc{S-Proj}, \textsc{S-Unbox} & canonical forms: a constant of type \texttt{bool}, an injection (\textsc{T-Case}), a pair or a constructed object, a box \\
+a fold whose count is a constant & \textsc{S-Fold} & its two cases cover every constant \\
+a \texttt{cata} on a node & \textsc{S-Cata} & it covers every node, leaves included \\
+\end{longtable}
+\endgroup
 Preservation along a step, that $e \longrightarrow e'$ keeps the type, is the usual substitution argument, the conversion written in the kernel term keeping a requirement's use at its declared type after \textsc{S-Call}, and it is used below as source subject reduction.
 \end{proof}
 
@@ -295,15 +324,35 @@ If $t \sqsupseteq e$ and $e \longrightarrow e'$ then $t \longrightarrow^{+} t'$ 
 \begin{proof}
 Values: a constant translates to a constant; a function object with fields translates to a pair whose second component, $O_{\mathrm{call}}$ applied to the fields, may still reduce, which is why the claim is made for base types.
 Steps, by cases on the rule; by \textsc{S-Ctx} and the fact that the translation of a context is a context with one or more copies of the hole, each of which steps, it suffices to treat the redex.
-\case{\textsc{S-Const}}$\llbracket x \rrbracket = x$ unfolds to its definition $\llbracket e \rrbracket$ in one step.
-\case{\textsc{S-Call} to a specialisation}$f_{\overline{\sigma}}\,\overline{\llbracket v \rrbracket}$ $\beta$-reduces to $\llbracket e_f \rrbracket[\overline{\llbracket v \rrbracket}/\overline{x}] = \llbracket e_f[\overline{v}/\overline{x}] \rrbracket$.
+Each row gives the target's steps for one source step, and why the target lands $\sqsupseteq$ the source's reduct; the rows with work follow the table.
+\begingroup
+\small
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}p{0.22\linewidth}>{\raggedright\arraybackslash}p{\dimexpr 0.540\linewidth-4\tabcolsep\relax}@{}}
+\toprule
+source step & target steps & landing, because \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+\textsc{S-Const} & one step & $\llbracket x \rrbracket = x$ unfolds to its definition $\llbracket e \rrbracket$ \\
+\textsc{S-Call} to a specialisation & $\beta$-reduction & $\llbracket e_f \rrbracket[\overline{\llbracket v \rrbracket}/\overline{x}] = \llbracket e_f[\overline{v}/\overline{x}] \rrbracket$, by Lemma~\ref{lem:subst}~(ii) \\
+\textsc{S-Call} to a generic function & several & below \\
+\textsc{S-Op} & several & below \\
+\textsc{S-Std}, \textsc{S-Prim}, \textsc{S-Conv} between distinct carriers & a projection where there is one, then a $\delta$-step & the constant the standard or the declaration assigns, by Definition~\ref{def:standard} \\
+\textsc{S-Conv} at a value's own type & one $\beta$-step & $\mathit{conv}_{\tau,\tau} = \lambda x.\,x$ gives $\llbracket v \rrbracket$, structured or not \\
+\textsc{S-If}, \textsc{S-Case} & a case reduction & to the selected branch, or to the translation of the selected application \\
+\textsc{S-Proj}, \textsc{S-Unbox} & a projection & the box being a unary product, unboxing is a step on both sides and the simulation stays strict \\
+\textsc{S-Fold} & several & below \\
+\textsc{S-Cata} & several & below \\
+\end{longtable}
+\endgroup
 \case{\textsc{S-Call} to a generic function}$f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by type application and $\beta$-reduction to $\llbracket e_f \rrbracket$ with $\overline{\llbracket \sigma \rrbracket}$ for $\overline{\alpha}$, $\overline{d}$ for $\overline{q}$ and $\overline{\llbracket v \rrbracket}$ for $\overline{x}$; by Lemma~\ref{lem:subst-dict}~(ii), with $\overline{d}$ the records \textsc{E-Shape} built for the closed call, the result reduces further to $\llbracket e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \rrbracket$, the term the source stepped to, whose requirement uses are typed by \textsc{T-Trait}, under \textsc{T-Conv} where the requirement converts, and whose folds at the former type variable are \textsc{T-Fold}'s at the concrete instance.
 \case{\textsc{S-Op}}$(\pi_2\,(\overline{\llbracket v_y \rrbracket}, O_{\mathrm{call}}\,\overline{\llbracket v_y \rrbracket}))\,[\overline{\sigma}]\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by projection, type application and $\beta$-reduction to $\llbracket e_O \rrbracket$ with fields, dictionaries and arguments substituted, which is $\llbracket e' \rrbracket$ by the same argument as for a generic call.
-\case{\textsc{S-Std}, \textsc{S-Prim} and \textsc{S-Conv} between distinct carriers}a projection where there is one, then a $\delta$-step to the constant the standard or the declaration assigns, by Definition~\ref{def:standard}, that the primitives' translations compute the standard's functions on constants.
-\case{\textsc{S-Conv} at a value's own type}$\mathit{conv}_{\tau,\tau} = \lambda x.\,x$, so one $\beta$-step gives $\llbracket v \rrbracket$, structured or not.
-\case{\textsc{S-If}, \textsc{S-Case}, \textsc{S-Proj} and \textsc{S-Unbox}}a case reduction, a case reduction to the translation of the selected application, whose evaluation is the next step's, a projection, a projection; the box is a unary product rather than nothing so that unboxing is a step on both sides and the simulation stays strict.
 \case{\textsc{S-Fold}}with $|r| = k + 1$:
-\[ \mathit{iter}\,(k{+}1)\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket) \longrightarrow \mathit{iter}\,k\,\mathit{step}\,(\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket)) \longrightarrow^{+} \mathit{iter}\,k\,\mathit{step}\,(\llbracket \mathit{next}\,r \rrbracket, \llbracket f \rrbracket^{\!\circ}\,\llbracket a \rrbracket\,\llbracket \mathit{head}\,r \rrbracket), \]
+\[ \begin{array}{@{}l@{}}
+\mathit{iter}\,(k{+}1)\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket) \longrightarrow \mathit{iter}\,k\,\mathit{step}\,(\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket)) \\
+\qquad \longrightarrow^{+} \mathit{iter}\,k\,\mathit{step}\,(\llbracket \mathit{next}\,r \rrbracket, \llbracket f \rrbracket^{\!\circ}\,\llbracket a \rrbracket\,\llbracket \mathit{head}\,r \rrbracket),
+\end{array} \]
 $\mathit{uncons}$ taking its second branch, since $|r| > 0$, and computing the range's head and tail, and the last term is $\sqsupseteq$ the source's reduct, the fold over $\mathit{next}\,r$ from $f(a, \mathit{head}\,r)$, whose translation differs from it only by the count $\mathit{toNat}\,|\llbracket \mathit{next}\,r \rrbracket|$, which reduces to $k$; the empty case is one step of the iterator followed by a projection.
 \case{\textsc{S-Cata}}$\mathit{fold}_F\,\beta\,(\mathrm{in}\,n) \longrightarrow \beta\,(F(\mathit{fold}_F\,\beta)\,n)$ is one step of the term's iterator; $\beta$ then rebuilds the node from the first components, which reduces to $\llbracket n \rrbracket_{\mu F}$ since each leg's pair has that leg, read at $\mu F$, as its first component, and applies $\llbracket \mathit{alg} \rrbracket^{\!\circ}$ to it and to the second components $\pi_2\,(\mathit{fold}_F\,\beta\,\llbracket l_i \rrbracket)$, which are $\llbracket \texttt{cata(}\mathit{alg}\texttt{, }l_i\texttt{)} \rrbracket$; after those projections the term is $\sqsupseteq$ the source's reduct, the node's reading there already reduced.
 \end{proof}
