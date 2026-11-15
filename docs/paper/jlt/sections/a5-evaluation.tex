@@ -70,8 +70,8 @@ $\Sigma$ is not a list; the listings also use \cppinline{std::string} with conca
 \textsc{(S-Case)} & \texttt{case(}\iota_1\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_f\texttt{(}v\texttt{)} \qquad \texttt{case(}\iota_2\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_g\texttt{(}v\texttt{)} \\[5pt]
 \textsc{(S-Proj)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}.}y_i \longrightarrow v_i \quad \text{a field, \texttt{std::pair}'s \texttt{first} and \texttt{second} among them} \\[5pt]
 \textsc{(S-Unbox)} & \texttt{*make\_shared<const }\tau\texttt{>(}v\texttt{)} \longrightarrow v \\[5pt]
-\textsc{(S-Fold)} & \texttt{fold\_left(}r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow \texttt{fold\_left(}\mathit{next}\,r\texttt{, }v_f\texttt{(}v_a\texttt{, }\mathit{head}\,r\texttt{), }v_f\texttt{)} \quad \text{if } |r| > 0 \\
- & \texttt{fold\_left(}r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow v_a \quad \text{if } |r| = 0 \\[5pt]
+\textsc{(S-Fold)} & \texttt{fold\_left(}v_r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow \texttt{fold\_left(}\mathit{next}\,v_r\texttt{, }v_f\texttt{(}v_a\texttt{, }\mathit{head}\,v_r\texttt{), }v_f\texttt{)} \quad \text{if } |v_r| > 0 \\
+ & \texttt{fold\_left(}v_r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow v_a \quad \text{if } |v_r| = 0 \\[5pt]
 \textsc{(S-Cata)} & \texttt{cata(}v_{\mathit{alg}}\texttt{, }n\texttt{)} \longrightarrow v_{\mathit{alg}}\texttt{(}n\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_1\texttt{), }\ldots\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_k\texttt{))} \\
  & \qquad \text{for a node } n \text{ with legs } l_1 \ldots l_k \\[5pt]
 \textsc{(S-Ctx)} & E[e] \longrightarrow E[e'] \quad \text{if } e \longrightarrow e' \\

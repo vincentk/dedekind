@@ -183,7 +183,6 @@ A constant is typed once, closed, by \textsc{D-Const}, and its name has that typ
 \end{array}
 \]
 \caption{The rules for recursion, one per form: over a value, the standard's fold over a range of $\mathcal{R}$; over a type, the recursion at a term type, which the library spells \cppinline{cata}.
-$\mathcal{R}$ is the family of ranges whose length is fixed before the fold starts (\emph{Ranges}, below).
 $^{\P}$~At each node of arity $k$.}
 \label{fig:fjlt-typing-recursion}
 \end{figure}
@@ -191,7 +190,7 @@ $^{\P}$~At each node of arity $k$.}
 \paragraph{Ranges.}
 A range is homogeneous: its elements share one type $\tau$, and its length is a value.
 $R\texttt{<}\tau\texttt{>}$ is an instance of $\mathcal{R}$, a family defined by conditions.
-A fold reads its length $|r| \in \mathbb{N}$, fixed before the fold starts, and, when $|r| > 0$, its head and its tail $\mathit{next}\,r$, with $|\mathit{next}\,r| = |r| - 1$; FJlt has no term for them, so a program folds a range and never takes its head.
+A fold reads its length $|r| \in \mathbb{N}$, fixed before the fold starts, and, when $|r| > 0$, its head $\mathit{head}\,r$ and its tail $\mathit{next}\,r$, functions on range values, with $|\mathit{next}\,r| = |r| - 1$; FJlt has no term for them, so a program folds a range and never takes its head.
 A range is typed by its instance's conditions, \cppinline{iota(i, j)} only at $i \le j$, and \textsc{S-Fold} preserves them, since $\mathit{next}$ does.
 The conditions are semantic, that a step descends or that two bounds are ordered, so a chain whose step does not descend is ill-typed, and the termination of a fold is, to that extent, assumed in the typing of its range.
 At a type variable $R$, $\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$ holds of exactly the instances of $\mathcal{R}$ over $\tau$.
