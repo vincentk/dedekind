@@ -66,8 +66,8 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
 
     # The toolchain, named once: every later step reads CXX, CC and
-    # CLANG_FORMAT, whichever image it runs on.  The linter's clang-query and
-    # Clang's CMake packages CMake finds next to the compiler.
+    # CLANG_FORMAT, whichever image it runs on.  Clang's CMake packages, for
+    # the linter's binary, CMake finds next to the compiler.
     - name: Install clang build chain (Linux)
       if: runner.os == 'Linux'
       run: |

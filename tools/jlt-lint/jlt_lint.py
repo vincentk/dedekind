@@ -2,17 +2,20 @@
 """Run the Jlt linter over tools/jlt-lint/scope (#1060).
 
 A scope line is ``<rule> <file-glob> <namespace> <expected|report>``.  Every
-file a glob names is parsed once by clang-query, with all its rules, each rule
-matching beneath ``namespace`` (bound as ``scope``).  A number is a gate: the
-file must have exactly that many findings.  ``report`` is counted and printed,
-never failed.  A fixture (under tools/jlt-lint/fixtures) is standalone and is
-parsed with explicit flags; every other file through the build's compilation
-database.
+file a glob names is parsed once, by the jlt-lint binary, which runs all of
+the file's rules on that one parse, each rule matching beneath ``namespace``
+(bound as ``scope``).  A number is a gate: the file must have exactly that
+many findings.  ``report`` is counted and printed, never failed.  A fixture
+(under tools/jlt-lint/fixtures) is standalone and is parsed with explicit
+flags; every other file through the build's compilation database.
 
-A rule file may instead name a check of jlt-lint (``tool <check>``), the
-checks that need code rather than a pattern; the tool prints one finding per
-line as ``path:line:col``.  All of a file's checks run in one jlt-lint
-process, over one parse, each check's findings in its own section.
+A rule file holds clang-query matchers (``match`` lines, and at most one
+``set traversal``), which the binary parses with clang's dynamic matcher
+parser, as clang-query would; or it names a check of the binary
+(``tool <check>``), the checks that need code rather than a pattern.  The
+binary prints one finding per line as ``path:line:col``, each rule's findings
+in its own section, after the scope namespace's own (none: the scope is
+absent, and the file fails rather than count zeros).
 
 Files are linted in parallel, ``NCPU`` at a time (default: the number of
 cores); the report is printed in file order, as if they had run one by one.
@@ -24,7 +27,7 @@ layer as soon as that layer is built, and ``--out`` keeps its findings;
 ``--join`` reads them back, checks that every part of the scope ran, and
 prints the report of the whole scope, as one run would have.
 
-Usage: jlt_lint.py [CLANG_QUERY] [BUILD_DIR] [JLT_TOOL] [--part P --out DIR]
+Usage: jlt_lint.py [BUILD_DIR] [JLT_TOOL] [--part P --out DIR]
        jlt_lint.py --join DIR
 """
 
@@ -44,8 +47,6 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
-COUNT = re.compile(r"^(\d+) match(?:es)?\.", re.M)
-BINDS = re.compile(r'^(\S+:\d+:\d+): note: "root" binds here', re.M)
 # The linter judges the code as written, not CI's coverage build: there the
 # coverage bridges compile without constexpr on purpose, so their macro is
 # undone for the parse (the prebuilt modules are unaffected).
@@ -79,11 +80,8 @@ def read_scope():
             yield rule, pathlib.Path(f).relative_to(ROOT).as_posix(), namespace, expected
 
 
-DEFAULT_TRAVERSAL = "set traversal IgnoreUnlessSpelledInSource"
-
-
 def tool_check(rule):
-    """The jlt-lint check a rule names, or None for a clang-query rule."""
+    """The jlt-lint check a rule names, or None for a rule of matchers."""
     for l in (HERE / "rules" / f"{rule}.query").read_text().splitlines():
         if l.startswith("tool "):
             return l.split(None, 1)[1].strip()
@@ -105,98 +103,57 @@ def exit_status(p):
     return f"exit code {p.returncode}\n"
 
 
-def run_tool(tool, build, path, namespace, checks):
-    """The checks of jlt-lint on one file, over one parse: locations per
-    check, or None and the output on an error."""
-    args = [str(tool), f"--check={','.join(checks)}", f"--scope={namespace}"]
+def run(tool, build, path, namespace, rules):
+    """Parse one file once, with all its rules: (counts per rule, locations
+    per rule, output), or None, None and the output on an error."""
+    checks = [tool_check(r) for r in rules if tool_check(r) is not None]
+    queries = [r for r in rules if tool_check(r) is None]
+    args = [str(tool), f"--scope={namespace}"]
+    if checks:
+        args.append(f"--check={','.join(checks)}")
+    if queries:
+        args.append(f"--query={','.join(str(HERE / 'rules' / f'{r}.query') for r in queries)}")
     if path.startswith("tools/jlt-lint/fixtures/"):
         args += [str(ROOT / path), "--", "-std=c++23", "-xc++", *RESOURCE_DIR]
     else:
         args += ["-p", str(build), *UNDO_FOR_CHECK,
                  *(f"--extra-arg={a}" for a in RESOURCE_DIR), str(ROOT / path)]
     p = subprocess.run(args, capture_output=True, text=True)
+    out = p.stdout + p.stderr
     if p.returncode != 0:
-        return None, exit_status(p) + p.stdout + p.stderr
-    lines = [l for l in p.stdout.splitlines() if l.strip()]
-    if len(checks) == 1:  # one check prints no section header
-        return {checks[0]: lines}, p.stdout + p.stderr
-    found = {c: [] for c in checks}
+        return None, None, exit_status(p) + out
+    # The sections: the scope probe's, then one per rule file and per check.
+    wanted = ["scope", *(f"query {r}" for r in queries), *checks]
+    found = {w: [] for w in wanted}
     seen = []
     section = None
-    for l in lines:
+    for l in p.stdout.splitlines():
+        if not l.strip():
+            continue
         if l.startswith("== "):
             section = l[3:].strip()
             if section not in found:
-                return None, f"jlt-lint: unrequested section {section}\n" + p.stdout + p.stderr
+                return None, None, f"jlt-lint: unrequested section {section}\n" + out
             if section in seen:
-                return None, f"jlt-lint: section {section} twice (one parse per file?)\n" + p.stdout + p.stderr
+                return None, None, f"jlt-lint: section {section} twice (one parse per file?)\n" + out
             seen.append(section)
         elif section is None:
-            return None, "jlt-lint: a finding before any section\n" + p.stdout + p.stderr
+            return None, None, "jlt-lint: a finding before any section\n" + out
         else:
             found[section].append(l)
-    # Every check must have reported, even with no findings: a missing
-    # section is a check that did not run, not a zero.
-    if sorted(seen) != sorted(checks):
-        return None, f"jlt-lint: sections {seen}, wanted {checks}\n" + p.stdout + p.stderr
-    return found, p.stdout + p.stderr
-
-
-def matchers(rule):
-    """The rule's match lines; its findings are the sum of their counts (a
-    rule may need one per kind of syntax node, e.g. a call and a member).  A
-    rule may name its own traversal with a `set traversal` line (one that
-    needs implicit nodes, such as a closure's fields); it is restored after."""
-    text = (HERE / "rules" / f"{rule}.query").read_text().splitlines()
-    lines = [l for l in text if l.startswith("match ")]
-    if not lines:
-        sys.exit(f"jlt-lint: rules/{rule}.query: want at least one match line")
-    own = [l for l in text if l.startswith("set traversal ")]
-    return lines, own[0] if own else None
-
-
-def run(query, build, path, namespace, rules):
-    """Parse one file once; return (counts per rule, locations per rule) or an error."""
-    script = ["set output diag",
-              DEFAULT_TRAVERSAL,
-              f'let scope namespaceDecl(hasName("{namespace}"))']
-    # The probe runs first: a scope that names no namespace in this file
-    # would make every rule count zero, so its absence is a failure.
-    script.append("match namespaceDecl(hasName(\"%s\"), isExpansionInMainFile())" % namespace)
-    owner = []  # the rule each match line belongs to, in script order
-    for r in rules:
-        ms, traversal = matchers(r)
-        if traversal:
-            script.append(traversal)
-        for m in ms:
-            script.append(m)
-            owner.append(r)
-        if traversal:
-            script.append(DEFAULT_TRAVERSAL)
-    if path.startswith("tools/jlt-lint/fixtures/"):
-        args = [str(ROOT / path), "--", "-std=c++23", "-xc++", *RESOURCE_DIR]
-    else:
-        args = ["-p", str(build), *UNDO_FOR_CHECK,
-                *(f"--extra-arg={a}" for a in RESOURCE_DIR), str(ROOT / path)]
-    p = subprocess.run([query] + [a for s in script for a in ("-c", s)] + args,
-                       capture_output=True, text=True)
-    out = p.stdout + p.stderr
-    # clang-query prints a count after each match command, in order; the
-    # findings of match k are the notes between count k-1 and count k.
-    counts = [int(c) for c in COUNT.findall(out)]
-    if p.returncode != 0 or len(counts) != len(owner) + 1:
-        return None, None, exit_status(p) + out
-    if counts[0] == 0:
+    # Every rule must have reported, even with no findings: a missing
+    # section is a rule that did not run, not a zero.
+    if sorted(seen) != sorted(wanted):
+        return None, None, f"jlt-lint: sections {seen}, wanted {wanted}\n" + out
+    if not found["scope"]:
         return None, None, f"namespace {namespace} does not occur in {path}"
-    total = {r: 0 for r in rules}
-    where = {r: [] for r in rules}
-    marks = list(COUNT.finditer(out))
-    start = marks[0].end()
-    for r, n, m in zip(owner, counts[1:], marks[1:]):
-        total[r] += n
-        where[r] += BINDS.findall(out, start, m.start())
-        start = m.end()
-    return total, where, out
+    # A match whose root has no location ("-") counts, but is not listed.
+    counts, where = {}, {}
+    for r in rules:
+        lines = found[f"query {r}" if tool_check(r) is None else tool_check(r)]
+        counts[r] = len(lines)
+        where[r] = [l for l in lines if l != "-"]
+    return counts, where, out
 
 
 def one_entry_per_file(build, part):
@@ -224,7 +181,7 @@ def one_entry_per_file(build, part):
     return db
 
 
-def lint_part(query, build, tool, part):
+def lint_part(build, tool, part):
     """Lint the scope lines of one part (all of them for None); return one
     block per (file, namespace): its report lines, failures and coverage rows."""
     lines = [l for l in read_scope() if part is None or part_of(l[1]) == part]
@@ -239,23 +196,10 @@ def lint_part(query, build, tool, part):
         groups[(f, ns)].append((rule, expected))
 
     def lint(group):
-        """One file: its clang-query rules in one parse, its jlt-lint checks
-        in another; (counts, locations, output) per rule, counts None on an
-        error."""
+        """One file, all its rules over one parse: (counts, locations,
+        output) per rule, counts None on an error."""
         (f, ns), entries = group
-        query_rules = [r for r, _ in entries if tool_check(r) is None]
-        # Always through run(): its namespace probe guards tool-only groups too.
-        counts, where, out = run(query, build, f, ns, query_rules)
-        tool_rules = [r for r, _ in entries if tool_check(r) is not None]
-        if counts is None or not tool_rules:
-            return counts, where, out
-        found, tout = run_tool(tool, build, f, ns, [tool_check(r) for r in tool_rules])
-        if found is None:
-            return None, None, "jlt-lint: " + tout
-        for r in tool_rules:
-            where[r] = found[tool_check(r)]
-            counts[r] = len(where[r])
-        return counts, where, out
+        return run(tool, build, f, ns, [r for r, _ in entries])
 
     workers = int(os.environ.get("NCPU") or os.cpu_count() or 1)
     ordered = sorted(groups.items())
@@ -270,7 +214,7 @@ def block(f, ns, entries, counts, where, out):
     text, failures = [], 0
     rows = {}
     if counts is None:
-        text.append(f"jlt-lint: {f}: does not parse, a matcher did not run, the scope is absent, or a tool failed")
+        text.append(f"jlt-lint: {f}: does not parse, a rule did not run, or the scope is absent")
         text += out.splitlines()[:30]
         return {"key": [f, ns], "text": text, "failures": 1, "rows": rows}
     for rule, expected in entries:
@@ -325,7 +269,6 @@ def join(out):
 
 def main():
     args = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
-    args.add_argument("query", nargs="?", default="clang-query")
     args.add_argument("build", nargs="?", type=pathlib.Path, default=ROOT / "build")
     args.add_argument("tool", nargs="?", type=pathlib.Path)
     args.add_argument("--part", help="lint only this part: a layer, or fixtures")
@@ -338,7 +281,7 @@ def main():
         text, failures = report(join(a.join))
         (a.join.parent / "report.txt").write_text(text)
     else:
-        blocks = lint_part(a.query, a.build, a.tool or a.build / "jlt-lint" / "jlt-lint", a.part)
+        blocks = lint_part(a.build, a.tool or a.build / "jlt-lint" / "jlt-lint", a.part)
         text, failures = report(blocks)
         if a.out:
             name = a.part or "all"
