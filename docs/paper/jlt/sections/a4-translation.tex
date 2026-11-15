@@ -100,7 +100,7 @@ The right-hand column says which case a line is.}
 \paragraph{Declarations and terms.}
 Figure~\ref{fig:fjlt-translation} translates each declaration on its own; together they form one program.
 The program's image is its definitions in declaration order, each scoping over the definitions and the term after it, so a name is bound before every use (Appendix~\ref{app:fjlt:typing}).
-A constant is such a definition, $x = \llbracket e \rrbracket$, unfolded where it is used, as \textsc{S-Const} unfolds it, and not a $\beta$-redex, which would substitute every use at once (Assumption~\ref{ass:target}).
+A constant is such a definition, $x = \llbracket e \rrbracket$, unfolded where it is used, as \textsc{S-Const} unfolds it, and not a $\beta$-redex, which would substitute every use at once (Definition~\ref{def:target}).
 A trait has no image of its own: its specialisations are closed terms $f_{\overline{\tau}}$, and a generic function serving as an instance with a context is the function from records to a record with which \textsc{E-Shape} builds its dictionary.
 No body calls itself and a term type is strictly positive (Appendix~\ref{app:fjlt:typing}), so the definitions are acyclic and each term type has its iterator, as the normalisation results need.
 So the program needs no recursive binding, and its only recursion is that of the two primitives: the fold over a range, and the recursion over a term type, whose image is the term's iterator (Figure~\ref{fig:fjlt-term-fold}).

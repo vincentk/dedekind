@@ -43,7 +43,7 @@ The fragment is the \emph{Juliet Posture}, or Jlt, and it has two boundaries, bo
 The outer boundary is drawn by the three rules: Jlt is the proper subset of \Cpp{23} they define.
 We call it a posture because it asks only for a style of programming: every ingredient is in the ISO standard~\cite{cpp23standard}, implemented by toolchains in wide use, and what Jlt adds is the programmer's discipline.
 The compiler holds some of the rules and the programmer the rest, and a linter helps but is not required (Table~\ref{tab:posture}).
-The inner boundary is drawn by the translation: the \emph{kernel}, Featherweight Jlt (FJlt), is the part of Jlt on which a translation to System~F ($\llbracket\cdot\rrbracket$) is defined, and it inherits from System~F termination, parametricity and a value.
+The inner boundary is drawn by the translation: the \emph{kernel}, Featherweight Jlt (FJlt), is the part of Jlt on which a translation to System~F~\cite{girard1972interpretation,reynolds1974towards} ($\llbracket\cdot\rrbracket$) is defined, and it inherits from System~F termination, parametricity and a value.
 Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, which this paper names and characterises without proof (Appendix~\ref{app:fjlt:closure}), the arrangement being the Haskell Report's, a kernel and the translations into it~\cite{marlow2010haskell}.
 
 Jlt is thus an embedded domain-specific language in Hudak's sense~\cite{hudak1996building}, whose domain is System~F and whose host is \Cpp{23}.

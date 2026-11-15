@@ -8,44 +8,63 @@ Each result uses only those before it, except that the lemma on dictionaries and
 Throughout, $\Sigma$ is a signature whose carriers meet the conditions of Section~\ref{sec:jlt-to-fjlt}, used only as constants and total operators, and $\llbracket \cdot \rrbracket$ is the translation of Appendix~\ref{app:fjlt:translation}.
 A context translates pointwise: $\llbracket \Delta \rrbracket$ has a type variable for each $\alpha \in \Delta$ and a record variable $q_Q : \llbracket Q \rrbracket$ for each assumed constraint $Q \in \Delta$, and $\llbracket \Gamma \rrbracket = \overline{x : \llbracket \tau \rrbracket}$.
 
-\subsection{Assumptions}
-The assumptions are where the ground may be soft.
-They are taken for granted in what follows, and the proofs are proofs relative to them.
+\subsection{Definitions and assumptions}
+Where the ground is firm, the definitions fix the target calculus and the meaning the \Cpp{} standard gives, and the lettered theorems are the literature's.
+The assumptions are where the ground may be soft: what Jlt brings of its own, and where the literature leaves a gap for this paper to bridge.
+The proofs are proofs relative to both.
 
-\begin{assumption}[The target]
-\label{ass:target}
-System~F with products, sums, the carriers of $\Sigma$ as constants with their $\delta$-rules, and the iterators $\mathit{iter}$ and $\mathit{fold}_F$.
+\begin{definition}[The target; System~F of Girard~\cite{girard1972interpretation} and Reynolds~\cite{reynolds1974towards}, extended]
+\label{def:target}
+System~F~\cite{girard1989proofs} with products, sums, the carriers of $\Sigma$ as constants with their $\delta$-rules, and the iterators $\mathit{iter}$ and $\mathit{fold}_F$.
 The iterators reduce by $\mathit{iter}\,(k{+}1)\,s\,z \longrightarrow \mathit{iter}\,k\,s\,(s\,z)$, $\mathit{iter}\,0\,s\,z \longrightarrow z$ and $\mathit{fold}_F\,\beta\,(\mathrm{in}\,n) \longrightarrow \beta\,(F(\mathit{fold}_F\,\beta)\,n)$.
 Reduction in the target is full $\beta$-reduction, any redex anywhere, together with projections, case, the $\delta$-rules of the constants, the unfolding of a defined name to its body and the two iterator rules; no evaluation order is imposed.
-\end{assumption}
+\end{definition}
 
-\begin{assumption}[Strong normalisation and confluence]
-\label{ass:sn}
-The target is strongly normalising (Assumption~\ref{ass:sn}) and confluent.
-System~F with products, sums and positive inductive types with their iterators is strongly normalising and confluent, and its iterative fragment embeds into System~F by an encoding that preserves reduction~\cite{matthes1999extensions}; for first-order rewrite rules on algebraic constants, Breazu-Tannen and Gallier show that adding them to System~F conserves strong normalisation and confluence~\cite{breazutannen1991polymorphic,breazutannen1994polymorphic}.
-Their combination is a theorem of Blanqui's~\cite{blanqui2005definitions}: the Calculus of Algebraic Constructions, which contains System~F, is strongly normalising for first-order rules on constants that are themselves strongly normalising and confluent, together with recursors under the General Schema on basic inductive types, those whose constructors take the type itself only directly.
-The $\delta$-rules are such first-order rules: ground, a constant out of constants, so each step removes one operator application and they terminate, and a function of their argument constants, so they are confluent.
-$\mathit{iter}$ and $\mathit{fold}_F$ are such recursors, on $\mathbb{N}$ and on term types, which Appendix~\ref{app:fjlt:typing}'s condition on term types makes basic; $\mathit{iter}$ in the accumulator form above is the standard iterator at $\sigma \to \sigma$, each of its steps at least one step of that.
-The defined names are acyclic, by the declaration order, and expand away.
-The rules have no critical pairs, so with strong normalisation they are confluent, by Newman's lemma~\cite{newman1942theories,baader1998term}.
-What this leaves asserted rather than carried out is that the target, so presented, is an instance of Blanqui's calculus: that the two iterators meet the General Schema and the embedding keeps every reduction.
-The one-constructor-at-a-time iterators are what make Theorem~\ref{thm:simulation} exact, where a Church encoding, unfolding all at once, would not be.
-\end{assumption}
+\begin{citedtheorem}[Strong normalisation; Matthes~\cite{matthes1999extensions}, Blanqui~\cite{blanqui2005definitions}]
+\label{cit:sn}
+System~F with products and sums, first-order rewrite rules on constants that are themselves strongly normalising and confluent, and recursors under the General Schema on basic inductive types, those whose constructors take the type itself only directly, is strongly normalising.
+\end{citedtheorem}
 
-\begin{assumption}[Type substitution]
-\label{ass:subst}
-Substituting types for type variables preserves typing in the target~\cite{girard1989proofs,pierce2002tapl}.
-\end{assumption}
+The parts are older than their combination.
+Matthes shows System~F with products, sums and positive inductive types with their iterators strongly normalising and confluent, and its iterative fragment embedded into System~F by an encoding that preserves reduction~\cite{matthes1999extensions}.
+Breazu-Tannen and Gallier show that adding first-order rewrite rules on algebraic constants to System~F conserves strong normalisation and confluence~\cite{breazutannen1991polymorphic,breazutannen1994polymorphic}.
+Blanqui combines them in the Calculus of Algebraic Constructions, which contains System~F, with recursors under the General Schema~\cite{blanqui2005definitions}.
 
-\begin{assumption}[Carriers]
-\label{ass:carriers}
-The carriers are non-empty, since \RuleOne{} makes them default constructible, so the equational calculus is sound and complete in the many-sorted case~\cite{goguen1985completeness}.
+\begin{citedtheorem}[Type substitution; Girard~\cite{girard1989proofs}, Pierce~\cite{pierce2002tapl}]
+\label{cit:subst}
+Substituting types for type variables preserves typing in the target.
+\end{citedtheorem}
+
+\begin{citedtheorem}[Many-sorted equational logic; Goguen and Meseguer~\cite{goguen1985completeness}]
+\label{cit:equational}
+Equational deduction is sound and complete for many-sorted algebras whose carriers are non-empty.
+\end{citedtheorem}
+
+
+\begin{definition}[The standard's functions; ISO~\cite{cpp23standard}]
+\label{def:standard}
 The primitives' translations compute the standard's functions on constants: a $\delta$-step lands on the constant the standard, or the declaration, assigns.
+\cppinline{fold_left} over the ranges of $\mathcal{R}$ is a primitive with the evaluation rule of Figure~\ref{fig:fjlt-eval}, as the standard specifies \cppinline{ranges::fold_left}, a fold from the left~\cite[{\texttt{alg.fold}}]{cpp23standard}.
+\cppinline{views::iota(i, j)} is the range of the values from $i$ up to $j$, not including $j$~\cite[{\texttt{range.iota}}]{cpp23standard}.
+\end{definition}
+
+So FJlt's carriers are non-empty, and Theorem~\ref{cit:equational} applies: Section~\ref{sec:jlt-to-fjlt} requires them to keep \RuleOne{}, so they are \cppinline{std::semiregular}, which includes \cppinline{default_initializable}, so each has its default value.
+That a compiler and its library implement the standard is outside the proofs, as for any program (Section~\ref{sec:limits}).
+
+\begin{assumption}[The instance]
+\label{ass:sn}
+The target, so presented, is an instance of Blanqui's calculus: the two iterators meet the General Schema, and the embedding keeps every reduction.
 \end{assumption}
+
+The assumption is what is asserted rather than carried out; Theorem~\ref{cit:sn}'s other hypotheses are checked here.
+The $\delta$-rules are first-order rules on constants that are strongly normalising and confluent: ground, a constant out of constants, so each step removes one operator application, and a function of their argument constants.
+$\mathit{iter}$ and $\mathit{fold}_F$ are recursors on $\mathbb{N}$ and on term types, which Appendix~\ref{app:fjlt:typing}'s condition on term types makes basic; $\mathit{iter}$ in the accumulator form above is the standard iterator at $\sigma \to \sigma$, each of its steps at least one step of that.
+The defined names are acyclic, by the declaration order, and expand away.
+Granted the assumption, the target is therefore strongly normalising by Theorem~\ref{cit:sn}; its rules have no critical pairs, so it is also confluent, by Newman's lemma~\cite{newman1942theories,baader1998term}.
+The one-constructor-at-a-time iterators are what make Theorem~\ref{thm:simulation} exact, where a Church encoding, unfolding all at once, would not be.
 
 \begin{assumption}[Ranges]
 \label{ass:ranges}
-\cppinline{fold_left} over the ranges of $\mathcal{R}$ is a primitive with the evaluation rule of Figure~\ref{fig:fjlt-eval}, the standard library trusted for \cppinline{iota} (Section~\ref{sec:limits}).
 A range's conditions are semantic, so the termination of a fold is in part assumed in the typing of its range.
 For each instance, the target's operations compute the source's: $\mathit{toNat}\,|\llbracket r \rrbracket|$ reduces to $|r|$, and $\mathit{uncons}\,\llbracket r \rrbracket$ to $\iota_2\,(\llbracket \mathit{head}\,r \rrbracket, \llbracket \mathit{next}\,r \rrbracket)$ when $|r| > 0$ and to $\iota_1\,()$ when $|r| = 0$.
 \end{assumption}
@@ -101,7 +120,7 @@ By induction on the entailment derivation, mutually with Theorem~\ref{thm:preser
 \begin{restated}{Theorem~\ref{thm:preservation} (Type preservation)}
 If $\Delta; \Gamma \vdash e : \tau$ in FJlt, then $\llbracket \Delta \rrbracket; \llbracket \Gamma \rrbracket \vdash \llbracket e \rrbracket : \llbracket \tau \rrbracket$ in the target.
 \end{restated}
-\noindent\emph{Sketch.}\ One case per typing rule; at a call, the dictionaries supplied have the parameter types by Lemma~\ref{lem:dict}, instantiated by Lemma~\ref{lem:subst}~(i) and Assumption~\ref{ass:subst}.
+\noindent\emph{Sketch.}\ One case per typing rule; at a call, the dictionaries supplied have the parameter types by Lemma~\ref{lem:dict}, instantiated by Lemma~\ref{lem:subst}~(i) and Theorem~\ref{cit:subst}.
 \begin{proof}
 By induction on the typing derivation, one case per rule.
 \case{\textsc{T-Var}}$\llbracket x \rrbracket = x$, and $\llbracket \Gamma \rrbracket$ types it at $\llbracket \tau \rrbracket$.
@@ -204,7 +223,7 @@ Steps, by cases on the rule; by \textsc{S-Ctx} and the fact that the translation
 \case{\textsc{S-Call} to a specialisation}$f_{\overline{\sigma}}\,\overline{\llbracket v \rrbracket}$ $\beta$-reduces to $\llbracket e_f \rrbracket[\overline{\llbracket v \rrbracket}/\overline{x}] = \llbracket e_f[\overline{v}/\overline{x}] \rrbracket$.
 \case{\textsc{S-Call} to a generic function}$f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by type application and $\beta$-reduction to $\llbracket e_f \rrbracket$ with $\overline{\llbracket \sigma \rrbracket}$ for $\overline{\alpha}$, $\overline{d}$ for $\overline{q}$ and $\overline{\llbracket v \rrbracket}$ for $\overline{x}$; by Lemma~\ref{lem:subst-dict}~(ii), with $\overline{d}$ the records \textsc{E-Shape} built for the closed call, the result reduces further to $\llbracket e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \rrbracket$, the term the source stepped to, whose requirement uses are typed by \textsc{T-Trait}, under \textsc{T-Conv} where the requirement converts, and whose folds at the former type variable are \textsc{T-Fold}'s at the concrete instance.
 \case{\textsc{S-Op}}$(\pi_2\,(\overline{\llbracket v_y \rrbracket}, O_{\mathrm{call}}\,\overline{\llbracket v_y \rrbracket}))\,[\overline{\sigma}]\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by projection, type application and $\beta$-reduction to $\llbracket e_O \rrbracket$ with fields, dictionaries and arguments substituted, which is $\llbracket e' \rrbracket$ by the same argument as for a generic call.
-\case{\textsc{S-Std}, \textsc{S-Prim} and \textsc{S-Conv} between distinct carriers}a projection where there is one, then a $\delta$-step to the constant the standard or the declaration assigns, by Assumption~\ref{ass:carriers}, that the primitives' translations compute the standard's functions on constants.
+\case{\textsc{S-Std}, \textsc{S-Prim} and \textsc{S-Conv} between distinct carriers}a projection where there is one, then a $\delta$-step to the constant the standard or the declaration assigns, by Definition~\ref{def:standard}, that the primitives' translations compute the standard's functions on constants.
 \case{\textsc{S-Conv} at a value's own type}$\mathit{conv}_{\tau,\tau} = \lambda x.\,x$, so one $\beta$-step gives $\llbracket v \rrbracket$, structured or not.
 \case{\textsc{S-If}, \textsc{S-Case}, \textsc{S-Proj} and \textsc{S-Unbox}}a case reduction, a case reduction to the translation of the selected application, whose evaluation is the next step's, a projection, a projection; the box is a unary product rather than nothing so that unboxing is a step on both sides and the simulation stays strict.
 \case{\textsc{S-Fold}}with $|r| = k + 1$:
