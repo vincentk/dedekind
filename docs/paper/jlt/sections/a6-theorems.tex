@@ -93,6 +93,7 @@ By induction on the entailment derivation, mutually with Theorem~\ref{thm:preser
 \case{\textsc{E-Shape}}$Q = C\texttt{<}\overline{\tau}\texttt{>}$, the dictionary is the record $\{\,\overline{r_i = \llbracket \Delta \Vdash A_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\}$, each field has type $\llbracket A_i \rrbracket[\overline{\tau}/\overline{\alpha}]$ by the induction hypothesis, and that is the field type of $\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket$ by definition.
 \case{\textsc{E-Law} and \textsc{E-Law-Assumed}}the dictionary is $\mathit{true} : \mathit{Bool}$.
 \case{\textsc{E-Not}}the dictionary is $() : 1$.
+\case{\textsc{E-Range}}the dictionary is the record of the instance's $|\cdot|$ and $\mathit{uncons}$, of the record type by their types (Appendix~\ref{app:fjlt:translation}).
 \case{\textsc{E-Op}}the premise types $e$ at $\tau'$ under $\overline{x : \tau_x}$, so by Theorem~\ref{thm:preservation} on a smaller derivation $\llbracket e \rrbracket : \llbracket \tau' \rrbracket$ under $\overline{x : \llbracket \tau_x \rrbracket}$, and $\lambda\overline{x}.\,\llbracket e \rrbracket : \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau' \rrbracket$; for \cppinline{std::same_as} there is no conversion, and for \cppinline{std::convertible_to} the field applies the conversion constant $\mathit{conv}_{\tau',\tau} : \llbracket \tau' \rrbracket \to \llbracket \tau \rrbracket$ (\textsc{T-Conv}), so the field has type $\overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$ in both cases.
 \end{proof}
 
@@ -162,7 +163,7 @@ Both together, by induction on the entailment and typing derivations.
 \case{\textsc{E-Assume}}the dictionary is $q_Q$, and the substitution puts $d$, the dictionary built at $\overline{\sigma}$, in its place.
 \case{\textsc{E-Shape}}the record is rebuilt field by field, each by the induction hypothesis.
 \case{\textsc{E-Op}}the field is $\lambda\overline{a}.\,\llbracket \tau^{S}\texttt{(}e_r\texttt{)} \rrbracket$, and $e_r$ is typed under $\Delta$, so (ii) reduces it to the field \textsc{E-Op} builds at $\overline{\sigma}$.
-\case{\textsc{E-Law}, \textsc{E-Law-Assumed} and \textsc{E-Not}}the same constant on both sides.
+\case{\textsc{E-Law}, \textsc{E-Law-Assumed}, \textsc{E-Not} and \textsc{E-Range}}the same closed term on both sides.
 (ii): a \textsc{T-Req-Assumed} site, $q_Q.r\,\ldots$, has become $d.r\,\ldots$ and reduces by Lemma~\ref{lem:resolve} to the resolved instance's translation; the dictionaries of a \textsc{T-Call} or \textsc{T-App} site, and the record of a \textsc{T-Fold-R} site, reduce by (i); every other row is structural in its subterms.
 \end{proof}
 

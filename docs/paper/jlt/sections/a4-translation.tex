@@ -22,6 +22,8 @@ Records are nested pairs.
 \qquad \text{where } \texttt{concept } C \texttt{ = } \overline{A} & \\
 \llbracket Q \rrbracket \text{ for a nested shape } Q & \note{its record type} \\
 \llbracket \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = 1 & \note{a negation carries no evidence} \\
+\llbracket \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \rrbracket = \{\,\mathit{size} : \llbracket R \rrbracket \to \llbracket \texttt{size\_t} \rrbracket, & \note{the kernel's constraint, read only by \textsc{T-Fold-R}} \\
+\qquad \mathit{uncons} : \llbracket R \rrbracket \to 1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket\,\} & \\
 \llbracket e \rrbracket = \mathit{Bool} \text{ for a law } e & \\
 \llbracket \texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket & \note{an operation on parameters $\overline{x : \tau_x}$} \\[6pt]
 \multicolumn{2}{l}{\textit{dictionaries, from entailment derivations}} \\
@@ -29,6 +31,7 @@ Records are nested pairs.
 \llbracket \Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i = \llbracket \Delta \Vdash A_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\} & \note{\textsc{E-Shape}} \\
 \llbracket \Delta \Vdash e \rrbracket = \mathit{true} & \note{\textsc{E-Law}, \textsc{E-Law-Assumed}} \\
 \llbracket \Delta \Vdash \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = () & \note{\textsc{E-Not}} \\
+\llbracket \Delta \Vdash \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \rrbracket = \{\,\mathit{size} = |\cdot|,\ \mathit{uncons}\,\} & \note{\textsc{E-Range}, the instance's two operations} \\
 \llbracket \Delta \Vdash \texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \lambda\overline{a}.\,\llbracket \tau^{S}\texttt{(}e_r\texttt{)} \rrbracket & \note{\textsc{E-Op}, over the requirement's parameters, the conversion in the field} \\[6pt]
 \end{array}
 \]
@@ -123,7 +126,7 @@ The kernel's ranges are library adapters, and any instance of $\mathcal{R}$ woul
 \cppinline{iota(i, j)}, with $i \le j$, as reversed endpoints are undefined behaviour and not an empty range, has head $i$ and tail \cppinline{iota(i + 1, j)}.
 Each instance $R$ of $\mathcal{R}$ over $\tau$ contributes a state type $\llbracket R \rrbracket$, a constructor constant $c_R$, and $|\cdot| : \llbracket R \rrbracket \to \llbracket \texttt{size\_t} \rrbracket$ and $\mathit{uncons} : \llbracket R \rrbracket \to 1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket$, the empty case or the head and the tail, constants for a base range and terms over the parts for a range built on another.
 Both are total, as System~F's functions are: the empty state is the first injection, a branch the step has and $\mathit{iter}$ never takes, since it runs $|r|$ times.
-A range translates to $c_R\,\overline{\llbracket e \rrbracket}$ on its arguments, and the record of $\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$ at an instance $R$ is $\{\mathit{size} = |\cdot|, \mathit{uncons}\}$.
+A range translates to $c_R\,\overline{\llbracket e \rrbracket}$ on its arguments, and \textsc{E-Range}'s record holds the two operations (Figure~\ref{fig:fjlt-dictionaries}).
 The state of \cppinline{n >> chain(prior)} is $\llbracket N \rrbracket$, that of \cppinline{transform(r, g)} is $\llbracket R \rrbracket \times \llbracket g \rrbracket$, the arrow carried so that the head applies it and the tail keeps it, and that of \cppinline{iota(i, j)} is $\mathbb{N} \times \mathbb{N}$.
 
 \paragraph{Boxes.}

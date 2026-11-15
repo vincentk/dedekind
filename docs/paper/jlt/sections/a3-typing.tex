@@ -31,10 +31,12 @@ Four things rest on the programmer's discipline instead: a generic body held to 
 \textsc{(E-Op)} & \dfrac{\Delta; \overline{x : \tau_x} \vdash e : \tau' \quad \tau' \mathrel{S} \tau}{\Delta \Vdash \texttt{requires (}\overline{\texttt{const }\tau_x\; x}\texttt{) \{ \{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>; \}}}
 \\[12pt]
 \textsc{(E-Not)} & \dfrac{\overline{\tau} \text{ concrete} \quad \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \notin \Delta \quad \Delta \not\Vdash C\texttt{<}\overline{\tau}\texttt{>}}{\Delta \Vdash \texttt{!}C\texttt{<}\overline{\tau}\texttt{>}}
+\\[12pt]
+\textsc{(E-Range)} & \dfrac{R \text{ an instance of } \mathcal{R} \text{ over } \tau}{\Delta \Vdash \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}}
 \end{array}
 \]
 \caption{The rules of entailment, $\Delta \Vdash Q$.
-Six rules: an assumption, two for laws, a shape, a requirement and a negation.}
+Seven rules: an assumption, two for laws, a shape, a requirement, a negation and a range.}
 \label{fig:fjlt-entailment}
 \end{figure}
 
@@ -155,7 +157,7 @@ Its application to arguments of those types is typed at $\sigma$ by \textsc{T-Ca
 \paragraph{Deduced types and constants.}
 The compiler fills in two kinds of type the rules leave open, and the rules check what it fills in, never how.
 A result type written \cppinline{auto} is the body's type, synthesised from the body with nothing flowing in from a use~\cite{pierce2000local}; \Cpp{} refuses a use before the return has deduced it, so no body is typed through its own deduced type~\cite[{\texttt{dcl.spec.auto}}]{cpp23standard}.
-A call's type arguments are the $\overline{\sigma}$ the compiler deduces for \textsc{T-App}: $f\texttt{(}\overline{e}\texttt{)}$ is $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)}$.
+A call's type arguments are the $\overline{\sigma}$ the compiler deduces, for a named call (\textsc{T-Call}, \textsc{T-Trait}) and for a function object's call operator (\textsc{T-App}): $f\texttt{(}\overline{e}\texttt{)}$ is $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)}$.
 A constant is typed once, closed, by \textsc{D-Const}, and its name has that type in everything after it (\textsc{T-Const}).
 
 \begin{figure}[htbp]
@@ -182,7 +184,7 @@ $R\texttt{<}\tau\texttt{>}$ is an instance of $\mathcal{R}$, a family defined by
 A fold reads its length $|r| \in \mathbb{N}$, fixed before the fold starts, and, when $|r| > 0$, its head and its tail $\mathit{next}\,r$, with $|\mathit{next}\,r| = |r| - 1$; FJlt has no term for them, so a program folds a range and never takes its head.
 \textsc{T-Range} types a range by its instance's conditions, \cppinline{iota(i, j)} only at $i \le j$, and \textsc{S-Fold} preserves them, since $\mathit{next}$ does.
 The conditions are semantic, that a step descends or that two bounds are ordered, so a chain whose step does not descend is ill-typed, and the termination of a fold is, to that extent, assumed in the typing of its range.
-At a type variable $R$, $\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$ holds of exactly the instances of $\mathcal{R}$ over $\tau$: the kernel's constraint, with no requirement a body could call, whose record \textsc{T-Fold-R} reads and a caller's concrete range supplies at instantiation.
+At a type variable $R$, $\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$ holds of exactly the instances of $\mathcal{R}$ over $\tau$: the kernel's constraint, with no requirement a body could call, whose record \textsc{T-Fold-R} reads and a caller's concrete range supplies at instantiation, by \textsc{E-Range}.
 Listing~\ref{lst:rule3}'s \cppinline{concat} is such a fold, with $\tau$ the deduced \cppinline{ranges::range_value_t<R>}; a standard range with no count known before the fold, such as \cppinline{views::iota(a)}, is not in the kernel.
 
 \paragraph{Terms.}
