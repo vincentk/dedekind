@@ -96,7 +96,7 @@ rule & applies to & builds \\
 \midrule
 \textsc{E-Assume} & a constraint in $\Delta$ & the variable $q_Q$ \\
 \textsc{E-Shape} & a shape not in $\Delta$ & the record of its parts' dictionaries \\
-\textsc{E-Op} & a required call & its field function \\
+\textsc{E-Op} & a requirement & its field function \\
 \textsc{E-Law}, \textsc{E-Law-Assumed} & a law, evaluated or assumed & $\mathit{true}$, either way \\
 \textsc{E-Not} & a negation at concrete types, not assumed & $()$ \\
 \textsc{E-Range} & $\mathit{IsRange}$ not in $\Delta$ & $\{\mathit{size}, \mathit{uncons}\}$ \\
@@ -116,6 +116,7 @@ rule & applies to \\
 \textsc{T-Req-Assumed} & a call matching an assumed requirement, tried first: the leftmost assumed shape and its first matching requirement in declaration order, nested shapes included, with \textsc{T-Conv} where the requirement converts \\
 \textsc{T-Call} & any other call to a generic function: the declaration resolution selects \\
 \textsc{T-Trait} & any other call to a trait: its one specialisation at the call's types \\
+\textsc{T-Op}, \textsc{T-App} & a call of a function object: \textsc{T-Op} for a standard one, \textsc{T-App} for a declared one \\
 \textsc{T-Fold}, \textsc{T-Fold-R} & a fold over a range of $\mathcal{R}$, or over a type variable $R$ under $\mathit{IsRange}$ \\
 \textsc{T-Node} & a term of node type, only where $\mu F$ is expected \\
 \bottomrule
@@ -149,7 +150,7 @@ Theorem~\ref{thm:preservation} in turn needs this lemma at a call, for the dicti
 So the two are one induction, on the declaration order and then on the size of the derivation: each uses the other only on an earlier declaration or a smaller derivation.
 
 \begin{proof}
-By induction on the entailment derivation, mutually with Theorem~\ref{thm:preservation}, the induction being on the size of the derivation, one row per rule of Figure~\ref{fig:fjlt-entailment}; ${}^{\textsc{ih}}$ marks the induction hypothesis, and the row with work follows the table.
+By induction on the entailment derivation, mutually with Theorem~\ref{thm:preservation}, the induction being on the declaration order and then on the size of the derivation, one row per rule of Figure~\ref{fig:fjlt-entailment}; ${}^{\textsc{ih}}$ marks the induction hypothesis, and the row with work follows the table.
 \begin{center}
 \small
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}X@{}}
@@ -160,7 +161,7 @@ rule & dictionary & its type, because \\
 \textsc{E-Shape} & $\{\,\overline{r_i = \llbracket \Delta \Vdash A_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\}$ & each field $\llbracket A_i \rrbracket[\overline{\tau}/\overline{\alpha}]$${}^{\textsc{ih}}$, as $\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket$ defines \\
 \textsc{E-Law}, \textsc{E-Law-Assumed} & $\mathit{true}$ & $\mathit{Bool}$ \\
 \textsc{E-Not} & $()$ & $1$ \\
-\textsc{E-Range} & $\{|\cdot|, \mathit{uncons}\}$ & the instance's operations' types (Appendix~\ref{app:fjlt:translation}) \\
+\textsc{E-Range} & $\{\mathit{size}, \mathit{uncons}\}$ & the instance's operations' types (Appendix~\ref{app:fjlt:translation}) \\
 \textsc{E-Op} & $\lambda\overline{x}.\,\llbracket \tau^{S}\texttt{(}e\texttt{)} \rrbracket$ & below \\
 \bottomrule
 \end{tabularx}
@@ -183,7 +184,7 @@ The last column names the rows a row relies on, and the rows whose reason is lon
 \small
 \begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}p{\dimexpr 0.67\linewidth-4\tabcolsep\relax}>{\raggedright\arraybackslash}p{0.16\linewidth}@{}}
 \toprule
-rule & its image has its type, because & joins \\
+rule & its image has its type, because & relies on \\
 \midrule
 \endhead
 \bottomrule
@@ -202,9 +203,9 @@ rule & its image has its type, because & joins \\
 \textsc{T-Req-Assumed} & $q_Q.r$'s field type in $\llbracket \Delta \rrbracket$, the arguments theirs${}^{\textsc{ih}}$ &  \\
 \textsc{T-Trait} & the specialisation's type${}^{\textsc{ih}}$, the arguments theirs${}^{\textsc{ih}}$; with a context, as \textsc{T-Call} & \textsc{D-Instance}, \textsc{T-Call} \\
 \textsc{T-Construct} & below & \textsc{D-Op} \\
-\textsc{T-Op}, \textsc{T-App} & below &  \\
+\textsc{T-Op}, \textsc{T-App} & below & \textsc{T-Construct} \\
 \textsc{T-Call} & below & \textsc{D-Generic} \\
-\textsc{T-Fold} & below &  \\
+\textsc{T-Fold} & below & the callable's rule \\
 \textsc{T-Fold-R} & as \textsc{T-Fold}, with $q_Q$'s fields for the operations, the length coerced to $\mathbb{N}$ & \textsc{T-Fold} \\
 \textsc{T-Node} & $\mathit{node}_{O} : \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket \to \mu F$, by induction on the term type, whose legs are smaller, applied to $\llbracket t \rrbracket$ of the node's type${}^{\textsc{ih}}$ &  \\
 \textsc{T-Cata} & below & \textsc{T-Node} \\
@@ -212,17 +213,17 @@ rule & its image has its type, because & joins \\
 \endgroup
 \case{\textsc{D-Generic}}the body is typed${}^{\textsc{ih}}$ under $\overline{\alpha}$, the record variables $\overline{q : \llbracket Q \rrbracket}$ and $\overline{x : \llbracket \tau_x \rrbracket}$, so the abstraction has the stated type, $\tau$ the premise's own where $\rho$ is \texttt{auto}.
 Its calls on constrained types are \textsc{T-Req-Assumed}; the declaration order makes the induction well founded, as no body calls itself.
-\case{\textsc{T-Construct}}the fields have their types${}^{\textsc{ih}}$, and $O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket}$ the call function's, its body typed as a generic function's${}^{\textsc{ih}}$, a standard one's by Definition~\ref{def:standard}; so the pair has type $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$.
+\case{\textsc{T-Construct}}the fields have their types${}^{\textsc{ih}}$, and $O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket}$ the call function's, its body typed as a generic function's${}^{\textsc{ih}}$, a standard one's by its constant's type in the target (Definition~\ref{def:target}); so the pair has type $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$.
 \case{\textsc{T-Op} and \textsc{T-App}}$\pi_2\,\llbracket e \rrbracket$ has the call function's type${}^{\textsc{ih}}$, instantiated at the deduced $\overline{\sigma}$; the dictionaries $\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\beta}] \rrbracket}$ have the parameter types${}^{\dagger}$, and the arguments theirs${}^{\textsc{ih}}$.
 \case{\textsc{T-Call}}$f = \Lambda\overline{\alpha}.\,\lambda\overline{q}.\,\lambda\overline{x}.\,\llbracket e_f \rrbracket : \forall\overline{\alpha}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$${}^{\textsc{ih}}$.
 At $\overline{\llbracket \sigma \rrbracket}$ this is the same type with $\overline{\sigma}$ for $\overline{\alpha}$${}^{\ddagger}$.
 The records have the parameter types${}^{\dagger}$, and the arguments theirs${}^{\textsc{ih}}$.
 \case{\textsc{T-Fold}}$\mathit{iter}$ is at $\llbracket R \rrbracket \times \sigma$, with the count $\mathit{toNat}\,|\llbracket r \rrbracket| : \mathbb{N}$.
-The step has the pair type, since each branch of $\mathit{uncons} : \llbracket R \rrbracket \to 1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket$ gives it and the callable has type $\sigma \to \tau \to \sigma$${}^{\dagger}$.
+The step has the pair type, since each branch of $\mathit{uncons} : \llbracket R \rrbracket \to 1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket$ gives it and the callable has type $\sigma \to \tau \to \sigma$${}^{\textsc{ih}}$, its dictionaries theirs${}^{\dagger}$.
 $\llbracket r \rrbracket : \llbracket R \rrbracket$${}^{\textsc{ih}}$, by the constructor's type where $r$ is written on its arguments, and $\llbracket a \rrbracket : \sigma$${}^{\textsc{ih}}$; so $\pi_2$ of the result has type $\sigma$.
 \case{\textsc{T-Cata}}$\beta$ has the algebra's type: $\mathrm{in}\,(F\,\pi_1\,n') : \mu F$ rebuilds the node, $F\,\pi_2\,n'$ holds the legs' results, and $\llbracket \mathit{alg} \rrbracket^{\!\circ} : \mu F \times \sigma^{k} \to \sigma$${}^{\textsc{ih}}$; $\pi_2$ of the result has type $\sigma$.
 
-An operator expression is the case of the call it resolves to, or the textbook case of a primitive; the omitted rules are the textbook cases for pairs, sums and conditionals.
+An operator expression is the case of the call it resolves to, or the textbook case of a primitive; the omitted rules are the textbook cases for pairs, boxes and conditionals.
 \end{proof}
 
 \begin{restated}{Corollary~\ref{cor:parametricity} (Parametricity)}
@@ -307,7 +308,7 @@ $O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\te
 $\ominus v$, $v_1 \oplus v_2$ & \textsc{S-Prim}, or the call it resolves to & the choice of $\Sigma$, on constants by canonical forms \\
 $\tau\texttt{(}c\texttt{)}$ & \textsc{S-Conv} & the condition on conversions \\
 a conditional, a case, a projection, an unbox & \textsc{S-If}, \textsc{S-Case}, \textsc{S-Proj}, \textsc{S-Unbox} & canonical forms: a constant of type \texttt{bool}, an injection (\textsc{T-Case}), a pair or a constructed object, a box \\
-a fold whose count is a constant & \textsc{S-Fold} & its two cases cover every constant \\
+a fold over a range value & \textsc{S-Fold} & its two cases cover every length \\
 a \texttt{cata} on a node & \textsc{S-Cata} & it covers every node, leaves included \\
 \end{longtable}
 \endgroup
@@ -338,13 +339,14 @@ source step & target steps & landing, because \\
 \bottomrule
 \endlastfoot
 \textsc{S-Const} & one step & $\llbracket x \rrbracket = x$ unfolds to its definition $\llbracket e \rrbracket$ \\
-\textsc{S-Call} to a specialisation & $\beta$-reduction & $\llbracket e_f \rrbracket[\overline{\llbracket v \rrbracket}/\overline{x}] = \llbracket e_f[\overline{v}/\overline{x}] \rrbracket$, by Lemma~\ref{lem:subst}~(ii) \\
+\textsc{S-Call} to a specialisation & unfolding, then $\beta$-reduction & $\llbracket e_f \rrbracket[\overline{\llbracket v \rrbracket}/\overline{x}] = \llbracket e_f[\overline{v}/\overline{x}] \rrbracket$, by Lemma~\ref{lem:subst}~(ii) \\
 \textsc{S-Call} to a generic function & several & below \\
 \textsc{S-Op} & several & below \\
 \textsc{S-Std}, \textsc{S-Prim}, \textsc{S-Conv} between distinct carriers & a projection where there is one, then a $\delta$-step & the constant the standard or the declaration assigns, by Definition~\ref{def:standard} \\
 \textsc{S-Conv} at a value's own type & one $\beta$-step & $\mathit{conv}_{\tau,\tau} = \lambda x.\,x$ gives $\llbracket v \rrbracket$, structured or not \\
 \textsc{S-If}, \textsc{S-Case} & a case reduction & to the selected branch, or to the translation of the selected application \\
-\textsc{S-Proj}, \textsc{S-Unbox} & a projection & the box being a unary product, unboxing is a step on both sides and the simulation stays strict \\
+\textsc{S-Proj} & a projection, two for a constructed object's field & the selected component \\
+\textsc{S-Unbox} & a projection & the box being a unary product, unboxing is a step on both sides and the simulation stays strict \\
 \textsc{S-Fold} & several & below \\
 \textsc{S-Cata} & several & below \\
 \end{longtable}
@@ -356,7 +358,8 @@ source step & target steps & landing, because \\
 \mathit{iter}\,(k{+}1)\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket) \longrightarrow \mathit{iter}\,k\,\mathit{step}\,(\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket)) \\
 \qquad \longrightarrow^{+} \mathit{iter}\,k\,\mathit{step}\,(\llbracket \mathit{next}\,r \rrbracket, \llbracket f \rrbracket^{\!\circ}\,\llbracket a \rrbracket\,\llbracket \mathit{head}\,r \rrbracket),
 \end{array} \]
-$\mathit{uncons}$ taking its second branch, since $|r| > 0$, and computing the range's head and tail (Assumption~\ref{ass:ranges}), and the last term is $\sqsupseteq$ the source's reduct, the fold over $\mathit{next}\,r$ from $f(a, \mathit{head}\,r)$, whose translation differs from it only by the count $\mathit{toNat}\,|\llbracket \mathit{next}\,r \rrbracket|$, which reduces to $k$; the empty case is one step of the iterator followed by a projection.
+$\mathit{uncons}$ taking its second branch, since $|r| > 0$, and computing the range's head and tail (Assumption~\ref{ass:ranges}), and the last term is $\sqsupseteq$ the source's reduct, the fold over $\mathit{next}\,r$ from $f(a, \mathit{head}\,r)$, whose translation differs from it only by the count $\mathit{toNat}\,|\llbracket \mathit{next}\,r \rrbracket|$, which reduces to $k$.
+The empty case is one step of the iterator followed by a projection.
 \case{\textsc{S-Cata}}$\mathit{fold}_F\,\beta\,(\mathrm{in}\,n) \longrightarrow \beta\,(F(\mathit{fold}_F\,\beta)\,n)$ is one step of the term's iterator; $\beta$ then rebuilds the node from the first components, which reduces to $\llbracket n \rrbracket_{\mu F}$ since each leg's pair has that leg, read at $\mu F$, as its first component, and applies $\llbracket \mathit{alg} \rrbracket^{\!\circ}$ to it and to the second components $\pi_2\,(\mathit{fold}_F\,\beta\,\llbracket l_i \rrbracket)$, which are $\llbracket \texttt{cata(}\mathit{alg}\texttt{, }l_i\texttt{)} \rrbracket$; after those projections the term is $\sqsupseteq$ the source's reduct, the node's reading there already reduced.
 \end{proof}
 
