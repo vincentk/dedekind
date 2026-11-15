@@ -22,8 +22,11 @@
  */
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <cstddef>
 #include <functional>
+#include <limits>
 #include <type_traits>
+#include <utility>
 
 import dedekind.category;
 
@@ -76,6 +79,49 @@ struct HP {
 constexpr auto left_p = Compose<Compose<F, GP>, HP>{{F{}, GP{}}, HP{}};
 constexpr auto right_p = Compose<F, Compose<GP, HP>>{F{}, {GP{}, HP{}}};
 static_assert(left_p(0u) == 1u && right_p(0u) == 1u && left_p == right_p);
+// The product's β drops no conversion (Copilot, #1204): G returns 2u where
+// it declares bool, which the pairing converts, so π₁ after ⟨G, G⟩ is not G
+// alone, and the composite stays as it is, converting still.
+constexpr auto first_of_g = Pairing{G{}, G{}} >> Π<1, std::pair<bool, bool>>{};
+static_assert(first_of_g(0u) == true &&
+              is_compose_v<decltype(cata(first_of_g))> &&
+              cata(first_of_g)(0u) == true);
+// The unit law drops no conversion either (Copilot, #1204): an identity
+// beside G stays, so the composite still converts G's 2u to bool, and the
+// laws do not equate it with G alone.
+constexpr auto right_unit = G{} >> id<bool>();
+constexpr auto left_unit = id<unsigned>() >> G{};
+static_assert(right_unit(0u) == true &&
+              is_compose_v<decltype(cata(right_unit))> &&
+              cata(right_unit)(0u) == true &&
+              (right_unit == G{}).verdict == Ternary::Unknown &&
+              left_unit(0u) == true &&
+              is_compose_v<decltype(cata(left_unit))> &&
+              cata(left_unit)(0u) == true &&
+              (left_unit == G{}).verdict == Ternary::Unknown);
+// The normal form does not depend on association (Copilot, #1204): G does
+// not honour its signature, so the identity beside it stays in both
+// groupings, and the two are one normal form.
+constexpr auto unit_after = (F{} >> G{}) >> id<bool>();
+constexpr auto unit_inside = F{} >> (G{} >> id<bool>());
+static_assert(
+    std::same_as<decltype(cata(unit_after)), decltype(cata(unit_inside))> &&
+    unit_after == unit_inside && cata(unit_after)(0u) == true);
+// A call that takes another type than its declared domain converts its
+// argument itself (Copilot, #1204): K declares unsigned and takes bool, so
+// it does not honour its signature, and no law crosses it on either side.
+struct K {
+  using Domain = unsigned;
+  using Codomain = unsigned;
+  constexpr unsigned operator()(bool b) const { return b ? 1u : 0u; }
+};
+constexpr auto around_k = id<unsigned>() >> K{} >> id<unsigned>();
+static_assert(
+    is_compose_v<decltype(cata(around_k))> &&
+    std::same_as<decltype(cata(around_k)),
+                 Compose<Identity<unsigned>, Compose<K, Identity<unsigned>>>> &&
+    cata(around_k)(2u) == 1u && around_k(2u) == 1u &&
+    (around_k == K{}).verdict == Ternary::Unknown);
 }  // namespace converting_codomain
 
 namespace {
@@ -286,3 +332,76 @@ TEST_CASE(
   STATIC_CHECK(is_involutive_v<ReflBool, bool>);  // refl(bool), from :logic
   STATIC_CHECK(is_involutive_v<ReflInt, int>);    // refl(int), from :logic
 }
+
+// ===========================================================================
+// (4) The laws live in the normal form only.
+//
+// >> builds the composite whatever its legs; the unit law, associativity and
+// the cancellation of a one-valued involution are read off cata's result, so
+// a law the composite's own type hides is asked on its value.
+// ===========================================================================
+
+namespace normal_form_laws {
+constexpr auto id_u = id<unsigned>();
+static_assert(is_compose_v<decltype(id_u >> id_u)> &&
+                  is_compose_v<decltype(~id_u)> &&
+                  !IsInvolution<decltype(~id_u)>,
+              ">> builds the composite: no law is decided at its type");
+static_assert(is_identity(id_u >> id_u) && is_identity(~id_u >> ~id_u) &&
+                  !is_identity(~id_u) && is_involution(~id_u) &&
+                  is_antitone(~id_u) && is_monotone(id_u >> id_u),
+              "the laws asked on the value read the normal form");
+
+// Two more laws on adjacent atoms: a constant absorbs the arrow before it,
+// c ∘ f = c, and a projection after a pairing selects its leg, π₁ ∘ ⟨f, g⟩ =
+// f (the product's β).  The arrows are the Jlt paper's Listing 1.
+constexpr auto id_b = id<bool>();
+constexpr auto nil = constant<bool>(0uz);
+constexpr auto one = constant<bool>(1uz);
+constexpr auto ans = constant<bool>(42uz);
+constexpr auto nay = constant<std::size_t>(false);
+constexpr auto fst = Π<1, std::pair<bool, std::size_t>>{};
+constexpr auto snd = Π<2, std::pair<bool, std::size_t>>{};
+constexpr auto sec = Pairing{id_b, nil};  // ⟨1, 0⟩
+static_assert(ans == nil >> nay >> ans && ans == !id_b >> nil >> nay >> ans &&
+                  std::same_as<decltype(cata(nil >> nay >> ans)),
+                               std::remove_cvref_t<decltype(ans)>> &&
+                  ((nil >> nay >> ans) == (nil >> nay >> one)).verdict ==
+                      Ternary::Unknown &&
+                  !std::equality_comparable<decltype(ans)>,
+              "a constant absorbs what precedes it; two constants compare by "
+              "the laws only, True on equal values, Unknown otherwise, never "
+              "False: a constant has no == of its own");
+// A floating constant is not compared by its value (Copilot, #1204): 0.0 ==
+// -0.0 though 1/x tells them apart, and a NaN equals nothing.
+constexpr auto nan_d = std::numeric_limits<double>::quiet_NaN();
+static_assert(
+    equal_by_the_laws(constant<bool>(0.0), constant<bool>(-0.0)).verdict ==
+            Ternary::Unknown &&
+        equal_by_the_laws(constant<bool>(nan_d), constant<bool>(nan_d))
+                .verdict == Ternary::Unknown &&
+        equal_by_the_laws(constant<bool>(1uz), one).verdict == Ternary::True,
+    "floating constants are not known to be the same by ==");
+static_assert(id_b == sec >> fst && nil == sec >> snd &&
+                  std::same_as<decltype(cata(sec >> fst)), Identity<bool>> &&
+                  is_iso(sec >> fst) && !IsMonicArrow<decltype(sec >> fst)>,
+              "a projection after a pairing is its leg, so sec >> fst is the "
+              "identity, an iso, which the engine on the composite's legs "
+              "does not see");
+// Every node a reduce_β rebuilds is reduced before a law is read, a pairing's
+// legs too; the swapped projections, each then an identity, are Flip.
+using Bools = std::pair<bool, bool>;
+constexpr auto swap_ids = Pairing{Π<2, Bools>{} >> id_b, Π<1, Bools>{} >> id_b};
+static_assert(is_monic(Pairing{sec >> fst, nil}) &&
+                  std::same_as<decltype(cata(swap_ids)), Flip<bool, bool>> &&
+                  is_involution(swap_ids) && !IsInvolution<decltype(swap_ids)>,
+              "the laws read the normal form of every node cata reduces");
+// A node with legs but no reduce_β, a lattice's Meet, is opaque to the normal
+// form: an atom, not descended into.
+constexpr auto both = Meet{id_b, id_b};
+static_assert(
+    std::same_as<decltype(cata(both)), std::remove_cvref_t<decltype(both)>> &&
+        !is_identity(both >> id_b) &&
+        ((both >> id_b) == both).verdict == Ternary::Unknown,
+    "a node no reduce_β rebuilds is an atom of the normal form");
+}  // namespace normal_form_laws

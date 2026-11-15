@@ -253,31 +253,6 @@ concept IsSmallCategory = IsLocallySmallCategory<Cat> && requires {
    */
 };
 
-/** @section small__Identity_Short_Circuits */
-
-// Law: id_A >> g = g.  Per the picking policy in :morphism (#411): use
-// Dom<G> in IsArrow-strict contexts; self-documents that the Domain comes
-// via the arrow shape.
-export template <typename T, IsArrow G>
-  requires std::same_as<T, Dom<G>>
-constexpr auto operator>>(Identity<T>, G g) {
-  return std::move(g);
-}
-
-// Law: f >> id_B = f.  Same picking-policy reasoning: Cod<F> in
-// IsArrow-strict contexts.
-export template <IsArrow F, typename T>
-  requires std::same_as<Cod<F>, T>
-constexpr auto operator>>(F f, Identity<T>) {
-  return std::move(f);
-}
-
-// Law: id_T >> id_T = id_T
-export template <typename T>
-constexpr auto operator>>(Identity<T> i, Identity<T>) {
-  return i;
-}
-
 /**
  * @brief An arrow that is just a label.
  */

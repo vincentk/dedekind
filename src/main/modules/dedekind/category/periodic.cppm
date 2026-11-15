@@ -69,7 +69,8 @@ import :discrete;              // equals: an arrow into the truth values
 import :lattice;               // Meet, Join: the nodes & and | build
 import :cartesian_bicategory;  // Tensor, Merge: the outer product
 import :involution;            // Reverse, commutes: the symmetries of a word
-import :posetal;               // is_involution: a law asked on the value
+import :posetal;               // ~f: an arrow, then the reflection
+import :f_algebra;             // is_involution: a law asked on the value
 import :logic;                 // NegationArrow, Chain: the chain's reflection
 import :functor;               // Maybe: a byte outside the alphabet, a hole
 
@@ -1105,7 +1106,7 @@ struct ReflectedAt {
     const std::byte b{static_cast<unsigned char>(i)};
     const Maybe<std::size_t> r = Ranked{on}(b);
     if (!r) return b;
-    return letters[(~Identity<std::size_t>{} >> shift(n))(*r)];
+    return letters[(NegationArrow<Chain<std::size_t>>{} >> shift(n))(*r)];
   }
 };
 /** @brief Whether a position of the bytes is a letter. */
@@ -1126,7 +1127,7 @@ struct ByteAt {
  *  letters onto themselves, the reflection of the chain of ranks carried
  *  to the letters along @c rank, @f$\mathrm{rank}^{-1} \circ ({\sim} + n)
  *  \circ \mathrm{rank}@f$ with @f$n@f$ the letters' count; the identity
- *  off the alphabet.  The arrow @c ~Identity @c >> @c shift(n) is the one
+ *  off the alphabet.  The reflection, then @c shift(n), is the arrow
  *  @c rev applies to the @f$n@f$ positions of a word, here applied to
  *  the chain of letters: the Watson–Crick complement of @c ACGT, which
  *  pairs the outer letters and the inner ones because of how the four
@@ -1401,7 +1402,7 @@ constexpr N position(const Rotation<N>& r, N n, N i) {
  *  reflection, @f$x \mapsto c - x@f$, an involution for every @c c, the
  *  counts being unsigned: @f$c - (c - x) \equiv x@f$ modulo the word.  The
  *  reversal of @c n positions on indices is the one with @f$c = n - 1@f$:
- *  @f$n - 1 - i \equiv {\sim} i + n@f$, so @c ~Identity<N>{} @c >>
+ *  @f$n - 1 - i \equiv {\sim} i + n@f$, so the reflection, then
  *  @c shift(n).  An involution, so an isomorphism, its own inverse
  *  (@c :involution). */
 template <IsCountWord N>
@@ -1411,16 +1412,18 @@ namespace detail_periodic {
 /** @brief The reversal on indices agrees with @c position at @c i. */
 struct ReversalAgrees {
   constexpr bool operator()(bool ok, std::size_t i) const {
-    return ok && (~Identity<std::size_t>{} >> shift(5uz))(i) ==
+    return ok && (NegationArrow<Chain<std::size_t>>{} >> shift(5uz))(i) ==
                      position(Reverse{}, 5uz, i);
   }
 };
 }  // namespace detail_periodic
-static_assert(IsInvolution<decltype(~Identity<std::size_t>{} >> shift(5uz)),
-                           std::size_t> &&
-              IsIsomorphism<decltype(~Identity<std::size_t>{} >> shift(5uz))> &&
-              std::ranges::fold_left(std::views::iota(0uz, 5uz), true,
-                                     detail_periodic::ReversalAgrees{}));
+static_assert(
+    IsInvolution<decltype(NegationArrow<Chain<std::size_t>>{} >> shift(5uz)),
+                 std::size_t> &&
+    IsIsomorphism<decltype(NegationArrow<Chain<std::size_t>>{} >>
+                           shift(5uz))> &&
+    std::ranges::fold_left(std::views::iota(0uz, 5uz), true,
+                           detail_periodic::ReversalAgrees{}));
 // The index form agrees with the word form: the letter at i of a word is at
 // position(i) of its reversal; and the reversal on indices is an
 // involution.
@@ -1464,7 +1467,7 @@ concept HasCycleType = IsCountWord<N> && requires(const S& s, N n) {
  *  @c IsNaturalTransformation checks its square only at the identities, by
  *  type, and does not yet read it.  So the reverse complement is one map,
  *  written in either order, and an involution where @c tau is one
- *  (@c is_involution, @c :posetal). */
+ *  (@c is_involution, @c :f_algebra). */
 template <IsArrow T, typename W>
   requires std::same_as<Dom<T>, Cod<T>>
 struct commutes<PowerMap<T>, Morphism<W, W, Reverse>> : std::true_type {};

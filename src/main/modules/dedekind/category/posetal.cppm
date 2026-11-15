@@ -830,60 +830,11 @@ static_assert(
     "across summands, so no variance at all");
 }  // namespace detail_arrow_laws_witness
 
-/** @section posetal__Laws_Asked_On_The_Value
- *  @brief The laws of an arrow asked on its value (the Jlt paper's Listing 1):
- *  each reads, at compile time, the registration its concept reads, so
- *  @c is_monic(f) is @c IsMonicArrow<F> at the value's type, and a composite's
- *  law comes through the readers above.  A concept gates a template, a
- *  predicate states a fact; both read one registration.
- *  @param f the arrow.  @param op the order a variance is read under. */
-export template <IsArrow F>
-constexpr bool is_identity(const F&) {
-  return IsIdentityArrow<F>;
-}
-export template <IsArrow F>
-constexpr bool is_constant(const F&) {
-  return IsConstantArrow<F>;
-}
-export template <IsArrow F>
-constexpr bool is_monic(const F&) {
-  return IsMonicArrow<F>;
-}
-export template <IsArrow F>
-constexpr bool is_epic(const F&) {
-  return IsEpicArrow<F>;
-}
-export template <IsArrow F>
-constexpr bool is_iso(const F&) {
-  return IsIsomorphism<F>;
-}
-export template <IsArrow F>
-constexpr bool is_involution(const F&) {
-  return IsInvolution<F>;
-}
-/** @brief A composite of two commuting involutions is one,
- *  @f$(g f)^2 = g g f f = \mathrm{id}@f$, its law derived from its legs'
- *  (@c commutes, @c :involution); where the legs do not commute, the reading
- *  above decides, and @c - after @c ~ is none.  @param c the composite. */
-export template <IsArrow F, IsArrow G>
-  requires commutes_v<F, G>
-constexpr bool is_involution(const Compose<F, G>& c) {
-  return is_involution(c.f) && is_involution(c.g);
-}
-export template <IsArrow F, typename Op = std::less_equal<>>
-constexpr bool is_monotone(const F&, Op = {}) {
-  return IsMonotone<F, Op>;
-}
-export template <IsArrow F, typename Op = std::less_equal<>>
-constexpr bool is_antitone(const F&, Op = {}) {
-  return IsAntiMonotone<F, Op>;
-}
-
 /** @brief The involutions of a codomain, pointwise on the arrows into it:
  *  @c ~f and @c -f are @c f then the reflection of the chain, respectively
  *  unary minus, @c (-f)(x) @c = @c -f(x) as for functions in analysis; on an
- *  identity the composite is the involution itself (the unit law,
- *  @c :morphism).  @c !f, for the arrows into a truth object, is in
+ *  identity the composite's normal form is the involution itself (the unit
+ *  law, @c :f_algebra).  @c !f, for the arrows into a truth object, is in
  *  @c :topoi.  Unsigned only: @c -INT_MIN is not a function on @c int
  *  (@c :involution); and not @c bool, which C++ counts as unsigned, so a set's
  *  characteristic arrow keeps the complement of @c :sets.  @param f the arrow.
@@ -898,16 +849,6 @@ export template <IsArrow F>
 constexpr auto operator-(const F& f) {
   return f >> endo<Cod<F>>(std::negate<Cod<F>>{});
 }
-
-namespace detail_posetal_value_laws {
-constexpr auto id_u = Identity<std::size_t>{};
-static_assert(is_identity(id_u >> id_u) && is_monotone(id_u) &&
-                  is_involution(~id_u) && is_antitone(~id_u) &&
-                  is_involution(-id_u) && !is_antitone(-id_u) &&
-                  !is_involution(-id_u >> ~id_u) && (-id_u >> ~id_u)(3uz) == 2,
-              "the laws asked on the value read what the concepts read; "
-              "~(-x) = x - 1 is no involution");
-}  // namespace detail_posetal_value_laws
 
 static_assert(IsMonotone<Compose<Identity<int>, Identity<int>>>,
               "co∘co=co: identity composed with itself is monotone.");
