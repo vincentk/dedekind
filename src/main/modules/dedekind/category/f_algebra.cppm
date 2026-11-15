@@ -278,31 +278,59 @@ concept CancelsAdjacent = IsInvolution<X> && has_one_value_v<X>;
 /** @brief A constant arrow, by its type. */
 template <typename Y>
 concept IsConstantAtom = std::same_as<Y, ConstantMorphism<Dom<Y>, Cod<Y>>>;
-/** @brief An arrow whose call returns its declared codomain itself, so that
- *  no boundary has a conversion to make on its result. */
+/** @brief A probe for an arrow's call: a value that converts to @c D and to
+ *  nothing else, so a call that takes it takes @c D itself, not a type @c D
+ *  converts to.  Never evaluated.  @tparam D the declared domain. */
+template <typename D>
+struct OnlyAs {
+  operator D() const;  // declared only: never called
+  template <typename U>
+  operator U() const = delete;
+};
+/** @brief An atom that honours its declared signature: its call takes the
+ *  domain itself and returns the codomain itself, so a composite has no
+ *  conversion to make at either of its boundaries. */
 template <typename F>
-concept ReturnsItsCodomain = std::same_as<
-    std::remove_cvref_t<std::invoke_result_t<const F&, const Dom<F>&>>, Cod<F>>;
-/** @brief The leg @c K of a pairing may stand for the pairing then @c π_K:
- *  the pairing converts each leg's result to its declared codomain, so the
- *  leg alone is the same arrow only where it returns that codomain. */
+concept CallsAtItsSignature = requires(const F& f, const OnlyAs<Dom<F>>& x) {
+  { f(x) } -> std::same_as<Cod<F>>;
+};
+/** @brief The signature trait: an atom's by its call, a composite's by its
+ *  legs', since a composite passes its argument to its first leg as it is
+ *  and converts its result itself. */
+template <typename F>
+struct honours_signature : std::bool_constant<CallsAtItsSignature<F>> {};
+template <IsArrow F, IsArrow G>
+struct honours_signature<Compose<F, G>>
+    : std::bool_constant<honours_signature<F>::value &&
+                         honours_signature<G>::value> {};
+/** @brief An arrow that honours its declared signature at both ends: the only
+ *  kind a law is read on.  Any other is opaque: no rewrite crosses it, on
+ *  either side, so a conversion it leaves to its composite stays there. */
+template <typename F>
+concept HonoursSignature = honours_signature<std::remove_cvref_t<F>>::value;
+/** @brief The leg @c K of a pairing may stand for the pairing then @c π_K
+ *  where the leg honours its signature: the pairing converts the leg's
+ *  argument and result, and the leg alone would not. */
 template <typename P, std::size_t K>
 inline constexpr bool selects_v = false;
 template <typename F, typename G>
-inline constexpr bool selects_v<Pairing<F, G>, 1> = ReturnsItsCodomain<F>;
+inline constexpr bool selects_v<Pairing<F, G>, 1> = HonoursSignature<F>;
 template <typename F, typename G>
-inline constexpr bool selects_v<Pairing<F, G>, 2> = ReturnsItsCodomain<G>;
+inline constexpr bool selects_v<Pairing<F, G>, 2> = HonoursSignature<G>;
 /** @brief A projection after a pairing: @f$\pi_k \circ \langle f_1, f_2
- *  \rangle = f_k@f$, the product's β, where the leg returns its codomain. */
+ *  \rangle = f_k@f$, the product's β, where the leg honours its signature. */
 template <typename P, typename Y>
 concept ProjectsPairing = (IsPairProjection<Y, 1> && selects_v<P, 1>) ||
                           (IsPairProjection<Y, 2> && selects_v<P, 2>);
-/** @brief Two adjacent atoms, @c p then @c y, that a law rewrites: a copy
- *  that @c CancelsAdjacent, a constant after any arrow, or a projection
+/** @brief Two adjacent atoms, @c p then @c y, both honouring their
+ *  signatures, that a law rewrites: an identity on either side (unit), a
+ *  copy that @c CancelsAdjacent, a constant after any arrow, or a projection
  *  after a pairing. */
 template <typename P, typename Y>
-concept Rewrites = (std::same_as<P, Y> && CancelsAdjacent<P>) ||
-                   IsConstantAtom<Y> || ProjectsPairing<P, Y>;
+concept Rewrites = HonoursSignature<P> && HonoursSignature<Y> &&
+                   (IsIdentityArrow<P> || IsIdentityArrow<Y> ||
+                    (std::same_as<P, Y> && CancelsAdjacent<P>) ||
+                    IsConstantAtom<Y> || ProjectsPairing<P, Y>);
 /** @brief @f$c \circ f = c@f$: the constant, from @c f's domain.
  *  @param c the constant.  @return it, from @c f's domain. */
 template <IsArrow P, typename B, typename C>
@@ -325,7 +353,11 @@ constexpr G selected(const Pairing<F, G>& p, At<2>) {
 template <IsArrow P, IsArrow Y>
   requires Rewrites<P, Y> && std::same_as<Cod<P>, Dom<Y>>
 constexpr auto rewrite(const P& p, const Y& y) {
-  if constexpr (IsConstantAtom<Y>) {
+  if constexpr (IsIdentityArrow<P>) {
+    return y;  // id ∘ g = g
+  } else if constexpr (IsIdentityArrow<Y>) {
+    return p;  // f ∘ id = f
+  } else if constexpr (IsConstantAtom<Y>) {
     return absorbed(p, y);
   } else if constexpr (ProjectsPairing<P, Y>) {
     return selected(p, At<IsPairProjection<Y, 1> ? 1 : 2>{});
@@ -333,21 +365,17 @@ constexpr auto rewrite(const P& p, const Y& y) {
     return Identity<Dom<P>>{};  // x x = id
   }
 }
-/** @brief The concatenation of two normal paths: identities drop (unit)
- *  beside a path that returns its codomain, as the composite would convert
- *  it, the result associates to the right (associativity), and two adjacent
- *  atoms that a law @c Rewrites are rewritten (involution, constant,
- *  product), across the junction as often as it recurs.  A recursion over
- *  the paths' types.
+/** @brief The concatenation of two normal paths: the result associates to
+ *  the right (associativity), and two adjacent atoms that a law @c Rewrites
+ *  are rewritten (unit, involution, constant, product), across the junction
+ *  as often as it recurs.  Every decision is made here, on the flattened
+ *  path, so the result does not depend on how the term was associated.  A
+ *  recursion over the paths' types.
  *  @param p the first path.  @param q the second.  @return the normal path. */
 template <IsArrow P, IsArrow Q>
   requires std::same_as<Cod<P>, Dom<Q>>
 constexpr auto path_concat(const P& p, const Q& q) {
-  if constexpr (IsIdentityArrow<P> && ReturnsItsCodomain<Q>) {
-    return q;
-  } else if constexpr (IsIdentityArrow<Q> && ReturnsItsCodomain<P>) {
-    return p;
-  } else if constexpr (is_compose_v<P>) {
+  if constexpr (is_compose_v<P>) {
     return path_concat(π_1(p), path_concat(π_2(p), q));
   } else if constexpr (is_compose_v<Q>) {
     using Y = std::remove_cvref_t<decltype(π_1(q))>;
@@ -370,41 +398,21 @@ constexpr auto path_concat(const P& p, const Q& q) {
  *  one-step β-reduction) that @c cata applies after folding a node's legs.
  *  This overload set is the @b canonical exhibit: the reducer's first law,
  *  the @b monoid law of composition, co-located with the @c cata engine.
- *  The identity is the @b unit (@c id∘f @c = @c f @c = @c f∘id), so an
- *  @c Identity in a @b reduced leg is dropped, where the other leg returns its
- *  declared codomain: the composite converts a leg's result at every
- *  boundary, and the leg alone would not.
- *
- *  Dispatch is @b structural on @c Identity<T> in the reduced leg (no
- *  is-identity tag): the overloads pattern-match the leg types, and partial
- *  ordering picks the @c Identity ones over the generic @c IsArrow one.  The
- *  first parameter is the @c Compose node as a @b type-tag for β dispatch
- *  (which constructor is this?); its own legs are unused --- @c cata passes
- *  the @b already-reduced legs @c rf / @c rg, which is what β combines.
+ *  The two reduced legs are normal paths, and their concatenation decides
+ *  every law (@c path_concat): the unit too, so that no early exit on an
+ *  identity leg makes the normal form depend on association.  The first
+ *  parameter is the @c Compose node as a @b type-tag for β dispatch (which
+ *  constructor is this?); its own legs are unused --- @c cata passes the
+ *  @b already-reduced legs @c rf / @c rg, which is what β combines.
  *  Found by ADL, so a partition MAY instead scatter its node's @c reduce_β
  *  next to that node's vocabulary; the composition law lives here as the
  *  reference instance.
  *  @{ */
 export template <IsArrow F, IsArrow G, IsArrow RF, IsArrow RG>
 constexpr auto reduce_β(const Compose<F, G>&, const RF& rf, const RG& rg) {
-  // Neither leg is the unit: the two normal paths concatenated, associated to
-  // the right, two adjacent atoms a law rewrites rewritten.
+  // The two normal paths concatenated, associated to the right, two adjacent
+  // atoms a law rewrites rewritten.
   return detail_f_algebra::path_concat(rf, rg);
-}
-export template <IsArrow F, IsArrow G, typename T, IsArrow RG>
-  requires detail_f_algebra::ReturnsItsCodomain<RG>
-constexpr RG reduce_β(const Compose<F, G>&, const Identity<T>&, const RG& rg) {
-  return rg;  // id ∘ g = g
-}
-export template <IsArrow F, IsArrow G, IsArrow RF, typename T>
-  requires detail_f_algebra::ReturnsItsCodomain<RF>
-constexpr RF reduce_β(const Compose<F, G>&, const RF& rf, const Identity<T>&) {
-  return rf;  // f ∘ id = f
-}
-export template <IsArrow F, IsArrow G, typename T, typename U>
-constexpr Identity<T> reduce_β(const Compose<F, G>&, const Identity<T>& i,
-                               const Identity<U>&) {
-  return i;  // id ∘ id = id (disambiguates the two single-sided overloads)
 }
 /** @brief A pairing (copairing) rebuilt from its reduced legs: inert. */
 export template <typename F, typename G, typename RF, typename RG>
@@ -695,7 +703,11 @@ constexpr bool same_path(const P& p, const Q& q) {
  *  one-valued involution cancelled against itself, @f$f f \to
  *  \mathrm{id}@f$; a constant absorbing the arrow before it, @f$c \circ f
  *  \to c@f$; a projection after a pairing selecting its leg, @f$\pi_k \circ
- *  \langle f_1, f_2 \rangle \to f_k@f$.  Each step shrinks the term and
+ *  \langle f_1, f_2 \rangle \to f_k@f$.  The laws are read on atoms that
+ *  honour their declared signatures (@c HonoursSignature: the call takes the
+ *  domain and returns the codomain themselves); any other atom is opaque, no
+ *  rewrite crossing it, since a composite converts at its boundaries and the
+ *  atom alone would not.  Each step shrinks the term and
  *  every critical pair joins, so the rewriting is terminating and confluent,
  *  and the normal form unique.  Two terms with the same normal form are equal
  *  in every model of the laws (Birkhoff), so equal arrows; two with different

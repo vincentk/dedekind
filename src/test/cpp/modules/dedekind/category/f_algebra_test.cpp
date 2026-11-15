@@ -98,6 +98,29 @@ static_assert(right_unit(0u) == true &&
               is_compose_v<decltype(cata(left_unit))> &&
               cata(left_unit)(0u) == true &&
               (left_unit == G{}).verdict == Ternary::Unknown);
+// The normal form does not depend on association (Copilot, #1204): G does
+// not honour its signature, so the identity beside it stays in both
+// groupings, and the two are one normal form.
+constexpr auto unit_after = (F{} >> G{}) >> id<bool>();
+constexpr auto unit_inside = F{} >> (G{} >> id<bool>());
+static_assert(
+    std::same_as<decltype(cata(unit_after)), decltype(cata(unit_inside))> &&
+    unit_after == unit_inside && cata(unit_after)(0u) == true);
+// A call that takes another type than its declared domain converts its
+// argument itself (Copilot, #1204): K declares unsigned and takes bool, so
+// it does not honour its signature, and no law crosses it on either side.
+struct K {
+  using Domain = unsigned;
+  using Codomain = unsigned;
+  constexpr unsigned operator()(bool b) const { return b ? 1u : 0u; }
+};
+constexpr auto around_k = id<unsigned>() >> K{} >> id<unsigned>();
+static_assert(
+    is_compose_v<decltype(cata(around_k))> &&
+    std::same_as<decltype(cata(around_k)),
+                 Compose<Identity<unsigned>, Compose<K, Identity<unsigned>>>> &&
+    cata(around_k)(2u) == 1u && around_k(2u) == 1u &&
+    (around_k == K{}).verdict == Ternary::Unknown);
 }  // namespace converting_codomain
 
 namespace {
@@ -365,9 +388,9 @@ static_assert(is_monic(Pairing{sec >> fst, nil}) &&
 // A node with legs but no reduce_β, a lattice's Meet, is opaque to the normal
 // form: an atom, not descended into.
 constexpr auto both = Meet{id_b, id_b};
-static_assert(std::same_as<decltype(cata(both >> id_b)),
-                           std::remove_cvref_t<decltype(both)>> &&
-                  !is_identity(both >> id_b) &&
-                  ((both >> id_b) == both).verdict == Ternary::Unknown,
-              "a node no reduce_β rebuilds is an atom of the normal form");
+static_assert(
+    std::same_as<decltype(cata(both)), std::remove_cvref_t<decltype(both)>> &&
+        !is_identity(both >> id_b) &&
+        ((both >> id_b) == both).verdict == Ternary::Unknown,
+    "a node no reduce_β rebuilds is an atom of the normal form");
 }  // namespace normal_form_laws
