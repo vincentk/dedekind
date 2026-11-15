@@ -24,6 +24,7 @@
 #include <concepts>
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <type_traits>
 #include <utility>
 
@@ -371,6 +372,16 @@ static_assert(ans == nil >> nay >> ans && ans == !id_b >> nil >> nay >> ans &&
               "a constant absorbs what precedes it; two constants compare by "
               "the laws only, True on equal values, Unknown otherwise, never "
               "False: a constant has no == of its own");
+// A floating constant is not compared by its value (Copilot, #1204): 0.0 ==
+// -0.0 though 1/x tells them apart, and a NaN equals nothing.
+constexpr auto nan_d = std::numeric_limits<double>::quiet_NaN();
+static_assert(
+    equal_by_the_laws(constant<bool>(0.0), constant<bool>(-0.0)).verdict ==
+            Ternary::Unknown &&
+        equal_by_the_laws(constant<bool>(nan_d), constant<bool>(nan_d))
+                .verdict == Ternary::Unknown &&
+        equal_by_the_laws(constant<bool>(1uz), one).verdict == Ternary::True,
+    "floating constants are not known to be the same by ==");
 static_assert(id_b == sec >> fst && nil == sec >> snd &&
                   std::same_as<decltype(cata(sec >> fst)), Identity<bool>> &&
                   is_iso(sec >> fst) && !IsMonicArrow<decltype(sec >> fst)>,

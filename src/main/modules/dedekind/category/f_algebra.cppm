@@ -668,10 +668,14 @@ constexpr bool same_value(const ConstantMorphism<A, B>& c,
                           const ConstantMorphism<A, B>& d) {
   return static_cast<bool>(c.value == d.value);
 }
-/** @brief A constant whose values compare. */
+/** @brief A constant whose values compare by an @c == that is identity on
+ *  the carrier.  Not a floating-point one: @c 0.0 @c == @c -0.0 though
+ *  @c 1/x tells them apart, and a NaN is equal to nothing, so two floating
+ *  constants are not known to be the same (cf. #933). */
 template <typename P>
 concept IsComparableConstant =
-    IsConstantAtom<P> && std::equality_comparable<Cod<P>>;
+    IsConstantAtom<P> && std::equality_comparable<Cod<P>> &&
+    (!std::floating_point<Cod<P>>);
 /** @brief Two normal paths are the same, atom by atom: by the type where an
  *  atom has one value, by the values of two constants, by the atom's own
  *  @c == where it carries one; where it carries one and has no @c ==, not
@@ -707,7 +711,9 @@ constexpr bool same_path(const P& p, const Q& q) {
  *  honour their declared signatures (@c HonoursSignature: the call takes the
  *  domain and returns the codomain themselves); any other atom is opaque, no
  *  rewrite crossing it, since a composite converts at its boundaries and the
- *  atom alone would not.  Each step shrinks the term and
+ *  atom alone would not.  The signature read is the declared one: an
+ *  overload past it, a call at another type, is outside what the laws
+ *  read.  Each step shrinks the term and
  *  every critical pair joins, so the rewriting is terminating and confluent,
  *  and the normal form unique.  Two terms with the same normal form are equal
  *  in every model of the laws (Birkhoff), so equal arrows; two with different
