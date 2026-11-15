@@ -135,15 +135,17 @@ The library needs the conversion form in three cases: an expression that is a re
 \\[12pt]
 \textsc{(D-Generic)} & \dfrac{\overline{\alpha}, \overline{Q};\; \overline{x : \tau_x} \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\}}{\begin{array}[t]{@{}l@{}}\vdash \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q}\\ \quad\texttt{constexpr } \rho\; f\texttt{(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}\end{array}}
 \\[30pt]
-\textsc{(D-Instance)} & \dfrac{\varnothing;\; \overline{x : \tau_x} \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\}}{\vdash \texttt{template <> constexpr } \rho\; f\texttt{<}\overline{\sigma}\texttt{>(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}}
+\textsc{(D-Instance)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ matches its primary}^{\diamond} \quad \varnothing;\; \overline{x : \tau_x} \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\}}{\vdash \texttt{template <> constexpr } \rho\; f\texttt{<}\overline{\sigma}\texttt{>(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}}
 \\[12pt]
-\textsc{(D-Op)} & \dfrac{\overline{\alpha}, \overline{\beta}, \overline{Q};\; \overline{y : \tau_y}, \overline{x : \tau_x} \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\}}{\begin{array}[t]{@{}l@{}}\vdash \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau_y\; y}\texttt{;}\\ \quad\texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q}\\ \quad\texttt{constexpr } \rho \texttt{ operator()(}\overline{\tau_x\; x}\texttt{) const \{ return } e\texttt{; \} \};}\end{array}}
+\textsc{(D-Op)} & \dfrac{\overline{\alpha} \vdash \overline{\tau_y} \quad \overline{\alpha}, \overline{\beta}, \overline{Q};\; \overline{y : \tau_y}, \overline{x : \tau_x} \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\}}{\begin{array}[t]{@{}l@{}}\vdash \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau_y\; y}\texttt{;}\\ \quad\texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q}\\ \quad\texttt{constexpr } \rho \texttt{ operator()(}\overline{\tau_x\; x}\texttt{) const \{ return } e\texttt{; \} \};}\end{array}}
 \\[44pt]
 \textsc{(D-Const)} & \dfrac{\varnothing; \varnothing \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\} \quad e^{\ddagger}}{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;}}
 \end{array}
 \]
 \caption{The definition check and the declarations, $\vdash D$: a generic body sees its constraints' requirements only.
-$^{\dagger}$~A requirement of $C$, with parameters $\overline{a : \tau_a}$.~$^{\ddagger}$~A constant initialiser.}
+$^{\dagger}$~A requirement of $C$, with parameters $\overline{a : \tau_a}$.~$^{\ddagger}$~A constant initialiser.
+$^{\diamond}$~The primary \texttt{template <typename }$\overline{\alpha}$\texttt{> constexpr }$\rho'\; f$\texttt{(}$\overline{\tau'_x}$\texttt{) = delete;} is declared before, with $\overline{\tau_x} = \overline{\tau'_x}[\overline{\sigma}/\overline{\alpha}]$ and $\rho = \rho'[\overline{\sigma}/\overline{\alpha}]$, so \texttt{auto} in both or in neither, as the standard requires~\cite[{\texttt{dcl.spec.auto}}]{cpp23standard}.
+$\overline{\alpha} \vdash \overline{\tau_y}$: a field's type names only the struct's own type variables.}
 \label{fig:fjlt-declarations}
 \end{figure}
 
