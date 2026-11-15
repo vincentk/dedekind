@@ -36,7 +36,6 @@ The designers named the problem at the outset, in 2003: ``crucial aspects of the
 
 \Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary, and this paper documents a discipline that does, recovering some of what a functional language guarantees at the cost of three rules.
 The cost is paid once, in how a program is written, and what it buys is paid back at every use: a law holds in every model of it, a specialisation it licenses pays on every call, and a checked statement serves every reader.
-The fragment characterised here is standard \Cpp{23}, restricted, not extended: it complies with the principles of the host language, and is accepted by any conforming compiler.
 The compiler's optimisation pipelines can be brought to bear:
 an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point, and which in Jlt are declared.
 

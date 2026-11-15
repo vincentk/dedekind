@@ -76,7 +76,8 @@ A primary that answers \cppinline{false} beside partial specialisations that ans
 Resolution by specificity orders them, as it orders constrained overloads such as Listing~\ref{lst:laws}'s \cppinline{fold} and \cppinline{concat}.
 Lookup leaves some FJlt spellings unwritable (Section~\ref{sec:limits}), and there the host's spelling stands for it.
 A \cppinline{const} member function is the generic function with the object as its first parameter, reading its fields where the member read \cppinline{this}.
-A constructor is a function returning the struct, a conversion operator a declared conversion, a default argument an overload with the argument supplied, and a designated initialiser the fields in order, each with a \cppinline{constexpr} FJlt body; the linter holds \cppinline{constexpr} and a reader the rest.
+A constructor is a function returning the struct, a conversion operator a declared conversion, a default argument an overload with the argument supplied, and a designated initialiser the fields in order.
+Each has a \cppinline{constexpr} FJlt body; the linter holds \cppinline{constexpr} and a reader the rest.
 An explicit conversion between carriers is a declared function, total by a reader's check.
 A non-type template parameter is a type per value, as \cppinline{integral_constant} spells it, the value a constant of a carrier, which the compiler holds.
 A user-defined literal is a named function call, which the compiler holds.
@@ -119,7 +120,9 @@ A capturing closure type is neither default constructible nor assignable, so it 
 It is admitted as sugar instead, judged through its image, which is semiregular since its captures are values.
 A closure type has no name, so a lambda is never a carrier and never the head of an instance.
 A loop's locals are such state, and a loop that shows its end is admitted as sugar the same way, judged through the fold it denotes.
-A counted \cppinline{for (T i = 0; i < n; ++i)} whose counter and bound share one unsigned type \cppinline{T}, and whose body writes neither, is \cppinline{fold_left} over \cppinline{views::iota(T{0}, n)}: since \cppinline{i < n} holds before each increment, \cppinline{++i} cannot wrap, the loop's locals the fold's state and its body the step; a range-\cppinline{for} over a bounded range, whose body does not write that range, is \cppinline{fold_left} over it.
+A counted \cppinline{for (T i = 0; i < n; ++i)} whose counter and bound share one unsigned type \cppinline{T}, and whose body writes neither, is \cppinline{fold_left} over \cppinline{views::iota(T{0}, n)}.
+Since \cppinline{i < n} holds before each increment, \cppinline{++i} cannot wrap; the loop's locals are the fold's state and its body the step.
+A range-\cppinline{for} over a bounded range, whose body does not write that range, is \cppinline{fold_left} over it.
 A \cppinline{while} whose condition no bound governs has no such image and stays out.
 
 \begin{table}[tbp]

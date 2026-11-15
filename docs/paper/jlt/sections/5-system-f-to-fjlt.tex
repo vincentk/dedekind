@@ -9,6 +9,7 @@
 
 The theorems rest on FJlt alone.
 Their proofs (Appendix~\ref{app:fjlt:theorems}) are inductions over the grammar, the typing and the translation of FJlt, and never mention the three rules.
+The proofs are on paper, relative to the assumptions of Appendix~\ref{app:fjlt:theorems}, and not mechanised.
 The rules are not the hypotheses of the theorems.
 They are what makes a \Cpp{} program a term of the calculus the theorems are about, and that step is the argument of Section~\ref{sec:jlt-to-fjlt}.
 
@@ -141,10 +142,8 @@ What the translation adds is the second half of Theorem~\ref{thm:simulation}: th
 
 \paragraph{Certified and inferred laws.}
 A program declares few laws and infers the rest.
-A declared law is an axiom, its certificate evaluated where a record is built.
 A law at a construction is derived from the laws of its parts, through an instance with a context, by the entailment of qualified types~\cite{jones1994qualified}: that a finite power of a semiring is a semimodule over it is inferred, not declared (Appendix~\ref{app:fjlt:inferred}).
 The inference is local in Pierce and Turner's sense~\cite{pierce2000local}: information moves only between adjacent nodes, and here only upward, from a term's immediate parts to the term, a synthesised attribute~\cite{knuth1968semantics}.
-They infer type arguments and Jlt infers laws, so the likeness is in the flow of information, not in what is inferred.
 By Theorem~\ref{thm:coherence} each inferred law is unique, and the conditions on contexts that end instance search~\cite{sulzmann2007understanding} end the inference.
 As type checking rules out classes of errors without proving a program correct, law inference licenses classes of optimisations without deciding program equivalence, which stays undecidable where every program ends: a program testing whether a machine halts within $n$ steps equals the constant false exactly when that machine never halts~\cite{turing1936computable}.
 Each optimisation is local, a rewrite at the node whose law licenses it, and so mechanical; the global one, the best equivalent program, is the undecidable one.

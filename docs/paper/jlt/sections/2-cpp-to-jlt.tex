@@ -2,7 +2,6 @@
 \section{From \Cpp{} to Jlt}
 \label{sec:posture}
 
-Jlt is standard \Cpp{23} under three rules, not a dialect and not a library; the compiler enforces some of the rules, and we say which.
 Each rule has a listing of a few lines, verbatim from the repository's test up to formatting and the definitions a listing omits or the test imports; the LLVM IR of Appendix~\ref{app:fjlt:ssa} is Clang~23's output, its flags in its caption, with names shortened.
 
 \paragraph{Rule 1, Substitution: const values and an identity-preserving copy.}
@@ -51,7 +50,6 @@ Right: the points, constant arrows, and a copy.}
 
 A function object is a value, as an abstraction is in the $\lambda$-calculus~\cite{pierce2002tapl}: the arguments it binds are its fields, so it is copied as any value is.
 \cppinline{constant<bool>(42uz)} \emph{is} the value 42 but equipped with an arrow's operator signature (Listing~\ref{lst:rule1}).
-A value in Jlt is thus a value in Leibniz's sense: a copy cannot be told from its original, so either may stand for the other.
 In \Cpp{23} a copy equal to its original is Stepanov's \cppinline{std::regular} type, which also has \cppinline{==}~\cite{stepanov2009elements}.
 Rule~1 keeps the copy but only requires \cppinline{std::semiregular}, because equality of values is undecidable for functions~\cite{rice1953classes}.
 Two things keep it exact: a function returns a value, never a reference, and a call operator is a member function like any other, so it too is \cppinline{const}.
@@ -138,7 +136,7 @@ The monoid signatures are \cppinline{size_t} under \cppinline{(0, +), (1, *)}, a
 In \Cpp{23} what a type permits is stated by constraints on template parameters: a \cppinline{concept} is a predicate on a type's structure~\cite{cpp23standard}, a trait a compile-time function on a type or a family of types~\cite{myers1995traits}, and together they take the place of type classes~\cite{wadler1989adhoc}.
 Overload resolution selects the instance: among the declarations whose constraints a type satisfies, the compiler takes the most specific, by the partial order of constraints~\cite{cpp23standard}.
 Concepts are structural: a type that has the operations satisfies the shape without a declaration, so the standard library's types are admitted after the fact, unmodified.
-A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, and not at definition, against the constraint, which is why this is a rule here and not a theorem.
+Since \Cpp{20} checks a template's body only at its uses (Section~\ref{sec:intro}), this is a rule here and not a theorem.
 
 Laws are \emph{certificates}, of two kinds.
 The axioms are declared, supplied by certification, and the compiler finds them but does not prove them: a declaration admits a law by fiat, as \texttt{sorry} does in Lean~\cite{demoura2021lean} and \texttt{Admitted} in Coq~\cite{Coq}.
@@ -186,7 +184,6 @@ So $n$ is the chain's rank, its cardinality, and $0$ the empty chain.
 Terms: replace $\mathbf{1} + X$ by a polynomial functor $F$, $X$ by its initial algebra $\mu F$, and $\mathit{prior}$ by Lambek's inverse $\mathit{out} : \mu F \to F\,\mu F$; the chain below $n$ becomes the subterms below a term $t$, $\mathit{sub}(t)$, and $n$ becomes $t$'s height, its rank: the figure is read for a type as for a value.
 Algebra: $f$ lands in $S$, and the fold in $M$.
 Fold: the fold along the walk, $h : M \times S \to M$, runs from $e$ at the seed's end through the intermediate values, $\circ$, to the result, $\bullet$.
-With offsets the chain is an array~\cite[\S 2.2.2]{knuth1997art1}, and the walk a scan of it.
 }
 \label{fig:structures}
 \end{figure}
@@ -270,7 +267,7 @@ A monoid $S$ may also act on $M$, and a semiring on a semimodule, which adds dis
 Fold: a list has two folds~\cite{gibbons1996third}.
 The one along the walk needs no list: it is a stream and its iterator~\cite{stepanov2009elements}.
 With $\mathit{succ}$ as well, $\mathit{succ} >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}.
-With offsets it is an array, and these are the standard's forward, bidirectional and random-access iterators~\cite{cpp23standard}.
+With offsets it is an array~\cite[\S 2.2.2]{knuth1997art1}, and these are the standard's forward, bidirectional and random-access iterators~\cite{cpp23standard}.
 
 What the rule buys is termination and, with Rule~2, the System~F reading, data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
 Like System~F, strongly normalising and so unable to express every computable function~\cite{girard1989proofs}, Rule~3 trades expressiveness for termination, since the halting programs are not a decidable set~\cite{turing1936computable}: a bounded search ends without always deciding its question (Section~\ref{sec:binding}).

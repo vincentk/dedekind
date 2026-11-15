@@ -101,6 +101,7 @@ Its cost is moved to compile time where the step limit admits: ``negative overhe
 The right panel's section says in its type what its words have in common, a symmetry, and how long they are, a bound as large as one likes but known before the scan.
 The bound makes the language finite, where without one palindromes are not even regular~\cite{kari2010watson}; the symmetry makes its test one pair per offset, linear in the length, where an automaton lists the words, exponentially in it (Table~\ref{tab:batch}).
 So one more overload of \cppinline{count} takes no table and tests every window at once: the compiler vectorises it.
+The overload names a law of biochemistry and no instruction of any machine; \Cpp{26}'s \cppinline{std::simd}~\cite{kretz2024simd} would make the lanes explicit.
 The presumption holds where both evaluations finish and neither meets undefined behaviour.
 Table~\ref{tab:binding} lists where the two binding times part.
 
@@ -116,6 +117,7 @@ a fold's length & at most 1\,048\,576 steps (\texttt{-fconstexpr-steps}), past w
 a call's depth & at most 512 nested calls (\texttt{-fconstexpr-depth}) & the stack \\
 undefined behaviour & refused: the expression is not a constant, and the program does not compile & no diagnostic required and no guarantee: the optimiser may assume it never happens \\
 a shortcut & only by resolution, a declared law, as Listing~\ref{lst:laws}'s overloads & the optimiser's, as it fuses Listing~\ref{lst:sites}'s stages into one loop \\
+the heap & its own: an allocation may not outlive the evaluation, so no box crosses to run time; \Cpp{26} admits \texttt{make\_shared} within one~\cite{keir2025constexprsharedptr} and lets an array through~\cite{childers2025static} & shared: a box lives as long as its owners \\
 telling them apart & \texttt{if consteval} and \texttt{is\_constant\_evaluated()} say compile time & they say run time, and FJlt desugars it to the first where both agree \\
 \bottomrule
 \end{tabularx}
@@ -124,13 +126,6 @@ Each limit counts the evaluator's work, and can be raised.
 Apart from the last row, no difference is a different value: where both evaluations finish without undefined behaviour, they agree (Theorem~\ref{thm:simulation}).}
 \label{tab:binding}
 \end{table}
-
-\paragraph{The two evaluators are different programs.}
-In constant evaluation no optimiser runs: the front end interprets a fold one step at a time, and the optimiser that fuses Listing~\ref{lst:sites}'s stages into one residual pass sees only the code emitted for run time.
-So at compile time only a declared law shortens a fold, chosen by resolution, as for Listing~\ref{lst:laws}'s overloads: it buys at build time what the optimiser finds at run time by itself.
-
-\paragraph{A law can leave the compiler a batch.}
-Listing~\ref{lst:sites}'s vectorised overload names a law of biochemistry and no instruction of any machine; \Cpp{26}'s \cppinline{std::simd}~\cite{kretz2024simd} would make the lanes explicit.
 
 \paragraph{The same laws license parallelism.}
 A parallel \cppinline{concat} is one more overload, licensed by \cppinline{IsCommutativeMonoid}.
