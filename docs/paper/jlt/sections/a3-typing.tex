@@ -3,7 +3,9 @@
 \label{app:fjlt:typing}
 
 Figures~\ref{fig:fjlt-entailment} to~\ref{fig:fjlt-typing-recursion} say which FJlt programs are well formed, the domain of $\llbracket\cdot\rrbracket$ in Figure~\ref{fig:arrows} and Section~\ref{sec:translation}.
-As Section~\ref{sec:fjlt:syntax}'s carrier sets keep \RuleOne{}, their rules hold a program to \RuleTwo{}, through the definition check and resolution, and to \RuleThree{}, through its two forms of recursion: instantiation, finite by well-founded declarations, and the fold over a range (Section~\ref{sec:posture}).
+Section~\ref{sec:jlt-to-fjlt}'s carrier sets keep \RuleOne{}, and these rules hold a program to the other two.
+They hold it to \RuleTwo{} through the definition check and resolution.
+They hold it to \RuleThree{} through its two forms of recursion: instantiation, finite by well-founded declarations, and the fold over a range (Section~\ref{sec:posture}).
 
 A judgment is a statement about a program, and it holds when the rules derive it.
 There are three judgments:
@@ -12,6 +14,7 @@ There are three judgments:
 \item $\Delta; \Gamma \vdash e : \tau$ types a term, $\Gamma$ holding the term variables with their types (Figures~\ref{fig:fjlt-typing} and~\ref{fig:fjlt-typing-recursion}).
 \item $\vdash D$ says a declaration is well formed (Figure~\ref{fig:fjlt-declarations}).
 \end{enumerate}
+$e[\overline{e}/\overline{a}]$ is $e$ with each $e_i$ in place of $a_i$, at once, and $\tau[\overline{\sigma}/\overline{\alpha}]$ the same for types; an overbar abbreviates a sequence, as in Figure~\ref{fig:fjlt-syntax}.
 A program $P = \overline{D}\; e$ (Figure~\ref{fig:fjlt-syntax}) is well formed when $\vdash D$ for each of its declarations, in order, and $\varnothing; \varnothing \vdash e : \tau$ for some $\tau$.
 The compiler holds a program to most of this.
 Four things rest on the programmer's discipline instead: a generic body held to its constraints (Section~\ref{sec:limits}), a call at a type variable held to resolution, a converted result held to its declared type, and a range held to its conditions.
@@ -21,19 +24,22 @@ Four things rest on the programmer's discipline instead: a generic body held to 
 \begin{array}{@{}l@{\quad}l@{}}
 \textsc{(E-Assume)} & \dfrac{Q \in \Delta}{\Delta \Vdash Q}
 \\[12pt]
-\textsc{(E-Law)} & \dfrac{\varnothing; \varnothing \vdash e : \texttt{bool} \qquad e \Downarrow \texttt{true}}{\Delta \Vdash e}
+\textsc{(E-Law)} & \dfrac{\varnothing; \varnothing \vdash e : \texttt{bool} \quad e \Downarrow \texttt{true}}{\Delta \Vdash e}
 \\[12pt]
-\textsc{(E-Law-Assumed)} & \dfrac{\texttt{concept } C \texttt{ = } \overline{A} \qquad C\texttt{<}\overline{\tau}\texttt{>} \in \Delta \qquad e = A_i[\overline{\tau}/\overline{\alpha}] \text{ a law}}{\Delta \Vdash e}
+\textsc{(E-Law-Assumed)} & \dfrac{\texttt{concept } C \texttt{ = } \overline{A} \quad C\texttt{<}\overline{\tau}\texttt{>} \in \Delta \quad e = A_i[\overline{\tau}/\overline{\alpha}] \text{ a law}}{\Delta \Vdash e}
 \\[12pt]
-\textsc{(E-Shape)} & \dfrac{\texttt{concept } C \texttt{ = } \overline{A} \qquad C\texttt{<}\overline{\tau}\texttt{>} \notin \Delta \qquad \Delta \Vdash A_i[\overline{\tau}/\overline{\alpha}] \text{ for each } i}{\Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>}}
+\textsc{(E-Shape)} & \dfrac{\texttt{concept } C \texttt{ = } \overline{A} \quad C\texttt{<}\overline{\tau}\texttt{>} \notin \Delta \quad \Delta \Vdash A_i[\overline{\tau}/\overline{\alpha}] \text{ for each } i}{\Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>}}
 \\[12pt]
-\textsc{(E-Op)} & \dfrac{\Delta; \overline{x : \tau_x} \vdash e : \tau' \qquad \tau' \mathrel{S} \tau}{\Delta \Vdash \texttt{requires (}\overline{\texttt{const }\tau_x\; x}\texttt{) \{ \{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>; \}}}
+\textsc{(E-Op)} & \dfrac{\Delta; \overline{x : \tau_x} \vdash e : \tau' \quad \tau' \mathrel{S} \tau}{\Delta \Vdash \texttt{requires (}\overline{\texttt{const }\tau_x\; x}\texttt{) \{ \{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>; \}}}
 \\[12pt]
-\textsc{(E-Not)} & \dfrac{\overline{\tau} \text{ concrete} \qquad \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \notin \Delta \qquad \Delta \not\Vdash C\texttt{<}\overline{\tau}\texttt{>}}{\Delta \Vdash \texttt{!}C\texttt{<}\overline{\tau}\texttt{>}}
+\textsc{(E-Not)} & \dfrac{\overline{\tau} \text{ concrete} \quad \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \notin \Delta \quad \Delta \not\Vdash C\texttt{<}\overline{\tau}\texttt{>}}{\Delta \Vdash \texttt{!}C\texttt{<}\overline{\tau}\texttt{>}}
+\\[12pt]
+\textsc{(E-Range)} & \dfrac{R \text{ an instance of } \mathcal{R} \text{ over } \tau \quad \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \notin \Delta}{\Delta \Vdash \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}}
 \end{array}
 \]
 \caption{The rules of entailment, $\Delta \Vdash Q$.
-Six rules: an assumption, two for laws, a shape, a requirement and a negation.}
+Seven rules: an assumption, two for laws, a shape, a requirement, a negation and a range.
+$\mathcal{R}$ is the family of ranges whose length is fixed before the fold starts (\emph{Ranges}, below); an instance $R$ of it over $\tau$ is the type written $R\texttt{<}\tau\texttt{>}$ in Figure~\ref{fig:fjlt-typing-recursion}.}
 \label{fig:fjlt-entailment}
 \end{figure}
 
@@ -50,28 +56,30 @@ A negated constraint \cppinline{!C<T>} carries no evidence.
 \begin{figure}[htbp]
 \[
 \begin{array}{@{}l@{\quad}l@{}}
-\textsc{(T-Op)} & \dfrac{O\texttt{<}\overline{\tau}\texttt{>} : \overline{\sigma} \to \sigma^{\ast} \qquad \Delta; \Gamma \vdash \overline{e : \sigma}}{\Delta; \Gamma \vdash O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{e}\texttt{)} : \sigma}
-\\[7pt]
-\textsc{(T-Conv)} & \dfrac{\Delta; \Gamma \vdash e : \tau' \qquad \tau' \text{ converts to } \tau}{\Delta; \Gamma \vdash \tau\texttt{(}e\texttt{)} : \tau}
-\\[7pt]
-\textsc{(T-App)} & \dfrac{\begin{array}{c} O\text{'s call operator is } \forall\overline{\beta}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau_r \\ \Delta; \Gamma \vdash e : O\texttt{<}\overline{\tau}\texttt{>} \qquad \Delta \Vdash \overline{Q}[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}] \qquad \Delta; \Gamma \vdash \overline{e' : \tau_x[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}]} \end{array}}{\Delta; \Gamma \vdash e\texttt{(}\overline{e'}\texttt{)} : \tau_r[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}]}
-\\[7pt]
-\textsc{(T-Call)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to } f_i : \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau \qquad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \qquad \Delta; \Gamma \vdash \overline{e : \tau_x[\overline{\sigma}/\overline{\alpha}]}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau[\overline{\sigma}/\overline{\alpha}]}
-\\[7pt]
-\textsc{(T-Trait)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to } \overline{\tau_x} \to \tau \qquad \Delta; \Gamma \vdash \overline{e : \tau_x}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau}
-\\[7pt]
-\textsc{(T-Const)} & \dfrac{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \text{ at } \tau^{\S} \qquad x \notin \Gamma}{\Delta; \Gamma \vdash x : \tau}
+\textsc{(T-Op)} & \dfrac{O\texttt{<}\overline{\tau}\texttt{>} : \overline{\sigma} \to \sigma^{\ast} \quad \Delta; \Gamma \vdash \overline{e : \sigma}}{\Delta; \Gamma \vdash O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{e}\texttt{)} : \sigma}
+\\[12pt]
+\textsc{(T-Conv)} & \dfrac{\Delta; \Gamma \vdash e : \tau' \quad \tau' \text{ converts to } \tau}{\Delta; \Gamma \vdash \tau\texttt{(}e\texttt{)} : \tau}
+\\[12pt]
+\textsc{(T-App)} & \dfrac{\begin{array}{c} O\text{'s call operator is } \forall\overline{\beta}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau_r \\ \Delta; \Gamma \vdash e : O\texttt{<}\overline{\tau}\texttt{>} \quad \Delta \Vdash \overline{Q}[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}] \quad \Delta; \Gamma \vdash \overline{e' : \tau_x[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}]} \end{array}}{\Delta; \Gamma \vdash e\texttt{(}\overline{e'}\texttt{)} : \tau_r[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}]}
+\\[12pt]
+\textsc{(T-Call)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to } f_i : \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau \quad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \quad \Delta; \Gamma \vdash \overline{e : \tau_x[\overline{\sigma}/\overline{\alpha}]}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau[\overline{\sigma}/\overline{\alpha}]}
+\\[12pt]
+\textsc{(T-Trait)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to } \overline{\tau_x} \to \tau \quad \Delta; \Gamma \vdash \overline{e : \tau_x}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau}
+\\[12pt]
+\textsc{(T-Const)} & \dfrac{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \text{ at } \tau^{\S} \quad x \notin \Gamma}{\Delta; \Gamma \vdash x : \tau}
 \end{array}
 \]
 \caption{The rules for terms, $\Delta; \Gamma \vdash e : \tau$: calls, conversions and constants.
 $^{\ast}$~The standard's signature of the function object.~$^{\S}$~Declared before $x$'s use.
-Omitted as textbook: \textsc{T-Var}, \textsc{T-Construct}, \textsc{T-Field}, \textsc{T-Inj}, \textsc{T-Case}, and the rules for pairs, boxes, conditionals and the arithmetic of base types.}
+Omitted as textbook~\cite[Chapters~8, 9 and~11]{pierce2002tapl}: \textsc{T-Var}, \textsc{T-Construct}, \textsc{T-Field}, \textsc{T-Inj}, \textsc{T-Case}, and the rules for pairs, boxes, conditionals and the arithmetic of base types.}
 \label{fig:fjlt-typing}
 \end{figure}
 
 \paragraph{Overload resolution.}
-A trait, Section~\ref{sec:posture}'s compile-time function on a type, is called as $f\texttt{<}\overline{\tau}\texttt{>}$, and at concrete types the call \emph{resolves} to a declaration of $f$ in two steps, by \Cpp{}'s overload resolution~\cite[{\texttt{over.match}}]{cpp23standard}.
-The first step takes, among the generic functions whose head matches $\overline{\tau}$ and whose context is entailed, the deleted primary among them, the most specific: more specialised by head~\cite[{\texttt{temp.func.order}}]{cpp23standard}, then more constrained by context~\cite[{\texttt{temp.constr.order}}]{cpp23standard}.
+A trait, Section~\ref{sec:posture}'s compile-time function on a type, is called as $f\texttt{<}\overline{\tau}\texttt{>}$.
+At concrete types the call \emph{resolves} to a declaration of $f$ in two steps, by \Cpp{}'s overload resolution~\cite[{\texttt{over.match}}]{cpp23standard}.
+The first step considers the generic functions whose head matches $\overline{\tau}$ and whose context is entailed, the deleted primary among them.
+It takes the most specific: more specialised by head~\cite[{\texttt{temp.func.order}}]{cpp23standard}, then more constrained by context~\cite[{\texttt{temp.constr.order}}]{cpp23standard}.
 If that is the primary, the second takes its explicit specialisation at $\overline{\tau}$, if there is one~\cite[{\texttt{temp.expl.spec}}]{cpp23standard}.
 The deleted primary never resolves, as a program that selects a deleted function is ill-formed~\cite[{\texttt{dcl.fct.def.delete}}]{cpp23standard}, which is how an operation nobody registered fails a shape.
 At concrete types \Cpp{} makes resolution a function: two explicit specialisations with one head are a redefinition, and a call with no unique most specific candidate is ambiguous~\cite[{\texttt{over.match.best}}]{cpp23standard}.
@@ -85,12 +93,16 @@ That refines GHC's rule for overlapping instances~\cite{ghc2024overlapping}, whi
 A call it would refuse is a body that varies with a type through a constraint it did not declare, a breach of Rule~2, which the repository's linter reports where it can see one (Section~\ref{sec:limits}).
 
 \paragraph{Operators.}
-An operator expression $\ominus e$ or $e_1 \oplus e_2$ is resolved as \Cpp{} resolves it~\cite[{\texttt{over.match.oper}}]{cpp23standard}, the built-in operator a candidate beside the declared functions \texttt{operator}$\oplus$, and the only one when no operand is of class or enumeration type.
+An operator expression $\ominus e$ or $e_1 \oplus e_2$ is resolved as \Cpp{} resolves it~\cite[{\texttt{over.match.oper}}]{cpp23standard}.
+The built-in operator is a candidate beside the declared functions \texttt{operator}$\oplus$, and the only one when no operand is of class or enumeration type.
 Where the choice is a primitive of $\Sigma$, the expression is typed by the primitive's signature, the rule for the arithmetic of base types; otherwise it is the call \texttt{operator}$\oplus$\texttt{(}$e_1$\texttt{, }$e_2$\texttt{)}, typed by \textsc{T-Call} or \textsc{T-Trait}.
-Where the operands are of different base types, the primitive acts after the conversions the standard specifies for that operator: the usual arithmetic conversions for arithmetic and comparison\cite[{\texttt{expr.arith.conv}}]{cpp23standard}, and for a shift the promotion of each operand on its own, the result of the left operand's type\cite[{\texttt{expr.shift}}]{cpp23standard}.
+Where the operands are of different base types, the primitive acts after the conversions the standard specifies for that operator.
+For arithmetic and comparison these are the usual arithmetic conversions~\cite[{\texttt{expr.arith.conv}}]{cpp23standard}; for a shift, each operand is promoted on its own, and the result has the left operand's type~\cite[{\texttt{expr.shift}}]{cpp23standard}.
 Each such conversion is the grammar's $\tau(e)$, placed by the compiler, as Listing~\ref{lst:rule1}'s \cppinline{id_u(42uz) == 42}, a \cppinline{size_t} against an \cppinline{int}.
 A declared \texttt{operator}$\oplus$ needs no common type, since its signature is its own: in Listing~\ref{lst:rule3}'s \cppinline{v * a}, a matrix acting on a vector, the operands' types differ and nothing converts.
-The candidate selected may be a rewritten or a reversed one\cite[{\texttt{over.match.oper}}]{cpp23standard}: then the expression is the call under the standard's rewrite, \cppinline{a != b} as \cppinline{!(a == b)}, a reversed candidate with its arguments swapped, \cppinline{a < b} as \cppinline{(a <=> b) < 0}, and typing, translation and evaluation read the rewritten call.
+The candidate selected may be a rewritten or a reversed one~\cite[{\texttt{over.match.oper}}]{cpp23standard}.
+The expression is then the call under the standard's rewrite: \cppinline{a != b} as \cppinline{!(a == b)}, \cppinline{a < b} as \cppinline{(a <=> b) < 0}, a reversed candidate with its arguments swapped.
+Typing, translation and evaluation read the rewritten call.
 
 \paragraph{Inferred laws.}
 \label{app:fjlt:inferred}
@@ -98,7 +110,7 @@ A law at a construction is entailed, not declared.
 The law is a trait call, resolution picks the instance whose context the program entails, and \textsc{E-Law} evaluates its certificate, which must be \texttt{true}.
 Composed, these give a derived rule, the instance rule of the entailment of qualified types~\cite{jones1994qualified}:
 \[
-\textsc{(E-Law-Ctx)}\quad \dfrac{\begin{array}{c} \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \text{ resolves to } \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \mathit{law}\texttt{<}\overline{\tau'}\texttt{>} \\ \overline{\tau} = \overline{\tau'}[\overline{\sigma}/\overline{\alpha}] \qquad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \qquad \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \Downarrow \texttt{true} \end{array}}{\Delta \Vdash \mathit{law}\texttt{<}\overline{\tau}\texttt{>}}
+\textsc{(E-Law-Ctx)}\quad \dfrac{\begin{array}{c} \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \text{ resolves to } \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \mathit{law}\texttt{<}\overline{\tau'}\texttt{>} \\ \overline{\tau} = \overline{\tau'}[\overline{\sigma}/\overline{\alpha}] \quad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \quad \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \Downarrow \texttt{true} \end{array}}{\Delta \Vdash \mathit{law}\texttt{<}\overline{\tau}\texttt{>}}
 \]
 A finite power of a semiring is a semimodule over it in this way.
 The library declares the power a product of its base, and one instance, whose context is the base's semiring laws, gives the power's semimodule law, as semimodules over a semiring form a variety, closed under products.
@@ -114,20 +126,26 @@ Write $\tau^{S}\texttt{(}e\texttt{)}$ for $e$ when $S$ is \cppinline{std::same_a
 A body may therefore use a converted result only at the declared $\tau$.
 Using the unconverted result, say to compare two of them at their own type, uses an operation the constraint did not name.
 The typing refuses it, \Cpp{} accepts it, and the repository's linter reports it where it can see it.
-The library needs the conversion form in three places: where a requirement's expression is an lvalue of the wanted type (\cppinline{const T&} is not \cppinline{same_as<T>}; \cppinline{IsPointed}'s unit), where a step returns a proxy for the carrier (\cppinline{HasNNOStep}'s successor), and where an object is presented by another type (\cppinline{Presents}).
+The library needs the conversion form in three cases: an expression that is a reference to the wanted type, since \cppinline{const T&} is not \cppinline{same_as<T>}; a call that returns a proxy for its carrier; and an object presented by another type.
 
 \begin{figure}[htbp]
 \[
 \begin{array}{@{}l@{\quad}l@{}}
-\textsc{(T-Req-Assumed)} & \dfrac{C\texttt{<}\overline{\tau}\texttt{>} \in \Delta \qquad \texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \in C,\ \overline{a : \tau_a}^{\dagger} \qquad \Delta; \Gamma \vdash \overline{e : \tau_a}}{\Delta; \Gamma \vdash \tau^{S}\texttt{(}e_r[\overline{e}/\overline{a}]\texttt{)} : \tau}
-\\[7pt]
-\textsc{(D-Generic)} & \dfrac{\overline{\alpha}, \overline{Q};\; \overline{x : \tau_x} \vdash e : \tau \qquad \rho \in \{\tau, \texttt{auto}\}}{\vdash \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q}\; \texttt{constexpr } \rho\; f\texttt{(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}}
-\\[7pt]
-\textsc{(D-Const)} & \dfrac{\varnothing; \varnothing \vdash e : \tau \qquad \rho \in \{\tau, \texttt{auto}\} \qquad e^{\ddagger}}{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;}}
+\textsc{(T-Req-Assumed)} & \dfrac{C\texttt{<}\overline{\tau}\texttt{>} \in \Delta \quad \texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \in C,\ \overline{a : \tau_a}^{\dagger} \quad \Delta; \Gamma \vdash \overline{e : \tau_a}}{\Delta; \Gamma \vdash \tau^{S}\texttt{(}e_r[\overline{e}/\overline{a}]\texttt{)} : \tau}
+\\[12pt]
+\textsc{(D-Generic)} & \dfrac{\overline{\alpha}, \overline{Q};\; \overline{x : \tau_x} \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\}}{\begin{array}[t]{@{}l@{}}\vdash \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q}\\ \quad\texttt{constexpr } \rho\; f\texttt{(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}\end{array}}
+\\[30pt]
+\textsc{(D-Instance)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ matches its primary}^{\diamond} \quad \varnothing;\; \overline{x : \tau_x} \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\}}{\vdash \texttt{template <> constexpr } \rho\; f\texttt{<}\overline{\sigma}\texttt{>(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}}
+\\[12pt]
+\textsc{(D-Op)} & \dfrac{\overline{\alpha} \vdash \overline{\tau_y} \quad \overline{\alpha}, \overline{\beta}, \overline{Q};\; \overline{y : \tau_y}, \overline{x : \tau_x} \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\}}{\begin{array}[t]{@{}l@{}}\vdash \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau_y\; y}\texttt{;}\\ \quad\texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q}\\ \quad\texttt{constexpr } \rho \texttt{ operator()(}\overline{\tau_x\; x}\texttt{) const \{ return } e\texttt{; \} \};}\end{array}}
+\\[44pt]
+\textsc{(D-Const)} & \dfrac{\varnothing; \varnothing \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\} \quad e^{\ddagger}}{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;}}
 \end{array}
 \]
 \caption{The definition check and the declarations, $\vdash D$: a generic body sees its constraints' requirements only.
-$^{\dagger}$~A requirement of $C$, with parameters $\overline{a : \tau_a}$.~$^{\ddagger}$~A constant initialiser.}
+$^{\dagger}$~A requirement of $C$, with parameters $\overline{a : \tau_a}$.~$^{\ddagger}$~A constant initialiser.
+$^{\diamond}$~The primary \texttt{template <typename }$\overline{\alpha}$\texttt{> constexpr }$\rho'\; f$\texttt{(}$\overline{\tau'_x}$\texttt{) = delete;} is declared before, with $\overline{\tau_x} = \overline{\tau'_x}[\overline{\sigma}/\overline{\alpha}]$ and $\rho = \rho'[\overline{\sigma}/\overline{\alpha}]$, so \texttt{auto} in both or in neither, as the standard requires~\cite[{\texttt{dcl.spec.auto}}]{cpp23standard}.
+$\overline{\alpha} \vdash \overline{\tau_y}$: a field's type names only the struct's own type variables.}
 \label{fig:fjlt-declarations}
 \end{figure}
 
@@ -148,24 +166,22 @@ A premise $f : \sigma \times \tau \to \sigma$ in \textsc{T-Fold} and \textsc{T-C
 Its application to arguments of those types is typed at $\sigma$ by \textsc{T-Call}, \textsc{T-Trait}, \textsc{T-Op}, \textsc{T-App} or, at a type variable, \textsc{T-Req-Assumed}.
 
 \paragraph{Deduced types and constants.}
-Where a declaration's result type $\rho$ is \cppinline{auto}, its $\tau$ is the type of the body in the premise, and \textsc{T-Call}, \textsc{T-Trait} and \textsc{T-App}'s $\tau_r$ read that type.
-This is \Cpp{}'s return type deduction~\cite[{\texttt{dcl.spec.auto}}]{cpp23standard} and local type inference~\cite{pierce2000local}: the type is synthesised from the body, and nothing flows into it from a use.
-\Cpp{} refuses a use of the function before a return statement has deduced its type, and an FJlt body is a single return, so no body is typed through its own deduced type.
-A trait and its instances write \cppinline{auto} together or not at all, as the standard requires of a specialisation~\cite[{\texttt{dcl.spec.auto}}]{cpp23standard}.
-A call's type arguments are deduced as well: \textsc{T-App}'s $\overline{\sigma}$, and a call $f\texttt{(}\overline{e}\texttt{)}$ is $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)}$ at the $\overline{\sigma}$ the compiler deduces, so the rules check them and do not compute them.
-A constant is typed under the empty contexts, by \textsc{D-Const}, and \textsc{T-Const} types its name at that type in every later declaration and in the program's term, unless a parameter or field of the same name is in $\Gamma$, which shadows it, as in \Cpp{}.
-Its initialiser is a constant expression whose value keeps no allocation alive past the evaluation, as \cppinline{constexpr} requires of a variable and the compiler holds\cite[{\texttt{expr.const}}]{cpp23standard}.
+The compiler fills in two kinds of type the rules leave open, and the rules check what it fills in, never how.
+A result type written \cppinline{auto} is the body's type, synthesised from the body with nothing flowing in from a use~\cite{pierce2000local}.
+\Cpp{} refuses a use before the return has deduced it, so no body is typed through its own deduced type~\cite[{\texttt{dcl.spec.auto}}]{cpp23standard}.
+A call's type arguments are the $\overline{\sigma}$ the compiler deduces, for a named call (\textsc{T-Call}, \textsc{T-Trait}) and for a function object's call operator (\textsc{T-App}): $f\texttt{(}\overline{e}\texttt{)}$ is $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)}$.
+A constant is typed once, closed, by \textsc{D-Const}, and its name has that type in everything after it (\textsc{T-Const}).
 
 \begin{figure}[htbp]
 \[
 \begin{array}{@{}l@{\quad}l@{}}
-\textsc{(T-Fold)} & \dfrac{\Delta; \Gamma \vdash r : R\texttt{<}\tau\texttt{>} \text{, } R \in \mathcal{R} \qquad \Delta; \Gamma \vdash a : \sigma \qquad \Delta; \Gamma \vdash f : \sigma \times \tau \to \sigma}{\Delta; \Gamma \vdash \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} : \sigma}
-\\[7pt]
-\textsc{(T-Fold-R)} & \dfrac{\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \in \Delta \qquad \Delta; \Gamma \vdash r : R \qquad \Delta; \Gamma \vdash a : \sigma \qquad \Delta; \Gamma \vdash f : \sigma \times \tau \to \sigma}{\Delta; \Gamma \vdash \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} : \sigma}
-\\[7pt]
-\textsc{(T-Cata)} & \dfrac{\Delta; \Gamma \vdash t : \mu F \qquad \Delta; \Gamma \vdash \mathit{alg} : \mu F \times \sigma^{k} \to \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{cata(}\mathit{alg}\texttt{, }t\texttt{)} : \sigma}
-\\[7pt]
-\textsc{(T-Node)} & \dfrac{\Delta; \Gamma \vdash t : O\texttt{<}\overline{\tau}\texttt{>} \qquad O \text{ a node of } F}{\Delta; \Gamma \vdash t : \mu F}
+\textsc{(T-Fold)} & \dfrac{\Delta; \Gamma \vdash r : R\texttt{<}\tau\texttt{>} \text{, } R \in \mathcal{R} \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma \vdash f : \sigma \times \tau \to \sigma}{\Delta; \Gamma \vdash \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} : \sigma}
+\\[12pt]
+\textsc{(T-Fold-R)} & \dfrac{\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \in \Delta \quad \Delta; \Gamma \vdash r : R \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma \vdash f : \sigma \times \tau \to \sigma}{\Delta; \Gamma \vdash \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} : \sigma}
+\\[12pt]
+\textsc{(T-Cata)} & \dfrac{\Delta; \Gamma \vdash t : \mu F \quad \Delta; \Gamma \vdash \mathit{alg} : \mu F \times \sigma^{k} \to \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{cata(}\mathit{alg}\texttt{, }t\texttt{)} : \sigma}
+\\[12pt]
+\textsc{(T-Node)} & \dfrac{\Delta; \Gamma \vdash t : O\texttt{<}\overline{\tau}\texttt{>} \quad O \text{ a node of } F}{\Delta; \Gamma \vdash t : \mu F}
 \end{array}
 \]
 \caption{The rules for recursion, one per form: over a value, the standard's fold over a range of $\mathcal{R}$; over a type, the recursion at a term type, which the library spells \cppinline{cata}.
@@ -173,46 +189,54 @@ $^{\P}$~At each node of arity $k$.}
 \label{fig:fjlt-typing-recursion}
 \end{figure}
 
-\paragraph{Ranges and terms.}
-A range $R\texttt{<}\tau\texttt{>}$ is an instance of a family $\mathcal{R}$ defined by conditions.
-It has a length $|r| \in \mathbb{N}$, fixed before a fold starts, and, when $|r| > 0$, a head and a tail $\mathit{next}\,r$ with $|\mathit{next}\,r| = |r| - 1$.
-\textsc{T-Range} types a range of $\mathcal{R}$ by its instance's conditions, \cppinline{iota(i, j)} only at $i \le j$, and \textsc{S-Fold} preserves them, since $\mathit{next}$ does.
-\textsc{T-Range-Op} types \cppinline{size(r)} at \cppinline{size_t}, \cppinline{head(r)} at $\tau$ and \cppinline{next(r)} at $R\texttt{<}\tau\texttt{>}$.
-The conditions are semantic, that a step descends or that two bounds are ordered.
-A chain under a step that does not descend is therefore ill-typed, and the termination of a fold is, to that extent, assumed in the typing of its range.
-A range may be a type variable $R$ under $\mathit{IsRange}\texttt{<}R\texttt{, }T\texttt{>}$ $=$ \cppinline{requires (const R r) { { size(r) } -> same_as<size_t>; { head(r) } -> same_as<T>; { next(r) } -> same_as<R>; }}.
-The instances of $\mathcal{R}$ over $\tau$, and only they, satisfy it at $T = \tau$.
-Membership in $\mathcal{R}$, with its falling length, is a premise, so three operations without that law do not suffice.
-Listing~\ref{lst:rule3}'s \cppinline{concat} takes a range with a bounds-check, a count known before the fold starts, which the kernel reads as $\mathit{IsRange}$ with $T$ the deduced \cppinline{ranges::range_value_t<R>}.
-A standard range with no such count, such as \cppinline{views::iota(a)}, is not in the kernel.
-\textsc{T-Fold-R} types a fold at a type variable $R$ through the assumed shape $\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$.
-The length, head and tail are its three requirements, read from the record, and a caller's concrete range supplies the record by \textsc{E-Shape} at instantiation.
+\paragraph{Ranges.}
+A range is homogeneous: its elements share one type $\tau$, and its length is a value.
+$R\texttt{<}\tau\texttt{>}$ is an instance of $\mathcal{R}$, a family defined by conditions.
+A fold reads its length $|r| \in \mathbb{N}$, fixed before the fold starts, and, when $|r| > 0$, its head $\mathit{head}\,r$ and its tail $\mathit{next}\,r$, functions on range values, with $|\mathit{next}\,r| = |r| - 1$; FJlt has no term for them, so a program folds a range and never takes its head.
+A range is typed by its instance's conditions, \cppinline{iota(i, j)} only at $i \le j$, and \textsc{S-Fold} preserves them, since $\mathit{next}$ does.
+The conditions are semantic, that a step descends or that two bounds are ordered, so a chain whose step does not descend is ill-typed, and the termination of a fold is, to that extent, assumed in the typing of its range.
+At a type variable $R$, $\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$ holds of exactly the instances of $\mathcal{R}$ over $\tau$.
+It is a constraint built into the kernel, not a declared concept, so \textsc{E-Shape} does not apply to it and it has no requirement a body could call; \textsc{T-Fold-R} reads its record, which a caller's concrete range supplies at instantiation, by \textsc{E-Range}.
+Listing~\ref{lst:rule3}'s \cppinline{concat} is such a fold: its \cppinline{IsBoundedRange} is read as $\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$, with $\tau$ the deduced \cppinline{ranges::range_value_t<R>}; a standard range with no count known before the fold, such as \cppinline{views::iota(a)}, is not in the kernel.
+
+\paragraph{Terms.}
+A term is heterogeneous: its nodes may differ in type, and its shape is in its type.
+A term type $\mu F$ is the inductive type of the nodes that build it: a term is a finite composition of nodes, and a node is a function object whose fields are terms.
 \textsc{T-Cata} is the kernel's recursion over a type, stated once at a term type: the instances of one generic function at the nodes of $F$, each calling it at its legs' types, read as one algebra.
+The algebra is applied to each node together with the folded values of its legs, the node itself still in hand: the library's interface, \cppinline{alg(t, cata(alg, leg)...)}, and the paramorphism's.
+\textsc{T-Node} reads a term of node type as $\mu F$ where a rule expects one.
 Listing~\ref{lst:rule3}'s identity law is one such recursion, with laws in the algebra: each step may also rewrite, and the result is the composite's normal form.
-There $\mu F$ is a term type, the inductive type of the nodes that build it.
-A term is a finite composition of nodes, and a node is a function object whose fields are terms.
-The algebra is applied to each node together with the folded values of its legs, the node itself still in hand.
-That is the library's interface (\cppinline{alg(t, cata(alg, leg)...)}), and the paramorphism's: the library spells the recursion \cppinline{cata}, and \textsc{T-Node} reads a term of node type as $\mu F$ where the rule expects one.
 
 \paragraph{Well-founded declarations.}
-Well-formedness also requires that the declarations, taken at their type arguments, be well founded under \emph{depends on}.
-A shape at some types depends on the traits its requirements call and on its nested shapes, at those types.
-A trait at some types depends on the context of every candidate whose head matches there, which resolution asks even of a candidate it then rejects, and on the candidate it picks.
-An instance, a generic function or an operation at some types depends on the shapes of its context, on the declarations its body calls and on the operations its body constructs.
-A constant depends on the declarations its initialiser names.
-An operation also depends on the operations in its field, parameter and result types, each at the types it names.
-The relation is on instantiations, not on bare declarations, since a structured instance may ask for the shape that asks for it, at a smaller type.
-\cppinline{IsMonoid} at a pair calls \cppinline{unit} there, whose instance asks \cppinline{IsMonoid} at the components (Section~\ref{sec:translation:contexts}).
-The measure that falls is the pair of the depth of the type arguments and the declaration's position.
-Resolution, entailment, \textsc{E-Not}'s negative premise and \textsc{E-Law}'s evaluation all recurse along that relation.
-Its being well founded makes the rules define one relation, and makes resolution terminate.
+Typing is itself a computation: resolving a call may ask whether a constraint holds, which may ask for another resolution, and \RuleThree{} asks that this chain end too.
+\cppinline{IsMonoid} at a pair calls \cppinline{unit} there, whose instance asks \cppinline{IsMonoid} at the components (Section~\ref{sec:translation:contexts}): the shape asks for itself, but at smaller types, so the chain ends.
+Well-formedness therefore requires the declarations, taken at their type arguments, to be well founded under \emph{depends on}, which relates a declaration at some types to the declarations below, each at the types it names.
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.3\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+A declaration & depends on \\
+\midrule
+shape & the traits its requirements call; its nested shapes \\
+trait & the context of every candidate whose head matches, even one it rejects; the candidate it picks \\
+instance, generic function, operation & the shapes of its context; the declarations its body calls; the operations it constructs \\
+operation, also & the operations in its field, parameter and result types \\
+constant & the declarations its initialiser names \\
+\bottomrule
+\end{tabularx}
+\end{center}
+The relation is on instantiations, not on bare declarations, as the pair shows, and the measure that falls is the pair of the depth of the type arguments and the declaration's position.
+Resolution, entailment, \textsc{E-Not}'s negative premise and \textsc{E-Law}'s evaluation all recurse along it, so its being well founded makes the rules define one relation and resolution terminate.
 \Cpp{} has a rule of its own for a satisfaction that depends on itself, which the condition makes unnecessary.
-Two syntactic conditions suffice, and the repository's linter reads the second.
-A context on a structured head mentions only proper parts of its type arguments, so each step descends by the head; compare the Paterson conditions~\cite{sulzmann2007understanding}.
-An instance whose head has no proper part at a slot, a type variable or a concrete type there, mentions in its context only shapes declared before the trait's primary.
-A shape calling the trait is then never asked for while the trait is resolved.
-A trait's specialisations may follow the shapes that call it, as Listing~\ref{lst:rule2}'s do, since a specialisation depends on the shape only through its body or its context.
-A term type is required strictly positive: in the translated field types of its nodes, the type occurs only directly, never under the domain of a function type.
-A body calls only declarations it depends on, never itself: the kernel's recursion over a type is \textsc{T-Cata}, and a generic function that calls itself at its legs' types is sugar for it (Appendix~\ref{app:fjlt:closure}).
-No function calls itself at the same instantiation: a recursion on a value is a fold over a range.
+
+Two syntactic conditions rule the loops out, one per kind of instance head, and the repository's linter checks the second.
+An instance on a structured head, such as a pair, asks only about the parts of its type arguments: \cppinline{IsMonoid} at \cppinline{pair<A, B>} asks \cppinline{IsMonoid} at \cppinline{A} and at \cppinline{B}.
+So each step descends by the type, as Haskell's Paterson conditions do~\cite{sulzmann2007understanding}.
+An instance on an unstructured head, a type variable or a concrete type, has no parts to descend to, so it asks only about shapes declared before the trait it instantiates.
+A generic \cppinline{unit<T>} requiring \cppinline{IsMonoid<T>}, which calls \cppinline{unit}, would make \cppinline{IsMonoid<T>} ask for itself at the same \cppinline{T}; the condition refuses it, and each step descends by declaration order instead.
+A trait's specialisations may still follow the shapes that call it, as Listing~\ref{lst:rule2}'s do, since they depend on a shape only through their bodies and contexts.
+
+Two more conditions close the recursion of the declarations themselves.
+A term type is strictly positive: in the translated field types of its nodes, the type occurs only directly, never under the domain of a function type.
+A body never calls itself: the recursion over a type is \textsc{T-Cata}, of which a generic function calling itself at its legs' types is sugar (Appendix~\ref{app:fjlt:closure}), and the recursion over a value is a fold over a range.
 

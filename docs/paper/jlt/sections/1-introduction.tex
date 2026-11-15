@@ -36,7 +36,6 @@ The designers named the problem at the outset, in 2003: ``crucial aspects of the
 
 \Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary, and this paper documents a discipline that does, recovering some of what a functional language guarantees at the cost of three rules.
 The cost is paid once, in how a program is written, and what it buys is paid back at every use: a law holds in every model of it, a specialisation it licenses pays on every call, and a checked statement serves every reader.
-The fragment characterised here is standard \Cpp{23}, restricted, not extended: it complies with the principles of the host language, and is accepted by any conforming compiler.
 The compiler's optimisation pipelines can be brought to bear:
 an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point, and which in Jlt are declared.
 
@@ -89,7 +88,7 @@ The contribution is a map from a known discipline onto existing mainstream funct
 \begin{enumerate}
 \item The posture: three rules on standard \Cpp{23}, each with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:posture}).
 \item Featherweight Jlt, the kernel: a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F. Three theorems about the translation and three corollaries, with proof sketches (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt:theorems}).
-\item An adequacy argument from \Cpp{} to the calculus, which states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}), and the sugar, named with its desugaring (Appendix~\ref{app:fjlt:closure}).
+\item An adequacy argument from \Cpp{} to the calculus, which states its gaps rather than writing around them (Sections~\ref{sec:jlt-to-fjlt} and~\ref{sec:limits}), and the sugar, named with its desugaring (Appendix~\ref{app:fjlt:closure}).
 \item An observation about \Cpp{20} concepts: with overlapping constrained overloads, a generic function's behaviour can depend on a constraint it never declared, which is GHC's incoherent instance resolution, by default and silently.
 Jlt adopts GHC's rule, and the repository's linter reports a call at a value of parameter type that breaks it (Appendix~\ref{app:fjlt:typing}, Section~\ref{sec:limits}).
 \item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mandatory review against them and by a mechanical linter in the same repository: that is what compliance means here.
@@ -99,7 +98,7 @@ Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989ad
 \paragraph{How to read this paper.}
 The paper is written for authors of generic \Cpp{} libraries first, with System~F as the warranty and a rule for their overloads; for those who audit \Cpp{} against a policy and need to know what a tool checks; for readers of programming languages in the line of concepts and type classes; and for researchers who arrive from Python and want the performance of \Cpp{} with a guard rail.
 The sections follow the arrows of Figure~\ref{fig:arrows}, one each.
-Section~\ref{sec:posture} is the inclusion of Jlt in \Cpp{23}, the rules that carve Jlt out of it; Section~\ref{sec:translation:adequacy} is the inclusion of FJlt in Jlt and the dashed arrow back, which Jlt programs are kernel programs; Section~\ref{sec:translation} is $\llbracket\cdot\rrbracket$, the translation of Featherweight Jlt into System~F; Section~\ref{sec:guarantees} is \emph{eval}, the theorems read back from System~F; Section~\ref{sec:binding} is \texttt{clang++} and \emph{run}, one program at both binding times, and how instantiation relates to the translation.
+Section~\ref{sec:posture} is the inclusion of Jlt in \Cpp{23}, the rules that carve Jlt out of it; Section~\ref{sec:jlt-to-fjlt} is the inclusion of FJlt in Jlt and the dashed arrow back, which Jlt programs are kernel programs; Section~\ref{sec:translation} is $\llbracket\cdot\rrbracket$, the translation of Featherweight Jlt into System~F; Section~\ref{sec:guarantees} is \emph{eval}, the theorems read back from System~F; Section~\ref{sec:binding} is \texttt{clang++} and \emph{run}, one program at both binding times, and how instantiation relates to the translation.
 The listings follow one example through the paper, and Figure~\ref{fig:structures} sketches the recursion it runs on: \cppinline{concat}, a monoid at the lengths that need no recursion, then the fold over the chain of a count under an arrow, then Fibonacci's matrix chain, which two declared laws fold in logarithmically many steps, then restriction sites, where the compiler partially evaluates a matcher in its pattern.
 Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:related} where the work sits, and the calculus is in the appendices.
 

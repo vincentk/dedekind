@@ -41,13 +41,19 @@ i) values are copyable data and functions are pure and evaluable at compile time
 ii) generic code varies with a type only through that type's concepts and traits;
 iii) recursion is structural, over a type or over a value whose rank is bounded before the first step.
 Its kernel, Featherweight Jlt (FJlt), translates into System~F by dictionary passing, as Haskell's type classes do, and the translation is total and preserves types and evaluation, so an FJlt program inherits termination, parametricity and a value.
-What Jlt writes beyond the kernel is sugar, named with its desugaring, and that the desugaring keeps meaning is the paper's working hypothesis.
-Declared laws license overloads, and overload resolution composes them: in one program the action law and associativity, neither aware of the other, turn a fold of $n$ steps into one of $\log n$, even at compile time, where no optimiser runs.
-In another, the words sought share a symmetry, said in their type.
+Jlt beyond the kernel is syntactic sugar.
+This paper hypothesises that the desugaring preserves meaning.
+
+Declared laws license overloads, and overload resolution composes them and enables inference: in one program the action law and associativity, neither aware of the other, turn a fold of $n$ steps into one of $\log n$, even at compile time, where no optimiser runs.
+In another, the words sought share a symmetry, stated in their type.
 An automaton would list them, exponentially in their length; the test the law writes is linear in it, and the compiler vectorises it.
 Along the way the paper shows that \Cpp{20} concepts with overlapping overloads resolve incoherently in GHC's sense, and adopts GHC's rule.
-The evidence is proofs relative to stated assumptions, listings that compile and run at both binding times under a test in the public repository, their compiled output, and a library whose core a linter checks against the rules.
 
+The evidence presented is
+a) proofs relative to stated assumptions,
+b) a linter that checks source code against the three rules,
+c) a library in a public repository whose core the linter checks, and
+d) listings that compile and run at both compile time and run time under the repository's tests.
 The claim is one of existence: \Cpp{23} already contains an embedding of a fragment of System~F, held by the compiler where the standard checks and by the programmer's discipline elsewhere, and available today wherever a stock \Cpp{23} compiler is.
 \end{abstract}
 

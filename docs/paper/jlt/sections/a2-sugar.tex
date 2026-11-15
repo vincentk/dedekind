@@ -41,8 +41,8 @@ twice("ab"s) + "c"s == "ababc"s
 \end{listing}
 
 This appendix describes the desugaring of Jlt into FJlt.
-It corresponds to the $-$sugar arrow of Figure~\ref{fig:arrows}, and complements Section~\ref{sec:translation:adequacy}.
-It covers the constructions of \Cpp{23} that a Jlt program may write beyond the grammar of Section~\ref{sec:fjlt:syntax}, each with its desugaring and its condition.
+It corresponds to the $-$sugar arrow of Figure~\ref{fig:arrows}, and complements Section~\ref{sec:jlt-to-fjlt}.
+It covers the constructions of \Cpp{23} that a Jlt program may write beyond the grammar of Section~\ref{sec:jlt-to-fjlt}, Figure~\ref{fig:fjlt-syntax}.
 No proof of correctness is provided.
 Three reasons cover the constructions: i)~a spelling, syntactic sugar in Landin's sense~\cite{landin1964mechanical}, when the construction writes a kernel term another way; ii)~local state, when it keeps state that never leaves the call; iii)~branching, which only the kernel's own forms of choice may do.
 Each condition is held by the compiler, the repository's linter or a reader: a spelling's sentence names its holder, and in the two tables of constructions a row's mark does.
@@ -55,10 +55,10 @@ Listing~\ref{lst:fjlt-reading} reads a small program against the grammar, each d
 \toprule
 & Jlt may write & kept out of the kernel by & the kernel has instead \\
 \midrule
-1 & overloading & the grammar (Section~\ref{sec:fjlt:syntax}), except by constraints & generic functions of one name ordered by their constraints, plus their specialisations \\
+1 & overloading & the grammar (Section~\ref{sec:jlt-to-fjlt}), except by constraints & generic functions of one name ordered by their constraints, plus their specialisations \\
 2 & argument-dependent lookup & the grammar, and the lookup wall (Section~\ref{sec:limits}) & instances found by the trait's name \\
 3 & implicit conversions & the grammar, and Rule~2 for the body & a conversion only where a requirement declares one or a built-in operator's rule places one (Appendix~\ref{app:fjlt:typing}), and the body then sees the declared type \\
-4 & references, moves & erased by the grammar (Section~\ref{sec:fjlt:syntax}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
+4 & references, moves & erased by the grammar (Section~\ref{sec:jlt-to-fjlt}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
 5 & the sugar: branches on a trait or a concept, lambdas, inheritance, \texttt{*} on an optional, \ldots & the grammar, and desugared (Appendix~\ref{app:fjlt:closure}) & \texttt{?:} on a law, specialisation, an operation struct, a registration, the case form on a sum, \ldots \\
 \bottomrule
 \end{tabularx}
@@ -76,7 +76,8 @@ A primary that answers \cppinline{false} beside partial specialisations that ans
 Resolution by specificity orders them, as it orders constrained overloads such as Listing~\ref{lst:laws}'s \cppinline{fold} and \cppinline{concat}.
 Lookup leaves some FJlt spellings unwritable (Section~\ref{sec:limits}), and there the host's spelling stands for it.
 A \cppinline{const} member function is the generic function with the object as its first parameter, reading its fields where the member read \cppinline{this}.
-A constructor is a function returning the struct, a conversion operator a declared conversion, a default argument an overload with the argument supplied, and a designated initialiser the fields in order, each with a \cppinline{constexpr} FJlt body; the linter holds \cppinline{constexpr} and a reader the rest.
+A constructor is a function returning the struct, a conversion operator a declared conversion, a default argument an overload with the argument supplied, and a designated initialiser the fields in order.
+Each has a \cppinline{constexpr} FJlt body; the linter holds \cppinline{constexpr} and a reader the rest.
 An explicit conversion between carriers is a declared function, total by a reader's check.
 A non-type template parameter is a type per value, as \cppinline{integral_constant} spells it, the value a constant of a carrier, which the compiler holds.
 A user-defined literal is a named function call, which the compiler holds.
@@ -119,7 +120,9 @@ A capturing closure type is neither default constructible nor assignable, so it 
 It is admitted as sugar instead, judged through its image, which is semiregular since its captures are values.
 A closure type has no name, so a lambda is never a carrier and never the head of an instance.
 A loop's locals are such state, and a loop that shows its end is admitted as sugar the same way, judged through the fold it denotes.
-A counted \cppinline{for (T i = 0; i < n; ++i)} whose counter and bound share one unsigned type \cppinline{T}, and whose body writes neither, is \cppinline{fold_left} over \cppinline{views::iota(T{0}, n)}: since \cppinline{i < n} holds before each increment, \cppinline{++i} cannot wrap, the loop's locals the fold's state and its body the step; a range-\cppinline{for} over a bounded range, whose body does not write that range, is \cppinline{fold_left} over it.
+A counted \cppinline{for (T i = 0; i < n; ++i)} whose counter and bound share one unsigned type \cppinline{T}, and whose body writes neither, is \cppinline{fold_left} over \cppinline{views::iota(T{0}, n)}.
+Since \cppinline{i < n} holds before each increment, \cppinline{++i} cannot wrap; the loop's locals are the fold's state and its body the step.
+A range-\cppinline{for} over a bounded range, whose body does not write that range, is \cppinline{fold_left} over it.
 A \cppinline{while} whose condition no bound governs has no such image and stays out.
 
 \begin{table}[tbp]
@@ -201,4 +204,4 @@ The rest of the library it reads writes about a hundred kinds, and half a dozen 
 The linter reports the inventory and holds each rule's findings at its count (\texttt{tools/jlt-lint/scope} in the repository).
 A kind does not tell every use apart.
 A binary operator is arithmetic or an assignment, and the assignments are local state, which Rule~3 admits and which reading, not counting, finds.
-With the tables closed, the converse of Section~\ref{sec:translation:adequacy}'s inclusion reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.
+With the tables closed, the converse of Section~\ref{sec:jlt-to-fjlt}'s inclusion reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.
