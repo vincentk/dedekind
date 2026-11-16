@@ -9,15 +9,15 @@ Table~\ref{tab:posture} sets the rules side by side: what each keeps out of \Cpp
 \paragraph{Rule 1, Substitution: const values and an identity-preserving copy.}
 \phantomsection\label{def:rule1}
 Every type a Jlt program passes around is \cppinline{std::semiregular}: it is inhabited, and its copy is as good as the original.
-Nothing else is assumed.
+Equality is not required, since it cannot be decided for functions in general~\cite{rice1953classes}, though a type is free to offer one.\footnote{A type with a copy and an equality is Stepanov's regular type~\cite{stepanov2009elements}, in \Cpp{23} \cppinline{std::regular}.}
 That it is inhabited is used later: equational reasoning over several carriers is complete only when none of them is empty (Appendix~\ref{app:fjlt:theorems}).
 Every function is \cppinline{constexpr}, every member function \cppinline{const}, and each depends on its arguments alone.
+A function returns a value, never a reference, so \cppinline{const T} and \cppinline{const T&} are one parameter: the reference is an optimisation, and the translation erases it.
 
 The rule conserves Leibniz's law: equals cannot be told apart by any operation, at compile time or at run time.\footnote{Leibniz himself stated the converse, that what cannot be told apart is equal~\cite{leibniz1686discours,leibniz1686discourse}; the name has come to cover both directions.}
 So a call may be replaced by its value: $e[f(x)] = e[v]$ whenever $f(x)$ evaluates to $v$.
 The compiler makes that replacement while compiling, and its optimisations start from it.
 In a programming language the law is referential transparency~\cite{strachey2000fundamental}.
-Where $a = b$ but $f(a) \neq f(b)$ for some $f$, equality cannot be reasoned with.
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at run time.
 
 \begin{listing}[htbp]
@@ -54,18 +54,8 @@ Right: the points, constant arrows, and a copy; a constant absorbs the arrows be
 \label{lst:rule1}
 \end{listing}
 
-A function object is a value, as an abstraction is in the $\lambda$-calculus~\cite{pierce2002tapl}: the arguments it binds are its fields, so it is copied as any value is.
+A function object is a value, as an abstraction is in the $\lambda$-calculus~\cite{pierce2002tapl}: the arguments it binds are its fields, and its call operator is a \cppinline{const} member function like any other.
 \cppinline{constant<bool>(42uz)} is the value 42 made into an arrow: a function object from \cppinline{bool} that returns 42 (Listing~\ref{lst:rule1}).
-Stepanov's regular type has a copy and an equality, and a copy equals its original~\cite{stepanov2009elements}.
-\Cpp{23} names it \cppinline{std::regular}.
-Rule~1 requires the copy and not the equality, which is \cppinline{std::semiregular}: equality cannot be decided for functions in general~\cite{rice1953classes}.
-A type is free to offer one all the same.
-Two things keep the copy exact.
-A function returns a value, never a reference.
-A call operator is a member function like any other, so it too is \cppinline{const}.
-So \cppinline{const T} and \cppinline{const T&} are one parameter, since nothing changes the value the reference denotes.
-The reference is an optimisation, and the translation erases it.
-
 With the address and mutation out of reach, no arrow tells a copy from its original.\footnote{The two are equal up to canonical isomorphism in Mazur's sense~\cite{mazur2008equal}, an object being known, by Yoneda's lemma, through its arrows out~\cite{maclane1971categories}.}
 
 \paragraph{Rule 2, Abstraction: a type varies behaviour only through its concepts and traits.}
