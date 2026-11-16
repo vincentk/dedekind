@@ -131,7 +131,7 @@ Theorem~\ref{thm:simulation} proves it inside the calculus, and Appendix~\ref{ap
 Under the hypothesis it holds for every Jlt program $p$: $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.
 \end{description}
 One example runs through the listings: \cppinline{concat}, which combines the elements of a monoid.
-Listing~\ref{lst:rule2} writes it for zero, one and two arguments, where no recursion is needed.
+Listing~\ref{lst:rule2} writes it for zero and two arguments, where no recursion is needed.
 Listing~\ref{lst:rule3} writes it as a fold over a range, and Figure~\ref{fig:structures} sketches the recursion.
 Listing~\ref{lst:laws} folds Fibonacci's matrices the same way, and two declared laws reduce the fold to logarithmically many steps.
 Listing~\ref{lst:sites} leaves the example: it counts restriction sites in a DNA sequence.

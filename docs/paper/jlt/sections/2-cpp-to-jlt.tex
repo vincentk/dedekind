@@ -67,11 +67,11 @@ So it is a function of the monoid's record, and it respects every relation the r
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.47\linewidth}
 \begin{cpp}
-// Arrows alone:
 constexpr auto fst = Π<1, pair<bool, size_t>>{};
 constexpr auto sec = Pairing{id_b, nil};
 static_assert(
-is_involution(~id_u) && is_involution(-id_u) &&
+is_involution(~id_u) &&
+is_involution(-id_u) &&
 is_iso(-id_u >> ~id_u) &&
 !is_involution(-id_u >> ~id_u) &&
 is_epic(fst) && !is_monic(fst) &&
@@ -83,13 +83,11 @@ template <typename T, typename Op>
 constexpr T unit(Op) = delete;
 template <typename T, typename Op>
 constexpr bool associative(Op) = delete;
-
 template <unsigned_integral T>
 constexpr T unit(plus<T>) { return 0; }
 template <unsigned_integral T>
-constexpr bool associative(plus<T>) {
-  return true;
-}
+constexpr bool associative(plus<T>)
+  { return true; }
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.5\linewidth}
@@ -108,27 +106,20 @@ template <typename T, typename Op = plus<T>>
 constexpr T concat() { return unit<T>(Op{}); }
 template <typename T, typename Op = plus<T>>
   requires IsMonoid<T, Op>
-constexpr T concat(T w) { return w; }
-template <typename T, typename Op = plus<T>>
-  requires IsMonoid<T, Op>
 constexpr T concat(T v, T w) { return Op{}(v, w); }
 
 static_assert(
 concat<size_t>() == 0 &&
-concat<size_t>(42uz) == 42 &&
 concat<size_t>(40uz, 2uz) == 42 &&
 concat<size_t, multiplies<size_t>>(6uz, 7uz)
-    == 42 &&
-concat<Sections<size_t>, compose>(
-    adding(40uz), adding(2uz))(0uz) == 42);
+    == 42);
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
 Top left: laws of arrows, inferred for composites.
 Bottom left: the monoid axioms for a carrier type.
 Right: the monoid shape and the free function \cppinline{concat}.
-The unit is identified by \cppinline{is_unit}, not by \cppinline{==}, since equality is not decidable on every carrier.
-\cppinline{Sections} are the sections of $+$, a monoid under composition.}
+The unit is identified by \cppinline{is_unit}, not by \cppinline{==}, since equality is not decidable on every carrier.}
 \label{lst:rule2}
 \end{listing}
 
