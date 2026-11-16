@@ -147,7 +147,7 @@ A law declared falsely makes the program ill-formed with no diagnostic required,
 The posture asks no more of a law than the standard asks of a concept.
 A theorem is inferred from the axioms while compiling, by composition: a composite arrow's law from its legs', a shape's from its parts'.
 \cppinline{IsMonoid<size_t, plus<size_t>>} is such a theorem, inferred from the declarations on Listing~\ref{lst:rule2}'s left.
-Overload resolution is the proof search that finds either kind, a simple one~\cite{augustsson2005djinn}.
+Overload resolution is a simple proof search that finds either kind~\cite{augustsson2005djinn}.
 
 A law is stated of a carrier together with an operation, never of a carrier alone: \cppinline{associative(plus<T>)} is about \cppinline{T} under $+$, and \cppinline{size_t} is a monoid twice, under $(0, +)$ and under $(1, \times)$.
 A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.
