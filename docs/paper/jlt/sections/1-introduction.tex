@@ -96,7 +96,11 @@ The kernel differs from it in three ways: its syntax is \Cpp{23} as written, a c
 Definition checking is not complete, and Section~\ref{sec:limits} says what the repository's linter reads and what it misses.
 
 \paragraph{How to read this paper.}
-The paper is written for authors of generic \Cpp{} libraries first, with System~F as the warranty and a rule for their overloads; for those who audit \Cpp{} against a policy and need to know what a tool checks; for readers of programming languages in the line of concepts and type classes; and for researchers who arrive from Python and want the performance of \Cpp{} with a guard rail.
+The paper has four kinds of reader in mind.
+Writers of generic \Cpp{} code get a rule for their overloads, and System~F as what the rule buys.
+Those who audit \Cpp{} against a policy get a statement of what a tool checks and what it leaves.
+Readers of programming-language research get a calculus in the line of concepts and type classes.
+Those who learn or teach, among them researchers who arrive from Python, get a fragment small enough to state in three rules, with listings that compile.
 The sections follow the arrows of Figure~\ref{fig:arrows}, one each.
 \begin{description}
 \item[Section~\ref{sec:posture}, Jlt in \Cpp{23}.]
