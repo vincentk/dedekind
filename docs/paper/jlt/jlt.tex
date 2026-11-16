@@ -36,7 +36,7 @@ Parametric polymorphism, type classes and structural recursion are the tools wit
 It does not, however, hold a generic function to its declared constraints: the body may use any operation its type argument happens to have.
 
 This paper characterises a fragment of \Cpp{23} as it ships, with no language modification, compiler extension or tool to install: an embedded language whose domain is System~F and whose programs are ordinary \Cpp{23} programs.
-The fragment is type-class-style code under three rules, which we call the Juliet Posture (Jlt):
+The fragment is type-class-style code under three rules, called the Juliet Posture (Jlt):
 i) values are copyable data and functions are pure and evaluable at compile time;
 ii) generic code varies with a type only through that type's concepts and traits;
 iii) recursion is structural, over a type or over a value, in a number of steps bounded before the first.
