@@ -10,6 +10,7 @@ Table~\ref{tab:posture} sets the rules side by side: what each keeps out of \Cpp
 \phantomsection\label{def:rule1}
 Every type a Jlt program passes around is \cppinline{std::semiregular}: it is inhabited, and its copy is as good as the original.
 Nothing else is assumed.
+That it is inhabited is used later: equational reasoning over several carriers is complete only when none of them is empty (Appendix~\ref{app:fjlt:theorems}).
 Every function is \cppinline{constexpr}, every member function \cppinline{const}, and each depends on its arguments alone.
 
 The rule conserves Leibniz's law: equals cannot be told apart by any operation, at compile time or at run time.\footnote{Leibniz himself stated the converse, that what cannot be told apart is equal~\cite{leibniz1686discours,leibniz1686discourse}; the name has come to cover both directions.}
