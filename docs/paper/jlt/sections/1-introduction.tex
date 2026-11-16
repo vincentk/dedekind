@@ -38,7 +38,7 @@ In return a law holds in every model of it, a specialisation it licenses applies
 An optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point.
 Under the discipline, a program declares such laws itself.
 The programmer declares a law, and the compiler does not check it: a law declared falsely is the programmer's error, as the standard has it for a concept (Section~\ref{sec:posture}).
-What the compiler does mechanically is compose: it infers the laws of a construction from the laws of its parts, and it selects among the overloads that those laws license (Section~\ref{sec:guarantees}).
+What the compiler does mechanically is compose: it infers laws of a construction from the laws of its parts, and it selects among the overloads that those laws license (Section~\ref{sec:guarantees}).
 
 The fragment is the \emph{Juliet Posture}, or Jlt, and it has two boundaries.
 The outer boundary is drawn by the three rules: Jlt is the proper subset of \Cpp{23} they define.
