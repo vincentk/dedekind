@@ -9,18 +9,16 @@ Table~\ref{tab:posture} sets the rules side by side: what each keeps out of \Cpp
 \begin{table}[tb]
 \centering
 \small
-\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-rule & archetype & keeps out of \Cpp{} & buys & costs \\
+rule & archetype & keeps out of \Cpp{} & buys & costs & held by \\
 \midrule
-1 Substitution & \texttt{id}, the identity arrow & state, pointers, exceptions & one program, two binding times & no state beyond a call's own locals, no I/O \\
-2 Abstraction & \texttt{concat}, a monoid's fold at a length in its type & a body using what its constraints do not name & the System~F reading & no ad hoc use of a type \\
-3 Descent & \texttt{concat} over a chain, a fold over structure in a value & unbounded loops, general recursion & termination & the rank of the chain being folded \\
+1 Substitution & \texttt{id}, the identity arrow & state, pointers, exceptions & one program, two binding times & no state beyond a call's own locals, no I/O & the compiler in part, the linter for syntax \\
+2 Abstraction & \texttt{concat}, a monoid's fold at a length in its type & a body using what its constraints do not name & the System~F reading & no ad hoc use of a type & the linter for names, a reviewer for the rest \\
+3 Descent & \texttt{concat} over a chain, a fold over structure in a value & unbounded loops, general recursion & termination & the rank of the chain being folded & the compiler at compile time, the linter for loops \\
 \bottomrule
 \end{tabularx}
-\caption{The posture at a glance, each rule named for what it conserves, with what it keeps out of \Cpp{}: the filtration from \Cpp{} to Jlt.
-At build time, Rule~1 is held by the compiler in part and by the repository's linter for its syntax; Rule~2 by the linter at the level of names and by an auditing reader for the rest; Rule~3 by the compiler at compile time and by the linter for loops and recursion.
-Section~\ref{sec:limits} says how.}
+\caption{The posture at a glance: each rule named for what it conserves, with what it keeps out of \Cpp{}, what it buys, what it costs and who holds it.}
 \label{tab:posture}
 \end{table}
 
