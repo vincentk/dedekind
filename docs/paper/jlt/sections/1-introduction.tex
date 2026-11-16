@@ -55,7 +55,8 @@ The embedding follows the tagless-final style of Carette, Kiselyov and Shan~\cit
 So the paper designs no language, and its claim is one of existence: \Cpp{23} already contains an embedding of a fragment of System~F, and the listings exhibit it.
 The fragment includes prenex polymorphism with type classes, which Wadler and Blott's translation covers~\cite{wadler1989adhoc}.
 It goes one step further: a function object whose call operator is generic is a polymorphic value, and it can be passed as an argument (\textsc{T-App}, Appendix~\ref{app:fjlt:typing}).
-Whether Jlt is the only such fragment, or a canonical one, is left open.
+Jlt is assembled from canonical pieces: System~F, Wadler and Blott's translation, and the concepts and folds of the standard.
+That does not make the assembly canonical, and whether another fragment would serve as well is left open.
 The name refers to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: a \cppinline{concept} is a predicate on a type's structure, not on its name or lineage.\footnote{``A rose by any other name would smell as sweet''~\cite{shakespeare1597romeo}.}
 Figure~\ref{fig:arrows} shows the arrows between these pieces.
 
