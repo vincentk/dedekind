@@ -264,7 +264,7 @@ using dedekind::category::ι;
 constexpr auto id_b = id<bool>();
 constexpr auto id_u = id<size_t>();
 static_assert(id_b(true) == true && id_u(42uz) == 42 &&
-              (id_u >> id_u)(42uz) == 42);
+              (id_u >> id_u)(42uz) == 42 && id_b == id_b >> id_b);
 // Constant arrows:
 constexpr auto nil = constant<bool>(0uz);
 constexpr auto one = constant<bool>(1uz);

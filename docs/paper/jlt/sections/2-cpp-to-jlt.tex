@@ -30,7 +30,8 @@ constexpr auto id_b = id<bool>();
 constexpr auto id_u = id<size_t>();
 static_assert(
 id_b(true) == true && id_u(42uz) == 42 &&
-(id_u >> id_u)(42uz) == 42);
+(id_u >> id_u)(42uz) == 42 &&
+id_b == id_b >> id_b);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
@@ -48,7 +49,7 @@ cpy(true) == ans(false) &&
 \end{minipage}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution.
 A function object is a value: a copy of it is as good as the original, function objects compose with \cppinline{>>}, and every call here is replaced by its value while compiling.
-Left: the identities.
+Left: the identities, and an equation between arrows, decided by their laws and not by their values (Listing~\ref{lst:rule3}).
 Right: the points, constant arrows, and a copy.}
 \label{lst:rule1}
 \end{listing}
@@ -57,6 +58,7 @@ A function object is a value, as an abstraction is in the $\lambda$-calculus~\ci
 \cppinline{constant<bool>(42uz)} is the value 42 made into an arrow: a function object from \cppinline{bool} that returns 42 (Listing~\ref{lst:rule1}).
 In \Cpp{23} a copy equal to its original is Stepanov's \cppinline{std::regular} type, which also has \cppinline{==}~\cite{stepanov2009elements}.
 Rule~1 keeps the copy but only requires \cppinline{std::semiregular}, because equality of values is undecidable for functions~\cite{rice1953classes}.
+Where an equality is offered all the same, as between the arrows of Listing~\ref{lst:rule1}, it is decided by laws and may answer that it does not know.
 Two things keep it exact: a function returns a value, never a reference, and a call operator is a member function like any other, so it too is \cppinline{const}.
 \cppinline{const T} and \cppinline{const T&} are therefore one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
 
