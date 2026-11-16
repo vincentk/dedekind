@@ -58,11 +58,11 @@ A function object is a value, as an abstraction is in the $\lambda$-calculus~\ci
 \cppinline{constant<bool>(42uz)} is the value 42 made into an arrow: a function object from \cppinline{bool} that returns 42 (Listing~\ref{lst:rule1}).
 With the address and mutation out of reach, no arrow tells a copy from its original.\footnote{The two are equal up to canonical isomorphism in Mazur's sense~\cite{mazur2008equal}, an object being known, by Yoneda's lemma, through its arrows out~\cite{maclane1971categories}.}
 
-\paragraph{Rule 2, Abstraction: a type varies behaviour only through its concepts and traits.}
+\paragraph{Rule 2, Abstraction: generic code varies with a type only through its concepts and traits.}
 \phantomsection\label{def:rule2}
 Generic code may do with a type argument exactly what the type's constraints permit~\cite{reynolds1983types,wadler1989theorems}.
-Listing~\ref{lst:rule2}'s \cppinline{concat} is written once, against a monoid: it may combine two elements and start from the unit, and it can do nothing else.
-So it is a function of the monoid's record, and it respects every relation the record respects (Corollary~\ref{cor:parametricity}).
+Listing~\ref{lst:rule2}'s \cppinline{concat} is written once, against a monoid: it may combine two elements and start from the unit, and it can use nothing the monoid does not name.
+So it is a function of the monoid's dictionary, the record of its operations, and it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.47\linewidth}
@@ -117,7 +117,7 @@ concat<size_t, multiplies<size_t>>(6uz, 7uz)
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
 Top left: laws of arrows, inferred for composites.
-Bottom left: the monoid axioms for a carrier type.
+Bottom left: the monoid axioms for the unsigned integers under $+$.
 Right: the monoid shape and the free function \cppinline{concat}.
 The unit is identified by \cppinline{is_unit}, not by \cppinline{==}, since equality is not decidable on every carrier.}
 \label{lst:rule2}
@@ -134,7 +134,7 @@ Laws are \emph{certificates}, of two kinds.
 An axiom is declared: the compiler does not prove it.\footnote{Similarly, \texttt{sorry} admits a statement in Lean~\cite{demoura2021lean}, and \texttt{Admitted} one in Coq~\cite{Coq}.
 A false law declaration is possible and makes the program ill-formed with no diagnostic required.
 A \cppinline{concept} might then be satisfied but not modelled~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.}
-A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts: \cppinline{IsMonoid<size_t, plus<size_t>>} is one.
+A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts: \cppinline{IsMonoid<size_t, plus<size_t>>} is one, and the isomorphism at Listing~\ref{lst:rule2}'s top left is another.
 Overload resolution is a simple proof search that finds either kind~\cite{augustsson2005djinn}.
 A law is stated of a carrier together with an operation: \cppinline{size_t} is a monoid twice, under $(0, +)$ and under $(1, \times)$.\footnote{A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.}
 
