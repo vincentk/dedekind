@@ -124,13 +124,11 @@ concat<Sections<size_t>, compose>(
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
-Top left: laws asked of arrows alone, at compile time, with Listing~\ref{lst:rule1}'s arrows.
-Two involutions compose to an isomorphism that is no involution.
-A projection is epic, and its section monic.
-Below it: the laws of a carrier under an operation, deleted by default and declared for the family of \cppinline{std::unsigned_integral} under \cppinline{(0, +)}.
-Right: the monoid shape, and \cppinline{concat} at the lengths that need no recursion.
-The unit is identified by \cppinline{is_unit} and not by \cppinline{==}, since equality is not decidable on every carrier.
-The monoids used are \cppinline{size_t} under \cppinline{(0, +)} and \cppinline{(1, *)}, and \cppinline{Sections}, the sections of $+$ under \cppinline{(id, >>)}, with \cppinline{adding} the curried $+$.}
+Left: laws, asked of arrows alone and then declared of a carrier under an operation.
+A composite's law is inferred: two involutions compose to an isomorphism, not to an involution.
+Right: the monoid shape and \cppinline{concat}, which uses nothing else.
+The unit is identified by \cppinline{is_unit}, not by \cppinline{==}, since equality is not decidable on every carrier.
+The last monoid is the sections of $+$ under composition, with \cppinline{adding} the curried $+$.}
 \label{lst:rule2}
 \end{listing}
 
