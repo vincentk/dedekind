@@ -164,7 +164,7 @@ recursive types~\cite[ch.~20]{pierce2002tapl} & $\mu X.\,T$ & \texttt{unfold} & 
 the naturals~\cite{peano1889arithmetices,dedekind1888zahlen,lawvere1964etcs} & $\mathbb{N}$, a chain & predecessor & $\mathit{succ}$ & definition by recursion \\
 iterators~\cite{stepanov2009elements,cpp23standard} & a range & advancing & & \texttt{fold\_left} \\
 \midrule
-Jlt, over a value & a chain below $n$ & $\mathit{prior}$ & & \texttt{fold\_left} \\
+Jlt, over a value & a range of $\mathcal{R}$, a chain below $n$ & $\mathit{prior}$ & & \texttt{fold\_left} \\
 Jlt, over a type & a term $t$ & to a subterm & a node & instantiation \\
 \bottomrule
 \end{tabularx}
@@ -218,10 +218,10 @@ Jlt has two forms of recursion, over a value and over a type, and both read it.
 
 \begin{itemize}
 \item \emph{Over a value.}
-The chain is a range: the elements that $\mathit{prior}$ reaches from a seed $n$.
-Its length is known before the first step, and the recursion is the standard's fold, \cppinline{ranges::fold_left}, bounds-checked before it starts.
-In Figure~\ref{fig:structures}, $\mathit{out}$ is $\mathit{prior}$: it counts down from $n$, $f$ maps each element into $S$, and $h$ folds the results into $M$, starting from $e$.
-In \Cpp{} the chain is an \cppinline{input_range}, $f$ is \cppinline{views::transform}, written \cppinline{>>}, and $h$ is the fold's step.\footnote{The fold along the walk needs no list~\cite{gibbons1996third}, only the walk, which is an iterator.
+The chain is a range of $\mathcal{R}$, the ranges whose length is known before the first step (Appendix~\ref{app:fjlt:typing}): here, the elements that $\mathit{prior}$ reaches from a seed $n$.
+In Figure~\ref{fig:structures} it is the row $\mu F$, where $\mathit{out}$ is $\mathit{prior}$ and counts down from $n$.
+The row $S$ is $f$ mapped over it, and the row $M$ is the recursion itself: the standard's fold, \cppinline{ranges::fold_left}, with step $h$, starting from $e$ and bounds-checked before it starts.
+In \Cpp{} the range is an \cppinline{input_range} with a bound, and $f$ is \cppinline{views::transform}, written \cppinline{>>}.\footnote{The fold along the walk needs no list~\cite{gibbons1996third}, only the walk, which is an iterator.
 With $\mathit{succ}$ as well it is bidirectional, a zipper~\cite{huet1997zipper}, and with offsets random-access, an array~\cite[\S 2.2.2]{knuth1997art1}: three of the standard's iterator categories.}
 Listing~\ref{lst:rule3}'s top panels show two cases.
 On the left, $S = M$ is a monoid: \cppinline{concat} folds the chain below the seed $10$.
