@@ -152,6 +152,27 @@ A theorem is inferred from the axioms while compiling, by local inference on a c
 Overload resolution is a simple proof search that finds either kind~\cite{augustsson2005djinn}.
 A law is stated of a carrier together with an operation: \cppinline{size_t} is a monoid twice, under $(0, +)$ and under $(1, \times)$.\footnote{A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.}
 
+\begin{table}[tb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.31\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+ & the object & steps down & builds up & consumed by \\
+\midrule
+initial algebras~\cite{lambek1968fixpoint,meijer1991functional} & $\mu F$ & $\mathit{out}$ & $\mathit{in}$ & a catamorphism \\
+recursive types~\cite[ch.~20]{pierce2002tapl} & $\mu X.\,T$ & \texttt{unfold} & \texttt{fold} & a recursive function \\
+the naturals~\cite{peano1889arithmetices,dedekind1888zahlen,lawvere1964etcs} & $\mathbb{N}$, a chain & predecessor & $\mathit{succ}$ & definition by recursion \\
+iterators~\cite{stepanov2009elements,cpp23standard} & a range & advancing & & \texttt{fold\_left} \\
+\midrule
+Jlt, over a value & a chain below $n$ & $\mathit{prior}$ & & \texttt{fold\_left} \\
+Jlt, over a type & a term $t$ & to a subterm & a node & instantiation \\
+\bottomrule
+\end{tabularx}
+\caption{One recursion under several names.
+Pierce's \texttt{fold} builds up: it is $\mathit{in}$, not the fold that consumes.}
+\label{tab:recursion-names}
+\end{table}
+
 \begin{figure}[tbp]
 \centering
 \begin{tikzcd}[column sep={2.7em,between origins}, row sep=1.5em, every label/.append style={font=\small}, cells={nodes={minimum width=2em}}]
@@ -178,30 +199,10 @@ A law is stated of a carrier together with an operation: \cppinline{size_t} is a
   & & e \arrow[ll, "h"']
 \end{tikzcd}
 
-\medskip
-{\small
-\begin{tabular}{@{}llll@{}}
-\toprule
- & the object & steps down & builds up \\
-\midrule
-initial algebras~\cite{lambek1968fixpoint} & $\mu F$ & $\mathit{out}$ & $\mathit{in}$ \\
-recursive types~\cite[ch.~20]{pierce2002tapl} & $\mu X.\,T$ & \texttt{unfold} & \texttt{fold} \\
-the naturals~\cite{peano1889arithmetices,dedekind1888zahlen,lawvere1964etcs} & $\mathbb{N}$, with $F\,X = \mathbf{1} + X$ & $\mathit{prior}$ & $\mathit{succ}$ \\
-\bottomrule
-\end{tabular}}
-\caption{Structural recursion in FJlt, a sketch.
-Seed: after Lambek, the structure map $\mathit{in} : F\,\mu F \to \mu F$ of an initial algebra is an isomorphism.
-Its inverse $\mathit{out} : \mu F \to F\,\mu F$ steps down and always ends, and $\mathit{in}$, dashed, never does.
-The user supplies the point $n : \mathbf{1} \to \mu F$, the seed.
-The chain is what $\mathit{out}$ reaches from $n$: the elements below it, not $n$ itself, so $n$ is the chain's rank.
-The table gives the two maps under three names.
-Pierce's \texttt{fold} is $\mathit{in}$, not the fold of the bottom row.
-For a count, the chain is the $n$ numbers below $n$, and it ends at $\ast$, the point of $\mathbf{1}$.
-For a term, the chain is one branch of its subterms, and $n$ is its height.
-Algebra: $f$ lands in $S$, and the fold in $M$.
-Fold: $h : M \times S \to M$ runs along the walk, from $m_n = e$ by $m_k = h(m_{k+1}, f(k))$ to the result $m_0$.
-At a node with several legs, the algebra takes the results of them all.
-}
+\caption{Structural recursion in FJlt, a sketch, in Lambek's notation (Table~\ref{tab:recursion-names}).
+The seed $n$ is a point of $\mu F$, and $\mathit{out}$ steps down from it until nothing is left, $\ast$.
+$f$ lands in $S$, and $h : M \times S \to M$ folds along the walk: $m_n = e$ and $m_k = h(m_{k+1}, f(k))$, to the result $m_0$.
+At a node with several legs, the algebra takes the results of them all.}
 \label{fig:structures}
 \end{figure}
 
@@ -209,46 +210,48 @@ At a node with several legs, the algebra takes the results of them all.
 \phantomsection\label{def:rule3}
 Recursion in Jlt is structural~\cite{burstall1969proving}: every step reduces a finite residue, so the recursion ends.
 
-The residue is held in one of two places, and each has its own form of recursion.
+Several literatures describe such a residue and its recursion, each in its own words, and Table~\ref{tab:recursion-names} sets them side by side.
+This paper uses Lambek's notation, and its mental model is Dedekind's finite chain: the elements that a step reaches from a starting point.\footnote{After Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself, and the chain of an element is its forward orbit.
+The carrier needs neither an order nor an origin: reachability under the step orders the chain, and its bottom is where the step has nothing.}
+Figure~\ref{fig:structures} draws one chain, and both forms of recursion read it.
+
 \begin{itemize}
 \item \emph{Over a value.}
-The recursion is the standard's fold, \cppinline{ranges::fold_left}, over a range whose length is known before the first step, bounds-checked before it starts.
-Figure~\ref{fig:structures} draws it: $\mathit{out}$, here $\mathit{prior}$, counts down from the seed $n$, $f$ maps each element into $S$, and $h$ folds the results into $M$, starting from $e$.
-In the standard's ranges library~\cite{cpp23standard} the chain is an \cppinline{input_range}, $f$ is \cppinline{views::transform}, written \cppinline{>>}, and $h$ is the fold's step.
-Listing~\ref{lst:rule3} shows two cases.
-In the simplest, bottom left, $S = M$ is a monoid: \cppinline{concat} folds the chain below the seed $10$.
-In the general one, bottom right, $S$ acts on $M$: $f$ maps every element to Fibonacci's matrix, and $h$, \cppinline{act}, multiplies it into a vector, starting from $e = (1, 0)$.
+The chain is a range: the elements that $\mathit{prior}$ reaches from a seed $n$.
+Its length is known before the first step, and the recursion is the standard's fold, \cppinline{ranges::fold_left}, bounds-checked before it starts.
+In Figure~\ref{fig:structures}, $\mathit{out}$ is $\mathit{prior}$: it counts down from $n$, $f$ maps each element into $S$, and $h$ folds the results into $M$, starting from $e$.
+In \Cpp{} the chain is an \cppinline{input_range}, $f$ is \cppinline{views::transform}, written \cppinline{>>}, and $h$ is the fold's step.\footnote{The fold along the walk needs no list~\cite{gibbons1996third}, only the walk, which is an iterator.
+With $\mathit{succ}$ as well it is bidirectional, a zipper~\cite{huet1997zipper}, and with offsets random-access, an array~\cite[\S 2.2.2]{knuth1997art1}: the standard's three iterator categories.}
+Listing~\ref{lst:rule3}'s top panels show two cases.
+On the left, $S = M$ is a monoid: \cppinline{concat} folds the chain below the seed $10$.
+On the right, $S$ acts on $M$: $f$ maps every element to Fibonacci's matrix, and $h$, \cppinline{act}, multiplies it into a vector, starting from $e = (1, 0)$.\footnote{A semiring may likewise act on a semimodule, which adds distributivity.}
 A loop whose end the program shows is sugar for the fold it denotes, and any other loop stays out (Section~\ref{sec:jlt-to-fjlt}).
 \item \emph{Over a type.}
-The recursion is the compiler's instantiation.
+The chain is a branch of a term.
 Each node of a term is a class template whose type names its children's, so the term's shape is its type.
-A fold over the term is a function template instantiated once per node, the overload chosen by the node's type, and it ends with the type's finite height.
-Figure~\ref{fig:structures} draws this too: $\mathit{out}$ takes a term to its subterms, the figure follows one branch, and $n$ is the term's height.
-Listing~\ref{lst:rule3}'s \cppinline{dec >> dec}, at the top, is a term of height three.
+The recursion is the compiler's instantiation: a fold over the term is a function template instantiated once per node, the overload chosen by the node's type, and it ends with the type's finite height.
+In Figure~\ref{fig:structures}, $\mu F$ is the type of terms: $\mathit{out}$ takes a term to its subterms, the figure follows one branch, and $n$ is the term's height.
+Listing~\ref{lst:rule3}'s bottom panel builds such a term, \cppinline{dec >> dec}, a composite of two composites, of height three.
 It is folded twice: once to a value, and once to a law, \cppinline{is_iso}, inferred from its legs'.
-The last assertion there compares two arrows by their normal forms, their paths in the free category on their atoms~\cite{maclane1971categories}, reduced by unit, associativity and the certified involution $\sim$.
+Its last assertion compares two arrows by their normal forms, their paths in the free category on their atoms~\cite{maclane1971categories}, reduced by unit, associativity and the certified involution $\sim$.
 So \cppinline{==} answers by the laws and never by the functions, whose equality stays undecidable~\cite{rice1953classes}.
 \end{itemize}
 
 
 \begin{listing}[htbp]
-\begin{cpp}
-constexpr auto dec = -id_u >> ~id_u;
-constexpr auto dec2 = dec >> dec;
-static_assert(dec2(42uz) == 40 && is_iso(dec2) && id_u == ~id_u >> ~id_u);
-\end{cpp}
-\vspace{-12pt}
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr auto ns =
-    10uz >> chain<size_t>();
+constexpr auto ns = 10uz >> chain<size_t>();
+
 template <IsBoundedRange R,
           typename T = ranges::range_value_t<R>,
           typename Op = plus<T>>
   requires IsMonoid<T, Op>
 constexpr T concat(R r, Op op = {}) {
-  return ranges::fold_left(r, unit<T>(op), op);
+  return ranges::fold_left(
+      r, unit<T>(op), op);
 }
+
 static_assert(
     concat(ns) == 45 &&
     concat(ns >> constant<size_t>(7uz)) == 70);
@@ -262,18 +265,27 @@ struct M { V top, bottom;
     return {v[0] * a.top[0] + v[1] * a.bottom[0],
             v[0] * a.top[1] + v[1] * a.bottom[1]};}
   /* M * M, M + M, n * M, == */ };
+
 constexpr auto act = [](V v, M a) { return v * a; };
 constexpr M fib{{1, 1}, {1, 0}};
 constexpr auto ms = ns >> constant<size_t>(fib);
+
 constexpr auto fs_10 = ranges::fold_left(
-  ms, V{1, 0}, act);
+    ms, V{1, 0}, act);
 static_assert(fs_10 == V{89, 55});
 \end{cpp}
 \end{minipage}
+\vspace{-6pt}
+\begin{cpp}
+constexpr auto neg = -id_u;
+constexpr auto cpl = ~id_u;
+constexpr auto dec = neg >> cpl;
+constexpr auto dec2 = dec >> dec;
+static_assert(dec2(42uz) == 40 && is_iso(dec2) && id_u == cpl >> cpl);
+\end{cpp}
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in code.
-Top: recursion over a type, on \cppinline{dec}, the decrement.
-Bottom left: recursion over a value, the fold on a monoid, over the chain $9, \ldots, 0$.
-Bottom right: recursion over a value, matrices acting on row vectors, to $(F(11), F(10))$.}
+Top: recursion over a value, the chain $9, \ldots, 0$ folded on a monoid (left) and by matrices acting on row vectors, to $(F(11), F(10))$ (right).
+Bottom: recursion over a type, with \cppinline{neg} the negation, \cppinline{cpl} the complement and \cppinline{dec} the decrement.}
 \label{lst:rule3}
 \end{listing}
 
@@ -281,12 +293,3 @@ The rule buys termination and, with Rule~2, the System~F reading: data as their 
 The price is expressiveness, as in System~F, which is strongly normalising and so cannot express every computable function~\cite{girard1989proofs}.
 A bounded search ends, but it does not always decide its question, since halting is undecidable~\cite{turing1936computable} (Section~\ref{sec:binding}).
 Codata, structures observed without end, are out of scope~\cite{turner2004total}.
-
-Figure~\ref{fig:structures} reads in three more ways.
-Order: after Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself, and the chain of an element is its forward orbit, here that of $\mathit{prior}\,n$.
-The carrier needs neither an order nor an origin: reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
-Algebra: beyond a monoid, and a monoid acting on $M$, a semiring may act on a semimodule, which adds distributivity.
-Iterators: the fold along the walk needs no list~\cite{gibbons1996third}, only the walk, which is an iterator~\cite{stepanov2009elements}.
-With $\mathit{succ}$ as well it is bidirectional, and with offsets random-access, the standard's three iterator categories~\cite{cpp23standard}.\footnote{With $\mathit{succ}$, $\mathit{succ} >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}, and with offsets an array~\cite[\S 2.2.2]{knuth1997art1}.}
-
-

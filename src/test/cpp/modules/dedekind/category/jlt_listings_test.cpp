@@ -296,10 +296,12 @@ concept Comparable = requires(const A& a, const B& b) { a == b; };
 // Listing 3, left: a fold over a type.  The term's shape is its type, a
 // composite of composites, depth 3; it is folded once to a value and once
 // to a law, the law inferred from its legs'.
-constexpr auto dec = -id_u >> ~id_u;  // x - 1
+constexpr auto neg = -id_u;      // negate
+constexpr auto cpl = ~id_u;      // complement
+constexpr auto dec = neg >> cpl;  // x - 1
 constexpr auto dec2 = dec >> dec;     // x - 2
 static_assert(dec2(42uz) == 40 && is_iso(dec2));
-static_assert(id_u == ~id_u >> ~id_u);
+static_assert(id_u == ~id_u >> ~id_u && id_u == cpl >> cpl);
 static_assert((id_u == dec).verdict ==
               dedekind::category::Ternary::Unknown);  // undecided, not unequal
 // Copilot's two counterexamples: different endpoints do not compare, and
