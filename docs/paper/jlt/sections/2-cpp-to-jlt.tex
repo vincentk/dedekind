@@ -163,12 +163,26 @@ A law is stated of a carrier together with an operation: \cppinline{size_t} is a
   & & m_{n-1} \arrow[ll, "h"']
   & & e \arrow[ll, "h"']
 \end{tikzcd}
+
+\medskip
+{\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+ & the object & steps down & builds up \\
+\midrule
+initial algebras~\cite{lambek1968fixpoint} & $\mu F$ & $\mathit{out}$ & $\mathit{in}$ \\
+recursive types~\cite[ch.~20]{pierce2002tapl} & $\mu X.\,T$ & \texttt{unfold} & \texttt{fold} \\
+the naturals~\cite{peano1889arithmetices,dedekind1888zahlen,lawvere1964etcs} & $\mathbb{N}$, with $F\,X = \mathbf{1} + X$ & $\mathit{prior}$ & $\mathit{succ}$ \\
+\bottomrule
+\end{tabular}}
 \caption{Structural recursion in FJlt, a sketch.
-Seed: after Lambek~\cite{lambek1968fixpoint}, the structure map $\mathit{in} : F\,\mu F \to \mu F$ of an initial algebra is an isomorphism.
+Seed: after Lambek, the structure map $\mathit{in} : F\,\mu F \to \mu F$ of an initial algebra is an isomorphism.
 Its inverse $\mathit{out} : \mu F \to F\,\mu F$ steps down and always ends, and $\mathit{in}$, dashed, never does.
 The user supplies the point $n : \mathbf{1} \to \mu F$, the seed.
 The chain is what $\mathit{out}$ reaches from $n$: the elements below it, not $n$ itself, so $n$ is the chain's rank.
-For a count, $F\,X = \mathbf{1} + X$: $\mathit{out}$ is $\mathit{prior}$, $\mathit{in}$ is Peano's $\mathit{succ}$~\cite{peano1889arithmetices}, and the chain is the $n$ numbers below $n$.
+The table gives the two maps under three names.
+Pierce's \texttt{fold} is $\mathit{in}$, not the fold of the bottom row.
+For a count, the chain is the $n$ numbers below $n$, and it ends at $\ast$, the point of $\mathbf{1}$.
 For a term, the chain is one branch of its subterms, and $n$ is its height.
 Algebra: $f$ lands in $S$, and the fold in $M$.
 Fold: $h : M \times S \to M$ runs along the walk, from $m_n = e$ by $m_k = h(m_{k+1}, f(k))$ to the result $m_0$.
