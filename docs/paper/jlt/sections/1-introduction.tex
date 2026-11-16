@@ -10,13 +10,9 @@ Both give equations: a free theorem holds of every term of a type, and a law is 
 Substitution of equals turns either into a rewrite, and Rule~1 keeps substitution valid (Section~\ref{sec:posture}).
 For the declared laws the reasoning is complete: an equation follows from the laws by equational reasoning exactly when it holds in every model of them~\cite{birkhoff1935structure,burris1981universalalgebra}.
 A stronger class has fewer instances and more laws, so it licenses more rewrites.
-% Register pass, 2026-11-16: sentences parked, not cut; each needs a home or a decision.
-% PARKED The case for functional programming has been made the same way for decades, and it is a good case; even a compiler's own intermediate form, static single assignment, is a functional language~\cite{appel1998ssa}.
-% PARKED The goal is correctness by construction in Dijkstra's sense~\cite{dijkstra1976discipline}.
-% PARKED The underlying concepts, however, are often older, run deeper and have broader reach than is assumed:
-% PARKED the most widely written functional language may well be SQL's \texttt{SELECT}, a declarative query over relations~\cite{iso9075sql}, whose algebra is Codd's~\cite{codd1970relational}, with Tarski's calculus of relations~\cite{tarski1941calculus} its older relative.
 
 These benefits are usually pursued in a language designed for them.
+The ideas themselves are not niche: the most widely written functional language may well be SQL's \texttt{SELECT}, a declarative query over relations~\cite{iso9075sql,codd1970relational}.
 This paper pursues them in \Cpp{23}, a mainstream systems language.
 Much of machine learning and most embedded devices run on \Cpp{}, and a growing number of the people who write it arrive from Python with a functional vocabulary.
 \Cpp{} offers a compiler for nearly every machine and abstraction without run-time overhead~\cite{stroustrup2005abstraction}.\footnote{Stroustrup has since called the phrase an understatement: ``It's compiled away. This is why I talk about zero overhead abstraction, and people are beginning to take me to task for that because that's understating and underestimating the ability of the \Cpp{} compiler. We can do negative overhead abstraction''~\cite{stroustrup2026peterman}.
@@ -33,10 +29,6 @@ For generic code, \Cpp{} lacks one such check.
 \cppinline{concept}s as proposed for \Cpp{0x} checked a template's definition against its constraints~\cite{gregor2006concepts,dosreis2006specifying}.
 As standardised in \Cpp{20} they check only its uses~\cite{stroustrup2020thriving}, so a template's body may use operations its constraints do not name.
 The designers named the problem at the outset, in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
-% PARKED Machine-checked mathematics and mainstream software sit at opposite corners.
-% PARKED A proof checked in Lean~\cite{demoura2021lean} is a white box, true on the checker's word however it was found~\cite{hubert2025olympiad}, and whether it is interesting is left to a human reader~\cite{rudin2019stop,tao2026palomar}.
-% PARKED A program in production is often the reverse: interesting, even commercially viable, from the start, and as opaque as the search that may have written it~\cite{turpin2023unfaithful,lindsey2025biology}; the open question is whether it is true, whether it behaves as its authors intended.
-% PARKED Yet a program is a formal artefact too: a compiler translates it towards a formalised machine, so every claim about it is a claim about something formal, and a compile-time check is such a claim, which the compiler verifies.
 
 \Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary.
 This paper documents a discipline of three rules that does, and that recovers some of what a functional language guarantees.
@@ -67,9 +59,6 @@ No claim is made that Jlt is unique or canonical.
 As in the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}, the embedded terms are generic code over an interface, here a \cppinline{concept}, and their interpretations are its models.
 The posture's name refers to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: in \Cpp{23} a \cppinline{concept} is a predicate on a type's structure, not on its name or lineage.\footnote{``A rose by any other name would smell as sweet''~\cite{shakespeare1597romeo}.}
 Figure~\ref{fig:arrows} shows the arrows between these pieces.
-% PARKED It is not a language this paper designs and develops as an architect might develop a house.
-% PARKED Instead it characterises a fragment of a pre-existing ecosystem, as a traveller might discover a city.
-% PARKED No claim is made that Jlt is unique or canonical, although it seems likely that another fragment drawn to the same ends would look much like it.
 
 \begin{figure}[tb]
 \centering
