@@ -285,7 +285,7 @@ constexpr auto dec2 = dec >> dec;
 static_assert(dec2(42uz) == 40 && is_iso(dec2) && id_u == cpl >> cpl);
 \end{cpp}
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in code.
-Top: recursion over a value, the chain $9, \ldots, 0$ folded on a monoid (left) and by matrices acting on row vectors, to $(F(11), F(10))$ (right).
+Top: recursion over a value, the chain $9, \ldots, 0$ folded on a monoid (left) and by matrices acting on row vectors, to the Fibonacci numbers $(F(11), F(10))$ (right).
 Bottom: recursion over a type, with \cppinline{neg} the negation, \cppinline{cpl} the complement and \cppinline{dec} the decrement.}
 \label{lst:rule3}
 \end{listing}
