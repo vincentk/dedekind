@@ -274,6 +274,8 @@ constexpr auto nay = constant<size_t>(false);
 constexpr auto cpy = ans;  // a copy
 static_assert(cpy(true) == ans(false) && (ans >> id_u)(true) == 42 &&
               (nil >> nay >> ans)(false) == 42);
+// A constant absorbs the arrows before it: an equation between arrows.
+static_assert(ans == nil >> nay >> ans);
 
 // Listing 2, top: certificates on arrows alone, before any carrier.  A law
 // is asked on the arrow's value (is_monic(f) reads what IsMonicArrow<F>

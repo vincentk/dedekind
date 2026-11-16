@@ -44,13 +44,13 @@ constexpr auto cpy = ans;  // a copy
 static_assert(
 cpy(true) == ans(false) &&
 (ans >> id_u)(true) == 42 &&
-(nil >> nay >> ans)(false) == 42);
+ans == nil >> nay >> ans);
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution.
 A function object is a value: a copy of it is as good as the original, function objects compose with \cppinline{>>}, and every call here is replaced by its value while compiling.
 Left: the identities, and an equation between arrows, decided by their laws and not by their values (Listing~\ref{lst:rule3}).
-Right: the points, constant arrows, and a copy.}
+Right: the points, constant arrows, and a copy; a constant absorbs the arrows before it.}
 \label{lst:rule1}
 \end{listing}
 
