@@ -234,7 +234,9 @@ The recursion is the compiler's instantiation: a fold over the term is a functio
 In Figure~\ref{fig:structures}, $\mu F$ is the type of terms: $\mathit{out}$ takes a term to its subterms, the figure follows one branch, and $n$ is the term's height.
 Listing~\ref{lst:rule3}'s bottom panel builds such a term, \cppinline{dec >> dec}, a composite of two composites, of height three.
 It is folded twice: once to a value, and once to a law, \cppinline{is_iso}, inferred from its legs'.
-The equation that ends it compares two arrows by their normal forms, their paths in the free category on their atoms~\cite{maclane1971categories}, reduced by unit, associativity and a certified involution, here \cppinline{cpl}.
+The equation that ends it compares two arrows by their normal forms.
+An arrow's normal form is the sequence of its atoms once the laws have been applied: identities dropped, brackets removed, and a certified involution, here \cppinline{cpl}, cancelled against itself.\footnote{It is the arrow's path in the free category on its atoms~\cite{maclane1971categories}.}
+Two arrows with one normal form are equal by the laws.
 So \cppinline{==} answers by the laws and never by the functions, whose equality stays undecidable~\cite{rice1953classes}.
 \end{itemize}
 
