@@ -186,13 +186,14 @@ The residue is held in one of two places, and each has its own form of recursion
 \begin{itemize}
 \item \emph{Over a value.}
 The recursion is the standard's fold, \cppinline{ranges::fold_left}, over a range whose length is known before the first step, bounds-checked before it starts.
+Figure~\ref{fig:structures} draws its residue: the chain that $\mathit{prior}$ reaches from a seed $n$.
 A loop whose end the program shows is sugar for the fold it denotes, and any other loop stays out (Section~\ref{sec:jlt-to-fjlt}).
 \item \emph{Over a type.}
 The recursion is the compiler's instantiation.
 Each node of a term is a class template whose type names its children's, so the term's shape is its type, as in Listing~\ref{lst:rule3}'s \cppinline{dec >> dec}.
 A fold over the term is a function template instantiated once per node, the overload chosen by the node's type, and it ends with the type's finite height.
+Figure~\ref{fig:structures} draws this residue too, read through a different lens: the chain becomes the subterms $\mathit{sub}(t)$ of a term $t$, and $\mathit{prior}$ becomes $\mathit{out}$.
 \end{itemize}
-Figure~\ref{fig:structures} draws the residue for both: the chain that $\mathit{prior}$ reaches from a seed $n$, or, for a term $t$, its subterms $\mathit{sub}(t)$ under $\mathit{out}$.
 
 
 \begin{listing}[htbp]
