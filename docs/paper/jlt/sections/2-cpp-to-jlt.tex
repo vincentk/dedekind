@@ -124,11 +124,11 @@ concat<Sections<size_t>, compose>(
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
-Left: laws, asked of arrows alone and then declared of a carrier under an operation.
-A composite's law is inferred: two involutions compose to an isomorphism, not to an involution.
-Right: the monoid shape and \cppinline{concat}, which uses nothing else.
+Top left: laws of arrows, inferred for composites.
+Bottom left: the monoid axioms for a carrier type.
+Right: the monoid shape and the free function \cppinline{concat}.
 The unit is identified by \cppinline{is_unit}, not by \cppinline{==}, since equality is not decidable on every carrier.
-The last monoid is the sections of $+$ under composition, with \cppinline{adding} the curried $+$.}
+\cppinline{Sections} are the sections of $+$, a monoid under composition.}
 \label{lst:rule2}
 \end{listing}
 
