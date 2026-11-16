@@ -136,6 +136,7 @@ The monoids used are \cppinline{size_t} under \cppinline{(0, +)} and \cppinline{
 
 In \Cpp{23} a \cppinline{concept} is a predicate on a type's structure~\cite{cpp23standard}, and a trait is a compile-time function on types~\cite{myers1995traits}.
 Together they take the place of type classes~\cite{wadler1989adhoc}.
+Both are resolved while compiling and neither exists at run time, so no dictionary is passed there (Section~\ref{sec:binding}).
 A type that has the operations satisfies the \cppinline{concept} without a declaration, so the standard library's types are admitted unmodified.
 Overload resolution selects the most specific instance~\cite{cpp23standard}.
 \Cpp{20} does not check a body against its constraints (Section~\ref{sec:intro}), so the rule is the programmer's to keep, and Listing~\ref{lst:undecided} shows a body that breaks it.
