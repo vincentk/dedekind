@@ -297,7 +297,7 @@ If $\varnothing; \varnothing \vdash e : \tau$ and $e \longrightarrow e'$ in FJlt
 
 \begin{proof}
 Two substitution facts carry it.
-(a) Substituting values of the parameters' types for the parameters keeps a typing, the textbook substitution lemma~\cite{pierce2002tapl}.
+(a) Substituting terms of the parameters' types, typed under the surrounding context, for the parameters keeps a typing, the textbook substitution lemma~\cite{pierce2002tapl}; the values \textsc{S-Call} substitutes are a special case.
 (b) If $\overline{\alpha}, \overline{Q}; \Gamma \vdash e : \tau$ and $\varnothing \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}]$, then $\varnothing; \Gamma[\overline{\sigma}/\overline{\alpha}] \vdash e[\overline{\sigma}/\overline{\alpha}] : \tau[\overline{\sigma}/\overline{\alpha}]$, by induction on the typing derivation.
 Its cases with work are two.
 \textsc{T-Req-Assumed}: at concrete types the site is the requirement's expression with its arguments, which \textsc{E-Op}'s premise types at the instantiated constraint, the arguments substituted by (a), under \textsc{T-Conv} where the requirement converts; so it is typed at the declared type by whichever rule types that expression, \textsc{T-Call}, \textsc{T-Trait}, \textsc{T-App}, \textsc{T-Op} or an operator's.
