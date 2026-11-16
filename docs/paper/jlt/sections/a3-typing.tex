@@ -236,7 +236,7 @@ $^{\P}$~At each node of arity $k$.}
 
 \paragraph{Ranges.}
 A range is homogeneous: its elements share one type $\tau$, and its length is a value.
-$R\texttt{<}\tau\texttt{>}$ is an instance of $\mathcal{R}$, a family defined by conditions.
+$R\texttt{<}\tau\texttt{>}$ is an instance of $\mathcal{R}$, a family defined by conditions: the chain of Figure~\ref{fig:structures}, and the object of Table~\ref{tab:recursion-names}'s row over a value.
 A fold reads its length $|r| \in \mathbb{N}$, fixed before the fold starts, and, when $|r| > 0$, its head $\mathit{head}\,r$ and its tail $\mathit{next}\,r$, functions on range values, with $|\mathit{next}\,r| = |r| - 1$; FJlt has no term for them, so a program folds a range and never takes its head.
 A range is typed by its instance's conditions, \cppinline{iota(i, j)} only at $i \le j$, and \textsc{S-Fold} preserves them, since $\mathit{next}$ does.
 The conditions are semantic, that a step descends or that two bounds are ordered, so a chain whose step does not descend is ill-typed, and the termination of a fold is, to that extent, assumed in the typing of its range.
@@ -246,7 +246,7 @@ Listing~\ref{lst:rule3}'s \cppinline{concat} is such a fold: its \cppinline{IsBo
 
 \paragraph{Terms.}
 A term is heterogeneous: its nodes may differ in type, and its shape is in its type.
-A term type $\mu F$ is the inductive type of the nodes that build it: a term is a finite composition of nodes, and a node is a function object whose fields are terms.
+A term type $\mu F$, the object of Table~\ref{tab:recursion-names}'s row over a type, is the inductive type of the nodes that build it: a term is a finite composition of nodes, and a node is a function object whose fields are terms.
 \textsc{T-Cata} is the kernel's recursion over a type, stated once at a term type: the instances of one generic function at the nodes of $F$, each calling it at its legs' types, read as one algebra.
 The algebra is applied to each node together with the folded values of its legs, the node itself still in hand: the library's interface, \cppinline{alg(t, cata(alg, leg)...)}, and the paramorphism's.
 \textsc{T-Node} reads a term of node type as $\mu F$ where a rule expects one.
