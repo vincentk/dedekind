@@ -2,7 +2,9 @@
 \section{From \Cpp{} to Jlt}
 \label{sec:posture}
 
-Each rule has a listing of a few lines, verbatim from the repository's test up to formatting and the definitions a listing omits or the test imports; the LLVM IR of Appendix~\ref{app:fjlt:ssa} is Clang~23's output, its flags in its caption, with names shortened.
+This section states the three rules that carve Jlt out of \Cpp{23}.
+Each rule is named for what it conserves, and each has a listing of a few lines that shows it.\footnote{The listings are verbatim from the repository's test, up to formatting and to the definitions a listing omits or the test imports.}
+Table~\ref{tab:posture} sets the rules side by side: what each keeps out of \Cpp{}, what it buys and what it costs.
 
 \paragraph{Rule 1, Substitution: const values and an identity-preserving copy.}
 \phantomsection\label{def:rule1}

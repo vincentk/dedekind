@@ -18,7 +18,7 @@ Rules~1 and~3 are what makes the source already look like the second.
 
 \paragraph{A loop, read.}
 The repository's IR fixture \texttt{showcase\_15} compiles Listing~\ref{lst:rule3}'s fold with its count \cppinline{n} known only at run time, at \texttt{-O2} with unrolling and vectorisation off.
-Its one loop is
+Its one loop, as Clang~23 emits it and with names shortened, is
 \begin{minted}{llvm}
 6:                                    ; the loop header
   %7 = phi i64 [ %10, %6 ], [ %4, %3 ]    ; the count
