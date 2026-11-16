@@ -13,9 +13,14 @@
 \newcommand{\RuleOne}{\hyperref[def:rule1]{Rule~1 (Substitution)}}
 \newcommand{\RuleTwo}{\hyperref[def:rule2]{Rule~2 (Abstraction)}}
 \newcommand{\RuleThree}{\hyperref[def:rule3]{Rule~3 (Descent)}}
+\usepackage{longtable}
 \newtheorem{theorem}{Theorem}
 \newtheorem{corollary}{Corollary}
 \newtheorem{lemma}{Lemma}
+\newtheorem{definition}{Definition}
+% A theorem of the literature, cited: lettered, to keep it apart from the paper's own numbered results.
+\newtheorem{citedtheorem}{Theorem}
+\renewcommand{\thecitedtheorem}{\Alph{citedtheorem}}
 \newtheorem{assumption}{Assumption}
 % A result of the main text, restated before its proof: its number and name, then the statement.
 % One case of a case analysis in a proof: the rule(s) it treats, on a line of its own.
