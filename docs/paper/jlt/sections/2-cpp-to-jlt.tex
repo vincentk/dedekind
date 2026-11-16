@@ -186,13 +186,21 @@ The residue is held in one of two places, and each has its own form of recursion
 \begin{itemize}
 \item \emph{Over a value.}
 The recursion is the standard's fold, \cppinline{ranges::fold_left}, over a range whose length is known before the first step, bounds-checked before it starts.
-Figure~\ref{fig:structures} draws its residue: the chain that $\mathit{prior}$ reaches from a seed $n$.
+Figure~\ref{fig:structures} draws it: $\mathit{prior}$ counts down from the seed $n$, $f$ maps each element into $S$, and $h$ folds the results into $M$, starting from $e$.
+In the standard's ranges library~\cite{cpp23standard} the chain is an \cppinline{input_range}, $f$ is \cppinline{views::transform}, written \cppinline{>>}, and $h$ is the fold's step.
+Listing~\ref{lst:rule3} shows two cases.
+In the simplest, bottom left, $S = M$ is a monoid: \cppinline{concat} folds the chain below the seed $10$.
+In the general one, right, $S$ acts on $M$: $f$ maps every element to Fibonacci's matrix, and $h$, \cppinline{act}, multiplies it into a vector, starting from $e = (1, 0)$.
 A loop whose end the program shows is sugar for the fold it denotes, and any other loop stays out (Section~\ref{sec:jlt-to-fjlt}).
 \item \emph{Over a type.}
 The recursion is the compiler's instantiation.
-Each node of a term is a class template whose type names its children's, so the term's shape is its type, as in Listing~\ref{lst:rule3}'s \cppinline{dec >> dec}.
+Each node of a term is a class template whose type names its children's, so the term's shape is its type.
 A fold over the term is a function template instantiated once per node, the overload chosen by the node's type, and it ends with the type's finite height.
-Figure~\ref{fig:structures} draws this residue too, read through a different lens: the chain becomes the subterms $\mathit{sub}(t)$ of a term $t$, and $\mathit{prior}$ becomes $\mathit{out}$.
+Figure~\ref{fig:structures} draws this too, read through a different lens: the chain becomes the subterms $\mathit{sub}(t)$ of a term $t$, and $\mathit{prior}$ becomes $\mathit{out}$.
+Listing~\ref{lst:rule3}'s \cppinline{dec >> dec}, top left, is a term of height three.
+It is folded twice: once to a value, and once to a law, \cppinline{is_iso}, inferred from its legs'.
+The last line there compares two arrows by their normal forms, their paths in the free category on their atoms~\cite{maclane1971categories}, reduced by unit, associativity and the certified involution $\sim$.
+So \cppinline{==} answers by the laws and never by the functions, whose equality stays undecidable~\cite{rice1953classes}.
 \end{itemize}
 
 
@@ -202,7 +210,8 @@ Figure~\ref{fig:structures} draws this residue too, read through a different len
 // over a type: the shape is the type
 constexpr auto dec = -id_u >> ~id_u;  // x - 1
 constexpr auto dec2 = dec >> dec;     // x - 2
-static_assert(dec2(42uz) == 40 && is_iso(dec2));
+static_assert(dec2(42uz) == 40 &&
+              is_iso(dec2));
 static_assert(id_u == ~id_u >> ~id_u);
 \end{cpp}
 \smallskip
@@ -242,12 +251,9 @@ static_assert(fs_10 == V{89, 55});
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in code.
-Left, over a type: a term of height three, Listing~\ref{lst:rule2}'s composite composed with itself, folded once to a value and once to a law, the law inferred from its legs'.
-Last, an identity law: two arrows compared by their normal forms, their paths in the free category on their atoms~\cite{maclane1971categories}, reduced by unit, associativity and the certified involution $\sim$, so \cppinline{==} answers by the laws, never by the functions, which Rice's theorem keeps undecided.
-Below it, over a value: the chain below the seed $n = 10$, which $\mathit{prior}$ counts down, folded in the simplest case, $S = M$ a monoid, by the library's \cppinline{concat} over a bounded range: the overload that completes Listing~\ref{lst:rule2}'s fixed lengths, defined there before the fold.
-Right: the general fold, $S$ acting on $M$: $f$ maps every element to Fibonacci's matrix, and $h$, \cppinline{act}, multiplies it into a vector from $e = (1, 0)$.
-In the standard's ranges library~\cite{cpp23standard}, Figure~\ref{fig:structures}'s chain is an \cppinline{input_range}.
-The arrow $f$ along it is \cppinline{views::transform}, written \cppinline{>>}, and the fold with the action $h$ is \cppinline{ranges::fold_left}, the native fold, bounds-checked before it starts.}
+Top left: recursion over a type.
+Bottom left: recursion over a value, the fold on a monoid.
+Right: recursion over a value, a monoid acting on vectors.}
 \label{lst:rule3}
 \end{listing}
 
@@ -259,8 +265,7 @@ Codata, structures observed without end, are out of scope~\cite{turner2004total}
 Figure~\ref{fig:structures} reads in three more ways.
 Order: after Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself, and the chain of an element is its forward orbit, here that of $\mathit{prior}\,n$.
 The carrier needs neither an order nor an origin: reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
-Algebra: in the simplest case $S = M$ is a monoid.
-A monoid $S$ may also act on $M$, and a semiring on a semimodule, which adds distributivity.
+Algebra: beyond a monoid, and a monoid acting on $M$, a semiring may act on a semimodule, which adds distributivity.
 Iterators: the fold along the walk needs no list~\cite{gibbons1996third}, only the walk, which is an iterator~\cite{stepanov2009elements}.
 With $\mathit{succ}$ as well it is bidirectional, and with offsets random-access, the standard's three iterator categories~\cite{cpp23standard}.\footnote{With $\mathit{succ}$, $\mathit{succ} >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}, and with offsets an array~\cite[\S 2.2.2]{knuth1997art1}.}
 
