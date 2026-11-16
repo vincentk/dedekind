@@ -50,7 +50,7 @@ The primitives' translations compute the standard's functions on constants: a $\
 \end{definition}
 
 FJlt's carriers are non-empty: Section~\ref{sec:jlt-to-fjlt} requires them to keep \RuleOne{}, so they are \cppinline{std::semiregular}, which includes \cppinline{default_initializable}, so each has its default value.
-So Theorem~\ref{cit:equational} applies to the laws of $\Sigma$'s carriers.
+So Theorem~\ref{cit:equational} applies to the laws of $\Sigma$'s carriers, as Section~\ref{sec:intro}'s completeness claim for many sorts needs.
 That a compiler and its library implement the standard is outside the proofs, as for any program (Section~\ref{sec:limits}).
 
 \begin{assumption}[The instance]
@@ -61,6 +61,7 @@ The target, so presented, is an instance of Theorem~\ref{cit:sn}'s calculus, exc
 The assumption is what is asserted rather than carried out; Theorem~\ref{cit:sn}'s other hypotheses are checked here.
 Products and sums are sorts with their constructors, and their projections and case are rules of the calculus.
 The $\delta$-rules are first-order rules on constants: ground, a constant out of constants, so each step removes one operator application and they terminate, they are conservative, having no variables, and they are confluent, being a function of their argument constants.
+$\mathit{toNat}$ is a ground rule of the same kind, from a constant to a numeral of $\mathbb{N}$.
 $\mathit{iter}$ and $\mathit{fold}_F$ are recursors under the General Schema, on $\mathbb{N}$ and on term types, whose legs Appendix~\ref{app:fjlt:typing}'s condition on term types makes direct; $\mathit{iter}$ in the accumulator form above is the standard iterator at $\sigma \to \sigma$, each of its steps at least one step of that.
 The defined names are acyclic, by the declaration order, and expand away.
 No critical pair lies between the rules, so, granted the assumption, the target is strongly normalising and confluent by Theorem~\ref{cit:sn}.
@@ -70,7 +71,8 @@ The one-constructor-at-a-time iterators are what make Theorem~\ref{thm:simulatio
 \begin{assumption}[Ranges]
 \label{ass:ranges}
 A range's conditions are semantic, so the termination of a fold is in part assumed in the typing of its range.
-For each instance, the target's operations compute the source's: $\mathit{toNat}\,|\llbracket r \rrbracket|$ reduces to $|r|$, and $\mathit{uncons}\,\llbracket r \rrbracket$ to $\iota_2\,(\llbracket \mathit{head}\,r \rrbracket, \llbracket \mathit{next}\,r \rrbracket)$ when $|r| > 0$ and to $\iota_1\,()$ when $|r| = 0$.
+Each instance's $|\cdot|$ and $\mathit{uncons}$ are first-order rules on its constructor that terminate and are conservative, or terms over operations already covered, so that Theorem~\ref{cit:sn} applies to them.
+For each instance, the target's operations compute the source's, for \cppinline{iota} as Definition~\ref{def:standard} says: $\mathit{toNat}\,|\llbracket r \rrbracket|$ reduces to $|r|$, and $\mathit{uncons}\,\llbracket r \rrbracket$ to $\iota_2\,(\llbracket \mathit{head}\,r \rrbracket, \llbracket \mathit{next}\,r \rrbracket)$ when $|r| > 0$ and to $\iota_1\,()$ when $|r| = 0$.
 \end{assumption}
 
 The omitted cases are the textbook ones, and the inductions are on paper, with no mechanisation; their mechanisation is future work.
