@@ -289,6 +289,46 @@ every other rule & its subterms & structural${}^{\textsc{ih}}$ \\
 \case{\textsc{E-Op}}the field is $\lambda\overline{a}.\,\llbracket \tau^{S}\texttt{(}e_r\texttt{)} \rrbracket$, and $e_r$ is typed under $\Delta$, so (ii) reduces it to the field \textsc{E-Op} builds at $\overline{\sigma}$.
 \end{proof}
 
+\begin{lemma}[Subject reduction]
+\label{lem:subject}
+If $\varnothing; \varnothing \vdash e : \tau$ and $e \longrightarrow e'$ in FJlt, then $\varnothing; \varnothing \vdash e' : \tau$.
+\end{lemma}
+\noindent\emph{Sketch.}\ One row per rule of evaluation; the work is a call into a generic body, whose requirement sites become resolved calls once its constraints hold at concrete types.
+
+\begin{proof}
+Two substitution facts carry it.
+(a) Substituting values of the parameters' types for the parameters keeps a typing, the textbook substitution lemma~\cite{pierce2002tapl}.
+(b) If $\overline{\alpha}, \overline{Q}; \Gamma \vdash e : \tau$ and $\varnothing \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}]$, then $\varnothing; \Gamma[\overline{\sigma}/\overline{\alpha}] \vdash e[\overline{\sigma}/\overline{\alpha}] : \tau[\overline{\sigma}/\overline{\alpha}]$, by induction on the typing derivation.
+Its one case with work is \textsc{T-Req-Assumed}: at concrete types the site is the requirement's expression with its arguments, which \textsc{E-Op}'s premise types at the instantiated constraint, under \textsc{T-Conv} where the requirement converts, so it is typed by \textsc{T-Call} or \textsc{T-Trait} at the declared type; every other case is structural.
+The steps, one row per rule of evaluation; ${}^{\textsc{ih}}$ marks the induction hypothesis on the context, and the rows with work follow the table.
+\begingroup
+\small
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}p{\dimexpr 0.56\linewidth-4\tabcolsep\relax}>{\raggedright\arraybackslash}p{0.2\linewidth}@{}}
+\toprule
+step & the result has the type, because & relies on \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+\textsc{S-Call}, to a specialisation & the body's type under its parameters, the values substituted (a) & \textsc{D-Instance} \\
+\textsc{S-Call}, to a generic function & below & \textsc{D-Generic} \\
+\textsc{S-Const} & the initialiser's type & \textsc{D-Const} \\
+\textsc{S-Op} & below & \textsc{D-Op} \\
+\textsc{S-Std}, \textsc{S-Prim} & the constant the standard or $\Sigma$ assigns has the result type & Definition~\ref{def:standard} \\
+\textsc{S-Conv} & the conversion's target type; at a value's own type, the value's &  \\
+\textsc{S-If}, \textsc{S-Case} & the selected branch's type, a case's applied to the payload (a) &  \\
+\textsc{S-Proj}, \textsc{S-Unbox} & the component's or the content's type &  \\
+\textsc{S-Fold} & the step's result has type $\sigma$, and the tail the range's type, its conditions kept & \textsc{T-Fold} \\
+\textsc{S-Cata} & the algebra applied to the node and its legs' results, each of type $\sigma$ & \textsc{T-Cata}, \textsc{T-Node} \\
+\textsc{S-Ctx} & the hole's type is unchanged${}^{\textsc{ih}}$ &  \\
+\end{longtable}
+\endgroup
+\case{\textsc{S-Call} to a generic function}$f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)}$ steps to $e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}]$.
+\textsc{D-Generic} typed $e_f$ under $\overline{\alpha}, \overline{Q}$ and the parameters, and \textsc{T-Call}'s premise entails $\overline{Q}[\overline{\sigma}/\overline{\alpha}]$.
+So (b) types the instantiated body at $\tau[\overline{\sigma}/\overline{\alpha}]$, the call's type, and (a) substitutes the values.
+\case{\textsc{S-Op}}the same, with the fields among the parameters and the call operator's own type parameters $\overline{\beta}$ instantiated at the deduced $\overline{\sigma}$.
+\end{proof}
+
 \begin{lemma}[Progress]
 \label{lem:progress}
 A closed well-typed term is a value or takes a step.
@@ -317,7 +357,6 @@ a fold over a range value & \textsc{S-Fold} & its two cases cover every length \
 a \texttt{cata} on a node & \textsc{S-Cata} & it covers every node, leaves included \\
 \end{longtable}
 \endgroup
-Preservation along a step, that $e \longrightarrow e'$ keeps the type, is the usual substitution argument, the conversion written in the kernel term keeping a requirement's use at its declared type after \textsc{S-Call}, and it is used below as source subject reduction.
 \end{proof}
 
 Two reductions of the target run ahead of the source: the count of a fold and the reading of a node into its constructor.
@@ -380,7 +419,7 @@ A well-typed closed FJlt term of base type evaluates to a value.
 \end{restated}
 \begin{proof}
 Let $e$ be closed and well-typed at a base type.
-By Lemma~\ref{lem:progress} and preservation along steps, every term in the reduction sequence from $e$ is closed and well-typed, so each is a value or steps; by Corollary~\ref{cor:termination} the sequence is finite; so it ends in a value $v$, and at a base type a value is a constant.
+By Lemmas~\ref{lem:subject} and~\ref{lem:progress}, every term in the reduction sequence from $e$ is closed and well-typed, so each is a value or steps; by Corollary~\ref{cor:termination} the sequence is finite; so it ends in a value $v$, and at a base type a value is a constant.
 \end{proof}
 
 \begin{restated}{Theorem~\ref{thm:simulation} (Simulation)}
