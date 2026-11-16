@@ -45,7 +45,8 @@ The translation is defined on every well-typed program and preserves types and e
 Jlt beyond the kernel is syntactic sugar.
 This paper hypothesises that the desugaring preserves meaning.
 
-A law is either declared, without a check, or inferred from declared laws by composition.
+The programmer declares a law, and the compiler does not check it.
+Where declared laws compose, the compiler infers further laws mechanically.
 A law licenses an overload written for it, and overload resolution composes such overloads.
 In one program the action law and associativity, neither aware of the other, turn a fold of $n$ steps into one of $\log n$, even at compile time, where no optimiser runs.
 In another, the words sought share a symmetry that their type states.

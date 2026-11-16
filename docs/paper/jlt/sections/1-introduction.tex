@@ -6,8 +6,9 @@ Functional programs can be reasoned about by equations.
 A function that depends on its arguments alone can be replaced by its value~\cite{backus1978can}.
 A function that is polymorphic in a type cannot inspect that type, so its type alone yields theorems about it~\cite{wadler1989theorems}.
 A class of types with operations and laws lets generic code be written once against the operations and reasoned about by the laws~\cite{wadler1989adhoc}.
-Both give equations: a free theorem holds of every term of a type, and a law is declared of an instance.
-Substitution of equals turns either into a rewrite, and Rule~1 keeps substitution valid (Section~\ref{sec:posture}).
+A recursion that follows the structure of its data ends, so a program built from such recursions has a value~\cite{turner2004total}.
+Polymorphism and classes each give equations: a free theorem holds of every term of a type, and a law is declared of an instance.
+Substitution of equals turns either into a rewrite.
 For the declared laws the reasoning is complete: an equation follows from the laws by equational reasoning exactly when it holds in every model of them~\cite{birkhoff1935structure,burris1981universalalgebra}.
 A stronger class has fewer instances and more laws, so it licenses more rewrites.
 
@@ -36,9 +37,12 @@ The rules are a cost paid once, in how a program is written.
 In return a law holds in every model of it, a specialisation it licenses applies on every call, and a checked statement serves every reader.
 An optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point.
 Under the discipline, a program declares such laws itself.
+The programmer declares a law, and the compiler does not check it: a law declared falsely is the programmer's error, as the standard has it for a concept (Section~\ref{sec:posture}).
+What the compiler does mechanically is compose: it infers the laws of a construction from the laws of its parts, and it selects among the overloads that those laws license (Section~\ref{sec:guarantees}).
 
 The fragment is the \emph{Juliet Posture}, or Jlt, and it has two boundaries.
 The outer boundary is drawn by the three rules: Jlt is the proper subset of \Cpp{23} they define.
+Section~\ref{sec:posture} states them: one keeps substitution of equals valid, one keeps generic code to its declared constraints, and one makes every recursion end.
 It is called a posture because it asks only for a style of programming.
 Every ingredient is in the ISO standard~\cite{cpp23standard} and implemented by toolchains in wide use, and what Jlt adds is the programmer's discipline.
 The compiler holds some of the rules and the programmer the rest, and a linter helps but is not required (Table~\ref{tab:posture}).
@@ -85,11 +89,11 @@ The bottom edge says that the two paths compute one value.}
 The paper contributes a route, not a piece of software: each step from \Cpp{23} to System~F is a known construction, and the contribution is that the steps connect.
 \begin{enumerate}
 \item The posture: three rules on standard \Cpp{23}, each with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:posture}).
-\item Featherweight Jlt, the kernel: a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F. Three theorems about the translation and three corollaries, with proof sketches (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt:theorems}).
+\item Featherweight Jlt, the kernel: a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F. Three theorems about the translation and three corollaries, proved on paper relative to stated assumptions (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt:theorems}).
 \item An adequacy argument from \Cpp{} to the calculus, which states its gaps rather than writing around them (Sections~\ref{sec:jlt-to-fjlt} and~\ref{sec:limits}), and the sugar, named with its desugaring (Appendix~\ref{app:fjlt:closure}).
 \item An observation about \Cpp{20} concepts: with overlapping constrained overloads, a generic function's behaviour can depend on a constraint it never declared, which is GHC's incoherent instance resolution, by default and silently.
 Jlt adopts GHC's rule, and the repository's linter reports a call at a value of parameter type that breaks it (Section~\ref{sec:posture}, Appendix~\ref{app:fjlt:typing}).
-\item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mandatory review against them and by a mechanical linter in the same repository: that is what compliance means here.
+\item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mandatory review against them and by a mechanical linter in the same repository, as the library's core is: that is what compliance means here.
 \end{enumerate}
 The nearest calculus is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}.
 The kernel differs from it in three ways: its syntax is \Cpp{23} as written, a constraint is satisfied structurally and may be negated, and recursion is a fold over a range or over a term.
@@ -130,6 +134,7 @@ One example runs through the listings: \cppinline{concat}, which combines the el
 Listing~\ref{lst:rule2} writes it for zero, one and two arguments, where no recursion is needed.
 Listing~\ref{lst:rule3} writes it as a fold over a range, and Figure~\ref{fig:structures} sketches the recursion.
 Listing~\ref{lst:laws} folds Fibonacci's matrices the same way, and two declared laws reduce the fold to logarithmically many steps.
-Listing~\ref{lst:sites} leaves the example: it counts restriction sites in a DNA sequence, and the compiler partially evaluates the matcher in its pattern.
+Listing~\ref{lst:sites} leaves the example: it counts restriction sites in a DNA sequence.
+The compiler partially evaluates the matcher in its pattern, and a symmetry the sites share gives a test linear in their length, where an automaton would list them.
 Section~\ref{sec:limits} states the limits, Section~\ref{sec:related} the related work, and the appendices hold the calculus.
 
