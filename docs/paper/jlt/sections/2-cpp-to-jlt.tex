@@ -58,7 +58,6 @@ A function object is a value, as an abstraction is in the $\lambda$-calculus~\ci
 \cppinline{constant<bool>(42uz)} is the value 42 made into an arrow: a function object from \cppinline{bool} that returns 42 (Listing~\ref{lst:rule1}).
 In \Cpp{23} a copy equal to its original is Stepanov's \cppinline{std::regular} type, which also has \cppinline{==}~\cite{stepanov2009elements}.
 Rule~1 keeps the copy but only requires \cppinline{std::semiregular}, because equality of values is undecidable for functions~\cite{rice1953classes}.
-Where an equality is offered all the same, as between the arrows of Listing~\ref{lst:rule1}, it is decided by laws and may answer that it does not know.
 Two things keep it exact: a function returns a value, never a reference, and a call operator is a member function like any other, so it too is \cppinline{const}.
 \cppinline{const T} and \cppinline{const T&} are therefore one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
 
