@@ -4,21 +4,21 @@
 
 This section states the three rules that carve Jlt out of \Cpp{23}.
 Each rule is named for what it conserves, and each has a listing of a few lines that shows it.\footnote{The listings are verbatim from the repository's test, up to formatting and to the definitions a listing omits or the test imports.}
-Table~\ref{tab:posture} sets the rules side by side: what each keeps out of \Cpp{}, what it buys and what it costs.
+Table~\ref{tab:posture} sets the rules side by side: what each keeps out of Jlt, what it buys and what it costs.
 
 \begin{table}[tb]
 \centering
 \small
-\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-rule & archetype & keeps out of \Cpp{} & buys & costs & held by \\
+rule & keeps out of Jlt & buys & costs & held by \\
 \midrule
-1 Substitution & \texttt{id}, the identity arrow & state, pointers, exceptions & one program, two binding times & no state beyond a call's own locals, no I/O & the compiler in part, the linter for syntax \\
-2 Abstraction & \texttt{concat}, a monoid's fold at a length in its type & a body using what its constraints do not name & the System~F reading & no ad hoc use of a type & the linter for names, a reviewer for the rest \\
-3 Descent & \texttt{concat} over a chain, a fold over structure in a value & unbounded loops, general recursion & termination & the rank of the chain being folded & the compiler at compile time, the linter for loops \\
+1 Substitution & state, pointers, exceptions & one program, at compile time and at run time & no state beyond a call's own locals, no I/O & $\ast$~in part\newline $\dagger$~syntax \\
+2 Abstraction & a body using what its constraints do not name & the System~F reading & no ad hoc use of a type & $\dagger$~names\newline $\ddagger$~the rest \\
+3 Descent & unbounded loops, general recursion & termination & the rank of the chain being folded & $\ast$~compile time\newline $\dagger$~loops \\
 \bottomrule
 \end{tabularx}
-\caption{The posture at a glance: each rule named for what it conserves, with what it keeps out of \Cpp{}, what it buys, what it costs and who holds it.}
+\caption{The posture at a glance: each rule named for what it conserves, with what it keeps out of Jlt, what it buys, what it costs and who holds it: $\ast$~the compiler, $\dagger$~the linter, $\ddagger$~a reviewer.}
 \label{tab:posture}
 \end{table}
 
