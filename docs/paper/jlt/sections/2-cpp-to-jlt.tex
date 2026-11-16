@@ -67,15 +67,15 @@ So it is a function of the monoid's record, and it respects every relation the r
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.47\linewidth}
 \begin{cpp}
-constexpr auto fst = Π<1, pair<bool, size_t>>{};
-constexpr auto sec = Pairing{id_b, nil};
+using P = pair<bool, size_t>;
+constexpr auto fst = Π<1, P>{};
+constexpr auto snd = Π<2, P>{};
+constexpr auto fan = Pairing{id_b, nil};
 static_assert(
-is_involution(~id_u) &&
-is_involution(-id_u) &&
 is_iso(-id_u >> ~id_u) &&
 !is_involution(-id_u >> ~id_u) &&
-is_epic(fst) && !is_monic(fst) &&
-is_monic(sec) && (sec >> fst)(true));
+is_epic(fst) && is_monic(fan) &&
+id_b == fan >> fst && nil == fan >> snd);
 \end{cpp}
 \smallskip
 \begin{cpp}

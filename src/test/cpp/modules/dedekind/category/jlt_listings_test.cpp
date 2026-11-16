@@ -322,12 +322,17 @@ struct OnCounts {
 };
 static_assert(dedekind::category::IdentityIn<OnCounts>{} == ~id_u >> ~id_u);
 // Products and coproducts:
-constexpr auto fst = Π<1, std::pair<bool, size_t>>{};
-constexpr auto sec = Pairing{id_b, nil};  // ⟨1, 0⟩
+using P = std::pair<bool, size_t>;
+constexpr auto fst = Π<1, P>{};
+constexpr auto snd = Π<2, P>{};
+constexpr auto fan = Pairing{id_b, nil};  // ⟨1, 0⟩, Haskell's id &&& const 0
+// The product's two equations, as arrow laws: a projection after the fanout
+// is its leg.
+static_assert(id_b == fan >> fst && nil == fan >> snd);
 constexpr auto inl = ι<1, bool, size_t>{};
 constexpr auto ret = Copairing{id_b, nay};  // [1, ⊥]
-static_assert(is_epic(fst) && !is_monic(fst) && is_monic(sec) &&
-              !is_epic(sec) && (sec >> fst)(true) && !(sec >> fst)(false) &&
+static_assert(is_epic(fst) && !is_monic(fst) && is_monic(fan) &&
+              !is_epic(fan) && (fan >> fst)(true) && !(fan >> fst)(false) &&
               is_monic(inl) && !is_epic(inl) && is_epic(ret) &&
               !is_monic(ret) && (inl >> ret)(true) && !(inl >> ret)(false));
 
