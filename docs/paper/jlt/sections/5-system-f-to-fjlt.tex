@@ -96,7 +96,7 @@ constexpr T concat(R r, Op op = {}) {
 \begin{cpp}
 using Act = remove_cvref_t<decltype(act)>;
 template <> struct acting_monoid<Act> {
-  using type = multiplies<M>;
+  using type = multiplies<M2>;
 };
 template <IsBoundedRange R,
           semiregular M, typename H>
@@ -116,12 +116,12 @@ static_assert(fibonacci(10) == fs_10[1] &&
               fibonacci(100'000'000) == 14'139'011'350'745'967'675uz);
 \end{cpp}
 \begin{minted}{text}
-fibonacci = λ n. π₂ (fold act (1, 0) ms)      -- ms = map (const M) (chain prior n)
+fibonacci = λ n. π₂ (fold act (1, 0) ms)      -- ms = map (const fib) (chain prior n)
           = λ n. π₂ (act (1, 0) (concat (·) ms))      -- by the action law
-          = λ n. π₂ (act (1, 0) (Mⁿ))                 -- by associativity, squaring
+          = λ n. π₂ (act (1, 0) (fibⁿ))                 -- by associativity, squaring
 \end{minted}
 \caption{Laws composing, on Listing~\ref{lst:rule3}'s chain.
-Top left: the monoid concatenation $M \cdot M \cdots M$ is replaced by the power $M^n$, by the right-to-left binary method~\cite[\S 4.6.3]{knuth1997art2}, a fold over the bits of $n$ that reads them by \texttt{\% 2} and \texttt{/ 2}, a literal divisor.
+Top left: the monoid concatenation $\mathit{fib} \cdot \mathit{fib} \cdots \mathit{fib}$ is replaced by the power $\mathit{fib}^n$, by the right-to-left binary method~\cite[\S 4.6.3]{knuth1997art2}, a fold over the bits of $n$ that reads them by \texttt{\% 2} and \texttt{/ 2}, a literal divisor.
 Top right: the type constraints license the power method (Rule~2 for the specialisation, Theorem~\ref{thm:coherence} for the composition).
 Middle: the power method brings the $10^8$-th Fibonacci number, modulo $2^{64}$ as \texttt{size\_t} computes, within the compile-time step limit (Table~\ref{tab:binding}).
 Bottom: the System~F translation closely resembles the \Cpp{} above (Figure~\ref{fig:arrows}).}

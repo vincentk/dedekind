@@ -22,7 +22,7 @@ Listing~\ref{lst:sites} is a case: a count over all sequences compiles away to a
 %For them the repository binds the library's combinators into Python as handles to the compiled core, so the laws declared in \Cpp{} hold in an interactive session: the specialisations they license run there at run time, and only what the compiler evaluates of them is fixed when the bindings are built (Section~\ref{sec:binding}).
 The whole language may be too large to work in with confidence, so a functional fragment of it is worth drawing.
 \Cpp{23} is the first standard with every ingredient of such a fragment: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
-Compliance with a fragment's rules is also easier to check than a decade ago: a language model of code~\cite{chen2021evaluating} can be instructed to read every change against them.
+Compliance with a fragment's rules is also easier to check than a decade ago: a language model of code~\cite{chen2021evaluating} can be instructed to read every change against them, as an agentic reviewer.
 Such a review is a read, not a proof (Section~\ref{sec:limits}).
 
 A compile-time check is a claim about a program that the compiler verifies.
@@ -48,7 +48,7 @@ Every ingredient is in the ISO standard~\cite{cpp23standard} and implemented by 
 The compiler holds some of the rules and the programmer the rest, and a linter helps but is not required (Table~\ref{tab:posture}).
 The inner boundary is drawn by a translation.
 The \emph{kernel}, Featherweight Jlt (FJlt), is the part of Jlt on which a translation $\llbracket\cdot\rrbracket$ is defined into System~F~\cite{girard1972interpretation,reynolds1974towards}, extended with data types and iterators (Appendix~\ref{app:fjlt:translation}).
-From its target the kernel inherits termination, parametricity and a value.
+From its target the kernel inherits termination, parametricity and type soundness.
 Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, which this paper names and characterises without proof (Appendix~\ref{app:fjlt:closure}).
 The arrangement is the Haskell Report's: a kernel and the translations into it~\cite{marlow2010haskell}.
 
@@ -95,7 +95,7 @@ Three theorems about the translation and three corollaries, proved on paper rela
 \item An observation about \Cpp{20} concepts: with overlapping constrained overloads, a generic function's behaviour can depend on a constraint it never declared, by default and silently.
 GHC's rule for overlapping instances refuses such a call.
 Jlt adopts a refinement of that rule, and the repository's linter reports a call that breaks it, on an argument whose type is a template parameter (Section~\ref{sec:posture}, Appendix~\ref{app:fjlt:typing}).
-\item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mandatory review against them and by a mechanical linter in the same repository, as the library's core is: that is what compliance means here.
+\item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by an agentic review of every change against them and by a mechanical linter in the same repository, as the library's core is: that is what compliance means here.
 \end{enumerate}
 The nearest calculus is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}.
 The kernel differs from it in three ways: its syntax is \Cpp{23} as written, a constraint is satisfied structurally and may be negated, and recursion is a fold over a range or over a term.

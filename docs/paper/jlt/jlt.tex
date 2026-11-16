@@ -41,7 +41,7 @@ i) values are copyable data and functions are pure and evaluable at compile time
 ii) generic code varies with a type only through that type's concepts and traits;
 iii) recursion is structural, over a type or over a value, in a number of steps bounded before the first.
 Its kernel, Featherweight Jlt (FJlt), translates by dictionary passing, as Haskell's type classes do, into System~F extended with data types and iterators.
-The translation is defined on every well-typed program and preserves types and evaluation, so an FJlt program inherits termination, parametricity and a value.
+The translation is defined on every well-typed program and preserves types and evaluation, so an FJlt program inherits termination, parametricity and type soundness.
 Jlt beyond the kernel is syntactic sugar.
 This paper hypothesises that the desugaring preserves meaning.
 
