@@ -39,7 +39,6 @@ The compiler enforces the rule in part: a \cppinline{constexpr} function that re
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-// Identity arrows:
 template <typename A>
 constexpr auto id() { return Identity<A>{}; }
 constexpr auto id_b = id<bool>();
@@ -52,11 +51,10 @@ id_b == id_b >> id_b);
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-// Constant arrows:
 constexpr auto nil = constant<bool>(0uz);
 constexpr auto ans = constant<bool>(42uz);
 constexpr auto nay = constant<size_t>(false);
-constexpr auto cpy = ans;  // a copy
+constexpr auto cpy = ans;
 static_assert(
 cpy(true) == ans(false) &&
 (ans >> id_u)(true) == 42 &&
