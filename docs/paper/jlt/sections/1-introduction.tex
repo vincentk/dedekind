@@ -72,10 +72,12 @@ Figure~\ref{fig:arrows} sketches the arrows between these pieces.
 \end{tikzcd}
 \caption{The arrows of the paper.
 The inclusions of FJlt in Jlt and of Jlt in \Cpp{23} are proper, and each is labelled with what it adds: Jlt is the kernel and the sugar, \Cpp{23} is Jlt without the rules.
-The translation $\llbracket\cdot\rrbracket$ is total on FJlt, and $\mathit{embed}$, defined on its image, a non-empty part of System~F, is a section of it~\cite{nlab:retract}.
+System~F stands for the translation's target, System~F extended with records, sums, inductive types and iterators (Definition~\ref{def:target}).
+The translation $\llbracket\cdot\rrbracket$ is total on well-typed FJlt programs, and $\mathit{embed}$, defined on its image, a non-empty part of System~F, is a section of it~\cite{nlab:retract}.
 Its composite with the two inclusions is a partial map from System~F, the embedding that makes Jlt an embedded language.
 \texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits.
-Solid arrows are established: for every closed $t$ of base type in the image, $\mathit{eval}\,t = \mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$.
+Solid arrows are maps the paper defines or takes as given.
+For every closed $t$ of base type in the image, $\mathit{eval}\,t = \mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$: Theorem~\ref{thm:simulation} proves it inside the calculus, and Appendix~\ref{app:fjlt:ssa} argues it for the compiler's output, whose lowering is trusted.
 The dashed arrow is a working hypothesis: $\mathit{desugar}$ is total on Jlt and a retraction of the inclusion.
 $\mathit{desugar} \circ \mathit{incl} = \mathit{id}$ holds exactly, by construction.
 $\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ holds up to the value a program computes.

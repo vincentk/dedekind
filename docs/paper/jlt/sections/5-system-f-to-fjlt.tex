@@ -45,7 +45,7 @@ The theorem also makes Section~\ref{sec:posture}'s equality exact: two closed te
 Every FJlt program terminates.
 \end{corollary}
 
-It follows from Theorem~\ref{thm:simulation} and strong normalisation of the target (Appendix~\ref{app:fjlt:translation}).
+It follows from Theorem~\ref{thm:simulation} and strong normalisation of the target (Appendix~\ref{app:fjlt:translation}), which holds relative to Assumptions~\ref{ass:instance} and~\ref{ass:ranges}.
 Every step of the program is at least one step of its image, and the image cannot step forever.
 The count in Rule~3 is therefore not a guard against non-termination.
 It is how a bound is said.
@@ -126,7 +126,7 @@ fibonacci = λ n. π₂ (fold act (1, 0) ms)      -- ms = map (const M) (chain p
 \caption{Laws composing, on Listing~\ref{lst:rule3}'s chain.
 Top left: the monoid concatenation $M \cdot M \cdots M$ is replaced by the power $M^n$, by the right-to-left binary method~\cite[\S 4.6.3]{knuth1997art2}, a fold over the bits of $n$ that reads them by \texttt{\% 2} and \texttt{/ 2}, a literal divisor.
 Top right: the type constraints license the power method (Rule~2 for the specialisation, Theorem~\ref{thm:coherence} for the composition).
-Middle: the power method keeps the $10^8$ terms of the Fibonacci sequence within the compile-time step limit (Table~\ref{tab:binding}).
+Middle: the power method brings the $10^8$-th Fibonacci number, modulo $2^{64}$ as \texttt{size\_t} computes, within the compile-time step limit (Table~\ref{tab:binding}).
 Bottom: the System~F translation closely resembles the \Cpp{} above (Figure~\ref{fig:arrows}).}
 \label{lst:laws}
 \end{listing}
