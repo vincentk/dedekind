@@ -293,7 +293,7 @@ static_assert(is_constant(ans) && is_monotone(ans) && is_antitone(aye) &&
 template <typename A, typename B>
 concept Comparable = requires(const A& a, const B& b) { a == b; };
 
-// Listing 3, left: a fold over a type.  The term's shape is its type, a
+// Listing 3, bottom: a fold over a type.  The term's shape is its type, a
 // composite of composites, depth 3; it is folded once to a value and once
 // to a law, the law inferred from its legs'.
 constexpr auto neg = -id_u;        // negate
@@ -362,10 +362,10 @@ static_assert(IsMonoid<Sections<size_t>, compose> &&
               concat<Sections<size_t>, compose>(adding(40uz),
                                                 adding(2uz))(0uz) == 42);
 
-// Listing 3: Figure 2 in code.  Left, over a type: dec and dec2 above;
-// below them, over a value, the simplest case S = M: the counts' chain below
+// Listing 3: Figure 2 in code.  Bottom, over a type: dec and dec2 above.
+// Top left, over a value, the simplest case S = M: the counts' chain below
 // the seed, folded on a monoid by the library's concat, a bounded range.
-// Right: the general fold, S acting on M, matrices on vectors, Fibonacci's,
+// Top right: the general fold, S acting on M, matrices on vectors, Fibonacci's,
 // the standard's fold_left as it stands.  The checks the listing does not
 // print (the chain is an input range of the right length; Collatz's chain,
 // bounded by a budget declared with it) stay here.  chain, until, equals,

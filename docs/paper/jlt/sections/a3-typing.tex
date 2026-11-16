@@ -91,7 +91,7 @@ So every candidate that would be more specific than the chosen one and whose hea
 That refines GHC's rule for overlapping instances~\cite{ghc2024overlapping}, which looks at instance heads only and refuses to commit to an instance the types do not yet decide.
 \Cpp{} does not hold it (Listing~\ref{lst:undecided}).
 A call it would refuse is a body that varies with a type through a constraint it did not declare, a breach of Rule~2, which the repository's linter reports where it can see one (Section~\ref{sec:limits}).
-The body is well-formed at every instantiation, so this is not an error that definition checking would have reported at a use: the function's meaning, not its validity, depends on the undeclared constraint.
+The body is well-formed at every instantiation, so no instantiation reports it: the function's meaning, not its validity, depends on the undeclared constraint.
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.48\linewidth}
@@ -131,9 +131,11 @@ template <typename T>
 constexpr int named(T x) { return g(x); }
 \end{cpp}
 \end{minipage}
-\caption{Resolution at a type variable, from the linter's negative control; \texttt{Q} is a concept every type here satisfies.
+\caption{Resolution at a type variable, from the linter's tests; \texttt{Q} is a concept every type here satisfies.
 Left: \Cpp{} accepts \texttt{undecided}, whose result varies with \texttt{C}, a concept it does not declare, and the linter reports its call.
-Right: three callers whose constraints decide the call, by requiring \texttt{C}, by negating it and by naming the call.}
+Right: three callers the kernel accepts.
+Two decide the overload, by requiring \texttt{C} and by negating it.
+The third declares the call itself as a requirement, so \texttt{g} is part of its dictionary.}
 \label{lst:undecided}
 \end{listing}
 
@@ -250,8 +252,10 @@ A term type $\mu F$, the object of Table~\ref{tab:recursion-names}'s row over a 
 \textsc{T-Cata} is the kernel's recursion over a type, stated once at a term type: the instances of one generic function at the nodes of $F$, each calling it at its legs' types, read as one algebra.
 The algebra is applied to each node together with the folded values of its legs, the node itself still in hand: the library's interface, \cppinline{alg(t, cata(alg, leg)...)}, and the paramorphism's.
 \textsc{T-Node} reads a term of node type as $\mu F$ where a rule expects one.
-Listing~\ref{lst:rule3}'s identity law is one such recursion, with laws in the algebra: each step may also rewrite, and the result is the composite's normal form.
-An arrow's normal form is the sequence of its atoms once the laws have been applied: identities dropped, brackets removed, and a certified involution cancelled against itself, the arrow's path in the free category on its atoms~\cite{maclane1971categories}.
+Listing~\ref{lst:rule3}'s last equation, \cppinline{id_u == cpl >> cpl}, is one such recursion, with laws in the algebra: each step may also rewrite, and the result is the composite's normal form.
+An arrow's atoms are its parts that \cppinline{>>} did not build.
+Its normal form is the sequence of its atoms once the laws have been applied: identities dropped, brackets removed, a certified involution cancelled against itself, a constant absorbing what precedes it, and a projection after a pairing reduced to its leg.
+It is the arrow's path in the free category on its atoms~\cite{maclane1971categories}, modulo those laws.
 Two arrows with one normal form are equal in every model of the laws~\cite{birkhoff1935structure}.
 Two with different normal forms are not known to differ: the laws need not be all that holds of the functions at hand, and equality of functions is undecidable even where every program ends (Section~\ref{sec:guarantees}).
 

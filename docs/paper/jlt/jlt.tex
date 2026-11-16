@@ -51,7 +51,7 @@ A law licenses an overload written for it, and overload resolution composes such
 In one program the action law and associativity, neither aware of the other, turn a fold of $n$ steps into one of $\log n$, even at compile time, where no optimiser runs.
 In another, the words sought share a symmetry that their type states.
 An automaton would list them, exponentially many in their length, and the test the law gives is linear in it.
-The paper also exhibits a \Cpp{20} program whose overlapping constrained overloads resolve incoherently in GHC's sense, and Jlt adopts GHC's rule.
+The paper also exhibits a \Cpp{20} program in which a generic function's result depends on a constraint it never declared, a call that GHC's rule for overlapping instances refuses, and Jlt adopts a refinement of that rule.
 
 The evidence presented is
 a) proofs relative to stated assumptions,
