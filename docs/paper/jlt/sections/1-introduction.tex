@@ -56,7 +56,8 @@ The claim is one of existence: \Cpp{23} contains an embedding of a fragment of S
 The fragment includes prenex polymorphism with type classes, which Wadler and Blott's translation covers~\cite{wadler1989adhoc}.
 It goes one step further: a function object whose call operator is generic is a polymorphic value, and it can be passed as an argument (\textsc{T-App}, Appendix~\ref{app:fjlt:typing}).
 No claim is made that Jlt is unique or canonical.
-As in the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}, the embedded terms are generic code over an interface, here a \cppinline{concept}, and their interpretations are its models.
+As in the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}, the embedded terms are generic code over an interface, and their interpretations are its models.
+The interface here is a \cppinline{concept}.
 The posture's name refers to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: in \Cpp{23} a \cppinline{concept} is a predicate on a type's structure, not on its name or lineage.\footnote{``A rose by any other name would smell as sweet''~\cite{shakespeare1597romeo}.}
 Figure~\ref{fig:arrows} shows the arrows between these pieces.
 
@@ -75,17 +76,9 @@ Figure~\ref{fig:arrows} shows the arrows between these pieces.
   & \text{value}
 \end{tikzcd}
 \caption{The arrows of the paper.
-The inclusions of FJlt in Jlt and of Jlt in \Cpp{23} are proper, and each is labelled with what it adds: Jlt is the kernel and the sugar, \Cpp{23} is Jlt without the rules.
-System~F stands for the translation's target, System~F extended with records, sums, inductive types and iterators (Definition~\ref{def:target}).
-The translation $\llbracket\cdot\rrbracket$ is total on well-typed FJlt programs, and $\mathit{embed}$, defined on its image, a non-empty part of System~F, is a section of it~\cite{nlab:retract}.
-Its composite with the two inclusions is a partial map from System~F, the embedding that makes Jlt an embedded language.
-\texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits.
-Solid arrows are maps the paper defines or takes as given.
-For every closed $t$ of base type in the image, $\mathit{eval}\,t = \mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$: Theorem~\ref{thm:simulation} proves it inside the calculus, and Appendix~\ref{app:fjlt:ssa} argues it for the compiler's output, whose lowering is trusted.
-The dashed arrow is a working hypothesis: $\mathit{desugar}$ is total on Jlt and a retraction of the inclusion.
-$\mathit{desugar} \circ \mathit{incl} = \mathit{id}$ holds exactly, by construction.
-$\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ holds up to the value a program computes.
-The bottom edge then holds for every Jlt program $p$: $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.}
+A hooked arrow is an inclusion, labelled with what it adds.
+A solid arrow is a map the paper defines or takes as given, and the dashed arrow is a working hypothesis.
+The bottom edge says that the two paths compute one value.}
 \label{fig:arrows}
 \end{figure}
 
@@ -105,7 +98,30 @@ What the paper adds to these is the setting: the kernel's syntax is \Cpp{23} as 
 \paragraph{How to read this paper.}
 The paper is written for authors of generic \Cpp{} libraries first, with System~F as the warranty and a rule for their overloads; for those who audit \Cpp{} against a policy and need to know what a tool checks; for readers of programming languages in the line of concepts and type classes; and for researchers who arrive from Python and want the performance of \Cpp{} with a guard rail.
 The sections follow the arrows of Figure~\ref{fig:arrows}, one each.
-Section~\ref{sec:posture} is the inclusion of Jlt in \Cpp{23}, the rules that carve Jlt out of it; Section~\ref{sec:jlt-to-fjlt} is the inclusion of FJlt in Jlt and the dashed arrow back, which Jlt programs are kernel programs; Section~\ref{sec:translation} is $\llbracket\cdot\rrbracket$, the translation of Featherweight Jlt into System~F; Section~\ref{sec:guarantees} is \emph{eval}, the theorems read back from System~F; Section~\ref{sec:binding} is \texttt{clang++} and \emph{run}, one program at both binding times, and how instantiation relates to the translation.
+\begin{description}
+\item[Section~\ref{sec:posture}, Jlt in \Cpp{23}.]
+The three rules carve Jlt out of \Cpp{23}.
+The inclusion is proper: \Cpp{23} is Jlt without the rules.
+\item[Section~\ref{sec:jlt-to-fjlt}, FJlt in Jlt, and the dashed arrow back.]
+The inclusion is proper: Jlt is the kernel and the sugar.
+The dashed arrow $\mathit{desugar}$ is a working hypothesis: it is total on Jlt and a retraction of the inclusion.
+$\mathit{desugar} \circ \mathit{incl} = \mathit{id}$ holds exactly, by construction.
+$\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ holds up to the value a program computes.
+\item[Section~\ref{sec:translation}, the translation $\llbracket\cdot\rrbracket$.]
+It is total on well-typed FJlt programs.
+Its target, which the figure calls System~F, is System~F extended with records, sums, inductive types and iterators (Definition~\ref{def:target}).
+$\mathit{embed}$, defined on the image of the translation, is a section of it~\cite{nlab:retract}.
+Composed with the two inclusions it is a partial map from System~F into \Cpp{23}, the embedding that makes Jlt an embedded language.
+\item[Section~\ref{sec:guarantees}, $\mathit{eval}$.]
+The theorems about the translation, and what an FJlt program inherits from its image.
+\item[Section~\ref{sec:binding}, \texttt{clang++} and $\mathit{run}$.]
+One program at both binding times, and how instantiation relates to the translation.
+\texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits.
+\item[The bottom edge.]
+$\mathit{eval}\,t = \mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$ for every closed $t$ of base type in the image.
+Theorem~\ref{thm:simulation} proves it inside the calculus, and Appendix~\ref{app:fjlt:ssa} argues it for the compiler's output, whose lowering is trusted.
+Under the hypothesis it holds for every Jlt program $p$: $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.
+\end{description}
 The listings follow one example through the paper, \cppinline{concat}, and Figure~\ref{fig:structures} sketches the recursion it runs on.
 It is first a monoid at the lengths that need no recursion, then the fold over the chain of a count under an arrow, then Fibonacci's matrix chain, which two declared laws fold in logarithmically many steps.
 The last listing counts restriction sites, where the compiler partially evaluates a matcher in its pattern.
