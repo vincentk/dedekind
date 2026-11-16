@@ -29,6 +29,9 @@ template <typename T>
 constexpr int undecided(T x) {
   return g(x);  // finding 1: g resolves by C, which Q does not decide
 }
+// The Jlt paper's listing of an undecided call: C++ accepts it, and its
+// result varies with C, which undecided does not declare.
+static_assert(undecided(0) == 0 && undecided('a') == 1);
 
 template <typename T>
   requires Q<T> && C<T>

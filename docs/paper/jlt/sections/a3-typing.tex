@@ -89,8 +89,53 @@ At concrete types FJlt takes \Cpp{}'s rule as it is.
 At a type variable it adds one condition, which well-formedness requires: in a body with context $\Delta$, a call resolves only when its choice survives every instantiation of the body.
 So every candidate that would be more specific than the chosen one and whose head unifies with the call's types, explicit specialisations included, is excluded by a constraint $\Delta$ decides, entailing it or its negation.
 That refines GHC's rule for overlapping instances~\cite{ghc2024overlapping}, which looks at instance heads only and refuses to commit to an instance the types do not yet decide.
-\Cpp{} does not hold it.
+\Cpp{} does not hold it (Listing~\ref{lst:undecided}).
 A call it would refuse is a body that varies with a type through a constraint it did not declare, a breach of Rule~2, which the repository's linter reports where it can see one (Section~\ref{sec:limits}).
+The body is well-formed at every instantiation, so this is not an error that definition checking would have reported at a use: the function's meaning, not its validity, depends on the undeclared constraint.
+
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T>
+concept C = sizeof(T) == 1;
+
+template <typename T>
+  requires Q<T>
+constexpr int g(T) { return 0; }
+template <typename T>
+  requires Q<T> && C<T>
+constexpr int g(T) { return 1; }
+
+template <typename T>
+  requires Q<T>
+constexpr int undecided(T x) { return g(x); }
+
+static_assert(undecided(0) == 0 &&
+              undecided('a') == 1);
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.5\linewidth}
+\begin{cpp}
+template <typename T>
+  requires Q<T> && C<T>
+constexpr int requires_it(T x) { return g(x); }
+
+template <typename T>
+  requires Q<T> && (!C<T>)
+constexpr int negates_it(T x) { return g(x); }
+
+template <typename T>
+concept HasG = requires(const T a) { g(a); };
+template <typename T>
+  requires HasG<T>
+constexpr int named(T x) { return g(x); }
+\end{cpp}
+\end{minipage}
+\caption{Resolution at a type variable, from the linter's negative control; \texttt{Q} is a concept every type here satisfies.
+Left: \Cpp{} accepts \texttt{undecided}, whose result varies with \texttt{C}, a concept it does not declare, and the linter reports its call.
+Right: three callers whose constraints decide the call, by requiring \texttt{C}, by negating it and by naming the call.}
+\label{lst:undecided}
+\end{listing}
 
 \paragraph{Operators.}
 An operator expression $\ominus e$ or $e_1 \oplus e_2$ is resolved as \Cpp{} resolves it~\cite[{\texttt{over.match.oper}}]{cpp23standard}.
