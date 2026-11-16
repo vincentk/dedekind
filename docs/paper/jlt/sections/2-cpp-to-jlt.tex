@@ -141,6 +141,8 @@ Since \Cpp{20} checks a template's body only at its uses (Section~\ref{sec:intro
 
 Laws are \emph{certificates}, of two kinds.
 The axioms are declared, supplied by certification, and the compiler finds them but does not prove them: a declaration admits a law by fiat, as \texttt{sorry} does in Lean~\cite{demoura2021lean} and \texttt{Admitted} in Coq~\cite{Coq}.
+A law declared falsely makes the program ill-formed with no diagnostic required, as the standard says of a concept that is satisfied but not modelled~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.
+The posture asks no more of a law than the standard asks of a concept.
 The theorems are inferred from them while compiling, by composition: a composite arrow's law from its legs', a shape built from shapes from theirs.
 Overload resolution is the proof search that finds either, a simple one~\cite{augustsson2005djinn}.
 Like any theorem, each is only as sound as the axioms it rests on.
