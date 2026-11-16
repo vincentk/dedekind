@@ -71,7 +71,7 @@ The one-constructor-at-a-time iterators are what make Theorem~\ref{thm:simulatio
 \begin{assumption}[Ranges]
 \label{ass:ranges}
 A range's conditions are semantic, so the termination of a fold is in part assumed in the typing of its range.
-Each instance's $|\cdot|$ and $\mathit{uncons}$ are first-order rules on its constructor that terminate and are conservative, or terms over operations already covered, so that Theorem~\ref{cit:sn} applies to them.
+Each instance's $|\cdot|$ and $\mathit{uncons}$ are first-order rules on its constructor that terminate, are conservative and are confluent, with no critical pair against the other rules, or terms over operations already covered, so that Theorem~\ref{cit:sn} applies to them.
 For each instance, the target's operations compute the source's, for \cppinline{iota} as Definition~\ref{def:standard} says: $\mathit{toNat}\,|\llbracket r \rrbracket|$ reduces to $|r|$, and $\mathit{uncons}\,\llbracket r \rrbracket$ to $\iota_2\,(\llbracket \mathit{head}\,r \rrbracket, \llbracket \mathit{next}\,r \rrbracket)$ when $|r| > 0$ and to $\iota_1\,()$ when $|r| = 0$.
 \end{assumption}
 
@@ -299,7 +299,10 @@ If $\varnothing; \varnothing \vdash e : \tau$ and $e \longrightarrow e'$ in FJlt
 Two substitution facts carry it.
 (a) Substituting values of the parameters' types for the parameters keeps a typing, the textbook substitution lemma~\cite{pierce2002tapl}.
 (b) If $\overline{\alpha}, \overline{Q}; \Gamma \vdash e : \tau$ and $\varnothing \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}]$, then $\varnothing; \Gamma[\overline{\sigma}/\overline{\alpha}] \vdash e[\overline{\sigma}/\overline{\alpha}] : \tau[\overline{\sigma}/\overline{\alpha}]$, by induction on the typing derivation.
-Its one case with work is \textsc{T-Req-Assumed}: at concrete types the site is the requirement's expression with its arguments, which \textsc{E-Op}'s premise types at the instantiated constraint, under \textsc{T-Conv} where the requirement converts, so it is typed by \textsc{T-Call} or \textsc{T-Trait} at the declared type; every other case is structural.
+Its cases with work are two.
+\textsc{T-Req-Assumed}: at concrete types the site is the requirement's expression with its arguments, which \textsc{E-Op}'s premise types at the instantiated constraint, the arguments substituted by (a), under \textsc{T-Conv} where the requirement converts; so it is typed at the declared type by whichever rule types that expression, \textsc{T-Call}, \textsc{T-Trait}, \textsc{T-App}, \textsc{T-Op} or an operator's.
+\textsc{T-Fold-R}: at a concrete type only \textsc{E-Range} entails $\mathit{IsRange}$, so the range's type is an instance of $\mathcal{R}$, and the fold is typed by \textsc{T-Fold}.
+Every other case is structural.
 The steps, one row per rule of evaluation; ${}^{\textsc{ih}}$ marks the induction hypothesis on the context, and the rows with work follow the table.
 \begingroup
 \small
