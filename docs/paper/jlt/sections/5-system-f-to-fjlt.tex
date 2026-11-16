@@ -64,12 +64,10 @@ The composite cannot do anything the components' records do not provide.
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// the overload associativity licenses
 template <typename T, typename Op,
           IsCountWord N>
   requires IsMonoid<T, Op>
 constexpr T power(const T& x, N n, Op op) {
-  // n's bits, from the bottom
   struct Step { T acc, base; N rest; };
   const auto bits =
       static_cast<size_t>(bit_width(n));
@@ -95,12 +93,10 @@ constexpr T concat(R r, Op op = {}) {
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// the action law, declared
 using Act = remove_cvref_t<decltype(act)>;
 template <> struct acting_monoid<Act> {
   using type = multiplies<M>;
 };
-// the overload it licenses
 template <IsBoundedRange R,
           semiregular M, typename H>
   requires IsCopies<R> && IsRightAction<
@@ -112,7 +108,6 @@ constexpr M fold(R r, M v, H h) {
 \end{cpp}
 \end{minipage}
 \begin{cpp}
-// Listing 3's fold, by the library: the laws choose how
 constexpr size_t fibonacci(size_t n) {
   return fold(n >> chain<size_t>() >> constant<size_t>(fib), V{1, 0}, act)[1];
 }

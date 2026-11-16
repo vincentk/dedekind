@@ -217,36 +217,31 @@ Figure~\ref{fig:structures} draws it: $\mathit{out}$, here $\mathit{prior}$, cou
 In the standard's ranges library~\cite{cpp23standard} the chain is an \cppinline{input_range}, $f$ is \cppinline{views::transform}, written \cppinline{>>}, and $h$ is the fold's step.
 Listing~\ref{lst:rule3} shows two cases.
 In the simplest, bottom left, $S = M$ is a monoid: \cppinline{concat} folds the chain below the seed $10$.
-In the general one, right, $S$ acts on $M$: $f$ maps every element to Fibonacci's matrix, and $h$, \cppinline{act}, multiplies it into a vector, starting from $e = (1, 0)$.
+In the general one, bottom right, $S$ acts on $M$: $f$ maps every element to Fibonacci's matrix, and $h$, \cppinline{act}, multiplies it into a vector, starting from $e = (1, 0)$.
 A loop whose end the program shows is sugar for the fold it denotes, and any other loop stays out (Section~\ref{sec:jlt-to-fjlt}).
 \item \emph{Over a type.}
 The recursion is the compiler's instantiation.
 Each node of a term is a class template whose type names its children's, so the term's shape is its type.
 A fold over the term is a function template instantiated once per node, the overload chosen by the node's type, and it ends with the type's finite height.
 Figure~\ref{fig:structures} draws this too: $\mathit{out}$ takes a term to its subterms, the figure follows one branch, and $n$ is the term's height.
-Listing~\ref{lst:rule3}'s \cppinline{dec >> dec}, top left, is a term of height three.
+Listing~\ref{lst:rule3}'s \cppinline{dec >> dec}, at the top, is a term of height three.
 It is folded twice: once to a value, and once to a law, \cppinline{is_iso}, inferred from its legs'.
-The last line there compares two arrows by their normal forms, their paths in the free category on their atoms~\cite{maclane1971categories}, reduced by unit, associativity and the certified involution $\sim$.
+The last assertion there compares two arrows by their normal forms, their paths in the free category on their atoms~\cite{maclane1971categories}, reduced by unit, associativity and the certified involution $\sim$.
 So \cppinline{==} answers by the laws and never by the functions, whose equality stays undecidable~\cite{rice1953classes}.
 \end{itemize}
 
 
 \begin{listing}[htbp]
+\begin{cpp}
+constexpr auto dec = -id_u >> ~id_u;
+constexpr auto dec2 = dec >> dec;
+static_assert(dec2(42uz) == 40 && is_iso(dec2) && id_u == ~id_u >> ~id_u);
+\end{cpp}
+\vspace{-12pt}
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// over a type: the shape is the type
-constexpr auto dec = -id_u >> ~id_u;  // x - 1
-constexpr auto dec2 = dec >> dec;     // x - 2
-static_assert(dec2(42uz) == 40 &&
-              is_iso(dec2));
-static_assert(id_u == ~id_u >> ~id_u);
-\end{cpp}
-\smallskip
-\begin{cpp}
-// over a value: the chain below the seed
-constexpr auto ns =                   // 9, …, 0
+constexpr auto ns =
     10uz >> chain<size_t>();
-// S = M, the fold on a monoid
 template <IsBoundedRange R,
           typename T = ranges::range_value_t<R>,
           typename Op = plus<T>>
@@ -261,26 +256,24 @@ static_assert(
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// S acting on M: matrices on vectors
 using V = array<size_t, 2>;
-struct M { V top, bottom;           // row by row
-  friend constexpr V operator*(V v, M a) {  // v·A
+struct M { V top, bottom;
+  friend constexpr V operator*(V v, M a) {
     return {v[0] * a.top[0] + v[1] * a.bottom[0],
             v[0] * a.top[1] + v[1] * a.bottom[1]};}
   /* M * M, M + M, n * M, == */ };
 constexpr auto act = [](V v, M a) { return v * a; };
 constexpr M fib{{1, 1}, {1, 0}};
 constexpr auto ms = ns >> constant<size_t>(fib);
-// F(11), F(10)
 constexpr auto fs_10 = ranges::fold_left(
   ms, V{1, 0}, act);
 static_assert(fs_10 == V{89, 55});
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in code.
-Top left: recursion over a type.
-Bottom left: recursion over a value, the fold on a monoid.
-Right: recursion over a value, a monoid acting on vectors.}
+Top: recursion over a type, on \cppinline{dec}, the decrement.
+Bottom left: recursion over a value, the fold on a monoid, over the chain $9, \ldots, 0$.
+Bottom right: recursion over a value, matrices acting on row vectors, to $(F(11), F(10))$.}
 \label{lst:rule3}
 \end{listing}
 
