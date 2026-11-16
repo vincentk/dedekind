@@ -158,10 +158,10 @@ A law is stated of a carrier together with an operation: \cppinline{size_t} is a
   & & f(n-1) \arrow[d]
   & \\
   \llap{$M$:\quad}
-  & \bullet
-  & & \circ \arrow[ll, "h"']
+  & m_0
+  & & m_1 \arrow[ll, "h"']
   & & \cdots \arrow[ll, "h"']
-  & & \circ \arrow[ll, "h"']
+  & & m_{n-1} \arrow[ll, "h"']
   & & e \arrow[ll, "h"']
 \end{tikzcd}
 \caption{Structural recursion in FJlt, a sketch.
@@ -173,7 +173,7 @@ The chain is what $\mathit{prior}$ reaches from $n$: the $n$ elements below it, 
 So $n$ is the chain's rank, its cardinality, and $0$ the empty chain.
 Terms: replace $\mathbf{1} + X$ by a polynomial functor $F$, $X$ by its initial algebra $\mu F$, and $\mathit{prior}$ by Lambek's inverse $\mathit{out} : \mu F \to F\,\mu F$; the chain below $n$ becomes the subterms below a term $t$, $\mathit{sub}(t)$, and $n$ becomes $t$'s height, its rank: the figure is read for a type as for a value.
 Algebra: $f$ lands in $S$, and the fold in $M$.
-Fold: the fold along the walk, $h : M \times S \to M$, runs from $e$ at the seed's end through the intermediate values, $\circ$, to the result, $\bullet$.
+Fold: $h : M \times S \to M$ runs along the walk, from $m_n = e$ by $m_k = h(m_{k+1}, f(k))$ to the result $m_0$.
 }
 \label{fig:structures}
 \end{figure}
