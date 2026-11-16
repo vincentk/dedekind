@@ -48,17 +48,15 @@ From its target the kernel inherits termination, parametricity and a value.
 Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, which this paper names and characterises without proof (Appendix~\ref{app:fjlt:closure}).
 The arrangement is the Haskell Report's: a kernel and the translations into it~\cite{marlow2010haskell}.
 
-Jlt is thus an embedded domain-specific language in Hudak's sense~\cite{hudak1996building}, whose domain is System~F and whose host is \Cpp{23}.
-Its programs are ordinary \Cpp{23} programs, type-checked and compiled by an unmodified toolchain, Clang~23 in this case (Section~\ref{sec:limits}).
-The paper does not design a language.
-It characterises a fragment of an existing one.
-The claim is one of existence: \Cpp{23} contains an embedding of a fragment of System~F, and the listings exhibit it.
+Jlt is an embedded domain-specific language in Hudak's sense~\cite{hudak1996building}: its host is \Cpp{23} and its domain is System~F.
+Nothing is added to the host.
+A Jlt program is an ordinary \Cpp{23} program, type-checked and compiled by an unmodified toolchain, Clang~23 in this paper (Section~\ref{sec:limits}).
+The embedding follows the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}: an embedded term is generic code over a \cppinline{concept}, and an interpretation of it is a model of that \cppinline{concept}.
+So the paper designs no language, and its claim is one of existence: \Cpp{23} already contains an embedding of a fragment of System~F, and the listings exhibit it.
 The fragment includes prenex polymorphism with type classes, which Wadler and Blott's translation covers~\cite{wadler1989adhoc}.
 It goes one step further: a function object whose call operator is generic is a polymorphic value, and it can be passed as an argument (\textsc{T-App}, Appendix~\ref{app:fjlt:typing}).
-No claim is made that Jlt is unique or canonical.
-As in the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}, the embedded terms are generic code over an interface, and their interpretations are its models.
-The interface here is a \cppinline{concept}.
-The posture's name refers to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: in \Cpp{23} a \cppinline{concept} is a predicate on a type's structure, not on its name or lineage.\footnote{``A rose by any other name would smell as sweet''~\cite{shakespeare1597romeo}.}
+Whether Jlt is the only such fragment, or a canonical one, is left open.
+The name refers to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: a \cppinline{concept} is a predicate on a type's structure, not on its name or lineage.\footnote{``A rose by any other name would smell as sweet''~\cite{shakespeare1597romeo}.}
 Figure~\ref{fig:arrows} shows the arrows between these pieces.
 
 \begin{figure}[tb]
