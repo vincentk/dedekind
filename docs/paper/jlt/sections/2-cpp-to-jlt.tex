@@ -6,6 +6,24 @@ This section states the three rules that carve Jlt out of \Cpp{23}.
 Each rule is named for what it conserves, and each has a listing of a few lines that shows it.\footnote{The listings are verbatim from the repository's test, up to formatting and to the definitions a listing omits or the test imports.}
 Table~\ref{tab:posture} sets the rules side by side: what each keeps out of \Cpp{}, what it buys and what it costs.
 
+\begin{table}[tb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+rule & archetype & keeps out of \Cpp{} & buys & costs \\
+\midrule
+1 Substitution & \texttt{id}, the identity arrow & state, pointers, exceptions & one program, two binding times & no state beyond a call's own locals, no I/O \\
+2 Abstraction & \texttt{concat}, a monoid's fold at a length in its type & a body using what its constraints do not name & the System~F reading & no ad hoc use of a type \\
+3 Descent & \texttt{concat} over a chain, a fold over structure in a value & unbounded loops, general recursion & termination & the rank of the chain being folded \\
+\bottomrule
+\end{tabularx}
+\caption{The posture at a glance, each rule named for what it conserves, with what it keeps out of \Cpp{}: the filtration from \Cpp{} to Jlt.
+At build time, Rule~1 is held by the compiler in part and by the repository's linter for its syntax; Rule~2 by the linter at the level of names and by an auditing reader for the rest; Rule~3 by the compiler at compile time and by the linter for loops and recursion.
+Section~\ref{sec:limits} says how.}
+\label{tab:posture}
+\end{table}
+
 \paragraph{Rule 1, Substitution: const values and an identity-preserving copy.}
 \phantomsection\label{def:rule1}
 Every type a Jlt program passes around is \cppinline{std::semiregular}: it is inhabited, and its copy is as good as the original.
@@ -282,21 +300,4 @@ Algebra: beyond a monoid, and a monoid acting on $M$, a semiring may act on a se
 Iterators: the fold along the walk needs no list~\cite{gibbons1996third}, only the walk, which is an iterator~\cite{stepanov2009elements}.
 With $\mathit{succ}$ as well it is bidirectional, and with offsets random-access, the standard's three iterator categories~\cite{cpp23standard}.\footnote{With $\mathit{succ}$, $\mathit{succ} >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}, and with offsets an array~\cite[\S 2.2.2]{knuth1997art1}.}
 
-\begin{table}[ht]
-\centering
-\small
-\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
-\toprule
-rule & archetype & keeps out of \Cpp{} & buys & costs \\
-\midrule
-1 Substitution & \texttt{id}, the identity arrow & state, pointers, exceptions & one program, two binding times & no state beyond a call's own locals, no I/O \\
-2 Abstraction & \texttt{concat}, a monoid's fold at a length in its type & a body using what its constraints do not name & the System~F reading & no ad hoc use of a type \\
-3 Descent & \texttt{concat} over a chain, a fold over structure in a value & unbounded loops, general recursion & termination & the rank of the chain being folded \\
-\bottomrule
-\end{tabularx}
-\caption{The posture at a glance, each rule named for what it conserves, with what it keeps out of \Cpp{}: the filtration from \Cpp{} to Jlt.
-At build time, Rule~1 is held by the compiler in part and by the repository's linter for its syntax; Rule~2 by the linter at the level of names and by an auditing reader for the rest; Rule~3 by the compiler at compile time and by the linter for loops and recursion.
-Section~\ref{sec:limits} says how.}
-\label{tab:posture}
-\end{table}
 
