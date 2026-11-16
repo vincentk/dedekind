@@ -56,10 +56,15 @@ Right: the points, constant arrows, and a copy; a constant absorbs the arrows be
 
 A function object is a value, as an abstraction is in the $\lambda$-calculus~\cite{pierce2002tapl}: the arguments it binds are its fields, so it is copied as any value is.
 \cppinline{constant<bool>(42uz)} is the value 42 made into an arrow: a function object from \cppinline{bool} that returns 42 (Listing~\ref{lst:rule1}).
-In \Cpp{23} a copy equal to its original is Stepanov's \cppinline{std::regular} type, which also has \cppinline{==}~\cite{stepanov2009elements}.
-Rule~1 keeps the copy but only requires \cppinline{std::semiregular}, because equality of values is undecidable for functions~\cite{rice1953classes}.
-Two things keep it exact: a function returns a value, never a reference, and a call operator is a member function like any other, so it too is \cppinline{const}.
-\cppinline{const T} and \cppinline{const T&} are therefore one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
+Stepanov's regular type has a copy and an equality, and a copy equals its original~\cite{stepanov2009elements}.
+\Cpp{23} names it \cppinline{std::regular}.
+Rule~1 requires the copy and not the equality, which is \cppinline{std::semiregular}: equality cannot be decided for functions in general~\cite{rice1953classes}.
+A type is free to offer one all the same.
+Two things keep the copy exact.
+A function returns a value, never a reference.
+A call operator is a member function like any other, so it too is \cppinline{const}.
+So \cppinline{const T} and \cppinline{const T&} are one parameter, since nothing changes the value the reference denotes.
+The reference is an optimisation, and the translation erases it.
 
 With the address and mutation out of reach, no arrow tells a copy from its original.\footnote{The two are equal up to canonical isomorphism in Mazur's sense~\cite{mazur2008equal}, an object being known, by Yoneda's lemma, through its arrows out~\cite{maclane1971categories}.}
 
