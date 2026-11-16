@@ -140,17 +140,17 @@ A law is stated of a carrier together with an operation: \cppinline{size_t} is a
 
 \begin{figure}[tbp]
 \centering
-\begin{tikzcd}[column sep=2em, row sep=1.5em]
+\begin{tikzcd}[column sep=1em, row sep=1.5em, every label/.append style={font=\small}]
   \llap{$\mathbf{1}$:\quad}
   &[1.6em] & & & & & & & & \mathbf{1} \arrow[d, "n"] \\
   \llap{$X$:\quad} \ast
-  & 0 \arrow[l, "\mathit{prior}"'] \arrow[d, "f"]
-  & & 1 \arrow[ll, "\mathit{prior}"'] \arrow[d, "f"]
+  & 0 \arrow[l, "\mathit{prior}"'] \arrow[d]
+  & & 1 \arrow[ll, "\mathit{prior}"'] \arrow[d]
   & & \cdots \arrow[ll, "\mathit{prior}"']
-  & & n-1 \arrow[ll, "\mathit{prior}"'] \arrow[d, "f"]
+  & & n-1 \arrow[ll, "\mathit{prior}"'] \arrow[d]
   & & n \arrow[ll, "\mathit{prior}"'] \arrow[rr, dashed, "\mathit{succ}^*"]
  % & & \cdots \arrow[rr, dashed, "\mathit{succ}"]
-  & & \mathbb{N} \\
+  & &[1.4em] \mathbb{N} \\
   \llap{$S$:\quad}
   & f(0) \arrow[d]
   & & f(1) \arrow[d]
