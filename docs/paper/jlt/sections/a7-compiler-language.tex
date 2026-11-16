@@ -8,7 +8,7 @@ Here the program the compiler emits is read as the same term.
 It is a reason, not a theorem: the compiler is not among the hypotheses, and its lowering is trusted, as every \Cpp{} program trusts it.
 
 \paragraph{From the term to SSA.}
-Instantiation is partial evaluation of the dictionary-passing term (Section~\ref{sec:binding}), and it leaves a closed first-order term over the base types.
+Instantiation is partial evaluation of the dictionary-passing term (Section~\ref{sec:binding}), finite by \RuleThree{}, and it leaves a closed first-order term over the base types.
 The type abstractions are gone with their arguments, and the record parameters with the records the compiler resolved.
 Every trait call is a call to one specialisation, and the only recursion left is $\mathit{iter}$ and $\mathit{fold}_F$.
 For Go, Ellis et al.~\cite{ellis2022generic} prove the dictionary-passing translation correct beside monomorphisation, which Griesemer et al.~\cite{griesemer2020featherweight} proved; \Cpp{} only ever does the second, and the first carries the theorems.
