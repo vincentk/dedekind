@@ -44,8 +44,8 @@ Its kernel, Featherweight Jlt (FJlt), translates by dictionary passing, as Haske
 Jlt beyond the kernel is syntactic sugar.
 This paper hypothesises that the desugaring preserves meaning.
 
-A law is declared by the programmer and is not checked.
-A declared law licenses an overload written for it, and overload resolution composes such overloads and enables inference: in one program the action law and associativity, neither aware of the other, turn a fold of $n$ steps into one of $\log n$, even at compile time, where no optimiser runs.
+A law is either declared, without a check, or inferred from declared laws by composition.
+A law licenses an overload written for it, and overload resolution composes such overloads: in one program the action law and associativity, neither aware of the other, turn a fold of $n$ steps into one of $\log n$, even at compile time, where no optimiser runs.
 In another, the words sought share a symmetry, stated in their type.
 An automaton would list them, exponentially in their length.
 The test the law writes is linear in it.
