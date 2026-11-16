@@ -200,7 +200,7 @@ Pierce's \texttt{fold} builds up: it is $\mathit{in}$, not the fold that consume
 \end{tikzcd}
 
 \caption{Structural recursion in FJlt, a sketch, in Lambek's notation (Table~\ref{tab:recursion-names}).
-The seed $n$ is a point of $\mu F$, and $\mathit{out}$ steps down from it until nothing is left, $\ast$.
+The seed $n$ is a point of $\mu F$, and $\mathit{out}$ steps down from it, rank by rank, until nothing is left, $\ast$.
 $f$ lands in $S$, and $h : M \times S \to M$ folds along the walk: $m_n = e$ and $m_k = h(m_{k+1}, f(k))$, to the result $m_0$.
 At a node with several legs, the algebra takes the results of them all.}
 \label{fig:structures}
@@ -211,9 +211,10 @@ At a node with several legs, the algebra takes the results of them all.}
 Recursion in Jlt is structural~\cite{burstall1969proving}: every step reduces a finite residue, so the recursion ends.
 
 Several literatures describe such a residue and its recursion, each in its own words, and Table~\ref{tab:recursion-names} sets them side by side.
-This paper uses Lambek's notation, and its mental model is Dedekind's finite chain: the elements that a step reaches from a starting point.\footnote{After Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself, and the chain of an element is its forward orbit.
+This paper uses Lambek's notation, and its mental model is a finite chain in Dedekind's sense: the elements that a step reaches from a starting point.\footnote{After Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself, and the chain of an element is its forward orbit.
 The carrier needs neither an order nor an origin: reachability under the step orders the chain, and its bottom is where the step has nothing.}
-Figure~\ref{fig:structures} draws one chain, and both forms of recursion read it.
+Figure~\ref{fig:structures} draws one chain.
+Jlt has two forms of recursion, over a value and over a type, and both read it.
 
 \begin{itemize}
 \item \emph{Over a value.}
@@ -221,7 +222,7 @@ The chain is a range: the elements that $\mathit{prior}$ reaches from a seed $n$
 Its length is known before the first step, and the recursion is the standard's fold, \cppinline{ranges::fold_left}, bounds-checked before it starts.
 In Figure~\ref{fig:structures}, $\mathit{out}$ is $\mathit{prior}$: it counts down from $n$, $f$ maps each element into $S$, and $h$ folds the results into $M$, starting from $e$.
 In \Cpp{} the chain is an \cppinline{input_range}, $f$ is \cppinline{views::transform}, written \cppinline{>>}, and $h$ is the fold's step.\footnote{The fold along the walk needs no list~\cite{gibbons1996third}, only the walk, which is an iterator.
-With $\mathit{succ}$ as well it is bidirectional, a zipper~\cite{huet1997zipper}, and with offsets random-access, an array~\cite[\S 2.2.2]{knuth1997art1}: the standard's three iterator categories.}
+With $\mathit{succ}$ as well it is bidirectional, a zipper~\cite{huet1997zipper}, and with offsets random-access, an array~\cite[\S 2.2.2]{knuth1997art1}: three of the standard's iterator categories.}
 Listing~\ref{lst:rule3}'s top panels show two cases.
 On the left, $S = M$ is a monoid: \cppinline{concat} folds the chain below the seed $10$.
 On the right, $S$ acts on $M$: $f$ maps every element to Fibonacci's matrix, and $h$, \cppinline{act}, multiplies it into a vector, starting from $e = (1, 0)$.\footnote{A semiring may likewise act on a semimodule, which adds distributivity.}
@@ -233,7 +234,7 @@ The recursion is the compiler's instantiation: a fold over the term is a functio
 In Figure~\ref{fig:structures}, $\mu F$ is the type of terms: $\mathit{out}$ takes a term to its subterms, the figure follows one branch, and $n$ is the term's height.
 Listing~\ref{lst:rule3}'s bottom panel builds such a term, \cppinline{dec >> dec}, a composite of two composites, of height three.
 It is folded twice: once to a value, and once to a law, \cppinline{is_iso}, inferred from its legs'.
-Its last assertion compares two arrows by their normal forms, their paths in the free category on their atoms~\cite{maclane1971categories}, reduced by unit, associativity and the certified involution $\sim$.
+The equation that ends it compares two arrows by their normal forms, their paths in the free category on their atoms~\cite{maclane1971categories}, reduced by unit, associativity and a certified involution, here \cppinline{cpl}.
 So \cppinline{==} answers by the laws and never by the functions, whose equality stays undecidable~\cite{rice1953classes}.
 \end{itemize}
 
