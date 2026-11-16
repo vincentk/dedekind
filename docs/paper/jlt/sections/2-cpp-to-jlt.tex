@@ -74,6 +74,7 @@ A function object is a value, as an abstraction is in the $\lambda$-calculus~\ci
 An \emph{arrow}, as in category theory~\cite{pierce1991basic}, is a function object with a domain and a codomain, and arrows compose with \cppinline{>>}, left to right.
 \cppinline{constant<bool>(42uz)} is the value 42 made into an arrow: a function object from \cppinline{bool} that returns 42 (Listing~\ref{lst:rule1}).
 With the address and mutation out of reach, no arrow tells a copy from its original.\footnote{The two are equal up to canonical isomorphism in Mazur's sense~\cite{mazur2008equal}, an object being known, by Yoneda's lemma, through its arrows out~\cite{maclane1971categories}.}
+Listing~\ref{lst:rule1} writes \cppinline{==} between arrows all the same, and \RuleThree{} says how that is decided.
 
 \paragraph{Rule 2, Abstraction: generic code varies with a type only through its concepts and traits.}
 \phantomsection\label{def:rule2}
