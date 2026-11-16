@@ -19,6 +19,7 @@ The translation is a function of the program: two resolutions of the same constr
 \end{theorem}
 
 In \Cpp{} this is overload resolution together with the one-definition rule: at concrete types a specialisation is unique, or the program is ill-formed.
+The theorem is therefore close to immediate: a well-formed program leaves resolution no choice, so the translation is deterministic, which is what coherence asks of it.
 It gives ``the unit of \cppinline{+} at \cppinline{size_t}'' one meaning in a program, so a law can be stated about it, and it lets laws compose: two overloads written apart are chosen the same way wherever they are called, as the two behind Listing~\ref{lst:laws} are.
 
 \begin{theorem}[Type preservation]
@@ -148,4 +149,6 @@ By Theorem~\ref{thm:coherence} each inferred law is unique, and the conditions o
 As type checking rules out classes of errors without proving a program correct, law inference licenses classes of optimisations without deciding program equivalence, which stays undecidable where every program ends: a program testing whether a machine halts within $n$ steps equals the constant false exactly when that machine never halts~\cite{turing1936computable}.
 Each optimisation is local, a rewrite at the node whose law licenses it, and so mechanical; the global one, the best equivalent program, is the undecidable one.
 Since the laws are the application's, not the machine's, so are the optimisations they license.
+None of this section's theorems speaks to the truth of a declared law.
+That a licensed overload computes what the fold it replaces computes rests on the declaration, which the compiler finds and does not prove (Section~\ref{sec:posture}).
 

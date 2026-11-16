@@ -44,9 +44,11 @@ Its kernel, Featherweight Jlt (FJlt), translates by dictionary passing, as Haske
 Jlt beyond the kernel is syntactic sugar.
 This paper hypothesises that the desugaring preserves meaning.
 
-Declared laws license overloads, and overload resolution composes them and enables inference: in one program the action law and associativity, neither aware of the other, turn a fold of $n$ steps into one of $\log n$, even at compile time, where no optimiser runs.
+A law is declared by the programmer and is not checked.
+A declared law licenses an overload written for it, and overload resolution composes such overloads and enables inference: in one program the action law and associativity, neither aware of the other, turn a fold of $n$ steps into one of $\log n$, even at compile time, where no optimiser runs.
 In another, the words sought share a symmetry, stated in their type.
-An automaton would list them, exponentially in their length; the test the law writes is linear in it, and the compiler vectorises it.
+An automaton would list them, exponentially in their length.
+The test the law writes is linear in it.
 Along the way the paper shows that \Cpp{20} concepts with overlapping overloads resolve incoherently in GHC's sense, and adopts GHC's rule.
 
 The evidence presented is
