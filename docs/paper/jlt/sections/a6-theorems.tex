@@ -20,15 +20,16 @@ The iterators reduce by $\mathit{iter}\,(k{+}1)\,s\,z \longrightarrow \mathit{it
 Reduction in the target is full $\beta$-reduction, any redex anywhere, together with projections, case, the $\delta$-rules of the constants, the unfolding of a defined name to its body and the two iterator rules; no evaluation order is imposed.
 \end{definition}
 
-\begin{citedtheorem}[Strong normalisation; Blanqui~\cite{blanqui2005definitions}]
+\begin{citedtheorem}[Strong normalisation and confluence; Jouannaud and Okada~\cite{jouannaud1997abstract}]
 \label{cit:sn}
-System~F with products and sums, first-order rewrite rules on constants that are themselves strongly normalising and confluent, and recursors under the General Schema on basic inductive types, those whose constructors take the type itself only directly, is strongly normalising.
+The polymorphic $\lambda$-calculus with first-order rewrite rules that terminate and are conservative, a variable occurring no more often on the right than on the left, and with higher-order rules, recursors among them, under the General Schema on inductive types whose constructors take no functional arguments, is strongly normalising~\cite[Theorem~25]{jouannaud1997abstract}.
+Its reductions are confluent where the first-order rules are and no critical pair lies between the higher-order rules, or between them and the first-order ones~\cite[Propositions~28 and~29]{jouannaud1997abstract}.
 \end{citedtheorem}
 
 The parts are older than their combination.
 Matthes shows System~F with products, sums and positive inductive types with their iterators strongly normalising and confluent, and its iterative fragment embedded into System~F by an encoding that preserves reduction~\cite{matthes1999extensions}.
 Breazu-Tannen and Gallier show that adding first-order rewrite rules on algebraic constants to System~F conserves strong normalisation and confluence~\cite{breazutannen1991polymorphic,breazutannen1994polymorphic}.
-Blanqui combines them in the Calculus of Algebraic Constructions, which contains System~F, with recursors under the General Schema~\cite{blanqui2005definitions}.
+Blanqui extends the General Schema to the Calculus of Constructions~\cite{blanqui2005definitions}, under a confluence hypothesis that dependent types need and System~F does not.
 
 \begin{citedtheorem}[Type substitution; Girard~\cite{girard1989proofs}, Pierce~\cite{pierce2002tapl}]
 \label{cit:subst}
@@ -54,14 +55,16 @@ That a compiler and its library implement the standard is outside the proofs, as
 
 \begin{assumption}[The instance]
 \label{ass:instance}
-The target, so presented, is an instance of Blanqui's calculus: the two iterators meet the General Schema, and the embedding keeps every reduction.
+The target, so presented, is an instance of Theorem~\ref{cit:sn}'s calculus, except that a term type's constructor may take a function-typed argument; such an argument is a declared or standard function object, and Jouannaud and Okada's proof extends to it, with computability at the term type including its arguments', as Matthes defines it~\cite{matthes1999extensions}.
 \end{assumption}
 
 The assumption is what is asserted rather than carried out; Theorem~\ref{cit:sn}'s other hypotheses are checked here.
-The $\delta$-rules are first-order rules on constants that are strongly normalising and confluent: ground, a constant out of constants, so each step removes one operator application and they terminate, and a function of their argument constants, so they are confluent.
-$\mathit{iter}$ and $\mathit{fold}_F$ are recursors on $\mathbb{N}$ and on term types, which Appendix~\ref{app:fjlt:typing}'s condition on term types makes basic; $\mathit{iter}$ in the accumulator form above is the standard iterator at $\sigma \to \sigma$, each of its steps at least one step of that.
+Products and sums are sorts with their constructors, and their projections and case are rules of the calculus.
+The $\delta$-rules are first-order rules on constants: ground, a constant out of constants, so each step removes one operator application and they terminate, they are conservative, having no variables, and they are confluent, being a function of their argument constants.
+$\mathit{iter}$ and $\mathit{fold}_F$ are recursors under the General Schema, on $\mathbb{N}$ and on term types, whose legs Appendix~\ref{app:fjlt:typing}'s condition on term types makes direct; $\mathit{iter}$ in the accumulator form above is the standard iterator at $\sigma \to \sigma$, each of its steps at least one step of that.
 The defined names are acyclic, by the declaration order, and expand away.
-Granted the assumption, the target is therefore strongly normalising by Theorem~\ref{cit:sn}; its rules have no critical pairs, so it is also confluent, by Newman's lemma~\cite{newman1942theories,baader1998term}.
+No critical pair lies between the rules, so, granted the assumption, the target is strongly normalising and confluent by Theorem~\ref{cit:sn}.
+The extension the assumption names is the one Matthes makes for iterators alone; Jouannaud and Okada state their proof for any computability predicate with the properties it needs, so carrying the extension out means giving such a predicate at term types that carry function objects.
 The one-constructor-at-a-time iterators are what make Theorem~\ref{thm:simulation} exact, where a Church encoding, unfolding all at once, would not be.
 
 \begin{assumption}[Ranges]
@@ -385,6 +388,6 @@ For closed terms of base type, $e$ evaluates to $v$ if and only if $\llbracket e
 \begin{proof}
 The first two claims are Lemma~\ref{lem:forward}, the first up to $\sqsupseteq$.
 For the converse at a base type: if $e \Downarrow v$ then $\llbracket e \rrbracket \longrightarrow^{*} t \sqsupseteq v$ by Lemma~\ref{lem:forward} and induction on the sequence, and $t = \llbracket v \rrbracket$, a constant.
-Conversely, if $\llbracket e \rrbracket \longrightarrow^{*} c$ for a constant $c$: by Corollary~\ref{cor:soundness} $e \Downarrow v$ for some $v$, so $\llbracket e \rrbracket \longrightarrow^{*} \llbracket v \rrbracket$ by the half just proved, and $c = \llbracket v \rrbracket$ since the target is confluent (by Newman's lemma, after Assumption~\ref{ass:instance}) and both are normal forms, the translation being injective on constants.
+Conversely, if $\llbracket e \rrbracket \longrightarrow^{*} c$ for a constant $c$: by Corollary~\ref{cor:soundness} $e \Downarrow v$ for some $v$, so $\llbracket e \rrbracket \longrightarrow^{*} \llbracket v \rrbracket$ by the half just proved, and $c = \llbracket v \rrbracket$ since the target is confluent (Theorem~\ref{cit:sn}, Assumption~\ref{ass:instance}) and both are normal forms, the translation being injective on constants.
 \end{proof}
 
