@@ -252,7 +252,8 @@ The algebra is applied to each node together with the folded values of its legs,
 \textsc{T-Node} reads a term of node type as $\mu F$ where a rule expects one.
 Listing~\ref{lst:rule3}'s identity law is one such recursion, with laws in the algebra: each step may also rewrite, and the result is the composite's normal form.
 An arrow's normal form is the sequence of its atoms once the laws have been applied: identities dropped, brackets removed, and a certified involution cancelled against itself, the arrow's path in the free category on its atoms~\cite{maclane1971categories}.
-Two arrows with one normal form are equal by the laws, and two with different ones are not known to differ, since equality of functions is undecidable~\cite{rice1953classes}.
+Two arrows with one normal form are equal in every model of the laws~\cite{birkhoff1935structure}.
+Two with different normal forms are not known to differ: the laws need not be all that holds of the functions at hand, and equality of functions is undecidable even where every program ends (Section~\ref{sec:guarantees}).
 
 \paragraph{Well-founded declarations.}
 Typing is itself a computation: resolving a call may ask whether a constraint holds, which may ask for another resolution, and \RuleThree{} asks that this chain end too.
