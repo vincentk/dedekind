@@ -142,8 +142,9 @@ Overload resolution selects the most specific instance~\cite{cpp23standard}.
 \Cpp{20} does not check a body against its constraints (Section~\ref{sec:intro}), so the rule is the programmer's to keep, and Listing~\ref{lst:undecided} shows a body that breaks it.
 
 Laws are \emph{certificates}, of two kinds.
-An axiom is declared, and the compiler does not prove it.\footnote{So \texttt{sorry} admits a statement in Lean~\cite{demoura2021lean}, and \texttt{Admitted} in Coq~\cite{Coq}.
-A law declared falsely makes the program ill-formed with no diagnostic required, as the standard says of a concept that is satisfied but not modelled~\cite[{\texttt{res.on.requirements}}]{cpp23standard}: the posture asks no more of a law than the standard asks of a concept.}
+An axiom is declared: the compiler does not prove it.\footnote{Similarly, \texttt{sorry} admits a statement in Lean~\cite{demoura2021lean}, and \texttt{Admitted} one in Coq~\cite{Coq}.
+A false law declaration is possible and makes the program ill-formed with no diagnostic required.
+A \cppinline{concept} might then be satisfied but not modelled~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.}
 A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts: \cppinline{IsMonoid<size_t, plus<size_t>>} is one.
 Overload resolution is a simple proof search that finds either kind~\cite{augustsson2005djinn}.
 A law is stated of a carrier together with an operation: \cppinline{size_t} is a monoid twice, under $(0, +)$ and under $(1, \times)$.\footnote{A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.}
