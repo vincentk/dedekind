@@ -61,9 +61,8 @@ With the address and mutation out of reach, no arrow tells a copy from its origi
 \paragraph{Rule 2, Abstraction: a type varies behaviour only through its concepts and traits.}
 \phantomsection\label{def:rule2}
 Generic code may do with a type argument exactly what the type's constraints permit~\cite{reynolds1983types,wadler1989theorems}.
-So a generic function is one term applied to its type's dictionary, and it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
-\cppinline{concat} uses only what its constraint names, so it is a function of the monoid's record.
-\Cpp{20} checks a template's body only at its uses (Section~\ref{sec:intro}), so this is a rule here and not a theorem.
+Listing~\ref{lst:rule2}'s \cppinline{concat} is written once, against a monoid: it may combine two elements and start from the unit, and it can do nothing else.
+So it is a function of the monoid's record, and it respects every relation the record respects (Corollary~\ref{cor:parametricity}).
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.47\linewidth}
@@ -135,21 +134,18 @@ The monoids used are \cppinline{size_t} under \cppinline{(0, +)} and \cppinline{
 \label{lst:rule2}
 \end{listing}
 
-In \Cpp{23} a \cppinline{concept} is a predicate on a type's structure~\cite{cpp23standard}, and a trait is a compile-time function on a type or a family of types~\cite{myers1995traits}.
+In \Cpp{23} a \cppinline{concept} is a predicate on a type's structure~\cite{cpp23standard}, and a trait is a compile-time function on types~\cite{myers1995traits}.
 Together they take the place of type classes~\cite{wadler1989adhoc}.
 A type that has the operations satisfies the \cppinline{concept} without a declaration, so the standard library's types are admitted unmodified.
-Overload resolution selects the instance: among the declarations whose constraints a type satisfies, the compiler takes the most specific, by the partial order of constraints~\cite{cpp23standard}.
-Inside a generic body that choice can turn on a \cppinline{concept} the body never declared, which Rule~2 forbids (Listing~\ref{lst:undecided}).
+Overload resolution selects the most specific instance~\cite{cpp23standard}.
+\Cpp{20} does not check a body against its constraints (Section~\ref{sec:intro}), so the rule is the programmer's to keep, and Listing~\ref{lst:undecided} shows a body that breaks it.
 
 Laws are \emph{certificates}, of two kinds.
-An axiom is declared: the compiler finds the declaration and does not prove it, as \texttt{sorry} admits a statement in Lean~\cite{demoura2021lean} and \texttt{Admitted} in Coq~\cite{Coq}.
-A law declared falsely makes the program ill-formed with no diagnostic required, as the standard says of a concept that is satisfied but not modelled~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.
-The posture asks no more of a law than the standard asks of a concept.
-A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts.
-\cppinline{IsMonoid<size_t, plus<size_t>>} is one, inferred from the declarations on Listing~\ref{lst:rule2}'s left.
+An axiom is declared, and the compiler does not prove it.\footnote{So \texttt{sorry} admits a statement in Lean~\cite{demoura2021lean}, and \texttt{Admitted} in Coq~\cite{Coq}.
+A law declared falsely makes the program ill-formed with no diagnostic required, as the standard says of a concept that is satisfied but not modelled~\cite[{\texttt{res.on.requirements}}]{cpp23standard}: the posture asks no more of a law than the standard asks of a concept.}
+A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts: \cppinline{IsMonoid<size_t, plus<size_t>>} is one.
 Overload resolution is a simple proof search that finds either kind~\cite{augustsson2005djinn}.
-A law is stated of a carrier together with an operation, never of a carrier alone: \cppinline{associative(plus<T>)} is about \cppinline{T} under $+$, and \cppinline{size_t} is a monoid twice, under $(0, +)$ and under $(1, \times)$.
-A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.
+A law is stated of a carrier together with an operation: \cppinline{size_t} is a monoid twice, under $(0, +)$ and under $(1, \times)$.\footnote{A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.}
 
 \begin{figure}[tbp]
 \centering
