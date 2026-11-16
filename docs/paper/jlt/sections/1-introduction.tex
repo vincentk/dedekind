@@ -35,7 +35,7 @@ This paper documents a discipline of three rules that does, and that recovers so
 The rules are a cost paid once, in how a program is written.
 In return a law holds in every model of it, a specialisation it licenses applies on every call, and a checked statement serves every reader.
 An optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point.
-In Jlt those laws are declared.
+Under the discipline, a program declares such laws itself.
 
 The fragment is the \emph{Juliet Posture}, or Jlt, and it has two boundaries.
 The outer boundary is drawn by the three rules: Jlt is the proper subset of \Cpp{23} they define.
