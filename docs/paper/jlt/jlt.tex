@@ -35,11 +35,11 @@ Parametric polymorphism, type classes and structural recursion let a functional 
 \Cpp{23}, which runs much of machine learning and most embedded devices, has the material for them: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
 It does not hold a generic function to its declared constraints: the body may use any operation its type argument happens to have.
 
-This paper characterises a fragment of \Cpp{23} as it ships, with no language modification, compiler extension or tool to install: an embedded language whose domain is System~F and whose programs are ordinary \Cpp{23} programs.
+This paper characterises a fragment of \Cpp{23} as it ships, with no language modification or compiler extension, and no tool required: an embedded language whose domain is System~F and whose programs are ordinary \Cpp{23} programs.
 The fragment is type-class-style code under three rules, called the Juliet Posture (Jlt):
 i) values are copyable data and functions are pure and evaluable at compile time;
 ii) generic code varies with a type only through that type's concepts and traits;
-iii) recursion is structural, over a type or over a value, in a number of steps bounded before the first.
+iii) recursion is structural, over a type or over a value, in a number of steps fixed before the first step.
 Its kernel, Featherweight Jlt (FJlt), translates by dictionary passing, as Haskell's type classes do, into System~F extended with data types and iterators.
 The translation is defined on every well-typed program and preserves types and evaluation, so an FJlt program inherits termination, parametricity and type soundness.
 Jlt beyond the kernel is syntactic sugar.
@@ -49,8 +49,8 @@ The programmer declares a law, and the compiler does not check it.
 Where declared laws compose, the compiler infers further laws mechanically.
 A law licenses an overload written for it, and overload resolution composes such overloads.
 In one program the action law and associativity, neither aware of the other, turn a fold of $n$ steps into one of $\log n$, even at compile time, where no optimiser runs.
-In another, the words sought share a symmetry that their type states.
-An automaton would list them, exponentially many in their length, and the test the law gives is linear in it.
+Another program searches a text for a set of words that share a symmetry, declared as a law.
+An automaton would list the words, exponentially many in their length, and the test derived from the law is linear in that length.
 The paper also exhibits a \Cpp{20} program in which a generic function's result depends on a constraint it never declared, a call that GHC's rule for overlapping instances refuses, and Jlt adopts a refinement of that rule.
 
 The evidence presented is
@@ -59,7 +59,7 @@ b) a linter that checks source code against the three rules,
 c) a library in a public repository whose core the linter checks, and
 d) listings that compile and run at both compile time and run time under the repository's tests.
 The claim is one of existence: \Cpp{23} already contains an embedding of a fragment of System~F.
-The compiler holds it where the standard checks, and the programmer's discipline holds it elsewhere.
+The compiler enforces the rules where the standard requires a check, and the programmer keeps them elsewhere.
 \end{abstract}
 
 % Section skeleton (#981).  Each section names what it must establish; prose

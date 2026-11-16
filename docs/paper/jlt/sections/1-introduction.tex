@@ -13,11 +13,11 @@ For the declared laws the reasoning is complete: an equation follows from the la
 A stronger class has fewer instances and more laws, so it licenses more rewrites.
 
 These benefits are usually pursued in a language designed for them.
-The ideas themselves are not niche: the most widely used functional languages may well be the spreadsheet formula~\cite{peytonjones2003excel} and SQL's \texttt{SELECT}, a declarative query over relations~\cite{iso9075sql,codd1970relational}.
+The ideas themselves are not niche: the most widely used functional languages may well be the formula language of spreadsheets~\cite{peytonjones2003excel} and SQL's \texttt{SELECT}, a declarative query over relations~\cite{iso9075sql,codd1970relational}.
 This paper pursues them in \Cpp{23}, a mainstream systems language.
 Much of machine learning and most embedded devices run on \Cpp{}, and a growing number of the people who write it arrive from Python with a functional vocabulary.
-\Cpp{} offers a compiler for nearly every machine and abstraction without run-time overhead~\cite{stroustrup2005abstraction}.\footnote{Stroustrup has since called the phrase an understatement: ``It's compiled away. This is why I talk about zero overhead abstraction, and people are beginning to take me to task for that because that's understating and underestimating the ability of the \Cpp{} compiler. We can do negative overhead abstraction''~\cite{stroustrup2026peterman}.
-Listing~\ref{lst:sites} is a case: a count over all sequences compiles away to a constant, a matcher's construction to its table, and a law with a length bound to a vectorised scan.}
+\Cpp{} offers a compiler for nearly every machine, and abstraction without run-time overhead, its zero-overhead principle~\cite{stroustrup2005abstraction}.\footnote{Stroustrup has since called the phrase an understatement: ``It's compiled away. This is why I talk about zero overhead abstraction, and people are beginning to take me to task for that because that's understating and underestimating the ability of the \Cpp{} compiler. We can do negative overhead abstraction''~\cite{stroustrup2026peterman}.
+Listing~\ref{lst:sites} is a case.}
 % Should probably go to conclusions or something:
 %For them the repository binds the library's combinators into Python as handles to the compiled core, so the laws declared in \Cpp{} hold in an interactive session: the specialisations they license run there at run time, and only what the compiler evaluates of them is fixed when the bindings are built (Section~\ref{sec:binding}).
 The whole language may be too large to work in with confidence, so a functional fragment of it is worth drawing.
@@ -34,7 +34,7 @@ The designers named the problem at the outset, in 2003: ``crucial aspects of the
 \Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary.
 This paper documents a discipline of three rules that does, and that recovers some of what a functional language guarantees.
 The rules are a cost paid once, in how a program is written.
-In return, what follows from a law holds in every model of it, a specialisation it licenses applies on every call, and a checked statement serves every reader.
+In return, what follows from a law holds in every model of it, and a specialisation it licenses applies on every call.
 An optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point.
 Under the discipline, a program declares such laws itself.
 The programmer declares a law, and the compiler does not check it: a law declared falsely is the programmer's error, as the standard has it for a concept (Section~\ref{sec:posture}).
@@ -55,14 +55,14 @@ The arrangement is the Haskell Report's: a kernel and the translations into it~\
 Jlt is an embedded domain-specific language in Hudak's sense~\cite{hudak1996building}: its host is \Cpp{23} and its domain is System~F.
 Nothing is added to the host.
 A Jlt program is an ordinary \Cpp{23} program, type-checked and compiled by an unmodified toolchain, Clang~23 in this paper (Section~\ref{sec:limits}).
-The embedding follows the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}: an embedded term is generic code over a \cppinline{concept}, and an interpretation of it is a model of that \cppinline{concept}.
 So the paper designs no language, and its claim is one of existence: \Cpp{23} already contains an embedding of a fragment of System~F, and the listings exhibit it.
 The fragment includes prenex polymorphism with type classes, which Wadler and Blott's translation covers~\cite{wadler1989adhoc}.
 It goes one step further: a function object whose call operator is generic is a polymorphic value, and it can be passed as an argument (\textsc{T-App}, Appendix~\ref{app:fjlt:typing}).
+The embedding follows the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}: an embedded term is generic code over a \cppinline{concept}, and an interpretation of it is a model of that \cppinline{concept}.
 Jlt is assembled from canonical pieces: System~F, Wadler and Blott's translation, and the concepts and folds of the standard.
 That does not make the assembly canonical, and whether another fragment would serve as well is left open.
 The name refers to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: a \cppinline{concept} is a predicate on a type's structure, not on its name or lineage.\footnote{``A rose by any other name would smell as sweet''~\cite{shakespeare1597romeo}.}
-Figure~\ref{fig:arrows} shows the arrows between these pieces.
+Figure~\ref{fig:arrows} shows the languages of the paper and the maps between them.
 
 \begin{figure}[tb]
 \centering
@@ -91,15 +91,18 @@ The paper contributes a route, not a piece of software: each step from \Cpp{23} 
 \item The posture: three rules on standard \Cpp{23}, each with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:posture}).
 \item Featherweight Jlt, the kernel: a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F.
 Three theorems about the translation and three corollaries, proved on paper relative to stated assumptions (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt:theorems}).
-\item An adequacy argument from \Cpp{} to the calculus, which states its gaps rather than writing around them (Sections~\ref{sec:jlt-to-fjlt} and~\ref{sec:limits}), and the sugar, named with its desugaring (Appendix~\ref{app:fjlt:closure}).
+\item An adequacy argument from \Cpp{} to the calculus, which states its gaps (Sections~\ref{sec:jlt-to-fjlt} and~\ref{sec:limits}), and the sugar, named with its desugaring (Appendix~\ref{app:fjlt:closure}).
 \item An observation about \Cpp{20} concepts: with overlapping constrained overloads, a generic function's behaviour can depend on a constraint it never declared, by default and silently.
 GHC's rule for overlapping instances refuses such a call.
 Jlt adopts a refinement of that rule, and the repository's linter reports a call that breaks it, on an argument whose type is a template parameter (Section~\ref{sec:posture}, Appendix~\ref{app:fjlt:typing}).
-\item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by an agentic review of every change against them and by a mechanical linter in the same repository, as the library's core is: that is what compliance means here.
+\item The exhibits: every \Cpp{} listing in this paper compiles and runs under a stock compiler, at compile time and at run time, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}.
+Each is held to the three rules, Listing~\ref{lst:undecided}'s left panel excepted, by an agentic review of every change against them and by a mechanical linter in the same repository, as the library's core is.
+That is what compliance means here.
 \end{enumerate}
+
 The nearest calculus is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}.
 The kernel differs from it in three ways: its syntax is \Cpp{23} as written, a constraint is satisfied structurally and may be negated, and recursion is a fold over a range or over a term.
-Definition checking is not complete, and Section~\ref{sec:limits} says what the repository's linter reads and what it misses.
+The linter's definition checking is incomplete: Section~\ref{sec:limits} says what it reads and what it misses.
 
 \paragraph{How to read this paper.}
 The paper has four kinds of reader in mind.
@@ -107,7 +110,7 @@ Writers of generic \Cpp{} code get a rule for their overloads, and System~F as w
 Those who audit \Cpp{} against a policy get a statement of what a tool checks and what it leaves.
 Readers of programming-language research get a calculus in the line of concepts and type classes.
 Those who learn or teach, among them researchers who arrive from Python, get a fragment small enough to state in three rules, with listings that compile.
-The sections follow the arrows of Figure~\ref{fig:arrows}, one each.
+The sections follow the arrows of Figure~\ref{fig:arrows}.
 \begin{description}
 \item[Section~\ref{sec:posture}, Jlt in \Cpp{23}.]
 The three rules carve Jlt out of \Cpp{23}.
@@ -121,7 +124,7 @@ $\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ holds up to the value a pro
 \item[Section~\ref{sec:translation}, the translation $\llbracket\cdot\rrbracket$.]
 It is total on well-typed FJlt programs.
 Its target, which the figure calls System~F, is System~F extended with records, sums, inductive types and iterators (Definition~\ref{def:target}).
-$\mathit{embed}$, defined on the image of the translation, is a section of it~\cite{nlab:retract}.
+$\mathit{embed}$, defined on the image of the translation, is a right inverse of it~\cite{nlab:retract}.
 Composed with the two inclusions it is a partial map from System~F into \Cpp{23}, the embedding that makes Jlt an embedded language.
 \item[Section~\ref{sec:guarantees}, $\mathit{eval}$.]
 The theorems about the translation, and what an FJlt program inherits from its image.
@@ -135,8 +138,8 @@ Under the hypothesis it holds for every Jlt program $p$: $\mathit{eval}\,\llbrac
 \end{description}
 One example runs through the listings: \cppinline{concat}, which combines the elements of a monoid.
 Listing~\ref{lst:rule2} writes it for zero and two arguments, where no recursion is needed.
-Listing~\ref{lst:rule3} writes it as a fold over a range, and Figure~\ref{fig:structures} sketches the recursion.
-Listing~\ref{lst:laws} folds Fibonacci's matrices the same way, and two declared laws reduce the fold to logarithmically many steps.
+Listing~\ref{lst:rule3} writes it as a fold over a range, of counts and of Fibonacci's matrices, and Figure~\ref{fig:structures} sketches the recursion.
+In Listing~\ref{lst:laws} two declared laws reduce that fold to logarithmically many steps.
 Listing~\ref{lst:sites} leaves the example: it counts restriction sites in a DNA sequence.
 The compiler partially evaluates the matcher in its pattern, and a symmetry the sites share gives a test linear in their length, where an automaton would list them.
 Section~\ref{sec:limits} states the limits, Section~\ref{sec:related} the related work, and the appendices hold the calculus.

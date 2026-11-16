@@ -3,7 +3,7 @@
 \label{sec:posture}
 
 This section states the three rules that carve Jlt out of \Cpp{23}.
-Each rule is named for what it conserves, and each has a listing of a few lines that shows it.\footnote{The listings are verbatim from the repository's test, up to formatting, the grouping of assertions and the definitions a listing omits or the test imports.}
+Each rule has a listing of a few lines that shows it.\footnote{The listings are verbatim from the repository's test, up to formatting, the grouping of assertions and the definitions a listing omits or the test imports.}
 Table~\ref{tab:posture} sets the rules side by side: what each keeps out of Jlt, what it buys and what it costs.
 
 \begin{table}[tb]
@@ -14,21 +14,21 @@ Table~\ref{tab:posture} sets the rules side by side: what each keeps out of Jlt,
 rule & keeps out of Jlt & buys & costs & held by \\
 \midrule
 1 Substitution & state, pointers, exceptions & one program, at compile time and at run time & no state beyond a call's own locals, no I/O & $\ast$~in part\newline $\dagger$~syntax \\
-2 Abstraction & a body using what its constraints do not name & the System~F reading & no ad hoc use of a type & $\dagger$~names\newline $\ddagger$~the rest \\
+2 Abstraction & a body using what its constraints do not name & parametricity & no ad hoc use of a type & $\dagger$~names\newline $\ddagger$~the rest \\
 3 Descent & unbounded loops, general recursion & termination & a bound on every fold, stated before it starts & $\ast$~compile time\newline $\dagger$, $\ddagger$~loops \\
 \bottomrule
 \end{tabularx}
-\caption{The posture at a glance: each rule named for what it conserves, with what it keeps out of Jlt, what it buys, what it costs and who holds it: $\ast$~the compiler, $\dagger$~the linter, $\ddagger$~an agentic reviewer.}
+\caption{The posture at a glance: what each rule keeps out of Jlt, what it buys, what it costs and who holds it: $\ast$~the compiler, $\dagger$~the linter, $\ddagger$~an agentic reviewer.}
 \label{tab:posture}
 \end{table}
 
 \paragraph{Rule 1, Substitution: const values and an identity-preserving copy.}
 \phantomsection\label{def:rule1}
-Every type a Jlt program passes around is \cppinline{std::semiregular}: it is inhabited, and its copy is as good as the original.
+Every type a Jlt program passes around is \cppinline{std::semiregular}: it is inhabited, and its copy is as good as the original.\footnote{Inhabitation is used later: equational reasoning over several types is sound and complete only when none of them is empty (Appendix~\ref{app:fjlt:theorems}).}
 Equality is not required, since it cannot be decided for functions in general~\cite{rice1953classes}, though a type is free to offer one.\footnote{A type with a copy and an equality is Stepanov's regular type~\cite{stepanov2009elements}, in \Cpp{23} \cppinline{std::regular}.}
-That it is inhabited is used later: equational reasoning over several types is sound and complete only when none of them is empty (Appendix~\ref{app:fjlt:theorems}).
 Every function is \cppinline{constexpr}, every member function \cppinline{const}, and each depends on its arguments alone.
-A function returns a value, never a reference, so \cppinline{const T} and \cppinline{const T&} are one parameter: the reference is an optimisation, and the translation erases it.
+A function returns a value, never a reference.
+\cppinline{const T} and \cppinline{const T&} are one parameter, since a copy is as good as its original: the reference is an optimisation, and the translation erases it.
 
 The rule conserves Leibniz's law: equals cannot be told apart by any operation, at compile time or at run time.\footnote{Leibniz himself stated the converse, that what cannot be told apart is equal~\cite{leibniz1686discours,leibniz1686discourse}.
 The name has come to cover both directions.}
@@ -63,7 +63,6 @@ ans == nil >> nay >> ans);
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution.
-A function object is a value: a copy of it is as good as the original, function objects compose with \cppinline{>>}, and every call here is replaced by its value while compiling.
 Left: the identities, and an equation between arrows, decided by their laws and not by their values (Listing~\ref{lst:rule3}).
 Right: constant arrows and a copy.
 A constant absorbs the arrows before it.}
@@ -136,7 +135,7 @@ concat<size_t, multiplies<size_t>>(6uz, 7uz)
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
 Top left: laws of arrows, inferred for composites.
 Bottom left: the monoid axioms for the unsigned integers under $+$.
-Right: the monoid shape and the free function \cppinline{concat}.
+Right: the monoid shape and the function \cppinline{concat}.
 The unit is identified by \cppinline{is_unit}, not by \cppinline{==}, since equality is not decidable on every carrier.}
 \label{lst:rule2}
 \end{listing}
@@ -153,7 +152,8 @@ Laws are \emph{certificates}, of two kinds.
 An axiom is declared: the compiler does not prove it.\footnote{Similarly, \texttt{sorry} admits a statement in Lean~\cite{demoura2021lean}, and \texttt{Admitted} one in Coq~\cite{Coq}.
 A false law declaration is possible, and the compiler does not detect it.
 The standard treats its own concepts alike: a type may satisfy one without modelling it, and the program is then ill-formed with no diagnostic required~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.}
-A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts: \cppinline{IsMonoid<size_t, plus<size_t>>} is one, and the isomorphism at Listing~\ref{lst:rule2}'s top left is another.
+A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts.
+The isomorphism at Listing~\ref{lst:rule2}'s top left is one, inferred for a composite arrow from its two legs, and \cppinline{IsMonoid<size_t, plus<size_t>>} is another, a shape from its requirements.
 Overload resolution is a simple proof search that finds either kind~\cite{augustsson2005djinn}.
 A law is stated of a carrier, a type taken as a bare set of values, together with an operation: \cppinline{size_t} is a monoid twice, under $(0, +)$ and under $(1, \times)$.\footnote{A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.}
 
@@ -204,11 +204,11 @@ Pierce's \texttt{fold} builds up: it is $\mathit{in}$, not the fold that consume
   & & e \arrow[ll, "h"']
 \end{tikzcd}
 
-\caption{Structural recursion in FJlt, a sketch, in the notation of initial algebras (Table~\ref{tab:recursion-names}).
+\caption{Structural recursion in Jlt, a sketch, in the notation of initial algebras (Table~\ref{tab:recursion-names}).
 The seed $n$ is a point of $\mu F$, and $\mathit{out}$ steps down from it, step by step, until nothing is left, $\ast$.
 $\mathit{in}$, dashed, builds up without end.
 $f$ lands in $S$, and $h : M \times S \to M$ folds along the walk: $m_n = e$ and $m_k = h(m_{k+1}, f(k))$, to the result $m_0$.
-At a node with several legs, the algebra takes the results of them all.}
+At a node with several children, the step takes the results of them all.}
 \label{fig:structures}
 \end{figure}
 
@@ -217,14 +217,14 @@ At a node with several legs, the algebra takes the results of them all.}
 Recursion in Jlt is structural~\cite{burstall1969proving}: every step strictly decreases a bound, a natural number, so the recursion ends.\footnote{A variant function, in Dijkstra's word~\cite{dijkstra1976discipline}.}
 
 Several literatures describe this recursion, each in its own words, and Table~\ref{tab:recursion-names} sets them side by side.
-This paper uses the notation of initial algebras, after Lambek, and its mental model is a finite chain in Dedekind's sense: the elements that a step reaches from a starting point.\footnote{After Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself, and the chain of an element is its forward orbit.
+This paper uses the notation of initial algebras, after Lambek, and it pictures the recursion as a finite chain in Dedekind's sense: the elements that a step reaches from a starting point.\footnote{After Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself, and the chain of an element is its forward orbit.
 The carrier needs neither an order nor an origin: reachability under the step orders the chain, and its bottom is where the step has nothing.}
 Figure~\ref{fig:structures} draws one chain.
 Jlt has two forms of recursion, over a value and over a type, and both read it.
 
 \begin{itemize}
 \item \emph{Over a value.}
-The chain is a range of $\mathcal{R}$, the ranges whose length is known before the first step (Appendix~\ref{app:fjlt:typing}): here, the elements that $\mathit{prior}$ reaches from a seed $n$.
+The chain is a range of $\mathcal{R}$, the ranges whose length is known before the first step (Appendix~\ref{app:fjlt:typing}): here, the elements that $\mathit{prior}$, the step to the element before, reaches from a seed $n$.
 In Figure~\ref{fig:structures} it is the row $\mu F$, where $\mathit{out}$ is $\mathit{prior}$ and counts down from $n$.
 The row $S$ is $f$ mapped over it, and the row $M$ is the recursion itself: the standard's fold, \cppinline{ranges::fold_left}, with step $h$, starting from $e$ and bounds-checked before it starts.
 In \Cpp{} the range is an \cppinline{input_range} with a bound, and $f$ is \cppinline{views::transform}, written \cppinline{>>}.\footnote{The fold along the walk needs no list~\cite{gibbons1996third}, only the walk, which is an iterator.
@@ -240,7 +240,7 @@ Each node of a term is a class template whose type names its children's, so the 
 The recursion is the compiler's instantiation: a fold over the term is a function template instantiated once per node, the overload chosen by the node's type, and it ends with the type's finite height.
 In Figure~\ref{fig:structures}, $\mu F$ is the type of terms: $\mathit{out}$ takes a term to its subterms, the figure follows one branch, and $n$ is the term's height.
 Listing~\ref{lst:rule3}'s bottom panel builds such a term, \cppinline{dec >> dec}, a composite of two composites, of height three.
-It is folded twice: to a value, and to a law, \cppinline{is_iso}, inferred from its legs'.
+It is folded twice: to a value, and to a law, \cppinline{is_iso}, inferred from its parts'.
 A third fold, to a normal form, decides the equation that ends the panel, \cppinline{id_u == cpl >> cpl}: \cppinline{==} answers by the laws and never by the functions (Appendix~\ref{app:fjlt:typing}).
 \end{itemize}
 
