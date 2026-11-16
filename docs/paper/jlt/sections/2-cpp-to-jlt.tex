@@ -135,6 +135,7 @@ The monoid signatures are \cppinline{size_t} under \cppinline{(0, +), (1, *)}, a
 
 In \Cpp{23} what a type permits is stated by constraints on template parameters: a \cppinline{concept} is a predicate on a type's structure~\cite{cpp23standard}, a trait a compile-time function on a type or a family of types~\cite{myers1995traits}, and together they take the place of type classes~\cite{wadler1989adhoc}.
 Overload resolution selects the instance: among the declarations whose constraints a type satisfies, the compiler takes the most specific, by the partial order of constraints~\cite{cpp23standard}.
+Inside a generic body that choice can turn on a concept the body never declared, which Rule~2 forbids (Listing~\ref{lst:undecided}).
 Concepts are structural: a type that has the operations satisfies the shape without a declaration, so the standard library's types are admitted after the fact, unmodified.
 Since \Cpp{20} checks a template's body only at its uses (Section~\ref{sec:intro}), this is a rule here and not a theorem.
 
