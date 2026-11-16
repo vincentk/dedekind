@@ -123,7 +123,7 @@ A loop's locals are such state, and a loop that shows its end is admitted as sug
 A counted \cppinline{for (T i = 0; i < n; ++i)} whose counter and bound share one unsigned type \cppinline{T}, and whose body writes neither, is \cppinline{fold_left} over \cppinline{views::iota(T{0}, n)}.
 Since \cppinline{i < n} holds before each increment, \cppinline{++i} cannot wrap; the loop's locals are the fold's state and its body the step.
 A range-\cppinline{for} over a bounded range, whose body does not write that range, is \cppinline{fold_left} over it.
-A \cppinline{while} whose condition no bound governs has no such image and stays out.
+A \cppinline{while} whose condition no bound governs has no such image and stays out, by \RuleThree{}.
 
 \begin{table}[tbp]
 \centering

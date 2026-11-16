@@ -181,15 +181,18 @@ Fold: $h : M \times S \to M$ runs along the walk, from $m_n = e$ by $m_k = h(m_{
 \paragraph{Rule 3, Descent: recursion is structural.}
 \phantomsection\label{def:rule3}
 Recursion in Jlt is structural~\cite{burstall1969proving}: every step reduces a finite residue, so the recursion ends.
-Figure~\ref{fig:structures} draws the residue: the chain that $\mathit{prior}$ reaches from a seed $n$, or, for a term $t$, its subterms $\mathit{sub}(t)$ under $\mathit{out}$.
-Codata, structures observed without end, which Turner keeps apart from data~\cite{turner2004total}, is deliberately out of scope.
-The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value} of bounded rank.
 
-In \Cpp{}, a fold over a type is a function template instantiated once per node, the overload chosen by the node's type.
-Each node of a term is a class template whose type names its children's, as \cppinline{dec >> dec} composes two composites, with \cppinline{dec = -id_u >> ~id_u}, so the term's shape is its type.
-The recursion is then the compiler's instantiation, which ends with the type's finite height.
-A fold over a value is the standard's \cppinline{ranges::fold_left} over a range whose rank is bounded before the first step, by its length or by a budget declared with it.
-A loop whose end nothing shows stays out; one that shows it is sugar for the fold it denotes (Section~\ref{sec:jlt-to-fjlt}).
+The residue is held in one of two places, and each has its own form of recursion.
+\begin{itemize}
+\item \emph{Over a value.}
+The recursion is the standard's fold, \cppinline{ranges::fold_left}, over a range whose length is known before the first step, bounds-checked before it starts.
+A loop whose end the program shows is sugar for the fold it denotes, and any other loop stays out (Section~\ref{sec:jlt-to-fjlt}).
+\item \emph{Over a type.}
+The recursion is the compiler's instantiation.
+Each node of a term is a class template whose type names its children's, so the term's shape is its type, as in Listing~\ref{lst:rule3}'s \cppinline{dec >> dec}.
+A fold over the term is a function template instantiated once per node, the overload chosen by the node's type, and it ends with the type's finite height.
+\end{itemize}
+Figure~\ref{fig:structures} draws the residue for both: the chain that $\mathit{prior}$ reaches from a seed $n$, or, for a term $t$, its subterms $\mathit{sub}(t)$ under $\mathit{out}$.
 
 
 \begin{listing}[htbp]
@@ -247,20 +250,18 @@ The arrow $f$ along it is \cppinline{views::transform}, written \cppinline{>>}, 
 \label{lst:rule3}
 \end{listing}
 
+The rule buys termination and, with Rule~2, the System~F reading: data as their own folds, after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
+The price is expressiveness, as in System~F, which is strongly normalising and so cannot express every computable function~\cite{girard1989proofs}.
+A bounded search ends, but it does not always decide its question, since halting is undecidable~\cite{turing1936computable} (Section~\ref{sec:binding}).
+Codata, structures observed without end, are out of scope~\cite{turner2004total}.
+
 Figure~\ref{fig:structures} reads in three more ways.
-Order: after Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself.
-The chain of an element is its forward orbit, here the chain of $\mathit{prior}\,n$.
-The carrier needs neither an order nor an origin.
-Reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
+Order: after Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself, and the chain of an element is its forward orbit, here that of $\mathit{prior}\,n$.
+The carrier needs neither an order nor an origin: reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
 Algebra: in the simplest case $S = M$ is a monoid.
 A monoid $S$ may also act on $M$, and a semiring on a semimodule, which adds distributivity.
-Fold: a list has two folds~\cite{gibbons1996third}.
-The one along the walk needs no list: it is a stream and its iterator~\cite{stepanov2009elements}.
-With $\mathit{succ}$ as well, $\mathit{succ} >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}.
-With offsets it is an array~\cite[\S 2.2.2]{knuth1997art1}, and these are the standard's forward, bidirectional and random-access iterators~\cite{cpp23standard}.
-
-What the rule buys is termination and, with Rule~2, the System~F reading, data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
-Like System~F, strongly normalising and so unable to express every computable function~\cite{girard1989proofs}, Rule~3 trades expressiveness for termination, since the halting programs are not a decidable set~\cite{turing1936computable}: a bounded search ends without always deciding its question (Section~\ref{sec:binding}).
+Iterators: the fold along the walk needs no list~\cite{gibbons1996third}, only the walk, which is an iterator~\cite{stepanov2009elements}.
+With $\mathit{succ}$ as well it is bidirectional, and with offsets random-access, the standard's three iterator categories~\cite{cpp23standard}.\footnote{With $\mathit{succ}$, $\mathit{succ} >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}, and with offsets an array~\cite[\S 2.2.2]{knuth1997art1}.}
 
 \begin{table}[ht]
 \centering
