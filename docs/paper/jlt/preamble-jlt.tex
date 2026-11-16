@@ -53,6 +53,9 @@
   frame=single,
   framesep=2mm,
   autogobble,
+  % Code as typed: lining figures (an old-style 0 reads as the letter o) and
+  % no TeX ligatures (>> is two characters, never a guillemet).
+  formatcom=\addfontfeatures{Numbers=Lining,Ligatures=TeXOff},
 }
 \usemintedstyle{friendly}
 \newminted[cpp]{cpp}{}

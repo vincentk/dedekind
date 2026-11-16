@@ -21,7 +21,7 @@ constexpr Alphabet bases = abc("ACGT");
 // Σ* = ⊔ₙ Σⁿ :
 constexpr Words oligos = words(bases);
 // ~rev, the reverse complement: CCTA ↦ TAGG
-// { w ∈ Σ⁶ | ~rev w = w }, the palindromic hexamers :
+// { w ∈ Σ⁶ | ~rev w = w }, the palindromes :
 constexpr auto pali6 =
   oligos & len(6) & fixed_by(~rev);
 // { (s, i) ∈ Σᴺ × ℕ | s[i, i+6) ∈ pali6 } :
