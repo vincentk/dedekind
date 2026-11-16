@@ -126,8 +126,10 @@ $\mathit{eval}\,t = \mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$ for e
 Theorem~\ref{thm:simulation} proves it inside the calculus, and Appendix~\ref{app:fjlt:ssa} argues it for the compiler's output, whose lowering is trusted.
 Under the hypothesis it holds for every Jlt program $p$: $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.
 \end{description}
-The listings follow one example through the paper, \cppinline{concat}, and Figure~\ref{fig:structures} sketches the recursion it runs on.
-It is first a monoid at the lengths that need no recursion, then the fold over the chain of a count under an arrow, then Fibonacci's matrix chain, which two declared laws fold in logarithmically many steps.
-The last listing counts restriction sites, where the compiler partially evaluates a matcher in its pattern.
-Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:related} where the work sits, and the calculus is in the appendices.
+One example runs through the listings: \cppinline{concat}, which combines the elements of a monoid.
+Listing~\ref{lst:rule2} writes it for zero, one and two arguments, where no recursion is needed.
+Listing~\ref{lst:rule3} writes it as a fold over a range, and Figure~\ref{fig:structures} sketches the recursion.
+Listing~\ref{lst:laws} folds Fibonacci's matrices the same way, and two declared laws reduce the fold to logarithmically many steps.
+Listing~\ref{lst:sites} leaves the example: it counts restriction sites in a DNA sequence, and the compiler partially evaluates the matcher in its pattern.
+Section~\ref{sec:limits} states the limits, Section~\ref{sec:related} the related work, and the appendices hold the calculus.
 
