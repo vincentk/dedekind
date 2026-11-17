@@ -324,19 +324,32 @@ concept ProjectsPairing = (IsPairProjection<Y, 1> && selects_v<P, 1>) ||
                           (IsPairProjection<Y, 2> && selects_v<P, 2>);
 /** @brief Two adjacent atoms, @c p then @c y, both honouring their
  *  signatures, that a law rewrites: an identity on either side (unit), a
- *  copy that @c CancelsAdjacent, a constant after any arrow, or a projection
- *  after a pairing. */
+ *  copy that @c CancelsAdjacent, a constant after any arrow, any arrow after
+ *  a constant, or a projection after a pairing. */
 template <typename P, typename Y>
-concept Rewrites = HonoursSignature<P> && HonoursSignature<Y> &&
-                   (IsIdentityArrow<P> || IsIdentityArrow<Y> ||
-                    (std::same_as<P, Y> && CancelsAdjacent<P>) ||
-                    IsConstantAtom<Y> || ProjectsPairing<P, Y>);
+concept Rewrites =
+    HonoursSignature<P> && HonoursSignature<Y> &&
+    (IsIdentityArrow<P> || IsIdentityArrow<Y> ||
+     (std::same_as<P, Y> && CancelsAdjacent<P>) || IsConstantAtom<Y> ||
+     IsConstantAtom<P> || ProjectsPairing<P, Y>);
 /** @brief @f$c \circ f = c@f$: the constant, from @c f's domain.
  *  @param c the constant.  @return it, from @c f's domain. */
 template <IsArrow P, typename B, typename C>
 constexpr ConstantMorphism<Dom<P>, C> absorbed(
     const P&, const ConstantMorphism<B, C>& c) {
   return {c.value};
+}
+/** @brief @f$f \circ c = f(c)@f$: an arrow after a constant is the constant
+ *  of its value there, application read as composition with a point (the
+ *  elements of an object are the arrows into it from the terminal object, and
+ *  from any other object the constant ones).  The one law that calls an atom:
+ *  the atom honours its signature, so it takes the constant's value as it is.
+ *  @param c the constant.  @param y the arrow after it.  @return the constant
+ *  of @c y at @c c's value, from @c c's domain. */
+template <typename B, typename C, IsArrow Y>
+constexpr ConstantMorphism<B, Cod<Y>> applied(const ConstantMorphism<B, C>& c,
+                                              const Y& y) {
+  return {y(c.value)};
 }
 /** @brief @f$\pi_k \circ \langle f_1, f_2 \rangle = f_k@f$: the leg.
  *  @param p the pairing.  @return its leg @c k. */
@@ -359,6 +372,8 @@ constexpr auto rewrite(const P& p, const Y& y) {
     return p;  // f ∘ id = f
   } else if constexpr (IsConstantAtom<Y>) {
     return absorbed(p, y);
+  } else if constexpr (IsConstantAtom<P>) {
+    return applied(p, y);  // f ∘ c = the constant f(c)
   } else if constexpr (ProjectsPairing<P, Y>) {
     return selected(p, At<IsPairProjection<Y, 1> ? 1 : 2>{});
   } else {
@@ -367,7 +382,8 @@ constexpr auto rewrite(const P& p, const Y& y) {
 }
 /** @brief The concatenation of two normal paths: the result associates to
  *  the right (associativity), and two adjacent atoms that a law @c Rewrites
- *  are rewritten (unit, involution, constant, product), across the junction
+ *  are rewritten (unit, involution, constant, application, product), across
+ *  the junction
  *  as often as it recurs.  Every decision is made here, on the flattened
  *  path, so the result does not depend on how the term was associated.  A
  *  recursion over the paths' types.
@@ -703,11 +719,13 @@ constexpr bool same_path(const P& p, const Q& q) {
  *  @details The normal form of an arrow term is its path in the free
  *  category on its atoms (Mac Lane, @e Categories for the Working
  *  Mathematician, §II.7), identities dropped and composition associated,
- *  under three laws read on adjacent atoms (@c reduce_β above): a certified
+ *  under four laws read on adjacent atoms (@c reduce_β above): a certified
  *  one-valued involution cancelled against itself, @f$f f \to
  *  \mathrm{id}@f$; a constant absorbing the arrow before it, @f$c \circ f
- *  \to c@f$; a projection after a pairing selecting its leg, @f$\pi_k \circ
- *  \langle f_1, f_2 \rangle \to f_k@f$.  The laws are read on atoms that
+ *  \to c@f$; an arrow after a constant applied to it, @f$f \circ c \to
+ *  f(c)@f$, the constant of its value; a projection after a pairing selecting
+ *  its leg, @f$\pi_k \circ \langle f_1, f_2 \rangle \to f_k@f$.  The laws
+ *  are read on atoms that
  *  honour their declared signatures (@c HonoursSignature: the call takes the
  *  domain and returns the codomain themselves); any other atom is opaque, no
  *  rewrite crossing it, since a composite converts at its boundaries and the
