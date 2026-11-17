@@ -135,6 +135,12 @@ constexpr Verdict eta_product = verdict(Pairing{fst, snd}, id<BN>());
 constexpr auto cpl_times_neg = cpl * neg;  // N × N → N × N
 constexpr Verdict times_1 = verdict(cpl_times_neg >> fst_nn, fst_nn >> cpl);
 constexpr Verdict times_2 = verdict(cpl_times_neg >> snd_nn, snd_nn >> neg);
+// Pierce's Definition 1.5.4: f × g is the pairing ⟨f ∘ π₁, g ∘ π₂⟩.  In the
+// library the two are one type, so the equation is asked and the type too.
+constexpr auto times_spelled = Pairing{fst_nn >> cpl, snd_nn >> neg};
+constexpr Verdict times_def = verdict(cpl_times_neg, times_spelled);
+constexpr bool times_same_type =
+    std::same_as<decltype(cpl_times_neg), decltype(times_spelled)>;
 constexpr auto flip_nn = flip<N, N>();
 constexpr auto flip_bn = flip<B, N>();
 constexpr auto flip_nb = flip<N, B>();
@@ -191,6 +197,8 @@ constexpr bool epic_either = is_epic(either);
 constexpr bool iso_flip = is_iso(flip_nn);
 constexpr bool involution_flip = is_involution(flip_nn);
 constexpr bool iso_times = is_iso(cpl_times_neg);
+constexpr bool monic_times = is_monic(cpl_times_neg);
+constexpr bool epic_times = is_epic(cpl_times_neg);
 constexpr bool iso_plus = is_iso(id_plus_cpl);
 constexpr bool iso_in = is_iso(in_n);
 
@@ -229,6 +237,7 @@ TEST_CASE("Pierce's basic constructions, composed: what the laws decide",
   row("Pairing{fst, snd} == id<B x N>", eta_product);
   row("(cpl * neg) >> fst == fst >> cpl", times_1);
   row("(cpl * neg) >> snd == snd >> neg", times_2);
+  row("cpl * neg == Pairing{fst >> cpl, snd >> neg}", times_def);
   row("flip >> flip == id<N x N>", flip_involution);
   row("flip<B,N> >> flip<N,B> == id<B x N>", flip_round_trip);
   row("inl >> [zero_b, id_n] == zero_b", beta_sum_1);
@@ -252,6 +261,9 @@ TEST_CASE("Pierce's basic constructions, composed: what the laws decide",
   fact("is_iso(flip<N,N>)", iso_flip);
   fact("is_involution(flip<N,N>)", involution_flip);
   fact("is_iso(cpl * neg)", iso_times);
+  fact("is_monic(cpl * neg)", monic_times);
+  fact("is_epic(cpl * neg)", epic_times);
+  fact("cpl * neg and the spelled pairing are one type", times_same_type);
   fact("is_iso(id_b + cpl)", iso_plus);
   fact("is_iso(in)", iso_in);
 
