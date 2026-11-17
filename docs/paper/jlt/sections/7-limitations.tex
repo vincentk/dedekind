@@ -35,6 +35,9 @@ Two common idioms of \Cpp{} fit less well.
 By the standard a lambda's type is a unique, unnamed class type~\cite[{\texttt{expr.prim.lambda.closure}}]{cpp23standard}, so no law can be declared of it and no fold reads inside it.
 The limit is the language's, not a compiler's.
 Jlt admits it as sugar for a function object (Appendix~\ref{app:fjlt:closure}), not as a pattern to build on.
+What dispatch by a \cppinline{concept} needs is that a function's domain and codomain be known from its type.
+The accompanying library states them as two member types of a function object and calls such an object an arrow.
+That is a convention of the library, not a construct of the language, and another convention that names both would serve.
 A class hierarchy is nominal, where a \cppinline{concept} is structural, and a base that holds state or a virtual function is outside the posture.
 
 \paragraph{The compiler has its own limits.}
