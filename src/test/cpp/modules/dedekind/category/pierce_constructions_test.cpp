@@ -70,11 +70,11 @@ using BorN = std::variant<B, N>;
 // ---------------------------------------------------------------------------
 constexpr auto id_b = id<B>();
 constexpr auto id_n = id<N>();
-constexpr auto neg = -id_n;  // x ↦ -x, an involution
-constexpr auto cpl = ~id_n;  // x ↦ ~x, an involution
-constexpr auto zero_b = constant<B>(size_t{0});   // B → N, the constant 0
-constexpr auto ans = constant<B>(size_t{42});     // B → N, the constant 42
-constexpr auto no_n = constant<N>(false);         // N → B, the constant false
+constexpr auto neg = -id_n;                      // x ↦ -x, an involution
+constexpr auto cpl = ~id_n;                      // x ↦ ~x, an involution
+constexpr auto zero_b = constant<B>(size_t{0});  // B → N, the constant 0
+constexpr auto ans = constant<B>(size_t{42});    // B → N, the constant 42
+constexpr auto no_n = constant<N>(false);        // N → B, the constant false
 constexpr Successor<N> succ{};
 constexpr Predecessor<N> pred{};
 
@@ -99,7 +99,7 @@ constexpr Verdict curried_plus_is_succ = verdict(add_one, succ);
 // ---------------------------------------------------------------------------
 // 2. Terminal object and points.
 // ---------------------------------------------------------------------------
-constexpr Delete<N> bang_n{};                       // N → 1
+constexpr Delete<N> bang_n{};                          // N → 1
 constexpr auto zero_point = constant<One>(size_t{0});  // 1 → N, the point 0
 constexpr Verdict bang_absorbs = verdict(cpl >> bang_n, bang_n);
 constexpr Verdict point_then_succ =
@@ -145,23 +145,21 @@ constexpr Verdict plus_2 = verdict(inr >> id_plus_cpl, cpl >> inr);
 // ---------------------------------------------------------------------------
 // 5. The natural numbers as an F-algebra: in and its inverse.
 // ---------------------------------------------------------------------------
-constexpr In<N> in_n{};       // 1 + N → N, [zero, succ]
+constexpr In<N> in_n{};        // 1 + N → N, [zero, succ]
 constexpr Prior<N> prior_n{};  // N → 1 + N
 constexpr Verdict prior_in = verdict(prior_n >> in_n, id_n);
-constexpr Verdict in_prior =
-    verdict(in_n >> prior_n, id<std::optional<N>>());
+constexpr Verdict in_prior = verdict(in_n >> prior_n, id<std::optional<N>>());
 
 // ---------------------------------------------------------------------------
 // What is already known to hold, asserted: the rest is printed.
 // ---------------------------------------------------------------------------
 static_assert(unit_left_b == Verdict::Proved && absorb == Verdict::Proved &&
-              cpl_involution == Verdict::Proved &&
-              beta_1 == Verdict::Proved && beta_2 == Verdict::Proved);
+              cpl_involution == Verdict::Proved && beta_1 == Verdict::Proved &&
+              beta_2 == Verdict::Proved);
 
 // Laws asked on the value: those the listings already assert.
-static_assert(is_involution(cpl) && is_involution(neg) &&
-              is_iso(neg >> cpl) && !is_involution(neg >> cpl) &&
-              is_epic(fst) && is_monic(fan));
+static_assert(is_involution(cpl) && is_involution(neg) && is_iso(neg >> cpl) &&
+              !is_involution(neg >> cpl) && is_epic(fst) && is_monic(fan));
 // And those this probe asks for the first time, printed below.
 constexpr bool iso_id = is_iso(id_n);
 constexpr bool iso_succ = is_iso(succ);
@@ -246,8 +244,7 @@ TEST_CASE("Pierce's basic constructions, composed: what the laws decide",
     CHECK(agree(cpl_times_neg >> fst_nn, fst_nn >> cpl, p));
     CHECK(agree(cpl_times_neg >> snd_nn, snd_nn >> neg, p));
     CHECK(agree(flip_nn >> flip_nn, id<NN>(), p));
-    CHECK(agree(in_n >> prior_n, id<std::optional<N>>(),
-                std::optional<N>{x}));
+    CHECK(agree(in_n >> prior_n, id<std::optional<N>>(), std::optional<N>{x}));
   }
   for (const bool b : {false, true}) {
     CHECK(agree(fan >> fst, id_b, b));
@@ -258,7 +255,6 @@ TEST_CASE("Pierce's basic constructions, composed: what the laws decide",
     CHECK(agree(Pairing{fst, snd}, id<BN>(), p));
     CHECK(agree(flip_bn >> flip_nb, id<BN>(), p));
   }
-  CHECK(agree(in_n >> prior_n, id<std::optional<N>>(),
-              std::optional<N>{}));
+  CHECK(agree(in_n >> prior_n, id<std::optional<N>>(), std::optional<N>{}));
   CHECK(succ(zero_point(One{})) == 1);
 }
