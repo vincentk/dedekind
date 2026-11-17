@@ -265,6 +265,24 @@ constexpr auto id_b = id<bool>();
 constexpr auto id_u = id<size_t>();
 static_assert(id_b(true) == true && id_u(42uz) == 42 &&
               (id_u >> id_u)(42uz) == 42 && id_b == id_b >> id_b);
+// Listing 1, the category of Jlt's types and functions after Pierce's FPL:
+// three involutions, the identity law, each involution undoing itself.
+using dedekind::category::equals;
+using dedekind::category::One;
+constexpr auto no = !id_b;   // not
+constexpr auto neg = -id_u;  // negate
+constexpr auto cpl = ~id_u;  // complement
+static_assert(id_u >> cpl == cpl && no >> no == id_b && neg >> neg == id_u &&
+              cpl >> cpl == id_u);
+// A copy is as good as its original; the successor, a composite of two
+// involutions, is an isomorphism and no involution; an arrow after a point
+// is the point of its value (Pierce: iszero . zero = true).
+constexpr auto twin = cpl;
+constexpr auto succ = cpl >> neg;  // x + 1
+constexpr auto zero = constant<One>(0uz);
+constexpr auto yes = constant<One>(true);
+static_assert(twin >> cpl == id_u && succ(41uz) == 42 && is_iso(succ) &&
+              !is_involution(succ) && zero >> equals(0uz) == yes);
 // Constant arrows:
 constexpr auto nil = constant<bool>(0uz);
 constexpr auto one = constant<bool>(1uz);
@@ -296,8 +314,6 @@ concept Comparable = requires(const A& a, const B& b) { a == b; };
 // Listing 3, bottom: a fold over a type.  The term's shape is its type, a
 // composite of composites, depth 3; it is folded once to a value and once
 // to a law, the law inferred from its legs'.
-constexpr auto neg = -id_u;        // negate
-constexpr auto cpl = ~id_u;        // complement
 constexpr auto dec = neg >> cpl;   // x - 1
 constexpr auto dec2 = dec >> dec;  // x - 2
 static_assert(dec2(42uz) == 40 && is_iso(dec2));
@@ -330,7 +346,7 @@ constexpr auto snd = Π<2, P>{};
 constexpr auto fan = Pairing{id_b, nil};  // ⟨1, 0⟩, Haskell's id &&& const 0
 // The product's two equations, as arrow laws: a projection after the fanout
 // is its leg.
-static_assert(id_b == fan >> fst && nil == fan >> snd);
+static_assert(id_b == fan >> fst && nil == fan >> snd && is_epic(snd));
 constexpr auto inl = ι<1, bool, size_t>{};
 constexpr auto ret = Copairing{id_b, nay};  // [1, ⊥]
 static_assert(is_epic(fst) && !is_monic(fst) && is_monic(fan) &&
