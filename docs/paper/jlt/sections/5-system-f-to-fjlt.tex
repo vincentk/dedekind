@@ -95,7 +95,6 @@ constexpr T concat(R r, Op op = {}) {
 \end{minipage}\hfill
 \begin{minipage}[t]{0.5\linewidth}
 \begin{cpp}
-using Act = remove_cvref_t<decltype(act)>;
 template <> struct acting_monoid<Act> {
   using type = multiplies<M2>;
 };

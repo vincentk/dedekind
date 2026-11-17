@@ -238,6 +238,39 @@ Any other atom is opaque, and no rewrite crosses it.
 Two arrows with one normal form are equal in every model of the laws~\cite{birkhoff1935structure}.
 Two with different normal forms are not known to differ: the laws need not be all that holds of the functions at hand, and equality of functions is undecidable even where every program ends (Section~\ref{sec:guarantees}).
 
+\begin{proposition}[The normal form of an arrow]
+\label{prop:normal-form}
+Rewriting an arrow term by these laws terminates.
+Each law holds of functions, the cancellation of an involution by its declared certificate, so two arrows with one normal form are equal.
+Every critical pair of the laws joins, one of them by a declared certificate.
+\end{proposition}
+
+\noindent Every law lowers the number of atoms in the term, those inside pairings and copairings included, so rewriting terminates.
+The laws of units and of constants are identities of functions, application is composition with a point~\cite[Example~1.4.5]{pierce1991basic}, and the laws of a pairing and of a copairing are the two halves of the definitions of a product and of a coproduct~\cite[Definitions~1.5.1 and~1.5.4]{pierce1991basic}.
+The overlaps of two laws on three adjacent atoms are these, with $c$ and $d$ constants, $x$ an involution, $p$ and $y$ any atoms, and each row's dual for a copairing and its injections.
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+Overlap & rewriting the left pair first & rewriting the right pair first \\
+\midrule
+\texttt{x >\kern0pt> x >\kern0pt> x} & \texttt{x} & \texttt{x} \\
+\texttt{p >\kern0pt> c >\kern0pt> y} & the constant $y(c)$ & the constant $y(c)$ \\
+\texttt{p >\kern0pt> c >\kern0pt> d} & \texttt{d} & \texttt{d} \\
+\texttt{x >\kern0pt> x >\kern0pt> c} & \texttt{c} & \texttt{c} \\
+\texttt{c >\kern0pt> x >\kern0pt> x} & the constant $x(x(c))$ & \texttt{c} \\
+\texttt{Pairing\{f, g\} >\kern0pt> fst >\kern0pt> c} & \texttt{c} & \texttt{c} \\
+\texttt{c >\kern0pt> Pairing\{f, g\} >\kern0pt> fst} & the constant $f(c)$, with $g(c)$ evaluated & the constant $f(c)$ \\
+\texttt{Pairing\{fst, snd\} >\kern0pt> fst} & \texttt{fst} & \texttt{fst} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+One row joins by a certificate: a constant followed by an involution twice is the same constant either way exactly when $x(x(c)) = c$, which is what the involution's declaration asserts.
+With a false declaration the two results differ, and which one the compiler computes depends on how the term was bracketed.
+One row differs in what it evaluates: applying a pairing to a constant computes both legs before the projection drops one, and the two results agree because every arrow is total, by \RuleThree{}.
+The proposition does not claim that the laws are complete for products and sums.
+The fusion of a pairing with an arrow before it is not among them, and where it would be needed the answer is that the arrows are not known to be equal.
+
 \paragraph{Well-founded declarations.}
 Typing is itself a computation: resolving a call may ask whether a constraint holds, which may ask for another resolution, and \RuleThree{} asks that this chain end too.
 \cppinline{IsMonoid} at a pair calls \cppinline{unit} there, whose instance asks \cppinline{IsMonoid} at the components (Section~\ref{sec:translation:contexts}): the shape asks for itself, but at smaller types, so the chain ends.

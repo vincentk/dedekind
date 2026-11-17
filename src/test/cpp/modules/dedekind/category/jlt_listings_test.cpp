@@ -460,7 +460,10 @@ struct M2 {  // row by row
   }
   constexpr bool operator==(const M2&) const = default;
 };
-constexpr auto act = [](V v, M2 a) { return v * a; };
+struct Act {
+  constexpr V operator()(V v, M2 a) const { return v * a; }
+};
+constexpr Act act{};
 constexpr M2 fib{{1, 1}, {1, 0}};
 constexpr auto ms = ns >> constant<size_t>(fib);
 // F(11), F(10)
@@ -498,8 +501,7 @@ struct unit_trait<jlt_listing::listing3::M2, jlt_listing::listing3::MatMul> {
                                     jlt_listing::listing3::V{0, 1}};
 };
 template <>  // act(act(v, A), B) = act(v, A·B), act(v, I) = v
-struct acting_monoid<
-    std::remove_cvref_t<decltype(jlt_listing::listing3::act)>> {
+struct acting_monoid<jlt_listing::listing3::Act> {
   using type = jlt_listing::listing3::MatMul;
 };
 template <>

@@ -34,7 +34,7 @@ From the repository's fixture \texttt{showcase\_15}.}
 Read as a function, after Appel~\cite{appel1998ssa}, a basic block is a local function and its $\phi$-nodes are that function's parameters (Appendix~\ref{app:fjlt:ssa}).
 The header's three $\phi$-nodes are the iterator's state in Figure~\ref{fig:fjlt-recursion}: the pair $(\llbracket r \rrbracket, \llbracket a \rrbracket)$, the chain's state its count and $\llbracket a \rrbracket$ the vector, itself a pair.
 The body is the step, the matrix action with \cppinline{fib}'s entries as constants, reduced to one addition, $F(k+1) = F(k) + F(k-1)$, and the count's decrement ends the loop.
-Nothing else survives: not the matrix, not the action's lambda, not the chain, not the vector as an object.
+Nothing else survives: not the matrix, not the action's function object, not the chain, not the vector as an object.
 The function is the textbook loop for Fibonacci, which the source never wrote.
 So the claim that the discipline costs nothing at run time has a structural ground: a Jlt fold names in the source the parameter the compiler would otherwise recover from assignments.
 The agreement holds where both evaluations finish and neither meets undefined behaviour.

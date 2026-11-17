@@ -64,7 +64,7 @@ yes == zero >> equals(0uz));
 \end{minipage}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution, in the category of Jlt's types and functions, after Pierce's FPL~\cite{pierce1991basic}.
 Left: identities and three involutions, with the identity law and each involution undoing itself.
-Right: a copy is as good as its original; the successor, a composite of two involutions, is an isomorphism and no involution; an arrow after a point is the point of its value.
+Right: a copy is as good as its original; the successor, a composite of two involutions, is an isomorphism, and no law makes it an involution; an arrow after a point is the point of its value.
 \cppinline{f >> g} is Pierce's $g \circ f$, and each equation is decided by laws and not by values (Listing~\ref{lst:rule3}).
 A program of the kernel (Figure~\ref{fig:fjlt-syntax}), translated in Section~\ref{sec:translation}.}
 \label{lst:rule1}
@@ -343,11 +343,11 @@ struct M2 { V top, bottom;
     return {v[0] * a.top[0] + v[1] * a.bottom[0],
             v[0] * a.top[1] + v[1] * a.bottom[1]};}
   /* M2 * M2, M2 + M2, n * M2, == */ };
-
-constexpr auto act = [](V v, M2 a) { return v * a; };
+struct Act { constexpr V
+  operator()(V v, M2 a) const { return v * a; } };
+constexpr Act act{};
 constexpr M2 fib{{1, 1}, {1, 0}};
 constexpr auto ms = ns >> constant<size_t>(fib);
-
 constexpr auto fs_10 = ranges::fold_left(
     ms, V{1, 0}, act);
 static_assert(fs_10 == V{89, 55});

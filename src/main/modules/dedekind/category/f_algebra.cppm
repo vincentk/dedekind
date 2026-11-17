@@ -425,8 +425,13 @@ constexpr auto rewrite(const P& p, const Y& y) {
  *  across
  *  the junction
  *  as often as it recurs.  Every decision is made here, on the flattened
- *  path, so the result does not depend on how the term was associated.  A
- *  recursion over the paths' types.
+ *  path.  The result does not depend on how the term was associated, given
+ *  that the declared involutions hold: a constant followed by an involution
+ *  twice is that constant with the involution applied twice to its value
+ *  when bracketed to the left, and the constant itself when bracketed to the
+ *  right, the same arrow exactly when the declaration is true (the Jlt
+ *  paper's Appendix B, the proposition on the normal form).  A recursion
+ *  over the paths' types.
  *  @param p the first path.  @param q the second.  @return the normal path. */
 template <IsArrow P, IsArrow Q>
   requires std::same_as<Cod<P>, Dom<Q>>
