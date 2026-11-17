@@ -71,7 +71,7 @@ A program of the kernel (Figure~\ref{fig:fjlt-syntax}), translated in Section~\r
 \end{listing}
 
 A function object is a value, as an abstraction is in the $\lambda$-calculus~\cite{pierce2002tapl}: the arguments it binds are its fields, and its call operator is a \cppinline{const} member function like any other.
-The types of a Jlt program and the functions between them form a category, as those of Pierce's small functional language FPL do~\cite[\S 1.1]{pierce1991basic}.
+The types of a Jlt program and the functions between them form a category, as those of Pierce's small functional language FPL do~\cite[Example~1.1.15]{pierce1991basic}.
 An \emph{arrow} is a function object with a domain and a codomain, and arrows compose with \cppinline{>>}, left to right.
 \cppinline{constant<One>(0uz)} is the value 0 made into an arrow: a function object from the one-element type \cppinline{One} that returns 0, a point of \cppinline{size_t} (Listing~\ref{lst:rule1}).
 \cppinline{One} is the category's terminal object: every type has exactly one arrow into it.

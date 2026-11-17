@@ -105,7 +105,7 @@ constexpr Verdict bang_absorbs = verdict(cpl >> bang_n, bang_n);
 constexpr Verdict point_then_succ =
     verdict(zero_point >> succ, constant<One>(size_t{1}));
 
-// Pierce's FPL (an example of his Section 1.1), at the carriers bool and
+// Pierce's FPL (his Example 1.1.15), at the carriers bool and
 // size_t: the points true, false and zero, the arrows not and iszero, and his
 // two equations, false = not . true and iszero . zero = true, read left to
 // right.

@@ -342,7 +342,10 @@ constexpr ConstantMorphism<Dom<P>, C> absorbed(
 /** @brief @f$f \circ c = f(c)@f$: an arrow after a constant is the constant
  *  of its value there, application read as composition with a point (the
  *  elements of an object are the arrows into it from the terminal object, and
- *  from any other object the constant ones).  The one law that calls an atom:
+ *  from any other object the constant ones; Pierce, @e Basic @e Category
+ *  @e Theory @e for @e Computer @e Scientists, Example 1.4.5: "the element
+ *  f(x) is the unique element of T that is the image of the composite function
+ *  f ∘ x").  The one law that calls an atom:
  *  the atom honours its signature, so it takes the constant's value as it is.
  *  @param c the constant.  @param y the arrow after it.  @return the constant
  *  of @c y at @c c's value, from @c c's domain. */
