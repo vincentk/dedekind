@@ -256,6 +256,8 @@ Listing~\ref{lst:rule3}'s last equation, \cppinline{id_u == cpl >> cpl}, is one 
 An arrow's atoms are its parts that \cppinline{>>} did not build.
 Its normal form is the sequence of its atoms once the laws have been applied: identities dropped, brackets removed, a certified involution cancelled against itself, a constant absorbing what precedes it, and a projection after a pairing reduced to its leg.
 It is the arrow's path in the free category on its atoms~\cite{maclane1971categories}, modulo those laws.
+The laws are read only between atoms that honour their declared signatures, and an involution is cancelled only where its type has one value, so that two atoms of that type are the same arrow.
+Any other atom is opaque, and no rewrite crosses it.
 Two arrows with one normal form are equal in every model of the laws~\cite{birkhoff1935structure}.
 Two with different normal forms are not known to differ: the laws need not be all that holds of the functions at hand, and equality of functions is undecidable even where every program ends (Section~\ref{sec:guarantees}).
 
