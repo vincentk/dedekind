@@ -204,7 +204,7 @@ Laws are \emph{certificates}, of two kinds.
 An axiom is declared: the compiler does not prove it.\footnote{Similarly, \texttt{sorry} admits a statement in Lean~\cite{demoura2021lean}, and \texttt{Admitted} one in Coq~\cite{Coq}.
 A false law declaration is possible, and the compiler does not detect it.
 The standard treats its own concepts alike: a type may satisfy one without modelling it, and the program is then ill-formed with no diagnostic required~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.}
-A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts.
+A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts, a fold over its type (\RuleThree{}).
 The isomorphism at Listing~\ref{lst:rule2}'s top left is one, inferred for a composite arrow from its two legs, and \cppinline{IsMonoid<size_t, plus<size_t>>} is another, a shape from its requirements.
 Overload resolution is a simple proof search that finds either kind~\cite{augustsson2005djinn}.
 A law is stated of a carrier, a type taken as a bare set of values, together with an operation: \cppinline{size_t} is a monoid twice, under $(0, +)$ and under $(1, \times)$.\footnote{A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.}
@@ -296,6 +296,8 @@ In Figure~\ref{fig:structures}, $\mu F$ is the type of terms: $\mathit{out}$ tak
 Listing~\ref{lst:rule3}'s bottom panel builds such a term, \cppinline{dec >> dec}, a composite of two composites, of height three.
 It is folded twice: to a value, and to a law, \cppinline{is_iso}, inferred from its parts'.
 A third fold, to a normal form, decides the equation that ends the panel, \cppinline{id_u == cpl >> cpl}: \cppinline{==} answers by the laws and never by the functions (Appendix~\ref{app:fjlt:typing}).
+Laws are computed this way.
+A law is declared at a term's atoms and inferred at every node above them, as a conjunction or a disjunction of the laws of that node's legs: a fold over the term's type (Table~\ref{tab:law-propagation}).
 \end{itemize}
 
 

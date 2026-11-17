@@ -117,6 +117,29 @@ A finite power of a semiring is a semimodule over it in this way.
 The library declares the power a product of its base, and one instance, whose context is the base's semiring laws, gives the power's semimodule law, as semimodules over a semiring form a variety, closed under products.
 Each step reads the laws of a term's immediate parts only, so the inference is local~\cite{pierce2000local}.
 It ends by the conditions on contexts that end instance search~\cite{sulzmann2007understanding}.
+Each instance states its law as a conjunction or a disjunction of the laws of the parts, and Table~\ref{tab:law-propagation} gives the library's for four laws of arrows over five ways of forming one.
+An operation of another kind may carry rules of its own, stated the same way.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+ & monic & epic & constant & involutive \\
+\midrule
+$g \circ f$, written \texttt{f >> g} & $\wedge$ & $\wedge$ & $\vee$ & -- \\
+$f \times g$ & $\wedge$ & $\wedge$ & $\wedge$ & $\wedge$ \\
+$f + g$ & $\wedge$ & $\wedge$ & -- & $\wedge$ \\
+$\langle f, g \rangle$ & $\vee$ & -- & $\wedge$ & -- \\
+$[f, g]$ & -- & $\vee$ & -- & -- \\
+\bottomrule
+\end{tabular}
+\caption{How four laws pass from an arrow's legs to the arrow, in the accompanying library.
+$\wedge$: the arrow has the law if both legs have it; $\vee$: if either has it; --: nothing is inferred.
+Each entry is a sufficient condition, so an inferred law holds, and its absence says nothing.
+A composite of two involutions is not an involution in general, which is why that entry is empty.}
+\label{tab:law-propagation}
+\end{table}
 
 \paragraph{Conversions between carriers.}
 \textsc{T-Conv} types the conversion $\tau\texttt{(}e\texttt{)}$ between carriers that \Cpp{} inserts implicitly and the kernel term writes.

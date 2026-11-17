@@ -143,7 +143,7 @@ A program declares few laws and infers the rest.
 A law at a construction is derived from the laws of its parts, through an instance with a context, by the entailment of qualified types~\cite{jones1994qualified}: that a finite power of a semiring is a semimodule over it is inferred, not declared (Appendix~\ref{app:fjlt:inferred}).
 In \Cpp{} the mechanism is partial specialisation.
 A composite's type names its parts, as \cppinline{f >> g} has a type that records the types of \cppinline{f} and of \cppinline{g}.
-The trait that a law's \cppinline{concept} reads is specialised once for that form of type, as a \cppinline{constexpr} function of the same trait at the parts: a composite of two monic arrows is monic.
+The trait that a law's \cppinline{concept} reads is specialised once for that form of type, as a \cppinline{constexpr} function of the same trait at the parts: a composite of two monic arrows is monic (Table~\ref{tab:law-propagation}).
 Asking the \cppinline{concept} of a composite therefore instantiates it at the parts, so the recursion is the compiler's own, over the type (\RuleThree{}).
 The inference is local in Pierce and Turner's sense~\cite{pierce2000local}: information moves only between adjacent nodes, and here only upward, from a term's immediate parts to the term, a synthesised attribute~\cite{knuth1968semantics}.
 By Theorem~\ref{thm:coherence} each inferred law is unique, and the conditions on contexts that end instance search~\cite{sulzmann2007understanding} end the inference.
