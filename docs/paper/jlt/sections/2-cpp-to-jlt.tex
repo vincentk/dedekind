@@ -71,8 +71,12 @@ A program of the kernel (Figure~\ref{fig:fjlt-syntax}), translated in Section~\r
 \end{listing}
 
 A function object is a value, as an abstraction is in the $\lambda$-calculus~\cite{pierce2002tapl}: the arguments it binds are its fields, and its call operator is a \cppinline{const} member function like any other.
-An \emph{arrow}, as in category theory~\cite{pierce1991basic}, is a function object with a domain and a codomain, and arrows compose with \cppinline{>>}, left to right.
+The types of a Jlt program and the functions between them form a category, as those of Pierce's small functional language FPL do~\cite[\S 1.1]{pierce1991basic}.
+An \emph{arrow} is a function object with a domain and a codomain, and arrows compose with \cppinline{>>}, left to right.
 \cppinline{constant<One>(0uz)} is the value 0 made into an arrow: a function object from the one-element type \cppinline{One} that returns 0, a point of \cppinline{size_t} (Listing~\ref{lst:rule1}).
+\cppinline{One} is the category's terminal object: every type has exactly one arrow into it.
+An element of a type is then an arrow into it from \cppinline{One}, and applying a function to the element is composing the two~\cite[Example~1.4.5]{pierce1991basic}, as the listing's last equation does.
+The category has a terminal object and no initial one: the initial object of sets is the empty set, and Rule~1 asks every type to be inhabited.
 With the address and mutation out of reach, no arrow tells a copy from its original.\footnote{The two are equal up to canonical isomorphism in Mazur's sense~\cite{mazur2008equal}, an object being known, by Yoneda's lemma, through its arrows out~\cite{maclane1971categories}.}
 Listing~\ref{lst:rule1} writes \cppinline{==} between arrows all the same, and \RuleThree{} says how that is decided.
 

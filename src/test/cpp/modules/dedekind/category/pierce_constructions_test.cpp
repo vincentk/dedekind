@@ -105,9 +105,10 @@ constexpr Verdict bang_absorbs = verdict(cpl >> bang_n, bang_n);
 constexpr Verdict point_then_succ =
     verdict(zero_point >> succ, constant<One>(size_t{1}));
 
-// Pierce's FPL (Example 1.1.14 or so), at the carriers bool and size_t: the
-// points true, false and zero, the arrows not and iszero, and his two
-// equations, false = not . true and iszero . zero = true, read left to right.
+// Pierce's FPL (an example of his Section 1.1), at the carriers bool and
+// size_t: the points true, false and zero, the arrows not and iszero, and his
+// two equations, false = not . true and iszero . zero = true, read left to
+// right.
 constexpr auto true_pt = constant<One>(true);
 constexpr auto false_pt = constant<One>(false);
 constexpr auto not_b = !id_b;
@@ -166,6 +167,12 @@ constexpr Verdict in_prior = verdict(in_n >> prior_n, id<std::optional<N>>());
 // ---------------------------------------------------------------------------
 // What is already known to hold, asserted: the rest is printed.
 // ---------------------------------------------------------------------------
+// An arrow after a point is the point of its value (Pierce, Example 1.4.5):
+// his two FPL equations, and the rule applied twice.
+static_assert(fpl_not_true == Verdict::Proved &&
+              fpl_iszero_zero == Verdict::Proved &&
+              fpl_iszero_one == Verdict::Proved &&
+              point_then_succ == Verdict::Proved);
 static_assert(unit_left_b == Verdict::Proved && absorb == Verdict::Proved &&
               cpl_involution == Verdict::Proved && beta_1 == Verdict::Proved &&
               beta_2 == Verdict::Proved);
