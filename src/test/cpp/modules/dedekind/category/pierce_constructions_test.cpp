@@ -105,6 +105,19 @@ constexpr Verdict bang_absorbs = verdict(cpl >> bang_n, bang_n);
 constexpr Verdict point_then_succ =
     verdict(zero_point >> succ, constant<One>(size_t{1}));
 
+// Pierce's FPL (Example 1.1.14 or so), at the carriers bool and size_t: the
+// points true, false and zero, the arrows not and iszero, and his two
+// equations, false = not . true and iszero . zero = true, read left to right.
+constexpr auto true_pt = constant<One>(true);
+constexpr auto false_pt = constant<One>(false);
+constexpr auto not_b = !id_b;
+constexpr auto iszero = equals(size_t{0});
+constexpr Verdict fpl_not_true = verdict(true_pt >> not_b, false_pt);
+constexpr Verdict fpl_iszero_zero = verdict(zero_point >> iszero, true_pt);
+constexpr Verdict fpl_iszero_one =
+    verdict(zero_point >> succ >> iszero, false_pt);
+constexpr Verdict not_involution = verdict(not_b >> not_b, id_b);
+
 // ---------------------------------------------------------------------------
 // 3. Products: projections, pairing, the product of arrows, the symmetry.
 // ---------------------------------------------------------------------------
@@ -200,6 +213,10 @@ TEST_CASE("Pierce's basic constructions, composed: what the laws decide",
   row("curry(+)(1) == succ", curried_plus_is_succ);
   row("cpl >> bang_n == bang_n", bang_absorbs);
   row("zero_point >> succ == the point 1", point_then_succ);
+  row("true >> not == false", fpl_not_true);
+  row("zero >> iszero == true", fpl_iszero_zero);
+  row("zero >> succ >> iszero == false", fpl_iszero_one);
+  row("not >> not == id_b", not_involution);
   row("fan >> fst == id_b", beta_1);
   row("fan >> snd == zero_b", beta_2);
   row("Pairing{fst, snd} == id<B x N>", eta_product);
@@ -257,4 +274,7 @@ TEST_CASE("Pierce's basic constructions, composed: what the laws decide",
   }
   CHECK(agree(in_n >> prior_n, id<std::optional<N>>(), std::optional<N>{}));
   CHECK(succ(zero_point(One{})) == 1);
+  CHECK(agree(true_pt >> not_b, false_pt, One{}));
+  CHECK(agree(zero_point >> iszero, true_pt, One{}));
+  CHECK(agree(zero_point >> succ >> iszero, false_pt, One{}));
 }
