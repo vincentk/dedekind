@@ -89,8 +89,55 @@ At concrete types FJlt takes \Cpp{}'s rule as it is.
 At a type variable it adds one condition, which well-formedness requires: in a body with context $\Delta$, a call resolves only when its choice survives every instantiation of the body.
 So every candidate that would be more specific than the chosen one and whose head unifies with the call's types, explicit specialisations included, is excluded by a constraint $\Delta$ decides, entailing it or its negation.
 That refines GHC's rule for overlapping instances~\cite{ghc2024overlapping}, which looks at instance heads only and refuses to commit to an instance the types do not yet decide.
-\Cpp{} does not hold it.
+\Cpp{} does not hold it (Listing~\ref{lst:undecided}).
 A call it would refuse is a body that varies with a type through a constraint it did not declare, a breach of Rule~2, which the repository's linter reports where it can see one (Section~\ref{sec:limits}).
+The body is well-formed at every instantiation, so no instantiation reports it: the function's meaning, not its validity, depends on the undeclared constraint.
+
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T>
+concept C = sizeof(T) == 1;
+
+template <typename T>
+  requires Q<T>
+constexpr int g(T) { return 0; }
+template <typename T>
+  requires Q<T> && C<T>
+constexpr int g(T) { return 1; }
+
+template <typename T>
+  requires Q<T>
+constexpr int undecided(T x) { return g(x); }
+
+static_assert(undecided(0) == 0 &&
+              undecided('a') == 1);
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.5\linewidth}
+\begin{cpp}
+template <typename T>
+  requires Q<T> && C<T>
+constexpr int requires_it(T x) { return g(x); }
+
+template <typename T>
+  requires Q<T> && (!C<T>)
+constexpr int negates_it(T x) { return g(x); }
+
+template <typename T>
+concept HasG = requires(const T a) { g(a); };
+template <typename T>
+  requires HasG<T>
+constexpr int named(T x) { return g(x); }
+\end{cpp}
+\end{minipage}
+\caption{Resolution at a type variable, from the linter's tests; \texttt{Q} is a concept every type here satisfies.
+Left: \Cpp{} accepts \texttt{undecided}, whose result varies with \texttt{C}, a concept it does not declare, and the linter reports its call.
+Right: three callers that pass the linter's check for a decided resolution.
+Two decide the overload, by requiring \texttt{C} and by negating it.
+The third names the call itself as a requirement, which declares the dependence.}
+\label{lst:undecided}
+\end{listing}
 
 \paragraph{Operators.}
 An operator expression $\ominus e$ or $e_1 \oplus e_2$ is resolved as \Cpp{} resolves it~\cite[{\texttt{over.match.oper}}]{cpp23standard}.
@@ -191,7 +238,7 @@ $^{\P}$~At each node of arity $k$.}
 
 \paragraph{Ranges.}
 A range is homogeneous: its elements share one type $\tau$, and its length is a value.
-$R\texttt{<}\tau\texttt{>}$ is an instance of $\mathcal{R}$, a family defined by conditions.
+$R\texttt{<}\tau\texttt{>}$ is an instance of $\mathcal{R}$, a family defined by conditions: the chain of Figure~\ref{fig:structures}, and the object of Table~\ref{tab:recursion-names}'s row over a value.
 A fold reads its length $|r| \in \mathbb{N}$, fixed before the fold starts, and, when $|r| > 0$, its head $\mathit{head}\,r$ and its tail $\mathit{next}\,r$, functions on range values, with $|\mathit{next}\,r| = |r| - 1$; FJlt has no term for them, so a program folds a range and never takes its head.
 A range is typed by its instance's conditions, \cppinline{iota(i, j)} only at $i \le j$, and \textsc{S-Fold} preserves them, since $\mathit{next}$ does.
 The conditions are semantic, that a step descends or that two bounds are ordered, so a chain whose step does not descend is ill-typed, and the termination of a fold is, to that extent, assumed in the typing of its range.
@@ -201,11 +248,18 @@ Listing~\ref{lst:rule3}'s \cppinline{concat} is such a fold: its \cppinline{IsBo
 
 \paragraph{Terms.}
 A term is heterogeneous: its nodes may differ in type, and its shape is in its type.
-A term type $\mu F$ is the inductive type of the nodes that build it: a term is a finite composition of nodes, and a node is a function object whose fields are terms.
+A term type $\mu F$, the object of Table~\ref{tab:recursion-names}'s row over a type, is the inductive type of the nodes that build it: a term is a finite composition of nodes, and a node is a function object whose fields are terms.
 \textsc{T-Cata} is the kernel's recursion over a type, stated once at a term type: the instances of one generic function at the nodes of $F$, each calling it at its legs' types, read as one algebra.
 The algebra is applied to each node together with the folded values of its legs, the node itself still in hand: the library's interface, \cppinline{alg(t, cata(alg, leg)...)}, and the paramorphism's.
 \textsc{T-Node} reads a term of node type as $\mu F$ where a rule expects one.
-Listing~\ref{lst:rule3}'s identity law is one such recursion, with laws in the algebra: each step may also rewrite, and the result is the composite's normal form.
+Listing~\ref{lst:rule3}'s last equation, \cppinline{id_u == cpl >> cpl}, is one such recursion, with laws in the algebra: each step may also rewrite, and the result is the composite's normal form.
+An arrow's atoms are its parts that \cppinline{>>} did not build.
+Its normal form is the sequence of its atoms once the laws have been applied: identities dropped, brackets removed, a certified involution cancelled against itself, a constant absorbing what precedes it, and a projection after a pairing reduced to its leg.
+It is the arrow's path in the free category on its atoms~\cite{maclane1971categories}, modulo those laws.
+The laws are read only between atoms that honour their declared signatures, and an involution is cancelled only where its type has one value, so that two atoms of that type are the same arrow.
+Any other atom is opaque, and no rewrite crosses it.
+Two arrows with one normal form are equal in every model of the laws~\cite{birkhoff1935structure}.
+Two with different normal forms are not known to differ: the laws need not be all that holds of the functions at hand, and equality of functions is undecidable even where every program ends (Section~\ref{sec:guarantees}).
 
 \paragraph{Well-founded declarations.}
 Typing is itself a computation: resolving a call may ask whether a constraint holds, which may ask for another resolution, and \RuleThree{} asks that this chain end too.

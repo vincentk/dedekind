@@ -58,6 +58,7 @@ That a compiler and its library implement the standard is outside the proofs, as
 The target, so presented, is an instance of Theorem~\ref{cit:sn}'s calculus, except that a term type's constructor may take a function-typed argument; such an argument is a declared or standard function object, and Jouannaud and Okada's proof extends to it, with computability at the term type including its arguments', as Matthes defines it~\cite{matthes1999extensions}.
 \end{assumption}
 
+The exception comes from \RuleOne{}: a function object is a value (Section~\ref{sec:posture}), so it may be a field of a term's node, and the node's constructor then takes a function-typed argument.
 The assumption is what is asserted rather than carried out; Theorem~\ref{cit:sn}'s other hypotheses are checked here.
 Products and sums are sorts with their constructors, and their projections and case are rules of the calculus.
 The $\delta$-rules are first-order rules on constants: ground, a constant out of constants, so each step removes one operator application and they terminate, they are conservative, having no variables, and they are confluent, being a function of their argument constants.

@@ -21,7 +21,7 @@ constexpr Alphabet bases = abc("ACGT");
 // Σ* = ⊔ₙ Σⁿ :
 constexpr Words oligos = words(bases);
 // ~rev, the reverse complement: CCTA ↦ TAGG
-// { w ∈ Σ⁶ | ~rev w = w }, the palindromic hexamers :
+// { w ∈ Σ⁶ | ~rev w = w }, the palindromes :
 constexpr auto pali6 =
   oligos & len(6) & fixed_by(~rev);
 // { (s, i) ∈ Σᴺ × ℕ | s[i, i+6) ∈ pali6 } :
@@ -132,5 +132,7 @@ A parallel \cppinline{concat} is one more overload, licensed by \cppinline{IsCom
 The branch on the binding time that selects it desugars to its compile-time branch, because the same law proves the branches agree (Appendix~\ref{app:fjlt:consteval}).
 
 \Cpp{} passes no dictionaries but instantiates, so the translation models what a constrained call means, not what the compiler emits.
-Instantiation is partial evaluation of the dictionary-passing term at a static type, so the two agree on every closed term, and parametricity holds of every instantiation (Appendix~\ref{app:fjlt:ssa}).
+Instantiation is partial evaluation~\cite{veldhuizen1999partial}, here of the dictionary-passing term at a static type.
+So the two agree on every closed term, and parametricity holds of every instantiation.
+Appendix~\ref{app:fjlt:ssa} argues this, trusting the compiler's lowering.
 

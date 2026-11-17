@@ -8,7 +8,7 @@ It is dictionary passing~\cite{wadler1989adhoc}: a constraint becomes a record t
 A template is always fully applied: $\alpha$ ranges over types, and there is no template template parameter, so System~F suffices as the target.
 The target is System~F with products, sums, the sorts of $\Sigma$ as constant types with its operators as constants, and inductive types.
 The naturals come with the iterator $\mathit{iter} : \forall\sigma.\,\mathbb{N} \to (\sigma \to \sigma) \to \sigma \to \sigma$.
-Each term type $\mu F$ comes with its constructor $\mathrm{in} : F(\mu F) \to \mu F$, written $\mathrm{in}_O$ at the summand of node $O$, and its iterator $\mathit{fold}_F : \forall\sigma.\,(F(\sigma) \to \sigma) \to \mu F \to \sigma$.
+Each term type $\mu F$ comes with its constructor $\mathrm{in} : F(\mu F) \to \mu F$, the map that builds up in Table~\ref{tab:recursion-names}, written $\mathrm{in}_O$ at the summand of node $O$, and its iterator $\mathit{fold}_F : \forall\sigma.\,(F(\sigma) \to \sigma) \to \mu F \to \sigma$.
 Each iterator reduces one constructor at a time.
 Its iterative fragment embeds into System~F by an encoding that preserves reduction~\cite{matthes1999extensions}.
 Records are nested pairs.
@@ -138,6 +138,8 @@ System~F has no general recursion: its recursion is an iterator, which hands its
 A fold over a range is the iterator of the naturals, their catamorphism, run $|r|$ times with the rest of the range beside the state (Figure~\ref{fig:fjlt-recursion}).
 Each instance $R$ of $\mathcal{R}$ over $\tau$ contributes a state type $\llbracket R \rrbracket$ and a constructor $c_R$, to which a range translates on its arguments.
 It also contributes two operations, its length $|\cdot|$ and $\mathit{uncons} : \llbracket R \rrbracket \to 1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket$, which \textsc{E-Range}'s record holds (Figure~\ref{fig:fjlt-dictionaries}).
+$\mathit{uncons}$ is the step down of Table~\ref{tab:recursion-names} for a range: a coalgebra of $F\,X = 1 + \llbracket \tau \rrbracket \times X$ on the range's state.
+It plays the part that $\mathit{out}$ plays on $\mu F$, without being its inverse: a range's state need not be the initial algebra, and two states may both be empty.
 Both are total, as System~F's functions are.
 The kernel's three ranges are library adapters, and any instance of $\mathcal{R}$ would do:
 \begin{center}
@@ -173,7 +175,7 @@ A term is read into its inductive type where one is expected.}
 \end{figure}
 
 \paragraph{Folds over terms.}
-\cppinline{cata} is the iterator of the term's type $\mu F$, its catamorphism, with each node beside its result, so a paramorphism (Figure~\ref{fig:fjlt-term-fold}).
+\cppinline{cata} is the iterator of the term's type $\mu F$, its catamorphism (Table~\ref{tab:recursion-names}), with each node beside its result, so a paramorphism (Figure~\ref{fig:fjlt-term-fold}).
 \textsc{T-Node} reads a term into $\mu F$ only where one is expected, so that a term keeps one derivation.
 
 \paragraph{Conventions.}

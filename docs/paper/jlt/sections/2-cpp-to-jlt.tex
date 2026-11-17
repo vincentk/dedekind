@@ -2,92 +2,109 @@
 \section{From \Cpp{} to Jlt}
 \label{sec:posture}
 
-Each rule has a listing of a few lines, verbatim from the repository's test up to formatting and the definitions a listing omits or the test imports; the LLVM IR of Appendix~\ref{app:fjlt:ssa} is Clang~23's output, its flags in its caption, with names shortened.
+This section states the three rules that carve Jlt out of \Cpp{23}.
+Each rule has a listing of a few lines that shows it.\footnote{The listings are verbatim from the repository's test, up to formatting, the grouping of assertions and the definitions a listing omits or the test imports.}
+Table~\ref{tab:posture} sets the rules side by side: what each keeps out of Jlt, what it buys and what it costs.
+
+\begin{table}[tb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+rule & keeps out of Jlt & buys & costs & held by \\
+\midrule
+1 Substitution & state, pointers, exceptions & one program, at compile time and at run time & no state beyond a call's own locals, no I/O & $\ast$~in part\newline $\dagger$~syntax \\
+2 Abstraction & a body using what its constraints do not name & parametricity & no ad hoc use of a type & $\dagger$~names\newline $\ddagger$~the rest \\
+3 Descent & unbounded loops, general recursion & termination & a bound on every fold, stated before it starts & $\ast$~compile time\newline $\dagger$, $\ddagger$~loops \\
+\bottomrule
+\end{tabularx}
+\caption{The posture at a glance: what each rule keeps out of Jlt, what it buys, what it costs and who holds it: $\ast$~the compiler, $\dagger$~the linter, $\ddagger$~an agentic reviewer.}
+\label{tab:posture}
+\end{table}
 
 \paragraph{Rule 1, Substitution: const values and an identity-preserving copy.}
 \phantomsection\label{def:rule1}
-Every type a Jlt program passes around is \cppinline{std::semiregular}, and its copy is as good as the original: nothing else is assumed.
+Every type a Jlt program passes around is \cppinline{std::semiregular}: it is inhabited, and its copy is as good as the original.\footnote{Inhabitation is used later: equational reasoning over several types is sound and complete only when none of them is empty (Appendix~\ref{app:fjlt:theorems}).}
+Equality is not required, since it cannot be decided for functions in general~\cite{rice1953classes}, though a type is free to offer one.\footnote{A type with a copy and an equality is Stepanov's regular type~\cite{stepanov2009elements}, in \Cpp{23} \cppinline{std::regular}.}
 Every function is \cppinline{constexpr}, every member function \cppinline{const}, and each depends on its arguments alone.
-What the rule conserves is Leibniz's law, as it has come to be called: equals cannot be told apart by any operation, at either binding time.
-Leibniz himself stated the converse, that what cannot be told apart is equal~\cite{leibniz1686discours,leibniz1686discourse}.
+A function returns a value, never a reference.
+\cppinline{const T} and \cppinline{const T&} are one parameter, since a copy is as good as its original: the reference is an optimisation, and the translation erases it.
+
+The rule conserves Leibniz's law: equals cannot be told apart by any operation, at compile time or at run time.\footnote{Leibniz himself stated the converse, that what cannot be told apart is equal~\cite{leibniz1686discours,leibniz1686discourse}.
+The name has come to cover both directions.}
 So a call may be replaced by its value: $e[f(x)] = e[v]$ whenever $f(x)$ evaluates to $v$.
-The compiler makes that replacement while compiling, where its optimisations begin.
-In a programming language the law is referential transparency~\cite{strachey2000fundamental}, and a language where $a = b$ but $f(a) \neq f(b)$ for some $f$ has an equality one cannot reason with.
+The compiler makes that replacement while compiling, and its optimisations start from it.
+In a programming language the law is referential transparency~\cite{strachey2000fundamental}.
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at run time.
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-// Identity arrows:
 template <typename A>
 constexpr auto id() { return Identity<A>{}; }
 constexpr auto id_b = id<bool>();
 constexpr auto id_u = id<size_t>();
 static_assert(
 id_b(true) == true && id_u(42uz) == 42 &&
-(id_u >> id_u)(42uz) == 42);
+(id_u >> id_u)(42uz) == 42 &&
+id_b == id_b >> id_b);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-// Constant arrows:
 constexpr auto nil = constant<bool>(0uz);
 constexpr auto ans = constant<bool>(42uz);
 constexpr auto nay = constant<size_t>(false);
-constexpr auto cpy = ans;  // a copy
+constexpr auto cpy = ans;
 static_assert(
 cpy(true) == ans(false) &&
 (ans >> id_u)(true) == 42 &&
-(nil >> nay >> ans)(false) == 42);
+ans == nil >> nay >> ans);
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution.
-A function object is a value: a copy of it is as good as the original, function objects compose with \cppinline{>>}, and every call here is replaced by its value while compiling.
-Left: the identities.
-Right: the points, constant arrows, and a copy.}
+Left: the identities, and an equation between arrows, decided by their laws and not by their values (Listing~\ref{lst:rule3}).
+Right: constant arrows and a copy.
+A constant absorbs the arrows before it.}
 \label{lst:rule1}
 \end{listing}
 
-A function object is a value, as an abstraction is in the $\lambda$-calculus~\cite{pierce2002tapl}: the arguments it binds are its fields, so it is copied as any value is.
-\cppinline{constant<bool>(42uz)} \emph{is} the value 42 but equipped with an arrow's operator signature (Listing~\ref{lst:rule1}).
-In \Cpp{23} a copy equal to its original is Stepanov's \cppinline{std::regular} type, which also has \cppinline{==}~\cite{stepanov2009elements}.
-Rule~1 keeps the copy but only requires \cppinline{std::semiregular}, because equality of values is undecidable for functions~\cite{rice1953classes}.
-Two things keep it exact: a function returns a value, never a reference, and a call operator is a member function like any other, so it too is \cppinline{const}.
-\cppinline{const T} and \cppinline{const T&} are therefore one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
+A function object is a value, as an abstraction is in the $\lambda$-calculus~\cite{pierce2002tapl}: the arguments it binds are its fields, and its call operator is a \cppinline{const} member function like any other.
+An \emph{arrow}, as in category theory~\cite{pierce1991basic}, is a function object with a domain and a codomain, and arrows compose with \cppinline{>>}, left to right.
+\cppinline{constant<bool>(42uz)} is the value 42 made into an arrow: a function object from \cppinline{bool} that returns 42 (Listing~\ref{lst:rule1}).
+With the address and mutation out of reach, no arrow tells a copy from its original.\footnote{The two are equal up to canonical isomorphism in Mazur's sense~\cite{mazur2008equal}, an object being known, by Yoneda's lemma, through its arrows out~\cite{maclane1971categories}.}
+Listing~\ref{lst:rule1} writes \cppinline{==} between arrows all the same, and \RuleThree{} says how that is decided.
 
-With the address and mutation out of reach, no arrow tells a copy from its original, so they are equal up to canonical isomorphism in Mazur's sense~\cite{mazur2008equal}, an object being known, by Yoneda's lemma, through its arrows out~\cite{maclane1971categories}.
-
-\paragraph{Rule 2, Abstraction: a type varies behaviour only through its concepts and traits.}
+\paragraph{Rule 2, Abstraction: generic code varies with a type only through its concepts and traits.}
 \phantomsection\label{def:rule2}
-Generic code may do with a generic type argument exactly what the type permits, no more, no less~\cite{reynolds1983types,wadler1989theorems}.
-What that conserves is the body's independence from the carrier: \cppinline{f<T>} is one generic term applied to \cppinline{T}'s dictionary, so it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
+Generic code may do with a type argument exactly what the type's constraints permit~\cite{reynolds1983types,wadler1989theorems}.
+Listing~\ref{lst:rule2}'s \cppinline{concat} is written once, against a monoid: it may combine two elements and start from the unit, and it can use nothing the monoid does not name.
+So it is a function of the monoid's dictionary, the record of its operations, and it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.47\linewidth}
 \begin{cpp}
-// Arrows alone:
-constexpr auto fst = Π<1, pair<bool, size_t>>{};
-constexpr auto sec = Pairing{id_b, nil};
+using P = pair<bool, size_t>;
+constexpr auto fst = Π<1, P>{};
+constexpr auto snd = Π<2, P>{};
+constexpr auto fan = Pairing{id_b, nil};
 static_assert(
-is_involution(~id_u) && is_involution(-id_u) &&
 is_iso(-id_u >> ~id_u) &&
 !is_involution(-id_u >> ~id_u) &&
-is_epic(fst) && !is_monic(fst) &&
-is_monic(sec) && (sec >> fst)(true));
+is_epic(fst) && is_monic(fan) &&
+id_b == fan >> fst && nil == fan >> snd);
 \end{cpp}
-\smallskip
+\vspace{-7.4pt}
 \begin{cpp}
 template <typename T, typename Op>
 constexpr T unit(Op) = delete;
 template <typename T, typename Op>
 constexpr bool associative(Op) = delete;
-
 template <unsigned_integral T>
 constexpr T unit(plus<T>) { return 0; }
 template <unsigned_integral T>
-constexpr bool associative(plus<T>) {
-  return true;
-}
+constexpr bool associative(plus<T>)
+  { return true; }
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.5\linewidth}
@@ -106,61 +123,79 @@ template <typename T, typename Op = plus<T>>
 constexpr T concat() { return unit<T>(Op{}); }
 template <typename T, typename Op = plus<T>>
   requires IsMonoid<T, Op>
-constexpr T concat(T w) { return w; }
-template <typename T, typename Op = plus<T>>
-  requires IsMonoid<T, Op>
 constexpr T concat(T v, T w) { return Op{}(v, w); }
 
 static_assert(
 concat<size_t>() == 0 &&
-concat<size_t>(42uz) == 42 &&
 concat<size_t>(40uz, 2uz) == 42 &&
 concat<size_t, multiplies<size_t>>(6uz, 7uz)
-    == 42 &&
-concat<Sections<size_t>, compose>(
-    adding(40uz), adding(2uz))(0uz) == 42);
+    == 42);
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
-Top left, laws on arrows alone, with Listing~\ref{lst:rule1}'s arrows: two involutions, each the \Cpp{} operator post-composed, compose to an isomorphism and to no involution; a projection is epic, its section monic.
-A law is asked on the arrow's value, at compile time: \cppinline{is_monic(f)} reads what the concept \cppinline{IsMonicArrow} reads, and a composite's law is derived from its legs.
-Below it: the laws of a carrier under an operation, deleted by default and declared for the family of \cppinline{std::unsigned_integral} under \cppinline{(0, +)}, axioms found by resolution.
-Right: the monoid shape, a set closed under an associative binary operation with a unit element.
-Its elements need not be comparable, since equality is not decidable on every carrier, on functions for one: the unit is identified by \cppinline{is_unit}, by default equality with the unit, which a carrier may supply otherwise.
-\cppinline{IsMonoid<size_t, plus<size_t>>} is inferred from the laws on the left, a shape from its parts.
-Below it, \cppinline{concat} at the lengths that need no recursion, none, one and two.
-The monoid signatures are \cppinline{size_t} under \cppinline{(0, +), (1, *)}, and \cppinline{Sections}, the sections of $+$, under \cppinline{(id, >>)}, with \cppinline{adding} the curried $+$.}
+Top left: laws of arrows, inferred for composites.
+Bottom left: the monoid axioms for the unsigned integers under $+$.
+Right: the monoid shape and the function \cppinline{concat}.
+The unit is identified by \cppinline{is_unit}, not by \cppinline{==}, since equality is not decidable on every carrier.}
 \label{lst:rule2}
 \end{listing}
 
-In \Cpp{23} what a type permits is stated by constraints on template parameters: a \cppinline{concept} is a predicate on a type's structure~\cite{cpp23standard}, a trait a compile-time function on a type or a family of types~\cite{myers1995traits}, and together they take the place of type classes~\cite{wadler1989adhoc}.
-Overload resolution selects the instance: among the declarations whose constraints a type satisfies, the compiler takes the most specific, by the partial order of constraints~\cite{cpp23standard}.
-Concepts are structural: a type that has the operations satisfies the shape without a declaration, so the standard library's types are admitted after the fact, unmodified.
-Since \Cpp{20} checks a template's body only at its uses (Section~\ref{sec:intro}), this is a rule here and not a theorem.
+In \Cpp{23} a \cppinline{concept} is a predicate on a type's structure~\cite{cpp23standard}, and a trait is a compile-time function on types~\cite{myers1995traits}.
+Together they take the place of type classes~\cite{wadler1989adhoc}.
+Both are resolved while compiling, so no dictionaries exist as run-time values (Section~\ref{sec:binding}).
+A type that has the operations satisfies the \cppinline{concept} without a declaration, so the standard library's types are admitted unmodified.
+Overload resolution selects the most specific instance~\cite{cpp23standard}.
+Where two instances overlap, GHC refuses to commit to one that the types do not yet decide~\cite{ghc2024overlapping}, and Jlt asks the same of a call in a generic body.
+\Cpp{20} does not check a body against its constraints (Section~\ref{sec:intro}), so the rule is the programmer's to keep, and Listing~\ref{lst:undecided} shows a body that breaks it.
+The call it shows is a common idiom for dispatch: a general function that takes a faster path at a more specific type, as the standard's \cppinline{ranges::advance} does~\cite[{\texttt{range.iter.op.advance}}]{cpp23standard}.
+Leaving the choice implicit is established practice in \Cpp{}, and it asks the reader to know every overload in scope.
+Rust takes the other side: a generic function may use only what its declared bounds provide, and overlapping implementations are rejected~\cite{rustreference}.
+Jlt follows Rust in asking for the declaration, and keeps the dispatch.
+The function declares it: by requiring the constraint, by negating it, or by naming the call as a requirement, which makes the choice a parameter that each caller supplies.
+The reason is that a function's type should say what the function depends on, so that it can be read, and audited, from its declaration alone.
 
 Laws are \emph{certificates}, of two kinds.
-The axioms are declared, supplied by certification, and the compiler finds them but does not prove them: a declaration admits a law by fiat, as \texttt{sorry} does in Lean~\cite{demoura2021lean} and \texttt{Admitted} in Coq~\cite{Coq}.
-The theorems are inferred from them while compiling, by composition: a composite arrow's law from its legs', a shape built from shapes from theirs.
-Overload resolution is the proof search that finds either, a simple one~\cite{augustsson2005djinn}.
-Like any theorem, each is only as sound as the axioms it rests on.
-A law is stated of a carrier together with an operation, never of a carrier alone: \cppinline{associative(plus<T>)} is about \cppinline{T} under $+$, and \cppinline{size_t} is a monoid twice, under $(0, +)$ and under $(1, \times)$.
-A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms; Listing~\ref{lst:rule2} states them on arrows alone, then on a carrier under an operation.
+An axiom is declared: the compiler does not prove it.\footnote{Similarly, \texttt{sorry} admits a statement in Lean~\cite{demoura2021lean}, and \texttt{Admitted} one in Coq~\cite{Coq}.
+A false law declaration is possible, and the compiler does not detect it.
+The standard treats its own concepts alike: a type may satisfy one without modelling it, and the program is then ill-formed with no diagnostic required~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.}
+A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts.
+The isomorphism at Listing~\ref{lst:rule2}'s top left is one, inferred for a composite arrow from its two legs, and \cppinline{IsMonoid<size_t, plus<size_t>>} is another, a shape from its requirements.
+Overload resolution is a simple proof search that finds either kind~\cite{augustsson2005djinn}.
+A law is stated of a carrier, a type taken as a bare set of values, together with an operation: \cppinline{size_t} is a monoid twice, under $(0, +)$ and under $(1, \times)$.\footnote{A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.}
 
-\cppinline{concat} uses only what its constraint names, so it is a function of the monoid's record.
+\begin{table}[tb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.31\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+ & the object & steps down & builds up & consumed by \\
+\midrule
+initial algebras~\cite{lambek1968fixpoint,meijer1991functional} & $\mu F$ & $\mathit{out}$ & $\mathit{in}$ & a catamorphism \\
+recursive types~\cite[ch.~20]{pierce2002tapl} & $\mu X.\,T$ & \texttt{unfold} & \texttt{fold} & a recursive function \\
+the naturals~\cite{peano1889arithmetices,dedekind1888zahlen,lawvere1964etcs} & $\mathbb{N}$, a chain & predecessor & $\mathit{succ}$ & definition by recursion \\
+iterators~\cite{stepanov2009elements,cpp23standard} & a range & advancing & & \texttt{fold\_left} \\
+\midrule
+Jlt, over a value & a range of $\mathcal{R}$, a chain below $n$ & $\mathit{prior}$ & & \texttt{fold\_left} \\
+Jlt, over a type & a term $t$ of $\mu F$ & to a subterm & a node & instantiation \\
+\bottomrule
+\end{tabularx}
+\caption{One recursion under several names.
+Pierce's \texttt{fold} builds up: it is $\mathit{in}$, not the fold that consumes.}
+\label{tab:recursion-names}
+\end{table}
 
 \begin{figure}[tbp]
 \centering
-\begin{tikzcd}[column sep=2em, row sep=1.5em]
+\begin{tikzcd}[column sep={2.7em,between origins}, row sep=1.5em, every label/.append style={font=\small}, cells={nodes={minimum width=2em}}]
   \llap{$\mathbf{1}$:\quad}
-  &[1.6em] & & & & & & & & \mathbf{1} \arrow[d, "n"] \\
-  \llap{$X$:\quad} \ast
-  & 0 \arrow[l, "\mathit{prior}"'] \arrow[d, "f"]
-  & & 1 \arrow[ll, "\mathit{prior}"'] \arrow[d, "f"]
-  & & \cdots \arrow[ll, "\mathit{prior}"']
-  & & n-1 \arrow[ll, "\mathit{prior}"'] \arrow[d, "f"]
-  & & n \arrow[ll, "\mathit{prior}"'] \arrow[rr, dashed, "\mathit{succ}^*"]
- % & & \cdots \arrow[rr, dashed, "\mathit{succ}"]
-  & & \mathbb{N} \\
+  &[2.7em] & & & & & & & & \mathbf{1} \arrow[d, "n"] \\
+  \llap{$\mu F$:\quad} \ast
+  & 0 \arrow[l, "\mathit{out}"'] \arrow[d]
+  & & 1 \arrow[ll, "\mathit{out}"'] \arrow[d]
+  & & \cdots \arrow[ll, "\mathit{out}"']
+  & & n-1 \arrow[ll, "\mathit{out}"'] \arrow[d]
+  & & n \arrow[ll, "\mathit{out}"'] \arrow[rr, dashed, "\mathit{in}^*"]
+  & &[1.4em] \cdots \\
   \llap{$S$:\quad}
   & f(0) \arrow[d]
   & & f(1) \arrow[d]
@@ -168,125 +203,108 @@ A carrier with its operations is an algebra of a signature, in the sense of univ
   & & f(n-1) \arrow[d]
   & \\
   \llap{$M$:\quad}
-  & \bullet
-  & & \circ \arrow[ll, "h"']
+  & m_0
+  & & m_1 \arrow[ll, "h"']
   & & \cdots \arrow[ll, "h"']
-  & & \circ \arrow[ll, "h"']
+  & & m_{n-1} \arrow[ll, "h"']
   & & e \arrow[ll, "h"']
 \end{tikzcd}
-\caption{Structural recursion in FJlt, a sketch.
-Seed: after Lambek~\cite{lambek1968fixpoint}, the structure map $[0, \mathit{succ}] : \mathbf{1} + X \to X$ of the naturals is an isomorphism.
-Its inverse $\mathit{prior} : X \to \mathbf{1} + X$ steps down and always ends.
-Peano's $\mathit{succ}$~\cite{peano1889arithmetices}, dashed, never does.
-The user supplies the point $n : \mathbf{1} \to X$, the seed, and $\mathit{prior}$.
-The chain is what $\mathit{prior}$ reaches from $n$: the $n$ elements below it, not $n$ itself.
-So $n$ is the chain's rank, its cardinality, and $0$ the empty chain.
-Terms: replace $\mathbf{1} + X$ by a polynomial functor $F$, $X$ by its initial algebra $\mu F$, and $\mathit{prior}$ by Lambek's inverse $\mathit{out} : \mu F \to F\,\mu F$; the chain below $n$ becomes the subterms below a term $t$, $\mathit{sub}(t)$, and $n$ becomes $t$'s height, its rank: the figure is read for a type as for a value.
-Algebra: $f$ lands in $S$, and the fold in $M$.
-Fold: the fold along the walk, $h : M \times S \to M$, runs from $e$ at the seed's end through the intermediate values, $\circ$, to the result, $\bullet$.
-}
+
+\caption{Structural recursion in Jlt, a sketch, in the notation of initial algebras (Table~\ref{tab:recursion-names}).
+The seed $n$ is a point of $\mu F$, and $\mathit{out}$ steps down from it, step by step, until nothing is left, $\ast$.
+$\mathit{in}$, dashed, builds up without end.
+$f$ lands in $S$, and $h : M \times S \to M$ folds along the walk: $m_n = e$ and $m_k = h(m_{k+1}, f(k))$, to the result $m_0$.
+At a node with several children, the step takes the results of them all.}
 \label{fig:structures}
 \end{figure}
 
 \paragraph{Rule 3, Descent: recursion is structural.}
 \phantomsection\label{def:rule3}
-Recursion in Jlt is structural~\cite{burstall1969proving}: every step reduces a finite residue, so the recursion ends.
-Figure~\ref{fig:structures} draws the residue: the chain that $\mathit{prior}$ reaches from a seed $n$, or, for a term $t$, its subterms $\mathit{sub}(t)$ under $\mathit{out}$.
-Codata, structures observed without end, which Turner keeps apart from data~\cite{turner2004total}, is deliberately out of scope.
-The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value} of bounded rank.
+Recursion in Jlt is structural~\cite{burstall1969proving}: every step strictly decreases a bound, a natural number, so the recursion ends.\footnote{A variant function, in Dijkstra's word~\cite{dijkstra1976discipline}.}
 
-In \Cpp{}, a fold over a type is a function template instantiated once per node, the overload chosen by the node's type.
-Each node of a term is a class template whose type names its children's, as \cppinline{dec >> dec} composes two composites, with \cppinline{dec = -id_u >> ~id_u}, so the term's shape is its type.
-The recursion is then the compiler's instantiation, which ends with the type's finite height.
-A fold over a value is the standard's \cppinline{ranges::fold_left} over a range whose rank is bounded before the first step, by its length or by a budget declared with it.
-A loop whose end nothing shows stays out; one that shows it is sugar for the fold it denotes (Section~\ref{sec:jlt-to-fjlt}).
+Several literatures describe this recursion, each in its own words, and Table~\ref{tab:recursion-names} sets them side by side.
+This paper uses the notation of initial algebras, after Lambek, and it pictures the recursion as a finite chain in Dedekind's sense: the elements that a step reaches from a starting point.\footnote{After Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself, and the chain of an element is its forward orbit.
+The carrier needs neither an order nor an origin: reachability under the step orders the chain, and its bottom is where the step has nothing.}
+Figure~\ref{fig:structures} draws one chain.
+Jlt has two forms of recursion, over a value and over a type, and both read it.
+
+\begin{itemize}
+\item \emph{Over a value.}
+The chain is a range with a bound known before the first step: its length, or a budget declared with it.
+The kernel models it as a range of $\mathcal{R}$, with its length fixed (Appendix~\ref{app:fjlt:typing}).
+Here it is the elements that $\mathit{prior}$, the step to the element before, reaches from a seed $n$.
+In Figure~\ref{fig:structures} it is the row $\mu F$, where $\mathit{out}$ is $\mathit{prior}$ and counts down from $n$.
+The row $S$ is $f$ mapped over it, and the row $M$ is the recursion itself: the standard's fold, \cppinline{ranges::fold_left}, with step $h$, starting from $e$, admitted only over a range that declares its bound.
+In \Cpp{} the range is an \cppinline{input_range} with a bound, and $f$ is \cppinline{views::transform}, written \cppinline{>>}.\footnote{The fold along the walk needs no list~\cite{gibbons1996third}, only the walk, which is an iterator.
+With $\mathit{succ}$ as well it is bidirectional, a zipper~\cite{huet1997zipper}, and with offsets random-access, an array~\cite[\S 2.2.2]{knuth1997art1}: three of the standard's iterator categories.}
+Listing~\ref{lst:rule3}'s top panels show two cases.
+On the left, $S = M$ is a monoid: \cppinline{concat} folds the chain below the seed $10$.
+On the right, $S$ acts on $M$: $S$ is the matrices, \cppinline{M2}, and $M$ the row vectors, \cppinline{V}.
+$f$ maps every element to Fibonacci's matrix, and $h$, \cppinline{act}, multiplies it into a vector, starting from $e = (1, 0)$.\footnote{A semiring may likewise act on a semimodule, which adds distributivity.}
+A loop whose end the program shows is sugar for the fold it denotes, and any other loop stays out (Section~\ref{sec:jlt-to-fjlt}).
+\item \emph{Over a type.}
+The chain is a branch of a term.
+Each node of a term is a class template whose type names its children's, so the term's shape is its type.
+The recursion is the compiler's instantiation: a fold over the term is a function template instantiated once per node, the overload chosen by the node's type, and it ends with the type's finite height.
+In Figure~\ref{fig:structures}, $\mu F$ is the type of terms: $\mathit{out}$ takes a term to its subterms, the figure follows one branch, and $n$ is the term's height.
+Listing~\ref{lst:rule3}'s bottom panel builds such a term, \cppinline{dec >> dec}, a composite of two composites, of height three.
+It is folded twice: to a value, and to a law, \cppinline{is_iso}, inferred from its parts'.
+A third fold, to a normal form, decides the equation that ends the panel, \cppinline{id_u == cpl >> cpl}: \cppinline{==} answers by the laws and never by the functions (Appendix~\ref{app:fjlt:typing}).
+\end{itemize}
 
 
 \begin{listing}[htbp]
-\begin{minipage}[t]{0.49\linewidth}
+\begin{minipage}[t]{0.47\linewidth}
 \begin{cpp}
-// over a type: the shape is the type
-constexpr auto dec = -id_u >> ~id_u;  // x - 1
-constexpr auto dec2 = dec >> dec;     // x - 2
-static_assert(dec2(42uz) == 40 && is_iso(dec2));
-static_assert(id_u == ~id_u >> ~id_u);
-\end{cpp}
-\smallskip
-\begin{cpp}
-// over a value: the chain below the seed
-constexpr auto ns =                   // 9, …, 0
-    10uz >> chain<size_t>();
-// S = M, the fold on a monoid
+constexpr auto ns = 10uz >> chain<size_t>();
+
 template <IsBoundedRange R,
-          typename T = ranges::range_value_t<R>,
+          typename T =
+              ranges::range_value_t<R>,
           typename Op = plus<T>>
   requires IsMonoid<T, Op>
 constexpr T concat(R r, Op op = {}) {
   return ranges::fold_left(r, unit<T>(op), op);
 }
+
 static_assert(
     concat(ns) == 45 &&
     concat(ns >> constant<size_t>(7uz)) == 70);
 \end{cpp}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
+\begin{minipage}[t]{0.5\linewidth}
 \begin{cpp}
-// S acting on M: matrices on vectors
 using V = array<size_t, 2>;
-struct M { V top, bottom;           // row by row
-  friend constexpr V operator*(V v, M a) {  // v·A
+struct M2 { V top, bottom;
+  friend constexpr V operator*(V v, M2 a) {
     return {v[0] * a.top[0] + v[1] * a.bottom[0],
             v[0] * a.top[1] + v[1] * a.bottom[1]};}
-  /* M * M, M + M, n * M, == */ };
-constexpr auto act = [](V v, M a) { return v * a; };
-constexpr M fib{{1, 1}, {1, 0}};
+  /* M2 * M2, M2 + M2, n * M2, == */ };
+
+constexpr auto act = [](V v, M2 a) { return v * a; };
+constexpr M2 fib{{1, 1}, {1, 0}};
 constexpr auto ms = ns >> constant<size_t>(fib);
-// F(11), F(10)
+
 constexpr auto fs_10 = ranges::fold_left(
-  ms, V{1, 0}, act);
+    ms, V{1, 0}, act);
 static_assert(fs_10 == V{89, 55});
 \end{cpp}
 \end{minipage}
+\vspace{-6pt}
+\begin{cpp}
+constexpr auto neg = -id_u;
+constexpr auto cpl = ~id_u;
+constexpr auto dec = neg >> cpl;
+constexpr auto dec2 = dec >> dec;
+static_assert(dec2(42uz) == 40 && is_iso(dec2) && id_u == cpl >> cpl);
+\end{cpp}
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in code.
-Left, over a type: a term of height three, Listing~\ref{lst:rule2}'s composite composed with itself, folded once to a value and once to a law, the law inferred from its legs'.
-Last, an identity law: two arrows compared by their normal forms, their paths in the free category on their atoms~\cite{maclane1971categories}, reduced by unit, associativity and the certified involution $\sim$, so \cppinline{==} answers by the laws, never by the functions, which Rice's theorem keeps undecided.
-Below it, over a value: the chain below the seed $n = 10$, which $\mathit{prior}$ counts down, folded in the simplest case, $S = M$ a monoid, by the library's \cppinline{concat} over a bounded range: the overload that completes Listing~\ref{lst:rule2}'s fixed lengths, defined there before the fold.
-Right: the general fold, $S$ acting on $M$: $f$ maps every element to Fibonacci's matrix, and $h$, \cppinline{act}, multiplies it into a vector from $e = (1, 0)$.
-In the standard's ranges library~\cite{cpp23standard}, Figure~\ref{fig:structures}'s chain is an \cppinline{input_range}.
-The arrow $f$ along it is \cppinline{views::transform}, written \cppinline{>>}, and the fold with the action $h$ is \cppinline{ranges::fold_left}, the native fold, bounds-checked before it starts.}
+Top: recursion over a value, the chain $9, \ldots, 0$ folded on a monoid (left) and by matrices acting on row vectors, to the Fibonacci numbers $(F(11), F(10))$ (right).
+Bottom: recursion over a type, with \cppinline{neg} the negation, \cppinline{cpl} the complement and \cppinline{dec} the decrement.}
 \label{lst:rule3}
 \end{listing}
 
-Figure~\ref{fig:structures} reads in three more ways.
-Order: after Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself.
-The chain of an element is its forward orbit, here the chain of $\mathit{prior}\,n$.
-The carrier needs neither an order nor an origin.
-Reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
-Algebra: in the simplest case $S = M$ is a monoid.
-A monoid $S$ may also act on $M$, and a semiring on a semimodule, which adds distributivity.
-Fold: a list has two folds~\cite{gibbons1996third}.
-The one along the walk needs no list: it is a stream and its iterator~\cite{stepanov2009elements}.
-With $\mathit{succ}$ as well, $\mathit{succ} >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}.
-With offsets it is an array~\cite[\S 2.2.2]{knuth1997art1}, and these are the standard's forward, bidirectional and random-access iterators~\cite{cpp23standard}.
-
-What the rule buys is termination and, with Rule~2, the System~F reading, data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
-Like System~F, strongly normalising and so unable to express every computable function~\cite{girard1989proofs}, Rule~3 trades expressiveness for termination, since the halting programs are not a decidable set~\cite{turing1936computable}: a bounded search ends without always deciding its question (Section~\ref{sec:binding}).
-
-\begin{table}[ht]
-\centering
-\small
-\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
-\toprule
-rule & archetype & keeps out of \Cpp{} & buys & costs \\
-\midrule
-1 Substitution & \texttt{id}, the identity arrow & state, pointers, exceptions & one program, two binding times & no state beyond a call's own locals, no I/O \\
-2 Abstraction & \texttt{concat}, a monoid's fold at a length in its type & a body using what its constraints do not name & the System~F reading & no ad hoc use of a type \\
-3 Descent & \texttt{concat} over a chain, a fold over structure in a value & unbounded loops, general recursion & termination & the rank of the chain being folded \\
-\bottomrule
-\end{tabularx}
-\caption{The posture at a glance, each rule named for what it conserves, with what it keeps out of \Cpp{}: the filtration from \Cpp{} to Jlt.
-At build time, Rule~1 is held by the compiler in part and by the repository's linter for its syntax; Rule~2 by the linter at the level of names and by an auditing reader for the rest; Rule~3 by the compiler at compile time and by the linter for loops and recursion.
-Section~\ref{sec:limits} says how.}
-\label{tab:posture}
-\end{table}
-
+The rule buys termination and, with Rule~2, the System~F reading: data as their own folds, after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
+The price is expressiveness, as in System~F, which is strongly normalising and so cannot express every computable function~\cite{girard1989proofs}.
+A bounded search ends, but it does not always decide its question, since halting is undecidable~\cite{turing1936computable} (Section~\ref{sec:binding}).
+Codata, structures observed without end, are out of scope~\cite{turner2004total}.

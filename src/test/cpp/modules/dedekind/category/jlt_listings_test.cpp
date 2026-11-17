@@ -264,7 +264,7 @@ using dedekind::category::ι;
 constexpr auto id_b = id<bool>();
 constexpr auto id_u = id<size_t>();
 static_assert(id_b(true) == true && id_u(42uz) == 42 &&
-              (id_u >> id_u)(42uz) == 42);
+              (id_u >> id_u)(42uz) == 42 && id_b == id_b >> id_b);
 // Constant arrows:
 constexpr auto nil = constant<bool>(0uz);
 constexpr auto one = constant<bool>(1uz);
@@ -274,6 +274,8 @@ constexpr auto nay = constant<size_t>(false);
 constexpr auto cpy = ans;  // a copy
 static_assert(cpy(true) == ans(false) && (ans >> id_u)(true) == 42 &&
               (nil >> nay >> ans)(false) == 42);
+// A constant absorbs the arrows before it: an equation between arrows.
+static_assert(ans == nil >> nay >> ans);
 
 // Listing 2, top: certificates on arrows alone, before any carrier.  A law
 // is asked on the arrow's value (is_monic(f) reads what IsMonicArrow<F>
@@ -291,13 +293,15 @@ static_assert(is_constant(ans) && is_monotone(ans) && is_antitone(aye) &&
 template <typename A, typename B>
 concept Comparable = requires(const A& a, const B& b) { a == b; };
 
-// Listing 3, left: a fold over a type.  The term's shape is its type, a
+// Listing 3, bottom: a fold over a type.  The term's shape is its type, a
 // composite of composites, depth 3; it is folded once to a value and once
 // to a law, the law inferred from its legs'.
-constexpr auto dec = -id_u >> ~id_u;  // x - 1
-constexpr auto dec2 = dec >> dec;     // x - 2
+constexpr auto neg = -id_u;        // negate
+constexpr auto cpl = ~id_u;        // complement
+constexpr auto dec = neg >> cpl;   // x - 1
+constexpr auto dec2 = dec >> dec;  // x - 2
 static_assert(dec2(42uz) == 40 && is_iso(dec2));
-static_assert(id_u == ~id_u >> ~id_u);
+static_assert(id_u == ~id_u >> ~id_u && id_u == cpl >> cpl);
 static_assert((id_u == dec).verdict ==
               dedekind::category::Ternary::Unknown);  // undecided, not unequal
 // Copilot's two counterexamples: different endpoints do not compare, and
@@ -320,12 +324,17 @@ struct OnCounts {
 };
 static_assert(dedekind::category::IdentityIn<OnCounts>{} == ~id_u >> ~id_u);
 // Products and coproducts:
-constexpr auto fst = Π<1, std::pair<bool, size_t>>{};
-constexpr auto sec = Pairing{id_b, nil};  // ⟨1, 0⟩
+using P = std::pair<bool, size_t>;
+constexpr auto fst = Π<1, P>{};
+constexpr auto snd = Π<2, P>{};
+constexpr auto fan = Pairing{id_b, nil};  // ⟨1, 0⟩, Haskell's id &&& const 0
+// The product's two equations, as arrow laws: a projection after the fanout
+// is its leg.
+static_assert(id_b == fan >> fst && nil == fan >> snd);
 constexpr auto inl = ι<1, bool, size_t>{};
 constexpr auto ret = Copairing{id_b, nay};  // [1, ⊥]
-static_assert(is_epic(fst) && !is_monic(fst) && is_monic(sec) &&
-              !is_epic(sec) && (sec >> fst)(true) && !(sec >> fst)(false) &&
+static_assert(is_epic(fst) && !is_monic(fst) && is_monic(fan) &&
+              !is_epic(fan) && (fan >> fst)(true) && !(fan >> fst)(false) &&
               is_monic(inl) && !is_epic(inl) && is_epic(ret) &&
               !is_monic(ret) && (inl >> ret)(true) && !(inl >> ret)(false));
 
@@ -353,10 +362,10 @@ static_assert(IsMonoid<Sections<size_t>, compose> &&
               concat<Sections<size_t>, compose>(adding(40uz),
                                                 adding(2uz))(0uz) == 42);
 
-// Listing 3: Figure 2 in code.  Left, over a type: dec and dec2 above;
-// below them, over a value, the simplest case S = M: the counts' chain below
+// Listing 3: Figure 2 in code.  Bottom, over a type: dec and dec2 above.
+// Top left, over a value, the simplest case S = M: the counts' chain below
 // the seed, folded on a monoid by the library's concat, a bounded range.
-// Right: the general fold, S acting on M, matrices on vectors, Fibonacci's,
+// Top right: the general fold, S acting on M, matrices on vectors, Fibonacci's,
 // the standard's fold_left as it stands.  The checks the listing does not
 // print (the chain is an input range of the right length; Collatz's chain,
 // bounded by a budget declared with it) stay here.  chain, until, equals,
