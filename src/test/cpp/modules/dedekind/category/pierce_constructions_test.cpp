@@ -156,6 +156,8 @@ constexpr auto either = Copairing{zero_b, id_n};  // B + N → N, [0, id]
 
 constexpr Verdict beta_sum_1 = verdict(inl >> either, zero_b);
 constexpr Verdict beta_sum_2 = verdict(inr >> either, id_n);
+// Pierce's Definition 1.5.4, the half that commutes: the law decides it.
+static_assert(beta_sum_1 == Verdict::Proved && beta_sum_2 == Verdict::Proved);
 constexpr Verdict eta_sum = verdict(Copairing{inl, inr}, id<BorN>());
 // f + g: after the first injection it is f, then the first injection.
 constexpr auto id_plus_cpl = id_b + cpl;  // B + N → B + N

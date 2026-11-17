@@ -322,16 +322,38 @@ inline constexpr bool selects_v<Pairing<F, G>, 2> = HonoursSignature<G>;
 template <typename P, typename Y>
 concept ProjectsPairing = (IsPairProjection<Y, 1> && selects_v<P, 1>) ||
                           (IsPairProjection<Y, 2> && selects_v<P, 2>);
+/** @brief The leg @c K of a copairing may stand for @c ι_K then the copairing
+ *  where the leg honours its signature, as a pairing's leg above. */
+template <typename Y, std::size_t K>
+inline constexpr bool cases_v = false;
+template <typename F, typename G>
+inline constexpr bool cases_v<Copairing<F, G>, 1> = HonoursSignature<F>;
+template <typename F, typename G>
+inline constexpr bool cases_v<Copairing<F, G>, 2> = HonoursSignature<G>;
+/** @brief The summand an injection injects, 0 for any other arrow. */
+template <typename P>
+inline constexpr std::size_t injects_v = 0;
+template <std::size_t K, typename A, typename B>
+inline constexpr std::size_t injects_v<Injection<K, A, B>> = K;
+/** @brief A copairing after an injection: @f$[f_1, f_2] \circ \iota_k =
+ *  f_k@f$, the coproduct's β (Pierce, @e Basic @e Category @e Theory @e for
+ *  @e Computer @e Scientists, Definition 1.5.4: the arrow @f$[f, g]@f$ makes
+ *  the diagram commute), the dual of @c ProjectsPairing: the case is decided
+ *  by the injection, so one leg runs. */
+template <typename P, typename Y>
+concept InjectsCopairing = (injects_v<P> == 1 && cases_v<Y, 1>) ||
+                           (injects_v<P> == 2 && cases_v<Y, 2>);
 /** @brief Two adjacent atoms, @c p then @c y, both honouring their
  *  signatures, that a law rewrites: an identity on either side (unit), a
  *  copy that @c CancelsAdjacent, a constant after any arrow, any arrow after
- *  a constant, or a projection after a pairing. */
+ *  a constant, a projection after a pairing, or a copairing after an
+ *  injection. */
 template <typename P, typename Y>
 concept Rewrites =
     HonoursSignature<P> && HonoursSignature<Y> &&
     (IsIdentityArrow<P> || IsIdentityArrow<Y> ||
      (std::same_as<P, Y> && CancelsAdjacent<P>) || IsConstantAtom<Y> ||
-     IsConstantAtom<P> || ProjectsPairing<P, Y>);
+     IsConstantAtom<P> || ProjectsPairing<P, Y> || InjectsCopairing<P, Y>);
 /** @brief @f$c \circ f = c@f$: the constant, from @c f's domain.
  *  @param c the constant.  @return it, from @c f's domain. */
 template <IsArrow P, typename B, typename C>
@@ -364,6 +386,16 @@ template <typename F, typename G>
 constexpr G selected(const Pairing<F, G>& p, At<2>) {
   return p.g;
 }
+/** @brief @f$[f_1, f_2] \circ \iota_k = f_k@f$: the leg.
+ *  @param c the copairing.  @return its leg @c k. */
+template <typename F, typename G>
+constexpr F selected(const Copairing<F, G>& c, At<1>) {
+  return c.f;
+}
+template <typename F, typename G>
+constexpr G selected(const Copairing<F, G>& c, At<2>) {
+  return c.g;
+}
 /** @brief The path two adjacent atoms rewrite to.  @param p the first atom.
  *  @param y the second.  @return the path. */
 template <IsArrow P, IsArrow Y>
@@ -379,13 +411,16 @@ constexpr auto rewrite(const P& p, const Y& y) {
     return applied(p, y);  // f ∘ c = the constant f(c)
   } else if constexpr (ProjectsPairing<P, Y>) {
     return selected(p, At<IsPairProjection<Y, 1> ? 1 : 2>{});
+  } else if constexpr (InjectsCopairing<P, Y>) {
+    return selected(y, At<injects_v<P>>{});
   } else {
     return Identity<Dom<P>>{};  // x x = id
   }
 }
 /** @brief The concatenation of two normal paths: the result associates to
  *  the right (associativity), and two adjacent atoms that a law @c Rewrites
- *  are rewritten (unit, involution, constant, application, product), across
+ *  are rewritten (unit, involution, constant, application, product, sum),
+ *  across
  *  the junction
  *  as often as it recurs.  Every decision is made here, on the flattened
  *  path, so the result does not depend on how the term was associated.  A
@@ -722,12 +757,14 @@ constexpr bool same_path(const P& p, const Q& q) {
  *  @details The normal form of an arrow term is its path in the free
  *  category on its atoms (Mac Lane, @e Categories for the Working
  *  Mathematician, §II.7), identities dropped and composition associated,
- *  under four laws read on adjacent atoms (@c reduce_β above): a certified
+ *  under five laws read on adjacent atoms (@c reduce_β above): a certified
  *  one-valued involution cancelled against itself, @f$f f \to
  *  \mathrm{id}@f$; a constant absorbing the arrow before it, @f$c \circ f
  *  \to c@f$; an arrow after a constant applied to it, @f$f \circ c \to
  *  f(c)@f$, the constant of its value; a projection after a pairing selecting
- *  its leg, @f$\pi_k \circ \langle f_1, f_2 \rangle \to f_k@f$.  The laws
+ *  its leg, @f$\pi_k \circ \langle f_1, f_2 \rangle \to f_k@f$; a copairing
+ *  after an injection selecting its leg, @f$[f_1, f_2] \circ \iota_k \to
+ *  f_k@f$.  The laws
  *  are read on atoms that
  *  honour their declared signatures (@c HonoursSignature: the call takes the
  *  domain and returns the codomain themselves); any other atom is opaque, no

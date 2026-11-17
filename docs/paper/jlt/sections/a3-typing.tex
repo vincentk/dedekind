@@ -231,7 +231,7 @@ The algebra is applied to each node together with the folded values of its legs,
 \textsc{T-Node} reads a term of node type as $\mu F$ where a rule expects one.
 Listing~\ref{lst:rule3}'s last equation, \cppinline{id_u == cpl >> cpl}, is one such recursion, with laws in the algebra: each step may also rewrite, and the result is the composite's normal form.
 An arrow's atoms are its parts that \cppinline{>>} did not build.
-Its normal form is the sequence of its atoms once the laws have been applied: identities dropped, brackets removed, a certified involution cancelled against itself, a constant absorbing what precedes it, an arrow after a constant applied to it, and a projection after a pairing reduced to its leg.
+Its normal form is the sequence of its atoms once the laws have been applied: identities dropped, brackets removed, a certified involution cancelled against itself, a constant absorbing what precedes it, an arrow after a constant applied to it, a projection after a pairing reduced to its leg, and a copairing after an injection reduced to its leg.
 It is the arrow's path in the free category on its atoms~\cite{maclane1971categories}, modulo those laws.
 The laws are read only between atoms that honour their declared signatures, and an involution is cancelled only where its type has one value, so that two atoms of that type are the same arrow.
 Any other atom is opaque, and no rewrite crosses it.
