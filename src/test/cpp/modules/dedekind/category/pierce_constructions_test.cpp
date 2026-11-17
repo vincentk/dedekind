@@ -139,6 +139,12 @@ constexpr Verdict times_2 = verdict(cpl_times_neg >> snd_nn, snd_nn >> neg);
 // library the two are one type, so the equation is asked and the type too.
 constexpr auto times_spelled = Pairing{fst_nn >> cpl, snd_nn >> neg};
 constexpr Verdict times_def = verdict(cpl_times_neg, times_spelled);
+// The product's η through the product map: id × id is the identity; and a
+// monoid's multiplication as an arrow out of the product.
+constexpr Verdict times_id = verdict(id_n * id_n, id<NN>());
+constexpr auto add = id_n * id_n >> std::plus<N>{};
+constexpr Verdict add_two_ways = verdict(add, id<NN>() >> std::plus<N>{});
+static_assert(add(NN{2, 3}) == 5);
 constexpr bool times_same_type =
     std::same_as<decltype(cpl_times_neg), decltype(times_spelled)>;
 constexpr auto flip_nn = flip<N, N>();
@@ -240,6 +246,8 @@ TEST_CASE("Pierce's basic constructions, composed: what the laws decide",
   row("(cpl * neg) >> fst == fst >> cpl", times_1);
   row("(cpl * neg) >> snd == snd >> neg", times_2);
   row("cpl * neg == Pairing{fst >> cpl, snd >> neg}", times_def);
+  row("id_n * id_n == id<N x N>", times_id);
+  row("id_n * id_n >> plus == id<N x N> >> plus", add_two_ways);
   row("flip >> flip == id<N x N>", flip_involution);
   row("flip<B,N> >> flip<N,B> == id<B x N>", flip_round_trip);
   row("inl >> [zero_b, id_n] == zero_b", beta_sum_1);

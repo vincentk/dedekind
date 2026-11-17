@@ -468,14 +468,31 @@ constexpr auto reduce_β(const Compose<F, G>&, const RF& rf, const RG& rg) {
   // atoms a law rewrites rewritten.
   return detail_f_algebra::path_concat(rf, rg);
 }
-/** @brief A pairing (copairing) rebuilt from its reduced legs: inert. */
+/** @brief A pairing (copairing) rebuilt from its reduced legs, with the
+ *  product's (coproduct's) η: the pairing of a pair's two projections is the
+ *  identity, @f$\langle \pi_1, \pi_2 \rangle = \mathrm{id}@f$, and dually
+ *  @f$[\iota_1, \iota_2] = \mathrm{id}@f$.  The mediating arrow is the only
+ *  one (Pierce, @e Basic @e Category @e Theory @e for @e Computer
+ *  @e Scientists, Definitions 1.5.1 and 1.5.4: "exactly one arrow"), and the
+ *  identity is one.  So @c id @c * @c id is the identity on the product. */
 export template <typename F, typename G, typename RF, typename RG>
 constexpr auto reduce_β(const Pairing<F, G>&, const RF& rf, const RG& rg) {
-  return Pairing<RF, RG>{rf, rg};
+  if constexpr (IsPairProjection<RF, 1> && IsPairProjection<RG, 2> &&
+                std::same_as<Dom<RF>, Dom<RG>>) {
+    return Identity<Dom<RF>>{};
+  } else {
+    return Pairing<RF, RG>{rf, rg};
+  }
 }
 export template <typename F, typename G, typename RF, typename RG>
 constexpr auto reduce_β(const Copairing<F, G>&, const RF& rf, const RG& rg) {
-  return Copairing<RF, RG>{rf, rg};
+  if constexpr (detail_f_algebra::injects_v<RF> == 1 &&
+                detail_f_algebra::injects_v<RG> == 2 &&
+                std::same_as<Cod<RF>, Cod<RG>>) {
+    return Identity<Cod<RF>>{};
+  } else {
+    return Copairing<RF, RG>{rf, rg};
+  }
 }
 /** @} */
 
@@ -764,7 +781,8 @@ constexpr bool same_path(const P& p, const Q& q) {
  *  f(c)@f$, the constant of its value; a projection after a pairing selecting
  *  its leg, @f$\pi_k \circ \langle f_1, f_2 \rangle \to f_k@f$; a copairing
  *  after an injection selecting its leg, @f$[f_1, f_2] \circ \iota_k \to
- *  f_k@f$.  The laws
+ *  f_k@f$.  A pairing of a pair's two projections, and a copairing of a sum's
+ *  two injections, is the identity (the formers' η).  The laws
  *  are read on atoms that
  *  honour their declared signatures (@c HonoursSignature: the call takes the
  *  domain and returns the codomain themselves); any other atom is opaque, no
