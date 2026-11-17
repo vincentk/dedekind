@@ -1491,6 +1491,26 @@ constexpr SumArrow<F, G> operator+(const F& f, const G& g) {
   return sum_arrow(f, g);
 }
 
+/** @brief A product (sum) of isomorphisms is one, with the inverses taken
+ *  leg by leg: @f$(f \times g)^{-1} = f^{-1} \times g^{-1}@f$ and
+ *  @f$(f + g)^{-1} = f^{-1} + g^{-1}@f$, since @f$\times@f$ and @f$+@f$ are
+ *  functors and a functor preserves isomorphisms.  Read off the defining
+ *  form (Pierce, Basic Category Theory, Definition 1.5.4, and its dual); any
+ *  other pairing or copairing has no inverse by this rule.
+ *  @param p the product (sum) of two isomorphisms. */
+export template <typename A, IsIsomorphism F, typename B, IsIsomorphism G>
+  requires(IsPairProjection<A, 1> && IsPairProjection<B, 2>)
+[[nodiscard]] constexpr auto inverse(
+    const Pairing<Compose<A, F>, Compose<B, G>>& p) {
+  return product_arrow(inverse(p.f.g), inverse(p.g.g));
+}
+export template <IsIsomorphism F, IsIsomorphism G, typename X, typename Y>
+[[nodiscard]] constexpr auto inverse(
+    const Copairing<Compose<F, Injection<1, X, Y>>,
+                    Compose<G, Injection<2, X, Y>>>& p) {
+  return sum_arrow(inverse(p.f.f), inverse(p.g.f));
+}
+
 /** @brief The legs of a former, for @c cata. */
 export template <typename F, typename G>
 constexpr auto legs(const Pairing<F, G>& a) {
@@ -1561,6 +1581,12 @@ static_assert(
     IsMonicArrow<ProductArrow<I, B>> && IsEpicArrow<ProductArrow<I, B>>,
     "id × id is a bijection: the product fact, read through ⟨id ∘ π₁, "
     "id ∘ π₂⟩");
+static_assert(IsIsomorphism<ProductArrow<I, B>> &&
+                  IsIsomorphism<SumArrow<I, B>> &&
+                  !IsIsomorphism<Pairing<I, I>> &&
+                  !IsIsomorphism<Copairing<I, I>>,
+              "id × id and id + id are isomorphisms, inverted leg by leg; the "
+              "diagonal and the codiagonal are not");
 static_assert(IsMonicArrow<SumArrow<I, B>> && IsEpicArrow<SumArrow<I, B>>,
               "id + id is a bijection: the sum fact, read through [ι₁ ∘ id, ι₂ "
               "∘ id]");
