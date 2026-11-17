@@ -15,6 +15,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <functional>
 #include <optional>
 #include <ranges>
@@ -762,6 +763,116 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
         C::IsSemimodule<size_t, size_t, std::plus<size_t>, std::plus<size_t>,
                         std::multiplies<size_t>, std::multiplies<>>);
   }
+}
+
+// A probe, not a listing: which declarations of a trait a shape finds, by
+// where they stand (Section 7, "Lookup stops at std").  The carriers are
+// fundamental or standard types, so argument-dependent lookup adds nothing.
+namespace lookup_probe {
+// 1. A generic function before the shape.
+template <typename T>
+constexpr int early(T) = delete;
+template <std::unsigned_integral T>
+constexpr int early(T) {
+  return 1;
+}
+template <typename T>
+concept HasEarly = requires(T x) {
+  { early(x) } -> std::same_as<int>;
+};
+constexpr bool generic_before = HasEarly<unsigned>;
+
+// 2. A generic function after the shape; 3. an explicit specialisation after.
+template <typename T>
+constexpr int late(T) = delete;
+template <typename T>
+concept HasLate = requires(T x) {
+  { late(x) } -> std::same_as<int>;
+};
+template <std::unsigned_integral T>
+constexpr int late(T) {
+  return 1;
+}
+template <>
+constexpr int late<long>(long) {
+  return 2;
+}
+constexpr bool generic_after = HasLate<unsigned>;
+constexpr bool specialisation_after = HasLate<long>;
+
+// 4. A generic function before the shape whose body calls the trait at the
+// parts of a pair; the atom is an explicit specialisation after the shape.
+template <typename T>
+constexpr bool law(T) = delete;
+template <typename F, typename G>
+constexpr bool law(std::pair<F, G> p) {
+  return law(p.first) && law(p.second);
+}
+template <typename T>
+concept HasLaw = requires(T x) {
+  { law(x) } -> std::same_as<bool>;
+};
+template <>
+constexpr bool law<int>(int) {
+  return true;
+}
+constexpr bool body_recursion_before =
+    HasLaw<std::pair<int, std::pair<int, int>>> &&
+    law(std::pair{1, std::pair{2, 3}});
+
+// 5. An instance that requires its own shape at the parts, so after the shape.
+template <typename T>
+constexpr bool own(T) = delete;
+template <typename T>
+concept HasOwn = requires(T x) {
+  { own(x) } -> std::same_as<bool>;
+};
+template <>
+constexpr bool own<int>(int) {
+  return true;
+}
+template <typename F, typename G>
+  requires HasOwn<F> && HasOwn<G>
+constexpr bool own(std::pair<F, G>) {
+  return true;
+}
+constexpr bool own_shape_function = HasOwn<std::pair<int, int>>;
+
+// 6. The same through a class template's partial specialisation.
+template <typename T>
+struct own_trait {};
+template <typename T>
+concept HasOwnTrait = requires {
+  { own_trait<T>::value } -> std::convertible_to<bool>;
+};
+template <>
+struct own_trait<int> {
+  static constexpr bool value = true;
+};
+template <typename F, typename G>
+  requires HasOwnTrait<F> && HasOwnTrait<G>
+struct own_trait<std::pair<F, G>> {
+  static constexpr bool value = true;
+};
+constexpr bool own_shape_class = HasOwnTrait<std::pair<int, int>>;
+}  // namespace lookup_probe
+
+TEST_CASE("Lookup probe: which declarations of a trait a shape finds",
+          "[category][jlt][lookup][probe]") {
+  using namespace lookup_probe;
+  const auto row = [](const char* what, bool found) {
+    std::printf("LOOKUP | %s | %s\n", found ? "found    " : "not found", what);
+  };
+  row("1 generic function before the shape", generic_before);
+  row("2 generic function after the shape", generic_after);
+  row("3 explicit specialisation after the shape", specialisation_after);
+  row("4 generic before the shape, body calls the trait at the parts",
+      body_recursion_before);
+  row("5 instance requiring its own shape at the parts (function)",
+      own_shape_function);
+  row("6 instance requiring its own shape at the parts (class template)",
+      own_shape_class);
+  CHECK(generic_before);
 }
 
 TEST_CASE("Jlt paper listings: Appendix A's small program, read at runtime",
