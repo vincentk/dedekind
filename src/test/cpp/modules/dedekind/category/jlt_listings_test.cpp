@@ -347,6 +347,13 @@ constexpr auto fan = Pairing{id_b, nil};  // ⟨1, 0⟩, Haskell's id &&& const 
 // The product's two equations, as arrow laws: a projection after the fanout
 // is its leg.
 static_assert(id_b == fan >> fst && nil == fan >> snd && is_epic(snd));
+// Listing 2: the monoid a second time, by its two arrows: Listing 1's point
+// zero, and addition as an arrow out of the product, id * id the identity on
+// it.  The point's type does not record its value, so another point of the
+// same type is no unit.
+constexpr auto add = id_u * id_u >> std::plus<size_t>{};
+static_assert(add(std::pair{40uz, 2uz}) == 42 && is_monoid(zero, add) &&
+              !is_monoid(constant<One>(1uz), add));
 constexpr auto inl = ι<1, bool, size_t>{};
 constexpr auto ret = Copairing{id_b, nay};  // [1, ⊥]
 static_assert(is_epic(fst) && !is_monic(fst) && is_monic(fan) &&

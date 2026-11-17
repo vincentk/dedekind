@@ -148,6 +148,8 @@ import :morphism;    // IsArrow, Compose, π_1 / π_2: the first concrete term
 import :logic;       // Ternary: the bounded chain, the non-example
 import :nno;  // In = [Z, S] and Prior, its inverse: the NNO's structure maps
               // functor
+import :species;  // unit: a monoid's unit, read by is_monoid
+import :total;    // IsMonoid: the monoid two arrows present
 
 namespace dedekind::category {
 
@@ -850,6 +852,41 @@ constexpr bool is_epic(const F&) {
 export template <IsArrow F>
 constexpr bool is_iso(const F&) {
   return IsIsomorphism<F> || IsIsomorphism<detail_f_algebra::normal_form_t<F>>;
+}
+namespace detail_f_algebra {
+/** @brief The operation an arrow out of a square names in its type: that of
+ *  @c Uncurried, none for any other arrow. */
+template <typename M>
+struct names_operation {};
+template <typename T, typename Op>
+struct names_operation<Uncurried<T, Op>> {
+  using Carrier = T;
+  using Operation = Op;
+};
+}  // namespace detail_f_algebra
+/** @brief A monoid presented by its two arrows (the Jlt paper's Listing 2): a
+ *  point @f$e : 1 \to M@f$, an element as an arrow from the terminal object
+ *  (Pierce, @e Basic @e Category @e Theory @e for @e Computer @e Scientists,
+ *  Example 1.4.5), and a multiplication @f$m : M \times M \to M@f$, an arrow
+ *  out of a product (Definition 1.5.1).  It is the monoid @c IsMonoid<M, Op>
+ *  declares, for the operation @c Op that @c m names at its normal form, with
+ *  @c e its unit.  The operation is read off @c m's type; the point's type
+ *  records its carrier and not its value, so the unit is asked on the value,
+ *  and two points of one type differ here.
+ *  @param e the point.  @param m the multiplication.
+ *  @return whether @c (e, m) is that monoid. */
+export template <typename T, IsArrow M>
+constexpr bool is_monoid(const ConstantMorphism<One, T>& e, const M& m) {
+  using Names =
+      detail_f_algebra::names_operation<detail_f_algebra::normal_form_t<M>>;
+  if constexpr (requires { typename Names::Operation; }) {
+    if constexpr (std::same_as<typename Names::Carrier, T> &&
+                  IsMonoid<T, typename Names::Operation> &&
+                  std::equality_comparable<T>) {
+      return e.value == unit<T>(cata(m).op);
+    }
+  }
+  return false;
 }
 /** @brief An arrow's involution law: certified at its type, or read off its
  *  normal form, where the laws leave another arrow (a pairing of the swapped
