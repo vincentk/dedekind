@@ -138,7 +138,8 @@ System~F has no general recursion: its recursion is an iterator, which hands its
 A fold over a range is the iterator of the naturals, their catamorphism, run $|r|$ times with the rest of the range beside the state (Figure~\ref{fig:fjlt-recursion}).
 Each instance $R$ of $\mathcal{R}$ over $\tau$ contributes a state type $\llbracket R \rrbracket$ and a constructor $c_R$, to which a range translates on its arguments.
 It also contributes two operations, its length $|\cdot|$ and $\mathit{uncons} : \llbracket R \rrbracket \to 1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket$, which \textsc{E-Range}'s record holds (Figure~\ref{fig:fjlt-dictionaries}).
-$\mathit{uncons}$ is the step down of Table~\ref{tab:recursion-names} for a range: $\mathit{out}$ at $F\,X = 1 + \llbracket \tau \rrbracket \times X$.
+$\mathit{uncons}$ is the step down of Table~\ref{tab:recursion-names} for a range: a coalgebra of $F\,X = 1 + \llbracket \tau \rrbracket \times X$ on the range's state.
+It plays the part that $\mathit{out}$ plays on $\mu F$, without being its inverse: a range's state need not be the initial algebra, and two states may both be empty.
 Both are total, as System~F's functions are.
 The kernel's three ranges are library adapters, and any instance of $\mathcal{R}$ would do:
 \begin{center}
