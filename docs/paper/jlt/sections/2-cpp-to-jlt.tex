@@ -224,9 +224,11 @@ Jlt has two forms of recursion, over a value and over a type, and both read it.
 
 \begin{itemize}
 \item \emph{Over a value.}
-The chain is a range of $\mathcal{R}$, the ranges whose length is known before the first step (Appendix~\ref{app:fjlt:typing}): here, the elements that $\mathit{prior}$, the step to the element before, reaches from a seed $n$.
+The chain is a range with a bound known before the first step: its length, or a budget declared with it.
+The kernel models it as a range of $\mathcal{R}$, with its length fixed (Appendix~\ref{app:fjlt:typing}).
+Here it is the elements that $\mathit{prior}$, the step to the element before, reaches from a seed $n$.
 In Figure~\ref{fig:structures} it is the row $\mu F$, where $\mathit{out}$ is $\mathit{prior}$ and counts down from $n$.
-The row $S$ is $f$ mapped over it, and the row $M$ is the recursion itself: the standard's fold, \cppinline{ranges::fold_left}, with step $h$, starting from $e$ and bounds-checked before it starts.
+The row $S$ is $f$ mapped over it, and the row $M$ is the recursion itself: the standard's fold, \cppinline{ranges::fold_left}, with step $h$, starting from $e$, admitted only over a range that declares its bound.
 In \Cpp{} the range is an \cppinline{input_range} with a bound, and $f$ is \cppinline{views::transform}, written \cppinline{>>}.\footnote{The fold along the walk needs no list~\cite{gibbons1996third}, only the walk, which is an iterator.
 With $\mathit{succ}$ as well it is bidirectional, a zipper~\cite{huet1997zipper}, and with offsets random-access, an array~\cite[\S 2.2.2]{knuth1997art1}: three of the standard's iterator categories.}
 Listing~\ref{lst:rule3}'s top panels show two cases.

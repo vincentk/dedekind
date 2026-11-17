@@ -39,7 +39,7 @@ This paper characterises a fragment of \Cpp{23} as it ships, with no language mo
 The fragment is type-class-style code under three rules, called the Juliet Posture (Jlt):
 i) values are copyable data and functions are pure and evaluable at compile time;
 ii) generic code varies with a type only through that type's concepts and traits;
-iii) recursion is structural, over a type or over a value, in a number of steps fixed before the first step.
+iii) recursion is structural, over a type or over a value, in a number of steps bounded before the first step.
 Its kernel, Featherweight Jlt (FJlt), translates by dictionary passing, as Haskell's type classes do, into System~F extended with data types and iterators.
 The translation is defined on every well-typed program and preserves types and evaluation, so an FJlt program inherits termination, parametricity and type soundness.
 Jlt beyond the kernel is syntactic sugar.
@@ -57,7 +57,7 @@ The evidence presented is
 a) proofs relative to stated assumptions,
 b) a linter that checks source code against the three rules,
 c) a library in a public repository whose core the linter checks, and
-d) listings that compile and run at both compile time and run time under the repository's tests.
+d) listings checked by the repository's tests, at compile time and, all but one, at run time.
 The claim is one of existence: \Cpp{23} already contains an embedding of a fragment of System~F.
 The compiler enforces the rules where the standard requires a check, and the programmer keeps them elsewhere.
 \end{abstract}
