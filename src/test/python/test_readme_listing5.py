@@ -16,7 +16,7 @@ import pynzli.jlt
 ROOT = Path(__file__).resolve().parents[3]
 README = ROOT / "README.md"
 CPP = ROOT / "src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp"
-PAPER = ROOT / "docs/paper/jlt/sections/6-partial-evaluation.tex"
+PAPER = ROOT / "docs/paper/jlt/sections/a8-measurements.tex"
 PANELS = ["all-genomes", "one-genome"]
 
 # The host language's own words, not the library's.
@@ -100,7 +100,7 @@ class ReadmeListing5(unittest.TestCase):
         # the paper breaks lines for its column and drops std::, so its panels
         # are compared as code, comments aside
         paper = PAPER.read_text(encoding="utf-8")
-        listing = paper[paper.index(r"\label{sec:binding}") : paper.index(r"\label{lst:sites}")]
+        listing = paper[paper.index(r"\label{app:measurements}") : paper.index(r"\label{lst:sites}")]
         panels = re.findall(r"\\begin\{cpp\}(.*?)\\end\{cpp\}", listing, re.S)
         self.assertEqual(len(panels), len(PANELS))
         for panel, text in zip(PANELS, panels):
