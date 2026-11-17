@@ -154,6 +154,52 @@ Jlt follows Rust in asking for the declaration, and keeps the dispatch.
 The function declares it: by requiring the constraint, by negating it, or by naming the call as a requirement, which makes the choice a parameter that each caller supplies.
 The reason is that a function's type should say what the function depends on, so that it can be read, and audited, from its declaration alone.
 
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T>
+concept C = sizeof(T) == 1;
+
+template <typename T>
+  requires Q<T>
+constexpr int g(T) { return 0; }
+template <typename T>
+  requires Q<T> && C<T>
+constexpr int g(T) { return 1; }
+
+template <typename T>
+  requires Q<T>
+constexpr int undecided(T x) { return g(x); }
+
+static_assert(undecided(0) == 0 &&
+              undecided('a') == 1);
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.5\linewidth}
+\begin{cpp}
+template <typename T>
+  requires Q<T> && C<T>
+constexpr int requires_it(T x) { return g(x); }
+
+template <typename T>
+  requires Q<T> && (!C<T>)
+constexpr int negates_it(T x) { return g(x); }
+
+template <typename T>
+concept HasG = requires(const T a) { g(a); };
+template <typename T>
+  requires HasG<T>
+constexpr int named(T x) { return g(x); }
+\end{cpp}
+\end{minipage}
+\caption{A call that Rule~2 refuses, from the linter's tests; \texttt{Q} is a concept every type here satisfies.
+Left: \Cpp{} accepts \texttt{undecided}, whose result varies with \texttt{C}, a concept it does not declare, and the linter reports its call.
+Right: three callers that pass the linter's check for a decided resolution.
+Two decide the overload, by requiring \texttt{C} and by negating it.
+The third names the call itself as a requirement, which declares the dependence.}
+\label{lst:undecided}
+\end{listing}
+
 Laws are \emph{certificates}, of two kinds.
 An axiom is declared: the compiler does not prove it.\footnote{Similarly, \texttt{sorry} admits a statement in Lean~\cite{demoura2021lean}, and \texttt{Admitted} one in Coq~\cite{Coq}.
 A false law declaration is possible, and the compiler does not detect it.

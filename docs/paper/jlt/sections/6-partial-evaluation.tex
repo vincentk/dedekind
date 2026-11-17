@@ -2,107 +2,42 @@
 \section{Partial Evaluation at Build Time}
 \label{sec:binding}
 
-Every function in this paper has run twice already.
-The test behind the listings calls the same functions at run time, on values it did not have at compile time.
-Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own.\footnote{A \cppinline{consteval} function is evaluated only at compile time, so it has one binding time, which is why Rule~1 asks \cppinline{constexpr} and not \cppinline{consteval}.}
-Theorem~\ref{thm:simulation} says the two evaluations agree, which is the presumption of this section: moving a call from compile time to run time changes where it is evaluated, not what it evaluates to.
+A Jlt function has no binding time of its own.
+By Rule~1 it is a \cppinline{constexpr} function of its arguments alone, so a standard \Cpp{} compiler may evaluate a call while compiling, where the arguments are known, or compile it for the processor, where they are not.\footnote{A \cppinline{consteval} function is evaluated only at compile time, so it has one binding time, which is why Rule~1 asks \cppinline{constexpr} and not \cppinline{consteval}.}
+The standard requires the first wherever a constant is needed, as in a \cppinline{static_assert}~\cite[{\texttt{expr.const}}]{cpp23standard}: it is constant evaluation, not an optimisation.
+Every listing in this paper is evaluated this way, and the test behind the listings calls the same functions again at run time, on values it did not have at compile time.
 Both are partial evaluation~\cite{jones1993partial} at build time: the compiler evaluates what it can and leaves the processor the rest.
-Listing~\ref{lst:sites} is the paper's exhibit on both of its panels, each followed through the translation.
-With the sequence free, the compiler evaluates what it can, the table, and keeps the fold over the sequence, which only the run time can finish.
-What remains is the loop the optimiser emits, read as a function after Appel~\cite{appel1998ssa}: at \texttt{-O2} it allocates nothing and calls nothing, and each letter is four loads, the letter, its column, the next state and whether that state accepts; each call first copies the table by value, as Rule~1 has it.
-With the sequence given and bound by \cppinline{constexpr}, the term evaluates to its count, and so does the code: Figure~\ref{fig:arrows}'s bottom edge on one program.
-Given but not bound, the optimiser keeps the loop, so the constant is the binding's and not the optimiser's.
+The calculus has one evaluation for both, as the standard has one abstract machine for both.
+Constant evaluation follows the rules of the abstract machine~\cite[{\texttt{expr.const}}]{cpp23standard}, and a conforming implementation's behaviour at run time is that machine's~\cite[{\texttt{intro.abstract}}]{cpp23standard}.
+So moving a call from compile time to run time changes where it is evaluated, not what it evaluates to.
+The agreement is the standard's: the paper takes it as given and does not prove it.
 
-\begin{listing}[htbp]
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-// Σ, the alphabet :
-constexpr Alphabet bases = abc("ACGT");
-// Σ* = ⊔ₙ Σⁿ :
-constexpr Words oligos = words(bases);
-// ~rev, the reverse complement: CCTA ↦ TAGG
-// { w ∈ Σ⁶ | ~rev w = w }, the palindromes :
-constexpr auto pali6 =
-  oligos & len(6) & fixed_by(~rev);
-// { (s, i) ∈ Σᴺ × ℕ | s[i, i+6) ∈ pali6 } :
-constexpr auto cuts(size_t N) {
-  return (oligos & len(N)) >> pali6;
-}
+Listing~\ref{lst:loop} is what the compiler leaves for the processor of Listing~\ref{lst:rule3}'s fold, when its count \cppinline{n} is known only at run time.
 
-static_assert(
-  count(cuts(12)) == 1'835'008uz &&
-  count(cuts(32)) == 27uz << 58);
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-// those of pali6 beginning GA :
-constexpr auto sites =
-  pali6 & prefix("GA");
-
-// the table, computed once by the compiler,
-// a function of any s :
-constexpr auto scanner =
-  *automaton(sites);
-static_assert(states(scanner) == 11uz);
-
-// and only now a sequence :
-constexpr auto dna = bytes(
-  "GAATTCGAGCTCGGTACCCGGGGATCC"
-  "TCTAGAGTCGACCTGCAGGCATGCAAGCTT");
-
-// ten by definition, in windows of six :
-static_assert(count(dna >> pali6) == 10uz);
-
-// two by the table, in one pass :
-// EcoRI's and SacI's
-static_assert(
-  count(dna >> scanner) == 2uz &&
-  sites(bytes("GAATTC")) &&
-  sites(bytes("GAGCTC")));
-\end{cpp}
-\end{minipage}
-\begin{minipage}[t]{0.49\linewidth}
-\begin{minted}{text}
--- the right panel's query at every N-mer, the
--- bind of the bag monad, counted by its laws:
--- a cylinder per offset, 4^3 · 4^(N−6), N − 5 alike
-cuts N = Σ^N >>= (λ s. s >> pali6)
-count (cuts N)
-       = (N − 5) · 4^3 · 4^(N − 6)
-count (cuts 32) ~> 27 · 2^58
-         -- a constant; no sequence built
+\begin{listing}[tb]
+\begin{minted}{llvm}
+6:
+  %7 = phi i64 [ %10, %6 ], [ %4, %3 ]
+  %8 = phi i64 [ %9, %6 ], [ 1, %3 ]
+  %9 = phi i64 [ %11, %6 ], [ 1, %3 ]
+  %10 = add i64 %7, -1
+  %11 = add i64 %9, %8
+  %12 = icmp eq i64 %10, 0
+  br i1 %12, label %13, label %6
 \end{minted}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\begin{minted}{text}
--- the table is a closed term,
--- the pass over the sequence is not
-automaton sites ~> (0, T, F)
-  -- static, 11 states: the compiler's
-count (s >> scanner) =       -- the residual
-  π₂ (fold (λ (q, c) a. (T q a, c + F (T q a)))
-           (0, 0) (map rank s))
-automaton pali6 ~> (0, T', F')
-  -- 277 states: past the step limit, so
-  -- the same function runs at run time
-\end{minted}
-\end{minipage}
-\caption{Palindromic DNA restriction sites, counted two ways on one definition.
-A palindrome is a word equal to its reverse complement, a $\theta$-palindrome for $\theta$ that antimorphic involution~\cite{kari2010watson}, as EcoRI's \texttt{GAATTC}; an enzyme cuts where one occurs.
-Left: how many cuts a cocktail of every six-cutter makes in all $4^N$ $N$-mers, each digested once.
-Right: the cuts of a smaller cocktail, the six-cutters beginning \texttt{GA}, in any one sequence, the caller's bytes read where they lie; here the polylinker of the plasmid pUC19.
-Below each: its translation (Section~\ref{sec:translation}), a closed term the compiler reduces and a residual for the run time.
-Without the count's laws, the left panel would build the $N$-mers and exhaust the step limit (Table~\ref{tab:binding}) before reaching its \cppinline{static_assert}.
-The table is Brzozowski's automaton~\cite{brzozowski1964derivatives}, for one site the matcher of Knuth, Morris and Pratt~\cite{knuth1977fast}, which partial evaluation derives~\cite{consel1989partial}.
-Its cost is moved to compile time where the step limit admits: ``negative overhead abstraction''~\cite{stroustrup2026peterman}.}
-\label{lst:sites}
+\caption{The one loop Clang~23 emits for Listing~\ref{lst:rule3}'s fold, as LLVM IR, at \texttt{-O2} with unrolling and vectorisation off, names shortened.
+\texttt{\%7} is the count, and \texttt{\%8} and \texttt{\%9} are the vector's two components.
+From the repository's fixture \texttt{showcase\_15}.}
+\label{lst:loop}
 \end{listing}
-The right panel's section says in its type what its words have in common, a symmetry, and how long they are, a bound as large as one likes but known before the scan.
-The bound makes the language finite, where without one palindromes are not even regular~\cite{kari2010watson}; the symmetry makes its test one pair per offset, linear in the length, where an automaton lists the words, exponentially in it (Table~\ref{tab:batch}).
-So one more overload of \cppinline{count} takes no table and tests every window at once: the compiler vectorises it.
-The overload names a law of biochemistry and no instruction of any machine; \Cpp{26}'s \cppinline{std::simd}~\cite{kretz2024simd} would make the lanes explicit.
-The presumption holds where both evaluations finish and neither meets undefined behaviour.
+
+Read as a function, after Appel~\cite{appel1998ssa}, a basic block is a local function and its $\phi$-nodes are that function's parameters (Appendix~\ref{app:fjlt:ssa}).
+The header's three $\phi$-nodes are the iterator's state in Figure~\ref{fig:fjlt-recursion}: the pair $(\llbracket r \rrbracket, \llbracket a \rrbracket)$, the chain's state its count and $\llbracket a \rrbracket$ the vector, itself a pair.
+The body is the step, the matrix action with \cppinline{fib}'s entries as constants, reduced to one addition, $F(k+1) = F(k) + F(k-1)$, and the count's decrement ends the loop.
+Nothing else survives: not the matrix, not the action's lambda, not the chain, not the vector as an object.
+The function is the textbook loop for Fibonacci, which the source never wrote.
+So the claim that the discipline costs nothing at run time has a structural ground: a Jlt fold names in the source the parameter the compiler would otherwise recover from assignments.
+The agreement holds where both evaluations finish and neither meets undefined behaviour.
 Table~\ref{tab:binding} lists where the two binding times part.
 
 \begin{table}[htbp]
@@ -115,6 +50,7 @@ Table~\ref{tab:binding} lists where the two binding times part.
 who evaluates & the front end's interpreter, one step at a time & the processor, after the optimiser \\
 a fold's length & at most 1\,048\,576 steps (\texttt{-fconstexpr-steps}), past which the program does not compile & the count alone \\
 a call's depth & at most 512 nested calls (\texttt{-fconstexpr-depth}) & the stack \\
+floating point & the compiler's arithmetic & the processor's: the standard leaves it unspecified whether the two give one result~\cite[{\texttt{expr.const}}]{cpp23standard} \\
 undefined behaviour & refused: the expression is not a constant, and the program does not compile & no diagnostic required and no guarantee: the optimiser may assume it never happens \\
 a shortcut & only by resolution, a declared law, as Listing~\ref{lst:laws}'s overloads & the optimiser's, as it fuses Listing~\ref{lst:sites}'s stages into one loop \\
 the heap & its own: an allocation may not outlive the evaluation, so no box crosses to run time; \Cpp{26} admits \texttt{make\_shared} within one~\cite{keir2025constexprsharedptr} and lets an array through~\cite{childers2025static} & shared: a box lives as long as its owners \\
@@ -123,7 +59,7 @@ telling them apart & \texttt{if consteval} and \texttt{is\_constant\_evaluated()
 \end{tabularx}
 \caption{Where the two binding times differ, for Clang~23 with its default limits.
 Each limit counts the evaluator's work, and can be raised.
-Apart from the last row, no difference is a different value: where both evaluations finish without undefined behaviour, they agree (Theorem~\ref{thm:simulation}).}
+Apart from floating point and the last row, no difference is a different value: where both evaluations finish without undefined behaviour, they agree, by the standard's one abstract machine.}
 \label{tab:binding}
 \end{table}
 
