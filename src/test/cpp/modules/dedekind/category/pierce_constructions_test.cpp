@@ -144,6 +144,7 @@ constexpr Verdict times_def = verdict(cpl_times_neg, times_spelled);
 constexpr Verdict times_id = verdict(id_n * id_n, id<NN>());
 constexpr auto add = id_n * id_n >> std::plus<N>{};
 constexpr Verdict add_two_ways = verdict(add, id<NN>() >> std::plus<N>{});
+static_assert(times_id == Verdict::Proved && eta_product == Verdict::Proved);
 static_assert(add(NN{2, 3}) == 5);
 constexpr bool times_same_type =
     std::same_as<decltype(cpl_times_neg), decltype(times_spelled)>;
@@ -250,9 +251,9 @@ TEST_CASE("Pierce's basic constructions, composed: what the laws decide",
   row("id_n * id_n >> plus == id<N x N> >> plus", add_two_ways);
   row("flip >> flip == id<N x N>", flip_involution);
   row("flip<B,N> >> flip<N,B> == id<B x N>", flip_round_trip);
-  row("inl >> [zero_b, id_n] == zero_b", beta_sum_1);
-  row("inr >> [zero_b, id_n] == id_n", beta_sum_2);
-  row("[inl, inr] == id<B + N>", eta_sum);
+  row("inl >> Copairing{zero_b, id_n} == zero_b", beta_sum_1);
+  row("inr >> Copairing{zero_b, id_n} == id_n", beta_sum_2);
+  row("Copairing{inl, inr} == id<B + N>", eta_sum);
   row("inl >> (id_b + cpl) == id_b >> inl", plus_1);
   row("inr >> (id_b + cpl) == cpl >> inr", plus_2);
   row("prior >> in == id_n", prior_in);
@@ -267,7 +268,7 @@ TEST_CASE("Pierce's basic constructions, composed: what the laws decide",
   fact("is_monic(inl)", monic_inl);
   fact("is_monic(inr)", monic_inr);
   fact("is_epic(snd)", epic_snd);
-  fact("is_epic([zero_b, id_n])", epic_either);
+  fact("is_epic(Copairing{zero_b, id_n})", epic_either);
   fact("is_iso(flip<N,N>)", iso_flip);
   fact("is_involution(flip<N,N>)", involution_flip);
   fact("is_iso(cpl * neg)", iso_times);

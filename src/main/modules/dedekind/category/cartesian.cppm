@@ -321,6 +321,11 @@ struct Uncurried {
   }
   constexpr bool operator==(const Uncurried&) const = default;
 };
+/** @brief An operation without state read as an arrow has one value: its
+ *  type says all there is. */
+template <typename T, typename Op>
+struct has_one_value<Uncurried<T, Op>>
+    : std::bool_constant<std::is_empty_v<Op>> {};
 /** @brief The inverse of @c curry<T>.  @param c the curried operation. */
 export template <typename T, typename Op>
 constexpr Uncurried<T, Op> uncurry(Curried<T, Op> c) {
@@ -1495,6 +1500,13 @@ struct Copairing {
     return equal_by_the_laws(h, p);
   }
 };
+/** @brief A pairing (copairing) of two one-valued arrows has one value. */
+template <typename F, typename G>
+struct has_one_value<Pairing<F, G>>
+    : std::bool_constant<has_one_value_v<F> && has_one_value_v<G>> {};
+template <typename F, typename G>
+struct has_one_value<Copairing<F, G>>
+    : std::bool_constant<has_one_value_v<F> && has_one_value_v<G>> {};
 template <typename F, typename G>
 inline constexpr bool is_former_v<Pairing<F, G>> = true;
 template <typename F, typename G>

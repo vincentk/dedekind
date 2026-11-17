@@ -750,7 +750,8 @@ concept IsComparableConstant =
     IsConstantAtom<P> && std::equality_comparable<Cod<P>> &&
     (!std::floating_point<Cod<P>>);
 /** @brief Two normal paths are the same, atom by atom: by the type where an
- *  atom has one value, by the values of two constants, by the atom's own
+ *  atom has one value, a pairing or copairing leg by leg, by the values of
+ *  two constants, by the atom's own
  *  @c == where it carries one; where it carries one and has no @c ==, not
  *  known to be the same. */
 template <IsArrow P, IsArrow Q>
@@ -763,6 +764,8 @@ constexpr bool same_path(const P& p, const Q& q) {
     return same_path(π_1(p), π_1(q)) && same_path(π_2(p), π_2(q));
   } else if constexpr (IsIdentityArrow<P> || has_one_value_v<P>) {
     return true;
+  } else if constexpr (is_former_v<P>) {
+    return same_path(p.f, q.f) && same_path(p.g, q.g);  // leg by leg
   } else if constexpr (IsComparableConstant<P>) {
     return same_value(p, q);
   } else if constexpr (std::equality_comparable<P>) {
@@ -863,6 +866,9 @@ struct names_operation<Uncurried<T, Op>> {
   using Carrier = T;
   using Operation = Op;
 };
+/** @brief An arrow whose type names an operation. */
+template <typename M>
+concept NamesOperation = requires { typename names_operation<M>::Operation; };
 }  // namespace detail_f_algebra
 /** @brief A monoid presented by its two arrows (the Jlt paper's Listing 2): a
  *  point @f$e : 1 \to M@f$, an element as an arrow from the terminal object
@@ -879,7 +885,8 @@ export template <typename T, IsArrow M>
 constexpr bool is_monoid(const ConstantMorphism<One, T>& e, const M& m) {
   using Names =
       detail_f_algebra::names_operation<detail_f_algebra::normal_form_t<M>>;
-  if constexpr (requires { typename Names::Operation; }) {
+  if constexpr (detail_f_algebra::NamesOperation<
+                    detail_f_algebra::normal_form_t<M>>) {
     if constexpr (std::same_as<typename Names::Carrier, T> &&
                   IsMonoid<T, typename Names::Operation> &&
                   std::equality_comparable<T>) {
