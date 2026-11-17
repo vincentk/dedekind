@@ -135,7 +135,7 @@ constexpr Verdict eta_product = verdict(Pairing{fst, snd}, id<BN>());
 constexpr auto cpl_times_neg = cpl * neg;  // N × N → N × N
 constexpr Verdict times_1 = verdict(cpl_times_neg >> fst_nn, fst_nn >> cpl);
 constexpr Verdict times_2 = verdict(cpl_times_neg >> snd_nn, snd_nn >> neg);
-// Pierce's Definition 1.5.4: f × g is the pairing ⟨f ∘ π₁, g ∘ π₂⟩.  In the
+// Pierce's Definition 1.5.3: f × g is the pairing ⟨f ∘ π₁, g ∘ π₂⟩.  In the
 // library the two are one type, so the equation is asked and the type too.
 constexpr auto times_spelled = Pairing{fst_nn >> cpl, snd_nn >> neg};
 constexpr Verdict times_def = verdict(cpl_times_neg, times_spelled);

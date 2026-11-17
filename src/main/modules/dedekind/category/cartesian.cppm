@@ -1495,7 +1495,7 @@ constexpr SumArrow<F, G> operator+(const F& f, const G& g) {
  *  leg by leg: @f$(f \times g)^{-1} = f^{-1} \times g^{-1}@f$ and
  *  @f$(f + g)^{-1} = f^{-1} + g^{-1}@f$, since @f$\times@f$ and @f$+@f$ are
  *  functors and a functor preserves isomorphisms.  Read off the defining
- *  form (Pierce, Basic Category Theory, Definition 1.5.4, and its dual); any
+ *  form (Pierce, Basic Category Theory, Definition 1.5.3, and its dual); any
  *  other pairing or copairing has no inverse by this rule.
  *  @param p the product (sum) of two isomorphisms. */
 export template <typename A, IsIsomorphism F, typename B, IsIsomorphism G>
