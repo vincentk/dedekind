@@ -21,6 +21,7 @@ The translation is a function of the program: two resolutions of the same constr
 In \Cpp{} this is overload resolution together with the one-definition rule: at concrete types a specialisation is unique, or the program is ill-formed.
 In FJlt the theorem is close to immediate: a well-formed program leaves resolution no choice, so the translation is deterministic, which is what coherence asks of it.
 It gives ``the unit of \cppinline{+} at \cppinline{size_t}'' one meaning in a program, so a law can be stated about it, and it lets laws compose: two overloads written apart are chosen the same way wherever they are called, as the two behind Listing~\ref{lst:laws} are.
+A generic caller gains such an overload only where its own constraints declare the law, by Rule~2.
 
 \begin{theorem}[Type preservation]
 \label{thm:preservation}

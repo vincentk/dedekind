@@ -136,7 +136,6 @@ construction & FJlt, provided & image \\
 enumeration, \texttt{switch}$^{\ast}$ & every enumerator handled, each case an FJlt term of one type & a finite sum of units and its nested case \\
 sum$^{\ast\ddagger}$ & branches FJlt on the summands & the case form \\
 \texttt{if constexpr} on a constraint$^{\ast\dagger}$ & then-branch FJlt under the constraint, else-branch under its negation & an instance chain, the more constrained generic function preferred \\
-a call its clause does not decide$^{\dagger}$ & the caller instantiates at a concrete type & constraint inference: the call's resolution a parameter the caller supplies \\
 \texttt{if consteval}, or an \texttt{if} on \texttt{is\_constant\_evaluated()}$^{\ddagger}$ & both branches compute the same value on every input & the compile-time branch \\
 \bottomrule
 \end{tabularx}
@@ -176,12 +175,12 @@ A \cppinline{requires} expression tested in the body is not a declared constrain
 A generic function may call a chain at its own type variable with no clause that entails the chain's constraint or its negation.
 It then varies with the type through a constraint it did not declare.
 \Cpp{} accepts it and resolves the call at each instantiation.
-The kernel refuses it, as GHC refuses to commit to an overlapping instance that the types do not yet decide~\cite{ghc2024overlapping}.
-Its desugaring is constraint inference: the call's resolution becomes a parameter of the enclosing function.
-Each caller supplies it after resolving the call at a concrete type, where resolution is a function, so the kernel term agrees with what \Cpp{} instantiates.
-The price is in the free theorem, which now ranges over that parameter.
-By hand, the clause decides the constraint, by requiring it or by splitting on it.
-Both this desugaring and the branch on a constraint add declarations, so neither is local in Felleisen's sense~\cite{felleisen1991expressive}.
+The kernel refuses it, as GHC refuses to commit to an overlapping instance that the types do not yet decide~\cite{ghc2024overlapping}, and Jlt refuses it too, by \RuleTwo{}.
+Such a call could be given a kernel form by constraint inference: its resolution becomes a parameter of the enclosing function, which each caller supplies after resolving the call at a concrete type.
+The price would be in the free theorem, which then ranges over a parameter the function never wrote.
+Jlt declines to infer it and asks that it be written.
+The clause requires the constraint, negates it, or names the call as a requirement, and the last is that parameter, declared (Listing~\ref{lst:undecided}).
+The branch on a constraint adds declarations, so it is not local in Felleisen's sense~\cite{felleisen1991expressive}.
 
 \paragraph{The binding time.}
 \label{app:fjlt:consteval}

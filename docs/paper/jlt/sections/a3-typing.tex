@@ -135,7 +135,7 @@ constexpr int named(T x) { return g(x); }
 Left: \Cpp{} accepts \texttt{undecided}, whose result varies with \texttt{C}, a concept it does not declare, and the linter reports its call.
 Right: three callers that pass the linter's check for a decided resolution.
 Two decide the overload, by requiring \texttt{C} and by negating it.
-The third names the call itself as a requirement.}
+The third names the call itself as a requirement, which declares the dependence.}
 \label{lst:undecided}
 \end{listing}
 

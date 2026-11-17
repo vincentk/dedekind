@@ -147,6 +147,9 @@ A type that has the operations satisfies the \cppinline{concept} without a decla
 Overload resolution selects the most specific instance~\cite{cpp23standard}.
 Where two instances overlap, GHC refuses to commit to one that the types do not yet decide~\cite{ghc2024overlapping}, and Jlt asks the same of a call in a generic body.
 \Cpp{20} does not check a body against its constraints (Section~\ref{sec:intro}), so the rule is the programmer's to keep, and Listing~\ref{lst:undecided} shows a body that breaks it.
+The call it shows is a common idiom for dispatch: a general function that takes a faster path at a more specific type, as the standard's \cppinline{ranges::advance} does~\cite[{\texttt{range.iter.op.advance}}]{cpp23standard}.
+Jlt does not forbid the dispatch.
+It asks that the function declare it: by requiring the constraint, by negating it, or by naming the call as a requirement, which makes the choice a parameter that each caller supplies.
 
 Laws are \emph{certificates}, of two kinds.
 An axiom is declared: the compiler does not prove it.\footnote{Similarly, \texttt{sorry} admits a statement in Lean~\cite{demoura2021lean}, and \texttt{Admitted} one in Coq~\cite{Coq}.
