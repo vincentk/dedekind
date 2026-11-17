@@ -46,8 +46,8 @@ constexpr auto no = !id_b;
 constexpr auto neg = -id_u;
 constexpr auto cpl = ~id_u;
 static_assert(
-id_u >> cpl == cpl && no >> no == id_b &&
-neg >> neg == id_u && cpl >> cpl == id_u);
+cpl == id_u >> cpl && id_b == no >> no &&
+id_u == neg >> neg && id_u == cpl >> cpl);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
@@ -57,9 +57,9 @@ constexpr auto succ = cpl >> neg;
 constexpr auto zero = constant<One>(0uz);
 constexpr auto yes = constant<One>(true);
 static_assert(
-twin >> cpl == id_u && succ(41uz) == 42 &&
+id_u == twin >> cpl && succ(41uz) == 42 &&
 is_iso(succ) && !is_involution(succ) &&
-zero >> equals(0uz) == yes);
+yes == zero >> equals(0uz));
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution, in the category of Jlt's types and functions, after Pierce's FPL~\cite{pierce1991basic}.

@@ -272,8 +272,8 @@ using dedekind::category::One;
 constexpr auto no = !id_b;   // not
 constexpr auto neg = -id_u;  // negate
 constexpr auto cpl = ~id_u;  // complement
-static_assert(id_u >> cpl == cpl && no >> no == id_b && neg >> neg == id_u &&
-              cpl >> cpl == id_u);
+static_assert(cpl == id_u >> cpl && id_b == no >> no && id_u == neg >> neg &&
+              id_u == cpl >> cpl);
 // A copy is as good as its original; the successor, a composite of two
 // involutions, is an isomorphism and no involution; an arrow after a point
 // is the point of its value (Pierce: iszero . zero = true).
@@ -281,8 +281,8 @@ constexpr auto twin = cpl;
 constexpr auto succ = cpl >> neg;  // x + 1
 constexpr auto zero = constant<One>(0uz);
 constexpr auto yes = constant<One>(true);
-static_assert(twin >> cpl == id_u && succ(41uz) == 42 && is_iso(succ) &&
-              !is_involution(succ) && zero >> equals(0uz) == yes);
+static_assert(id_u == twin >> cpl && succ(41uz) == 42 && is_iso(succ) &&
+              !is_involution(succ) && yes == zero >> equals(0uz));
 // Constant arrows:
 constexpr auto nil = constant<bool>(0uz);
 constexpr auto one = constant<bool>(1uz);
