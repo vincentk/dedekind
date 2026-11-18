@@ -14,6 +14,7 @@
  * Licensed under the Apache License, Version 2.0.
  */
 
+#include <algorithm>
 #include <concepts>
 #include <cstddef>
 #include <functional>
