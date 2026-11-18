@@ -103,7 +103,7 @@ The program's image is its definitions in declaration order, each scoping over t
 A constant is such a definition, $x = \llbracket e \rrbracket$, unfolded where it is used, as \textsc{S-Const} unfolds it, and not a $\beta$-redex, which would substitute every use at once (Definition~\ref{def:target}).
 A trait has no image of its own: its specialisations are closed terms $f_{\overline{\tau}}$, and a generic function serving as an instance with a context is the function from records to a record with which \textsc{E-Shape} builds its dictionary.
 No body calls itself and a term type is strictly positive (Appendix~\ref{app:fjlt:typing}), so the definitions are acyclic and each term type has its iterator, as the normalisation results need.
-So the program needs no recursive binding, and its only recursion is that of the two primitives: the fold over a range, and the recursion over a term type, whose image is the term's iterator (Figure~\ref{fig:fjlt-term-fold}).
+So the program needs no recursive binding, and its only recursion is that of the two primitives (Equations~\eqref{eq:fold} and~\eqref{eq:cata}): the fold over a range, and the recursion over a term type, whose image is the term's iterator (Figure~\ref{fig:fjlt-term-fold}).
 
 Two details complete the translation.
 A result type does not appear in a declaration's image, so a deduced one translates as a written one would.
@@ -120,7 +120,7 @@ A term with a run-time \cppinline{n} translates to a term with $n$ free, of type
 \llbracket e \rrbracket^{\!\circ} = \lambda\overline{a}.\,q_Q.\pi.r\,\overline{a} & \note{a step typed by \textsc{T-Req-Assumed}: the requirement's field} \\
 \multicolumn{2}{l}{\textit{the fold over a range}} \\
 \llbracket \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} \rrbracket = {} & \\
-\qquad \pi_2\,(\mathit{iter}\,[\llbracket R \rrbracket \times \sigma]\,(\mathit{toNat}\,|\llbracket r \rrbracket|)\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket)) & \note{the step applied $|r|$ times to the pair (range, accumulator), from $(r, a)$, as in Figure~\ref{fig:structures}; $\pi_2$ the accumulator at the end} \\
+\qquad \pi_2\,(\mathit{iter}\,[\llbracket R \rrbracket \times \sigma]\,(\mathit{toNat}\,|\llbracket r \rrbracket|)\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket)) & \note{the step applied $|r|$ times to the pair (range, accumulator), from $(r, a)$, as in Equation~\eqref{eq:fold}; $\pi_2$ the accumulator at the end} \\
 \qquad \text{where } \mathit{step} = \lambda p.\,\mathit{case}\,(\mathit{uncons}\,(\pi_1 p),\; \lambda u.\,p, & \note{the empty branch, which $\mathit{iter}$ never takes, keeps the state} \\
 \qquad\qquad \lambda c.\,(\pi_2 c,\; \llbracket f \rrbracket^{\!\circ}\,(\pi_2 p)\,(\pi_1 c))) & \note{the other branch applies the callable to the head and keeps the tail beside it} \\
 \qquad \text{with } |\cdot|, \mathit{uncons} \text{ the operations of } R & \\

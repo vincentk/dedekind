@@ -31,7 +31,7 @@ $\tau^{S}\texttt{(}e_r[\overline{e}/\overline{a}]\texttt{)}$, a requirement $r$ 
 \texttt{fold\_left(r, a, f)}, $r$ a chain & \textsc{T-Fold} & $\pi_2\,(\mathit{iter}\,|r|\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket))$, $\mathit{step}$ a case on the chain's $\mathit{uncons} : R \to 1 + \tau \times R$, empty or its head and tail: the state as it is when empty, else $\llbracket f \rrbracket$ at the head beside the tail & \ref{lst:rule3} \\
 \bottomrule
 \end{tabularx}
-\caption{Eight translation rules exercised by the listings, each beside the rule that types its source, where one does (Appendix~\ref{app:fjlt:typing}); a chain is iterated for its length, its position carried beside the accumulator (Figure~\ref{fig:structures}).
+\caption{Eight translation rules exercised by the listings, each beside the rule that types its source, where one does (Appendix~\ref{app:fjlt:typing}); a chain is iterated for its length, its position carried beside the accumulator (Equation~\eqref{eq:fold}).
 Conditionals, conversions and the remaining operators are routine, and Appendix~\ref{app:fjlt:translation} gives them all.
 A body that calls what its constraints do not name has no row: \Cpp{} compiles it wherever the types happen to have the call, and FJlt refuses it.}
 \label{tab:rules}
