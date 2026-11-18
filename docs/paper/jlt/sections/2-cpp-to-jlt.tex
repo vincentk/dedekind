@@ -228,7 +228,7 @@ the naturals~\cite{peano1889arithmetices,dedekind1888zahlen,lawvere1964etcs} & $
 iterators~\cite{stepanov2009elements,cpp23standard} & a range & advancing & & \texttt{fold\_left} \\
 \midrule
 Jlt, over a value & a range of $\mathcal{R}$, a chain below $n$ & $\mathit{prior}$ & & \texttt{fold\_left} \\
-Jlt, over a type & a term $t$ of $\mu F$ & to a subterm & a node & instantiation \\
+Jlt, over a type & a term $t$ of $\mu F$ & to a part & a node & instantiation \\
 \bottomrule
 \end{tabularx}
 \caption{One recursion under several names.
@@ -266,7 +266,7 @@ Pierce's \texttt{fold} builds up: it is $\mathit{in}$, not the fold that consume
 The seed $n$ is a point of $\mu F$, and $\mathit{out}$ steps down from it, step by step, until nothing is left, $\ast$.
 $\mathit{in}$, dashed, builds up without end.
 $f$ lands in $S$, and $h : M \times S \to M$ folds along the walk: $m_n = e$ and $m_k = h(m_{k+1}, f(k))$, to the result $m_0$.
-At a node with several children, the step takes the results of them all.}
+At a node with several parts, the step takes the results of them all.}
 \label{fig:structures}
 \end{figure}
 
@@ -284,7 +284,9 @@ Jlt has two forms of it, over a value and over a type, and both have one shape: 
 \]
 Over a value, $r$ is a range, $s$ its first element, $h$ the step, $e$ the start, and $|r|$ the length of $r$, the number of elements left.
 Over a type, $t$ is a term, $x$ an atom, $t_1 \gg t_2$ a composite of two parts, $g_x$ what is declared at the atom, $\otimes$ how the results at the parts combine, and $|t|$ the length of $t$, its number of atoms.
-The inequality beside each step is the bound.
+The inequality beside each step is the descent: the length falls.
+A \emph{bound} is any number that is at least the length and falls with it.
+The length is the least bound, and a range may declare a larger one, as a vector's reserved capacity may exceed its size.
 The first pair is the standard's \cppinline{ranges::fold_left}, which carries its result along from the left.
 
 Several literatures describe this recursion, each in its own words, and Table~\ref{tab:recursion-names} sets them side by side.
@@ -295,7 +297,7 @@ Jlt has two forms of recursion, over a value and over a type, and both read it.
 
 \begin{itemize}
 \item \emph{Over a value.}
-The chain is a range with a bound known before the first step: its length, or a budget declared with it.
+The chain is a range with a bound known before the first step: its length, or a larger bound declared with it.
 The kernel models it as a range of $\mathcal{R}$, with its length fixed (Appendix~\ref{app:fjlt:typing}).
 Here it is the elements that $\mathit{prior}$, the step to the element before, reaches from a seed $n$.
 In Figure~\ref{fig:structures} it is the row $\mu F$, where $\mathit{out}$ is $\mathit{prior}$ and counts down from $n$.
@@ -309,14 +311,14 @@ $f$ maps every element to Fibonacci's matrix, and $h$, \cppinline{act}, multipli
 A loop whose end the program shows is sugar for the fold it denotes, and any other loop stays out (Section~\ref{sec:jlt-to-fjlt}).
 \item \emph{Over a type.}
 The chain is a branch of a term.
-Each node of a term is a class template whose type names its children's, so the term's shape is its type.
+Each node of a term is a class template whose type names its parts', so the term's shape is its type.
 The recursion is the compiler's instantiation: a fold over the term is a function template instantiated once per node, the overload chosen by the node's type, and it ends with the type's finite height.
-In Figure~\ref{fig:structures}, $\mu F$ is the type of terms: $\mathit{out}$ takes a term to its subterms, the figure follows one branch, and $n$ is the term's height.
+In Figure~\ref{fig:structures}, $\mu F$ is the type of terms: $\mathit{out}$ takes a term to its parts, the figure follows one branch, and $n$ is the term's height.
 Listing~\ref{lst:rule3}'s bottom panel builds such a term, \cppinline{dec >> dec}, a composite of two composites, of height three.
 It is folded twice: to a value, and to a law, \cppinline{is_iso}, inferred from its parts'.
 A third fold, to a normal form, decides the equation that ends the panel, \cppinline{id_u == cpl >> cpl}: \cppinline{==} answers by the laws and never by the functions (Appendix~\ref{app:fjlt:typing}).
 Laws are computed this way.
-A law is declared at a term's atoms and inferred at every node above them, as a conjunction or a disjunction of the laws of that node's legs: a fold over the term's type (Table~\ref{tab:law-propagation}).
+A law is declared at a term's atoms and inferred at every node above them, as a conjunction or a disjunction of the laws of that node's parts: a fold over the term's type (Table~\ref{tab:law-propagation}).
 \end{itemize}
 
 
