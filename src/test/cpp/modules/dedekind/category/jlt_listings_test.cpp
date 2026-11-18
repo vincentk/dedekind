@@ -1147,6 +1147,69 @@ static_assert(std::same_as<Lift<Add{3}>, Lift<Add{3}>> &&
                             Lift<Then<Add, Add>{Add{2}, Add{1}}>>);
 }  // namespace triple_probe
 
+// Listing 4, self-contained: the two recursions of Rule 3 side by side, on
+// the names of Listings 1 and 2.  Over a value: concat at any length, a fold
+// over a range that declares its bound, here a count-down to the origin.
+// Over a type: composition that re-brackets to the right, so two terms that
+// differ only in bracketing have one type; and a second fold over the term's
+// type, its length, with + where Listing 1's law has &&.
+namespace listing4_self_contained {
+using listing1_self_contained::Arrow;
+using listing1_self_contained::is_injective;
+using listing1_self_contained::Neg;
+using listing1_self_contained::Pred;
+using listing1_self_contained::Succ;
+using listing1_self_contained::Then;
+using std::size_t;
+using triple_probe::IsMonoid;
+
+constexpr auto ns = std::views::reverse(std::views::iota(0uz, 10uz));
+template <typename Op, size_t e, std::ranges::sized_range R>
+  requires IsMonoid<Op, e> &&
+           std::same_as<std::ranges::range_value_t<R>, size_t>
+constexpr size_t concat(R r) {
+  return std::ranges::fold_left(r, e, Op{});
+}
+static_assert(
+    concat<std::plus<size_t>, 0uz>(ns) == 45 &&
+    concat<std::plus<size_t>, 0uz>(std::views::repeat(7uz, 10)) == 70 &&
+    concat<std::multiplies<size_t>, 1uz>(std::views::iota(1uz, 5uz)) == 24);
+// Beyond the listing: the count-down starts at 9 and ends at the origin, the
+// empty range gives the unit, and a range of another element type is refused.
+static_assert(*ns.begin() == 9 && *std::ranges::prev(ns.end()) == 0 &&
+              std::ranges::size(ns) == 10 &&
+              concat<std::plus<size_t>, 0uz>(std::views::iota(0uz, 0uz)) == 0 &&
+              concat<std::multiplies<size_t>, 1uz>(std::views::iota(0uz,
+                                                                    0uz)) == 1);
+
+template <Arrow F, Arrow G>
+constexpr Then<F, G> then(F f, G g) {
+  return Then<F, G>{f, g};
+}
+template <Arrow F, Arrow G, Arrow H>
+constexpr auto then(Then<F, G> t, H h) {
+  return then(t.f, then(t.g, h));
+}
+template <typename F>
+constexpr size_t length = 1;
+template <Arrow F, Arrow G>
+constexpr size_t length<Then<F, G>> = length<F> + length<G>;
+constexpr auto a = then(Succ{} >> Neg{}, Succ{});
+constexpr auto b = then(Succ{}, Neg{} >> Succ{});
+static_assert(std::same_as<decltype(a), decltype(b)> &&
+              length<Then<Succ, Then<Neg, Succ>>> == 3 && is_injective(a));
+// Beyond the listing: the one type is the right-nested one, the two terms
+// compute the same, a deeper left nesting flattens too, and >> itself does
+// not re-bracket.
+static_assert(std::same_as<decltype(a), const Then<Succ, Then<Neg, Succ>>> &&
+              a(41uz) == b(41uz) &&
+              std::same_as<decltype(then((Succ{} >> Neg{}) >> Pred{}, Succ{})),
+                           Then<Succ, Then<Neg, Then<Pred, Succ>>>> &&
+              !std::same_as<decltype((Succ{} >> Neg{}) >> Succ{}),
+                            decltype(Succ{} >> (Neg{} >> Succ{}))> &&
+              length<Succ> == 1);
+}  // namespace listing4_self_contained
+
 TEST_CASE("Spelling probe: a law as a function and as a table",
           "[category][jlt][spelling][probe]") {
   using namespace spelling_probe;
