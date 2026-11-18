@@ -172,6 +172,33 @@ The unit is identified by \cppinline{is_unit}, not by \cppinline{==}, since equa
 \label{lst:rule2}
 \end{listing}
 
+\begin{listing}[htbp]
+\begin{cpp}
+template <typename Op, size_t e>
+constexpr bool monoid = false;
+template <> constexpr bool monoid<plus<size_t>, 0uz> = true;
+template <> constexpr bool monoid<multiplies<size_t>, 1uz> = true;
+
+template <typename Op, size_t e>
+concept IsMonoid = monoid<Op, e> &&
+    requires(size_t a, size_t b) { { Op{}(a, b) } -> same_as<size_t>; };
+
+template <typename Op, size_t e> requires IsMonoid<Op, e>
+constexpr size_t concat() { return e; }
+template <typename Op, size_t e> requires IsMonoid<Op, e>
+constexpr size_t concat(size_t v, size_t w) { return Op{}(v, w); }
+
+static_assert(concat<plus<size_t>, 0uz>() == 0 &&
+              concat<plus<size_t>, 0uz>(40uz, 2uz) == 42 &&
+              concat<multiplies<size_t>, 1uz>(6uz, 7uz) == 42 &&
+              !IsMonoid<plus<size_t>, 1uz> && !IsMonoid<minus<size_t>, 0uz>);
+\end{cpp}
+\caption*{\textbf{Draft, to replace Listing~\ref{lst:rule2}.} \hyperref[def:rule2]{Rule~2}: Abstraction.
+A monoid on \cppinline{size_t} as the pair of an operation and its unit, the unit passed as a value.
+The law is one table, the shape asks for the law and the operation, and \cppinline{concat} is written once against the shape.
+A wrong unit, and an operation with no entry, are refused.}
+\end{listing}
+
 In \Cpp{23} a \cppinline{concept} is a predicate on a type's structure~\cite{cpp23standard}, and a trait is a compile-time function on types~\cite{myers1995traits}.
 Together they take the place of type classes~\cite{wadler1989adhoc}.
 Both are resolved while compiling, so no dictionaries exist as run-time values (Section~\ref{sec:binding}).
