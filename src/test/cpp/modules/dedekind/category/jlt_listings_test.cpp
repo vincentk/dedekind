@@ -1124,6 +1124,26 @@ concept IsMonoidOn =
 static_assert(IsMonoidOn<size_t, std::plus<size_t>, 0uz> &&
               IsMonoidOn<bool, std::logical_or<bool>, false> &&
               !IsMonoidOn<bool, std::logical_or<bool>, true>);
+// The standard's structural types: a value of one can be lifted into a type,
+// and the compiler decides the identity of two lifted values member by
+// member, with no operator== of ours.  Listing 1's arrows are structural, and
+// so is an arrow that carries a value.
+template <auto v>
+struct Lift {};
+struct Add {
+  size_t k;
+  constexpr size_t operator()(size_t x) const { return x + k; }
+};
+using listing1_self_contained::Neg;
+using listing1_self_contained::Succ;
+using listing1_self_contained::Then;
+static_assert(std::same_as<Lift<Add{3}>, Lift<Add{3}>> &&
+              !std::same_as<Lift<Add{3}>, Lift<Add{4}>> &&
+              std::same_as<Lift<Then<Succ, Neg>{}>, Lift<Then<Succ, Neg>{}>> &&
+              std::same_as<Lift<Then<Add, Add>{Add{1}, Add{2}}>,
+                           Lift<Then<Add, Add>{Add{1}, Add{2}}>> &&
+              !std::same_as<Lift<Then<Add, Add>{Add{1}, Add{2}}>,
+                            Lift<Then<Add, Add>{Add{2}, Add{1}}>>);
 }  // namespace triple_probe
 
 TEST_CASE("Spelling probe: a law as a function and as a table",
