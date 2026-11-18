@@ -40,39 +40,6 @@ The compiler enforces the rule in part: a \cppinline{constexpr} function that re
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-constexpr auto id_b = id<bool>();
-constexpr auto id_u = id<size_t>();
-constexpr auto no = !id_b;
-constexpr auto neg = -id_u;
-constexpr auto cpl = ~id_u;
-static_assert(
-cpl == id_u >> cpl && id_b == no >> no &&
-id_u == neg >> neg && id_u == cpl >> cpl);
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.48\linewidth}
-\begin{cpp}
-constexpr auto twin = cpl;
-constexpr auto succ = cpl >> neg;
-constexpr auto zero = constant<One>(0uz);
-constexpr auto yes = constant<One>(true);
-static_assert(
-id_u == twin >> cpl && succ(41uz) == 42 &&
-is_iso(succ) && !is_involution(succ) &&
-yes == zero >> equals(0uz));
-\end{cpp}
-\end{minipage}
-\caption{\hyperref[def:rule1]{Rule~1}: Substitution, in the category of Jlt's types and functions, after Pierce's FPL~\cite{pierce1991basic}.
-Left: identities and three involutions, with the identity law and each involution undoing itself.
-Right: a copy is as good as its original; the successor, a composite of two involutions, is an isomorphism, and no law makes it an involution; an arrow after a point is the point of its value.
-\cppinline{f >> g} is Pierce's $g \circ f$, and each equation is decided by laws and not by values (Listing~\ref{lst:rule3}).
-A program of the kernel (Figure~\ref{fig:fjlt-syntax}), translated in Section~\ref{sec:translation}.}
-\label{lst:rule1}
-\end{listing}
-
-\begin{listing}[htbp]
-\begin{minipage}[t]{0.48\linewidth}
-\begin{cpp}
 struct Succ { constexpr size_t
   operator()(size_t x) const { return x + 1; } };
 struct Pred { constexpr size_t
@@ -114,26 +81,31 @@ is_injective(up) &&
 !is_injective(up >> Half{}));
 \end{cpp}
 \end{minipage}
-\caption*{\textbf{Draft 3, to replace Listing~\ref{lst:rule1}.} \hyperref[def:rule1]{Rule~1}: Substitution.
-Left: the rule in code.
-An arrow is a value: its parts are its fields, its call is \cppinline{const}, and it is evaluated while compiling, so a named arrow such as \cppinline{up} can be copied and put in the place of its definition.
-\cppinline{f >> g} applies \cppinline{f}, then \cppinline{g}.
-Right: a law as a table.
-\cppinline{injective}, one-to-one, is false where nothing is declared, each line after \cppinline{template <>} is an entry, and the entry for a composite is computed from its parts'.
-\cppinline{Pred} is one-to-one and has no entry, and \cppinline{Half} is not one-to-one: both answer false, which means not known.
+\caption{\hyperref[def:rule1]{Rule~1}: Substitution.
+Left: four arrows on \cppinline{size_t} as values, and their composite.
+Right: a law declared as a table, inferred at a composite and read by a function.
 The table and the constrained parameters are sugar (Appendix~\ref{app:fjlt:closure}).}
+\label{lst:rule1}
 \end{listing}
 
 A function object is a value, as an abstraction is in the $\lambda$-calculus~\cite{pierce2002tapl}: the arguments it binds are its fields, and its call operator is a \cppinline{const} member function like any other.
-The types of a Jlt program and the functions between them form a category, as those of Pierce's small functional language FPL do~\cite[Example~1.1.15]{pierce1991basic}.
-An \emph{arrow} is a function object with a domain and a codomain, and arrows compose with \cppinline{>>}, left to right.
-The listings build their arrows from the paper's library: \cppinline{id<T>()} is the identity on \cppinline{T}, \cppinline{constant<A>(v)} is the function from \cppinline{A} that returns \cppinline{v}, and an operator applied to an identity, as in \cppinline{-id_u}, is that operator as an arrow.
-\cppinline{constant<One>(0uz)} is the value 0 made into an arrow: a function object from the one-element type \cppinline{One} that returns 0, a point of \cppinline{size_t} (Listing~\ref{lst:rule1}).\footnote{\cppinline{One} is the category's terminal object: every type has exactly one arrow into it.
-The category has no initial object: the initial object of sets is the empty set, and Rule~1 asks every type to be inhabited.
-It is an answer to Pierce's Exercise~1.4.6(3)~\cite{pierce1991basic}.}
-An element of a type is an arrow into it from \cppinline{One}, and applying a function to the element is composing the two~\cite[Example~1.4.5]{pierce1991basic}, as the listing's last equation does.
+The left panel of Listing~\ref{lst:rule1} declares four such values on \cppinline{size_t}, called \emph{arrows} here, and one way to compose two.
+\cppinline{Then} stores its two parts as fields and applies them in turn, and \cppinline{f >> g} builds it, \cppinline{f} first.
+The concept \cppinline{Arrow} states what \cppinline{Then} may assume of a part: a \cppinline{const} call from \cppinline{size_t} to \cppinline{size_t}.
+The types of a Jlt program and the functions between them form a category, as those of Pierce's small functional language FPL do~\cite[Example~1.1.15]{pierce1991basic}, and these are four of its arrows from \cppinline{size_t} to itself.
+Unsigned arithmetic wraps~\cite[{\texttt{basic.fundamental}}]{cpp23standard}, so \cppinline{Succ} and \cppinline{Pred} undo each other at every value, the two ends of the range included, and \cppinline{Neg} undoes itself.
 With the address and mutation out of reach, no arrow tells a copy from its original.\footnote{The two are equal up to canonical isomorphism in Mazur's sense~\cite{mazur2008equal}, an object being known, by Yoneda's lemma, through its arrows out~\cite{maclane1971categories}.}
-Listing~\ref{lst:rule1} writes \cppinline{==} between arrows all the same, and \RuleThree{} says how that is decided.
+So the named arrow \cppinline{up} may stand wherever its definition could.
+
+The right panel is a first look at a law.
+A law is a statement about an arrow that the compiler is told and does not check, here that the arrow is injective, or one-to-one: distinct arguments give distinct results.
+It is declared as a table from types to truth values.
+The table answers \cppinline{false} for every type, a declaration that begins \cppinline{template <>} enters \cppinline{true} for one type, and the entry for a composite is computed from the entries of its parts.
+\cppinline{is_injective} reads the table at the type of a value.
+\cppinline{Pred} is one-to-one and has no entry, and \cppinline{Half} is not one-to-one.
+Both answer \cppinline{false}: of a law, \cppinline{false} means that it is not known, never that it is refuted.
+The entry for a composite is a recursion over the type of a term, which \RuleThree{} takes up.
+The library that accompanies the paper declares the same for more arrows and more laws.
 
 \paragraph{Rule 2, Abstraction: generic code varies with a type only through its concepts and traits.}
 \phantomsection\label{def:rule2}
@@ -276,7 +248,7 @@ An axiom is declared: the compiler does not prove it.\footnote{Similarly, \textt
 A false law declaration is possible, and the compiler does not detect it.
 The standard treats its own concepts alike: a type may satisfy one without modelling it, and the program is then ill-formed with no diagnostic required~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.}
 A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts, a fold over its type (\RuleThree{}).
-Listing~\ref{lst:rule1}'s successor being an isomorphism is one, inferred for a composite arrow from its two legs, and \cppinline{IsMonoid<size_t, plus<size_t>>} is another, a shape from its requirements.
+That Listing~\ref{lst:rule1}'s \cppinline{up} is injective is one, inferred for a composite arrow from its two parts, and \cppinline{IsMonoid<size_t, plus<size_t>>} is another, a shape from its requirements.
 Overload resolution is a simple proof search that finds either kind~\cite{augustsson2005djinn}.
 A law is stated of a carrier, a type taken as a bare set of values, together with an operation: \cppinline{size_t} is a monoid twice, under $(0, +)$ and under $(1, \times)$.\footnote{A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.}
 

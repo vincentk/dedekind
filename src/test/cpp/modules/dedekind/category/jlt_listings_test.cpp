@@ -767,7 +767,7 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
   }
 }
 
-// DRAFT 3, Listing 1 self-contained (2026-11-18): every name is declared here
+// Listing 1, self-contained: every name is declared here
 // or is the standard's, so the page and a compiler suffice.  Left, Rule 1 in
 // code: arrows on size_t as function objects, a composite's parts its fields,
 // every call const and constexpr.  Succ and Pred are mutual inverses because

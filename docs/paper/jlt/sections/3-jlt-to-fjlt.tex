@@ -14,7 +14,7 @@ Over a type it is instantiation, a generic function at a term's type calling its
 Over a value it is a fold over a range with a bound known before the first step, a range of $\mathcal{R}$ (Appendix~\ref{app:fjlt:translation}).
 The library reifies them by default as \cppinline{cata} over a term type and as the standard's \cppinline{ranges::fold_left}, admitted only over a range that declares its bound; everything above them is library.
 In the terms of Meijer et al.~\cite{meijer1991functional}, \cppinline{fold_left} over the chain is a hylomorphism: the chain is never built as a list, only folded (Appendix~\ref{app:fjlt:translation}).
-Listing~\ref{lst:rule1} is a program in the grammar, its assertions the program's terms (Appendix~\ref{app:fjlt:closure}).
+Listing~\ref{lst:rule1} is a program in the grammar up to two spellings, its table and its constrained parameters, with its assertions the program's terms (Appendix~\ref{app:fjlt:closure}).
 Listing~\ref{lst:rule3} is Jlt beyond it by one spelling: its \cppinline{using} alias is sugar for the type it names (Appendix~\ref{app:fjlt:closure}).
 
 \begin{figure}[!htb]
