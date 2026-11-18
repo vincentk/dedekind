@@ -767,51 +767,67 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
   }
 }
 
-// DRAFT, Listing 1 self-contained (2026-11-18): every name is declared here
-// or is the standard's, so the page and a compiler suffice.  Arrows as
-// function objects, two atoms and one composite; a law declared at the atoms
-// and inferred at the composite, a fold over the term's type.  The generic
-// case stands above its uses and asks the trait at the parts in its body
-// (the lookup probe's row 4); the atoms are explicit specialisations.
+// DRAFT 2, Listing 1 self-contained (2026-11-18): every name is declared here
+// or is the standard's, so the page and a compiler suffice.  Arrows on size_t
+// as function objects: Succ and Pred, mutual inverses because unsigned
+// arithmetic wraps; Neg, an involution; Half, not injective; Then, the
+// composite, constrained.  A law is declared as a table, a variable template
+// and its specialisations: false where nothing is declared, true at the
+// atoms that have it, at a composite the conjunction of its parts'; and it is
+// read by a function on the value.
 namespace listing1_self_contained {
 using std::size_t;
+struct Succ {
+  constexpr size_t operator()(size_t x) const { return x + 1; }
+};
+struct Pred {
+  constexpr size_t operator()(size_t x) const { return x - 1; }
+};
 struct Neg {
   constexpr size_t operator()(size_t x) const { return -x; }
 };
-struct Cpl {
-  constexpr size_t operator()(size_t x) const { return ~x; }
+struct Half {
+  constexpr size_t operator()(size_t x) const { return x / 2; }
 };
-template <typename F, typename G>
+template <typename F>
+concept Arrow = requires(F f, size_t x) {
+  { f(x) } -> std::same_as<size_t>;
+};
+template <Arrow F, Arrow G>
 struct Then {
   F f;
   G g;
   constexpr size_t operator()(size_t x) const { return g(f(x)); }
 };
-template <typename F, typename G>
+template <Arrow F, Arrow G>
 constexpr Then<F, G> operator>>(F f, G g) {
   return Then<F, G>{f, g};
 }
 
-template <typename T>
-constexpr bool monic(T) = delete;
+template <typename F>
+constexpr bool monic = false;
+template <>
+constexpr bool monic<Succ> = true;
+template <>
+constexpr bool monic<Pred> = true;
+template <>
+constexpr bool monic<Neg> = true;
 template <typename F, typename G>
-constexpr bool monic(Then<F, G> t) {
-  return monic(t.f) && monic(t.g);
+constexpr bool monic<Then<F, G>> = monic<F> && monic<G>;
+template <Arrow F>
+constexpr bool is_monic(F) {
+  return monic<F>;
 }
-template <>
-constexpr bool monic<Neg>(Neg) {
-  return true;
-}
-template <>
-constexpr bool monic<Cpl>(Cpl) {
-  return true;
-}
-constexpr auto succ = Cpl{} >> Neg{};
-static_assert(succ(41uz) == 42 && monic(succ));
-// Beyond the listing: the fold reaches any depth, and the composite's type
-// records its parts.
-static_assert(monic(succ >> succ >> Cpl{}) && (succ >> succ)(40uz) == 42 &&
-              std::same_as<decltype(succ), const Then<Cpl, Neg>>);
+static_assert((Succ{} >> Pred{})(0uz) == 0 && is_monic(Succ{} >> Neg{}) &&
+              !is_monic(Succ{} >> Half{}));
+// Beyond the listing: the wrap that makes Succ and Pred inverses, the
+// involution, the fold at depth, and the two things Half identifies.
+constexpr size_t top = static_cast<size_t>(-1);
+static_assert((Pred{} >> Succ{})(0uz) == 0 && (Succ{} >> Pred{})(top) == top &&
+              (Neg{} >> Neg{})(42uz) == 42 && Half{}(4uz) == Half{}(5uz) &&
+              is_monic(Succ{} >> Neg{} >> Pred{} >> Succ{}) &&
+              !is_monic(Succ{} >> Half{} >> Pred{}) && Arrow<Then<Succ, Neg>> &&
+              !monic<int>);
 }  // namespace listing1_self_contained
 
 // A probe, not a listing: which declarations of a trait a shape finds, by

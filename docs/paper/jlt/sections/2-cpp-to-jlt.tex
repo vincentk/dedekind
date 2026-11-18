@@ -73,37 +73,51 @@ A program of the kernel (Figure~\ref{fig:fjlt-syntax}), translated in Section~\r
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
+struct Succ { constexpr size_t
+  operator()(size_t x) const { return x + 1; } };
+struct Pred { constexpr size_t
+  operator()(size_t x) const { return x - 1; } };
 struct Neg { constexpr size_t
   operator()(size_t x) const { return -x; } };
-struct Cpl { constexpr size_t
-  operator()(size_t x) const { return ~x; } };
-template <typename F, typename G>
+struct Half { constexpr size_t
+  operator()(size_t x) const { return x / 2; } };
+template <typename F>
+concept Arrow = requires(F f, size_t x) {
+  { f(x) } -> same_as<size_t>; };
+template <Arrow F, Arrow G>
 struct Then { F f; G g; constexpr size_t
   operator()(size_t x) const { return g(f(x)); } };
-template <typename F, typename G>
+template <Arrow F, Arrow G>
 constexpr Then<F, G> operator>>(F f, G g)
   { return Then<F, G>{f, g}; }
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-template <typename T>
-constexpr bool monic(T) = delete;
+template <typename F>
+constexpr bool monic = false;
+template <>
+constexpr bool monic<Succ> = true;
+template <>
+constexpr bool monic<Pred> = true;
+template <>
+constexpr bool monic<Neg> = true;
 template <typename F, typename G>
-constexpr bool monic(Then<F, G> t)
-  { return monic(t.f) && monic(t.g); }
-template <> constexpr bool monic<Neg>(Neg)
-  { return true; }
-template <> constexpr bool monic<Cpl>(Cpl)
-  { return true; }
-constexpr auto succ = Cpl{} >> Neg{};
+constexpr bool monic<Then<F, G>> =
+    monic<F> && monic<G>;
+template <Arrow F>
+constexpr bool is_monic(F)
+  { return monic<F>; }
 static_assert(
-succ(41uz) == 42 && monic(succ));
+(Succ{} >> Pred{})(0uz) == 0 &&
+is_monic(Succ{} >> Neg{}) &&
+!is_monic(Succ{} >> Half{}));
 \end{cpp}
 \end{minipage}
-\caption*{\textbf{Draft, to replace Listing~\ref{lst:rule1}:} the same rule with every name declared on the page.
-Left: arrows as function objects, two atoms and their composite, with \cppinline{f >> g} for $g \circ f$.
-Right: a law, declared at the atoms and inferred at the composite.}
+\caption*{\textbf{Draft 2, to replace Listing~\ref{lst:rule1}:} every name is declared on the page or is the standard's.
+Left: arrows on \cppinline{size_t} as function objects, a composite's parts being its fields, with \cppinline{f >> g} for $g \circ f$.
+Right: a law, here \emph{monic}, that is injective, as a table: false where nothing is declared, declared true at three atoms, inferred at a composite from its parts, and read by a function.
+\cppinline{Half} has no entry, so no composite through it is known to be monic.}
 \end{listing}
 
 A function object is a value, as an abstraction is in the $\lambda$-calculus~\cite{pierce2002tapl}: the arguments it binds are its fields, and its call operator is a \cppinline{const} member function like any other.
