@@ -181,7 +181,7 @@ constexpr size_t named(Op op)
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
 Top: a monoid on \cppinline{size_t} as an operation and its unit: the law as a table, the shape, the function \cppinline{concat}, and what the shape refuses.
-Bottom left: a call that the rule refuses and \Cpp{} accepts, which the linter reports.
+Bottom left: \cppinline{guessed} makes a call that \Cpp{} accepts, while Rule~2 and the linter refuse it.
 Bottom right: three callers that declare what the call depends on.}
 \label{lst:rule2}
 \label{lst:undecided}
