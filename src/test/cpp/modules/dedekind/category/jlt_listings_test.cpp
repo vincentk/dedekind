@@ -1110,6 +1110,50 @@ static_assert(concat<std::plus<size_t>, 0uz>() == 0 &&
               concat<std::multiplies<size_t>, 1uz>(6uz, 7uz) == 42 &&
               !IsMonoid<std::plus<size_t>, 1uz> &&
               !IsMonoid<std::minus<size_t>, 0uz>);
+// Listing 2, lower panels: a call that Rule 2 refuses, in the listing's own
+// names.  The value of an empty fold is 0 unless the operation is known to
+// have the unit 1; guessed asks for neither, and its result varies with a
+// law it does not declare.  The linter reports the same body in its fixture
+// (tools/jlt-lint/fixtures/rule2-decided-resolution.cpp).  Three callers
+// declare the dependence: by requiring the shape, by negating it, and by
+// naming the call as a requirement.
+template <typename Op>
+constexpr size_t empty(Op) {
+  return 0;
+}
+template <typename Op>
+  requires IsMonoid<Op, 1uz>
+constexpr size_t empty(Op) {
+  return 1;
+}
+template <typename Op>
+constexpr size_t guessed(Op op) {
+  return empty(op);
+}
+static_assert(guessed(std::plus<size_t>{}) == 0 &&
+              guessed(std::multiplies<size_t>{}) == 1);
+template <typename Op>
+  requires IsMonoid<Op, 1uz>
+constexpr size_t of_a_product(Op op) {
+  return empty(op);
+}
+template <typename Op>
+  requires(!IsMonoid<Op, 1uz>)
+constexpr size_t of_the_rest(Op op) {
+  return empty(op);
+}
+template <typename Op>
+concept HasEmpty = requires(Op op) {
+  { empty(op) } -> std::same_as<size_t>;
+};
+template <HasEmpty Op>
+constexpr size_t named(Op op) {
+  return empty(op);
+}
+static_assert(of_a_product(std::multiplies<size_t>{}) == 1 &&
+              of_the_rest(std::plus<size_t>{}) == 0 &&
+              named(std::plus<size_t>{}) == 0 &&
+              concat<std::multiplies<size_t>, 1uz>() == 1);
 // The same with the carrier a parameter: the unit's type is the carrier.
 template <std::regular T, typename Op, T e>
 constexpr bool monoid_on = false;

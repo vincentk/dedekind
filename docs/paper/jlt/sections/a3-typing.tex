@@ -89,7 +89,7 @@ At concrete types FJlt takes \Cpp{}'s rule as it is.
 At a type variable it adds one condition, which well-formedness requires: in a body with context $\Delta$, a call resolves only when its choice survives every instantiation of the body.
 So every candidate that would be more specific than the chosen one and whose head unifies with the call's types, explicit specialisations included, is excluded by a constraint $\Delta$ decides, entailing it or its negation.
 That refines GHC's rule for overlapping instances~\cite{ghc2024overlapping}, which looks at instance heads only and refuses to commit to an instance the types do not yet decide.
-\Cpp{} does not hold it, as Listing~\ref{lst:undecided} shows (Section~\ref{sec:posture}).
+\Cpp{} does not hold it, as the lower left panel of Listing~\ref{lst:rule2} shows (Section~\ref{sec:posture}).
 A call it would refuse is a body that varies with a type through a constraint it did not declare, a breach of Rule~2, which the repository's linter reports where it can see one (Section~\ref{sec:limits}).
 The body is well-formed at every instantiation, so no instantiation reports it: the function's meaning, not its validity, depends on the undeclared constraint.
 

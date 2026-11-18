@@ -179,7 +179,7 @@ The kernel refuses it, as GHC refuses to commit to an overlapping instance that 
 Such a call could be given a kernel form by constraint inference: its resolution becomes a parameter of the enclosing function, which each caller supplies after resolving the call at a concrete type.
 The price would be in the free theorem, which then ranges over a parameter the function never wrote.
 Jlt declines to infer it and asks that it be written.
-The clause requires the constraint, negates it, or names the call as a requirement, and the last is that parameter, declared (Listing~\ref{lst:undecided}).
+The clause requires the constraint, negates it, or names the call as a requirement, and the last is that parameter, declared (Listing~\ref{lst:rule2}, lower right).
 The branch on a constraint adds declarations, so it is not local in Felleisen's sense~\cite{felleisen1991expressive}.
 
 \paragraph{The binding time.}

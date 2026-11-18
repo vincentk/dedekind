@@ -10,7 +10,7 @@ Table~\ref{tab:posture} says which instrument holds each rule at build time.
 Definition checking was the half of the \Cpp{0x} design~\cite{gregor2006concepts} that \Cpp{20} did not take up (Section~\ref{sec:intro}).
 So Rule~2 is posture: it is held outside the compiler.
 Concept archetypes bring one part of it back in~\cite{siek2000concept}: a template instantiated at a type that provides exactly what its concept requires fails to compile where its body uses more.
-An archetype is written by hand for each concept, and it tests the operations a body uses, not the overload a body selects, so Listing~\ref{lst:undecided}'s call compiles at every archetype.
+An archetype is written by hand for each concept, and it tests the operations a body uses, not the overload a body selects, so the call in Listing~\ref{lst:rule2}'s lower left panel compiles at every archetype.
 Rules~1 and~3 are posture outside compile-time evaluation (Table~\ref{tab:posture}).
 
 \paragraph{Lookup stops at \cppinline{std}.}

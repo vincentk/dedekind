@@ -98,7 +98,7 @@ GHC's rule for overlapping instances refuses such a call.
 Jlt adopts a refinement of that rule, and the repository's linter reports a call that breaks it, on an argument whose type is a template parameter (Section~\ref{sec:posture}, Appendix~\ref{app:fjlt:typing}).
 \item The exhibits: every \Cpp{} listing in this paper but one compiles and runs under a stock compiler, at compile time and at run time, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}.
 Each of these is held to the three rules by an agentic review of every change against them and by a mechanical linter in the same repository, as the library's core is.
-The exception is Listing~\ref{lst:undecided}, a fixture of the linter whose left panel breaks Rule~2 on purpose: it is evaluated at compile time only, and linted for that one rule.
+The exception is the lower left panel of Listing~\ref{lst:rule2}, which breaks Rule~2 on purpose and is also a fixture of the linter: it is evaluated at compile time only, and linted for that one rule.
 That is what compliance means here.
 \end{enumerate}
 
