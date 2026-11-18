@@ -26,6 +26,9 @@ rule & keeps out of Jlt & buys & costs & held by \\
 \phantomsection\label{def:rule1}
 Every type a Jlt program passes around is \cppinline{std::semiregular}: it is inhabited, and its copy is as good as the original.\footnote{Inhabitation is used later: equational reasoning over several types is sound and complete only when none of them is empty (Appendix~\ref{app:fjlt:theorems}).}
 Equality is not required, since it cannot be decided for functions in general~\cite{rice1953classes}, though a type is free to offer one.\footnote{A type with a copy and an equality is Stepanov's regular type~\cite{stepanov2009elements}, in \Cpp{23} \cppinline{std::regular}.}
+For values known while compiling, the standard supplies an equality all the same.
+A function object whose fields are of base type, or are such function objects in turn, is a structural type~\cite[{\texttt{temp.param}}]{cpp23standard}: it may be a template argument, and the compiler decides whether two such arguments are the same value, field by field.
+Listing~\ref{lst:rule1}'s arrows are of this kind.
 Every function is \cppinline{constexpr}, every member function \cppinline{const}, and each depends on its arguments alone.
 A function returns a value, never a reference.
 \cppinline{const T} and \cppinline{const T&} are one parameter, since a copy is as good as its original: the reference is an optimisation, and the translation erases it.
