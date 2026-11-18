@@ -1024,6 +1024,37 @@ constexpr int ask() {
 }  // namespace by_table
 }  // namespace spelling_probe
 
+// A probe, not a listing: equality of arrow terms as identity of their
+// types.  Composing re-brackets to the right, a recursion over the term's
+// type, so a term's type is its word in the atoms, and two terms equal up to
+// bracketing have one type.  The comparison calls neither arrow.
+namespace equality_probe {
+using spelling_probe::Neg;
+using spelling_probe::Pred;
+using spelling_probe::Succ;
+using spelling_probe::Then;
+template <typename F, typename G>
+constexpr Then<F, G> operator>>(F f, G g) {
+  return Then<F, G>{f, g};
+}
+template <typename F, typename G, typename H>
+constexpr auto operator>>(Then<F, G> t, H h) {
+  return t.f >> (t.g >> h);
+}
+template <typename F, typename G>
+constexpr bool same(F, G) {
+  return std::same_as<F, G>;
+}
+constexpr bool rebrackets =
+    same((Succ{} >> Neg{}) >> Pred{}, Succ{} >> (Neg{} >> Pred{}));
+constexpr bool rebrackets_deep =
+    same(((Succ{} >> Neg{}) >> (Pred{} >> Succ{})) >> Neg{},
+         Succ{} >> (Neg{} >> (Pred{} >> (Succ{} >> Neg{}))));
+constexpr bool tells_words_apart = !same(Succ{} >> Neg{}, Neg{} >> Succ{});
+constexpr bool computes =
+    ((Succ{} >> Neg{}) >> Pred{})(41uz) == (Succ{} >> (Neg{} >> Pred{}))(41uz);
+}  // namespace equality_probe
+
 TEST_CASE("Spelling probe: a law as a function and as a table",
           "[category][jlt][spelling][probe]") {
   using namespace spelling_probe;
@@ -1049,6 +1080,16 @@ TEST_CASE("Spelling probe: a law as a function and as a table",
       by_table::ask<SHP>());
   row("Then<Succ, Twice>", by_function::ask<ST>(), by_table::ask<ST>());
   CHECK(Then<Succ, Pred>{}(41uz) == 41);
+  const auto fact = [](const char* what, bool holds) {
+    std::printf("EQUALITY | %s | %s\n", holds ? "yes" : "no ", what);
+  };
+  fact("(Succ >> Neg) >> Pred and Succ >> (Neg >> Pred) have one type",
+       equality_probe::rebrackets);
+  fact("the same at depth five", equality_probe::rebrackets_deep);
+  fact("Succ >> Neg and Neg >> Succ have different types",
+       equality_probe::tells_words_apart);
+  fact("the two bracketings compute the same value at 41",
+       equality_probe::computes);
 }
 
 TEST_CASE("Lookup probe: which declarations of a trait a shape finds",
