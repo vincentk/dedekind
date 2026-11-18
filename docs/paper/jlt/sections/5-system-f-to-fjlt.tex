@@ -146,7 +146,9 @@ The trait that a law's \cppinline{concept} reads is specialised once for that fo
 Asking the \cppinline{concept} of a composite therefore instantiates it at the parts, so the recursion is the compiler's own, over the type (\RuleThree{}).
 The inference is local in Pierce and Turner's sense~\cite{pierce2000local}: information moves only between adjacent nodes, and here only upward, from a term's immediate parts to the term, a synthesised attribute~\cite{knuth1968semantics}.
 By Theorem~\ref{thm:coherence} each inferred law is unique, and the conditions on contexts that end instance search~\cite{sulzmann2007understanding} end the inference.
-As type checking rules out classes of errors without proving a program correct, law inference licenses classes of optimisations without deciding program equivalence, which stays undecidable where every program ends: a program testing whether a machine halts within $n$ steps equals the constant false exactly when that machine never halts~\cite{turing1936computable}.
+Type checking rules out classes of errors without proving a program correct.
+Law inference likewise licenses classes of optimisations without deciding whether two programs are equal.
+That question stays undecidable even where every program ends: a program that tests whether a machine halts within $n$ steps equals the constant false exactly when the machine never halts~\cite{turing1936computable}.
 Each optimisation is local, a rewrite at the node whose law licenses it, and so mechanical; the global one, the best equivalent program, is the undecidable one.
 Since the laws are the application's, not the machine's, so are the optimisations they license.
 None of this section's theorems speaks to the truth of a declared law.

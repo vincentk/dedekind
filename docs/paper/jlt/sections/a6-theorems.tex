@@ -216,6 +216,7 @@ rule & its image has its type, because & relies on \\
 \textsc{T-Node} & $\mathit{node}_{O} : \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket \to \mu F$, by induction on the term type, whose legs are smaller, applied to $\llbracket t \rrbracket$ of the node's type${}^{\textsc{ih}}$ &  \\
 \textsc{T-Cata} & below & \textsc{T-Node} \\
 \end{longtable}
+\addtocounter{table}{-1}
 \endgroup
 \case{\textsc{D-Generic}}the body is typed${}^{\textsc{ih}}$ under $\overline{\alpha}$, the record variables $\overline{q : \llbracket Q \rrbracket}$ and $\overline{x : \llbracket \tau_x \rrbracket}$, so the abstraction has the stated type, $\tau$ the premise's own where $\rho$ is \texttt{auto}.
 Its calls on constrained types are \textsc{T-Req-Assumed}; the declaration order makes the induction well founded, as no body calls itself.
@@ -286,6 +287,7 @@ rule & what the substitution changes & reduces to the concrete side, because \\
 \textsc{T-Fold-R} & its record & it reduces by (i) \\
 every other rule & its subterms & structural${}^{\textsc{ih}}$ \\
 \end{longtable}
+\addtocounter{table}{-1}
 \endgroup
 \case{\textsc{E-Op}}the field is $\lambda\overline{a}.\,\llbracket \tau^{S}\texttt{(}e_r\texttt{)} \rrbracket$, and $e_r$ is typed under $\Delta$, so (ii) reduces it to the field \textsc{E-Op} builds at $\overline{\sigma}$.
 \end{proof}
@@ -326,6 +328,7 @@ step & the result has the type, because & relies on \\
 \textsc{S-Cata} & the algebra applied to the node and its legs' results, each of type $\sigma$ & \textsc{T-Cata}, \textsc{T-Node} \\
 \textsc{S-Ctx} & the hole's type is unchanged${}^{\textsc{ih}}$ &  \\
 \end{longtable}
+\addtocounter{table}{-1}
 \endgroup
 \case{\textsc{S-Call} to a generic function}$f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)}$ steps to $e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}]$.
 \textsc{D-Generic} typed $e_f$ under $\overline{\alpha}, \overline{Q}$ and the parameters, and \textsc{T-Call}'s premise entails $\overline{Q}[\overline{\sigma}/\overline{\alpha}]$.
@@ -360,6 +363,7 @@ a conditional, a case, a projection, an unbox & \textsc{S-If}, \textsc{S-Case}, 
 a fold over a range value & \textsc{S-Fold} & its two cases cover every length \\
 a \texttt{cata} on a node & \textsc{S-Cata} & it covers every node, leaves included \\
 \end{longtable}
+\addtocounter{table}{-1}
 \endgroup
 \end{proof}
 
@@ -398,6 +402,7 @@ source step & target steps & landing, because \\
 \textsc{S-Fold} & several & below \\
 \textsc{S-Cata} & several & below \\
 \end{longtable}
+\addtocounter{table}{-1}
 \endgroup
 \case{\textsc{S-Call} to a generic function}$f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by type application and $\beta$-reduction to $\llbracket e_f \rrbracket$ with $\overline{\llbracket \sigma \rrbracket}$ for $\overline{\alpha}$, $\overline{d}$ for $\overline{q}$ and $\overline{\llbracket v \rrbracket}$ for $\overline{x}$; by Lemma~\ref{lem:subst-dict}~(ii), with $\overline{d}$ the records \textsc{E-Shape} built for the closed call, the result reduces further to $\llbracket e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \rrbracket$, the term the source stepped to, whose requirement uses are typed by \textsc{T-Trait}, under \textsc{T-Conv} where the requirement converts, and whose folds at the former type variable are \textsc{T-Fold}'s at the concrete instance.
 \case{\textsc{S-Op}}$(\pi_2\,(\overline{\llbracket v_y \rrbracket}, O_{\mathrm{call}}\,\overline{\llbracket v_y \rrbracket}))\,[\overline{\sigma}]\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by projection, type application and $\beta$-reduction to $\llbracket e_O \rrbracket$ with fields, dictionaries and arguments substituted, which is $\llbracket e' \rrbracket$ by the same argument as for a generic call.

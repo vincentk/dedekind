@@ -120,8 +120,8 @@ The inclusion is proper: \Cpp{23} is Jlt without the rules.
 The inclusion is proper: Jlt is the kernel and the sugar.
 The dashed arrow, labelled $-$sugar, is $\mathit{desugar}$, and $\mathit{incl}$ is the inclusion beside it.
 That $\mathit{desugar}$ preserves meaning is a working hypothesis: it is total on Jlt and a retraction of the inclusion.
-$\mathit{desugar} \circ \mathit{incl} = \mathit{id}$ holds exactly, by construction.
-$\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ holds up to the value a program computes.
+A kernel program desugars to itself: $\mathit{desugar} \circ \mathit{incl} = \mathit{id}$, by construction.
+A Jlt program and its desugaring compute the same value: $\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ up to that value, which is the hypothesis.
 \item[Section~\ref{sec:translation}, the translation $\llbracket\cdot\rrbracket$.]
 It is total on well-typed FJlt programs.
 Its target, which the figure calls System~F, is System~F extended with records, sums, inductive types and iterators (Definition~\ref{def:target}).
