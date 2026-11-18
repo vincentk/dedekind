@@ -1079,9 +1079,10 @@ constexpr bool computes =
 }  // namespace equality_probe
 
 // Listing 2, self-contained: the monoid as the triple (S, +, 0), the unit
-// passed to the concept as a value.  The law is one table keyed by the operation and
-// the unit; std::plus and std::multiplies are used as the standard gives
-// them; a wrong unit is refused.  The carrier is fixed to size_t.
+// passed to the concept as a value.  The law is one table keyed by the
+// operation and the unit; std::plus and std::multiplies are used as the
+// standard gives them; a wrong unit is refused.  The carrier is fixed to
+// size_t.
 namespace triple_probe {
 using std::size_t;
 template <typename Op, size_t e>
