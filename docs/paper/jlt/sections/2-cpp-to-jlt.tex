@@ -251,7 +251,7 @@ Jlt has two forms of it, over a value and over a type, and both have one shape: 
 \mathit{fold}_h\,(e, s \cdot r) &= \mathit{fold}_h\,(h(e, s), r) \qquad |r| < |s \cdot r|
 \end{aligned}
 \end{equation}
-Here $r$ is a range, $s$ its first element, $h$ the step, $e$ the start, and $|r|$ the length of $r$, the number of elements left.
+Here $s \cdot r$ is a range with first element $s$ and tail $r$, $h$ is the step, $e$ the start, and $|r|$ the length of $r$, the number of elements left.
 The fold is the standard's \cppinline{ranges::fold_left}, which carries its result along from the left, and Jlt admits it only over a range that declares its bound.\footnote{The fold along the walk needs no list~\cite{gibbons1996third}, only the walk, which is an iterator.
 With $\mathit{succ}$ as well it is bidirectional, a zipper~\cite{huet1997zipper}, and with offsets random-access, an array~\cite[\S 2.2.2]{knuth1997art1}: three of the standard's iterator categories.}
 The kernel models such a range as one of $\mathcal{R}$, with its length fixed (Appendix~\ref{app:fjlt:typing}).
