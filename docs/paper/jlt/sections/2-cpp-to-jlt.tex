@@ -99,7 +99,7 @@ The left panel of Listing~\ref{lst:rule1} declares four such values on \cppinlin
 The concept \cppinline{Arrow} states what \cppinline{Then} may assume of a part: a \cppinline{const} call from \cppinline{size_t} to \cppinline{size_t}.
 The types of a Jlt program and the functions between them form a category, as those of Pierce's small functional language FPL do~\cite[Example~1.1.15]{pierce1991basic}, and these are four of its arrows from \cppinline{size_t} to itself.
 Unsigned arithmetic wraps~\cite[{\texttt{basic.fundamental}}]{cpp23standard}, so \cppinline{Succ} and \cppinline{Pred} undo each other at every value, the two ends of the range included, and \cppinline{Neg} undoes itself.
-With the address and mutation out of reach, no arrow tells a copy from its original.\footnote{The two are equal up to canonical isomorphism in Mazur's sense~\cite{mazur2008equal}, an object being known, by Yoneda's lemma, through its arrows out~\cite{maclane1971categories}.}
+With the address and mutation out of reach, no arrow tells a copy from its original~\cite{mazur2008equal}.
 So the named arrow \cppinline{up} may stand wherever its definition could.
 
 The right panel is a first look at a law.
