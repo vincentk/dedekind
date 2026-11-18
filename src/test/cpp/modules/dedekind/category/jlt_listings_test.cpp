@@ -906,6 +906,151 @@ struct own_trait<std::pair<F, G>> {
 constexpr bool own_shape_class = HasOwnTrait<std::pair<int, int>>;
 }  // namespace lookup_probe
 
+// A probe, not a listing: the law of Listing 1's draft, constrained as Rule 2
+// asks, in the two spellings of a trait: a function (deleted primary, explicit
+// specialisations, one constrained generic case) and a table (a class
+// template and its specialisations).  Atoms on size_t: Succ and Pred, mutual
+// inverses because unsigned arithmetic wraps; Neg, an involution; Half, not
+// injective, declared so; Twice, with no declaration.  -1 not declared, 0
+// declared false, 1 true.
+namespace spelling_probe {
+using std::size_t;
+struct Succ {
+  constexpr size_t operator()(size_t x) const { return x + 1; }
+};
+struct Pred {
+  constexpr size_t operator()(size_t x) const { return x - 1; }
+};
+struct Neg {
+  constexpr size_t operator()(size_t x) const { return -x; }
+};
+struct Half {
+  constexpr size_t operator()(size_t x) const { return x / 2; }
+};
+struct Twice {
+  constexpr size_t operator()(size_t x) const { return 2 * x; }
+};
+template <typename F>
+concept Arrow = requires(F f, size_t x) {
+  { f(x) } -> std::same_as<size_t>;
+};
+template <Arrow F, Arrow G>
+struct Then {
+  F f;
+  G g;
+  constexpr size_t operator()(size_t x) const { return g(f(x)); }
+};
+constexpr size_t top = static_cast<size_t>(-1);
+static_assert(Then<Succ, Pred>{}(0uz) == 0 && Then<Pred, Succ>{}(0uz) == 0 &&
+              Then<Succ, Pred>{}(top) == top && Pred{}(0uz) == top &&
+              Succ{}(top) == 0 && Then<Neg, Neg>{}(42uz) == 42 &&
+              Neg{}(0uz) == 0 && Half{}(4uz) == Half{}(5uz) &&
+              Twice{}(0uz) == Twice{}(size_t{1} << 63));
+
+namespace by_function {
+template <typename T>
+constexpr bool monic(T) = delete;
+template <typename T>
+concept HasMonic = requires(T t) {
+  { monic(t) } -> std::same_as<bool>;
+};
+template <typename F, typename G>
+  requires HasMonic<F> && HasMonic<G>
+constexpr bool monic(Then<F, G> t) {
+  return monic(t.f) && monic(t.g);
+}
+template <>
+constexpr bool monic<Succ>(Succ) {
+  return true;
+}
+template <>
+constexpr bool monic<Pred>(Pred) {
+  return true;
+}
+template <>
+constexpr bool monic<Neg>(Neg) {
+  return true;
+}
+template <>
+constexpr bool monic<Half>(Half) {
+  return false;
+}
+template <typename T>
+constexpr int ask() {
+  if constexpr (HasMonic<T>) {
+    return monic(T{}) ? 1 : 0;
+  } else {
+    return -1;
+  }
+}
+}  // namespace by_function
+
+namespace by_table {
+template <typename T>
+struct monic;
+template <typename T>
+concept HasMonic = requires {
+  { monic<T>::value } -> std::convertible_to<bool>;
+};
+template <>
+struct monic<Succ> {
+  static constexpr bool value = true;
+};
+template <>
+struct monic<Pred> {
+  static constexpr bool value = true;
+};
+template <>
+struct monic<Neg> {
+  static constexpr bool value = true;
+};
+template <>
+struct monic<Half> {
+  static constexpr bool value = false;
+};
+template <typename F, typename G>
+  requires HasMonic<F> && HasMonic<G>
+struct monic<Then<F, G>> {
+  static constexpr bool value = monic<F>::value && monic<G>::value;
+};
+template <typename T>
+constexpr int ask() {
+  if constexpr (HasMonic<T>) {
+    return monic<T>::value ? 1 : 0;
+  } else {
+    return -1;
+  }
+}
+}  // namespace by_table
+}  // namespace spelling_probe
+
+TEST_CASE("Spelling probe: a law as a function and as a table",
+          "[category][jlt][spelling][probe]") {
+  using namespace spelling_probe;
+  const auto row = [](const char* what, int f, int t) {
+    std::printf("SPELLING | function %2d | table %2d | %s\n", f, t, what);
+  };
+  using SP = Then<Succ, Pred>;
+  using SPS = Then<SP, Succ>;
+  using NN = Then<Neg, Neg>;
+  using SH = Then<Succ, Half>;
+  using SHP = Then<SH, Pred>;
+  using ST = Then<Succ, Twice>;
+  row("Succ", by_function::ask<Succ>(), by_table::ask<Succ>());
+  row("Neg", by_function::ask<Neg>(), by_table::ask<Neg>());
+  row("Half", by_function::ask<Half>(), by_table::ask<Half>());
+  row("Twice", by_function::ask<Twice>(), by_table::ask<Twice>());
+  row("Then<Succ, Pred>", by_function::ask<SP>(), by_table::ask<SP>());
+  row("Then<Then<Succ, Pred>, Succ>", by_function::ask<SPS>(),
+      by_table::ask<SPS>());
+  row("Then<Neg, Neg>", by_function::ask<NN>(), by_table::ask<NN>());
+  row("Then<Succ, Half>", by_function::ask<SH>(), by_table::ask<SH>());
+  row("Then<Then<Succ, Half>, Pred>", by_function::ask<SHP>(),
+      by_table::ask<SHP>());
+  row("Then<Succ, Twice>", by_function::ask<ST>(), by_table::ask<ST>());
+  CHECK(Then<Succ, Pred>{}(41uz) == 41);
+}
+
 TEST_CASE("Lookup probe: which declarations of a trait a shape finds",
           "[category][jlt][lookup][probe]") {
   using namespace lookup_probe;
