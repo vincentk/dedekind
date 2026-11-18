@@ -113,29 +113,8 @@ Generic code may do with a type argument exactly what the type's constraints per
 Listing~\ref{lst:rule2}'s \cppinline{concat} is written once, against a monoid: it may combine two elements and start from the unit, and it can use nothing the monoid does not name.
 So it is a function of the monoid's dictionary, the record of its operations, and it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
 
-The listing presents the monoid a second time, by two arrows.
-Its unit is a point, Listing~\ref{lst:rule1}'s \cppinline{zero}, and its operation is \cppinline{add}, an arrow out of the product of the carrier with itself~\cite[Definition~1.5.1]{pierce1991basic}.
-The product of two arrows, written \cppinline{f * g}, abbreviates the pairing of \cppinline{fst >> f} and \cppinline{snd >> g}~\cite[Definition~1.5.3]{pierce1991basic}, and \cppinline{>>} then applies \cppinline{plus} to the pair's two components.
-The type of \cppinline{add} names \cppinline{plus}, so the declared laws reach it.
-Two points of one carrier have one type, whatever their values.
-A concept sees types only, so it cannot tell the unit from another point, and \cppinline{is_monoid} compares values: the point 1 has the type of \cppinline{zero} and is not the unit of addition.
-
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.47\linewidth}
-\begin{cpp}
-using P = pair<bool, size_t>;
-constexpr auto nil = constant<bool>(0uz);
-constexpr auto fst = Π<1, P>{};
-constexpr auto snd = Π<2, P>{};
-constexpr auto fan = Pairing{id_b, nil};
-constexpr auto add =
-    id_u * id_u >> plus<size_t>{};
-static_assert(
-is_epic(fst) && is_epic(snd) &&
-is_monic(fan) &&
-id_b == fan >> fst && nil == fan >> snd);
-\end{cpp}
-\vspace{-7.4pt}
 \begin{cpp}
 template <typename T, typename Op>
 constexpr T unit(Op) = delete;
@@ -146,6 +125,14 @@ constexpr T unit(plus<T>) { return 0; }
 template <unsigned_integral T>
 constexpr bool associative(plus<T>)
   { return true; }
+template <typename T, typename Op>
+concept HasUnit = requires(Op op) {
+  { unit<T>(op) } -> same_as<T>; };
+template <typename T, typename Op>
+  requires HasUnit<T, Op> &&
+           equality_comparable<T>
+constexpr bool is_unit(const T& a, Op op)
+  { return a == unit<T>(op); }
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.5\linewidth}
@@ -165,20 +152,19 @@ constexpr T concat() { return unit<T>(Op{}); }
 template <typename T, typename Op = plus<T>>
   requires IsMonoid<T, Op>
 constexpr T concat(T v, T w) { return Op{}(v, w); }
-
-static_assert(
-concat<size_t>() == 0 &&
-concat<size_t>(40uz, 2uz) == 42 &&
-concat<size_t, multiplies<size_t>>(6uz, 7uz)
-    == 42 &&
-is_monoid(zero, add) &&
-!is_monoid(constant<One>(1uz), add));
 \end{cpp}
 \end{minipage}
+\vspace{-6pt}
+\begin{cpp}
+template <> constexpr size_t unit<size_t>(multiplies<size_t>) { return 1; }
+template <> constexpr bool associative<size_t>(multiplies<size_t>) { return true; }
+static_assert(concat<size_t>() == 0 && concat<size_t>(40uz, 2uz) == 42 &&
+              concat<size_t, multiplies<size_t>>(6uz, 7uz) == 42);
+\end{cpp}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
-Top left: a product, its projections, a pairing into it and addition as an arrow out of one, with their laws.
-Bottom left: the monoid axioms for the unsigned integers under $+$.
-Right: the monoid shape, the function \cppinline{concat}, and the same monoid as two arrows.
+Left: the two traits a monoid asks for, with instances for the unsigned integers under $+$, and the test for a unit.
+Right: the monoid shape and the function \cppinline{concat}.
+Bottom: instances for $\times$ at \cppinline{size_t}, declared after the shape, and the assertions.
 The unit is identified by \cppinline{is_unit}, not by \cppinline{==}, since equality is not decidable on every carrier.}
 \label{lst:rule2}
 \end{listing}
