@@ -1078,6 +1078,54 @@ constexpr bool computes =
     ((Succ{} >> Neg{}) >> Pred{})(41uz) == (Succ{} >> (Neg{} >> Pred{}))(41uz);
 }  // namespace equality_probe
 
+// A probe, not a listing: the monoid as the triple (S, +, 0), the unit passed
+// to the concept as a value.  The law is one table keyed by the operation and
+// the unit; std::plus and std::multiplies are used as the standard gives
+// them; a wrong unit is refused.  The carrier is fixed to size_t.
+namespace triple_probe {
+using std::size_t;
+template <typename Op, size_t e>
+constexpr bool monoid = false;
+template <>
+constexpr bool monoid<std::plus<size_t>, 0uz> = true;
+template <>
+constexpr bool monoid<std::multiplies<size_t>, 1uz> = true;
+template <typename Op, size_t e>
+concept IsMonoid = monoid<Op, e> && requires(size_t a, size_t b) {
+  { Op{}(a, b) } -> std::same_as<size_t>;
+};
+template <typename Op, size_t e>
+  requires IsMonoid<Op, e>
+constexpr size_t concat() {
+  return e;
+}
+template <typename Op, size_t e>
+  requires IsMonoid<Op, e>
+constexpr size_t concat(size_t v, size_t w) {
+  return Op{}(v, w);
+}
+static_assert(concat<std::plus<size_t>, 0uz>() == 0 &&
+              concat<std::plus<size_t>, 0uz>(40uz, 2uz) == 42 &&
+              concat<std::multiplies<size_t>, 1uz>(6uz, 7uz) == 42 &&
+              !IsMonoid<std::plus<size_t>, 1uz> &&
+              !IsMonoid<std::minus<size_t>, 0uz>);
+// The same with the carrier a parameter: the unit's type is the carrier.
+template <std::regular T, typename Op, T e>
+constexpr bool monoid_on = false;
+template <>
+constexpr bool monoid_on<size_t, std::plus<size_t>, 0uz> = true;
+template <>
+constexpr bool monoid_on<bool, std::logical_or<bool>, false> = true;
+template <typename T, typename Op, T e>
+concept IsMonoidOn =
+    std::regular<T> && monoid_on<T, Op, e> && requires(T a, T b) {
+      { Op{}(a, b) } -> std::same_as<T>;
+    };
+static_assert(IsMonoidOn<size_t, std::plus<size_t>, 0uz> &&
+              IsMonoidOn<bool, std::logical_or<bool>, false> &&
+              !IsMonoidOn<bool, std::logical_or<bool>, true>);
+}  // namespace triple_probe
+
 TEST_CASE("Spelling probe: a law as a function and as a table",
           "[category][jlt][spelling][probe]") {
   using namespace spelling_probe;
