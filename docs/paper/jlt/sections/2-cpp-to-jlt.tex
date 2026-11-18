@@ -251,11 +251,8 @@ Here $r$ is a range, $s$ its first element, $h$ the step, $e$ the start, and $|r
 The fold is the standard's \cppinline{ranges::fold_left}, which carries its result along from the left, and Jlt admits it only over a range that declares its bound.\footnote{The fold along the walk needs no list~\cite{gibbons1996third}, only the walk, which is an iterator.
 With $\mathit{succ}$ as well it is bidirectional, a zipper~\cite{huet1997zipper}, and with offsets random-access, an array~\cite[\S 2.2.2]{knuth1997art1}: three of the standard's iterator categories.}
 The kernel models such a range as one of $\mathcal{R}$, with its length fixed (Appendix~\ref{app:fjlt:typing}).
-Listing~\ref{lst:rule3}'s top panels show two cases.
-On the left the elements and the results are of one type, a monoid: $h$ is its operation and $e$ its unit, and \cppinline{concat} folds the range below $10$.
+Listing~\ref{lst:rule3}'s left panel is the case of a monoid: $h$ is its operation and $e$ its unit, and \cppinline{concat}, Listing~\ref{lst:rule2}'s function, takes a range of any length.
 The range counts down, so each element is the number of steps that remain.
-On the right the two types differ: the elements are matrices, \cppinline{M2}, and the results row vectors, \cppinline{V}.
-A function mapped over the range, the standard's \cppinline{views::transform}, written \cppinline{>>}, turns every element into Fibonacci's matrix, and $h$, \cppinline{act}, multiplies it into a vector, starting from $e = (1, 0)$.\footnote{A semiring may likewise act on a semimodule, which adds distributivity.}
 A loop whose end the program shows is sugar for the fold it denotes, and any other loop stays out (Section~\ref{sec:jlt-to-fjlt}).
 \item \emph{Over a type.}
 \begin{equation}
@@ -269,9 +266,10 @@ Here $t$ is a term, $x$ an atom, $t_1 \gg t_2$ a composite of two parts, $g_x$ w
 Each node of a term is a class template whose type names its parts', so the term's shape is its type.
 The recursion is the compiler's instantiation: a fold over the term is a template instantiated once per node, the case chosen by the node's type, and it ends because a part is shorter than its whole.
 Listing~\ref{lst:rule1}'s \cppinline{injective} is such a fold, with the declared entries for $g_x$ and conjunction for $\otimes$.
-Listing~\ref{lst:rule3}'s bottom panel builds a term, \cppinline{dec >> dec}, a composite of two composites.
-It is folded twice: to a value, and to a law, \cppinline{is_iso}, inferred from its parts'.
-A third fold, to a normal form, decides the equation that ends the panel, \cppinline{id_u == cpl >> cpl}: \cppinline{==} answers by the laws and never by the functions (Appendix~\ref{app:fjlt:typing}).
+Listing~\ref{lst:rule3}'s right panel has two more.
+\cppinline{length} has 1 at every atom and $+$ for $\otimes$.
+\cppinline{then} rebuilds a term bracketed to the right, so two terms that differ only in bracketing have one type, which the panel asserts with the standard's \cppinline{same_as}.
+Jlt proves the equalities it has been told about, and no others: here it has been told, by \cppinline{then}, that bracketing does not matter.
 Laws are computed this way.
 A law is declared at a term's atoms and inferred at every node above them, as a conjunction or a disjunction of the laws of that node's parts: a fold over the term's type (Table~\ref{tab:law-propagation}).
 \end{itemize}
@@ -281,51 +279,52 @@ The length is the least bound, and a range may declare a larger one, as a vector
 
 
 \begin{listing}[htbp]
-\begin{minipage}[t]{0.47\linewidth}
+\begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-constexpr auto ns = 10uz >> chain<size_t>();
+constexpr auto ns =
+    views::reverse(views::iota(0uz, 10uz));
 
-template <IsBoundedRange R,
-          typename T =
-              ranges::range_value_t<R>,
-          typename Op = plus<T>>
-  requires IsMonoid<T, Op>
-constexpr T concat(R r, Op op = {}) {
-  return ranges::fold_left(r, unit<T>(op), op);
-}
+template <typename Op, size_t e,
+          ranges::sized_range R>
+  requires IsMonoid<Op, e> && same_as<
+      ranges::range_value_t<R>, size_t>
+constexpr size_t concat(R r) {
+  return ranges::fold_left(r, e, Op{}); }
 
 static_assert(
-    concat(ns) == 45 &&
-    concat(ns >> constant<size_t>(7uz)) == 70);
+concat<plus<size_t>, 0uz>(ns) == 45 &&
+concat<plus<size_t>, 0uz>(
+    views::repeat(7uz, 10)) == 70 &&
+concat<multiplies<size_t>, 1uz>(
+    views::iota(1uz, 5uz)) == 24);
 \end{cpp}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.5\linewidth}
+\begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-using V = array<size_t, 2>;
-struct M2 { V top, bottom;
-  friend constexpr V operator*(V v, M2 a) {
-    return {v[0] * a.top[0] + v[1] * a.bottom[0],
-            v[0] * a.top[1] + v[1] * a.bottom[1]};}
-  /* M2 * M2, M2 + M2, n * M2, == */ };
-struct Act { constexpr V
-  operator()(V v, M2 a) const { return v * a; } };
-constexpr Act act{};
-constexpr M2 fib{{1, 1}, {1, 0}};
-constexpr auto ms = ns >> constant<size_t>(fib);
-constexpr auto fs_10 = ranges::fold_left(
-    ms, V{1, 0}, act);
-static_assert(fs_10 == V{89, 55});
+template <Arrow F, Arrow G>
+constexpr Then<F, G> then(F f, G g)
+  { return Then<F, G>{f, g}; }
+template <Arrow F, Arrow G, Arrow H>
+constexpr auto then(Then<F, G> t, H h)
+  { return then(t.f, then(t.g, h)); }
+template <typename F>
+constexpr size_t length = 1;
+template <Arrow F, Arrow G>
+constexpr size_t length<Then<F, G>> =
+    length<F> + length<G>;
+constexpr auto a =
+    then(Succ{} >> Neg{}, Succ{});
+constexpr auto b =
+    then(Succ{}, Neg{} >> Succ{});
+static_assert(
+same_as<decltype(a), decltype(b)> &&
+length<Then<Succ, Then<Neg, Succ>>>
+    == 3 && is_injective(a));
 \end{cpp}
 \end{minipage}
-\vspace{-6pt}
-\begin{cpp}
-constexpr auto dec = neg >> cpl;
-constexpr auto dec2 = dec >> dec;
-static_assert(dec2(42uz) == 40 && is_iso(dec2) && id_u == cpl >> cpl);
-\end{cpp}
-\caption{\hyperref[def:rule3]{Rule~3}: Descent, Equations~\eqref{eq:fold} and~\eqref{eq:cata} in code.
-Top: recursion over a value, the chain $9, \ldots, 0$ folded on a monoid (left) and by matrices acting on row vectors, to the Fibonacci numbers $(F(11), F(10))$ (right).
-Bottom: recursion over a type, with \cppinline{dec} the decrement, a composite of Listing~\ref{lst:rule1}'s two involutions.}
+\caption{\hyperref[def:rule3]{Rule~3}: Descent, Equations~\eqref{eq:fold} and~\eqref{eq:cata} in code, on the names of Listings~\ref{lst:rule1} and~\ref{lst:rule2}.
+Left: over a value, \cppinline{concat} at any length, on a range that counts down.
+Right: over a type, a composition that brackets to the right, and the length of a term.}
 \label{lst:rule3}
 \end{listing}
 

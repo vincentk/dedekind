@@ -20,7 +20,7 @@ The translation is a function of the program: two resolutions of the same constr
 
 In \Cpp{} this is overload resolution together with the one-definition rule: at concrete types a specialisation is unique, or the program is ill-formed.
 In FJlt the theorem is close to immediate: a well-formed program leaves resolution no choice, so the translation is deterministic, which is what coherence asks of it.
-It gives ``the unit of \cppinline{+} at \cppinline{size_t}'' one meaning in a program, so a law can be stated about it, and it lets laws compose: two overloads written apart are chosen the same way wherever they are called, as the two behind Listing~\ref{lst:laws} are.
+It gives ``the unit of \cppinline{+} at \cppinline{size_t}'' one meaning in a program, so a law can be stated about it, and it lets laws compose: two overloads written apart are chosen the same way wherever they are called, as those of Appendix~\ref{app:measurements}'s case study are.
 A generic caller gains such an overload only where its own constraints declare the law, by Rule~2.
 
 \begin{theorem}[Type preservation]
@@ -61,72 +61,6 @@ By Theorem~\ref{thm:preservation} and Reynolds' abstraction theorem~\cite{reynol
 \cppinline{concat} at a monoid can only combine the words by \texttt{op}, starting from \texttt{unit}, which is the free theorem of a fold.
 It is also why an instance with a context (Section~\ref{sec:translation:contexts}) can read a composite's law off its components' records.
 The composite cannot do anything the components' records do not provide.
-
-\begin{listing}[htbp]
-\begin{minipage}[t]{0.47\linewidth}
-\begin{cpp}
-template <typename T, typename Op,
-          IsCountWord N>
-  requires IsMonoid<T, Op>
-constexpr T power(const T& x, N n, Op op) {
-  struct Step { T acc, base; N rest; };
-  const auto bits =
-      static_cast<size_t>(bit_width(n));
-  return fold(views::iota(0uz, bits),
-      Step{unit<T>(op), x, n},
-      [op](const Step& s, size_t) {
-        return Step{s.rest % 2 == 1
-            ? op(s.acc, s.base) : s.acc,
-          s.rest > 1 ? op(s.base, s.base) : s.base,
-          static_cast<N>(s.rest / 2)}; })
-      .acc;
-}
-template <IsBoundedRange R,
-          typename T =
-              ranges::range_value_t<R>,
-          typename Op = plus<T>>
-  requires IsMonoid<T, Op> && IsCopies<R>
-constexpr T concat(R r, Op op = {}) {
-  const auto n = copies_count(r);
-  return n == 0 ? unit<T>(op)
-                : power(copies_value(r), n, op);
-}
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.5\linewidth}
-\begin{cpp}
-template <> struct acting_monoid<Act> {
-  using type = multiplies<M2>;
-};
-template <IsBoundedRange R,
-          semiregular M, typename H>
-  requires IsCopies<R> && IsRightAction<
-               H, M, ranges::range_value_t<R>>
-constexpr M fold(R r, M v, H h) {
-  using Op = acting_monoid<H>::type;
-  return h(v, concat(r, Op{}));
-}
-\end{cpp}
-\end{minipage}
-\begin{cpp}
-constexpr size_t fibonacci(size_t n) {
-  return fold(n >> chain<size_t>() >> constant<size_t>(fib), V{1, 0}, act)[1];
-}
-static_assert(fibonacci(10) == fs_10[1] &&
-              fibonacci(100'000'000) == 14'139'011'350'745'967'675uz);
-\end{cpp}
-\begin{minted}{text}
-fibonacci = λ n. π₂ (fold act (1, 0) ms)      -- ms = map (const fib) (chain prior n)
-          = λ n. π₂ (act (1, 0) (concat (·) ms))      -- by the action law
-          = λ n. π₂ (act (1, 0) (fibⁿ))                 -- by associativity, squaring
-\end{minted}
-\caption{Laws composing, on Listing~\ref{lst:rule3}'s chain.
-Top left: the monoid concatenation $\mathit{fib} \cdot \mathit{fib} \cdots \mathit{fib}$ is replaced by the power $\mathit{fib}^n$, by the right-to-left binary method~\cite[\S 4.6.3]{knuth1997art2}, a fold over the bits of $n$ that reads them by \texttt{\% 2} and \texttt{/ 2}, a literal divisor.
-Top right: the action law, declared for \cppinline{act}, and the overload it licenses, which calls the power method that associativity licenses (Rule~2 for the specialisation, Theorem~\ref{thm:coherence} for the composition).
-Middle: the power method brings the $10^8$-th Fibonacci number, modulo $2^{64}$ as \texttt{size\_t} computes, within the compile-time step limit (Table~\ref{tab:binding}).
-Bottom: the System~F translation closely resembles the \Cpp{} above (Figure~\ref{fig:arrows}).}
-\label{lst:laws}
-\end{listing}
 
 \begin{corollary}[Type soundness]
 \label{cor:soundness}

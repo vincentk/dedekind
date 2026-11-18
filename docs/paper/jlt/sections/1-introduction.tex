@@ -140,8 +140,7 @@ Under the hypothesis it holds for every Jlt program $p$: $\mathit{eval}\,\llbrac
 \end{description}
 One example runs through the listings: \cppinline{concat}, which combines the elements of a monoid.
 Listing~\ref{lst:rule2} writes it for zero and two arguments, where no recursion is needed.
-Listing~\ref{lst:rule3} writes it as a fold over a range, of counts and of Fibonacci's matrices, and Equations~\eqref{eq:fold} and~\eqref{eq:cata} state the recursion.
-In Listing~\ref{lst:laws} two declared laws reduce that fold to logarithmically many steps.
+Listing~\ref{lst:rule3} writes it as a fold over a range of counts, and Equations~\eqref{eq:fold} and~\eqref{eq:cata} state the recursion.
 A case study in Appendix~\ref{app:measurements} leaves the example: Listing~\ref{lst:sites} counts restriction sites in a DNA sequence.
 The compiler partially evaluates the matcher in its pattern, and a symmetry the sites share gives a test linear in their length, where an automaton would list them.
 Section~\ref{sec:limits} states the limits, Section~\ref{sec:related} the related work, and the appendices hold the calculus.

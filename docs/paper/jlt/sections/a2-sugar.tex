@@ -73,7 +73,7 @@ A deduced result type, a call's deduced type arguments and a constant are the ke
 A variable template \cppinline{v<T...> = e} is the nullary function template \cppinline{v<T...>() { return e; }}.
 So is a class template with a static constant member, and constant evaluation of the three agrees.
 A primary that answers \cppinline{false} beside partial specialisations that answer \cppinline{true} is two generic functions whose heads both match.
-Resolution by specificity orders them, as it orders constrained overloads such as Listing~\ref{lst:laws}'s \cppinline{fold} and \cppinline{concat}.
+Resolution by specificity orders them, as it orders the library's constrained overloads of \cppinline{fold} and \cppinline{concat}.
 Lookup leaves some FJlt spellings unwritable (Section~\ref{sec:limits}), and there the host's spelling stands for it.
 A \cppinline{const} member function is the generic function with the object as its first parameter, reading its fields where the member read \cppinline{this}.
 A constructor is a function returning the struct, a conversion operator a declared conversion, a default argument an overload with the argument supplied, and a designated initialiser the fields in order.
@@ -188,7 +188,7 @@ The branch on a constraint adds declarations, so it is not local in Felleisen's 
 \cppinline|if consteval { A } else { B }| desugars to \cppinline{A}, the branch constant evaluation takes.
 Its condition is that \cppinline{B} computes the same value as \cppinline{A} on every input, so the program cannot observe the difference after all.
 \cppinline{B} is where the program does what constant evaluation cannot, which is why it branches at all.
-A parallel \cppinline{concat} is the case in point: one more overload of Listing~\ref{lst:laws}'s \cppinline{concat}, a run-time one, since the policies' overloads are not \cppinline{constexpr}.
+A parallel \cppinline{concat} is the case in point: one more overload of \cppinline{concat}, a run-time one, since the policies' overloads are not \cppinline{constexpr}.
 \cppinline{std::reduce} may regroup and reorder its operands, so its result is determined only for a binary function that \cppinline{IsCommutativeMonoid} certifies.
 Rule~1 gives the absence of data races its parallel policies ask.
 The condition is then the free monoid's universal property: a fold over a concatenation is the monoid's product of the folds of the parts, by associativity, and commutativity lets the parts come in any order.
