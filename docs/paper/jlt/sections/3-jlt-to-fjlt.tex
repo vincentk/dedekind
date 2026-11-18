@@ -6,6 +6,31 @@ This section describes the $-$sugar arrow of Figure~\ref{fig:arrows}.
 The source is Jlt, a fragment of \Cpp{23} circumscribed by the three rules of Section~\ref{sec:posture}.
 The target is Featherweight Jlt, a kernel in the style of Featherweight Java~\cite{igarashi2001featherweight}.
 
+\paragraph{Sketch: one term, four times.}
+Sections~\ref{sec:jlt-to-fjlt} to~\ref{sec:binding} follow one term of each recursion through the paper's four arrows: \cppinline{concat<plus<size_t>, 0uz>(ns)}, a fold over a value, and \cppinline{is_injective(a)}, a fold over a term's type, both from Listing~\ref{lst:rule3}.
+This section shows them desugared, Section~\ref{sec:translation} translated into System~F, Section~\ref{sec:guarantees} under the theorems, and Section~\ref{sec:binding} compiled.
+The paragraphs marked as sketches are drafts of that revision, and the text around them is the previous version's.
+Table~\ref{tab:sketch-desugar} names every spelling in the two terms that the grammar does not have, with the kernel form it stands for.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.36\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.2\linewidth}@{}}
+\toprule
+As written in Listings~\ref{lst:rule1} to~\ref{lst:rule3} & Kernel form & Status \\
+\midrule
+\texttt{template <Arrow F>}, \texttt{<ranges::sized\_range R>} & \texttt{template <typename F> requires Arrow<F>} & sugar, Appendix~\ref{app:fjlt:closure} \\
+\texttt{sized\_range R} with \texttt{range\_value\_t<R>} the same as \texttt{size\_t} & $\mathit{IsRange}\texttt{<}R\texttt{, size\_t>}$, the kernel's constraint on a range that declares its bound & Appendix~\ref{app:fjlt:typing} \\
+\texttt{views::reverse(views::iota(0uz, 10uz))} & a range of $\mathcal{R}$ of length 10 & Appendix~\ref{app:fjlt:typing} \\
+\texttt{constexpr bool monoid = false;} with entries \texttt{template <> \ldots{} = true;} & a table: a trait declared by its entries and read at a type & to be added to Figure~\ref{fig:fjlt-syntax} \\
+\texttt{template <typename Op, size\_t e>}, a value among the parameters & a parameter of structural type~\cite[{\texttt{temp.param}}]{cpp23standard}, in the translation one more $\lambda$ & to be added to Figure~\ref{fig:fjlt-syntax} \\
+\texttt{then} and the entry of a table at \texttt{Then<F, G>}, each calling itself at the parts & the kernel's recursion over a type (Equation~\eqref{eq:cata}) & sugar, Appendix~\ref{app:fjlt:closure} \\
+\bottomrule
+\end{tabularx}
+\caption{Sketch. The two running terms desugared: what they write beyond the grammar, and what each spelling stands for.}
+\label{tab:sketch-desugar}
+\end{table}
+
 FJlt is the subset of \Cpp{23} spelled out in Figure~\ref{fig:fjlt-syntax}: small enough to reason about, large enough to carry the listings.
 Its base types and their \cppinline{constexpr} operators form a many-sorted algebra over a signature $\Sigma$~\cite{birkhoff1970heterogeneous,sannella2012foundations}.
 A base type is a \emph{carrier set}, and a total operator between carrier sets a \emph{function}, which may leave its carrier set, as \cppinline{==} on \cppinline{std::string} gives a \cppinline{bool}.

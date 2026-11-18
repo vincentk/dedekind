@@ -41,41 +41,48 @@ A required call is a field of function type: \cppinline{Op} is a type with exact
 A law is a field of type \texttt{Bool}, and a shape built from shapes is a record holding their records, which is how a superclass is passed.
 The whole is dictionary passing, Wadler and Blott's translation of type classes, here into System~F, the record being the dictionary~\cite{wadler1989adhoc}.
 
-\paragraph{Three translations.}
-Listing~\ref{lst:rule2}'s \cppinline{concat} at two arguments, with its call, lands piece on piece: the head's type parameters are the $\Lambda$s, the \cppinline{requires} clause the record parameter, the parameters the $\lambda$s, and \cppinline{Op{}(v, w)} the record's field applied (Figure~\ref{fig:fjlt-translation}).
+\paragraph{Sketch: the two terms, translated.}
+A typing derivation is a tree, each node one rule applied to one piece of the program, and each rule has its piece of System~F (Table~\ref{tab:rules}).
+So the tree and the translated term have one shape, and Figure~\ref{fig:sketch-derivations} sets them side by side, with the rule that joins them in the middle column.
 
-\noindent\begin{minipage}[t]{0.54\linewidth}
-\begin{cpp}
-template <typename T, typename Op = plus<T>>
-  requires IsMonoid<T, Op>
-constexpr T concat(T v, T w) {
-  return Op{}(v, w);
-}
-static_assert(concat<size_t>(40uz, 2uz) == 42);
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.44\linewidth}
-\begin{minted}{text}
-concat = Λ T. Λ Op.
-  λ q : Dict_IsMonoid T Op.
-  λ v. λ w. q.op v w
-concat size_t plus d 40 2  ⟶*  42
-\end{minted}
-\end{minipage}
+\begin{figure}[htbp]
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.46\linewidth}l>{\raggedright\arraybackslash}X@{}}
+\toprule
+\Cpp{}, a tree by indentation & by rule & System~F \\
+\midrule
+\texttt{concat<plus<size\_t>, 0uz>(ns)} & $\xrightarrow{\text{\scriptsize\textsc{T-Call}}}$ & $\mathit{concat}\,[\mathit{plus}]\;0\;d\;\mathit{ns}$ \\
+\hspace*{1.0em}\texttt{IsMonoid<plus<size\_t>, 0uz>} & $\xrightarrow{\text{\scriptsize\textsc{E-Shape}}}$ & $d = \{\,\mathit{law} = \mathit{true},\ \mathit{op} = \lambda a\,b.\,a + b\,\}$ \\
+\hspace*{2.0em}\texttt{monoid<plus<size\_t>, 0uz>}, an entry & $\xrightarrow{\text{\scriptsize\textsc{E-Law}}}$ & $\mathit{law}$ \\
+\hspace*{2.0em}\texttt{plus\{\}(a, b)} & $\xrightarrow{\text{\scriptsize\textsc{E-Op}}}$ & $\mathit{op}$ \\
+\hspace*{1.0em}\texttt{ns}, a range of length 10 & $\longrightarrow$ & $\mathit{chain}\;10$ \\
+\hspace*{1.0em}the body of \texttt{concat}, checked once & $\xrightarrow{\text{\scriptsize\textsc{D-Generic}}}$ & $\Lambda \mathit{Op}.\,\lambda e.\,\lambda q.\,\lambda r.\ \ldots$ \\
+\hspace*{2.0em}\texttt{fold\_left(r, e, Op\{\})} & $\xrightarrow{\text{\scriptsize\textsc{T-Fold}}}$ & $\pi_2\,(\mathit{iter}\,|r|\,\mathit{step}\,(r, e))$ \\
+\hspace*{3.0em}\texttt{Op\{\}(a, s)}, a requirement & $\xrightarrow{\text{\scriptsize\textsc{T-Req-Assumed}}}$ & $q.\mathit{op}\;a\;s$ \\
+\midrule
+\multicolumn{3}{@{}l}{$\mathit{concat}\,[\mathit{plus}]\;0\;d\;\mathit{ns} \;\longrightarrow^{*}\; \pi_2\,(\mathit{iter}\,10\,\mathit{step}\,(\mathit{chain}\,10, 0)) \;\longrightarrow^{*}\; 45$} \\
+\midrule
+\texttt{is\_injective(a)} & $\xrightarrow{\text{\scriptsize\textsc{T-Call}}}$ & $\mathit{is\_injective}\,[\,t\,]\;a$ \\
+\hspace*{1.0em}\texttt{injective<Then<Succ, Then<Neg, Succ>>>} & $\xrightarrow{\text{\scriptsize\textsc{T-Cata}}}$ & $i_{\mathit{Succ}} \wedge (i_{\mathit{Neg}} \wedge i_{\mathit{Succ}})$ \\
+\hspace*{2.0em}\texttt{injective<Succ>}, an entry & $\xrightarrow{\text{\scriptsize\textsc{E-Law}}}$ & $\mathit{true}$ \\
+\hspace*{2.0em}\texttt{injective<Then<Neg, Succ>>} & $\xrightarrow{\text{\scriptsize\textsc{T-Cata}}}$ & $i_{\mathit{Neg}} \wedge i_{\mathit{Succ}}$ \\
+\hspace*{3.0em}\texttt{injective<Neg>}, an entry & $\xrightarrow{\text{\scriptsize\textsc{E-Law}}}$ & $\mathit{true}$ \\
+\hspace*{3.0em}\texttt{injective<Succ>}, an entry & $\xrightarrow{\text{\scriptsize\textsc{E-Law}}}$ & $\mathit{true}$ \\
+\midrule
+\multicolumn{3}{@{}l}{$\mathit{is\_injective}\,[\,t\,]\;a \;\longrightarrow^{*}\; \mathit{true} \wedge (\mathit{true} \wedge \mathit{true}) \;\longrightarrow^{*}\; \mathit{true}$, with $t$ the type of \texttt{a}} \\
+\bottomrule
+\end{tabularx}
+\caption{Sketch. The two running terms, each as its typing derivation beside its translation.
+The rules are those of Appendix~\ref{app:fjlt:typing}, and the right column is built by Appendix~\ref{app:fjlt:translation}, one clause per rule.}
+\label{fig:sketch-derivations}
+\end{figure}
 
-\noindent The record $d$ the call passes is the derivation of \cppinline{IsMonoid<size_t, plus<size_t>>}: one field per requirement (\textsc{E-Shape}), the law a \texttt{true} the compiler placed because Listing~\ref{lst:rule2} declared it (\textsc{E-Law}, Figure~\ref{fig:fjlt-dictionaries}).
-\cppinline{size_t} is a monoid twice, so it has two records:
-\begin{minted}{text}
-d  = { op = plus,  unit = 0, is_unit = λ a. a == 0, assoc = true }
-d' = { op = times, unit = 1, is_unit = λ a. a == 1, assoc = true }
-\end{minted}
-Listing~\ref{lst:rule3}'s \cppinline{concat(ns)} is the fold over the chain (Figure~\ref{fig:fjlt-recursion}): the iterator of the naturals applied ten times to a state, the chain's position beside the accumulator, the step the same record's field.
-The chain is never a list, and termination is the syntax, $\mathit{iter}\,10$:
-\begin{minted}{text}
-π₂ (iter 10 step (chain 10, 0))  ⟶*  45
-  where step = λ p. case (uncons (π₁ p), λ u. p,
-                          λ c. (π₂ c, d.op (π₂ p) (π₁ c)))
-\end{minted}
+\noindent In the fold over a value the unit is an argument, where the previous version's record had it as a field: the value among the template's parameters is one more $\lambda$.
+The record $d$ holds what the shape asks for, the law as a truth value and the operation, and \cppinline{concat} reaches the operation only through it.
+\cppinline{size_t} is a monoid twice, so there are two such calls, the other with $1$ and a record whose operation is multiplication.
+The range is never a list, and termination is the syntax, $\mathit{iter}\,10$.
+In the fold over a type the law is an ordinary truth value of the translation, a conjunction of the entries declared at the atoms, with nothing else in the term.
+An atom with no entry would contribute $\mathit{false}$, and the same tree would then end in $\mathit{false}$, which means not known.
 
 \paragraph{Instances with contexts.}
 \label{sec:translation:contexts}

@@ -71,6 +71,29 @@ This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweig
 A closed well-typed term is a value or takes a step (progress, Lemma~\ref{lem:progress}), and it cannot step forever (Corollary~\ref{cor:termination}), so it reaches a value.
 What the translation adds is the second half of Theorem~\ref{thm:simulation}: the value reached is the value the System~F image computes.
 
+\paragraph{Sketch: the theorems, read on the two terms.}
+Table~\ref{tab:sketch-theorems} says what each result of this section states about the two terms of Section~\ref{sec:translation}.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.22\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+ & \texttt{concat<plus<size\_t>, 0uz>(ns)} & \texttt{is\_injective(a)} \\
+\midrule
+Theorem~\ref{thm:coherence}, coherence & the record $d$ is the only one: the table has one entry at \texttt{plus} and 0 & at each node one entry applies, so the conjunction is the only one \\
+Theorem~\ref{thm:preservation}, type preservation & the image has the type of the naturals & the image has the type of truth values \\
+Theorem~\ref{thm:simulation}, simulation & the \cppinline{static_assert} and the image both give 45 & both give \texttt{true} \\
+Corollary~\ref{cor:termination}, termination & ten steps of the iterator, the range's length & three entries, the term's length \\
+Corollary~\ref{cor:parametricity}, parametricity & \texttt{concat} can use only $q.\mathit{op}$ and $e$: the free theorem of a fold & nothing is called: the term's arrows are never applied \\
+Corollary~\ref{cor:soundness}, type soundness & the evaluation reaches a value & the evaluation reaches a value \\
+\bottomrule
+\end{tabularx}
+\caption{Sketch. What the theorems say about the two running terms.
+None of them says that a declared law is true: that $(+, 0)$ is a monoid and that \texttt{Succ} is injective are the programmer's.}
+\label{tab:sketch-theorems}
+\end{table}
+
 \paragraph{Certified and inferred laws.}
 A program declares few laws and infers the rest.
 A law at a construction is derived from the laws of its parts, through an instance with a context, by the entailment of qualified types~\cite{jones1994qualified}: that a finite power of a semiring is a semimodule over it is inferred, not declared (Appendix~\ref{app:fjlt:inferred}).
