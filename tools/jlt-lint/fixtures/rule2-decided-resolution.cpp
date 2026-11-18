@@ -178,6 +178,52 @@ constexpr int contradicted(T x) {
   return c3(x);  // fine: !C<T> rules out the second c3, D is moot
 }
 
+// The same breach in the vocabulary of the Jlt paper's Listing 2, a monoid as
+// an operation and its unit: the value of an empty fold, 0 unless the
+// operation is known to have the unit 1.  A caller with no constraint gets 0
+// for a sum and 1 for a product, and its declaration says neither.
+struct Plus {
+  constexpr unsigned operator()(unsigned a, unsigned b) const { return a + b; }
+};
+struct Times {
+  constexpr unsigned operator()(unsigned a, unsigned b) const { return a * b; }
+};
+template <typename Op, unsigned e>
+constexpr bool monoid = false;
+template <>
+constexpr bool monoid<Plus, 0u> = true;
+template <>
+constexpr bool monoid<Times, 1u> = true;
+template <typename Op, unsigned e>
+concept IsMonoid = monoid<Op, e> && requires(unsigned a, unsigned b) {
+  Op{}(a, b);
+};
+template <typename Op>
+constexpr unsigned empty(Op) {
+  return 0;
+}
+template <typename Op>
+  requires IsMonoid<Op, 1u>
+constexpr unsigned empty(Op) {
+  return 1;
+}
+template <typename Op>
+constexpr unsigned guessed(Op op) {
+  return empty(op);  // finding 7: empty resolves by IsMonoid<Op, 1u>
+}
+static_assert(guessed(Plus{}) == 0 && guessed(Times{}) == 1);
+template <typename Op>
+  requires IsMonoid<Op, 1u>
+constexpr unsigned of_a_product(Op op) {
+  return empty(op);  // fine: required
+}
+template <typename Op>
+  requires(!IsMonoid<Op, 1u>)
+constexpr unsigned of_the_rest(Op op) {
+  return empty(op);  // fine: negated
+}
+static_assert(of_a_product(Times{}) == 1 && of_the_rest(Plus{}) == 0);
+
 }  // namespace jlt_listing
 
 template <typename T>
