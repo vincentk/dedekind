@@ -1344,6 +1344,73 @@ static_assert(
     concat<std::plus<size_t>, 0uz>(std::views::iota(0uz, 10uz)) == 45);
 }  // namespace squaring_draft
 
+// A draft, not yet a listing: concat generic in its carrier, and a declared
+// law buying something.  The shape and concat take the carrier as a
+// parameter; the table's entries stay at concrete types.  concat over n
+// copies of one value takes at most 64 steps whatever n is, by repeated
+// squaring, licensed by the monoid's associativity.  At a second carrier, a
+// 2x2 matrix under multiplication with the identity matrix as its unit, the
+// same concat computes a Fibonacci number.
+namespace fibonacci_draft {
+using std::size_t;
+template <typename T, typename Op, T e>
+constexpr bool monoid = false;
+template <>
+constexpr bool monoid<size_t, std::plus<size_t>, 0uz> = true;
+template <typename T, typename Op, T e>
+concept IsMonoid = std::regular<T> && monoid<T, Op, e> && requires(T a, T b) {
+  { Op{}(a, b) } -> std::same_as<T>;
+};
+template <typename T, typename Op, T e, std::ranges::sized_range R>
+  requires IsMonoid<T, Op, e> && std::same_as<std::ranges::range_value_t<R>, T>
+constexpr T concat(R r) {
+  return std::ranges::fold_left(r, e, Op{});
+}
+
+template <typename T>
+struct Power {
+  T result, square;
+  size_t left;
+};
+template <typename T, typename Op>
+struct Squaring {
+  constexpr Power<T> operator()(Power<T> s, size_t) const {
+    return {s.left % 2 == 1 ? Op{}(s.result, s.square) : s.result,
+            Op{}(s.square, s.square), s.left / 2};
+  }
+};
+template <typename T, typename Op, T e, typename B>
+  requires IsMonoid<T, Op, e>
+constexpr T concat(std::ranges::repeat_view<T, B> r) {
+  return std::ranges::size(r) == 0
+             ? e
+             : std::ranges::fold_left(
+                   std::views::iota(0uz, 64uz),
+                   Power<T>{e, *r.begin(), size_t(std::ranges::size(r))},
+                   Squaring<T, Op>{})
+                   .result;
+}
+
+using M = std::array<size_t, 4>;  // a 2x2 matrix, row by row
+struct Mul {
+  constexpr M operator()(M a, M b) const {
+    return {a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3],
+            a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3]};
+  }
+};
+template <>
+constexpr bool monoid<M, Mul, M{1, 0, 0, 1}> = true;
+constexpr M fib{1, 1, 1, 0};
+static_assert(
+    concat<size_t, std::plus<size_t>, 0uz>(std::views::iota(0uz, 10uz)) == 45 &&
+    concat<size_t, std::plus<size_t>, 0uz>(
+        std::views::repeat(7uz, 1'000'000'000'000uz)) == 7'000'000'000'000uz &&
+    concat<M, Mul, M{1, 0, 0, 1}>(std::views::repeat(fib, 10uz))[1] == 55 &&
+    concat<M, Mul, M{1, 0, 0, 1}>(std::views::repeat(fib, 100'000'000uz))[1] ==
+        14'139'011'350'745'967'675uz &&
+    !IsMonoid<M, Mul, M{1, 1, 1, 0}>);
+}  // namespace fibonacci_draft
+
 TEST_CASE("Spelling probe: a law as a function and as a table",
           "[category][jlt][spelling][probe]") {
   using namespace spelling_probe;
