@@ -272,7 +272,9 @@ The recursion is the compiler's instantiation: a fold over the term is a templat
 Listing~\ref{lst:rule1}'s \cppinline{injective} is such a fold, with the declared entries for $d_x$ and conjunction for $\otimes$.
 Listing~\ref{lst:rule3}'s right panel has two more.
 \cppinline{length} has 1 at every atom and $+$ for $\otimes$.
-\cppinline{then} rebuilds a term bracketed to the right, so two terms that differ only in bracketing have one type, which the panel asserts with the standard's \cppinline{same_as}.
+\cppinline{then} is \cppinline{>>} that also brackets to the right, so two terms that differ only in bracketing have one type, which the panel asserts with the standard's \cppinline{same_as}.
+It is a function of its own and not a second case of \cppinline{>>}, because Listing~\ref{lst:rule1} has already called \cppinline{>>}: a case added here would change what those earlier calls build.
+Jlt asks that every overload stand above the first call it could be chosen for (Appendix~\ref{app:fjlt:order}).
 Jlt proves the equalities it has been told about, and no others: here it has been told, by \cppinline{then}, that bracketing does not matter.
 Laws are computed this way.
 A law is declared at a term's atoms and inferred at every node above them, as a conjunction or a disjunction of the laws of that node's parts: a fold over the term's type (Table~\ref{tab:law-propagation}).
