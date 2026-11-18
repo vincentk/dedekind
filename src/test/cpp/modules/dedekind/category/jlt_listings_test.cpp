@@ -1254,6 +1254,96 @@ static_assert(std::same_as<decltype(a), const Then<Succ, Then<Neg, Succ>>> &&
               length<Succ> == 1);
 }  // namespace listing4_self_contained
 
+// A probe, not a listing: the monoid's carrier a parameter, any unsigned
+// integer, with the unit still a value.  An entry for the family cannot fix a
+// value whose type depends on the entry's own parameter, so two spellings are
+// tried: (a) the value stays a parameter and the entry constrains it; (b) the
+// carrier is deduced from the unit.
+namespace carrier_probe {
+template <typename T, T e>
+concept IsZero = e == T{0};
+template <typename T, T e>
+concept IsOne = e == T{1};
+template <std::unsigned_integral T, typename Op, T e>
+constexpr bool monoid_a = false;
+template <std::unsigned_integral T, T e>
+  requires IsZero<T, e>
+constexpr bool monoid_a<T, std::plus<T>, e> = true;
+template <std::unsigned_integral T, T e>
+  requires IsOne<T, e>
+constexpr bool monoid_a<T, std::multiplies<T>, e> = true;
+static_assert(
+    monoid_a<std::size_t, std::plus<std::size_t>, 0uz> &&
+    monoid_a<std::uint8_t, std::multiplies<std::uint8_t>, std::uint8_t{1}> &&
+    !monoid_a<std::size_t, std::plus<std::size_t>, 1uz>);
+
+template <typename Op, auto e>
+constexpr bool monoid_b = false;
+template <std::unsigned_integral T>
+constexpr bool monoid_b<std::plus<T>, T{0}> = true;
+template <std::unsigned_integral T>
+constexpr bool monoid_b<std::multiplies<T>, T{1}> = true;
+template <typename Op, auto e>
+concept IsMonoidB = monoid_b<Op, e> && requires(decltype(e) a, decltype(e) b) {
+  { Op{}(a, b) } -> std::same_as<decltype(e)>;
+};
+template <typename Op, auto e>
+  requires IsMonoidB<Op, e>
+constexpr auto concat_b(decltype(e) v, decltype(e) w) {
+  return Op{}(v, w);
+}
+static_assert(IsMonoidB<std::plus<std::size_t>, 0uz> &&
+              IsMonoidB<std::multiplies<std::uint16_t>, std::uint16_t{1}> &&
+              !IsMonoidB<std::plus<std::size_t>, 1uz> &&
+              !IsMonoidB<std::plus<std::size_t>, std::uint8_t{0}> &&
+              concat_b<std::plus<std::size_t>, 0uz>(40uz, 2uz) == 42);
+}  // namespace carrier_probe
+
+// A draft, not yet a listing: a declared law buys something.  concat over n
+// copies of one value needs at most 64 steps whatever n is, by repeated
+// squaring, which regroups the copies and is licensed by the monoid's
+// associativity.  It is one more overload of Listing 3's concat, chosen for a
+// range of copies; the state of the fold is the result so far, the current
+// square, and what is left of n.
+namespace squaring_draft {
+using std::size_t;
+using triple_probe::IsMonoid;
+template <typename Op, size_t e, std::ranges::sized_range R>
+  requires IsMonoid<Op, e> &&
+           std::same_as<std::ranges::range_value_t<R>, size_t>
+constexpr size_t concat(R r) {
+  return std::ranges::fold_left(r, e, Op{});
+}
+template <typename Op>
+struct Squaring {
+  constexpr std::array<size_t, 3> operator()(std::array<size_t, 3> s,
+                                             size_t) const {
+    return {s[2] % 2 == 1 ? Op{}(s[0], s[1]) : s[0], Op{}(s[1], s[1]),
+            s[2] / 2};
+  }
+};
+template <typename Op, size_t e, typename B>
+  requires IsMonoid<Op, e>
+constexpr size_t concat(std::ranges::repeat_view<size_t, B> r) {
+  return std::ranges::size(r) == 0
+             ? e
+             : std::ranges::fold_left(
+                   std::views::iota(0uz, 64uz),
+                   std::array<size_t, 3>{e, *r.begin(),
+                                         size_t(std::ranges::size(r))},
+                   Squaring<Op>{})[0];
+}
+static_assert(
+    concat<std::plus<size_t>, 0uz>(std::views::repeat(7uz, 10)) == 70 &&
+    concat<std::plus<size_t>, 0uz>(std::views::repeat(7uz,
+                                                      1'000'000'000'000uz)) ==
+        7'000'000'000'000uz &&
+    concat<std::multiplies<size_t>, 1uz>(std::views::repeat(3uz, 13uz)) ==
+        1'594'323 &&
+    concat<std::plus<size_t>, 0uz>(std::views::repeat(7uz, 0uz)) == 0 &&
+    concat<std::plus<size_t>, 0uz>(std::views::iota(0uz, 10uz)) == 45);
+}  // namespace squaring_draft
+
 TEST_CASE("Spelling probe: a law as a function and as a table",
           "[category][jlt][spelling][probe]") {
   using namespace spelling_probe;
