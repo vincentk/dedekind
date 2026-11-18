@@ -12,31 +12,39 @@ Constant evaluation follows the rules of the abstract machine~\cite[{\texttt{exp
 So moving a call from compile time to run time changes where it is evaluated, not what it evaluates to.
 The agreement is the standard's: the paper takes it as given and does not prove it.
 
-Listing~\ref{lst:loop} is what the compiler leaves for the processor of Listing~\ref{lst:rule3}'s fold, when its count \cppinline{n} is known only at run time.
+\paragraph{Sketch: the two terms, compiled.}
+Figure~\ref{fig:sketch-ir} shows what Clang leaves of the terms of Listing~\ref{lst:rule3}, with the binding time on the arrow.
 
-\begin{listing}[tb]
-\begin{minted}{llvm}
-6:
-  %7 = phi i64 [ %10, %6 ], [ %4, %3 ]
-  %8 = phi i64 [ %9, %6 ], [ 1, %3 ]
-  %9 = phi i64 [ %11, %6 ], [ 1, %3 ]
-  %10 = add i64 %7, -1
-  %11 = add i64 %9, %8
-  %12 = icmp eq i64 %10, 0
-  br i1 %12, label %13, label %6
-\end{minted}
-\caption{The one loop Clang~23 emits for Listing~\ref{lst:rule3}'s fold, as LLVM IR, at \texttt{-O2} with unrolling and vectorisation off, names shortened.
-\texttt{\%7} is the count, and \texttt{\%8} and \texttt{\%9} are the vector's two components.
-From the repository's fixture \texttt{showcase\_15}.}
-\label{lst:loop}
-\end{listing}
+\begin{figure}[htbp]
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.4\linewidth}l>{\raggedright\arraybackslash}X@{}}
+\toprule
+\Cpp{} & known & LLVM IR \\
+\midrule
+\texttt{concat<plus<size\_t>, 0uz>(ns)} & $\xrightarrow{\text{\scriptsize all known}}$ & \texttt{ret i64 45} \\[3pt]
+\texttt{concat<multiplies<size\_t>, 1uz>(}\newline \texttt{\ \ views::reverse(views::iota(1uz, n)))} & $\xrightarrow{\text{\scriptsize n at run time}}$ & \texttt{\%k\ = phi i64 [ \%k1, \%loop ], [ \%m, \%entry ]}\newline \texttt{\%a\ = phi i64 [ \%p, \%loop ], [ \%m, \%entry ]}\newline \texttt{\%k1 = add i64 \%k, -1}\newline \texttt{\%p\ = mul i64 \%k1, \%a}\newline \texttt{\%z\ = icmp eq i64 \%k1, 1}\newline \texttt{br i1 \%z, label \%exit, label \%loop} \\[3pt]
+\texttt{concat<plus<size\_t>, 0uz>(}\newline \texttt{\ \ views::reverse(views::iota(0uz, n)))} & $\xrightarrow{\text{\scriptsize n at run time}}$ & no loop: thirteen instructions of arithmetic, a closed formula that the optimiser found \\[3pt]
+\texttt{is\_injective(a)} & $\xrightarrow{\text{\scriptsize a type}}$ & \texttt{ret i1 true} \\[3pt]
+\texttt{length<Then<Succ, Then<Neg, Succ>>>} & $\xrightarrow{\text{\scriptsize a type}}$ & \texttt{ret i64 3} \\[3pt]
+\texttt{a(x)} & $\xrightarrow{\text{\scriptsize x at run time}}$ & \texttt{\%r = sub i64 0, \%x}\newline \texttt{ret i64 \%r} \\[3pt]
+\bottomrule
+\end{tabularx}
+\caption{Sketch. The two running terms compiled by Clang~23 at \texttt{-O2}, with unrolling and vectorisation off and names shortened.
+Top three rows: the fold over a value.
+Bottom three: the folds over a term's type, and the term \texttt{a} applied.
+From the repository's fixture \texttt{showcase\_16}.}
+\label{fig:sketch-ir}
+\end{figure}
 
 Read as a function, after Appel~\cite{appel1998ssa}, a basic block is a local function and its $\phi$-nodes are that function's parameters (Appendix~\ref{app:fjlt:ssa}).
-The header's three $\phi$-nodes are the iterator's state in Figure~\ref{fig:fjlt-recursion}: the pair $(\llbracket r \rrbracket, \llbracket a \rrbracket)$, the chain's state its count and $\llbracket a \rrbracket$ the vector, itself a pair.
-The body is the step, the matrix action with \cppinline{fib}'s entries as constants, reduced to one addition, $F(k+1) = F(k) + F(k-1)$, and the count's decrement ends the loop.
-Nothing else survives: not the matrix, not the action's function object, not the chain, not the vector as an object.
-The function is the textbook loop for Fibonacci, which the source never wrote.
-So the claim that the discipline costs nothing at run time has a structural ground: a Jlt fold names in the source the parameter the compiler would otherwise recover from assignments.
+The loop's two $\phi$-nodes are the iterator's state in Figure~\ref{fig:fjlt-recursion}, the pair $(\llbracket r \rrbracket, \llbracket a \rrbracket)$: the range's state is its current element, counting down, and $\llbracket a \rrbracket$ is the result so far.
+The body is the step, one multiplication, and the decrement ends the loop.
+Nothing else survives: not the range, not its views, not the shape, not the table.
+For the sum the optimiser goes further and replaces the loop by a closed formula.
+That is the optimiser's doing and not Jlt's, and the product shows the fold as it was written.
+The folds over a type leave nothing: the law is the constant \texttt{true}, the length the constant 3.
+The term \texttt{a}, three arrows composed, is one subtraction, since $-(x + 1) + 1 = -x$.
+In these cases the discipline costs nothing at run time, and there is a structural reason: a Jlt fold names in the source the parameter the compiler would otherwise recover from assignments.
 The agreement holds where both evaluations finish and neither meets undefined behaviour.
 Table~\ref{tab:binding} lists where the two binding times part.
 
