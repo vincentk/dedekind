@@ -63,11 +63,11 @@ So the tree and the translated term have one shape, and Figure~\ref{fig:sketch-d
 \multicolumn{3}{@{}l}{$\mathit{concat}\,[\mathit{plus}]\;0\;d\;\mathit{ns} \;\longrightarrow^{*}\; \pi_2\,(\mathit{iter}\,10\,\mathit{step}\,(\mathit{chain}\,10, 0)) \;\longrightarrow^{*}\; 45$} \\
 \midrule
 \texttt{is\_injective(a)} & $\xrightarrow{\text{\scriptsize\textsc{T-Call}}}$ & $\mathit{is\_injective}\,[\,t\,]\;a$ \\
-\hspace*{1.0em}\texttt{injective<Then<Succ, Then<Neg, Succ>>>} & $\xrightarrow{\text{\scriptsizetable, at the parts}}$ & $i_{\mathit{Succ}} \wedge (i_{\mathit{Neg}} \wedge i_{\mathit{Succ}})$ \\
-\hspace*{2.0em}\texttt{injective<Succ>}, an entry & $\xrightarrow{\text{\scriptsizetable, an entry}}$ & $\mathit{true}$ \\
-\hspace*{2.0em}\texttt{injective<Then<Neg, Succ>>} & $\xrightarrow{\text{\scriptsizetable, at the parts}}$ & $i_{\mathit{Neg}} \wedge i_{\mathit{Succ}}$ \\
-\hspace*{3.0em}\texttt{injective<Neg>}, an entry & $\xrightarrow{\text{\scriptsizetable, an entry}}$ & $\mathit{true}$ \\
-\hspace*{3.0em}\texttt{injective<Succ>}, an entry & $\xrightarrow{\text{\scriptsizetable, an entry}}$ & $\mathit{true}$ \\
+\hspace*{1.0em}\texttt{injective<Then<Succ, Then<Neg, Succ>>>} & $\xrightarrow{\text{\scriptsize table, at the parts}}$ & $i_{\mathit{Succ}} \wedge (i_{\mathit{Neg}} \wedge i_{\mathit{Succ}})$ \\
+\hspace*{2.0em}\texttt{injective<Succ>}, an entry & $\xrightarrow{\text{\scriptsize table, an entry}}$ & $\mathit{true}$ \\
+\hspace*{2.0em}\texttt{injective<Then<Neg, Succ>>} & $\xrightarrow{\text{\scriptsize table, at the parts}}$ & $i_{\mathit{Neg}} \wedge i_{\mathit{Succ}}$ \\
+\hspace*{3.0em}\texttt{injective<Neg>}, an entry & $\xrightarrow{\text{\scriptsize table, an entry}}$ & $\mathit{true}$ \\
+\hspace*{3.0em}\texttt{injective<Succ>}, an entry & $\xrightarrow{\text{\scriptsize table, an entry}}$ & $\mathit{true}$ \\
 \midrule
 \multicolumn{3}{@{}l}{$\mathit{is\_injective}\,[\,t\,]\;a \;\longrightarrow^{*}\; \mathit{true} \wedge (\mathit{true} \wedge \mathit{true}) \;\longrightarrow^{*}\; \mathit{true}$, with $t$ the type of \texttt{a}} \\
 \bottomrule
