@@ -1078,38 +1078,41 @@ constexpr bool computes =
     ((Succ{} >> Neg{}) >> Pred{})(41uz) == (Succ{} >> (Neg{} >> Pred{}))(41uz);
 }  // namespace equality_probe
 
-// Listing 2, self-contained: the monoid as the triple (S, +, 0), the unit
-// passed to the concept as a value.  The law is one table keyed by the
-// operation and the unit; std::plus and std::multiplies are used as the
-// standard gives them; a wrong unit is refused.  The carrier is fixed to
-// size_t.
-namespace triple_probe {
+// Listing 2, self-contained: the monoid as the triple (S, +, 0).  The shape
+// and concat take the carrier as a parameter, and the unit is passed as a
+// value of the carrier; the law is one table, with its entries at concrete
+// carriers (an entry for a family cannot fix a unit whose type is the
+// family's parameter: see carrier_probe below).  std::plus and
+// std::multiplies are used as the standard gives them; a wrong unit, and an
+// operation with no entry, are refused.
+namespace listings_2_to_4 {
 using std::size_t;
-template <typename Op, size_t e>
+template <typename T, typename Op, T e>
 constexpr bool monoid = false;
 template <>
-constexpr bool monoid<std::plus<size_t>, 0uz> = true;
+constexpr bool monoid<size_t, std::plus<size_t>, 0uz> = true;
 template <>
-constexpr bool monoid<std::multiplies<size_t>, 1uz> = true;
-template <typename Op, size_t e>
-concept IsMonoid = monoid<Op, e> && requires(size_t a, size_t b) {
-  { Op{}(a, b) } -> std::same_as<size_t>;
+constexpr bool monoid<size_t, std::multiplies<size_t>, 1uz> = true;
+template <typename T, typename Op, T e>
+concept IsMonoid = std::regular<T> && monoid<T, Op, e> && requires(T a, T b) {
+  { Op{}(a, b) } -> std::same_as<T>;
 };
-template <typename Op, size_t e>
-  requires IsMonoid<Op, e>
-constexpr size_t concat() {
+template <typename T, typename Op, T e>
+  requires IsMonoid<T, Op, e>
+constexpr T concat() {
   return e;
 }
-template <typename Op, size_t e>
-  requires IsMonoid<Op, e>
-constexpr size_t concat(size_t v, size_t w) {
+template <typename T, typename Op, T e>
+  requires IsMonoid<T, Op, e>
+constexpr T concat(T v, T w) {
   return Op{}(v, w);
 }
-static_assert(concat<std::plus<size_t>, 0uz>() == 0 &&
-              concat<std::plus<size_t>, 0uz>(40uz, 2uz) == 42 &&
-              concat<std::multiplies<size_t>, 1uz>(6uz, 7uz) == 42 &&
-              !IsMonoid<std::plus<size_t>, 1uz> &&
-              !IsMonoid<std::minus<size_t>, 0uz>);
+static_assert(concat<size_t, std::plus<size_t>, 0uz>() == 0 &&
+              concat<size_t, std::plus<size_t>, 0uz>(40uz, 2uz) == 42 &&
+              concat<size_t, std::multiplies<size_t>, 1uz>(6uz, 7uz) == 42 &&
+              !IsMonoid<size_t, std::plus<size_t>, 1uz> &&
+              !IsMonoid<size_t, std::minus<size_t>, 0uz> &&
+              IsMonoid<size_t, std::plus<size_t>, 0uz>);
 // Listing 2, lower panels: a call that Rule 2 refuses, in the listing's own
 // names.  The value of an empty fold is 0 unless the operation is known to
 // have the unit 1; guessed asks for neither, and its result varies with a
@@ -1122,7 +1125,7 @@ constexpr size_t empty(Op) {
   return 0;
 }
 template <typename Op>
-  requires IsMonoid<Op, 1uz>
+  requires IsMonoid<size_t, Op, 1uz>
 constexpr size_t empty(Op) {
   return 1;
 }
@@ -1133,12 +1136,12 @@ constexpr size_t guessed(Op op) {
 static_assert(guessed(std::plus<size_t>{}) == 0 &&
               guessed(std::multiplies<size_t>{}) == 1);
 template <typename Op>
-  requires IsMonoid<Op, 1uz>
+  requires IsMonoid<size_t, Op, 1uz>
 constexpr size_t of_a_product(Op op) {
   return empty(op);
 }
 template <typename Op>
-  requires(!IsMonoid<Op, 1uz>)
+  requires(!IsMonoid<size_t, Op, 1uz>)
 constexpr size_t of_the_rest(Op op) {
   return empty(op);
 }
@@ -1153,22 +1156,84 @@ constexpr size_t named(Op op) {
 static_assert(of_a_product(std::multiplies<size_t>{}) == 1 &&
               of_the_rest(std::plus<size_t>{}) == 0 &&
               named(std::plus<size_t>{}) == 0 &&
-              concat<std::multiplies<size_t>, 1uz>() == 1);
-// The same with the carrier a parameter: the unit's type is the carrier.
-template <std::regular T, typename Op, T e>
-constexpr bool monoid_on = false;
+              concat<size_t, std::multiplies<size_t>, 1uz>() == 1);
+
+// Listing 3, left: concat at any length, a fold over a range that declares
+// its bound, here a count-down to the origin.
+constexpr auto ns = std::views::reverse(std::views::iota(0uz, 10uz));
+template <typename T, typename Op, T e, std::ranges::sized_range R>
+  requires IsMonoid<T, Op, e> && std::same_as<std::ranges::range_value_t<R>, T>
+constexpr T concat(R r) {
+  return std::ranges::fold_left(r, e, Op{});
+}
+static_assert(concat<size_t, std::plus<size_t>, 0uz>(ns) == 45 &&
+              concat<size_t, std::multiplies<size_t>, 1uz>(
+                  std::views::iota(1uz, 5uz)) == 24);
+// Beyond the listing: the count-down starts at 9 and ends at the origin, and
+// the empty range gives the unit.
+static_assert(
+    *ns.begin() == 9 && *std::ranges::prev(ns.end()) == 0 &&
+    std::ranges::size(ns) == 10 &&
+    concat<size_t, std::plus<size_t>, 0uz>(std::views::iota(0uz, 0uz)) == 0 &&
+    concat<size_t, std::multiplies<size_t>, 1uz>(std::views::iota(0uz, 0uz)) ==
+        1);
+
+// Listing 4: a declared law buys something.  concat over n copies of one
+// value takes at most 64 steps whatever n is, by repeated squaring, which
+// regroups the copies and is licensed by the monoid's associativity.  It is
+// one more overload of concat, chosen for a range of copies, and itself a
+// bounded fold, over the bits of n.  At a second carrier, a 2x2 matrix under
+// multiplication with the identity matrix as its unit, the same concat gives
+// a Fibonacci number.
+template <typename T>
+struct Power {
+  T result, square;
+  size_t left;
+};
+template <typename T, typename Op>
+struct Squaring {
+  constexpr Power<T> operator()(Power<T> s, size_t) const {
+    return {s.left % 2 == 1 ? Op{}(s.result, s.square) : s.result,
+            Op{}(s.square, s.square), s.left / 2};
+  }
+};
+template <typename T, typename Op, T e, typename B>
+  requires IsMonoid<T, Op, e>
+constexpr T concat(std::ranges::repeat_view<T, B> r) {
+  return std::ranges::size(r) == 0
+             ? e
+             : std::ranges::fold_left(
+                   std::views::iota(0uz, 64uz),
+                   Power<T>{e, *r.begin(), size_t(std::ranges::size(r))},
+                   Squaring<T, Op>{})
+                   .result;
+}
+using M = std::array<size_t, 4>;  // a 2x2 matrix, row by row
+struct Mul {
+  constexpr M operator()(M a, M b) const {
+    return {a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3],
+            a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3]};
+  }
+};
 template <>
-constexpr bool monoid_on<size_t, std::plus<size_t>, 0uz> = true;
-template <>
-constexpr bool monoid_on<bool, std::logical_or<bool>, false> = true;
-template <typename T, typename Op, T e>
-concept IsMonoidOn =
-    std::regular<T> && monoid_on<T, Op, e> && requires(T a, T b) {
-      { Op{}(a, b) } -> std::same_as<T>;
-    };
-static_assert(IsMonoidOn<size_t, std::plus<size_t>, 0uz> &&
-              IsMonoidOn<bool, std::logical_or<bool>, false> &&
-              !IsMonoidOn<bool, std::logical_or<bool>, true>);
+constexpr bool monoid<M, Mul, M{1, 0, 0, 1}> = true;
+constexpr M fib{1, 1, 1, 0};
+static_assert(
+    concat<size_t, std::plus<size_t>, 0uz>(
+        std::views::repeat(7uz, 1'000'000'000'000uz)) == 7'000'000'000'000uz &&
+    concat<M, Mul, M{1, 0, 0, 1}>(std::views::repeat(fib, 10uz))[1] == 55 &&
+    concat<M, Mul, M{1, 0, 0, 1}>(std::views::repeat(fib, 100'000'000uz))[1] ==
+        14'139'011'350'745'967'675uz);
+// Beyond the listing: no copies give the unit, a few copies agree with the
+// plain fold, and a matrix that is not the unit is refused as one.
+static_assert(
+    concat<size_t, std::plus<size_t>, 0uz>(std::views::repeat(7uz, 0uz)) == 0 &&
+    concat<size_t, std::plus<size_t>, 0uz>(std::views::repeat(7uz, 10)) == 70 &&
+    concat<size_t, std::multiplies<size_t>, 1uz>(std::views::repeat(3uz,
+                                                                    13uz)) ==
+        1'594'323 &&
+    !IsMonoid<M, Mul, M{1, 1, 1, 0}>);
+
 // The standard's structural types: a value of one can be lifted into a type,
 // and the compiler decides the identity of two lifted values member by
 // member, with no operator== of ours.  Listing 1's arrows are structural, and
@@ -1189,14 +1254,12 @@ static_assert(std::same_as<Lift<Add{3}>, Lift<Add{3}>> &&
                            Lift<Then<Add, Add>{Add{1}, Add{2}}>> &&
               !std::same_as<Lift<Then<Add, Add>{Add{1}, Add{2}}>,
                             Lift<Then<Add, Add>{Add{2}, Add{1}}>>);
-}  // namespace triple_probe
+}  // namespace listings_2_to_4
 
-// Listing 4, self-contained: the two recursions of Rule 3 side by side, on
-// the names of Listings 1 and 2.  Over a value: concat at any length, a fold
-// over a range that declares its bound, here a count-down to the origin.
-// Over a type: composition that re-brackets to the right, so two terms that
-// differ only in bracketing have one type; and a second fold over the term's
-// type, its length, with + where Listing 1's law has &&.
+// Listing 3, right: the recursion over a type, on Listing 1's names.
+// Composition that re-brackets to the right, so two terms that differ only in
+// bracketing have one type; and a second fold over the term's type, its
+// length, with + where Listing 1's law has &&.
 namespace listing4_self_contained {
 using listing1_self_contained::Arrow;
 using listing1_self_contained::is_injective;
@@ -1205,26 +1268,6 @@ using listing1_self_contained::Pred;
 using listing1_self_contained::Succ;
 using listing1_self_contained::Then;
 using std::size_t;
-using triple_probe::IsMonoid;
-
-constexpr auto ns = std::views::reverse(std::views::iota(0uz, 10uz));
-template <typename Op, size_t e, std::ranges::sized_range R>
-  requires IsMonoid<Op, e> &&
-           std::same_as<std::ranges::range_value_t<R>, size_t>
-constexpr size_t concat(R r) {
-  return std::ranges::fold_left(r, e, Op{});
-}
-static_assert(
-    concat<std::plus<size_t>, 0uz>(ns) == 45 &&
-    concat<std::plus<size_t>, 0uz>(std::views::repeat(7uz, 10)) == 70 &&
-    concat<std::multiplies<size_t>, 1uz>(std::views::iota(1uz, 5uz)) == 24);
-// Beyond the listing: the count-down starts at 9 and ends at the origin, the
-// empty range gives the unit, and a range of another element type is refused.
-static_assert(*ns.begin() == 9 && *std::ranges::prev(ns.end()) == 0 &&
-              std::ranges::size(ns) == 10 &&
-              concat<std::plus<size_t>, 0uz>(std::views::iota(0uz, 0uz)) == 0 &&
-              concat<std::multiplies<size_t>, 1uz>(std::views::iota(0uz,
-                                                                    0uz)) == 1);
 
 template <Arrow F, Arrow G>
 constexpr Then<F, G> then(F f, G g) {
@@ -1284,118 +1327,6 @@ static_assert(
 // either the entry constrains the value, as above, or the entries stay at
 // concrete carriers, as in Listing 2.
 }  // namespace carrier_probe
-
-// A draft, not yet a listing: a declared law buys something.  concat over n
-// copies of one value needs at most 64 steps whatever n is, by repeated
-// squaring, which regroups the copies and is licensed by the monoid's
-// associativity.  It is one more overload of Listing 3's concat, chosen for a
-// range of copies; the state of the fold is the result so far, the current
-// square, and what is left of n.
-namespace squaring_draft {
-using std::size_t;
-using triple_probe::IsMonoid;
-template <typename Op, size_t e, std::ranges::sized_range R>
-  requires IsMonoid<Op, e> &&
-           std::same_as<std::ranges::range_value_t<R>, size_t>
-constexpr size_t concat(R r) {
-  return std::ranges::fold_left(r, e, Op{});
-}
-template <typename Op>
-struct Squaring {
-  constexpr std::array<size_t, 3> operator()(std::array<size_t, 3> s,
-                                             size_t) const {
-    return {s[2] % 2 == 1 ? Op{}(s[0], s[1]) : s[0], Op{}(s[1], s[1]),
-            s[2] / 2};
-  }
-};
-template <typename Op, size_t e, typename B>
-  requires IsMonoid<Op, e>
-constexpr size_t concat(std::ranges::repeat_view<size_t, B> r) {
-  return std::ranges::size(r) == 0
-             ? e
-             : std::ranges::fold_left(
-                   std::views::iota(0uz, 64uz),
-                   std::array<size_t, 3>{e, *r.begin(),
-                                         size_t(std::ranges::size(r))},
-                   Squaring<Op>{})[0];
-}
-static_assert(
-    concat<std::plus<size_t>, 0uz>(std::views::repeat(7uz, 10)) == 70 &&
-    concat<std::plus<size_t>, 0uz>(std::views::repeat(7uz,
-                                                      1'000'000'000'000uz)) ==
-        7'000'000'000'000uz &&
-    concat<std::multiplies<size_t>, 1uz>(std::views::repeat(3uz, 13uz)) ==
-        1'594'323 &&
-    concat<std::plus<size_t>, 0uz>(std::views::repeat(7uz, 0uz)) == 0 &&
-    concat<std::plus<size_t>, 0uz>(std::views::iota(0uz, 10uz)) == 45);
-}  // namespace squaring_draft
-
-// A draft, not yet a listing: concat generic in its carrier, and a declared
-// law buying something.  The shape and concat take the carrier as a
-// parameter; the table's entries stay at concrete types.  concat over n
-// copies of one value takes at most 64 steps whatever n is, by repeated
-// squaring, licensed by the monoid's associativity.  At a second carrier, a
-// 2x2 matrix under multiplication with the identity matrix as its unit, the
-// same concat computes a Fibonacci number.
-namespace fibonacci_draft {
-using std::size_t;
-template <typename T, typename Op, T e>
-constexpr bool monoid = false;
-template <>
-constexpr bool monoid<size_t, std::plus<size_t>, 0uz> = true;
-template <typename T, typename Op, T e>
-concept IsMonoid = std::regular<T> && monoid<T, Op, e> && requires(T a, T b) {
-  { Op{}(a, b) } -> std::same_as<T>;
-};
-template <typename T, typename Op, T e, std::ranges::sized_range R>
-  requires IsMonoid<T, Op, e> && std::same_as<std::ranges::range_value_t<R>, T>
-constexpr T concat(R r) {
-  return std::ranges::fold_left(r, e, Op{});
-}
-
-template <typename T>
-struct Power {
-  T result, square;
-  size_t left;
-};
-template <typename T, typename Op>
-struct Squaring {
-  constexpr Power<T> operator()(Power<T> s, size_t) const {
-    return {s.left % 2 == 1 ? Op{}(s.result, s.square) : s.result,
-            Op{}(s.square, s.square), s.left / 2};
-  }
-};
-template <typename T, typename Op, T e, typename B>
-  requires IsMonoid<T, Op, e>
-constexpr T concat(std::ranges::repeat_view<T, B> r) {
-  return std::ranges::size(r) == 0
-             ? e
-             : std::ranges::fold_left(
-                   std::views::iota(0uz, 64uz),
-                   Power<T>{e, *r.begin(), size_t(std::ranges::size(r))},
-                   Squaring<T, Op>{})
-                   .result;
-}
-
-using M = std::array<size_t, 4>;  // a 2x2 matrix, row by row
-struct Mul {
-  constexpr M operator()(M a, M b) const {
-    return {a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3],
-            a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3]};
-  }
-};
-template <>
-constexpr bool monoid<M, Mul, M{1, 0, 0, 1}> = true;
-constexpr M fib{1, 1, 1, 0};
-static_assert(
-    concat<size_t, std::plus<size_t>, 0uz>(std::views::iota(0uz, 10uz)) == 45 &&
-    concat<size_t, std::plus<size_t>, 0uz>(
-        std::views::repeat(7uz, 1'000'000'000'000uz)) == 7'000'000'000'000uz &&
-    concat<M, Mul, M{1, 0, 0, 1}>(std::views::repeat(fib, 10uz))[1] == 55 &&
-    concat<M, Mul, M{1, 0, 0, 1}>(std::views::repeat(fib, 100'000'000uz))[1] ==
-        14'139'011'350'745'967'675uz &&
-    !IsMonoid<M, Mul, M{1, 1, 1, 0}>);
-}  // namespace fibonacci_draft
 
 TEST_CASE("Spelling probe: a law as a function and as a table",
           "[category][jlt][spelling][probe]") {
