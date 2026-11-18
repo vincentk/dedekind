@@ -16,7 +16,12 @@ Rules~1 and~3 are posture outside compile-time evaluation (Table~\ref{tab:postur
 \paragraph{Lookup stops at \cppinline{std}.}
 A name in a template is looked up twice: at the template's definition, among the declarations visible there, and at instantiation only by argument-dependent lookup, in the namespaces of the argument types, which for a standard type is \cppinline{std}, where no instance of ours lives.
 So an instance declared after the shape is found only as a specialisation of a primary template the shape names, and a constrained overload must precede the shape.
-This is a constraint on declaration order that the translation's instance resolution does not have, and FJlt resolves it by fiat: an instance is a specialisation of the trait, found by the trait's name.
+The translation's instance resolution has no such constraint on order, so FJlt admits only programs in which the order makes no difference, by three conditions on where a declaration stands (Appendix~\ref{app:fjlt:order}).
+The third has a cost for extension: every overload of a function stands above the first call it could be chosen for.
+So a faster version of a function for one's own type cannot be added below earlier calls as a plain overload.
+It goes through a hook that the function declares, a table it reads or a call it names as a requirement, and an entry for one's own type may then be added later.
+A function that declares no hook cannot be specialised from outside, as the standard lets a program specialise \cppinline{std::hash} and not add an overload of \cppinline{std::sort}~\cite[{\texttt{namespace.std}}]{cpp23standard}.
+The linter reports none of the three conditions yet: its one check of order concerns an instance whose context names a shape declared too late.
 
 
 \paragraph{A shape knows the laws someone declared.}

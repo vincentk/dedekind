@@ -273,6 +273,23 @@ One row differs in what it evaluates: applying a pairing to a constant computes 
 The proposition does not claim that the laws are complete for products and sums.
 The fusion of a pairing with an arrow before it is not among them, and where it would be needed the answer is that the arrows are not known to be equal.
 
+\paragraph{The order of declarations.}
+\label{app:fjlt:order}
+\Cpp{} finds a declaration from a place: a template sees the names declared above it, and of each such name the specialisations declared above the template's use (Section~\ref{sec:limits}).
+The kernel's resolution takes no account of place.
+So a program is well formed only where place makes no difference, and three conditions ensure that.
+\begin{enumerate}
+\item What a shape names stands above the shape.
+\item An entry or an instance for a type stands above the first use of the shape at that type.
+\Cpp{} makes a breach ill-formed, with no diagnostic required~\cite[{\texttt{temp.expl.spec}}]{cpp23standard}.
+\item Every overload of a function stands above the first call it could be chosen for.
+\end{enumerate}
+Under the three, a use that is valid at one place is valid at any later place and means the same there: position is a condition of validity and never a source of meaning.
+\Cpp{} asks as much across translation units, by the one-definition rule~\cite[{\texttt{basic.def.odr}}]{cpp23standard}, and within one it accepts a breach of the first or the third in silence.
+The listings keep the three.
+Listing~\ref{lst:rule2}'s entries precede its assertions, and Listing~\ref{lst:rule3} declares both cases of \cppinline{then} together, where a second case of Listing~\ref{lst:rule1}'s \cppinline{>>} would have changed what an earlier \cppinline{>>} builds.
+The conditions are stated here ahead of the rules: the figures of this appendix do not carry them as premises yet, and the linter does not report them (Section~\ref{sec:limits}).
+
 \paragraph{Well-founded declarations.}
 Typing is itself a computation: resolving a call may ask whether a constraint holds, which may ask for another resolution, and \RuleThree{} asks that this chain end too.
 \cppinline{IsMonoid} at a pair calls \cppinline{unit} there, whose instance asks \cppinline{IsMonoid} at the components (Section~\ref{sec:translation:contexts}): the shape asks for itself, but at smaller types, so the chain ends.
