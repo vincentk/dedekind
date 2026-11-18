@@ -802,7 +802,7 @@ struct Then {
   constexpr size_t operator()(size_t x) const { return g(f(x)); }
 };
 template <Arrow F, Arrow G>
-constexpr Then<F, G> operator>>(F f, G g) {
+constexpr Then<F, G> operator>>(const F& f, const G& g) {
   return Then<F, G>{f, g};
 }
 

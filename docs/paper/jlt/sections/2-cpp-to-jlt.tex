@@ -58,7 +58,8 @@ template <Arrow F, Arrow G>
 struct Then { F f; G g; constexpr size_t
   operator()(size_t x) const { return g(f(x)); } };
 template <Arrow F, Arrow G>
-constexpr Then<F, G> operator>>(F f, G g)
+constexpr Then<F, G> operator>>(const F& f,
+                                const G& g)
   { return Then<F, G>{f, g}; }
 \end{cpp}
 \end{minipage}\hfill
@@ -94,6 +95,7 @@ The table and the constrained parameters are sugar (Appendix~\ref{app:fjlt:closu
 A function object is a value, as an abstraction is in the $\lambda$-calculus~\cite{pierce2002tapl}: the arguments it binds are its fields, and its call operator is a \cppinline{const} member function like any other.
 The left panel of Listing~\ref{lst:rule1} declares four such values on \cppinline{size_t}, called \emph{arrows} here, and one way to compose two.
 \cppinline{Then} stores its two parts as fields and applies them in turn, and \cppinline{f >> g} builds it, \cppinline{f} first.
+\cppinline{>>} takes its arguments by \cppinline{const} reference and \cppinline{Then} stores copies of them: by the rule a reference and a copy are one parameter, so nothing depends on which is written.
 The concept \cppinline{Arrow} states what \cppinline{Then} may assume of a part: a \cppinline{const} call from \cppinline{size_t} to \cppinline{size_t}.
 The types of a Jlt program and the functions between them form a category, as those of Pierce's small functional language FPL do~\cite[Example~1.1.15]{pierce1991basic}, and these are four of its arrows from \cppinline{size_t} to itself.
 Unsigned arithmetic wraps~\cite[{\texttt{basic.fundamental}}]{cpp23standard}, so \cppinline{Succ} and \cppinline{Pred} undo each other at every value, the two ends of the range included, and \cppinline{Neg} undoes itself.
