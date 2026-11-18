@@ -311,6 +311,9 @@ add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
     # showcase_15 is Listing 3 at run time: Fibonacci as a fold over a chain,
     # the loop Appendix G reads, kept as the fold wrote it.
     src/test/cpp/modules/dedekind/python/showcase_15_listing3_fibonacci.cpp
+    # showcase_16 is the paper's two recursions, self-contained: the fold over
+    # a value at both binding times, the folds over a term's type.
+    src/test/cpp/modules/dedekind/python/showcase_16_listing3_two_folds.cpp
     # showcase_10_image_intensional_naturals.cpp is added for compile-time
     # validation of the layer-1 image overload on intensional Sets (#602 / #631);
     # it has no checked-in `.ll` fixture because its IR demo
@@ -345,6 +348,9 @@ target_link_libraries(set-pruning-ir-fixture PRIVATE dedekind_optimization)
 # nor vectorised, so its header's phi-nodes are the fold's state.
 set_source_files_properties(
     src/test/cpp/modules/dedekind/python/showcase_15_listing3_fibonacci.cpp
+    PROPERTIES COMPILE_OPTIONS "-fno-unroll-loops;-fno-vectorize;-fno-slp-vectorize")
+set_source_files_properties(
+    src/test/cpp/modules/dedekind/python/showcase_16_listing3_two_folds.cpp
     PROPERTIES COMPILE_OPTIONS "-fno-unroll-loops;-fno-vectorize;-fno-slp-vectorize")
 
 if(DEDEKIND_BUILD_PYTHON_BINDINGS)
