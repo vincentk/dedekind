@@ -273,6 +273,19 @@ At a node with several children, the step takes the results of them all.}
 \paragraph{Rule 3, Descent: recursion is structural.}
 \phantomsection\label{def:rule3}
 Recursion in Jlt is structural~\cite{burstall1969proving}: every step strictly decreases a bound, a natural number, so the recursion ends.\footnote{A variant function, in Dijkstra's word~\cite{dijkstra1976discipline}.}
+Jlt has two forms of it, over a value and over a type, and both have one shape: a case where the recursion ends, and a step on something strictly shorter.
+\[
+\begin{array}{@{}l@{\qquad}r@{\;=\;}l@{\qquad}l@{}}
+\text{over a value} & \mathit{fold}_h\,(e, \langle\rangle) & e & \\
+ & \mathit{fold}_h\,(e, s \cdot r) & \mathit{fold}_h\,(h(e, s), r) & |r| < |s \cdot r| \\[4pt]
+\text{over a type} & g(x) & g_x & x \text{ an atom} \\
+ & g(t_1 \gg t_2) & g(t_1) \otimes g(t_2) & |t_1|, |t_2| < |t_1 \gg t_2|
+\end{array}
+\]
+Over a value, $r$ is a range, $s$ its first element, $h$ the step, $e$ the start, and $|r|$ the length of $r$, the number of elements left.
+Over a type, $t$ is a term, $x$ an atom, $t_1 \gg t_2$ a composite of two parts, $g_x$ what is declared at the atom, $\otimes$ how the results at the parts combine, and $|t|$ the length of $t$, its number of atoms.
+The inequality beside each step is the bound.
+The first pair is the standard's \cppinline{ranges::fold_left}, which carries its result along from the left.
 
 Several literatures describe this recursion, each in its own words, and Table~\ref{tab:recursion-names} sets them side by side.
 This paper uses the notation of initial algebras, after Lambek, and it pictures the recursion as a finite chain in Dedekind's sense: the elements that a step reaches from a starting point.\footnote{After Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself, and the chain of an element is its forward orbit.
