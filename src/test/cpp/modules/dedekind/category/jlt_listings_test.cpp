@@ -767,6 +767,53 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
   }
 }
 
+// DRAFT, Listing 1 self-contained (2026-11-18): every name is declared here
+// or is the standard's, so the page and a compiler suffice.  Arrows as
+// function objects, two atoms and one composite; a law declared at the atoms
+// and inferred at the composite, a fold over the term's type.  The generic
+// case stands above its uses and asks the trait at the parts in its body
+// (the lookup probe's row 4); the atoms are explicit specialisations.
+namespace listing1_self_contained {
+using std::size_t;
+struct Neg {
+  constexpr size_t operator()(size_t x) const { return -x; }
+};
+struct Cpl {
+  constexpr size_t operator()(size_t x) const { return ~x; }
+};
+template <typename F, typename G>
+struct Then {
+  F f;
+  G g;
+  constexpr size_t operator()(size_t x) const { return g(f(x)); }
+};
+template <typename F, typename G>
+constexpr Then<F, G> operator>>(F f, G g) {
+  return Then<F, G>{f, g};
+}
+
+template <typename T>
+constexpr bool monic(T) = delete;
+template <typename F, typename G>
+constexpr bool monic(Then<F, G> t) {
+  return monic(t.f) && monic(t.g);
+}
+template <>
+constexpr bool monic<Neg>(Neg) {
+  return true;
+}
+template <>
+constexpr bool monic<Cpl>(Cpl) {
+  return true;
+}
+constexpr auto succ = Cpl{} >> Neg{};
+static_assert(succ(41uz) == 42 && monic(succ));
+// Beyond the listing: the fold reaches any depth, and the composite's type
+// records its parts.
+static_assert(monic(succ >> succ >> Cpl{}) && (succ >> succ)(40uz) == 42 &&
+              std::same_as<decltype(succ), const Then<Cpl, Neg>>);
+}  // namespace listing1_self_contained
+
 // A probe, not a listing: which declarations of a trait a shape finds, by
 // where they stand (Section 7, "Lookup stops at std").  The carriers are
 // fundamental or standard types, so argument-dependent lookup adds nothing.

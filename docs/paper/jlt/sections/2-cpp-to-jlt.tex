@@ -70,6 +70,42 @@ A program of the kernel (Figure~\ref{fig:fjlt-syntax}), translated in Section~\r
 \label{lst:rule1}
 \end{listing}
 
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+struct Neg { constexpr size_t
+  operator()(size_t x) const { return -x; } };
+struct Cpl { constexpr size_t
+  operator()(size_t x) const { return ~x; } };
+template <typename F, typename G>
+struct Then { F f; G g; constexpr size_t
+  operator()(size_t x) const { return g(f(x)); } };
+template <typename F, typename G>
+constexpr Then<F, G> operator>>(F f, G g)
+  { return Then<F, G>{f, g}; }
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T>
+constexpr bool monic(T) = delete;
+template <typename F, typename G>
+constexpr bool monic(Then<F, G> t)
+  { return monic(t.f) && monic(t.g); }
+template <> constexpr bool monic<Neg>(Neg)
+  { return true; }
+template <> constexpr bool monic<Cpl>(Cpl)
+  { return true; }
+constexpr auto succ = Cpl{} >> Neg{};
+static_assert(
+succ(41uz) == 42 && monic(succ));
+\end{cpp}
+\end{minipage}
+\caption*{\textbf{Draft, to replace Listing~\ref{lst:rule1}:} the same rule with every name declared on the page.
+Left: arrows as function objects, two atoms and their composite, with \cppinline{f >> g} for $g \circ f$.
+Right: a law, declared at the atoms and inferred at the composite.}
+\end{listing}
+
 A function object is a value, as an abstraction is in the $\lambda$-calculus~\cite{pierce2002tapl}: the arguments it binds are its fields, and its call operator is a \cppinline{const} member function like any other.
 The types of a Jlt program and the functions between them form a category, as those of Pierce's small functional language FPL do~\cite[Example~1.1.15]{pierce1991basic}.
 An \emph{arrow} is a function object with a domain and a codomain, and arrows compose with \cppinline{>>}, left to right.
