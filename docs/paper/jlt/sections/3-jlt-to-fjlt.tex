@@ -97,7 +97,7 @@ It is a rewrite into the kernel's constructions that computes the same value.
 Appendix~\ref{app:fjlt:closure} gives it construction by construction, each with its condition and the kernel term it yields (Tables~\ref{tab:adequacy} to~\ref{tab:closure:choice}).
 A loop that shows its end is sugar for the fold it denotes (Appendix~\ref{app:fjlt:closure}).
 Its state is no objection: a counter inside a \cppinline{constexpr} function cannot escape it, since constant evaluation lets a function modify only objects whose lifetime began within the call~\cite[{\texttt{expr.const}}]{cpp23standard}, the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
-A branch on a type, the sugar that matters most, becomes a family of generic functions ordered by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent; the overloads of Appendix~\ref{app:measurements}'s case study, each licensed by a law, compose under it.
+A branch on a type, the sugar that matters most, becomes a family of generic functions ordered by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent; Listing~\ref{lst:laws}'s overload of \cppinline{concat}, licensed by a law, is chosen under it.
 That each desugaring keeps the meaning is the paper's working hypothesis, the dashed arrow of Figure~\ref{fig:arrows}, named and not proved.
 The compiler holds none of the rules in full.
 That the constructions cover the listings and the library's core is measured, not argued: the linter lists every kind of syntax node written there, and each kind has its construction (Appendix~\ref{app:fjlt:closure}).

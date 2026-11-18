@@ -117,31 +117,33 @@ The library that accompanies the paper declares the same for more arrows and mor
 Generic code may do with a type argument exactly what the type's constraints permit~\cite{reynolds1983types,wadler1989theorems}.
 Listing~\ref{lst:rule2}'s \cppinline{concat} is written once, against a monoid: it may combine two elements and start from the unit, and it can use nothing the monoid does not name.
 So it is a function of the monoid's dictionary, the record of its operations, and it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
-The listing fixes the carrier to \cppinline{size_t} and takes a monoid to be an operation with its unit, as algebra writes $(S, +, 0)$.
+The listing takes a monoid to be a carrier, an operation and its unit, as algebra writes $(S, +, 0)$.
+The shape and \cppinline{concat} are generic in all three, and the listing declares two monoids, both on \cppinline{size_t}.
 The unit is passed to the shape as a value, so that the shape can ask for the law of the pair, and a wrong unit is then refused.
 A value may be a template argument where its type is structural (\RuleOne{}).
 The standard's \cppinline{plus} and \cppinline{multiplies} are used as they are.
 
 \begin{listing}[htbp]
 \begin{cpp}
-template <typename Op, size_t e>
+template <typename T, typename Op, T e>
 constexpr bool monoid = false;
-template <> constexpr bool monoid<plus<size_t>, 0uz> = true;
-template <> constexpr bool monoid<multiplies<size_t>, 1uz> = true;
+template <> constexpr bool monoid<size_t, plus<size_t>, 0uz> = true;
+template <> constexpr bool monoid<size_t, multiplies<size_t>, 1uz> = true;
 
-template <typename Op, size_t e>
-concept IsMonoid = monoid<Op, e> &&
-    requires(size_t a, size_t b) { { Op{}(a, b) } -> same_as<size_t>; };
+template <typename T, typename Op, T e>
+concept IsMonoid = regular<T> && monoid<T, Op, e> &&
+    requires(T a, T b) { { Op{}(a, b) } -> same_as<T>; };
 
-template <typename Op, size_t e> requires IsMonoid<Op, e>
-constexpr size_t concat() { return e; }
-template <typename Op, size_t e> requires IsMonoid<Op, e>
-constexpr size_t concat(size_t v, size_t w) { return Op{}(v, w); }
+template <typename T, typename Op, T e> requires IsMonoid<T, Op, e>
+constexpr T concat() { return e; }
+template <typename T, typename Op, T e> requires IsMonoid<T, Op, e>
+constexpr T concat(T v, T w) { return Op{}(v, w); }
 
-static_assert(concat<plus<size_t>, 0uz>() == 0 &&
-              concat<plus<size_t>, 0uz>(40uz, 2uz) == 42 &&
-              concat<multiplies<size_t>, 1uz>(6uz, 7uz) == 42 &&
-              !IsMonoid<plus<size_t>, 1uz> && !IsMonoid<minus<size_t>, 0uz>);
+static_assert(concat<size_t, plus<size_t>, 0uz>() == 0 &&
+              concat<size_t, plus<size_t>, 0uz>(40uz, 2uz) == 42 &&
+              concat<size_t, multiplies<size_t>, 1uz>(6uz, 7uz) == 42 &&
+              !IsMonoid<size_t, plus<size_t>, 1uz> &&
+              !IsMonoid<size_t, minus<size_t>, 0uz>);
 \end{cpp}
 \vspace{-6pt}
 \begin{minipage}[t]{0.48\linewidth}
@@ -149,7 +151,7 @@ static_assert(concat<plus<size_t>, 0uz>() == 0 &&
 template <typename Op>
 constexpr size_t empty(Op) { return 0; }
 template <typename Op>
-  requires IsMonoid<Op, 1uz>
+  requires IsMonoid<size_t, Op, 1uz>
 constexpr size_t empty(Op) { return 1; }
 
 template <typename Op>
@@ -164,11 +166,11 @@ guessed(multiplies<size_t>{}) == 1);
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <typename Op>
-  requires IsMonoid<Op, 1uz>
+  requires IsMonoid<size_t, Op, 1uz>
 constexpr size_t of_a_product(Op op)
   { return empty(op); }
 template <typename Op>
-  requires (!IsMonoid<Op, 1uz>)
+  requires (!IsMonoid<size_t, Op, 1uz>)
 constexpr size_t of_the_rest(Op op)
   { return empty(op); }
 template <typename Op>
@@ -180,7 +182,7 @@ constexpr size_t named(Op op)
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
-Top: a monoid on \cppinline{size_t} as an operation and its unit: the law as a table, the shape, the function \cppinline{concat}, and what the shape refuses.
+Top: a monoid as a carrier, an operation and its unit: the law as a table, the shape, the function \cppinline{concat}, and what the shape refuses.
 Bottom left: \cppinline{guessed} makes a call that \Cpp{} accepts, while Rule~2 and the linter refuse it.
 Bottom right: three callers that declare what the call depends on.}
 \label{lst:rule2}
@@ -209,7 +211,7 @@ An axiom is declared: the compiler does not prove it.\footnote{Similarly, \textt
 A false law declaration is possible, and the compiler does not detect it.
 The standard treats its own concepts alike: a type may satisfy one without modelling it, and the program is then ill-formed with no diagnostic required~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.}
 A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts, a fold over its type (\RuleThree{}).
-That Listing~\ref{lst:rule1}'s \cppinline{up} is injective is one, inferred for a composite arrow from its two parts, and \cppinline{IsMonoid<plus<size_t>, 0uz>} is another, a shape from its requirements.
+That Listing~\ref{lst:rule1}'s \cppinline{up} is injective is one, inferred for a composite arrow from its two parts, and \cppinline{IsMonoid<size_t, plus<size_t>, 0uz>} is another, a shape from its requirements.
 Overload resolution is a simple proof search that finds either kind~\cite{augustsson2005djinn}.
 A law is stated of a carrier, a type taken as a bare set of values, together with an operation: \cppinline{size_t} is a monoid twice, under $(0, +)$ and under $(1, \times)$.\footnote{A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.}
 
@@ -286,18 +288,17 @@ The length is the least bound, and a range may declare a larger one, as a vector
 constexpr auto ns =
     views::reverse(views::iota(0uz, 10uz));
 
-template <typename Op, size_t e,
+template <typename T, typename Op, T e,
           ranges::sized_range R>
-  requires IsMonoid<Op, e> && same_as<
-      ranges::range_value_t<R>, size_t>
-constexpr size_t concat(R r) {
+  requires IsMonoid<T, Op, e> && same_as<
+      ranges::range_value_t<R>, T>
+constexpr T concat(R r) {
   return ranges::fold_left(r, e, Op{}); }
 
 static_assert(
-concat<plus<size_t>, 0uz>(ns) == 45 &&
-concat<plus<size_t>, 0uz>(
-    views::repeat(7uz, 10)) == 70 &&
-concat<multiplies<size_t>, 1uz>(
+concat<size_t, plus<size_t>, 0uz>(ns)
+    == 45 &&
+concat<size_t, multiplies<size_t>, 1uz>(
     views::iota(1uz, 5uz)) == 24);
 \end{cpp}
 \end{minipage}\hfill
