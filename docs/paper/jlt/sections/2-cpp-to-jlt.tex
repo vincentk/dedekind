@@ -193,7 +193,7 @@ Both are resolved while compiling, so no dictionaries exist as run-time values (
 A type that has the operations satisfies the \cppinline{concept} without a declaration, so the standard library's types are admitted unmodified.
 Overload resolution selects the most specific instance~\cite{cpp23standard}.
 Where two instances overlap, GHC refuses to commit to one that the types do not yet decide~\cite{ghc2024overlapping}, and Jlt asks the same of a call in a generic body.
-\Cpp{20} does not check a body against its constraints (Section~\ref{sec:intro}), so the rule is the programmer's to keep, and the lower left panel of Listing~\ref{lst:rule2} shows a body that breaks it.
+\Cpp{20} checks a template's body at each instantiation, and never its definition against the constraints it declares (Section~\ref{sec:intro}), so the rule is the programmer's to keep, and the lower left panel of Listing~\ref{lst:rule2} shows a body that breaks it.
 \cppinline{guessed} returns the value of an empty fold, which is 0 unless the operation is known to have the unit 1, and its declaration says neither.
 The call it shows is a common idiom for dispatch: a general function that takes a faster path at a more specific type, as the standard's \cppinline{ranges::advance} does~\cite[{\texttt{range.iter.op.advance}}]{cpp23standard}.
 Leaving the choice implicit is established practice in \Cpp{}, and it asks the reader to know every overload in scope.
