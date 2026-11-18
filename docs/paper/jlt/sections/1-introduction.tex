@@ -22,7 +22,8 @@ Listing~\ref{lst:sites} is a case.}
 %For them the repository binds the library's combinators into Python as handles to the compiled core, so the laws declared in \Cpp{} hold in an interactive session: the specialisations they license run there at run time, and only what the compiler evaluates of them is fixed when the bindings are built (Section~\ref{sec:binding}).
 The whole language may be too large to work in with confidence, so a functional fragment of it is worth drawing.
 \Cpp{23} is the first standard with every ingredient of such a fragment: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
-Compliance with a fragment's rules is also easier to check than a decade ago: a language model of code~\cite{chen2021evaluating} can be instructed to read every change against them, as an agentic reviewer.
+Compliance with a fragment's rules is also cheaper to check than a decade ago: a language model of code~\cite{chen2021evaluating} can be instructed to read every change against them, as an agentic reviewer.
+Such reviewers are now ubiquitous, and the instructions this paper's reviewer follows are a file in the repository, so a reader can repeat the review with an agent of their own.
 Such a review is a read, not a proof (Section~\ref{sec:limits}).
 
 A compile-time check is a claim about a program that the compiler verifies.
