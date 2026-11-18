@@ -767,14 +767,16 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
   }
 }
 
-// DRAFT 2, Listing 1 self-contained (2026-11-18): every name is declared here
-// or is the standard's, so the page and a compiler suffice.  Arrows on size_t
-// as function objects: Succ and Pred, mutual inverses because unsigned
-// arithmetic wraps; Neg, an involution; Half, not injective; Then, the
-// composite, constrained.  A law is declared as a table, a variable template
-// and its specialisations: false where nothing is declared, true at the
-// atoms that have it, at a composite the conjunction of its parts'; and it is
-// read by a function on the value.
+// DRAFT 3, Listing 1 self-contained (2026-11-18): every name is declared here
+// or is the standard's, so the page and a compiler suffice.  Left, Rule 1 in
+// code: arrows on size_t as function objects, a composite's parts its fields,
+// every call const and constexpr.  Succ and Pred are mutual inverses because
+// unsigned arithmetic wraps; Neg is an involution; Half is not one-to-one.
+// Right: a law as a table, a variable template and its specialisations,
+// false where nothing is declared, declared at two atoms, inferred at a
+// composite from its parts, read by a function on the value.  Pred is
+// one-to-one and has no entry, Half is not one-to-one: both answer false,
+// which means not known.
 namespace listing1_self_contained {
 using std::size_t;
 struct Succ {
@@ -790,7 +792,7 @@ struct Half {
   constexpr size_t operator()(size_t x) const { return x / 2; }
 };
 template <typename F>
-concept Arrow = requires(F f, size_t x) {
+concept Arrow = requires(const F f, size_t x) {
   { f(x) } -> std::same_as<size_t>;
 };
 template <Arrow F, Arrow G>
@@ -805,29 +807,34 @@ constexpr Then<F, G> operator>>(F f, G g) {
 }
 
 template <typename F>
-constexpr bool monic = false;
+constexpr bool injective = false;
 template <>
-constexpr bool monic<Succ> = true;
+constexpr bool injective<Succ> = true;
 template <>
-constexpr bool monic<Pred> = true;
-template <>
-constexpr bool monic<Neg> = true;
-template <typename F, typename G>
-constexpr bool monic<Then<F, G>> = monic<F> && monic<G>;
+constexpr bool injective<Neg> = true;
+template <Arrow F, Arrow G>
+constexpr bool injective<Then<F, G>> = injective<F> && injective<G>;
 template <Arrow F>
-constexpr bool is_monic(F) {
-  return monic<F>;
+constexpr bool is_injective(F) {
+  return injective<F>;
 }
-static_assert((Succ{} >> Pred{})(0uz) == 0 && is_monic(Succ{} >> Neg{}) &&
-              !is_monic(Succ{} >> Half{}));
-// Beyond the listing: the wrap that makes Succ and Pred inverses, the
-// involution, the fold at depth, and the two things Half identifies.
+constexpr auto up = Neg{} >> Succ{};
+static_assert((Succ{} >> Pred{})(0uz) == 0 && up(1uz) == 0 &&
+              is_injective(up) && !is_injective(up >> Pred{}) &&
+              !is_injective(up >> Half{}));
+// Beyond the listing: the order of >> matters, the wrap that makes Succ and
+// Pred inverses, the involution, the fold at depth, what Half identifies,
+// and an arrow whose call is not const is no Arrow.
+struct Mutating {
+  constexpr size_t operator()(size_t x) { return x; }
+};
 constexpr size_t top = static_cast<size_t>(-1);
-static_assert((Pred{} >> Succ{})(0uz) == 0 && (Succ{} >> Pred{})(top) == top &&
-              (Neg{} >> Neg{})(42uz) == 42 && Half{}(4uz) == Half{}(5uz) &&
-              is_monic(Succ{} >> Neg{} >> Pred{} >> Succ{}) &&
-              !is_monic(Succ{} >> Half{} >> Pred{}) && Arrow<Then<Succ, Neg>> &&
-              !monic<int>);
+static_assert((Succ{} >> Neg{})(1uz) != 0 && (Pred{} >> Succ{})(0uz) == 0 &&
+              (Succ{} >> Pred{})(top) == top && (Neg{} >> Neg{})(42uz) == 42 &&
+              Half{}(4uz) == Half{}(5uz) &&
+              is_injective(up >> up >> Succ{} >> Neg{}) &&
+              !is_injective(Succ{} >> Half{} >> Neg{}) &&
+              Arrow<Then<Succ, Neg>> && !Arrow<Mutating> && !injective<int>);
 }  // namespace listing1_self_contained
 
 // A probe, not a listing: which declarations of a trait a shape finds, by

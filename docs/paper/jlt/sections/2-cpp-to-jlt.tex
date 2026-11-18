@@ -82,7 +82,7 @@ struct Neg { constexpr size_t
 struct Half { constexpr size_t
   operator()(size_t x) const { return x / 2; } };
 template <typename F>
-concept Arrow = requires(F f, size_t x) {
+concept Arrow = requires(const F f, size_t x) {
   { f(x) } -> same_as<size_t>; };
 template <Arrow F, Arrow G>
 struct Then { F f; G g; constexpr size_t
@@ -95,29 +95,33 @@ constexpr Then<F, G> operator>>(F f, G g)
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <typename F>
-constexpr bool monic = false;
+constexpr bool injective = false;
 template <>
-constexpr bool monic<Succ> = true;
+constexpr bool injective<Succ> = true;
 template <>
-constexpr bool monic<Pred> = true;
-template <>
-constexpr bool monic<Neg> = true;
-template <typename F, typename G>
-constexpr bool monic<Then<F, G>> =
-    monic<F> && monic<G>;
+constexpr bool injective<Neg> = true;
+template <Arrow F, Arrow G>
+constexpr bool injective<Then<F, G>> =
+    injective<F> && injective<G>;
 template <Arrow F>
-constexpr bool is_monic(F)
-  { return monic<F>; }
+constexpr bool is_injective(F)
+  { return injective<F>; }
+constexpr auto up = Neg{} >> Succ{};
 static_assert(
-(Succ{} >> Pred{})(0uz) == 0 &&
-is_monic(Succ{} >> Neg{}) &&
-!is_monic(Succ{} >> Half{}));
+(Succ{} >> Pred{})(0uz) == 0 && up(1uz) == 0 &&
+is_injective(up) &&
+!is_injective(up >> Pred{}) &&
+!is_injective(up >> Half{}));
 \end{cpp}
 \end{minipage}
-\caption*{\textbf{Draft 2, to replace Listing~\ref{lst:rule1}:} every name is declared on the page or is the standard's.
-Left: arrows on \cppinline{size_t} as function objects, a composite's parts being its fields, with \cppinline{f >> g} for $g \circ f$.
-Right: a law, here \emph{monic}, that is injective, as a table: false where nothing is declared, declared true at three atoms, inferred at a composite from its parts, and read by a function.
-\cppinline{Half} has no entry, so no composite through it is known to be monic.}
+\caption*{\textbf{Draft 3, to replace Listing~\ref{lst:rule1}.} \hyperref[def:rule1]{Rule~1}: Substitution.
+Left: the rule in code.
+An arrow is a value: its parts are its fields, its call is \cppinline{const}, and it is evaluated while compiling, so a named arrow such as \cppinline{up} can be copied and put in the place of its definition.
+\cppinline{f >> g} applies \cppinline{f}, then \cppinline{g}.
+Right: a law as a table.
+\cppinline{injective}, one-to-one, is false where nothing is declared, each line after \cppinline{template <>} is an entry, and the entry for a composite is computed from its parts'.
+\cppinline{Pred} is one-to-one and has no entry, and \cppinline{Half} is not one-to-one: both answer false, which means not known.
+The table and the constrained parameters are sugar (Appendix~\ref{app:fjlt:closure}).}
 \end{listing}
 
 A function object is a value, as an abstraction is in the $\lambda$-calculus~\cite{pierce2002tapl}: the arguments it binds are its fields, and its call operator is a \cppinline{const} member function like any other.
