@@ -15,7 +15,7 @@ Rules~1 and~3 are posture outside compile-time evaluation (Table~\ref{tab:postur
 
 \paragraph{Lookup stops at \cppinline{std}.}
 A name in a template is looked up twice: at the template's definition, among the declarations visible there, and at instantiation only by argument-dependent lookup, in the namespaces of the argument types, which for a standard type is \cppinline{std}, where no instance of ours lives.
-So an instance declared after the shape is found only as a specialisation of a primary template the shape names, as Listing~\ref{lst:rule2}'s deleted \cppinline{unit} is, and a constrained overload must precede the shape.
+So an instance declared after the shape is found only as a specialisation of a primary template the shape names, and a constrained overload must precede the shape.
 This is a constraint on declaration order that the translation's instance resolution does not have, and FJlt resolves it by fiat: an instance is a specialisation of the trait, found by the trait's name.
 
 

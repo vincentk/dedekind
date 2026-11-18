@@ -300,7 +300,7 @@ An instance on a structured head, such as a pair, asks only about the parts of i
 So each step descends by the type, as Haskell's Paterson conditions do~\cite{sulzmann2007understanding}.
 An instance on an unstructured head, a type variable or a concrete type, has no parts to descend to, so it asks only about shapes declared before the trait it instantiates.
 A generic \cppinline{unit<T>} requiring \cppinline{IsMonoid<T>}, which calls \cppinline{unit}, would make \cppinline{IsMonoid<T>} ask for itself at the same \cppinline{T}; the condition refuses it, and each step descends by declaration order instead.
-A trait's specialisations may still follow the shapes that call it, as Listing~\ref{lst:rule2}'s do, since they depend on a shape only through their bodies and contexts.
+A trait's specialisations may still follow the shapes that call it, since they depend on a shape only through their bodies and contexts.
 
 Two more conditions close the recursion of the declarations themselves.
 A term type is strictly positive: in the translated field types of its nodes, the type occurs only directly, never under the domain of a function type.
