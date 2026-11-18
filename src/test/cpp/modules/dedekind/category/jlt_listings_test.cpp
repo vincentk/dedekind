@@ -1258,7 +1258,7 @@ static_assert(std::same_as<decltype(a), const Then<Succ, Then<Neg, Succ>>> &&
 // integer, with the unit still a value.  An entry for the family cannot fix a
 // value whose type depends on the entry's own parameter, so two spellings are
 // tried: (a) the value stays a parameter and the entry constrains it; (b) the
-// carrier is deduced from the unit.
+// carrier is deduced from the unit, which does not compile (see below).
 namespace carrier_probe {
 template <typename T, T e>
 concept IsZero = e == T{0};
@@ -1277,26 +1277,12 @@ static_assert(
     monoid_a<std::uint8_t, std::multiplies<std::uint8_t>, std::uint8_t{1}> &&
     !monoid_a<std::size_t, std::plus<std::size_t>, 1uz>);
 
-template <typename Op, auto e>
-constexpr bool monoid_b = false;
-template <std::unsigned_integral T>
-constexpr bool monoid_b<std::plus<T>, T{0}> = true;
-template <std::unsigned_integral T>
-constexpr bool monoid_b<std::multiplies<T>, T{1}> = true;
-template <typename Op, auto e>
-concept IsMonoidB = monoid_b<Op, e> && requires(decltype(e) a, decltype(e) b) {
-  { Op{}(a, b) } -> std::same_as<decltype(e)>;
-};
-template <typename Op, auto e>
-  requires IsMonoidB<Op, e>
-constexpr auto concat_b(decltype(e) v, decltype(e) w) {
-  return Op{}(v, w);
-}
-static_assert(IsMonoidB<std::plus<std::size_t>, 0uz> &&
-              IsMonoidB<std::multiplies<std::uint16_t>, std::uint16_t{1}> &&
-              !IsMonoidB<std::plus<std::size_t>, 1uz> &&
-              !IsMonoidB<std::plus<std::size_t>, std::uint8_t{0}> &&
-              concat_b<std::plus<std::size_t>, 0uz>(40uz, 2uz) == 42);
+// Spelling (b), the carrier deduced from the unit with entries such as
+// monoid_b<std::plus<T>, T{0}>, is refused by the compiler: "type of
+// specialized non-type template argument depends on a template parameter of
+// the partial specialization".  So a family's entry cannot fix its unit, and
+// either the entry constrains the value, as above, or the entries stay at
+// concrete carriers, as in Listing 2.
 }  // namespace carrier_probe
 
 // A draft, not yet a listing: a declared law buys something.  concat over n
