@@ -23,7 +23,7 @@ Figure~\ref{fig:sketch-ir} shows what Clang leaves of the terms of Listing~\ref{
 \midrule
 \texttt{concat<plus<size\_t>, 0uz>(ns)} & $\xrightarrow{\text{\scriptsize all known}}$ & \texttt{ret i64 45} \\[3pt]
 \texttt{concat<multiplies<size\_t>, 1uz>(}\newline \texttt{\ \ views::reverse(views::iota(1uz, n)))} & $\xrightarrow{\text{\scriptsize n at run time}}$ & \texttt{\%k\ = phi i64 [ \%k1, \%loop ], [ \%m, \%entry ]}\newline \texttt{\%a\ = phi i64 [ \%p, \%loop ], [ \%m, \%entry ]}\newline \texttt{\%k1 = add i64 \%k, -1}\newline \texttt{\%p\ = mul i64 \%k1, \%a}\newline \texttt{\%z\ = icmp eq i64 \%k1, 1}\newline \texttt{br i1 \%z, label \%exit, label \%loop} \\[3pt]
-\texttt{concat<plus<size\_t>, 0uz>(}\newline \texttt{\ \ views::reverse(views::iota(0uz, n)))} & $\xrightarrow{\text{\scriptsize n at run time}}$ & no loop: thirteen instructions of arithmetic, a closed formula that the optimiser found \\[3pt]
+\texttt{concat<plus<size\_t>, 0uz>(}\newline \texttt{\ \ views::reverse(views::iota(0uz, n)))} & $\xrightarrow{\text{\scriptsize n at run time}}$ & no loop: thirteen instructions that compute $n(n-1)/2$, a closed formula that the optimiser found \\[3pt]
 \texttt{is\_injective(a)} & $\xrightarrow{\text{\scriptsize a type}}$ & \texttt{ret i1 true} \\[3pt]
 \texttt{length<Then<Succ, Then<Neg, Succ>>>} & $\xrightarrow{\text{\scriptsize a type}}$ & \texttt{ret i64 3} \\[3pt]
 \texttt{a(x)} & $\xrightarrow{\text{\scriptsize x at run time}}$ & \texttt{\%r = sub i64 0, \%x}\newline \texttt{ret i64 \%r} \\[3pt]
@@ -32,6 +32,7 @@ Figure~\ref{fig:sketch-ir} shows what Clang leaves of the terms of Listing~\ref{
 \caption{Sketch. The two running terms compiled by Clang~23 at \texttt{-O2}, with unrolling and vectorisation off and names shortened.
 Top three rows: the fold over a value.
 Bottom three: the folds over a term's type, and the term \texttt{a} applied.
+In the loop, \texttt{\%m} is $n - 1$, the first element and the first result.
 From the repository's fixture \texttt{showcase\_16}.}
 \label{fig:sketch-ir}
 \end{figure}

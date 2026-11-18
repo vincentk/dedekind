@@ -258,14 +258,14 @@ A loop whose end the program shows is sugar for the fold it denotes, and any oth
 \begin{equation}
 \label{eq:cata}
 \begin{aligned}
-g(x) &= g_x \\
+g(x) &= d_x \\
 g(t_1 \gg t_2) &= g(t_1) \otimes g(t_2) \qquad |t_1|, |t_2| < |t_1 \gg t_2|
 \end{aligned}
 \end{equation}
-Here $t$ is a term, $x$ an atom, $t_1 \gg t_2$ a composite of two parts, $g_x$ what is declared at the atom, $\otimes$ how the results at the parts combine, and $|t|$ the length of $t$, its number of atoms.
+Here $t$ is a term, $x$ an atom, $t_1 \gg t_2$ a composite of two parts, $d_x$ the value declared for the atom $x$, $\otimes$ how the results at the parts combine, and $|t|$ the length of $t$, its number of atoms.
 Each node of a term is a class template whose type names its parts', so the term's shape is its type.
 The recursion is the compiler's instantiation: a fold over the term is a template instantiated once per node, the case chosen by the node's type, and it ends because a part is shorter than its whole.
-Listing~\ref{lst:rule1}'s \cppinline{injective} is such a fold, with the declared entries for $g_x$ and conjunction for $\otimes$.
+Listing~\ref{lst:rule1}'s \cppinline{injective} is such a fold, with the declared entries for $d_x$ and conjunction for $\otimes$.
 Listing~\ref{lst:rule3}'s right panel has two more.
 \cppinline{length} has 1 at every atom and $+$ for $\otimes$.
 \cppinline{then} rebuilds a term bracketed to the right, so two terms that differ only in bracketing have one type, which the panel asserts with the standard's \cppinline{same_as}.
