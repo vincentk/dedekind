@@ -60,7 +60,7 @@ static_assert(
 \begin{minipage}[t]{0.46\linewidth}
 \begin{minted}{text}
 concat = Λ T. Λ Op. λ e : T.
-  λ q : { assoc : Bool, op : T → T → T }.
+  λ q : { assoc : Bool, check : Bool, op : T → T → T }.
   λ v. λ w. q.op v w
 
 concat size_t plus 0 d 40 2  ⟶*  42
@@ -68,11 +68,11 @@ concat size_t plus 0 d 40 2  ⟶*  42
 \end{minipage}
 
 \noindent The record $d$ that the call passes is the derivation of \cppinline{IsMonoid<size_t, plus<size_t>, 0uz>}: associativity is a \texttt{true} because Listing~\ref{lst:rule2} declared the entry (\textsc{E-Law}), and the operation is the call the shape asks for (\textsc{E-Op}).
-The shape's check of the unit, \cppinline{Op{}(e, e) == e}, is a truth value computed where the record is built, at the unit the call names.
+The shape's check of the unit, \cppinline{Op{}(e, e) == e}, is a law by the same rule: a closed term of type \cppinline{bool}, evaluated where the record is built, at the unit the call names.
 \cppinline{size_t} is a monoid twice, so it has two records, and the second goes with the unit $1$:
 \begin{minted}{text}
-d  = { assoc = true, op = plus  }      concat size_t plus  0 d  40 2  ⟶*  42
-d' = { assoc = true, op = times }      concat size_t times 1 d' 40 2  ⟶*  80
+d  = { assoc = true, check = true, op = plus  }     concat size_t plus  0 d  40 2  ⟶*  42
+d' = { assoc = true, check = true, op = times }     concat size_t times 1 d' 40 2  ⟶*  80
 \end{minted}
 A typing derivation is a tree, each node one rule applied to one piece of the program, and each rule has its piece of System~F (Table~\ref{tab:rules}).
 So the tree and the translated term have one shape, and Figure~\ref{fig:sketch-derivations} sets them side by side, with the rule that joins them in the middle column.
@@ -84,9 +84,9 @@ So the tree and the translated term have one shape, and Figure~\ref{fig:sketch-d
 \Cpp{}, a tree by indentation & by rule & System~F \\
 \midrule
 \texttt{concat<size\_t, plus<size\_t>, 0uz>(ns)} & $\xrightarrow{\text{\scriptsize\textsc{T-Call}}}$ & $\mathit{concat}\;\mathit{size\_t}\;\mathit{plus}\;0\;d\;\mathit{ns}$ \\
-\hspace*{1.0em}\texttt{IsMonoid<size\_t, plus<size\_t>, 0uz>} & $\xrightarrow{\text{\scriptsize\textsc{E-Shape}}}$ & $d = \{\,\mathit{assoc} = \mathit{true},\ \mathit{op} = \mathit{plus}\,\}$ \\
+\hspace*{1.0em}\texttt{IsMonoid<size\_t, plus<size\_t>, 0uz>} & $\xrightarrow{\text{\scriptsize\textsc{E-Shape}}}$ & $d = \{\,\mathit{assoc} = \mathit{true},\ \mathit{check} = \mathit{true},\ \mathit{op} = \mathit{plus}\,\}$ \\
 \hspace*{2.0em}\texttt{associative<size\_t, plus<size\_t>>} & $\xrightarrow{\text{\scriptsize\textsc{E-Law}}}$ & $\mathit{assoc}$ \\
-\hspace*{2.0em}\texttt{plus\{\}(0uz, 0uz) == 0uz} & $\xrightarrow{\text{\scriptsize check}}$ & $\mathit{true}$ \\
+\hspace*{2.0em}\texttt{plus\{\}(0uz, 0uz) == 0uz} & $\xrightarrow{\text{\scriptsize\textsc{E-Law}}}$ & $\mathit{check}$ \\
 \hspace*{2.0em}\texttt{plus\{\}(a, b)} & $\xrightarrow{\text{\scriptsize\textsc{E-Op}}}$ & $\mathit{op}$ \\
 \hspace*{1.0em}\texttt{ns}, a range of length 10 & $\longrightarrow$ & $\mathit{chain}\;10$ \\
 \hspace*{1.0em}the body of \texttt{concat}, checked once & $\xrightarrow{\text{\scriptsize\textsc{D-Generic}}}$ & $\Lambda T.\,\Lambda \mathit{Op}.\,\lambda e.\,\lambda q.\,\lambda r.\ \ldots$ \\
@@ -108,7 +108,7 @@ So the tree and the translated term have one shape, and Figure~\ref{fig:sketch-d
 \caption{Sketch. The two running terms, each as its typing derivation beside its translation.
 The rules are those of Appendix~\ref{app:fjlt:typing}, and the right column is built by Appendix~\ref{app:fjlt:translation}, one clause per rule.
 $t$ abbreviates the type of \texttt{a}, and $i_x$ the entry of \texttt{injective} at $x$.
-The arrow marked ``check'', a truth value computed in a shape, has no rule yet, and neither have the arrows marked ``table'': the kernel states its recursion over a type for a term's value (\textsc{T-Cata}), and is to state it for a table over types.}
+The arrows marked ``table'' have no rule yet: the kernel states its recursion over a type for a term's value (\textsc{T-Cata}), and is to state it for a table over types.}
 \label{fig:sketch-derivations}
 \end{figure}
 
