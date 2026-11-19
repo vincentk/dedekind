@@ -77,15 +77,13 @@ Omitted as textbook~\cite[Chapters~8, 9 and~11]{pierce2002tapl}: \textsc{T-Var},
 
 \paragraph{Parts.}
 \label{app:fjlt:parts}
-The recursions over a type are stated on the parts of a type, and this is the relation they mean.
-A type is a term, and its parts are its subterms~\cite{baader1998term}: $\tau' \trianglelefteq \tau$, read $\tau'$ is a \emph{part} of $\tau$, when $\tau'$ is $\tau$ or $\tau$ is $T\texttt{<}\overline{\theta}\texttt{>}$ and $\tau'$ is a part of a type among $\overline{\theta}$.
+Section~\ref{sec:posture} states the recursion over a type on proper parts (Equation~\eqref{eq:cata}), and this is that relation on the kernel's types.
+A type is a term: $\tau' \trianglelefteq \tau$, read $\tau'$ is a \emph{part} of $\tau$, when $\tau'$ is $\tau$ or $\tau$ is $T\texttt{<}\overline{\theta}\texttt{>}$ and $\tau'$ is a part of a type among $\overline{\theta}$.
 A \emph{proper part} is a part other than the type itself, $\tau' \triangleleft \tau$.
-Proper parthood is irreflexive and transitive, a strict partial order, which is what every theory of parts and wholes asks of it~\cite{simons1987parts}.
-Nothing more of such a theory is claimed: a constructor of one argument has one proper part and no remainder beside it.
-A type is a finite term, so it has finitely many parts, and a proper part is strictly shorter: $\tau' \triangleleft \tau$ implies $|\tau'| < |\tau|$, with $|\tau|$ the number of constructors in $\tau$.
-The relation is therefore well founded, and a definition that reaches a type only through its proper parts is a definition by Noetherian induction~\cite[III, \S 6.5]{bourbaki1968theoryofsets}.
-That is the form of Equation~\eqref{eq:cata}, and the kernel has it twice: an entry of a trait reads its trait at proper parts of its head (\textsc{D-Entry}), and a function calls itself at proper parts of its first parameter's type (\textsc{D-Rec}, below).
-A base type and a type variable have no proper part.
+The relation is irreflexive and transitive, and nothing more of a theory of parts and wholes is claimed: a constructor of one argument has one proper part and no remainder beside it.
+A proper part is strictly shorter, $\tau' \triangleleft \tau$ implies $|\tau'| < |\tau|$, where $|\tau|$ counts every constructor in $\tau$, which orders the composites of Section~\ref{sec:posture} as their number of atoms does.
+The kernel has the form of Equation~\eqref{eq:cata} twice: an entry of a trait reads its trait at proper parts of its head (\textsc{D-Entry}), and a function calls itself at proper parts of its first parameter's type (\textsc{D-Rec}, below).
+A base type and a type variable have no proper part, and are the atoms of that equation.
 
 \paragraph{Value parameters.}
 \label{app:fjlt:value}
@@ -350,7 +348,7 @@ The library needs the conversion form in three cases: an expression that is a re
 \]
 \caption{The definition check and the declarations, $\vdash D$: a generic body sees its constraints' requirements only.
 $^{\dagger}$~A requirement of $C$, with parameters $\overline{a : \tau_a}$.~$^{\ddagger}$~A constant initialiser.
-$e^{t}$ is $e$ with a variable $t$ for each read of $f$ at a part of $\overline{\sigma}$, of the trait's result type $\tau_t$ there; $e$ makes no other read at a type with a type variable. $^{\diamond}$~Six conditions. The trait's default is declared before. The head $\overline{\sigma}$ is more specialised than the default's~\cite[{\texttt{temp.spec.partial}}]{cpp23standard}. The initialiser's type $\tau$ is the trait's result type at the head, which \Cpp{} does not ask of a specialisation and FJlt does. The initialiser reads $f$ only at proper parts of $\overline{\sigma}$, $\triangleleft$ of Appendix~\ref{app:fjlt:parts}, the $|t_i| < |t|$ of Equation~\eqref{eq:cata}. Of any two entries of $f$ whose heads unify, one is the more specialised at their unifier, so no read is ambiguous at any types. The entry stands above the first read it matches, the second condition on the order of declarations.
+$e^{t}$ is $e$ with a variable $t$ for each read of $f$ at a part of $\overline{\sigma}$, of the trait's result type $\tau_t$ there; $e$ makes no other read at a type with a type variable. $^{\diamond}$~Six conditions. The trait's default is declared before. The head $\overline{\sigma}$ is more specialised than the default's~\cite[{\texttt{temp.spec.partial}}]{cpp23standard}. The initialiser's type $\tau$ is the trait's result type at the head, which \Cpp{} does not ask of a specialisation and FJlt does. The initialiser reads $f$ only at proper parts of $\overline{\sigma}$, the $\triangleleft$ of Equation~\eqref{eq:cata} (\emph{Parts}, above). Of any two entries of $f$ whose heads unify, one is the more specialised at their unifier, so no read is ambiguous at any types. The entry stands above the first read it matches, the second condition on the order of declarations.
 $\overline{\alpha} \vdash \overline{\tau_y}$: a field's type names only the struct's own type variables.}
 \label{fig:fjlt-declarations}
 \end{figure}

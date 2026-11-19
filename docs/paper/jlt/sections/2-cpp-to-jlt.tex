@@ -297,12 +297,17 @@ A loop whose end the program shows is sugar for the fold it denotes, and any oth
 \label{eq:cata}
 \begin{aligned}
 g(x) &= d_x \\
-g(t_1 \gg t_2) &= g(t_1) \otimes g(t_2) \qquad |t_1|, |t_2| < |t_1 \gg t_2|
+g(t_1 \gg t_2) &= g(t_1) \otimes g(t_2) \qquad t_1, t_2 \triangleleft t_1 \gg t_2
 \end{aligned}
 \end{equation}
-Here $t$ is a term, $x$ an atom, $t_1 \gg t_2$ a composite of two parts, $d_x$ the value declared for the atom $x$, $\otimes$ how the results at the parts combine, and $|t|$ the length of $t$, its number of atoms.
+Here $t$ is a term, $x$ an atom, $t_1 \gg t_2$ a composite of two parts, $d_x$ the value declared for the atom $x$, and $\otimes$ how the results at the parts combine.
+$t' \triangleleft t$ says that $t'$ is a \emph{proper part} of $t$: a part of it other than $t$ itself.
+Proper parthood is a strict partial order~\cite{simons1987parts}, on terms the order of proper subterms~\cite{baader1998term}, and an atom is a term with no proper part.
+A term is finite, so a proper part is shorter, $|t'| < |t|$ with $|t|$ the length of $t$, its number of atoms.
+The order is therefore well founded, and a definition of this form is one by Noetherian induction~\cite[III, \S 6.5]{bourbaki1968theoryofsets}.
+In Equation~\eqref{eq:fold} the tail is the proper part and a range has no other, so that recursion is a walk, and this one runs over a tree.
 Each node of a term is a class template whose type names its parts', so the term's shape is its type.
-The recursion is the compiler's instantiation: a fold over the term is a template instantiated once per node, the case chosen by the node's type, and it ends because a part is shorter than its whole.
+The recursion is the compiler's instantiation: a fold over the term is a template instantiated once per node, the case chosen by the node's type, and it ends because a proper part is shorter than its whole.
 Listing~\ref{lst:rule1}'s \cppinline{injective} is such a fold, with the declared entries for $d_x$ and conjunction for $\otimes$.
 Listing~\ref{lst:rule3}'s right panel has two more.
 \cppinline{length} has 1 at every atom and $+$ for $\otimes$.
