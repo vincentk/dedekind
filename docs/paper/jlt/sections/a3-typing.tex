@@ -130,7 +130,7 @@ A shape is then asked, and its laws are checked, once for each normal form.
 \emph{What a value parameter is not.}
 A value argument is an atom of its type and never a part of it: the parts of $T\texttt{<}\overline{\theta}\texttt{>}$ are the types among $\overline{\theta}$.
 So the recursion over a type (Equation~\eqref{eq:cata}) does not read a value argument, and \textsc{D-Entry}'s condition on the parts is unchanged.
-An entry whose head has a value parameter, as \cppinline{constant<Const<v>>} in Listing~\ref{lst:rule1}, matches at every atom of the parameter's type and is an axiom for the family.
+An entry whose head has a value parameter, as the lemma at \cppinline{Mat<T, zero, one>} in Listing~\ref{lst:laws}, matches at every atom of the parameter's type.
 A call operator's own parameters are type variables only.
 \Cpp{} admits a value parameter there too, but a call written $e\texttt{(}\overline{e}\texttt{)}$ has no place for its argument, which the compiler would have to deduce from the types of the call's arguments~\cite[{\texttt{temp.deduct.call}}]{cpp23standard}, and the kernel does without that.
 An argument is not a compound term over parameters, so no declaration instantiates itself at a value computed from its own, and the kernel has no recursion on a value parameter.
@@ -186,7 +186,7 @@ Listing & the claim, as written & says \\
 \multicolumn{3}{@{}l}{\textit{entries, listed by the linter}} \\
 \ref{lst:rule1} & \texttt{injective<Succ>} & adding one is one-to-one \\
 \ref{lst:rule1} & \texttt{injective<Neg>} & negation is one-to-one \\
-\ref{lst:rule1} & \texttt{constant<Const<v>\kern0pt>}, for every \texttt{v}$^{\ast}$ & an arrow that returns its parameter is constant \\
+\ref{lst:rule1} & \texttt{constant<Const>} & an arrow that returns the value it holds is constant \\
 \ref{lst:rule2} & \texttt{associative<size\_t, plus<size\_t>\kern0pt>} & the sum is associative \\
 \ref{lst:rule2} & \texttt{associative<size\_t, multiplies<size\_t>\kern0pt>} & the product is associative \\
 \ref{lst:laws} & \texttt{commutative<size\_t, plus<size\_t>\kern0pt>} & the sum commutes \\
@@ -203,8 +203,7 @@ Listing & the claim, as written & says \\
 \bottomrule
 \end{tabularx}
 \caption{The unproved claims behind Listings~\ref{lst:rule1} to~\ref{lst:laws}: the axioms, the named units and the lemmas.
-The compiler applies the lemmas to the axioms and computes the rest.
-$^{\ast}$~An axiom for a family of types, which the linter's rule, written for an entry at one type, does not list.}
+The compiler applies the lemmas to the axioms and computes the rest.}
 \label{tab:axioms}
 \end{table}
 

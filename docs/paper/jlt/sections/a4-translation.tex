@@ -118,7 +118,7 @@ An atom is a term, a constant or a construction of atoms, and has that term's im
 A trait's default, an entry and a function object take their value parameters the same way, a function object's call function before its fields, and a read or a construction passes the arguments' images.
 A dictionary is built at its arguments as before, a law evaluated at the atoms, and under a value parameter it is the record variable of the assumed shape.
 Nothing is lost by the erasure: resolution reads the source's types, atoms included, before the translation, and the image applies the declaration it chose.
-So \cppinline{Const<7uz>} and \cppinline{Const<8uz>} have one type in the target and two values, each the pair of no fields and its own call function.
+So two types of matrices that differ only in their units, as \cppinline{Mat<size_t, 0uz, 1uz>} and the same over other units, have one type in the target, and the units reach the product as arguments.
 The unit \texttt{e} in Section~\ref{sec:translation}'s side-by-side translation is this $\lambda$.
 
 \paragraph{Declarations and terms.}
