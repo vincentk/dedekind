@@ -10,7 +10,7 @@ It is a reason, not a theorem: the compiler is not among the hypotheses, and its
 \paragraph{From the term to SSA.}
 Instantiation is partial evaluation of the dictionary-passing term (Section~\ref{sec:binding}), finite by \RuleThree{}, and it leaves a closed first-order term over the base types.
 The type abstractions are gone with their arguments, and the record parameters with the records the compiler resolved.
-Every trait call is a call to one specialisation, and the only recursion left is $\mathit{iter}$ and $\mathit{fold}_F$.
+Every read of a trait is one entry or the default, and the only recursion left is $\mathit{iter}$ and $\mathit{fold}_F$.
 For Go, Ellis et al.~\cite{ellis2022generic} prove the dictionary-passing translation correct beside monomorphisation, which Griesemer et al.~\cite{griesemer2020featherweight} proved; \Cpp{} only ever does the second, and the first carries the theorems.
 The compiler lowers the first-order term to static single assignment form~\cite{cytron1991ssa}, and SSA is a functional language: Kelsey showed it to correspond to continuation-passing style~\cite{kelsey1995correspondence}, and Appel reads a basic block as a local function and its $\phi$-nodes as that function's parameters~\cite{appel1998ssa}.
 So a Jlt function is translated twice into a functional language, by Appendix~\ref{app:fjlt:translation} into System~F with records and iterators and by the compiler into first-order functions with tail calls.

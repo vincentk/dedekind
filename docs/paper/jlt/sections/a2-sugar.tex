@@ -5,35 +5,35 @@
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-// D: a trait; its primary stays deleted
-template <typename T>
-constexpr T op(T, T) = delete;
+// D: a trait, its default
+template <typename T, typename Op>
+constexpr bool associative = false;
 
-// D: an instance; + an operator of Sigma
+// D: an entry of the trait
 template <>
-constexpr std::string
-op<std::string>(std::string a, std::string b) {
-  return a + b;
-}
+constexpr bool associative<
+    std::string, std::plus<std::string>> = true;
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-// D: a shape; A its required calls
-template <typename T>
-concept IsMagma =
+// D: a shape; A a law and a required call
+template <typename T, typename Op>
+concept IsSemigroup = associative<T, Op> &&
     requires(const T a, const T b) {
-      { op(a, b) } -> std::same_as<T>;
+      { Op{}(a, b) } -> std::same_as<T>;
     };
 
 // D: a generic function; Q its constraint
-template <typename T> requires IsMagma<T>
+template <typename T, typename Op>
+  requires IsSemigroup<T, Op>
 constexpr T twice(T x) {
-  return op(x, x);
+  return Op{}(x, x);
 }
 
 // e: the closed term the program evaluates
-twice("ab"s) + "c"s == "ababc"s
+twice<std::string, std::plus<std::string>>(
+    "ab"s) + "c"s == "ababc"s
 \end{cpp}
 \end{minipage}
 \caption{A small program, each declaration labelled with its form in Figure~\ref{fig:fjlt-syntax}; its \texttt{\textquotedbl\textquotedbl s} literals are sugar.}
@@ -55,11 +55,11 @@ Listing~\ref{lst:fjlt-reading} reads a small program against the grammar, each d
 \toprule
 & Jlt may write & kept out of the kernel by & the kernel has instead \\
 \midrule
-1 & overloading & the grammar (Section~\ref{sec:jlt-to-fjlt}), except by constraints & generic functions of one name ordered by their constraints, plus their specialisations \\
-2 & argument-dependent lookup & the grammar, and the lookup wall (Section~\ref{sec:limits}) & instances found by the trait's name \\
+1 & overloading & the grammar (Section~\ref{sec:jlt-to-fjlt}), except by constraints & generic functions of one name ordered by their constraints \\
+2 & argument-dependent lookup & the grammar, and the lookup wall (Section~\ref{sec:limits}) & entries found by the trait's name \\
 3 & implicit conversions & the grammar, and Rule~2 for the body & a conversion only where a requirement declares one or a built-in operator's rule places one (Appendix~\ref{app:fjlt:typing}), and the body then sees the declared type \\
 4 & references, moves & erased by the grammar (Section~\ref{sec:jlt-to-fjlt}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
-5 & the sugar: branches on a trait or a concept, lambdas, inheritance, \texttt{*} on an optional, \ldots & the grammar, and desugared (Appendix~\ref{app:fjlt:closure}) & \texttt{?:} on a law, specialisation, an operation struct, a registration, the case form on a sum, \ldots \\
+5 & the sugar: branches on a trait or a concept, lambdas, inheritance, \texttt{*} on an optional, \ldots & the grammar, and desugared (Appendix~\ref{app:fjlt:closure}) & \texttt{?:} on a law, an entry of a trait, an operation struct, the case form on a sum, \ldots \\
 \bottomrule
 \end{tabularx}
 \caption{The filtration from Jlt to its kernel FJlt.
@@ -70,10 +70,11 @@ The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
 \paragraph{Spellings.}
 Most of what a program writes beyond the grammar is a kernel term spelt another way; where a spelling carries a condition, its sentence names the condition and who holds it, the compiler, the repository's linter or a reader.
 A deduced result type, a call's deduced type arguments and a constant are the kernel's own (Appendix~\ref{app:fjlt:typing}); an \cppinline{auto} parameter adds a template parameter the declaration does not write, and is sugar.
-A variable template \cppinline{v<T...> = e} is the nullary function template \cppinline{v<T...>() { return e; }}.
-So is a class template with a static constant member, and constant evaluation of the three agrees.
-A primary that answers \cppinline{false} beside partial specialisations that answer \cppinline{true} is two generic functions whose heads both match.
-Resolution by specificity orders them, as it orders the library's constrained overloads of \cppinline{fold} and \cppinline{concat}.
+A variable template is the kernel's trait as it stands: its primary is the default, and its specialisations are the entries (Appendix~\ref{app:fjlt:trait}).
+A class template with a static constant member is a spelling of it, and constant evaluation of the two agrees.
+A function template can spell a trait only in part, since \Cpp{} has no partial specialisation of one, so an entry at a form cannot be written that way, which is why the kernel takes the variable template.
+The library also registers an operation as a function template with a deleted primary and one explicit specialisation for each carrier.
+That is read as generic functions of one name, one for each carrier, and an operation nobody registered is then a call with no candidate, which fails the shape that asks for it.
 Lookup leaves some FJlt spellings unwritable (Section~\ref{sec:limits}), and there the host's spelling stands for it.
 A \cppinline{const} member function is the generic function with the object as its first parameter, reading its fields where the member read \cppinline{this}.
 A constructor is a function returning the struct, a conversion operator a declared conversion, a default argument an overload with the argument supplied, and a designated initialiser the fields in order.
@@ -118,7 +119,7 @@ That is the function object production of Figure~\ref{fig:fjlt-syntax} to the le
 Rule~1 excludes capture by reference.
 A capturing closure type is neither default constructible nor assignable, so it is not \cppinline{std::semiregular}, and Rule~1 does not admit it as a value.
 It is admitted as sugar instead, judged through its image, which is semiregular since its captures are values.
-A closure type has no name, so a lambda is never a carrier and never the head of an instance.
+A closure type has no name, so a lambda is never a carrier and never the head of an entry.
 A loop's locals are such state, and a loop that shows its end is admitted as sugar the same way, judged through the fold it denotes.
 A counted \cppinline{for (T i = 0; i < n; ++i)} whose counter and bound share one unsigned type \cppinline{T}, and whose body writes neither, is \cppinline{fold_left} over \cppinline{views::iota(T{0}, n)}.
 Since \cppinline{i < n} holds before each increment, \cppinline{++i} cannot wrap; the loop's locals are the fold's state and its body the step.
@@ -171,7 +172,7 @@ The pair plays the role of a two-clause instance chain of Morris and Jones~\cite
 Resolution by specificity picks its branch, not clause order.
 At a concrete type the compiler decides $C\texttt{<T>}$.
 At a type variable the call resolves only where the enclosing context decides it.
-A test \cppinline{std::same_as<T, X>} at a concrete \cppinline{X}, with \cppinline{T} the whole head, makes the first function an explicit specialisation at \cppinline{X}.
+A test \cppinline{std::same_as<T, X>} at a concrete \cppinline{X}, with \cppinline{T} the whole head, makes the first function the one at \cppinline{X} alone, with no type variable left.
 A \cppinline{requires} expression tested in the body is not a declared constraint under Rule~2, and the linter's \texttt{inline-requires} check holds the module at zero.
 
 \paragraph{Undecided calls.}

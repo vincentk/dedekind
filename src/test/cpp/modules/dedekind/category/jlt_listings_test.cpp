@@ -1348,6 +1348,29 @@ static_assert(std::same_as<decltype(a), const Then<Succ, Then<Neg, Succ>>> &&
 // value whose type depends on the entry's own parameter, so two spellings are
 // tried: (a) the value stays a parameter and the entry constrains it; (b) the
 // carrier is deduced from the unit, which does not compile (see below).
+// Appendix A's worked program, each declaration one form of the kernel: a
+// trait's default, an entry, a shape with a law and a required call, a generic
+// function, and the closed term the program evaluates.
+namespace appendix_a_reading {
+using namespace std::string_literals;
+template <typename T, typename Op>
+constexpr bool associative = false;
+template <>
+constexpr bool associative<std::string, std::plus<std::string>> = true;
+template <typename T, typename Op>
+concept IsSemigroup = associative<T, Op> && requires(const T a, const T b) {
+  { Op{}(a, b) } -> std::same_as<T>;
+};
+template <typename T, typename Op>
+  requires IsSemigroup<T, Op>
+constexpr T twice(T x) {
+  return Op{}(x, x);
+}
+static_assert(twice<std::string, std::plus<std::string>>("ab"s) + "c"s ==
+              "ababc"s);
+static_assert(!IsSemigroup<std::string, std::minus<std::string>>);
+}  // namespace appendix_a_reading
+
 namespace carrier_probe {
 template <typename T, T e>
 concept IsZero = e == T{0};
