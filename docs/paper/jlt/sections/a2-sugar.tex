@@ -136,7 +136,7 @@ construction & FJlt, provided & image \\
 \texttt{if constexpr} on a value$^{\ddagger}$ & condition a closed \texttt{bool} term, both branches FJlt of one type under the same constraints & \texttt{p ? A : B} \\
 enumeration, \texttt{switch}$^{\ast}$ & every enumerator handled, each case an FJlt term of one type & a finite sum of units and its nested case \\
 sum$^{\ast\ddagger}$ & branches FJlt on the summands & the case form \\
-\texttt{ranges::size(r) == 0 ? A : B}, with \texttt{*ranges::begin(r)} in \texttt{B} & \texttt{A} and \texttt{B} FJlt terms of one type, \texttt{r} a parameter or a constant & the case form on \texttt{uncons(r)}: \texttt{A} for the empty range, \texttt{B} on the head \\
+\texttt{ranges::size(r) == 0 ? A : B}, with \texttt{*ranges::begin(r)} in \texttt{B} & \texttt{A} and \texttt{B} FJlt terms of one type, \texttt{r} a parameter or a constant & the case form on \texttt{uncons(r)}: \texttt{A} the value for the empty range, and for the other a function object that takes the head beside the tail and returns \texttt{B}, its fields the variables \texttt{B} uses \\
 \texttt{if constexpr} on a constraint$^{\ast\dagger}$ & then-branch FJlt under the constraint, else-branch under its negation & an instance chain, the more constrained generic function preferred \\
 \texttt{if consteval}, or an \texttt{if} on \texttt{is\_constant\_evaluated()}$^{\ddagger}$ & both branches compute the same value on every input & the compile-time branch \\
 \bottomrule

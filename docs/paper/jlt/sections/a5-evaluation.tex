@@ -9,10 +9,10 @@ It is \Cpp{}'s constant evaluation restricted to the grammar, extended by \texts
 Evaluation is small-step and call-by-value on closed terms, $e \longrightarrow e'$, with values and evaluation contexts, the standard library's types as Table~\ref{tab:conventions} adopts them,
 \[
 \begin{array}{rcl}
-v &::=& c \mid f \mid O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}} \mid \texttt{std::pair\{}v\texttt{, }v\texttt{\}} \mid \iota_1\,v \mid \iota_2\,v \mid \texttt{std::optional\{}v\texttt{\}} \mid \texttt{std::nullopt} \\
+v &::=& c \mid f \mid O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}} \mid \texttt{std::pair\{}v\texttt{, }v\texttt{\}} \mid \iota_1\,v \mid \iota_2\,v \mid \texttt{std::optional\{}v\texttt{\}} \mid \texttt{std::nullopt} \mid c_R\texttt{(}\overline{v}\texttt{)} \\
   &\mid& \texttt{std::make\_shared<const }\tau\texttt{>(}v\texttt{)} \\
 E &::=& [\,] \mid f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid E\texttt{(}\overline{e}\texttt{)} \mid v\texttt{(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid \ominus E \mid E \oplus e \mid v \oplus E \mid \tau\texttt{(}E\texttt{)} \mid E \texttt{ ? } e \texttt{ : } e \\
-  &\mid& \iota_i\,E \mid \texttt{case(}E\texttt{, }e\texttt{, }e\texttt{)} \mid \texttt{case(}v\texttt{, }E\texttt{, }e\texttt{)} \mid \texttt{case(}v\texttt{, }v\texttt{, }E\texttt{)} \mid \ldots
+  &\mid& \iota_i\,E \mid \texttt{case(}E\texttt{, }e\texttt{, }e\texttt{)} \mid \texttt{case(}v\texttt{, }E\texttt{, }e\texttt{)} \mid \texttt{case(}v\texttt{, }v\texttt{, }E\texttt{)} \mid c_R\texttt{(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid \ldots
 \end{array}
 \]
 where the elided contexts are the remaining argument positions of pairs, optionals, boxes, projections, constructions, folds and the two branches of a case, each evaluated left to right.
@@ -71,7 +71,8 @@ $\Sigma$ is not a list; the listings also use \cppinline{std::string} with conca
 \[
 \begin{array}{ll}
 \textsc{(S-If)} & \texttt{true ? } e_1 \texttt{ : } e_2 \longrightarrow e_1 \qquad \texttt{false ? } e_1 \texttt{ : } e_2 \longrightarrow e_2 \\[5pt]
-\textsc{(S-Case)} & \texttt{case(}\iota_1\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_f\texttt{(}v\texttt{)} \qquad \texttt{case(}\iota_2\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_g\texttt{(}v\texttt{)} \\[5pt]
+\textsc{(S-Case)} & \texttt{case(}\iota_1\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_f\texttt{(}v\texttt{)} \qquad \texttt{case(}\iota_2\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_g\texttt{(}v\texttt{)} \\
+ & \texttt{case(std::nullopt, }v_e\texttt{, }v_g\texttt{)} \longrightarrow v_e \qquad \texttt{case(std::optional\{}v\texttt{\}, }v_e\texttt{, }v_g\texttt{)} \longrightarrow v_g\texttt{(}v\texttt{)} \\[5pt]
 \textsc{(S-Proj)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}.}y_i \longrightarrow v_i \quad \text{a field, \texttt{std::pair}'s \texttt{first} and \texttt{second} among them} \\[5pt]
 \textsc{(S-Unbox)} & \texttt{*make\_shared<const }\tau\texttt{>(}v\texttt{)} \longrightarrow v \\[5pt]
 \textsc{(S-Fold)} & \texttt{fold\_left(}v_r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow \texttt{fold\_left(}\mathit{next}\,v_r\texttt{, }v_f\texttt{(}v_a\texttt{, }\mathit{head}\,v_r\texttt{), }v_f\texttt{)} \quad \text{if } |v_r| > 0 \\
@@ -91,6 +92,8 @@ $\Sigma$ is not a list; the listings also use \cppinline{std::string} with conca
 \paragraph{Data and recursion.}
 In Figure~\ref{fig:fjlt-eval}, \textsc{S-Fold} consumes the head of the range, so a fold takes as many steps as the range has elements, the bound \RuleThree{} asks for.
 \textsc{S-Size} gives that bound as a value, and \textsc{S-Uncons} the two cases of Equation~\eqref{eq:fold}.
+A range value is an instance's constructor on values, $c_R\texttt{(}\overline{v}\texttt{)}$, as \cppinline{views::iota(0uz, 10uz)} is, and a range's arguments are evaluated first.
+The case form has two readings, by the type of what it reads: on a sum, each branch is a function of its summand, and on an optional, the first branch is the value for the empty one (Table~\ref{tab:conventions}), since nothing is there to apply a function to.
 \textsc{S-Cata} unfolds one node, passing the node itself beside its legs' folds; a leaf has no legs and the algebra is applied to it alone.
 \textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, and constant evaluation does not share its heap with run time (Table~\ref{tab:binding}).
 A law, a constant's initialiser or a \cppinline{static_assert} premise is therefore a constant expression whose value keeps no allocation alive, \cppinline{make_shared} excluded, the condition under which every FJlt program is a Jlt program.

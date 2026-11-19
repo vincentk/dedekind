@@ -410,7 +410,7 @@ source step & target steps & landing, because \\
 \textsc{S-Op} & several & below \\
 \textsc{S-Std}, \textsc{S-Prim}, \textsc{S-Conv} between distinct carriers & a projection where there is one, then a $\delta$-step & the constant the standard or the declaration assigns, by Definition~\ref{def:standard} \\
 \textsc{S-Conv} at a value's own type & one $\beta$-step & $\mathit{conv}_{\tau,\tau} = \lambda x.\,x$ gives $\llbracket v \rrbracket$, structured or not \\
-\textsc{S-If}, \textsc{S-Case} & a case reduction & to the selected branch, or to the translation of the selected application \\
+\textsc{S-If}, \textsc{S-Case} & a case reduction & to the selected branch, or to the translation of the selected application; on an optional the first branch's image is $\lambda u.\,\llbracket v_e \rrbracket$, applied to the unit \\
 \textsc{S-Proj} & a projection, two for a constructed object's field & the selected component \\
 \textsc{S-Unbox} & a projection & the box being a unary product, unboxing is a step on both sides and the simulation stays strict \\
 \textsc{S-Fold} & several & below \\
