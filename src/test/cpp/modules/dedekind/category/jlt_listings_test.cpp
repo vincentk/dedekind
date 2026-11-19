@@ -1238,15 +1238,21 @@ template <>
 constexpr bool distributes<size_t, std::multiplies<size_t>, std::plus<size_t>> =
     true;
 template <typename T, typename Add, typename Times, T zero, T one>
-concept IsSemiring = IsMonoid<T, Add, zero> && IsMonoid<T, Times, one> &&
-                     commutative<T, Add> && distributes<T, Times, Add>;
+concept IsSemiringOver = IsMonoid<T, Add, zero> && IsMonoid<T, Times, one> &&
+                         commutative<T, Add> && distributes<T, Times, Add>;
+// The listing's shape: a semiring under the type's own + and *.
+template <typename T, T zero, T one>
+concept IsSemiring =
+    IsMonoid<T, std::plus<T>, zero> && IsMonoid<T, std::multiplies<T>, one> &&
+    commutative<T, std::plus<T>> &&
+    distributes<T, std::multiplies<T>, std::plus<T>>;
 // 2x2 matrices over a semiring, row by row.  The product names the calls it
 // makes through the shape.
 template <typename T, typename Add, typename Times, T zero, T one>
 struct MatMulOver {
   constexpr std::array<T, 4> operator()(std::array<T, 4> a,
                                         std::array<T, 4> b) const
-    requires IsSemiring<T, Add, Times, zero, one>
+    requires IsSemiringOver<T, Add, Times, zero, one>
   {
     return {Add{}(Times{}(a[0], b[0]), Times{}(a[1], b[2])),
             Add{}(Times{}(a[0], b[1]), Times{}(a[1], b[3])),
@@ -1257,7 +1263,7 @@ struct MatMulOver {
 // The inferred law: the matrices' product is associative, provided their
 // entries form a semiring.  An entry with a context, and no law of its own.
 template <typename T, typename Add, typename Times, T zero, T one>
-  requires IsSemiring<T, Add, Times, zero, one>
+  requires IsSemiringOver<T, Add, Times, zero, one>
 constexpr bool
     associative<std::array<T, 4>, MatMulOver<T, Add, Times, zero, one>> = true;
 // 2x2 matrices over a semiring under the type's own + and *, row by row.  The
@@ -1267,7 +1273,7 @@ template <typename T, T zero, T one>
 struct MatMul {
   constexpr std::array<T, 4> operator()(std::array<T, 4> a,
                                         std::array<T, 4> b) const
-    requires IsSemiring<T, std::plus<T>, std::multiplies<T>, zero, one>
+    requires IsSemiring<T, zero, one>
   {
     return {a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3],
             a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3]};
@@ -1275,7 +1281,7 @@ struct MatMul {
 };
 // The inferred law: the matrices' product is associative for a semiring T.
 template <typename T, T zero, T one>
-  requires IsSemiring<T, std::plus<T>, std::multiplies<T>, zero, one>
+  requires IsSemiring<T, zero, one>
 constexpr bool associative<std::array<T, 4>, MatMul<T, zero, one>> = true;
 using M = std::array<size_t, 4>;
 using Mul = MatMul<size_t, 0uz, 1uz>;
@@ -1283,14 +1289,14 @@ constexpr M identity{1, 0, 0, 1};
 constexpr M fib{1, 1, 1, 0};
 // The inference, asked directly: a semiring below gives a monoid of matrices,
 // and where the entries are no semiring nothing is known.
-static_assert(
-    IsSemiring<size_t, std::plus<size_t>, std::multiplies<size_t>, 0uz, 1uz> &&
-    associative<M, Mul> && !commutative<M, Mul> &&
-    IsMonoid<M, Mul, M{1, 0, 0, 1}> &&
-    !IsSemiring<size_t, std::minus<size_t>, std::multiplies<size_t>, 0uz,
-                1uz> &&
-    !associative<M, MatMulOver<size_t, std::minus<size_t>,
-                               std::multiplies<size_t>, 0uz, 1uz>>);
+static_assert(IsSemiringOver<size_t, std::plus<size_t>, std::multiplies<size_t>,
+                             0uz, 1uz> &&
+              IsSemiring<size_t, 0uz, 1uz> && associative<M, Mul> &&
+              !commutative<M, Mul> && IsMonoid<M, Mul, M{1, 0, 0, 1}> &&
+              !IsSemiringOver<size_t, std::minus<size_t>,
+                              std::multiplies<size_t>, 0uz, 1uz> &&
+              !associative<M, MatMulOver<size_t, std::minus<size_t>,
+                                         std::multiplies<size_t>, 0uz, 1uz>>);
 // A second semiring costs four entries and no code: the bits of size_t under
 // | and &, with units 0 and all ones.  The same concat then composes
 // relations: the swap of two nodes, taken twice, is the identity relation,

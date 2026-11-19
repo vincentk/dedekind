@@ -118,9 +118,11 @@ constexpr bool commutative<size_t, std::plus<size_t>> = true;
 template <>
 constexpr bool distributes<size_t, std::multiplies<size_t>, std::plus<size_t>> =
     true;
-template <typename T, typename Add, typename Times, T zero, T one>
-concept IsSemiring = IsMonoid<T, Add, zero> && IsMonoid<T, Times, one> &&
-                     commutative<T, Add> && distributes<T, Times, Add>;
+template <typename T, T zero, T one>
+concept IsSemiring =
+    IsMonoid<T, std::plus<T>, zero> && IsMonoid<T, std::multiplies<T>, one> &&
+    commutative<T, std::plus<T>> &&
+    distributes<T, std::multiplies<T>, std::plus<T>>;
 // 2x2 matrices over a semiring under the type's own + and *, row by row.  The
 // body writes the operators, and the constraint names std::plus<T> and
 // std::multiplies<T>, which the standard defines as those operators.
@@ -128,7 +130,7 @@ template <typename T, T zero, T one>
 struct MatMul {
   constexpr std::array<T, 4> operator()(std::array<T, 4> a,
                                         std::array<T, 4> b) const
-    requires IsSemiring<T, std::plus<T>, std::multiplies<T>, zero, one>
+    requires IsSemiring<T, zero, one>
   {
     return {a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3],
             a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3]};
@@ -136,7 +138,7 @@ struct MatMul {
 };
 // The inferred law: the matrices' product is associative for a semiring T.
 template <typename T, T zero, T one>
-  requires IsSemiring<T, std::plus<T>, std::multiplies<T>, zero, one>
+  requires IsSemiring<T, zero, one>
 constexpr bool associative<std::array<T, 4>, MatMul<T, zero, one>> = true;
 using M = std::array<size_t, 4>;
 using Mul = MatMul<size_t, 0uz, 1uz>;
