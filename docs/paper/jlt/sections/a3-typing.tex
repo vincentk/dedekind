@@ -125,6 +125,7 @@ Listing & the claim, as written & says \\
 \multicolumn{3}{@{}l}{\textit{entries, listed by the linter}} \\
 \ref{lst:rule1} & \texttt{injective<Succ>} & adding one is one-to-one \\
 \ref{lst:rule1} & \texttt{injective<Neg>} & negation is one-to-one \\
+\ref{lst:rule1} & \texttt{constant<Const<v>\kern0pt>}, for every \texttt{v}$^{\ast}$ & an arrow that returns its parameter is constant \\
 \ref{lst:rule2} & \texttt{associative<size\_t, plus<size\_t>\kern0pt>} & the sum is associative \\
 \ref{lst:rule2} & \texttt{associative<size\_t, multiplies<size\_t>\kern0pt>} & the product is associative \\
 \ref{lst:laws} & \texttt{commutative<size\_t, plus<size\_t>\kern0pt>} & the sum commutes \\
@@ -136,11 +137,13 @@ Listing & the claim, as written & says \\
 \midrule
 \multicolumn{3}{@{}l}{\textit{entries at a form: lemmas, stated and not proved}} \\
 \ref{lst:rule1} & \texttt{injective<Then<F, G>\kern0pt>}, from \texttt{injective<F>} and \texttt{injective<G>} & a composite of one-to-one arrows is one-to-one \\
+\ref{lst:rule1} & \texttt{constant<Then<F, G>\kern0pt>}, from \texttt{constant<F>} or \texttt{constant<G>} & a composite is constant where either part is \\
 \ref{lst:laws} & \texttt{associative<Mat<T, zero, one>, }\ldots\texttt{>}, under \texttt{IsSemiring<T, zero, one>} & matrices over a semiring multiply associatively \\
 \bottomrule
 \end{tabularx}
-\caption{The unproved claims behind Listings~\ref{lst:rule1} to~\ref{lst:laws}: six axioms, three named units and two lemmas.
-The compiler applies the lemmas to the axioms and computes the rest.}
+\caption{The unproved claims behind Listings~\ref{lst:rule1} to~\ref{lst:laws}: the axioms, the named units and the lemmas.
+The compiler applies the lemmas to the axioms and computes the rest.
+$^{\ast}$~An axiom for a family of types, which the linter's rule, written for an entry at one type, does not list.}
 \label{tab:axioms}
 \end{table}
 

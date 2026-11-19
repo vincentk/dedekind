@@ -113,7 +113,8 @@ The value parameter \texttt{e} is one more $\lambda$, which runs ahead of the ke
 \toprule
 \Cpp{}, a tree by indentation & by rule & System~F \\
 \midrule
-\texttt{concat<M, Mul, identity>(views::repeat(fib, n))} & $\xrightarrow{\text{\scriptsize \textsc{T-Call}}}$ & $\mathit{concat}_{\mathit{rep}}\;M\;\mathit{Mul}\;I\;d_M\;(\mathit{repeat}\;\mathit{fib}\;n)$ \\
+\texttt{concat<M, Mul, identity>(}\newline \texttt{\ \ views::transform(views::iota(0uz, n), Const<fib>\{\}))} & $\xrightarrow{\text{\scriptsize \textsc{T-Call}}}$ & $\mathit{concat}_{c}\;M\;\mathit{Mul}\;I\;V\;C\;d_M\;d_C\;r$ \\
+\hspace*{1.0em}\texttt{IsConstant<Const<fib>\kern0pt>} & $\xrightarrow{\text{\scriptsize \textsc{E-Shape}, \textsc{E-Law}, an axiom}}$ & $d_C = \{\,\mathit{law} = \mathit{true}\,\}$ \\
 \hspace*{1.0em}\texttt{IsMonoid<M, Mul, identity>} & $\xrightarrow{\text{\scriptsize \textsc{E-Shape}}}$ & $d_M = \{\,\mathit{assoc} = \mathit{true},\ \mathit{check} = \mathit{true},\ \mathit{op} = \mathit{mul}\,\}$ \\
 \hspace*{2.0em}\texttt{associative<M, Mul>} & $\xrightarrow{\text{\scriptsize \textsc{T-Trait}, a lemma}}$ & the entry for the matrices at $d_S$: $\mathit{true}$ \\
 \hspace*{3.0em}\texttt{IsSemiring<size\_t, 0uz, 1uz>} & $\xrightarrow{\text{\scriptsize \textsc{E-Shape}}}$ & $d_S = \{\,d,\ d',\ \mathit{comm} = \mathit{true},\ \mathit{distr} = \mathit{true}\,\}$ \\
@@ -126,11 +127,11 @@ The value parameter \texttt{e} is one more $\lambda$, which runs ahead of the ke
 \hspace*{2.0em}\texttt{fold\_left(views::iota(0uz, size\_t(bit\_width(n))), }\ldots\texttt{)} & $\xrightarrow{\text{\scriptsize \textsc{T-Fold}}}$ & $\mathit{iter}\,(\mathit{toNat}\,(\mathit{bit\_width}\;n))\,\mathit{step}\,\ldots$ \\
 \hspace*{3.0em}\texttt{Op\{\}(p.base, p.base)}, in \texttt{Halving} & $\xrightarrow{\text{\scriptsize \textsc{T-Req-Assumed}}}$ & $q.\mathit{op}\;\ldots$ \\
 \midrule
-\multicolumn{3}{@{}l}{$\mathit{concat}_{\mathit{rep}}\;M\;\mathit{Mul}\;I\;d_M\;(\mathit{repeat}\;\mathit{fib}\;10) \;\longrightarrow^{*}\; \ldots\,\mathit{iter}\,4\,\ldots \;\longrightarrow^{*}\;$ a matrix whose entry \texttt{b} is 55} \\
+\multicolumn{3}{@{}l}{$\mathit{concat}_{c}\;M\;\mathit{Mul}\;I\;V\;C\;d_M\;d_C\;r$ at $n = 10$ $\;\longrightarrow^{*}\; \ldots\,\mathit{iter}\,4\,\ldots \;\longrightarrow^{*}\;$ a matrix whose entry \texttt{b} is 55} \\
 \bottomrule
 \end{tabularx}
 \caption{Listing~\ref{lst:laws}'s Fibonacci call, as its typing derivation beside its translation.
-$I$ abbreviates \texttt{identity}, $d$ and $d'$ are the records of the two monoids of \cppinline{size_t}, and $\mathit{concat}_{\mathit{rep}}$ is the overload for a \texttt{repeat\_view}.
+$I$ abbreviates \texttt{identity}, $d$ and $d'$ are the records of the two monoids of \cppinline{size_t}, $C$ and $V$ are the types of the constant arrow and of the \texttt{iota}, $r$ is the range, and $\mathit{concat}_{c}$ is the overload for the image of a constant arrow.
 The count of the iterator is the number of bits of $n$, 4 for $n = 10$, where the plain fold's is $n$.}
 \label{fig:sketch-fib}
 \end{figure}
@@ -138,7 +139,7 @@ The count of the iterator is the number of bits of $n$, 4 for $n = 10$, where th
 \noindent The fold over a value takes the same $d$ as the two-argument \cppinline{concat} above, and reaches the operation only through it.
 The unit is an argument and not a field of the record: the value among the template's parameters is one more $\lambda$.
 The range is never a list, and termination is the syntax, $\mathit{iter}\,10$.
-In Figure~\ref{fig:sketch-fib} the law is inferred before it is used: the record $d_M$ exists because the lemma for the matrices applies at the semiring of their elements, $d_S$, whose laws are four axioms, and the overload whose iterator counts the bits of $n$ is eligible because $d_M$ exists, and is chosen as the more specific of the two.
+In Figure~\ref{fig:sketch-fib} the law is inferred before it is used: the record $d_M$ exists because the lemma for the matrices applies at the semiring of their elements, $d_S$, whose laws are four axioms, and the overload whose iterator counts the bits of $n$ is chosen because $d_C$ exists, the record that the arrow is constant.
 Section~\ref{sec:binding} shows the same count, the number of bits of $n$, in the code Clang emits for this call.
 In the fold over a type the law is an ordinary truth value: entailment evaluates the reads while it builds the record, a conjunction of the entries declared at the atoms, and the record holds the result.
 An atom with no entry would contribute $\mathit{false}$, and the same tree would then end in $\mathit{false}$, which means not known.

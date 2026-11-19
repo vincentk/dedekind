@@ -164,7 +164,7 @@ The kernel's case form copairs FJlt terms \cppinline{f} and \cppinline{g} on the
 \cppinline{*} on an optional is partial.
 Under a \cppinline{has_value} guard it desugars to the case form, as the head of a range is admitted only at positive length.
 For a range the guard is \cppinline{ranges::size(r) == 0}, and the image is the case form on \texttt{uncons(r)} (Table~\ref{tab:closure:choice}): Equation~\eqref{eq:fold} guards the head before taking it, and so does the spelling.
-Listing~\ref{lst:laws} reads the one value of its \cppinline{repeat_view} this way.
+Listing~\ref{lst:laws} reads the one value of its range this way.
 In a constant initialiser, constant evaluation refuses the empty case, so the compiler holds the guard, as for Listing~\ref{lst:sites}'s \cppinline{*automaton(sites)}.
 \cppinline{std::get} on a variant is partial too and is not admitted, as a variant is read by the case form.
 

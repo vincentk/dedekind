@@ -176,7 +176,7 @@ The lengths are $j - i$ for \texttt{iota} and for its reverse, and $n$ for \text
 \texttt{reverse} is admitted of \texttt{iota} alone, which is the count down: of a general range it would ask each instance for its last element and the range before it.
 A \texttt{repeat} with no count is not in the kernel, as no range without a length is.
 The instances' types are the standard's views: \texttt{iota\_view<size\_t, size\_t>}, \texttt{reverse\_view} of that, \texttt{repeat\_view<τ, size\_t>} and \texttt{transform\_view<R, G>}.
-A function may take a range by such a type, as Listing~\ref{lst:laws}'s overload takes a \texttt{repeat\_view<T, size\_t>}, and a call then resolves to it as the more specific (Appendix~\ref{app:fjlt:typing}).
+A function may take a range by such a type, as Listing~\ref{lst:laws}'s overload takes a \texttt{transform\_view<V, F>}, and a call then resolves to it as the more specific (Appendix~\ref{app:fjlt:typing}).
 
 \begin{figure}[htbp]
 \[
