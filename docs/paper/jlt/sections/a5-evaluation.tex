@@ -40,6 +40,7 @@ A reference is an optimisation, not a meaning (\RuleOne{}; Table~\ref{tab:adequa
 In Figure~\ref{fig:fjlt-eval-calls}, \textsc{S-Call} substitutes the explicit type arguments first, resolution having chosen the body.
 \textsc{S-Trait} unfolds a read to the initialiser of the declaration it resolves to, an entry or the default, at the types that match.
 A read in a closed term is at concrete types, since \textsc{S-Call} has substituted them.
+A case that calls its own function (\textsc{D-Rec}) needs no rule of its own: \textsc{S-Call} unfolds it, and the calls in the unfolded body are at concrete types, each a redex in turn.
 With the types, \textsc{S-Call}, \textsc{S-Trait} and \textsc{S-Op} put the atoms of the call or the read for the value parameters (Appendix~\ref{app:fjlt:value}), in the body's types and in its terms.
 A closed term's types therefore hold atoms and no parameter, and nothing in a type is ever evaluated.
 Where the atom is a constant's name, the term that takes its place steps by \textsc{S-Const} like any other use of the name.

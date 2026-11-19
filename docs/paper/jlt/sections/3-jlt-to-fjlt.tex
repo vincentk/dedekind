@@ -12,7 +12,6 @@ This section shows them desugared, Section~\ref{sec:translation} translated into
 The paragraphs marked as sketches are drafts of that revision, and the text around them is the previous version's.
 Figure~\ref{fig:sketch-desugar} shows every spelling in the two terms that the grammar does not have, each beside the kernel form it stands for.
 Both sides are \Cpp{}, since the kernel is a subset of it, and the arrow carries the name of the sugar.
-One row runs ahead of the kernel as Figure~\ref{fig:fjlt-syntax} and Appendix~\ref{app:fjlt:typing} state it: \cppinline{then}, a function whose result type follows its argument's.
 
 \begin{figure}[htbp]
 \small
@@ -23,7 +22,7 @@ As written in Listings~\ref{lst:rule1} to~\ref{lst:rule3} & sugar & Kernel form 
 \texttt{template <Arrow F, Arrow G>} & $\xrightarrow{\text{\scriptsize constrained parameter}}$ & \texttt{template <typename F, typename G>}\newline \texttt{\ \ requires Arrow<F> \&\& Arrow<G>} \\[3pt]
 \texttt{template <typename F>}\newline \texttt{constexpr bool injective = false;}\newline \texttt{template <>}\newline \texttt{constexpr bool injective<Succ> = true;} & $\xrightarrow{\text{\scriptsize trait}}$ & unchanged: a trait's default and an entry (\textsc{D-Trait}, \textsc{D-Entry}) \\[3pt]
 \texttt{injective<F> \&\& injective<G>}, the entry at \texttt{Then<F, G>} & $\xrightarrow{\text{\scriptsize recursion at the parts}}$ & unchanged: the initialiser of an entry at a form, which reads the trait at the parts (\textsc{D-Entry}, Equation~\eqref{eq:cata}) \\[3pt]
-\texttt{then(t.f, then(t.g, h))} & $\xrightarrow{\text{\scriptsize recursion at the parts}}$ & unchanged: two overloads ordered by specificity, and the kernel is to type a result that follows its argument's type \\[3pt]
+\texttt{then(t.f, then(t.g, h))} & $\xrightarrow{\text{\scriptsize recursion at the parts}}$ & unchanged: two cases ordered by specificity, the second a function by recursion over a type (\textsc{D-Rec}, Appendix~\ref{app:fjlt:rec}) \\[3pt]
 \texttt{ranges::sized\_range R} with \texttt{range\_value\_t<R>} the same as \texttt{T} & $\xrightarrow{\text{\scriptsize range}}$ & $\mathit{IsRange}\texttt{<R, T>}$, the kernel's constraint on a range that declares its bound \\[3pt]
 \texttt{template <typename T, typename Op, T e>} & $\xrightarrow{\text{\scriptsize value parameter}}$ & unchanged: the kernel's value parameter, of structural type~\cite[{\texttt{temp.param}}]{cpp23standard} \\[3pt]
 \texttt{views::reverse(views::iota(0uz, 10uz))} & $\longrightarrow$ & unchanged: a range of $\mathcal{R}$, of length 10 (Appendix~\ref{app:fjlt:translation}) \\[3pt]

@@ -121,6 +121,22 @@ Nothing is lost by the erasure: resolution reads the source's types, atoms inclu
 So two types of matrices that differ only in their units, as \cppinline{Mat<size_t, 0uz, 1uz>} and the same over other units, have one type in the target, and the units reach the product as arguments.
 The unit \texttt{e} in Section~\ref{sec:translation}'s side-by-side translation is this $\lambda$.
 
+\paragraph{A function by recursion over a type.}
+\label{app:fjlt:translation:rec}
+A case typed by \textsc{D-Rec} (Appendix~\ref{app:fjlt:rec}) takes what its body needs of its own function as parameters, as an entry takes its trait's values at the parts:
+\[
+\begin{array}{@{}l@{\quad}l@{}}
+\texttt{template <}\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ constexpr auto } f\texttt{(}\overline{x}\texttt{) ... } e & \note{by \textsc{D-Rec}} \\
+\qquad \mapsto\; f_j = \Lambda\overline{\alpha}.\,\Lambda\overline{\chi}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{r_i : \overline{\llbracket \sigma_i \rrbracket} \to \chi_i}.\,\lambda\overline{x}.\,\llbracket e^{r} \rrbracket & \note{a type and a function for each call of $f$ in $e$} \\
+\llbracket r_i\texttt{(}\overline{e}\texttt{)} \rrbracket = r_i\,\overline{\llbracket e \rrbracket} & \note{in the body, a call of $f$} \\
+\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_j\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \tau' \rrbracket}\,\overline{d}\,\overline{\varrho}\,\overline{\llbracket e \rrbracket} & \note{\textsc{T-Rec}} \\
+\end{array}
+\]
+Here $\tau'_i$ is the type \textsc{T-Rec} finds for the $i$-th call, and $\varrho_i$ is that call's image without its arguments: where the call translates to $g\,\ldots\,\overline{\llbracket e_i \rrbracket}$, by this clause or by \textsc{T-Call}'s, $\varrho_i$ is $g\,\ldots$, a function of the arguments.
+A result type that follows the argument's type is thus a type argument, found where the call is typed, since System~F computes no type from a type.
+For \cppinline{then} at \cppinline{Then<Succ, Neg>} and \cppinline{Succ}, the inner call is the first case at \cppinline{Neg} and \cppinline{Succ}, of type \cppinline{Then<Neg, Succ>}, and the outer call is the first case at \cppinline{Succ} and that type.
+The image is finite because \textsc{T-Rec}'s derivation is, the first argument's type falling along $\triangleleft$.
+
 \paragraph{Declarations and terms.}
 Figure~\ref{fig:fjlt-translation} translates each declaration on its own; together they form one program.
 The program's image is its definitions in declaration order, each scoping over the definitions and the term after it, so a name is bound before every use (Appendix~\ref{app:fjlt:typing}).

@@ -126,6 +126,7 @@ rule & applies to \\
 \midrule
 \textsc{T-Req-Assumed} & a call matching an assumed requirement, tried first: the leftmost assumed shape and its first matching requirement in declaration order, nested shapes included, with \textsc{T-Conv} where the requirement converts \\
 \textsc{T-Call} & any other call to a generic function: the declaration resolution selects \\
+\textsc{T-Rec} & such a call where the declaration selected is a case of \textsc{D-Rec}, at concrete types \\
 \textsc{T-Trait} & a read of a trait at concrete types: the entry or the default it resolves to \\
 \textsc{T-Val} & a value parameter, a name of $\Delta$ \\
 \textsc{T-Op}, \textsc{T-App} & a call of a function object: \textsc{T-Op} for a standard one, \textsc{T-App} for a declared one \\
@@ -230,6 +231,7 @@ rule & its image has its type, because & relies on \\
 \textsc{T-Construct} & below & \textsc{D-Op} \\
 \textsc{T-Op}, \textsc{T-App} & below & \textsc{T-Construct} \\
 \textsc{T-Call} & below & \textsc{D-Generic} \\
+\textsc{T-Rec} & below & \textsc{D-Rec}, \textsc{T-Call} \\
 \textsc{T-Fold} & below & the callable's rule \\
 \textsc{T-Fold-R} & as \textsc{T-Fold}, with $q_Q$'s fields for the operations, the length coerced to $\mathbb{N}$ & \textsc{T-Fold} \\
 \textsc{T-Size}, \textsc{T-Size-R} & the instance's length, $|\cdot| : \llbracket R \rrbracket \to \llbracket \texttt{size\_t} \rrbracket$, or $q_Q$'s field of that type, applied to $\llbracket r \rrbracket$${}^{\textsc{ih}}$ &  \\
@@ -240,9 +242,14 @@ rule & its image has its type, because & relies on \\
 \addtocounter{table}{-1}
 \endgroup
 \case{\textsc{D-Generic}}the body is typed${}^{\textsc{ih}}$ under $\overline{\alpha}$, the record variables $\overline{q : \llbracket Q \rrbracket}$ and $\overline{x : \llbracket \tau_x \rrbracket}$, so the abstraction has the stated type, $\tau$ the premise's own where $\rho$ is \texttt{auto}.
-Its calls on constrained types are \textsc{T-Req-Assumed}; the declaration order makes the induction well founded, as no body calls itself.
+Its calls on constrained types are \textsc{T-Req-Assumed}; the declaration order makes the induction well founded, as no body calls its own function except a case of \textsc{D-Rec}, treated below.
 \case{\textsc{T-Construct}}the fields have their types${}^{\textsc{ih}}$, and $O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket}$ the call function's, its body typed as a generic function's${}^{\textsc{ih}}$, a standard one's by its constant's type in the target (Definition~\ref{def:target}); so the pair has type $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$.
 \case{\textsc{T-Op} and \textsc{T-App}}$\pi_2\,\llbracket e \rrbracket$ has the call function's type${}^{\textsc{ih}}$, instantiated at the deduced $\overline{\sigma}$; the dictionaries $\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\beta}] \rrbracket}$ have the parameter types${}^{\dagger}$, and the arguments theirs${}^{\textsc{ih}}$.
+\case{\textsc{D-Rec} and \textsc{T-Rec}}By \textsc{D-Rec} and the induction hypothesis on the body, typed with $\overline{r}$ among its variables, $f_j : \forall\overline{\alpha}.\,\forall\overline{\chi}.\,\overline{\llbracket Q \rrbracket} \to \overline{(\overline{\llbracket \sigma_i \rrbracket} \to \chi_i)} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$.
+At a call, the dictionaries have their types${}^{\dagger}$ and the arguments theirs${}^{\textsc{ih}}$.
+Each $\varrho_i$ has type $\overline{\llbracket \sigma_i \rrbracket} \to \llbracket \tau'_i \rrbracket$ at the call's types: it is the image of a call of $f$ whose first argument's type is a proper part of this call's, so the statement holds for it by Noetherian induction on $\triangleleft$ (Appendix~\ref{app:fjlt:parts}), inside the induction on the derivation.
+So the application has type $\llbracket \tau[\overline{\sigma}/\overline{\alpha}][\overline{\tau'}/\overline{\chi}] \rrbracket$ by Lemma~\ref{lem:subst}.
+The derivation is unique, as Theorem~\ref{thm:coherence} needs: resolution is a function at concrete types, and each inner call has one derivation by the same induction.
 \case{\textsc{T-Call}}$f = \Lambda\overline{\alpha}.\,\lambda\overline{q}.\,\lambda\overline{x}.\,\llbracket e_f \rrbracket : \forall\overline{\alpha}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$${}^{\textsc{ih}}$.
 At $\overline{\llbracket \sigma \rrbracket}$ this is the same type with $\overline{\sigma}$ for $\overline{\alpha}$${}^{\ddagger}$.
 The records have the parameter types${}^{\dagger}$, and the arguments theirs${}^{\textsc{ih}}$.
@@ -305,6 +312,7 @@ rule & what the substitution changes & reduces to the concrete side, because \\
 \multicolumn{3}{@{}l}{\textit{(ii), terms}} \\
 \textsc{T-Req-Assumed} & $q_Q.r\,\ldots$ becomes $d.r\,\ldots$ & it reduces to the resolved instance's translation${}^{\dagger}$ \\
 \textsc{T-Call}, \textsc{T-Op}, \textsc{T-App} & their dictionaries & they reduce by (i) \\
+\textsc{T-Rec} & nothing: such a call in a typed term is at concrete types & the same closed term on both sides \\
 \textsc{T-Trait} & nothing: a read in a typed term is at concrete types & the same closed term on both sides \\
 \textsc{T-Val} & $z$ becomes the atom's image & the same closed term on both sides \\
 \textsc{T-Fold-R}, \textsc{T-Size-R}, \textsc{T-Guard-R} & its record & it reduces by (i) \\
@@ -358,6 +366,9 @@ step & the result has the type, because & relies on \\
 \case{\textsc{S-Call} to a generic function}$f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)}$ steps to $e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}]$.
 \textsc{D-Generic} typed $e_f$ under $\overline{\alpha}, \overline{Q}$ and the parameters, and \textsc{T-Call}'s premise entails $\overline{Q}[\overline{\sigma}/\overline{\alpha}]$.
 So (b) types the instantiated body at $\tau[\overline{\sigma}/\overline{\alpha}]$, the call's type, and (a) substitutes the values.
+\case{\textsc{S-Call} to a case of \textsc{D-Rec}}the call steps to the body with types and values in place, in which each call of $f$ now stands at concrete types.
+\textsc{T-Rec}'s last premise types each of those calls, at $\tau'_i$.
+\textsc{D-Rec} typed the body with a variable $r_i$ of result type $\chi_i$ for each, so with $\overline{\tau'}$ for $\overline{\chi}$ and the calls back in place of the variables, (a) and (b) type the reduct at $\tau[\overline{\sigma}/\overline{\alpha}][\overline{\tau'}/\overline{\chi}]$, the call's type.
 \case{\textsc{S-Op}}the same, with the fields among the parameters and the call operator's own type parameters $\overline{\beta}$ instantiated at the deduced $\overline{\sigma}$.
 \end{proof}
 
@@ -436,6 +447,9 @@ source step & target steps & landing, because \\
 \addtocounter{table}{-1}
 \endgroup
 \case{\textsc{S-Call} to a generic function}$f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by type application and $\beta$-reduction to $\llbracket e_f \rrbracket$ with $\overline{\llbracket \sigma \rrbracket}$ for $\overline{\alpha}$, $\overline{d}$ for $\overline{q}$ and $\overline{\llbracket v \rrbracket}$ for $\overline{x}$; by Lemma~\ref{lem:subst-dict}~(ii), with $\overline{d}$ the records \textsc{E-Shape} built for the closed call, the result reduces further to $\llbracket e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \rrbracket$, the term the source stepped to, whose requirement uses are typed by \textsc{T-Call}, under \textsc{T-Conv} where the requirement converts, whose reads are at concrete types, and whose folds at the former type variable are \textsc{T-Fold}'s at the concrete instance.
+\case{\textsc{S-Call} to a case of \textsc{D-Rec}}$f_j\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \tau' \rrbracket}\,\overline{d}\,\overline{\varrho}\,\overline{\llbracket v \rrbracket}$ reduces by type application and $\beta$-reduction to $\llbracket e^{r} \rrbracket$ with types, records and values in place and $\varrho_i$ for $r_i$.
+Each $r_i\,\overline{\llbracket e \rrbracket}$ is then $\varrho_i\,\overline{\llbracket e \rrbracket}$, which is the image of the $i$-th call on those arguments, since $\varrho_i$ is that image without them.
+So the result is the image of the unfolded body, up to Lemma~\ref{lem:subst-dict} as for any generic call.
 \case{\textsc{S-Op}}$(\pi_2\,(\overline{\llbracket v_y \rrbracket}, O_{\mathrm{call}}\,\overline{\llbracket v_y \rrbracket}))\,[\overline{\sigma}]\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by projection, type application and $\beta$-reduction to $\llbracket e_O \rrbracket$ with fields, dictionaries and arguments substituted, which is $\llbracket e' \rrbracket$ by the same argument as for a generic call.
 \case{\textsc{S-Fold}}with $|r| = k + 1$:
 \[ \begin{array}{@{}l@{}}
