@@ -449,7 +449,7 @@ The entry of \cppinline{associative} for the $2 \times 2$ matrices is not declar
 So the compiler infers that the matrices are a monoid, and that inference is what makes the overload by squaring eligible.
 It infers no more than follows: the matrices' product is associative and is not known to commute, and the last block asserts both.
 \cppinline{Squaring} and \cppinline{MatMul} each name in a constraint the calls they make, as \RuleTwo{} asks of a body.
-\cppinline{MatMul} takes the type's own \cppinline{+} and \cppinline{*}, which is less than the general case and enough here: its body writes the operators, and its constraint names \cppinline{plus} and \cppinline{multiplies}, which the standard defines as those operators~\cite[{\texttt{arithmetic.operations}}]{cpp23standard}.
+\cppinline{MatMul} takes the type's own \cppinline{+} and \cppinline{*}: its body writes the operators, and its constraint names \cppinline{plus} and \cppinline{multiplies}, which the standard defines as those operators~\cite[{\texttt{arithmetic.operations}}]{cpp23standard}.
 A $2 \times 2$ matrix is a value of structural type, as an array of structural values is~\cite[{\texttt{array.overview}}]{cpp23standard}, so its unit, the identity matrix, is passed to the shape as $0$ is for addition.
 \cppinline{fib} to the power $n$ holds the $n$-th Fibonacci number, so the last assertion computes one for $n = 10^8$, modulo $2^{64}$, in 64 steps, where the plain fold would not finish while compiling.
 \RuleThree{} makes the plain fold computable, with a stated bound of $10^8$ steps, and the law makes it affordable, with a bound of 64.
