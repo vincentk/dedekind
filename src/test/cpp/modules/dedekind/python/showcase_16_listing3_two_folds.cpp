@@ -98,14 +98,17 @@ struct Halving {
 };
 template <typename T, typename Op, T e>
   requires IsMonoid<T, Op, e>
+constexpr T power(T x, size_t n) {
+  return std::ranges::fold_left(std::views::iota(0uz, 64uz), Power<T>{e, x, n},
+                                Halving<T, Op, e>{})
+      .product;
+}
+template <typename T, typename Op, T e>
+  requires IsMonoid<T, Op, e>
 constexpr T concat(std::ranges::repeat_view<T, size_t> r) {
   return std::ranges::size(r) == 0
              ? e
-             : std::ranges::fold_left(
-                   std::views::iota(0uz, 64uz),
-                   Power<T>{e, *std::ranges::begin(r), std::ranges::size(r)},
-                   Halving<T, Op, e>{})
-                   .product;
+             : power<T, Op, e>(*std::ranges::begin(r), std::ranges::size(r));
 }
 // The monoid pattern one level up.  Two more laws, each a trait with its
 // entries, and a shape that names them beside the two monoids: a semiring.

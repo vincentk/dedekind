@@ -385,34 +385,34 @@ concept IsSemiring =
 template <typename T>
 struct Power { T product, base;
                size_t exponent; };
+
 template <typename T, typename Op, T e>
-struct Halving { constexpr Power<T>
-  operator()(Power<T> p, size_t) const
+struct Halving {
+  constexpr Power<T> operator()(
+      Power<T> p, size_t) const
     requires IsMonoid<T, Op, e> {
-    return {p.exponent % 2 == 1
-                ? Op{}(p.product, p.base)
-                : p.product,
-            Op{}(p.base, p.base),
-            p.exponent / 2}; } };
+    return {
+      p.exponent % 2 == 1
+          ? Op{}(p.product, p.base)
+          : p.product,
+      Op{}(p.base, p.base),
+      p.exponent / 2}; } };
 
 template <typename T, typename Op, T e>
   requires IsMonoid<T, Op, e>
-constexpr T concat(
-    ranges::repeat_view<T, size_t> r) {
-  return ranges::size(r) == 0 ? e
-    : ranges::fold_left(
-          views::iota(0uz, 64uz),
-          Power<T>{e, *ranges::begin(r),
-                   ranges::size(r)},
-          Halving<T, Op, e>{}).product; }
+constexpr T power(T x, size_t n) {
+  return ranges::fold_left(
+      views::iota(0uz, 64uz),
+      Power<T>{e, x, n},
+      Halving<T, Op, e>{}).product; }
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <typename T, T zero, T one>
-struct MatMul { constexpr array<T, 4>
-  operator()(array<T, 4> a,
-             array<T, 4> b) const
+struct MatMul {
+  constexpr array<T, 4> operator()(
+      array<T, 4> a, array<T, 4> b) const
     requires IsSemiring<T, zero, one> {
     return {
       a[0] * b[0] + a[1] * b[2],
@@ -422,9 +422,8 @@ struct MatMul { constexpr array<T, 4>
 
 template <typename T, T zero, T one>
   requires IsSemiring<T, zero, one>
-constexpr bool associative<
-    array<T, 4>, MatMul<T, zero, one>>
-  = true;
+constexpr bool associative<array<T, 4>,
+    MatMul<T, zero, one>> = true;
 
 using M = array<size_t, 4>;
 using Mul = MatMul<size_t, 0uz, 1uz>;
@@ -434,6 +433,10 @@ constexpr M fib{1, 1, 1, 0};
 \end{minipage}
 \vspace{-6pt}
 \begin{cpp}
+template <typename T, typename Op, T e> requires IsMonoid<T, Op, e>
+constexpr T concat(ranges::repeat_view<T, size_t> r) {
+  return ranges::size(r) == 0 ? e : power<T, Op, e>(*ranges::begin(r), ranges::size(r)); }
+
 static_assert(
     IsMonoid<M, Mul, identity> && !commutative<M, Mul> &&
     concat<size_t, plus<size_t>, 0uz>(views::repeat(7uz, 1'000'000'000'000uz))
@@ -445,16 +448,18 @@ static_assert(
 \caption{A declared law, a law inferred from it, and the faster overload they license.
 Top left: two more laws, each a trait with one entry.
 Top right: a semiring as a shape, under the type's own \cppinline{plus} and \cppinline{multiplies}: the two monoids of Listing~\ref{lst:rule2} and the two laws.
-Middle left: \cppinline{concat} over $n$ copies of one value, by repeated squaring, in at most 64 steps.
+Middle left: a power by repeated squaring, in at most 64 steps.
 Middle right: the $2 \times 2$ matrices over a semiring, the inferred law that their product is associative, and their unit.
-Bottom: the same \cppinline{concat} gives a Fibonacci number.}
+Bottom: \cppinline{concat} over $n$ copies of one value as that power, and a Fibonacci number by it.}
 \label{lst:laws}
 \end{listing}
 
 \paragraph{A law buys something.}
 Listing~\ref{lst:laws} adds one overload to Listing~\ref{lst:rule3}'s \cppinline{concat}, chosen where the range is $n$ copies of one value.
 It combines the copies by repeated squaring, which regroups them, so it is correct exactly where the operation is associative, and the shape it requires declares that law.
+\cppinline{power} starts from the unit as the product, the value as the base and the count as the exponent.
 Each step keeps the product times the base to the power of the exponent unchanged and halves the exponent, so 64 steps exhaust any count a \cppinline{size_t} can hold.
+The overload then reads as a sentence: an empty range gives the unit, and any other the head to the power of the length.
 The overload is itself a fold over a value with a declared bound, the 64 bits of $n$ (Equation~\eqref{eq:fold}), so the faster program keeps \RuleThree{} as the slower one does.
 Overload resolution picks it as the more specific, and by Theorem~\ref{thm:coherence} every call makes that choice the same way.
 The listing then repeats Listing~\ref{lst:rule2}'s pattern one level up.
