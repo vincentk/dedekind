@@ -412,8 +412,8 @@ constexpr T power(T x, size_t n) {
 \begin{cpp}
 template <typename T, T zero, T one>
 struct Mat { T a, b, c, d;
-  constexpr bool operator==(const Mat&) const
-      = default;
+  constexpr bool operator==(
+      const Mat&) const = default;
   constexpr Mat operator*(Mat y) const
     requires IsSemiring<T, zero, one> {
     return {
