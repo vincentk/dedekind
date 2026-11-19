@@ -65,6 +65,22 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
+    # The library's axioms, held as a ledger: cheap, needs no build, and fails
+    # first.  A change to an axiom must change tools/jlt-lint/axioms.txt with
+    # it, so that the change is in the diff, where a reviewer reads it.  The
+    # ledger also goes to the run's summary.
+    - name: Check the ledger of axioms
+      run: |
+        python3 tools/jlt-lint/axioms.py --selftest
+        python3 tools/jlt-lint/axioms.py --check
+        {
+          echo "### The library's axioms"
+          echo
+          echo '```'
+          grep -v '^#' tools/jlt-lint/axioms.txt
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
+
     # The toolchain, named once: every later step reads CXX, CC and
     # CLANG_FORMAT, whichever image it runs on.  Clang's CMake packages, for
     # the linter's binary, CMake finds next to the compiler.
