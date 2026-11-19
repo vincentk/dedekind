@@ -122,6 +122,9 @@ The shape and \cppinline{concat} are generic in all three, and the listing decla
 Associativity is declared in a table, as the law of Listing~\ref{lst:rule1} is.
 The unit is passed to the shape as a value, and the shape checks it at one point, \cppinline{Op{}(e, e) == e}.
 A value may be a template argument where its type is structural (\RuleOne{}).
+A shape indexed by a value makes a type depend on a value, in a restricted form.
+The value is a constant of structural type, fixed while compiling~\cite[{\texttt{temp.param}}]{cpp23standard}, as the index of a type is drawn from a constraint domain in Xi and Pfenning's DML~\cite{xi1999dependent}.
+It is never a value of the running program, which dependent type theory admits~\cite{martinlof1984intuitionistic}.
 The standard's \cppinline{plus} and \cppinline{multiplies} are used as they are.
 
 \begin{listing}[htbp]
