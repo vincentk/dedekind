@@ -101,6 +101,39 @@ Anywhere else such a read stands in a shape, as a law or as a required expressio
 So a trait is written by cases and read through a shape, and a declaration names every trait it depends on, as \RuleTwo{} asks.
 A dispatch like that of \cppinline{guessed} in Listing~\ref{lst:rule2}, rewritten as a trait read in the body, is refused for the same reason as the call: the body would depend on a trait that its declaration does not name.
 
+\paragraph{The axioms of a program.}
+\label{app:fjlt:axioms}
+An axiom has one spelling among a trait's declarations: an entry at one type whose value is the literal \cppinline{true}.
+A default, an entry at a form and an entry whose value is computed are not axioms, so a program's axioms can be listed from its text, as Coq's \texttt{Print Assumptions} and Lean's \texttt{\#print axioms} list what a development rests on~\cite{Coq,demoura2021lean}.
+The repository's linter has a rule that does so, with a control that tells the forms apart, and Table~\ref{tab:axioms} is its list for the four listings of Section~\ref{sec:posture}.
+A unit named at a use is a claim of the second form (Section~\ref{sec:posture}), which the shape checks at one point and the rule does not list, and the table gives those by hand.
+What a reviewer, a person or a model, then has to judge is the list: whether each claim is true, whether it is needed or follows from the others, and whether it is there twice.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}p{0.44\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Listing & the claim, as written & says \\
+\midrule
+\multicolumn{3}{@{}l}{\textit{entries, listed by the linter}} \\
+\ref{lst:rule1} & \texttt{injective<Succ>} & adding one is one-to-one \\
+\ref{lst:rule1} & \texttt{injective<Neg>} & negation is one-to-one \\
+\ref{lst:rule2} & \texttt{associative<size\_t, plus<size\_t>\kern0pt>} & the sum is associative \\
+\ref{lst:rule2} & \texttt{associative<size\_t, multiplies<size\_t>\kern0pt>} & the product is associative \\
+\ref{lst:laws} & \texttt{commutative<size\_t, plus<size\_t>\kern0pt>} & the sum commutes \\
+\ref{lst:laws} & \texttt{distributes<size\_t, multiplies<size\_t>, plus<size\_t>\kern0pt>} & the product distributes over the sum \\
+\midrule
+\multicolumn{3}{@{}l}{\textit{units named at a use, checked at one point and not listed}} \\
+\ref{lst:rule2} & \texttt{0uz} at \texttt{plus<size\_t>}, \texttt{1uz} at \texttt{multiplies<size\_t>} & 0 is the unit of the sum, 1 of the product \\
+\ref{lst:laws} & \texttt{identity} at \texttt{multiplies<M>} & the identity matrix is the unit of the matrices' product \\
+\bottomrule
+\end{tabularx}
+\caption{The unproved claims behind Listings~\ref{lst:rule1} to~\ref{lst:laws}.
+Everything else the listings assert is inferred from these or computed.}
+\label{tab:axioms}
+\end{table}
+
 \paragraph{Resolution at a type variable.}
 At concrete types FJlt takes \Cpp{}'s rule as it is.
 At a type variable it adds one condition, which well-formedness requires: in a body with context $\Delta$, a call resolves only when its choice survives every instantiation of the body.

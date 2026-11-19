@@ -224,6 +224,7 @@ An axiom is the programmer's claim, which the compiler does not prove: an entry 
 A false law declaration is possible, and the compiler does not detect it.
 The standard treats its own concepts alike: a type may satisfy one without modelling it, and the program is then ill-formed with no diagnostic required~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.}
 The check on the unit can refute the claim and cannot prove it: it refuses 1 for \cppinline{plus}, and would not refuse 0 for \cppinline{multiplies}.
+An axiom of the first form has one spelling in the source, so a program's axioms can be listed by a tool, and the four listings of this section rest on six (Appendix~\ref{app:fjlt:axioms}, Table~\ref{tab:axioms}).
 A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts, a fold over its type (\RuleThree{}).
 That Listing~\ref{lst:rule1}'s \cppinline{up} is injective is one, inferred for a composite arrow from its two parts, and \cppinline{IsMonoid<size_t, plus<size_t>, 0uz>} is another, inferred from the entry, the call and the check.
 Overload resolution is a simple proof search that finds either kind~\cite{augustsson2005djinn}.
