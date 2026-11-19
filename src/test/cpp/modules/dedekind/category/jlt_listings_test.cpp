@@ -1266,7 +1266,8 @@ constexpr M fib{1, 1, 1, 0};
 // and where the entries are no semiring nothing is known.
 static_assert(
     IsSemiring<size_t, std::plus<size_t>, std::multiplies<size_t>, 0uz, 1uz> &&
-    associative<M, Mul> && IsMonoid<M, Mul, M{1, 0, 0, 1}> &&
+    associative<M, Mul> && !commutative<M, Mul> &&
+    IsMonoid<M, Mul, M{1, 0, 0, 1}> &&
     !IsSemiring<size_t, std::minus<size_t>, std::multiplies<size_t>, 0uz,
                 1uz> &&
     !associative<M, MatMul<size_t, std::minus<size_t>, std::multiplies<size_t>,
