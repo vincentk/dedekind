@@ -353,20 +353,34 @@ A bounded search ends, but it does not always decide its question, since halting
 Codata, structures observed without end, are out of scope~\cite{turner2004total}.
 
 \begin{listing}[htbp]
+\begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <typename T, typename Op>
 constexpr bool commutative = false;
-template <typename T, typename Times, typename Add>
+template <> constexpr bool
+commutative<size_t, plus<size_t>> = true;
+template <typename T, typename Times,
+          typename Add>
 constexpr bool distributes = false;
-template <> constexpr bool commutative<size_t, plus<size_t>> = true;
-template <> constexpr bool distributes<size_t, multiplies<size_t>, plus<size_t>> = true;
-
-template <typename T, typename Add, typename Times, T zero, T one>
-concept IsSemiring = IsMonoid<T, Add, zero> && IsMonoid<T, Times, one> &&
-    commutative<T, Add> && distributes<T, Times, Add>;
+template <> constexpr bool
+distributes<size_t, multiplies<size_t>,
+            plus<size_t>> = true;
 \end{cpp}
-\vspace{-6pt}
+\end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T, typename Add,
+          typename Times, T zero, T one>
+concept IsSemiring =
+    IsMonoid<T, Add, zero> &&
+    IsMonoid<T, Times, one> &&
+    commutative<T, Add> &&
+    distributes<T, Times, Add>;
+\end{cpp}
+\end{minipage}
+
+\vspace{2pt}
+\noindent\begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <typename T>
 struct Power { T result, square;
@@ -430,9 +444,10 @@ static_assert(
         == 14'139'011'350'745'967'675uz);
 \end{cpp}
 \caption{A declared law, a law inferred from it, and the faster overload they license.
-Top: two more laws, and a semiring as a shape: two monoids of Listing~\ref{lst:rule2} and the two laws.
-Left: \cppinline{concat} over $n$ copies of one value, by repeated squaring, in at most 64 steps.
-Right: the $2 \times 2$ matrices over a semiring under its own \cppinline{+} and \cppinline{*}, and the inferred law that their product is associative.
+Top left: two more laws, each a trait with one entry.
+Top right: a semiring as a shape, the two monoids of Listing~\ref{lst:rule2} and the two laws.
+Middle left: \cppinline{concat} over $n$ copies of one value, by repeated squaring, in at most 64 steps.
+Middle right: the $2 \times 2$ matrices over a semiring under its own \cppinline{+} and \cppinline{*}, and the inferred law that their product is associative.
 Bottom: the same \cppinline{concat} gives a Fibonacci number.}
 \label{lst:laws}
 \end{listing}
