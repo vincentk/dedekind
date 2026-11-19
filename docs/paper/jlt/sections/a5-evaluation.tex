@@ -72,8 +72,9 @@ $\Sigma$ is not a list; the listings also use \cppinline{std::string} with conca
 \begin{array}{ll}
 \textsc{(S-If)} & \texttt{true ? } e_1 \texttt{ : } e_2 \longrightarrow e_1 \qquad \texttt{false ? } e_1 \texttt{ : } e_2 \longrightarrow e_2 \\[5pt]
 \textsc{(S-Case)} & \texttt{case(}\iota_1\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_f\texttt{(}v\texttt{)} \qquad \texttt{case(}\iota_2\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_g\texttt{(}v\texttt{)} \\[5pt]
-\textsc{(S-Guard)} & \texttt{ranges::size(}v_r\texttt{) == 0 ? } a \texttt{ : } b \longrightarrow a \ \text{ if } |v_r| = 0, \qquad \longrightarrow b[\mathit{head}\,v_r / \texttt{*ranges::begin(}v_r\texttt{)}] \ \text{ if } |v_r| > 0 \\
- & \texttt{std::nullopt ? } b \texttt{ : } a \longrightarrow a \qquad \texttt{std::optional\{}v\texttt{\} ? } b \texttt{ : } a \longrightarrow b[v / \texttt{*std::optional\{}v\texttt{\}}] \\[5pt]
+\textsc{(S-Guard)} & \texttt{ranges::size(}v_r\texttt{) == 0 ? } a \texttt{ : } b \longrightarrow a \quad \text{if } |v_r| = 0 \\
+ & \texttt{ranges::size(}v_r\texttt{) == 0 ? } a \texttt{ : } b \longrightarrow b[v_h / \texttt{*ranges::begin(}v_r\texttt{)}] \quad \text{if } |v_r| > 0 \text{ and } \mathit{head}\,v_r \Downarrow v_h \\
+ & v_s \texttt{ ? } b \texttt{ : } a \longrightarrow a \ \text{ if } v_s \text{ is empty}, \qquad \longrightarrow b[v / \texttt{*}v_s] \ \text{ if } v_s \text{ holds } v \\[5pt]
 \textsc{(S-Proj)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}.}y_i \longrightarrow v_i \quad \text{a field, \texttt{std::pair}'s \texttt{first} and \texttt{second} among them} \\[5pt]
 \textsc{(S-Unbox)} & \texttt{*make\_shared<const }\tau\texttt{>(}v\texttt{)} \longrightarrow v \\[5pt]
 \textsc{(S-Fold)} & \texttt{fold\_left(}v_r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow \texttt{fold\_left(}\mathit{next}\,v_r\texttt{, }v_f\texttt{(}v_a\texttt{, }\mathit{head}\,v_r\texttt{), }v_f\texttt{)} \quad \text{if } |v_r| > 0 \\
@@ -91,8 +92,10 @@ $\Sigma$ is not a list; the listings also use \cppinline{std::string} with conca
 \paragraph{Data and recursion.}
 In Figure~\ref{fig:fjlt-eval}, \textsc{S-Fold} consumes the head of the range, so a fold takes as many steps as the range has elements, the bound \RuleThree{} asks for.
 \textsc{S-Size} gives that bound as a value.
-\textsc{S-Guard} takes a conditional under a guard in one step, to the branch the guard selects, with the head or the content put in for the dereference: the two cases of Equation~\eqref{eq:fold}.
-A guard is not evaluated as a condition first: the context $E \texttt{ ? } e \texttt{ : } e$ does not apply to a conditional whose condition is a guard, and \textsc{S-Guard} does.
+\textsc{S-Guard} takes a conditional under a guard in one step, to the branch the guard selects: the two cases of Equation~\eqref{eq:fold}.
+The head of a range may be a term still to be evaluated, as the head of a \texttt{transform} is its arrow applied, so the rule evaluates it first, in its premise, and puts the value in for the dereference.
+A dereference therefore never stands in a term on its own, and none is ever stuck.
+A guard is not evaluated as a condition first: the context $E \texttt{ ? } e \texttt{ : } e$ is for a conditional that is not a guard, and \textsc{S-Guard} is the only rule for one that is, so the choice of redex stays unique.
 A range value is an instance's constructor on values, $c_R\texttt{(}\overline{v}\texttt{)}$, as \cppinline{views::iota(0uz, 10uz)} is, and a range's arguments are evaluated first.
 \textsc{S-Case} is the case on a sum of two summands, a variant, each branch a function of its summand, which \Cpp{} writes \cppinline{std::visit} and the listings do not use.
 For it alone the rules keep a shorthand that is not \Cpp{}: $\iota_i\,v$ for a variant that holds $v$ at its $i$-th alternative, and \texttt{case(}$s$\texttt{, }$f$\texttt{, }$g$\texttt{)} for \cppinline{std::visit} with the two branches.

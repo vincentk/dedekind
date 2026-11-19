@@ -129,7 +129,7 @@ rule & applies to \\
 \textsc{T-Op}, \textsc{T-App} & a call of a function object: \textsc{T-Op} for a standard one, \textsc{T-App} for a declared one \\
 \textsc{T-Fold}, \textsc{T-Fold-R} & a fold over a range of $\mathcal{R}$, or over a type variable $R$ under $\mathit{IsRange}$ \\
 \textsc{T-Size}, \textsc{T-Size-R} & the length of a range of $\mathcal{R}$, or of a type variable $R$ under $\mathit{IsRange}$ \\
-\textsc{T-Guard}, \textsc{T-Guard-Opt} & a conditional whose condition is a guard on a range or an optional, tried before the rule for any other conditional \\
+\textsc{T-Guard}, \textsc{T-Guard-R}, \textsc{T-Guard-Opt} & a conditional whose condition is a guard on a range or an optional, a shape these rules reserve: no other rule types it \\
 \textsc{T-Node} & a term of node type, only where $\mu F$ is expected \\
 \bottomrule
 \end{tabularx}
@@ -220,7 +220,7 @@ rule & its image has its type, because & relies on \\
 \textsc{T-Fold} & below & the callable's rule \\
 \textsc{T-Fold-R} & as \textsc{T-Fold}, with $q_Q$'s fields for the operations, the length coerced to $\mathbb{N}$ & \textsc{T-Fold} \\
 \textsc{T-Size}, \textsc{T-Size-R} & the instance's length, $|\cdot| : \llbracket R \rrbracket \to \llbracket \texttt{size\_t} \rrbracket$, or $q_Q$'s field of that type, applied to $\llbracket r \rrbracket$${}^{\textsc{ih}}$ &  \\
-\textsc{T-Guard}, \textsc{T-Guard-Opt} & the target's case on the instance's $\mathit{uncons} : \llbracket R \rrbracket \to 1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket$ applied to $\llbracket r \rrbracket$${}^{\textsc{ih}}$, or on $\llbracket s \rrbracket : 1 + \llbracket \tau \rrbracket$${}^{\textsc{ih}}$, both branches at $\sigma$${}^{\textsc{ih}}$, the second under $h : \llbracket \tau \rrbracket$ &  \\
+\textsc{T-Guard}, \textsc{T-Guard-R}, \textsc{T-Guard-Opt} & the target's case on the instance's $\mathit{uncons} : \llbracket R \rrbracket \to 1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket$, or $q_Q$'s field of that type, applied to $\llbracket r \rrbracket$${}^{\textsc{ih}}$, or on $\llbracket s \rrbracket : 1 + \llbracket \tau \rrbracket$${}^{\textsc{ih}}$, both branches at $\sigma$${}^{\textsc{ih}}$, the second under $h : \llbracket \tau \rrbracket$ &  \\
 \textsc{T-Node} & $\mathit{node}_{O} : \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket \to \mu F$, by induction on the term type, whose legs are smaller, applied to $\llbracket t \rrbracket$ of the node's type${}^{\textsc{ih}}$ &  \\
 \textsc{T-Cata} & below & \textsc{T-Node} \\
 \end{longtable}
@@ -293,7 +293,7 @@ rule & what the substitution changes & reduces to the concrete side, because \\
 \textsc{T-Req-Assumed} & $q_Q.r\,\ldots$ becomes $d.r\,\ldots$ & it reduces to the resolved instance's translation${}^{\dagger}$ \\
 \textsc{T-Call}, \textsc{T-Op}, \textsc{T-App} & their dictionaries & they reduce by (i) \\
 \textsc{T-Trait} & nothing: a read in a typed term is at concrete types & the same closed term on both sides \\
-\textsc{T-Fold-R}, \textsc{T-Size-R}, \textsc{T-Guard} at a type variable & its record & it reduces by (i) \\
+\textsc{T-Fold-R}, \textsc{T-Size-R}, \textsc{T-Guard-R} & its record & it reduces by (i) \\
 every other rule & its subterms & structural${}^{\textsc{ih}}$ \\
 \end{longtable}
 \addtocounter{table}{-1}
@@ -309,7 +309,7 @@ If $\varnothing; \varnothing \vdash e : \tau$ and $e \longrightarrow e'$ in FJlt
 
 \begin{proof}
 Two substitution facts carry it.
-(a) Substituting terms of the parameters' types, typed under the surrounding context, for the parameters keeps a typing, the textbook substitution lemma~\cite{pierce2002tapl}; the values \textsc{S-Call} substitutes are a special case.
+(a) Substituting terms of the parameters' types, typed under the surrounding context, for the parameters keeps a typing, the textbook substitution lemma~\cite{pierce2002tapl}, with one restriction: for a parameter that a guard tests, only a value is substituted, which is what \textsc{S-Call} does, and the conditional is then the same rule's instance at that value.
 (b) If $\overline{\alpha}, \overline{Q}; \Gamma \vdash e : \tau$ and $\varnothing \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}]$, then $\varnothing; \Gamma[\overline{\sigma}/\overline{\alpha}] \vdash e[\overline{\sigma}/\overline{\alpha}] : \tau[\overline{\sigma}/\overline{\alpha}]$, by induction on the typing derivation.
 Its cases with work are two.
 \textsc{T-Req-Assumed}: at concrete types the site is the requirement's expression with its arguments, which \textsc{E-Op}'s premise types at the instantiated constraint, the arguments substituted by (a), under \textsc{T-Conv} where the requirement converts; so it is typed at the declared type by whichever rule types that expression, \textsc{T-Call}, \textsc{T-Trait}, \textsc{T-App}, \textsc{T-Op} or an operator's.
@@ -335,7 +335,7 @@ step & the result has the type, because & relies on \\
 \textsc{S-Proj}, \textsc{S-Unbox} & the component's or the content's type &  \\
 \textsc{S-Fold} & the step's result has type $\sigma$, and the tail the range's type, its conditions kept & \textsc{T-Fold} \\
 \textsc{S-Size} & a constant of \texttt{size\_t} & \textsc{T-Size} \\
-\textsc{S-Guard} & the selected branch's type $\sigma$, the second with the head or the content, of type $\tau$, for the dereference (a) & \textsc{T-Guard}, \textsc{T-Guard-Opt} \\
+\textsc{S-Guard} & the selected branch's type $\sigma$, the second with a value of type $\tau$ for the dereference, the head's by subject reduction along the premise, or the optional's content (a) & \textsc{T-Guard}, \textsc{T-Guard-R}, \textsc{T-Guard-Opt} \\
 \textsc{S-Cata} & the algebra applied to the node and its legs' results, each of type $\sigma$ & \textsc{T-Cata}, \textsc{T-Node} \\
 \textsc{S-Ctx} & the hole's type is unchanged${}^{\textsc{ih}}$ &  \\
 \end{longtable}
@@ -374,7 +374,7 @@ $\tau\texttt{(}c\texttt{)}$ & \textsc{S-Conv} & the condition on conversions \\
 a conditional, a case, a projection, an unbox & \textsc{S-If}, \textsc{S-Case}, \textsc{S-Proj}, \textsc{S-Unbox} & canonical forms: a constant of type \texttt{bool}, an injection (\textsc{T-Case}), a pair or a constructed object, a box \\
 a fold over a range value & \textsc{S-Fold} & its two cases cover every length \\
 the length of a range value & \textsc{S-Size} & every range value has one \\
-a conditional under a guard, on a range value or an optional value & \textsc{S-Guard} & its two cases cover every length, and both forms of an optional \\
+a conditional under a guard, on a range value or an optional value & \textsc{S-Guard} & its cases cover every length and both forms of an optional, and the head of a non-empty range evaluates to a value${}^{\textsc{ih}}$, being a well-typed closed term \\
 a \texttt{cata} on a node & \textsc{S-Cata} & it covers every node, leaves included \\
 \end{longtable}
 \addtocounter{table}{-1}
@@ -390,6 +390,7 @@ In particular $\llbracket e \rrbracket \sqsupseteq e$, and $t \sqsupseteq c$ onl
 If $t \sqsupseteq e$ and $e \longrightarrow e'$ then $t \longrightarrow^{+} t'$ for some $t' \sqsupseteq e'$, and a value of base type translates to a constant.
 \end{lemma}
 \noindent\emph{Sketch.}\ By cases on the rule the source steps by; where the source counts, a fold's count or a node's reading, the target runs ahead, which $\sqsupseteq$ absorbs.
+Where two guards in one term come to test one value, the translation before the step has a variable for each and after it one for both; the two terms have one normal form, and the lemma is stated for $\sqsupseteq$ taken up to that identification.
 
 \begin{proof}
 Values: a constant translates to a constant; a function object with fields translates to a pair whose second component, $O_{\mathrm{call}}$ applied to the fields, may still reduce, which is why the claim is made for base types.
@@ -415,7 +416,7 @@ source step & target steps & landing, because \\
 \textsc{S-Unbox} & a projection & the box being a unary product, unboxing is a step on both sides and the simulation stays strict \\
 \textsc{S-Fold} & several & below \\
 \textsc{S-Size} & the rules of the instance's length & the constant of \texttt{size\_t} for $|r|$, by Assumption~\ref{ass:ranges} \\
-\textsc{S-Guard} & the rules of the instance's $\mathit{uncons}$, by Assumption~\ref{ass:ranges}, then a case reduction and a $\beta$-step & $\llbracket a \rrbracket$, or $\llbracket b^{h} \rrbracket$ with the head's translation for $h$, which is the reduct's translation by Lemma~\ref{lem:subst}; for an optional the case reduction alone \\
+\textsc{S-Guard} & the rules of the instance's $\mathit{uncons}$, by Assumption~\ref{ass:ranges}, a case reduction, a $\beta$-step, a projection at each use of the head, and the steps that match the premise${}^{\textsc{ih}}$ & $\llbracket a \rrbracket$, or $\llbracket b^{h} \rrbracket$ with the translation of the head's value for $h$, which is the reduct's translation by Lemma~\ref{lem:subst}; for an optional the case reduction and a $\beta$-step \\
 \textsc{S-Cata} & several & below \\
 \end{longtable}
 \addtocounter{table}{-1}
