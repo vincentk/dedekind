@@ -1087,16 +1087,27 @@ constexpr bool computes =
 // operation with no entry, are refused.
 namespace listings_2_to_4 {
 using std::size_t;
-template <typename T, typename Op, T e>
-constexpr bool monoid = false;
+template <typename T, typename Op>
+constexpr bool associative = false;
 template <>
-constexpr bool monoid<size_t, std::plus<size_t>, 0uz> = true;
+constexpr bool associative<size_t, std::plus<size_t>> = true;
 template <>
-constexpr bool monoid<size_t, std::multiplies<size_t>, 1uz> = true;
+constexpr bool associative<size_t, std::multiplies<size_t>> = true;
 template <typename T, typename Op, T e>
-concept IsMonoid = std::regular<T> && monoid<T, Op, e> && requires(T a, T b) {
+concept IsMonoid = std::regular<T> && associative<T, Op> && requires(T a, T b) {
   { Op{}(a, b) } -> std::same_as<T>;
-};
+} && Op{}(e, e) == e;
+// Associativity is declared.  The unit is the programmer's claim, made by
+// naming it, and the shape checks it at one point.  The check refutes and
+// does not prove: 1 is refused for plus, 0 is not refused for multiplies.
+static_assert(!IsMonoid<size_t, std::plus<size_t>, 1uz> &&
+              IsMonoid<size_t, std::multiplies<size_t>, 0uz>);
+// A type declared associative that has no call is refused by the conjunct
+// before the check, so the check is never formed: false, and no error.
+struct NoCall {};
+template <>
+constexpr bool associative<size_t, NoCall> = true;
+static_assert(!IsMonoid<size_t, NoCall, 0uz>);
 template <typename T, typename Op, T e>
   requires IsMonoid<T, Op, e>
 constexpr T concat() {
@@ -1216,7 +1227,7 @@ struct Mul {
   }
 };
 template <>
-constexpr bool monoid<M, Mul, M{1, 0, 0, 1}> = true;
+constexpr bool associative<M, Mul> = true;
 constexpr M fib{1, 1, 1, 0};
 static_assert(
     concat<size_t, std::plus<size_t>, 0uz>(

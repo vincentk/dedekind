@@ -188,16 +188,16 @@ struct Plus {
 struct Times {
   constexpr unsigned operator()(unsigned a, unsigned b) const { return a * b; }
 };
-template <typename Op, unsigned e>
-constexpr bool monoid = false;
+template <typename Op>
+constexpr bool associative = false;
 template <>
-constexpr bool monoid<Plus, 0u> = true;
+constexpr bool associative<Plus> = true;
 template <>
-constexpr bool monoid<Times, 1u> = true;
+constexpr bool associative<Times> = true;
 template <typename Op, unsigned e>
-concept IsMonoid = monoid<Op, e> && requires(unsigned a, unsigned b) {
+concept IsMonoid = associative<Op> && requires(unsigned a, unsigned b) {
   Op{}(a, b);
-};
+} && Op{}(e, e) == e;
 template <typename Op>
 constexpr unsigned empty(Op) {
   return 0;

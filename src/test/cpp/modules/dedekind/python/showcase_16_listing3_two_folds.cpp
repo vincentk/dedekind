@@ -58,16 +58,16 @@ constexpr bool is_injective(F) {
 }
 
 // Listing 2: a monoid on size_t as an operation and its unit.
-template <typename Op, size_t e>
-constexpr bool monoid = false;
+template <typename Op>
+constexpr bool associative = false;
 template <>
-constexpr bool monoid<std::plus<size_t>, 0uz> = true;
+constexpr bool associative<std::plus<size_t>> = true;
 template <>
-constexpr bool monoid<std::multiplies<size_t>, 1uz> = true;
+constexpr bool associative<std::multiplies<size_t>> = true;
 template <typename Op, size_t e>
-concept IsMonoid = monoid<Op, e> && requires(size_t a, size_t b) {
+concept IsMonoid = associative<Op> && requires(size_t a, size_t b) {
   { Op{}(a, b) } -> std::same_as<size_t>;
-};
+} && Op{}(e, e) == e;
 
 // Listing 3: the two recursions.
 template <typename Op, size_t e, std::ranges::sized_range R>

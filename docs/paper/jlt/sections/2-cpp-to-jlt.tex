@@ -119,20 +119,24 @@ Listing~\ref{lst:rule2}'s \cppinline{concat} is written once, against a monoid: 
 So it is a function of the monoid's dictionary, the record of its operations, and it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
 The listing takes a monoid to be a carrier, an operation and its unit, as algebra writes $(S, +, 0)$.
 The shape and \cppinline{concat} are generic in all three, and the listing declares two monoids, both on \cppinline{size_t}.
-The unit is passed to the shape as a value, so that the shape can ask for the law of the pair, and a wrong unit is then refused.
+Associativity is declared in a table, as the law of Listing~\ref{lst:rule1} is.
+The unit is passed to the shape as a value, and to name it is the programmer's claim that it is the unit.
+The shape checks the claim at one point, \cppinline{Op{}(e, e) == e}, which refuses 1 as the unit of \cppinline{plus} and would not refuse 0 as the unit of \cppinline{multiplies}.
+A check can refute a claim and cannot prove it.
 A value may be a template argument where its type is structural (\RuleOne{}).
 The standard's \cppinline{plus} and \cppinline{multiplies} are used as they are.
 
 \begin{listing}[htbp]
 \begin{cpp}
-template <typename T, typename Op, T e>
-constexpr bool monoid = false;
-template <> constexpr bool monoid<size_t, plus<size_t>, 0uz> = true;
-template <> constexpr bool monoid<size_t, multiplies<size_t>, 1uz> = true;
+template <typename T, typename Op>
+constexpr bool associative = false;
+template <> constexpr bool associative<size_t, plus<size_t>> = true;
+template <> constexpr bool associative<size_t, multiplies<size_t>> = true;
 
 template <typename T, typename Op, T e>
-concept IsMonoid = regular<T> && monoid<T, Op, e> &&
-    requires(T a, T b) { { Op{}(a, b) } -> same_as<T>; };
+concept IsMonoid = regular<T> && associative<T, Op> &&
+    requires(T a, T b) { { Op{}(a, b) } -> same_as<T>; } &&
+    Op{}(e, e) == e;
 
 template <typename T, typename Op, T e> requires IsMonoid<T, Op, e>
 constexpr T concat() { return e; }
