@@ -386,6 +386,8 @@ concept IsSemiring =
 template <typename T>
 struct Power { T product, base;
                size_t exponent; };
+constexpr size_t bits =
+    numeric_limits<size_t>::digits;
 
 template <typename T, typename Op, T e>
 struct Halving {
@@ -402,7 +404,7 @@ template <typename T, typename Op, T e>
   requires IsMonoid<T, Op, e>
 constexpr T power(T x, size_t n) {
   return ranges::fold_left(
-      views::iota(0uz, 64uz), Power<T>{e, x, n},
+      views::iota(0uz, bits), Power<T>{e, x, n},
       Halving<T, Op, e>{}).product; }
 \end{cpp}
 \end{minipage}\hfill
@@ -454,7 +456,7 @@ Bottom: \cppinline{concat} over $n$ copies of one value as that power.}
 Listing~\ref{lst:laws} adds one overload to Listing~\ref{lst:rule3}'s \cppinline{concat}, chosen where the range is $n$ copies of one value.
 It combines the copies by repeated squaring, which regroups them, so it is correct exactly where the operation is associative, and the shape it requires declares that law.
 \cppinline{power} starts from the unit as the product, the value as the base and the count as the exponent.
-Each step keeps the product times the base to the power of the exponent unchanged and halves the exponent, so 64 steps exhaust any count a \cppinline{size_t} can hold.
+Each step keeps the product times the base to the power of the exponent unchanged and halves the exponent, so one step for each bit of a \cppinline{size_t}, which the listing names \cppinline{bits} and which is 64 here, exhausts any count it can hold.
 The overload then reads as a sentence: an empty range gives the unit, and any other the head to the power of the length.
 The power is not an operation that some monoids happen to have: it is the one homomorphism from the naturals under addition that sends 1 to the value~\cite[Ch.~I]{lang2002algebra}, so every monoid has it.
 For a commutative monoid that is the monoid as a semimodule over $\mathbb{N}$, in exactly one way~\cite[Ch.~14]{golan1999semirings}.
