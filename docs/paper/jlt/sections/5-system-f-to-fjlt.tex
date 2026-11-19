@@ -20,7 +20,7 @@ The translation is a function of the program: two resolutions of the same constr
 
 In \Cpp{} this is overload resolution together with the one-definition rule: at concrete types a specialisation is unique, or the program is ill-formed.
 In FJlt the theorem is close to immediate: a well-formed program leaves resolution no choice, so the translation is deterministic, which is what coherence asks of it.
-It gives ``the unit of \cppinline{+} at \cppinline{size_t}'' one meaning in a program, so a law can be stated about it, and it lets laws compose: two overloads written apart are chosen the same way wherever they are called, as Listing~\ref{lst:laws}'s and Listing~\ref{lst:rule3}'s \cppinline{concat} are.
+It gives ``\cppinline{plus} is associative at \cppinline{size_t}'' one meaning in a program, the one entry of Listing~\ref{lst:rule2} and so the one record $d$ of Figure~\ref{fig:sketch-derivations}, and it lets laws compose: two overloads written apart are chosen the same way wherever they are called, as Listing~\ref{lst:laws}'s and Listing~\ref{lst:rule3}'s \cppinline{concat} are.
 A generic caller gains such an overload only where its own constraints declare the law, by Rule~2.
 
 \begin{theorem}[Type preservation]
@@ -30,6 +30,7 @@ If $\Delta; \Gamma \vdash e : \tau$ in FJlt, then $\llbracket \Delta \rrbracket;
 
 Each \cppinline{requires} clause has become a record parameter.
 At each call, the instance the compiler resolved supplies a record of the type that parameter demands.
+Section~\ref{sec:translation} shows both on Listing~\ref{lst:rule2}'s \cppinline{concat}: the clause is the parameter $q$, and the call passes the record $d$ (Figure~\ref{fig:sketch-derivations}).
 
 \begin{theorem}[Simulation]
 \label{thm:simulation}
@@ -38,6 +39,7 @@ For closed terms of base type, $e$ evaluates to $v$ if and only if $\llbracket e
 \end{theorem}
 
 What a \cppinline{static_assert} sees is what the translation computes.
+Listing~\ref{lst:rule3} asserts 45 for the sum over \cppinline{ns}, and the image of the same call reduces to 45 (Figure~\ref{fig:sketch-derivations}).
 That the program computes the same at run time is not this theorem: it rests on Rule~1 and on the standard's one abstract machine (Section~\ref{sec:binding}).
 Inside the calculus it is the bottom edge of Figure~\ref{fig:arrows}, FJlt's own evaluation standing in for \texttt{clang++} and $\mathit{run}$; Appendix~\ref{app:fjlt:ssa} reads the program the compiler emits as the same term.
 The theorem also makes Section~\ref{sec:posture}'s equality exact: two closed terms of a carrier are equal when they evaluate to the same value, a constant of a base type compared bit for bit, and Leibniz's law of Rule~1 holds by substitution.
@@ -49,8 +51,8 @@ Every FJlt program terminates.
 
 It follows from Theorem~\ref{thm:simulation} and strong normalisation of the target (Appendix~\ref{app:fjlt:theorems}), which holds relative to Assumptions~\ref{ass:instance} and~\ref{ass:ranges}.
 Every step of the program is at least one step of its image, and the image cannot step forever.
-The count in Rule~3 is therefore not a guard against non-termination.
-It is how a bound is said.
+The bound in Rule~3 is therefore not a guard against non-termination.
+It is how the number of steps is said: 10 for the range and 3 for the term in Listing~\ref{lst:rule3}, by Equations~\eqref{eq:fold} and~\eqref{eq:cata}, and 64 in Listing~\ref{lst:laws}.
 
 \begin{corollary}[Parametricity]
 \label{cor:parametricity}
@@ -58,8 +60,8 @@ A generic FJlt function satisfies the free theorem of its System~F type.
 \end{corollary}
 
 By Theorem~\ref{thm:preservation} and Reynolds' abstraction theorem~\cite{reynolds1983types,wadler1989theorems}.
-\cppinline{concat} at a monoid can only combine the words by \texttt{op}, starting from \texttt{unit}, which is the free theorem of a fold.
-It is also why an instance with a context (Section~\ref{sec:translation:contexts}) can read a composite's law off its components' records.
+Listing~\ref{lst:rule2}'s \cppinline{concat} can only combine its arguments by the record's \texttt{op}, starting from the unit it is handed, which is the free theorem of a fold.
+It is also why an instance with a context (Section~\ref{sec:translation:contexts}) can read a composite's law off its components' records, as Listing~\ref{lst:laws} reads the associativity of the matrices off the semiring of their entries.
 The composite cannot do anything the components' records do not provide.
 
 \begin{corollary}[Type soundness]
@@ -79,7 +81,7 @@ Table~\ref{tab:sketch-theorems} says what each result of this section states abo
 \small
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.22\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
- & \texttt{concat<plus<size\_t>, 0uz>(ns)} & \texttt{is\_injective(a)} \\
+ & \texttt{concat<size\_t, plus<size\_t>, 0uz>(ns)} & \texttt{is\_injective(a)} \\
 \midrule
 Theorem~\ref{thm:coherence}, coherence & the record $d$ is the only one: the table has one entry at \texttt{plus}, and the call names 0 & at each node one entry applies, so the conjunction is the only one \\
 Theorem~\ref{thm:preservation}, type preservation & the image has the type of the naturals & the image has the type of truth values \\
@@ -90,7 +92,7 @@ Corollary~\ref{cor:soundness}, type soundness & the evaluation reaches a value &
 \bottomrule
 \end{tabularx}
 \caption{Sketch. What the theorems say about the two running terms.
-None of them says that a declared law is true: that $(+, 0)$ is a monoid and that \texttt{Succ} is injective are the programmer's.}
+None of them says that a declared law is true: that \texttt{plus} is associative, that 0 is its unit and that \texttt{Succ} is injective are the programmer's.}
 \label{tab:sketch-theorems}
 \end{table}
 
@@ -188,10 +190,10 @@ No theorem of this section says that the declared law is true: that \cppinline{s
 
 \paragraph{Certified and inferred laws.}
 A program declares few laws and infers the rest.
-A law at a construction is derived from the laws of its parts, through an instance with a context, by the entailment of qualified types~\cite{jones1994qualified}: that a finite power of a semiring is a semimodule over it is inferred, not declared (Appendix~\ref{app:fjlt:inferred}).
+A law at a construction is derived from the laws of its parts, through an instance with a context, by the entailment of qualified types~\cite{jones1994qualified}: that the $2 \times 2$ matrices over a semiring are a monoid is inferred, not declared, in Listing~\ref{lst:laws}, and so is that a finite power of a semiring is a semimodule over it (Appendix~\ref{app:fjlt:inferred}).
 In \Cpp{} the mechanism is partial specialisation.
 A composite's type names its parts, as \cppinline{f >> g} has a type that records the types of \cppinline{f} and of \cppinline{g}.
-The trait that a law's \cppinline{concept} reads is specialised once for that form of type, as a \cppinline{constexpr} function of the same trait at the parts: a composite of two injective arrows is injective, as in Listing~\ref{lst:rule1} (Table~\ref{tab:law-propagation} gives the library's rules, where the law is called monic).
+The table that a law's \cppinline{concept} reads has one entry for that form of type, computed from the same table at the parts: a composite of two injective arrows is injective, as in Listing~\ref{lst:rule1} (Table~\ref{tab:law-propagation} gives the library's rules, where the law is called monic).
 Asking the \cppinline{concept} of a composite therefore instantiates it at the parts, so the recursion is the compiler's own, over the type (\RuleThree{}).
 The inference is local in Pierce and Turner's sense~\cite{pierce2000local}: information moves only between adjacent nodes, and here only upward, from a term's immediate parts to the term, a synthesised attribute~\cite{knuth1968semantics}.
 By Theorem~\ref{thm:coherence} each inferred law is unique, and the conditions on contexts that end instance search~\cite{sulzmann2007understanding} end the inference.
