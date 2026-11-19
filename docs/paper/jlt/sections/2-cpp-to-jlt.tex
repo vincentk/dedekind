@@ -120,9 +120,7 @@ So it is a function of the monoid's dictionary, the record of its operations, an
 The listing takes a monoid to be a carrier, an operation and its unit, as algebra writes $(S, +, 0)$.
 The shape and \cppinline{concat} are generic in all three, and the listing declares two monoids, both on \cppinline{size_t}.
 Associativity is declared in a table, as the law of Listing~\ref{lst:rule1} is.
-The unit is passed to the shape as a value, and to name it is the programmer's claim that it is the unit.
-The shape checks the claim at one point, \cppinline{Op{}(e, e) == e}, which refuses 1 as the unit of \cppinline{plus} and would not refuse 0 as the unit of \cppinline{multiplies}.
-A check can refute a claim and cannot prove it.
+The unit is passed to the shape as a value, and the shape checks it at one point, \cppinline{Op{}(e, e) == e}.
 A value may be a template argument where its type is structural (\RuleOne{}).
 The standard's \cppinline{plus} and \cppinline{multiplies} are used as they are.
 
@@ -211,11 +209,12 @@ The lower right panel shows the three.
 The reason is that a function's type should say what the function depends on, so that it can be read, and audited, from its declaration alone.
 
 Laws are \emph{certificates}, of two kinds.
-An axiom is declared: the compiler does not prove it.\footnote{Similarly, \texttt{sorry} admits a statement in Lean~\cite{demoura2021lean}, and \texttt{Admitted} one in Coq~\cite{Coq}.
+An axiom is the programmer's claim, which the compiler does not prove: an entry in a table, as for associativity, or a value named at a use, as for the unit.\footnote{Similarly, \texttt{sorry} admits a statement in Lean~\cite{demoura2021lean}, and \texttt{Admitted} one in Coq~\cite{Coq}.
 A false law declaration is possible, and the compiler does not detect it.
 The standard treats its own concepts alike: a type may satisfy one without modelling it, and the program is then ill-formed with no diagnostic required~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.}
+The check on the unit can refute the claim and cannot prove it: it refuses 1 for \cppinline{plus}, and would not refuse 0 for \cppinline{multiplies}.
 A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts, a fold over its type (\RuleThree{}).
-That Listing~\ref{lst:rule1}'s \cppinline{up} is injective is one, inferred for a composite arrow from its two parts, and \cppinline{IsMonoid<size_t, plus<size_t>, 0uz>} is another, a shape from its requirements.
+That Listing~\ref{lst:rule1}'s \cppinline{up} is injective is one, inferred for a composite arrow from its two parts, and \cppinline{IsMonoid<size_t, plus<size_t>, 0uz>} is another, inferred from the entry, the call and the check.
 Overload resolution is a simple proof search that finds either kind~\cite{augustsson2005djinn}.
 A law is stated of a carrier, a type taken as a bare set of values, together with an operation: \cppinline{size_t} is a monoid twice, under $(0, +)$ and under $(1, \times)$.\footnote{A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.}
 
