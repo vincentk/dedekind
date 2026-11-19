@@ -195,6 +195,11 @@ constexpr auto ns = std::views::reverse(std::views::iota(0uz, 10uz));
 constexpr auto a = then(Succ{} >> Neg{}, Succ{});
 static_assert(concat<size_t, std::plus<size_t>, 0uz>(ns) == 45 &&
               is_injective(a) && length<Then<Succ, Then<Neg, Succ>>> == 3);
+// Listing 4's last assertion: a composite with a constant part is constant by
+// the lemma, so its image takes the power.
+static_assert(IsConstant<decltype(Succ{} >> Const{7uz})> &&
+              concat<size_t, std::plus<size_t>, 0uz>(std::views::transform(
+                  std::views::iota(0uz, 10uz), Succ{} >> Const{7uz})) == 70);
 }  // namespace
 
 /** @return the fold over a value, everything known while compiling. */
