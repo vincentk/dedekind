@@ -1417,15 +1417,16 @@ template <typename F>
 concept IsInjective = l1::Arrow<F> && injective<F>;
 template <IsInjective F, IsInjective G>
 constexpr bool injective<l1::Then<F, G>> = true;
+// The reader has its own name here: the arrows are Listing 1's, so a second
+// is_injective would be found beside Listing 1's by argument-dependent lookup.
 template <l1::Arrow F>
-constexpr bool is_injective(F) {
+constexpr bool wears_badge(F) {
   return IsInjective<F>;
 }
 constexpr auto up = l1::Neg{} >> l1::Succ{};
-static_assert(is_injective(up) && is_injective(up >> up) &&
-              !is_injective(up >> l1::Pred{}) &&
-              !is_injective(up >> l1::Half{}) &&
-              !is_injective(l1::Pred{} >> up));
+static_assert(wears_badge(up) && wears_badge(up >> up) &&
+              !wears_badge(up >> l1::Pred{}) &&
+              !wears_badge(up >> l1::Half{}) && !wears_badge(l1::Pred{} >> up));
 
 template <typename F>
 constexpr size_t length = 1;
