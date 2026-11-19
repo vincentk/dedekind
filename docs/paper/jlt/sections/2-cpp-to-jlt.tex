@@ -303,9 +303,9 @@ g(t_1 \gg t_2) &= g(t_1) \otimes g(t_2) \qquad t_1, t_2 \triangleleft t_1 \gg t_
 Here $t$ is a term, $x$ an atom, $t_1 \gg t_2$ a composite of two parts, $d_x$ the value declared for the atom $x$, and $\otimes$ how the results at the parts combine.
 $t' \triangleleft t$ says that $t'$ is a \emph{proper part} of $t$: a part of it other than $t$ itself.
 Proper parthood is a strict partial order~\cite{simons1987parts}, on terms the order of proper subterms~\cite{baader1998term}, and an atom is a term with no proper part.
-A term is finite, so a proper part is shorter, $|t'| < |t|$ with $|t|$ the length of $t$, its number of atoms.
+A term is finite, so a proper part of a composite is shorter, $|t'| < |t|$ with $|t|$ the length of $t$, its number of atoms.
 The order is therefore well founded, and a definition of this form is one by Noetherian induction~\cite[III, \S 6.5]{bourbaki1968theoryofsets}.
-In Equation~\eqref{eq:fold} the tail is the proper part and a range has no other, so that recursion is a walk, and this one runs over a tree.
+In Equation~\eqref{eq:fold} the tail is the one largest proper part of a range, so that recursion is a walk, and this one runs over a tree.
 Each node of a term is a class template whose type names its parts', so the term's shape is its type.
 The recursion is the compiler's instantiation: a fold over the term is a template instantiated once per node, the case chosen by the node's type, and it ends because a proper part is shorter than its whole.
 Listing~\ref{lst:rule1}'s \cppinline{injective} is such a fold, with the declared entries for $d_x$ and conjunction for $\otimes$.
@@ -489,10 +489,9 @@ The listing then repeats Listing~\ref{lst:rule2}'s pattern one level up: a semir
 For \cppinline{size_t} the listing declares those two, and the two associativities are Listing~\ref{lst:rule2}'s.
 That the matrices' product is associative is declared once, for every semiring, as a lemma, an entry with a context, and that it holds at \cppinline{M} is inferred.
 So the compiler infers that the matrices are a monoid, without which \cppinline{power} does not apply at them, and it infers no more than follows: their product is not known to commute.
-The $n$-th Fibonacci number is an entry of the $n$-th power of one matrix, and the assertions ask for it at 10 and at $10^{8}$.
 In the last assertion two laws are at work: that the arrow is constant selects the faster overload, and that the operation is associative makes it correct.
 The arrow there is a composite, constant by Listing~\ref{lst:rule1}'s lemma and by no axiom of its own.
 \cppinline{Halving} and the matrices' product each name in a constraint the calls they make, as \RuleTwo{} asks, and the product writes the type's own \cppinline{+} and \cppinline{*}, which the standard defines \cppinline{plus} and \cppinline{multiplies} to be~\cite[{\texttt{arithmetic.operations}}]{cpp23standard}.
-\cppinline{fib} to the power $n$ holds the $n$-th Fibonacci number, so the last assertion computes one for $n = 10^8$, modulo $2^{64}$, in 27 steps, where the plain fold would not finish while compiling.
+\cppinline{fib} to the power $n$ holds the $n$-th Fibonacci number, so the assertion at $n = 10^8$ computes one, modulo $2^{64}$, in 27 steps, where the plain fold would not finish while compiling.
 \RuleThree{} makes the plain fold computable, with a stated bound of $10^8$ steps, and the law makes it affordable.
 No theorem of Section~\ref{sec:guarantees} says that a declared law is true: the four laws of \cppinline{size_t} on which this listing rests are the programmer's declarations (Table~\ref{tab:axioms}).

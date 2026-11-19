@@ -83,7 +83,7 @@ A \emph{proper part} is a part other than the type itself, $\tau' \triangleleft 
 The relation is irreflexive and transitive, and nothing more of a theory of parts and wholes is claimed: a constructor of one argument has one proper part and no remainder beside it.
 A proper part is strictly shorter, $\tau' \triangleleft \tau$ implies $|\tau'| < |\tau|$, where $|\tau|$ counts every constructor in $\tau$, which orders the composites of Section~\ref{sec:posture} as their number of atoms does.
 The kernel has the form of Equation~\eqref{eq:cata} twice: an entry of a trait reads its trait at proper parts of its head (\textsc{D-Entry}), and a function calls itself at proper parts of its first parameter's type (\textsc{D-Rec}, below).
-A base type and a type variable have no proper part, and are the atoms of that equation.
+A base type, a type variable and a constructor of no arguments, such as \cppinline{Succ}, have no proper part, and are the atoms of that equation.
 
 \paragraph{Value parameters.}
 \label{app:fjlt:value}
