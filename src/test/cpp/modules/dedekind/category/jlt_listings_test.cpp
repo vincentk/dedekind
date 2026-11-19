@@ -1200,17 +1200,19 @@ static_assert(
 // a Fibonacci number.
 template <typename T>
 struct Power {
-  T result, square;
-  size_t left;
+  T product, base;
+  size_t exponent;
 };
-// The step names the calls it makes: its constraint is the monoid.
+// One step of the power by squaring: product * base^exponent stays what it
+// was while the exponent is halved.  The step names the calls it makes: its
+// constraint is the monoid.
 template <typename T, typename Op, T e>
-struct Squaring {
-  constexpr Power<T> operator()(Power<T> s, size_t) const
+struct Halving {
+  constexpr Power<T> operator()(Power<T> p, size_t) const
     requires IsMonoid<T, Op, e>
   {
-    return {s.left % 2 == 1 ? Op{}(s.result, s.square) : s.result,
-            Op{}(s.square, s.square), s.left / 2};
+    return {p.exponent % 2 == 1 ? Op{}(p.product, p.base) : p.product,
+            Op{}(p.base, p.base), p.exponent / 2};
   }
 };
 template <typename T, typename Op, T e>
@@ -1221,8 +1223,8 @@ constexpr T concat(std::ranges::repeat_view<T, size_t> r) {
              : std::ranges::fold_left(
                    std::views::iota(0uz, 64uz),
                    Power<T>{e, *std::ranges::begin(r), std::ranges::size(r)},
-                   Squaring<T, Op, e>{})
-                   .result;
+                   Halving<T, Op, e>{})
+                   .product;
 }
 // The monoid pattern one level up.  Two more laws, each a trait with its
 // entries, and a shape that names them beside the two monoids: a semiring.
@@ -1277,6 +1279,7 @@ template <typename T, T zero, T one>
 constexpr bool associative<std::array<T, 4>, MatMul<T, zero, one>> = true;
 using M = std::array<size_t, 4>;
 using Mul = MatMul<size_t, 0uz, 1uz>;
+constexpr M identity{1, 0, 0, 1};
 constexpr M fib{1, 1, 1, 0};
 // The inference, asked directly: a semiring below gives a monoid of matrices,
 // and where the entries are no semiring nothing is known.
@@ -1313,8 +1316,9 @@ static_assert(
 static_assert(
     concat<size_t, std::plus<size_t>, 0uz>(
         std::views::repeat(7uz, 1'000'000'000'000uz)) == 7'000'000'000'000uz &&
-    concat<M, Mul, M{1, 0, 0, 1}>(std::views::repeat(fib, 10uz))[1] == 55 &&
-    concat<M, Mul, M{1, 0, 0, 1}>(std::views::repeat(fib, 100'000'000uz))[1] ==
+    IsMonoid<M, Mul, identity> &&
+    concat<M, Mul, identity>(std::views::repeat(fib, 10uz))[1] == 55 &&
+    concat<M, Mul, identity>(std::views::repeat(fib, 100'000'000uz))[1] ==
         14'139'011'350'745'967'675uz);
 // Beyond the listing: no copies give the unit, a few copies agree with the
 // plain fold, and a matrix that is not the unit is refused as one.
