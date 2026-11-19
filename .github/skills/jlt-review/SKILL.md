@@ -45,6 +45,17 @@ findings that are breaches over a list of style remarks.
 6. **Laws.** A law stated as a `constexpr bool` specialisation is a declaration; a
    law the carrier could decide (finite ordered carriers, structures with normal
    forms) and that is declared instead is worth a remark, not a finding.
+7. **Axioms.** An axiom is an unproved claim, and it has one form in the source: an
+   entry at one type whose value is the literal `true`
+   (`template <> constexpr bool f<...> = true;`). The linter lists them, with
+   file and line, under the rule `axioms` in the CI artifact `jlt-lint-report`
+   (`tools/jlt-lint/rules/axioms.query`), as a proof assistant lists what a
+   development rests on. For each axiom a pull request adds: name it, say in one
+   line what it claims, and ask whether it could instead be inferred, as an entry
+   at a form or an entry with a context, from axioms already declared. An axiom
+   you can refute with a counterexample is the most serious finding there is:
+   the compiler will never find it. An entry at a form whose value is the literal
+   `true` with no context is an axiom in disguise; say so.
 
 ## What not to report
 

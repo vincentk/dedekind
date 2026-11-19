@@ -5,6 +5,7 @@
 # zero elsewhere is not vacuous.
 
 # Negative controls.
+axioms                       tools/jlt-lint/fixtures/axioms.cpp  jlt_listing  3
 rule3-no-loops               tools/jlt-lint/fixtures/rule3-loops.cpp  jlt_listing  4
 rule3-no-self-recursion      tools/jlt-lint/fixtures/rule3-recursion.cpp  jlt_listing  14
 rule3-no-mutual-recursion    tools/jlt-lint/fixtures/rule3-mutual.cpp  jlt_listing  5
@@ -871,3 +872,12 @@ rule1-const-member-functions         src/main/modules/dedekind/optimization/[!o]
 rule1-no-mutable-globals             src/main/modules/dedekind/optimization/[!o]*.cppm  optimization  0
 rule1-no-escaping-reference-captures src/main/modules/dedekind/optimization/[!o]*.cppm  optimization  0
 inventory                            src/main/modules/dedekind/optimization/[!o]*.cppm  optimization  report
+
+# The axioms of the Jlt paper's self-contained listings, listed (never gated):
+# Listing 1's, those of Listings 2 to 4, and Appendix A's worked program.
+axioms                       src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  listing1_self_contained  report
+axioms                       src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  listings_2_to_4  report
+axioms                       src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  appendix_a_reading  report
+# The same list for the library's category layer: its declared laws, wherever
+# one is an entry of a variable template.
+axioms                       src/main/modules/dedekind/category/*.cppm  category  report
