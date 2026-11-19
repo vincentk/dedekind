@@ -386,8 +386,6 @@ concept IsSemiring =
 template <typename T>
 struct Power { T product, base;
                size_t exponent; };
-constexpr size_t bits =
-    numeric_limits<size_t>::digits;
 
 template <typename T, typename Op, T e>
 struct Halving {
@@ -404,7 +402,8 @@ template <typename T, typename Op, T e>
   requires IsMonoid<T, Op, e>
 constexpr T power(T x, size_t n) {
   return ranges::fold_left(
-      views::iota(0uz, bits), Power<T>{e, x, n},
+      views::iota(0uz, size_t(bit_width(n))),
+      Power<T>{e, x, n},
       Halving<T, Op, e>{}).product; }
 \end{cpp}
 \end{minipage}\hfill
@@ -447,7 +446,7 @@ static_assert(
 \end{cpp}
 \caption{A declared law, a law inferred from it, and the faster overload they license.
 Top: two more laws, and a semiring as a shape.
-Middle: the power of a monoid in at most 64 steps, and the $2 \times 2$ matrices over a semiring.
+Middle: the power of a monoid in as many steps as the count has bits, and the $2 \times 2$ matrices over a semiring.
 Bottom: \cppinline{concat} over $n$ copies of one value as that power.}
 \label{lst:laws}
 \end{listing}
@@ -456,12 +455,12 @@ Bottom: \cppinline{concat} over $n$ copies of one value as that power.}
 Listing~\ref{lst:laws} adds one overload to Listing~\ref{lst:rule3}'s \cppinline{concat}, chosen where the range is $n$ copies of one value.
 It combines the copies by repeated squaring, which regroups them, so it is correct exactly where the operation is associative, and the shape it requires declares that law.
 \cppinline{power} starts from the unit as the product, the value as the base and the count as the exponent.
-Each step keeps the product times the base to the power of the exponent unchanged and halves the exponent, so one step for each bit of a \cppinline{size_t}, which the listing names \cppinline{bits} and which is 64 here, exhausts any count it can hold.
+Each step keeps the product times the base to the power of the exponent unchanged and halves the exponent, so the fold takes as many steps as the count has bits, the standard's \cppinline{bit_width}~\cite[{\texttt{bit.pow.two}}]{cpp23standard}, which is at most 64.
 The overload then reads as a sentence: an empty range gives the unit, and any other the head to the power of the length.
 The power is not an operation that some monoids happen to have: it is the one homomorphism from the naturals under addition that sends 1 to the value~\cite[Ch.~I]{lang2002algebra}, so every monoid has it.
 For a commutative monoid that is the monoid as a semimodule over $\mathbb{N}$, in exactly one way~\cite[Ch.~14]{golan1999semirings}.
 At \cppinline{plus} it is multiplication, as it is first taught, and at \cppinline{multiplies} it is the power: the first two assertions ask the one function both ways, and get $2 \times 10$ and $2^{10}$.
-The overload is itself a fold over a value with a declared bound, the 64 bits of $n$ (Equation~\eqref{eq:fold}), so the faster program keeps \RuleThree{} as the slower one does.
+The overload is itself a fold over a value with a bound stated before its first step, the number of bits of $n$ (Equation~\eqref{eq:fold}), so the faster program keeps \RuleThree{} as the slower one does.
 Overload resolution picks it as the more specific, and by Theorem~\ref{thm:coherence} every call makes that choice the same way.
 The listing then repeats Listing~\ref{lst:rule2}'s pattern one level up.
 A semiring is a shape that names two monoids on one carrier and two more laws, that the sum commutes and that the product distributes over it, each law a trait with its entries.
@@ -472,6 +471,6 @@ It infers no more than follows: the matrices are a monoid, with the identity mat
 \cppinline{Halving} and the matrices' product each name in a constraint the calls they make, as \RuleTwo{} asks of a body.
 The semiring is that of the type's own \cppinline{+} and \cppinline{*}: the product of two matrices writes the operators, and the shape names \cppinline{plus} and \cppinline{multiplies}, which the standard defines as those operators~\cite[{\texttt{arithmetic.operations}}]{cpp23standard}.
 The matrix is a type with a product of its own, so the standard's \cppinline{multiplies} names that product, as it names \cppinline{*} on \cppinline{size_t}. It is a value of structural type, four values of one (\RuleOne{}), so its unit, the identity matrix, is passed to the shape as $0$ is for addition.
-\cppinline{fib} to the power $n$ holds the $n$-th Fibonacci number, so the last assertion computes one for $n = 10^8$, modulo $2^{64}$, in 64 steps, where the plain fold would not finish while compiling.
-\RuleThree{} makes the plain fold computable, with a stated bound of $10^8$ steps, and the law makes it affordable, with a bound of 64.
+\cppinline{fib} to the power $n$ holds the $n$-th Fibonacci number, so the last assertion computes one for $n = 10^8$, modulo $2^{64}$, in 27 steps, where the plain fold would not finish while compiling.
+\RuleThree{} makes the plain fold computable, with a stated bound of $10^8$ steps, and the law makes it affordable, with a bound of 27, the number of bits of $10^8$.
 No theorem of Section~\ref{sec:guarantees} says that a declared law is true: that \cppinline{plus} commutes and that \cppinline{multiplies} distributes over it are the programmer's declarations, as the two associativities are.

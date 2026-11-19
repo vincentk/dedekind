@@ -16,10 +16,10 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <concepts>
 #include <cstddef>
 #include <functional>
-#include <limits>
 #include <ranges>
 
 namespace {
@@ -85,8 +85,6 @@ struct Power {
   T product, base;
   size_t exponent;
 };
-// The number of steps: one for each bit a count can have.
-constexpr size_t bits = std::numeric_limits<size_t>::digits;
 // One step of the power by squaring: product * base^exponent stays what it
 // was while the exponent is halved.  The step names the calls it makes: its
 // constraint is the monoid.
@@ -102,8 +100,9 @@ struct Halving {
 template <typename T, typename Op, T e>
   requires IsMonoid<T, Op, e>
 constexpr T power(T x, size_t n) {
-  return std::ranges::fold_left(std::views::iota(0uz, bits), Power<T>{e, x, n},
-                                Halving<T, Op, e>{})
+  return std::ranges::fold_left(
+             std::views::iota(0uz, size_t(std::bit_width(n))),
+             Power<T>{e, x, n}, Halving<T, Op, e>{})
       .product;
 }
 template <typename T, typename Op, T e>

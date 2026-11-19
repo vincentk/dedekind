@@ -52,7 +52,7 @@ Every FJlt program terminates.
 It follows from Theorem~\ref{thm:simulation} and strong normalisation of the target (Appendix~\ref{app:fjlt:theorems}), which holds relative to Assumptions~\ref{ass:instance} and~\ref{ass:ranges}.
 Every step of the program is at least one step of its image, and the image cannot step forever.
 The bound in Rule~3 is therefore not a guard against non-termination.
-It is how the number of steps is said: 10 for the range and 3 for the term in Listing~\ref{lst:rule3}, by Equations~\eqref{eq:fold} and~\eqref{eq:cata}, and 64 in Listing~\ref{lst:laws}.
+It is how the number of steps is said: 10 for the range and 3 for the term in Listing~\ref{lst:rule3}, by Equations~\eqref{eq:fold} and~\eqref{eq:cata}, and the number of bits of the count, at most 64, in Listing~\ref{lst:laws}.
 
 \begin{corollary}[Parametricity]
 \label{cor:parametricity}
