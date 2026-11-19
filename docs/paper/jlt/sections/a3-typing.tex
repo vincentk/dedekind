@@ -203,12 +203,16 @@ A constant is typed once, closed, by \textsc{D-Const}, and its name has that typ
 \\[12pt]
 \textsc{(T-Fold-R)} & \dfrac{\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \in \Delta \quad \Delta; \Gamma \vdash r : R \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma \vdash f : \sigma \times \tau \to \sigma}{\Delta; \Gamma \vdash \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} : \sigma}
 \\[12pt]
+\textsc{(T-Size)} & \dfrac{\Delta; \Gamma \vdash r : R\texttt{<}\tau\texttt{>} \text{, } R \in \mathcal{R}}{\Delta; \Gamma \vdash \texttt{ranges::size(}r\texttt{)} : \texttt{size\_t}}
+\\[12pt]
+\textsc{(T-Size-R)} & \dfrac{\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \in \Delta \quad \Delta; \Gamma \vdash r : R}{\Delta; \Gamma \vdash \texttt{ranges::size(}r\texttt{)} : \texttt{size\_t}}
+\\[12pt]
 \textsc{(T-Cata)} & \dfrac{\Delta; \Gamma \vdash t : \mu F \quad \Delta; \Gamma \vdash \mathit{alg} : \mu F \times \sigma^{k} \to \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{cata(}\mathit{alg}\texttt{, }t\texttt{)} : \sigma}
 \\[12pt]
 \textsc{(T-Node)} & \dfrac{\Delta; \Gamma \vdash t : O\texttt{<}\overline{\tau}\texttt{>} \quad O \text{ a node of } F}{\Delta; \Gamma \vdash t : \mu F}
 \end{array}
 \]
-\caption{The rules for recursion, one per form (Equations~\eqref{eq:fold} and~\eqref{eq:cata}): over a value, the standard's fold over a range of $\mathcal{R}$; over a type, the recursion at a term type, which the library spells \cppinline{cata}.
+\caption{The rules for recursion, one per form (Equations~\eqref{eq:fold} and~\eqref{eq:cata}): over a value, the standard's fold over a range of $\mathcal{R}$, with the range's length as a term; over a type, the recursion at a term type, which the library spells \cppinline{cata}.
 $^{\P}$~At each node of arity $k$.}
 \label{fig:fjlt-typing-recursion}
 \end{figure}
@@ -216,7 +220,8 @@ $^{\P}$~At each node of arity $k$.}
 \paragraph{Ranges.}
 A range is homogeneous: its elements share one type $\tau$, and its length is a value.
 $R\texttt{<}\tau\texttt{>}$ is an instance of $\mathcal{R}$, a family defined by conditions: the range of Equation~\eqref{eq:fold}, and the object of Table~\ref{tab:recursion-names}'s row over a value.
-A fold reads its length $|r| \in \mathbb{N}$, fixed before the fold starts, and, when $|r| > 0$, its head $\mathit{head}\,r$ and its tail $\mathit{next}\,r$, functions on range values, with $|\mathit{next}\,r| = |r| - 1$; FJlt has no term for them, so a program folds a range and never takes its head.
+A fold reads its length $|r| \in \mathbb{N}$, fixed before the fold starts, and, when $|r| > 0$, its head $\mathit{head}\,r$ and its tail $\mathit{next}\,r$, functions on range values, with $|\mathit{next}\,r| = |r| - 1$; FJlt has a term for the length, \cppinline{ranges::size(r)} (\textsc{T-Size}), which is the bound of \RuleThree{}, and none for the head or the tail, so a program folds a range and never takes its head.
+The standard gives the length in the range's own size type~\cite[{\texttt{range.prim.size}}]{cpp23standard}, and FJlt reads it at \cppinline{size_t}, written as a conversion where the two may differ.
 A range is typed by its instance's conditions, \cppinline{iota(i, j)} only at $i \le j$, and \textsc{S-Fold} preserves them, since $\mathit{next}$ does.
 The conditions are semantic, that a step descends or that two bounds are ordered, so a chain whose step does not descend is ill-typed, and the termination of a fold is, to that extent, assumed in the typing of its range.
 At a type variable $R$, $\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$ holds of exactly the instances of $\mathcal{R}$ over $\tau$.
