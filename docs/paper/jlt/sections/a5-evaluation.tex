@@ -72,7 +72,7 @@ $\Sigma$ is not a list; the listings also use \cppinline{std::string} with conca
 \textsc{(S-Unbox)} & \texttt{*make\_shared<const }\tau\texttt{>(}v\texttt{)} \longrightarrow v \\[5pt]
 \textsc{(S-Fold)} & \texttt{fold\_left(}v_r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow \texttt{fold\_left(}\mathit{next}\,v_r\texttt{, }v_f\texttt{(}v_a\texttt{, }\mathit{head}\,v_r\texttt{), }v_f\texttt{)} \quad \text{if } |v_r| > 0 \\
  & \texttt{fold\_left(}v_r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow v_a \quad \text{if } |v_r| = 0 \\[5pt]
-\textsc{(S-Size)} & \texttt{ranges::size(}v_r\texttt{)} \longrightarrow c \quad \text{the constant of \texttt{size\_t} for } |v_r| \\[5pt]
+\textsc{(S-Size)} & \texttt{ranges::size(}v_r\texttt{)} \longrightarrow c \quad \text{the constant of the range's size type for } |v_r| \\[5pt]
 \textsc{(S-Cata)} & \texttt{cata(}v_{\mathit{alg}}\texttt{, }n\texttt{)} \longrightarrow v_{\mathit{alg}}\texttt{(}n\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_1\texttt{), }\ldots\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_k\texttt{))} \\
  & \qquad \text{for a node } n \text{ with legs } l_1 \ldots l_k \\[5pt]
 \textsc{(S-Ctx)} & E[e] \longrightarrow E[e'] \quad \text{if } e \longrightarrow e' \\

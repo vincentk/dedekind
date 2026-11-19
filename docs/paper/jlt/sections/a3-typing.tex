@@ -203,9 +203,9 @@ A constant is typed once, closed, by \textsc{D-Const}, and its name has that typ
 \\[12pt]
 \textsc{(T-Fold-R)} & \dfrac{\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \in \Delta \quad \Delta; \Gamma \vdash r : R \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma \vdash f : \sigma \times \tau \to \sigma}{\Delta; \Gamma \vdash \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} : \sigma}
 \\[12pt]
-\textsc{(T-Size)} & \dfrac{\Delta; \Gamma \vdash r : R\texttt{<}\tau\texttt{>} \text{, } R \in \mathcal{R}}{\Delta; \Gamma \vdash \texttt{ranges::size(}r\texttt{)} : \texttt{size\_t}}
+\textsc{(T-Size)} & \dfrac{\Delta; \Gamma \vdash r : R\texttt{<}\tau\texttt{>} \text{, } R \in \mathcal{R} \text{ with size type } b_R}{\Delta; \Gamma \vdash \texttt{ranges::size(}r\texttt{)} : b_R}
 \\[12pt]
-\textsc{(T-Size-R)} & \dfrac{\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \in \Delta \quad \Delta; \Gamma \vdash r : R}{\Delta; \Gamma \vdash \texttt{ranges::size(}r\texttt{)} : \texttt{size\_t}}
+\textsc{(T-Size-R)} & \dfrac{\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \in \Delta \quad \Delta; \Gamma \vdash r : R}{\Delta; \Gamma \vdash \texttt{size\_t(ranges::size(}r\texttt{))} : \texttt{size\_t}}
 \\[12pt]
 \textsc{(T-Cata)} & \dfrac{\Delta; \Gamma \vdash t : \mu F \quad \Delta; \Gamma \vdash \mathit{alg} : \mu F \times \sigma^{k} \to \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{cata(}\mathit{alg}\texttt{, }t\texttt{)} : \sigma}
 \\[12pt]
@@ -220,8 +220,11 @@ $^{\P}$~At each node of arity $k$.}
 \paragraph{Ranges.}
 A range is homogeneous: its elements share one type $\tau$, and its length is a value.
 $R\texttt{<}\tau\texttt{>}$ is an instance of $\mathcal{R}$, a family defined by conditions: the range of Equation~\eqref{eq:fold}, and the object of Table~\ref{tab:recursion-names}'s row over a value.
-A fold reads its length $|r| \in \mathbb{N}$, fixed before the fold starts, and, when $|r| > 0$, its head $\mathit{head}\,r$ and its tail $\mathit{next}\,r$, functions on range values, with $|\mathit{next}\,r| = |r| - 1$; FJlt has a term for the length, \cppinline{ranges::size(r)} (\textsc{T-Size}), which is the bound of \RuleThree{}, and none for the head or the tail, so a program folds a range and never takes its head.
-The standard gives the length in the range's own size type~\cite[{\texttt{range.prim.size}}]{cpp23standard}, and FJlt reads it at \cppinline{size_t}, written as a conversion where the two may differ.
+A fold reads its length $|r|$, a value of the range's size type and so a natural number below a fixed limit, fixed before the fold starts, and, when $|r| > 0$, its head $\mathit{head}\,r$ and its tail $\mathit{next}\,r$, functions on range values, with $|\mathit{next}\,r| = |r| - 1$; FJlt has a term for the length, \cppinline{ranges::size(r)} (\textsc{T-Size}), which is the bound of \RuleThree{}, and none for the head or the tail, so a program folds a range and never takes its head.
+Its type is the range's own size type $b_R$, as the standard gives it~\cite[{\texttt{range.prim.size}}]{cpp23standard}: a type that the instance fixes, whose values $\mathit{toNat}$ reads as numerals.
+It is \cppinline{size_t} for the ranges of the listings.
+It need not be one word: an instance whose length does not fit one may give it as a term over \cppinline{size_t}, a pair for instance, read by a fold over that term (Equation~\eqref{eq:cata}), and the kernel has no such instance yet.
+At a type variable the size type is not known, and the term is the length converted to \cppinline{size_t}, the default (\textsc{T-Size-R}), as Listing~\ref{lst:laws} writes it.
 A range is typed by its instance's conditions, \cppinline{iota(i, j)} only at $i \le j$, and \textsc{S-Fold} preserves them, since $\mathit{next}$ does.
 The conditions are semantic, that a step descends or that two bounds are ordered, so a chain whose step does not descend is ill-typed, and the termination of a fold is, to that extent, assumed in the typing of its range.
 At a type variable $R$, $\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$ holds of exactly the instances of $\mathcal{R}$ over $\tau$.
