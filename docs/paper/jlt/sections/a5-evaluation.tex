@@ -68,6 +68,7 @@ That totality, the condition of Section~\ref{sec:jlt-to-fjlt}, is a reading: nei
 On unsigned carriers the operators are the comparisons, and addition, subtraction, multiplication and the bitwise operators, which wrap.
 Division, remainder and the shifts are admitted by a literal the carrier can take, a nonzero divisor or a shift below the width; by a variable they are partial and not admitted.
 On \cppinline{bool} they are the logical operators.
+One primitive of $\Sigma$ is written as a call and not as an operator: \cppinline{std::bit_width} at \cppinline{size_t}, total, which Listing~\ref{lst:laws}'s \cppinline{power} takes its bound from (Definition~\ref{def:standard}); it is typed and evaluated as a unary operator is.
 $\Sigma$ is not a list; the listings also use \cppinline{std::string} with concatenation and the comparisons, allocation failure aside, and finite enumerations such as a three-valued truth type.
 
 \begin{figure}[htbp]

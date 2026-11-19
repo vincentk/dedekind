@@ -51,6 +51,7 @@ The primitives' translations compute the standard's functions on constants: a $\
 \cppinline{views::repeat(v, n)} is the value $v$, $n$ times~\cite[{\texttt{range.repeat}}]{cpp23standard}.
 \cppinline{views::transform(r, g)} is $g$ at each value of $r$, in order~\cite[{\texttt{range.transform}}]{cpp23standard}.
 \cppinline{ranges::size(r)} is the number of values of $r$~\cite[{\texttt{range.prim.size}}]{cpp23standard}.
+\cppinline{std::bit_width(n)} is the number of bits needed to write $n$, zero at zero~\cite[{\texttt{bit.pow.two}}]{cpp23standard}.
 \end{definition}
 
 FJlt's carriers are non-empty: Section~\ref{sec:jlt-to-fjlt} requires them to keep \RuleOne{}, so they are \cppinline{std::semiregular}, which includes \cppinline{default_initializable}, so each has its default value.
