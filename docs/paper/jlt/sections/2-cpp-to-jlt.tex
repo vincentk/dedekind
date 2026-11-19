@@ -192,7 +192,8 @@ Bottom right: the style Jlt requires: a function's constraints name the shape, i
 \end{listing}
 
 In \Cpp{23} a \cppinline{concept} is a predicate on a type's structure~\cite{cpp23standard}, and a trait is a compile-time function on types~\cite{myers1995traits}.
-A trait is type-indexed: it is defined by cases on the form of a type, and its result is a value, a type-indexed value~\cite{hinze2000generic}, or a type~\cite{hinze2004typeindexed}.
+A trait is type-indexed: it is defined by cases on the form of a type, which \Cpp{} writes as specialisations~\cite[{\texttt{temp.spec.partial}}]{cpp23standard}, and its result is a value, a type-indexed value~\cite{hinze2000generic}, or a type~\cite{hinze2004typeindexed}.
+The standard library names the same two kinds, a unary type trait and a transformation trait~\cite[{\texttt{meta.rqmts}}]{cpp23standard}.
 Together they take the place of type classes~\cite{wadler1989adhoc}.
 Both are resolved while compiling, so no dictionaries exist as run-time values (Section~\ref{sec:binding}).
 A type that has the operations satisfies the \cppinline{concept} without a declaration, so the standard library's types are admitted unmodified.
