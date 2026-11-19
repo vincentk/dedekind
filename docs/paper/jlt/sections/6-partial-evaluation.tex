@@ -33,7 +33,7 @@ the same values through a range that is not a \texttt{repeat\_view} & $\xrightar
 \end{tabularx}
 \caption{Sketch. The two running terms compiled by Clang~23 at \texttt{-O2}, with unrolling and vectorisation off and names shortened.
 Top three rows: the fold over a value.
-Next two: Listing~\ref{lst:laws}'s Fibonacci call, by the overload that the inferred law selects and by the plain fold, the latter over \texttt{views::transform(views::iota(0uz, n), Fib\{\})} with \texttt{Fib} returning \texttt{fib} at every position.
+Next two: Listing~\ref{lst:laws}'s Fibonacci call, by the overload that the inferred law licenses and by the plain fold, the latter over \texttt{views::transform(views::iota(0uz, n), Fib\{\})} with \texttt{Fib} returning \texttt{fib} at every position.
 Bottom three: the folds over a term's type, and the term \texttt{a} applied.
 In the first loop, \texttt{\%m} is $n - 1$, the first element and the first result.
 In the loop by squaring, the first of the 64 rounds is done on entry, so the counter starts at 1.
