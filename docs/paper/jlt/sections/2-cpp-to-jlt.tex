@@ -140,6 +140,7 @@ A false law declaration is possible, and the compiler does not detect it.
 The standard treats its own concepts alike: a type may satisfy one without modelling it, and the program is then ill-formed with no diagnostic required~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.}
 A value named at a use can be checked, and a check can refute a claim and cannot prove it.
 An entry has one spelling in the source, so a program's axioms can be listed by a tool, and the four listings of this section rest on six (Appendix~\ref{app:fjlt:axioms}, Table~\ref{tab:axioms}).
+The rules by which a theorem follows are stated in the same way, as entries at a form, and they are not proved either: the compiler applies them.
 A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts, a fold over its type (\RuleThree{}), as Listing~\ref{lst:rule1}'s \cppinline{up} is inferred to be injective from its two parts.
 The compiler's search for the entry of a trait, and then for an overload, is a simple proof search that finds either kind~\cite{augustsson2005djinn} (Appendix~\ref{app:fjlt:trait}).
 A law is stated of a carrier, a type taken as a bare set of values, together with an operation.\footnote{A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.}

@@ -65,6 +65,12 @@ findings that are breaches over a list of style remarks.
    under two traits, or at two spellings of one type), and an axiom that an entry
    at a form or a shape already yields from the others. A redundant axiom is not
    wrong, but it is one more unproved claim to keep true, so ask for it to go.
+8. **Rules of inference.** An entry at a form (`template <typename ...>` with a
+   head such as `f<Then<F, G>>`, read from the parts or true under a context) is
+   a rule by which the compiler infers a law, and the rule is stated, not proved.
+   Treat a new or changed one as you would an axiom: say in one line what it
+   claims as mathematics, and whether it is true for every type its head and
+   context admit. The ledger does not list rules yet.
 
 ## What not to report
 
