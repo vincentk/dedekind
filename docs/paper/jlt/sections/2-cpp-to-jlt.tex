@@ -393,8 +393,7 @@ struct Halving {
     requires IsMonoid<T, Op, e> {
     return {
       p.exponent % 2 == 1
-          ? Op{}(p.product, p.base)
-          : p.product,
+          ? Op{}(p.product, p.base) : p.product,
       Op{}(p.base, p.base),
       p.exponent / 2}; } };
 
@@ -402,8 +401,7 @@ template <typename T, typename Op, T e>
   requires IsMonoid<T, Op, e>
 constexpr T power(T x, size_t n) {
   return ranges::fold_left(
-      views::iota(0uz, 64uz),
-      Power<T>{e, x, n},
+      views::iota(0uz, 64uz), Power<T>{e, x, n},
       Halving<T, Op, e>{}).product; }
 \end{cpp}
 \end{minipage}\hfill
@@ -411,20 +409,17 @@ constexpr T power(T x, size_t n) {
 \begin{cpp}
 template <typename T, T zero, T one>
 struct Mat { T a, b, c, d;
-  constexpr bool operator==(
-      const Mat&) const = default;
+  constexpr bool operator==(const Mat&) const
+      = default;
   constexpr Mat operator*(Mat y) const
     requires IsSemiring<T, zero, one> {
     return {
-      a * y.a + b * y.c,
-      a * y.b + b * y.d,
-      c * y.a + d * y.c,
-      c * y.b + d * y.d}; } };
+      a * y.a + b * y.c, a * y.b + b * y.d,
+      c * y.a + d * y.c, c * y.b + d * y.d}; } };
 
 template <typename T, T zero, T one>
   requires IsSemiring<T, zero, one>
-constexpr bool associative<
-    Mat<T, zero, one>,
+constexpr bool associative<Mat<T, zero, one>,
     multiplies<Mat<T, zero, one>>> = true;
 
 using M = Mat<size_t, 0uz, 1uz>;
@@ -448,11 +443,9 @@ static_assert(
         == 14'139'011'350'745'967'675uz);
 \end{cpp}
 \caption{A declared law, a law inferred from it, and the faster overload they license.
-Top left: two more laws, each a trait with one entry.
-Top right: a semiring as a shape, under the type's own \cppinline{plus} and \cppinline{multiplies}: the two monoids of Listing~\ref{lst:rule2} and the two laws.
-Middle left: a power by repeated squaring, in at most 64 steps.
-Middle right: the $2 \times 2$ matrices over a semiring, the inferred law that their product is associative, and their unit.
-Bottom: \cppinline{concat} over $n$ copies of one value as that power, the power at two monoids of \cppinline{size_t}, and a Fibonacci number.}
+Top: two more laws, and a semiring as a shape.
+Middle: the power of a monoid in at most 64 steps, and the $2 \times 2$ matrices over a semiring.
+Bottom: \cppinline{concat} over $n$ copies of one value as that power.}
 \label{lst:laws}
 \end{listing}
 
