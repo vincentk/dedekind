@@ -58,6 +58,8 @@ The two rows for Listing~\ref{lst:laws} show what a law leaves behind.
 A law is a field of the dictionary (Section~\ref{sec:translation}), and in Jlt a dictionary is resolved while compiling and never exists at run time.
 So the law is used up there, and what it decided remains: with the semiring declared, the loop for $n$ copies of \cppinline{fib} runs 64 times, and the plain fold over the same values runs $n$ times.
 The translation makes the same choice of overload, so the iterator's count is 64 in the first and $n$ in the second.
+In the terms of partial evaluation~\cite{jones1993partial}, the types and the declared laws are the static input, $n$ is the dynamic one, and the loop is the residual program.
+The word specialisation then has one meaning twice: the compiler chooses the specialisation of each trait and the most specialised overload, and in doing so it specialises the program to its laws~\cite{veldhuizen1999partial}.
 In the plain fold the optimiser has reduced the matrix product to one addition, the recurrence of the Fibonacci numbers, which is again its doing and not Jlt's.
 
 \begin{table}[htbp]
