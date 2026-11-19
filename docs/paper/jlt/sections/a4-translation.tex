@@ -35,7 +35,7 @@ Records are nested pairs.
 \qquad \text{where } \texttt{concept } C \texttt{ = } \overline{A} & \\
 \llbracket Q \rrbracket \text{ for a nested shape } Q & \note{its record type} \\
 \llbracket \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = 1 & \note{a negation carries no evidence} \\
-\llbracket \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \rrbracket = \{\,\mathit{size} : \llbracket R \rrbracket \to \llbracket \texttt{size\_t} \rrbracket, & \note{the kernel's constraint, read only by \textsc{T-Fold-R}, \textsc{T-Size-R} and \textsc{T-Uncons-R}} \\
+\llbracket \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \rrbracket = \{\,\mathit{size} : \llbracket R \rrbracket \to \llbracket \texttt{size\_t} \rrbracket, & \note{the kernel's constraint, read only by \textsc{T-Fold-R}, \textsc{T-Size-R} and \textsc{T-Guard} at a type variable} \\
 \qquad \mathit{uncons} : \llbracket R \rrbracket \to 1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket\,\} & \\
 \llbracket e \rrbracket = \mathit{Bool} \text{ for a law } e & \\
 \llbracket \texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket & \note{an operation on parameters $\overline{x : \tau_x}$} \\
@@ -135,8 +135,9 @@ A term with a run-time \cppinline{n} translates to a term with $n$ free, of type
 \qquad \text{with } |\cdot|, \mathit{uncons} \text{ the operations of } R & \\
 \qquad \text{at a type variable } R \text{ (\textsc{T-Fold-R}):} & \\
 \qquad\quad \mathit{toNat} \circ q_Q.\mathit{size}, q_Q.\mathit{uncons} \text{ in their place} & \note{$q_Q$  the record of $Q = \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$  in $\Delta$} \\
-\multicolumn{2}{l}{\textit{the length and the two cases of a range}} \\
-\llbracket \texttt{uncons(}r\texttt{)} \rrbracket = \mathit{uncons}\,\llbracket r \rrbracket & \note{\textsc{T-Uncons}: the instance's operation, whose type $1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket$ is the image of the term's; at a type variable $R$ (\textsc{T-Uncons-R}), $q_Q.\mathit{uncons}\,\llbracket r \rrbracket$} \\
+\multicolumn{2}{l}{\textit{the length of a range, and a conditional under a guard}} \\
+\llbracket \texttt{ranges::size(}r\texttt{) == 0 ? } a \texttt{ : } b \rrbracket = \mathit{case}\,(\mathit{uncons}\,\llbracket r \rrbracket,\ \lambda u.\,\llbracket a \rrbracket,\ \lambda c.\,\llbracket b^{h} \rrbracket[\pi_1 c / h]) & \note{\textsc{T-Guard}: the instance's $\mathit{uncons}$, empty or the head beside the tail; at a type variable $R$, $q_Q.\mathit{uncons}\,\llbracket r \rrbracket$} \\
+\llbracket s \texttt{ ? } b \texttt{ : } a \rrbracket = \mathit{case}\,(\llbracket s \rrbracket,\ \lambda u.\,\llbracket a \rrbracket,\ \lambda h.\,\llbracket b^{h} \rrbracket) & \note{\textsc{T-Guard-Opt}: the optional is the sum $1 + \llbracket \tau \rrbracket$} \\
 \llbracket \texttt{ranges::size(}r\texttt{)} \rrbracket = |\llbracket r \rrbracket| & \note{\textsc{T-Size}: the instance's length; at a type variable $R$ (\textsc{T-Size-R}), $q_Q.\mathit{size}\,\llbracket r \rrbracket$} \\
 \end{array}
 \]
@@ -211,11 +212,11 @@ The unit component keeps unboxing a step on both sides, which Lemma~\ref{lem:for
 \toprule
 System~F & FJlt & \Cpp{} & rules \\
 \midrule
-$1 + \tau$, inl, inr, case & \texttt{optional<τ>}, $\iota_1\,e$, $\iota_2\,e$, \texttt{case(s, f, g)} & \texttt{nullopt}, \texttt{optional\{e\}}, \texttt{s.transform(g).value\_or(f)}, $f$ the value for the empty one & \textsc{T-Inj}, \textsc{T-Case}; \textsc{S-Case} \\
-$\tau + \sigma$, inl, inr, case & \texttt{variant<τ, σ>}, $\iota_1\,e$, $\iota_2\,e$, \texttt{case(s, f, g)} & \texttt{variant<τ, σ>(in\_place\_index<i-1>, e)}, a dispatch on the index, as the library's \texttt{Copairing} & \textsc{T-Inj}, \textsc{T-Case}; \textsc{S-Case} \\
+$1 + \tau$, inl, inr, case & \texttt{optional<τ>}, \texttt{nullopt}, \texttt{optional\{e\}}, \texttt{s ?\ b :\ a} with \texttt{*s} in \texttt{b} & the same; also \texttt{has\_value}, \texttt{value\_or}, \texttt{s.transform(g).value\_or(f)} & \textsc{T-Guard-Opt}; \textsc{S-Guard} \\
+$\tau + \sigma$, inl, inr, case & \texttt{variant<τ, σ>}, its construction at an alternative, \texttt{std::visit(O\{\}, s)} & the same; in the rules, $\iota_i\,e$ and \texttt{case(s, f, g)} are shorthand for them & \textsc{T-Inj}, \textsc{T-Case}; \textsc{S-Case} \\
 $\tau \times \sigma$, $(a, b)$, $\pi_1$, $\pi_2$~\cite{pierce1991basic} & \texttt{pair<τ, σ>}, \texttt{pair\{a, b\}}, \texttt{.first}, \texttt{.second} & the same & \textsc{T-Construct}, \textsc{T-Field}; \textsc{S-Proj} \\
 a unary product & \texttt{shared\_ptr<const τ>}, \texttt{make\_shared}, \texttt{*} & the same & \textsc{S-Unbox} \\
-a state $\llbracket R \rrbracket$, \textit{iter} & $R\texttt{<}\tau\texttt{>}$, \texttt{fold\_left(r, a, f)}, \texttt{ranges::size(r)}, \texttt{uncons(r)} & \texttt{std::ranges::fold\_left}, the instance's $|\cdot|$ and $\mathit{uncons}$ spelt \texttt{ranges::size} and, under a guard, \texttt{*ranges::begin} with the range after it & \textsc{T-Fold}, \textsc{T-Size}, \textsc{T-Uncons}, each also at \textsc{-R}, \textsc{E-Range}; \textsc{S-Fold}, \textsc{S-Size}, \textsc{S-Uncons} \\
+a state $\llbracket R \rrbracket$, \textit{iter} & $R\texttt{<}\tau\texttt{>}$, \texttt{fold\_left(r, a, f)}, \texttt{ranges::size(r)}, \texttt{ranges::size(r) == 0 ?\ a :\ b} with \texttt{*ranges::begin(r)} in \texttt{b} & the same & \textsc{T-Fold}, \textsc{T-Size}, \textsc{T-Guard}, each also at a type variable, \textsc{E-Range}; \textsc{S-Fold}, \textsc{S-Size}, \textsc{S-Guard} \\
 $\mu F$, its fold & nested nodes $O\texttt{<}\overline{\tau}\texttt{>}$, \texttt{cata(alg, t)} & the library's & \textsc{T-Cata}, \textsc{T-Node}; \textsc{S-Cata} \\
 \bottomrule
 \end{tabularx}

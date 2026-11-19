@@ -122,7 +122,7 @@ The value parameter \texttt{e} is one more $\lambda$, which runs ahead of the ke
 \hspace*{2.0em}\texttt{identity * identity == identity} & $\xrightarrow{\text{\scriptsize \textsc{E-Law}, a check}}$ & $\mathit{check}$ \\
 \hspace*{2.0em}\texttt{a * b} on \texttt{M} & $\xrightarrow{\text{\scriptsize \textsc{E-Op}}}$ & $\mathit{op}$, the matrices' product at $d_S$ \\
 \hspace*{1.0em}the overload's body, checked once & $\xrightarrow{\text{\scriptsize \textsc{D-Generic}}}$ & $\Lambda T.\,\Lambda \mathit{Op}.\,\lambda e.\,\lambda q.\,\lambda r.\ \ldots$ \\
-\hspace*{2.0em}\texttt{ranges::size(r) == 0 ? e : power<T, Op, e>(}\ldots\texttt{)} & $\xrightarrow{\text{\scriptsize \textsc{T-Uncons}, \textsc{T-Case}}}$ & $\mathit{case}\,(\mathit{uncons}\;r,\ e,\ \lambda c.\ \mathit{power}\;T\;\mathit{Op}\;e\;q\;(\pi_1 c)\;|r|)$ \\
+\hspace*{2.0em}\texttt{ranges::size(r) == 0 ? e : power<T, Op, e>(}\ldots\texttt{)} & $\xrightarrow{\text{\scriptsize \textsc{T-Guard}}}$ & $\mathit{case}\,(\mathit{uncons}\;r,\ e,\ \lambda c.\ \mathit{power}\;T\;\mathit{Op}\;e\;q\;(\pi_1 c)\;|r|)$ \\
 \hspace*{1.0em}the body of \texttt{power}, checked once & $\xrightarrow{\text{\scriptsize \textsc{D-Generic}}}$ & $\Lambda T.\,\Lambda \mathit{Op}.\,\lambda e.\,\lambda q.\,\lambda x.\,\lambda n.\ \ldots$ \\
 \hspace*{2.0em}\texttt{fold\_left(views::iota(0uz, size\_t(bit\_width(n))), }\ldots\texttt{)} & $\xrightarrow{\text{\scriptsize \textsc{T-Fold}}}$ & $\mathit{iter}\,(\mathit{toNat}\,(\mathit{bit\_width}\;n))\,\mathit{step}\,\ldots$ \\
 \hspace*{3.0em}\texttt{Op\{\}(p.base, p.base)}, in \texttt{Halving} & $\xrightarrow{\text{\scriptsize \textsc{T-Req-Assumed}}}$ & $q.\mathit{op}\;\ldots$ \\

@@ -71,15 +71,14 @@ $\Sigma$ is not a list; the listings also use \cppinline{std::string} with conca
 \[
 \begin{array}{ll}
 \textsc{(S-If)} & \texttt{true ? } e_1 \texttt{ : } e_2 \longrightarrow e_1 \qquad \texttt{false ? } e_1 \texttt{ : } e_2 \longrightarrow e_2 \\[5pt]
-\textsc{(S-Case)} & \texttt{case(}\iota_1\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_f\texttt{(}v\texttt{)} \qquad \texttt{case(}\iota_2\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_g\texttt{(}v\texttt{)} \\
- & \texttt{case(std::nullopt, }v_e\texttt{, }v_g\texttt{)} \longrightarrow v_e \qquad \texttt{case(std::optional\{}v\texttt{\}, }v_e\texttt{, }v_g\texttt{)} \longrightarrow v_g\texttt{(}v\texttt{)} \\[5pt]
+\textsc{(S-Case)} & \texttt{case(}\iota_1\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_f\texttt{(}v\texttt{)} \qquad \texttt{case(}\iota_2\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_g\texttt{(}v\texttt{)} \\[5pt]
+\textsc{(S-Guard)} & \texttt{ranges::size(}v_r\texttt{) == 0 ? } a \texttt{ : } b \longrightarrow a \ \text{ if } |v_r| = 0, \qquad \longrightarrow b[\mathit{head}\,v_r / \texttt{*ranges::begin(}v_r\texttt{)}] \ \text{ if } |v_r| > 0 \\
+ & \texttt{std::nullopt ? } b \texttt{ : } a \longrightarrow a \qquad \texttt{std::optional\{}v\texttt{\} ? } b \texttt{ : } a \longrightarrow b[v / \texttt{*std::optional\{}v\texttt{\}}] \\[5pt]
 \textsc{(S-Proj)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}.}y_i \longrightarrow v_i \quad \text{a field, \texttt{std::pair}'s \texttt{first} and \texttt{second} among them} \\[5pt]
 \textsc{(S-Unbox)} & \texttt{*make\_shared<const }\tau\texttt{>(}v\texttt{)} \longrightarrow v \\[5pt]
 \textsc{(S-Fold)} & \texttt{fold\_left(}v_r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow \texttt{fold\_left(}\mathit{next}\,v_r\texttt{, }v_f\texttt{(}v_a\texttt{, }\mathit{head}\,v_r\texttt{), }v_f\texttt{)} \quad \text{if } |v_r| > 0 \\
  & \texttt{fold\_left(}v_r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow v_a \quad \text{if } |v_r| = 0 \\[5pt]
 \textsc{(S-Size)} & \texttt{ranges::size(}v_r\texttt{)} \longrightarrow c \quad \text{the constant of \texttt{size\_t} for } |v_r| \\[5pt]
-\textsc{(S-Uncons)} & \texttt{uncons(}v_r\texttt{)} \longrightarrow \texttt{optional\{pair\{}\mathit{head}\,v_r\texttt{, }\mathit{next}\,v_r\texttt{\}\}} \quad \text{if } |v_r| > 0 \\
- & \texttt{uncons(}v_r\texttt{)} \longrightarrow \texttt{nullopt} \quad \text{if } |v_r| = 0 \\[5pt]
 \textsc{(S-Cata)} & \texttt{cata(}v_{\mathit{alg}}\texttt{, }n\texttt{)} \longrightarrow v_{\mathit{alg}}\texttt{(}n\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_1\texttt{), }\ldots\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_k\texttt{))} \\
  & \qquad \text{for a node } n \text{ with legs } l_1 \ldots l_k \\[5pt]
 \textsc{(S-Ctx)} & E[e] \longrightarrow E[e'] \quad \text{if } e \longrightarrow e' \\
@@ -91,9 +90,12 @@ $\Sigma$ is not a list; the listings also use \cppinline{std::string} with conca
 
 \paragraph{Data and recursion.}
 In Figure~\ref{fig:fjlt-eval}, \textsc{S-Fold} consumes the head of the range, so a fold takes as many steps as the range has elements, the bound \RuleThree{} asks for.
-\textsc{S-Size} gives that bound as a value, and \textsc{S-Uncons} the two cases of Equation~\eqref{eq:fold}.
+\textsc{S-Size} gives that bound as a value.
+\textsc{S-Guard} takes a conditional under a guard in one step, to the branch the guard selects, with the head or the content put in for the dereference: the two cases of Equation~\eqref{eq:fold}.
+A guard is not evaluated as a condition first: the context $E \texttt{ ? } e \texttt{ : } e$ does not apply to a conditional whose condition is a guard, and \textsc{S-Guard} does.
 A range value is an instance's constructor on values, $c_R\texttt{(}\overline{v}\texttt{)}$, as \cppinline{views::iota(0uz, 10uz)} is, and a range's arguments are evaluated first.
-The case form has two readings, by the type of what it reads: on a sum, each branch is a function of its summand, and on an optional, the first branch is the value for the empty one (Table~\ref{tab:conventions}), since nothing is there to apply a function to.
+\textsc{S-Case} is the case on a sum of two summands, a variant, each branch a function of its summand, which \Cpp{} writes \cppinline{std::visit} and the listings do not use.
+For it alone the rules keep a shorthand that is not \Cpp{}: $\iota_i\,v$ for a variant that holds $v$ at its $i$-th alternative, and \texttt{case(}$s$\texttt{, }$f$\texttt{, }$g$\texttt{)} for \cppinline{std::visit} with the two branches.
 \textsc{S-Cata} unfolds one node, passing the node itself beside its legs' folds; a leaf has no legs and the algebra is applied to it alone.
 \textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, and constant evaluation does not share its heap with run time (Table~\ref{tab:binding}).
 A law, a constant's initialiser or a \cppinline{static_assert} premise is therefore a constant expression whose value keeps no allocation alive, \cppinline{make_shared} excluded, the condition under which every FJlt program is a Jlt program.

@@ -139,7 +139,7 @@ construction & FJlt, provided & image \\
 \texttt{if constexpr} on a value$^{\ddagger}$ & condition a closed \texttt{bool} term, both branches FJlt of one type under the same constraints & \texttt{p ? A : B} \\
 enumeration, \texttt{switch}$^{\ast}$ & every enumerator handled, each case an FJlt term of one type & a finite sum of units and its nested case \\
 sum$^{\ast\ddagger}$ & branches FJlt on the summands & the case form \\
-\texttt{ranges::size(r) == 0 ? A : B}, with \texttt{*ranges::begin(r)} in \texttt{B} & \texttt{A} and \texttt{B} FJlt terms of one type, \texttt{r} a parameter or a constant & the case form on \texttt{uncons(r)}: \texttt{A} the value for the empty range, and for the other a function object that takes the head beside the tail and returns \texttt{B}, its fields the variables \texttt{B} uses \\
+
 \texttt{if constexpr} on a constraint$^{\ast\dagger}$ & then-branch FJlt under the constraint, else-branch under its negation & an instance chain, the more constrained generic function preferred \\
 \texttt{if consteval}, or an \texttt{if} on \texttt{is\_constant\_evaluated()}$^{\ddagger}$ & both branches compute the same value on every input & the compile-time branch \\
 \bottomrule
@@ -158,12 +158,12 @@ The compiler decides it per site, as the rewritten body compiles or it does not.
 A site whose branches differ in type is a branch on types in a value's clothing.
 
 \paragraph{Sums.}
-The kernel's case form copairs FJlt terms \cppinline{f} and \cppinline{g} on the two summands into \texttt{case(}$s$\texttt{, }$f$\texttt{, }$g$\texttt{)}.
-\cppinline{has_value} and \cppinline{value_or} on an optional are that case on $1 + T$.
-\cppinline{std::visit(O{}, v)} is the case whose branches are one generic call operator, entailed at each summand.
+The kernel reads a sum with a unit, an optional or a range, by a conditional under a guard (\textsc{T-Guard}, Appendix~\ref{app:fjlt:typing}), which is \Cpp{}'s own syntax and no sugar.
+\cppinline{has_value} and \cppinline{value_or} on an optional are spellings of it.
+\cppinline{std::visit(O{}, v)} is the case on a variant, whose branches are one generic call operator, entailed at each summand.
 \cppinline{*} on an optional is partial.
-Under a \cppinline{has_value} guard it desugars to the case form, as the head of a range is admitted only at positive length.
-For a range the guard is \cppinline{ranges::size(r) == 0}, and the image is the case form on \texttt{uncons(r)} (Table~\ref{tab:closure:choice}): Equation~\eqref{eq:fold} guards the head before taking it, and so does the spelling.
+So is the head of a range, and the kernel admits either only in the branch its guard selects.
+Equation~\eqref{eq:fold} guards the head before taking it, and so does the kernel's term.
 Listing~\ref{lst:laws} reads the one value of its range this way.
 In a constant initialiser, constant evaluation refuses the empty case, so the compiler holds the guard, as for Listing~\ref{lst:sites}'s \cppinline{*automaton(sites)}.
 \cppinline{std::get} on a variant is partial too and is not admitted, as a variant is read by the case form.
