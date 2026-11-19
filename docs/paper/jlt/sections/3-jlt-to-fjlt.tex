@@ -27,7 +27,7 @@ As written in Listings~\ref{lst:rule1} to~\ref{lst:rule3} & sugar & Kernel form 
 \texttt{then(t.f, then(t.g, h))} & $\xrightarrow{\text{\scriptsize recursion at the parts}}$ & unchanged, and typed the same way \\[3pt]
 \texttt{ranges::sized\_range R} with \texttt{range\_value\_t<R>} the same as \texttt{size\_t} & $\xrightarrow{\text{\scriptsize range}}$ & $\mathit{IsRange}\texttt{<R, size\_t>}$, the kernel's constraint on a range that declares its bound \\[3pt]
 \texttt{template <typename Op, size\_t e>} & $\xrightarrow{\text{\scriptsize value parameter}}$ & unchanged: a parameter of structural type~\cite[{\texttt{temp.param}}]{cpp23standard} \\[3pt]
-\texttt{views::reverse(views::iota(0uz, 10uz))} & $\longrightarrow$ & unchanged: a range of $\mathcal{R}$, of length 10, once \texttt{reverse} and \texttt{repeat} are admitted beside \texttt{iota} \\[3pt]
+\texttt{views::reverse(views::iota(0uz, 10uz))} & $\longrightarrow$ & unchanged: a range of $\mathcal{R}$, of length 10 (Appendix~\ref{app:fjlt:translation}) \\[3pt]
 \bottomrule
 \end{tabularx}
 \caption{Sketch. The two running terms desugared, \Cpp{} on both sides.

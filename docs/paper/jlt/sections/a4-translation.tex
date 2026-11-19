@@ -141,7 +141,7 @@ It also contributes two operations, its length $|\cdot|$ and $\mathit{uncons} : 
 $\mathit{uncons}$ is the step down of Table~\ref{tab:recursion-names} for a range: a coalgebra of $F\,X = 1 + \llbracket \tau \rrbracket \times X$ on the range's state.
 It plays the part that $\mathit{out}$ plays on $\mu F$, without being its inverse: a range's state need not be the initial algebra, and two states may both be empty.
 Both are total, as System~F's functions are.
-The kernel's three ranges are library adapters, and any instance of $\mathcal{R}$ would do:
+The kernel's ranges are three of the standard's, which the listings use, and two adapters of the library, and any instance of $\mathcal{R}$ would do:
 \begin{center}
 \small
 \begin{tabular}{@{}llll@{}}
@@ -151,12 +151,17 @@ range & state & head & tail \\
 \texttt{n >> chain(prior)} & $\llbracket N \rrbracket$ & \texttt{prior(n)} & \texttt{prior(n) >> chain(prior)} \\
 \texttt{transform(r, g)} & $\llbracket R \rrbracket \times \llbracket g \rrbracket$ & $g\,(\mathit{head}\,r)$ & \texttt{transform}$(\mathit{next}\,r, g)$ \\
 \texttt{iota(i, j)}, $i \le j$ & $\mathbb{N} \times \mathbb{N}$ & \texttt{i} & \texttt{iota(i + 1, j)} \\
+\texttt{reverse(iota(i, j))}, $i \le j$ & $\mathbb{N} \times \mathbb{N}$ & \texttt{j - 1} & \texttt{reverse(iota(i, j - 1))} \\
+\texttt{repeat(v, n)} & $\llbracket \tau \rrbracket \times \mathbb{N}$ & \texttt{v} & \texttt{repeat(v, n - 1)} \\
 \bottomrule
 \end{tabular}
 \end{center}
 The chain is empty where \texttt{prior(n)} is nothing, and finite because the step descends (Section~\ref{sec:posture}).
 \texttt{transform} is the library's \cppinline{r >> g}, carrying the arrow so that the head applies it.
 Reversed endpoints of \texttt{iota} are undefined behaviour, not an empty range.
+The lengths are $j - i$ for \texttt{iota} and for its reverse, and $n$ for \texttt{repeat}.
+\texttt{reverse} is admitted of \texttt{iota} alone, which is the count down: of a general range it would ask each instance for its last element and the range before it.
+A \texttt{repeat} with no count is not in the kernel, as no range without a length is.
 
 \begin{figure}[htbp]
 \[

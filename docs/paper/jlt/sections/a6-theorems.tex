@@ -47,6 +47,8 @@ Equational deduction is sound and complete for many-sorted algebras whose carrie
 The primitives' translations compute the standard's functions on constants: a $\delta$-step lands on the constant the standard, or the declaration, assigns.
 \cppinline{fold_left} over the ranges of $\mathcal{R}$ is a primitive with the evaluation rule of Figure~\ref{fig:fjlt-eval}, as the standard specifies \cppinline{ranges::fold_left}, a fold from the left~\cite[{\texttt{alg.fold}}]{cpp23standard}.
 \cppinline{views::iota(i, j)} is the range of the values from $i$ up to $j$, not including $j$~\cite[{\texttt{range.iota}}]{cpp23standard}.
+\cppinline{views::reverse} of it is the same values from $j - 1$ down to $i$~\cite[{\texttt{range.reverse}}]{cpp23standard}.
+\cppinline{views::repeat(v, n)} is the value $v$, $n$ times~\cite[{\texttt{range.repeat}}]{cpp23standard}.
 \end{definition}
 
 FJlt's carriers are non-empty: Section~\ref{sec:jlt-to-fjlt} requires them to keep \RuleOne{}, so they are \cppinline{std::semiregular}, which includes \cppinline{default_initializable}, so each has its default value.
