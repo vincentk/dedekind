@@ -70,18 +70,22 @@ A converted result is used only at its declared type (Appendix~\ref{app:fjlt:typ
 \[
 \begin{array}{@{}l@{\quad}l@{}}
 \multicolumn{2}{l}{\textit{declarations}} \\
-\texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{x}\texttt{) ... } e & \note{an instance} \\
-\qquad \mapsto\; f_{\overline{\tau}} = \lambda\overline{x}.\,\llbracket e \rrbracket & \\
+\texttt{template <}\overline{\alpha}\texttt{> constexpr } \rho\; f \texttt{ = } e\texttt{;} & \note{a trait's default} \\
+\qquad \mapsto\; f_{\circ} = \Lambda\overline{\alpha}.\,\llbracket e \rrbracket & \\
+\texttt{template <}\overline{\beta}\texttt{> requires } \overline{Q}\texttt{ ... } f\texttt{<}\overline{\tau}\texttt{> = } e\texttt{;} & \note{an entry} \\
+\qquad \mapsto\; f_{\overline{\tau}} = \Lambda\overline{\beta}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{t}.\,\llbracket e \rrbracket & \note{$\overline{t}$ one parameter for each read of $e$ at a type with a type variable} \\
 \texttt{template <}\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ ... } f\texttt{(}\overline{x}\texttt{) ... } e & \note{a generic function} \\
-\qquad \mapsto\; f = \Lambda\overline{\alpha}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \\
+\qquad \mapsto\; f = \Lambda\overline{\alpha}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{t}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \note{$\overline{t}$ its reads, as for an entry} \\
 \texttt{struct } O \texttt{ \{ } \overline{y}\texttt{; ... operator()(}\overline{x}\texttt{) ... } e \texttt{ ... \};} & \note{a function object's call function} \\
 \qquad \mapsto\; O_{\mathrm{call}} = \lambda\overline{y}.\,\Lambda\overline{\beta}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \\
 O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \note{a standard-library function object, such as \texttt{std::plus}: its function $o$, a constant of the target} \\
 \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \;\mapsto\; x = \llbracket e \rrbracket & \note{a constant, a definition} \\
-\texttt{concept}, \texttt{= delete} \;\mapsto\; \text{nothing} & \\[6pt]
+\texttt{concept} \;\mapsto\; \text{nothing} & \\[6pt]
 \multicolumn{2}{l}{\textit{terms}} \\
-\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_i\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket}\,\overline{\llbracket e \rrbracket} & \note{\textsc{T-Call}, $f_i$ the declaration it resolves to} \\
-\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_{\overline{\sigma}}\,\overline{\llbracket e \rrbracket} & \note{\textsc{T-Trait}, resolved to a specialisation} \\
+\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_i\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket}\,\overline{r}\,\overline{\llbracket e \rrbracket} & \note{\textsc{T-Call}, $f_i$ the declaration it resolves to, $\overline{r}$ the images of its reads at $\overline{\sigma}$} \\
+\llbracket f\texttt{<}\overline{\sigma}\texttt{>} \rrbracket = f_{\overline{\tau}}\,\overline{\llbracket \sigma' \rrbracket}\,\overline{\llbracket \Delta \Vdash Q[\overline{\sigma'}/\overline{\beta}] \rrbracket}\,\overline{r} & \note{\textsc{T-Trait} at concrete types, resolved to the entry at $\overline{\tau}$ with $\overline{\sigma} = \overline{\tau}[\overline{\sigma'}/\overline{\beta}]$; $\overline{r}$ the images of the entry's reads at $\overline{\sigma'}$} \\
+\llbracket f\texttt{<}\overline{\sigma}\texttt{>} \rrbracket = f_{\circ}\,\overline{\llbracket \sigma \rrbracket} & \note{the same, resolved to the default} \\
+\llbracket f\texttt{<}\overline{\tau}\texttt{>} \rrbracket = t_{f\texttt{<}\overline{\tau}\texttt{>}} & \note{\textsc{T-Trait} at a type with a type variable: the parameter of the enclosing declaration for this read} \\
 \llbracket \tau^{S}\texttt{(}e_r[\overline{e}/\overline{a}]\texttt{)} \rrbracket = q_Q.\pi.r\,\overline{\llbracket e \rrbracket} & \note{\textsc{T-Req-Assumed} at $Q \in \Delta$, $\pi$  the path through nested shapes} \\
 \llbracket O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e_y}\texttt{\}} \rrbracket = (\overline{\llbracket e_y \rrbracket},\; O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket}) & \note{construction; a fieldless $O$  has the empty tuple of fields} \\
 \llbracket e\texttt{(}\overline{e'}\texttt{)} \rrbracket = (\pi_2\,\llbracket e \rrbracket)\,[\overline{\llbracket \sigma \rrbracket}]\,\overline{d}\,\overline{\llbracket e' \rrbracket} & \note{\textsc{T-Op}, \textsc{T-App}: application; $\pi_2$ takes the call function out of the object's pair (construction, the line above)} \\
@@ -101,7 +105,12 @@ The right-hand column says which case a line is.}
 Figure~\ref{fig:fjlt-translation} translates each declaration on its own; together they form one program.
 The program's image is its definitions in declaration order, each scoping over the definitions and the term after it, so a name is bound before every use (Appendix~\ref{app:fjlt:typing}).
 A constant is such a definition, $x = \llbracket e \rrbracket$, unfolded where it is used, as \textsc{S-Const} unfolds it, and not a $\beta$-redex, which would substitute every use at once (Definition~\ref{def:target}).
-A trait has no image of its own: its specialisations are closed terms $f_{\overline{\tau}}$, and a generic function serving as an instance with a context is the function from records to a record with which \textsc{E-Shape} builds its dictionary.
+A trait's default and each of its entries is a definition.
+A read at concrete types is the image of the declaration it resolves to, applied to the types that match, and a closed term.
+A read at a type with a type variable is a parameter of the declaration that makes it, placed after the declaration's records, and the caller supplies it as it supplies a record.
+The reads of a declaration are those its body writes and, at each call in it, the reads of the callee at the call's types, where a type variable is left in them.
+So an entry at a form is a function from its context's records and the trait's values at the parts to its own value, the instance with a context of qualified types~\cite{jones1994qualified}: Listing~\ref{lst:rule1}'s entry of \cppinline{injective} at a composite is $\Lambda F.\,\Lambda G.\,\lambda i_F.\,\lambda i_G.\,i_F \wedge i_G$.
+The translation of a read ends, because an entry reads its trait only at proper parts of its head (\textsc{D-Entry}).
 No body calls itself and a term type is strictly positive (Appendix~\ref{app:fjlt:typing}), so the definitions are acyclic and each term type has its iterator, as the normalisation results need.
 So the program needs no recursive binding, and its only recursion is that of the two primitives (Equations~\eqref{eq:fold} and~\eqref{eq:cata}): the fold over a range, and the recursion over a term type, whose image is the term's iterator (Figure~\ref{fig:fjlt-term-fold}).
 

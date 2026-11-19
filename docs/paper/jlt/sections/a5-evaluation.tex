@@ -26,6 +26,8 @@ A reference is an optimisation, not a meaning (\RuleOne{}; Table~\ref{tab:adequa
 \textsc{(S-Call)} & f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)} \longrightarrow e[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \\
  & \qquad \text{where } f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to parameters } \overline{x} \text{ and body } e \\[5pt]
 \textsc{(S-Const)} & x \longrightarrow e \quad \text{for a constant declared } \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \\[5pt]
+\textsc{(S-Trait)} & f\texttt{<}\overline{\sigma}\texttt{>} \longrightarrow e[\overline{\sigma'}/\overline{\beta}] \\
+ & \qquad \text{where the read resolves to an entry or the default, with initialiser } e \text{ at } \overline{\beta} := \overline{\sigma'} \\[5pt]
 \textsc{(S-Op)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)} \longrightarrow e[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}][\overline{v_y}/\overline{y}][\overline{v}/\overline{x}] \\
  & \qquad \text{for a declared function object with body } e\text{, } \overline{\sigma} \text{ deduced} \\
 \end{array}
@@ -35,7 +37,9 @@ A reference is an optimisation, not a meaning (\RuleOne{}; Table~\ref{tab:adequa
 \end{figure}
 
 \paragraph{Calls.}
-In Figure~\ref{fig:fjlt-eval-calls}, \textsc{S-Call} covers specialisations and generic functions alike, since resolution has already chosen the body; for a generic function the explicit type arguments are substituted first.
+In Figure~\ref{fig:fjlt-eval-calls}, \textsc{S-Call} substitutes the explicit type arguments first, resolution having chosen the body.
+\textsc{S-Trait} unfolds a read to the initialiser of the declaration it resolves to, an entry or the default, at the types that match.
+A read in a closed term is at concrete types, since \textsc{S-Call} has substituted them.
 An operator on values whose resolution picks a declared \texttt{operator}$\oplus$ is that call, and steps by \textsc{S-Call}.
 A constant's name is, like a function's, a name of the program and not a variable, so a closed term may hold it; \textsc{S-Const} unfolds it, and since evaluation is deterministic every use gives the one value \Cpp{} computes once.
 
