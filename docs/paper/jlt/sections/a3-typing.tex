@@ -225,9 +225,9 @@ A constant is typed once, closed, by \textsc{D-Const}, and its name has that typ
 \\[12pt]
 \textsc{(T-Fold-R)} & \dfrac{\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \in \Delta \quad \Delta; \Gamma \vdash r : R \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma \vdash f : \sigma \times \tau \to \sigma}{\Delta; \Gamma \vdash \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} : \sigma}
 \\[12pt]
-\textsc{(T-Size)} & \dfrac{\Delta; \Gamma \vdash r : R\texttt{<}\tau\texttt{>} \text{, } R \in \mathcal{R} \text{ with size type } b_R}{\Delta; \Gamma \vdash \texttt{ranges::size(}r\texttt{)} : b_R}
+\textsc{(T-Size)} & \dfrac{\Delta; \Gamma \vdash r : R\texttt{<}\tau\texttt{>} \text{, } R \in \mathcal{R}}{\Delta; \Gamma \vdash \texttt{ranges::size(}r\texttt{)} : \texttt{size\_t}}
 \\[12pt]
-\textsc{(T-Size-R)} & \dfrac{\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \in \Delta \quad \Delta; \Gamma \vdash r : R}{\Delta; \Gamma \vdash \texttt{size\_t(ranges::size(}r\texttt{))} : \texttt{size\_t}}
+\textsc{(T-Size-R)} & \dfrac{\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \in \Delta \quad \Delta; \Gamma \vdash r : R}{\Delta; \Gamma \vdash \texttt{ranges::size(}r\texttt{)} : \texttt{size\_t}}
 \\[12pt]
 \textsc{(T-Uncons)} & \dfrac{\Delta; \Gamma \vdash r : R\texttt{<}\tau\texttt{>} \text{, } R \in \mathcal{R}}{\Delta; \Gamma \vdash \texttt{uncons(}r\texttt{)} : \texttt{optional<pair<}\tau\texttt{, }R\texttt{<}\tau\texttt{>>>}}
 \\[12pt]
@@ -246,16 +246,13 @@ $^{\P}$~At each node of arity $k$.}
 \paragraph{Ranges.}
 A range is homogeneous: its elements share one type $\tau$, and its length is a value.
 $R\texttt{<}\tau\texttt{>}$ is an instance of $\mathcal{R}$, a family defined by conditions: the range of Equation~\eqref{eq:fold}, and the object of Table~\ref{tab:recursion-names}'s row over a value.
-A fold reads its length $|r|$, a value of the range's size type and so a natural number below a fixed limit, fixed before the fold starts, and, when $|r| > 0$, its head $\mathit{head}\,r$ and its tail $\mathit{next}\,r$, functions on range values, with $|\mathit{next}\,r| = |r| - 1$; FJlt has a term for the length, \cppinline{ranges::size(r)} (\textsc{T-Size}), which is the bound of \RuleThree{}.
+A fold reads its length $|r|$, a value of \cppinline{size_t} and so a natural number below a fixed limit, fixed before the fold starts, and, when $|r| > 0$, its head $\mathit{head}\,r$ and its tail $\mathit{next}\,r$, functions on range values, with $|\mathit{next}\,r| = |r| - 1$; FJlt has a term for the length, \cppinline{ranges::size(r)} (\textsc{T-Size}), which is the bound of \RuleThree{}.
 For the head and the tail it has one term, $\texttt{uncons(}r\texttt{)}$ (\textsc{T-Uncons}): nothing for the empty range, and otherwise the head beside the tail.
 These are the two cases of Equation~\eqref{eq:fold}, and a program reads them by the case form, so it never takes a head unguarded.
 \Cpp{} spells the term as a conditional on the length (Appendix~\ref{app:fjlt:closure}).
-The length's type is the range's own size type $b_R$, as the standard gives it~\cite[{\texttt{range.prim.size}}]{cpp23standard}: a type that the instance fixes, whose values $\mathit{toNat}$ reads as numerals.
-It is \cppinline{size_t} for the ranges of the listings.
-It need not be one number: an instance may give its length as a term over \cppinline{size_t}, as a range of ranges has a pair of lengths, one for each of two nested folds.
-$\mathit{toNat}$ reads such a term by a fold over it (Equation~\eqref{eq:cata}), a pair as the product of its two lengths.
-The kernel has no such instance yet.
-At a type variable the size type is not known, and the term is the length converted to \cppinline{size_t}, the default (\textsc{T-Size-R}), as Listing~\ref{lst:laws} writes it.
+The kernel fixes the length's type at \cppinline{size_t}, a restriction: the standard gives it in the range's own size type~\cite[{\texttt{range.prim.size}}]{cpp23standard}, which is \cppinline{size_t} for every instance of $\mathcal{R}$, a \cppinline{repeat_view} being one where it is counted in \cppinline{size_t}, as in Listing~\ref{lst:laws}.
+A length is thus one number, and a bound beyond one word is reached by nesting: a range of ranges is folded by a fold whose step is a fold, each over a range with a length of its own.
+The shape of such a nest is the tuple of its lengths, a term over \cppinline{size_t} in the sense of Equation~\eqref{eq:cata}, and no rule needs a single length to hold it.
 A range is typed by its instance's conditions, \cppinline{iota(i, j)} only at $i \le j$, and \textsc{S-Fold} preserves them, since $\mathit{next}$ does.
 The conditions are semantic, that a step descends or that two bounds are ordered, so a chain whose step does not descend is ill-typed, and the termination of a fold is, to that extent, assumed in the typing of its range.
 At a type variable $R$, $\mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$ holds of exactly the instances of $\mathcal{R}$ over $\tau$.

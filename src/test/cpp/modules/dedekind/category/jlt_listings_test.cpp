@@ -1213,15 +1213,15 @@ struct Squaring {
             Op{}(s.square, s.square), s.left / 2};
   }
 };
-template <typename T, typename Op, T e, typename B>
+template <typename T, typename Op, T e>
   requires IsMonoid<T, Op, e>
-constexpr T concat(std::ranges::repeat_view<T, B> r) {
+constexpr T concat(std::ranges::repeat_view<T, size_t> r) {
   return std::ranges::size(r) == 0
              ? e
-             : std::ranges::fold_left(std::views::iota(0uz, 64uz),
-                                      Power<T>{e, *std::ranges::begin(r),
-                                               size_t(std::ranges::size(r))},
-                                      Squaring<T, Op, e>{})
+             : std::ranges::fold_left(
+                   std::views::iota(0uz, 64uz),
+                   Power<T>{e, *std::ranges::begin(r), std::ranges::size(r)},
+                   Squaring<T, Op, e>{})
                    .result;
 }
 // The monoid pattern one level up.  Two more laws, each a trait with its

@@ -367,16 +367,15 @@ struct Squaring { constexpr Power<T>
             Op{}(s.square, s.square),
             s.left / 2}; } };
 
-template <typename T, typename Op, T e,
-          typename B>
+template <typename T, typename Op, T e>
   requires IsMonoid<T, Op, e>
 constexpr T concat(
-    ranges::repeat_view<T, B> r) {
+    ranges::repeat_view<T, size_t> r) {
   return ranges::size(r) == 0 ? e
     : ranges::fold_left(
           views::iota(0uz, 64uz),
           Power<T>{e, *ranges::begin(r),
-                   size_t(ranges::size(r))},
+                   ranges::size(r)},
           Squaring<T, Op>{}).result; }
 \end{cpp}
 \end{minipage}\hfill

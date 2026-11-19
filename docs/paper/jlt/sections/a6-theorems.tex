@@ -50,7 +50,7 @@ The primitives' translations compute the standard's functions on constants: a $\
 \cppinline{views::reverse} of it is the same values from $j - 1$ down to $i$~\cite[{\texttt{range.reverse}}]{cpp23standard}.
 \cppinline{views::repeat(v, n)} is the value $v$, $n$ times~\cite[{\texttt{range.repeat}}]{cpp23standard}.
 \cppinline{views::transform(r, g)} is $g$ at each value of $r$, in order~\cite[{\texttt{range.transform}}]{cpp23standard}.
-\cppinline{ranges::size(r)} is the number of values of $r$, in the range's size type~\cite[{\texttt{range.prim.size}}]{cpp23standard}.
+\cppinline{ranges::size(r)} is the number of values of $r$~\cite[{\texttt{range.prim.size}}]{cpp23standard}.
 \end{definition}
 
 FJlt's carriers are non-empty: Section~\ref{sec:jlt-to-fjlt} requires them to keep \RuleOne{}, so they are \cppinline{std::semiregular}, which includes \cppinline{default_initializable}, so each has its default value.
@@ -77,7 +77,7 @@ The one-constructor-at-a-time iterators are what make Theorem~\ref{thm:simulatio
 \label{ass:ranges}
 A range's conditions are semantic, so the termination of a fold is in part assumed in the typing of its range.
 Each instance's $|\cdot|$ and $\mathit{uncons}$ are first-order rules on its constructor that terminate, are conservative and are confluent, with no critical pair against the other rules, or terms over operations already covered, so that Theorem~\ref{cit:sn} applies to them.
-For each instance, the target's operations compute the source's, for \cppinline{iota} as Definition~\ref{def:standard} says: $|\llbracket r \rrbracket|$ reduces to the constant of the range's size type that is $|r|$, which $\mathit{toNat}$ then reads as the iterator's count, and $\mathit{uncons}\,\llbracket r \rrbracket$ to $\iota_2\,(\llbracket \mathit{head}\,r \rrbracket, \llbracket \mathit{next}\,r \rrbracket)$ when $|r| > 0$ and to $\iota_1\,()$ when $|r| = 0$.
+For each instance, the target's operations compute the source's, for \cppinline{iota} as Definition~\ref{def:standard} says: $|\llbracket r \rrbracket|$ reduces to the constant of \cppinline{size_t} that is $|r|$, which $\mathit{toNat}$ then reads as the iterator's count, and $\mathit{uncons}\,\llbracket r \rrbracket$ to $\iota_2\,(\llbracket \mathit{head}\,r \rrbracket, \llbracket \mathit{next}\,r \rrbracket)$ when $|r| > 0$ and to $\iota_1\,()$ when $|r| = 0$.
 \end{assumption}
 
 The omitted cases are the textbook ones, and the inductions are on paper, with no mechanisation; their mechanisation is future work.
@@ -219,7 +219,7 @@ rule & its image has its type, because & relies on \\
 \textsc{T-Call} & below & \textsc{D-Generic} \\
 \textsc{T-Fold} & below & the callable's rule \\
 \textsc{T-Fold-R} & as \textsc{T-Fold}, with $q_Q$'s fields for the operations, the length coerced to $\mathbb{N}$ & \textsc{T-Fold} \\
-\textsc{T-Size}, \textsc{T-Size-R} & the instance's length, $|\cdot| : \llbracket R \rrbracket \to \llbracket b_R \rrbracket$, or $q_Q$'s field, at \texttt{size\_t}, applied to $\llbracket r \rrbracket$${}^{\textsc{ih}}$ &  \\
+\textsc{T-Size}, \textsc{T-Size-R} & the instance's length, $|\cdot| : \llbracket R \rrbracket \to \llbracket \texttt{size\_t} \rrbracket$, or $q_Q$'s field of that type, applied to $\llbracket r \rrbracket$${}^{\textsc{ih}}$ &  \\
 \textsc{T-Uncons}, \textsc{T-Uncons-R} & the instance's $\mathit{uncons} : \llbracket R \rrbracket \to 1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket$, the image of the term's type, or $q_Q$'s field of that type, applied to $\llbracket r \rrbracket$${}^{\textsc{ih}}$ &  \\
 \textsc{T-Node} & $\mathit{node}_{O} : \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket \to \mu F$, by induction on the term type, whose legs are smaller, applied to $\llbracket t \rrbracket$ of the node's type${}^{\textsc{ih}}$ &  \\
 \textsc{T-Cata} & below & \textsc{T-Node} \\
@@ -334,7 +334,7 @@ step & the result has the type, because & relies on \\
 \textsc{S-If}, \textsc{S-Case} & the selected branch's type, a case's applied to the payload (a) &  \\
 \textsc{S-Proj}, \textsc{S-Unbox} & the component's or the content's type &  \\
 \textsc{S-Fold} & the step's result has type $\sigma$, and the tail the range's type, its conditions kept & \textsc{T-Fold} \\
-\textsc{S-Size} & a constant of the range's size type & \textsc{T-Size} \\
+\textsc{S-Size} & a constant of \texttt{size\_t} & \textsc{T-Size} \\
 \textsc{S-Uncons} & nothing, or the pair of the head, of type $\tau$, and the tail, of the range's type, its conditions kept & \textsc{T-Uncons} \\
 \textsc{S-Cata} & the algebra applied to the node and its legs' results, each of type $\sigma$ & \textsc{T-Cata}, \textsc{T-Node} \\
 \textsc{S-Ctx} & the hole's type is unchanged${}^{\textsc{ih}}$ &  \\
@@ -414,7 +414,7 @@ source step & target steps & landing, because \\
 \textsc{S-Proj} & a projection, two for a constructed object's field & the selected component \\
 \textsc{S-Unbox} & a projection & the box being a unary product, unboxing is a step on both sides and the simulation stays strict \\
 \textsc{S-Fold} & several & below \\
-\textsc{S-Size} & the rules of the instance's length & the constant of the range's size type for $|r|$, by Assumption~\ref{ass:ranges} \\
+\textsc{S-Size} & the rules of the instance's length & the constant of \texttt{size\_t} for $|r|$, by Assumption~\ref{ass:ranges} \\
 \textsc{S-Uncons} & the rules of the instance's $\mathit{uncons}$ & $\iota_1\,()$, or $\iota_2$ of the pair of the head's and the tail's translations, by Assumption~\ref{ass:ranges} \\
 \textsc{S-Cata} & several & below \\
 \end{longtable}
