@@ -84,9 +84,12 @@ struct Power {
   T result, square;
   size_t left;
 };
-template <typename T, typename Op>
+// The step names the calls it makes: its constraint is the monoid.
+template <typename T, typename Op, T e>
 struct Squaring {
-  constexpr Power<T> operator()(Power<T> s, size_t) const {
+  constexpr Power<T> operator()(Power<T> s, size_t) const
+    requires IsMonoid<T, Op, e>
+  {
     return {s.left % 2 == 1 ? Op{}(s.result, s.square) : s.result,
             Op{}(s.square, s.square), s.left / 2};
   }
@@ -99,29 +102,46 @@ constexpr T concat(std::ranges::repeat_view<T, B> r) {
              : std::ranges::fold_left(std::views::iota(0uz, 64uz),
                                       Power<T>{e, *std::ranges::begin(r),
                                                size_t(std::ranges::size(r))},
-                                      Squaring<T, Op>{})
+                                      Squaring<T, Op, e>{})
                    .result;
 }
-template <typename T, typename Add, typename Times>
-constexpr bool semiring = false;
+// The monoid pattern one level up.  Two more laws, each a trait with its
+// entries, and a shape that names them beside the two monoids: a semiring.
+template <typename T, typename Op>
+constexpr bool commutative = false;
+template <typename T, typename Times, typename Add>
+constexpr bool distributes = false;
 template <>
-constexpr bool semiring<size_t, std::plus<size_t>, std::multiplies<size_t>> =
+constexpr bool commutative<size_t, std::plus<size_t>> = true;
+template <>
+constexpr bool distributes<size_t, std::multiplies<size_t>, std::plus<size_t>> =
     true;
-template <typename T, typename Add, typename Times>
+template <typename T, typename Add, typename Times, T zero, T one>
+concept IsSemiring = IsMonoid<T, Add, zero> && IsMonoid<T, Times, one> &&
+                     commutative<T, Add> && distributes<T, Times, Add>;
+// 2x2 matrices over a semiring, row by row.  The product names the calls it
+// makes through the shape.
+template <typename T, typename Add, typename Times, T zero, T one>
 struct MatMul {
   constexpr std::array<T, 4> operator()(std::array<T, 4> a,
-                                        std::array<T, 4> b) const {
+                                        std::array<T, 4> b) const
+    requires IsSemiring<T, Add, Times, zero, one>
+  {
     return {Add{}(Times{}(a[0], b[0]), Times{}(a[1], b[2])),
             Add{}(Times{}(a[0], b[1]), Times{}(a[1], b[3])),
             Add{}(Times{}(a[2], b[0]), Times{}(a[3], b[2])),
             Add{}(Times{}(a[2], b[1]), Times{}(a[3], b[3]))};
   }
 };
-template <typename T, typename Add, typename Times>
-constexpr bool associative<std::array<T, 4>, MatMul<T, Add, Times>> =
-    semiring<T, Add, Times>;
+// The inferred law: the matrices' product is associative, provided their
+// entries form a semiring.  An entry with a context, and no law of its own.
+template <typename T, typename Add, typename Times, T zero, T one>
+  requires IsSemiring<T, Add, Times, zero, one>
+constexpr bool associative<std::array<T, 4>, MatMul<T, Add, Times, zero, one>> =
+    true;
 using M = std::array<size_t, 4>;
-using Mul = MatMul<size_t, std::plus<size_t>, std::multiplies<size_t>>;
+using Mul =
+    MatMul<size_t, std::plus<size_t>, std::multiplies<size_t>, 0uz, 1uz>;
 constexpr M fib{1, 1, 1, 0};
 // The same value at every position, through a range that is not a
 // repeat_view: the plain fold is chosen for it.
