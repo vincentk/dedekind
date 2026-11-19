@@ -1371,6 +1371,46 @@ static_assert(twice<std::string, std::plus<std::string>>("ab"s) + "c"s ==
 static_assert(!IsSemigroup<std::string, std::minus<std::string>>);
 }  // namespace appendix_a_reading
 
+// A probe, not yet a listing: a trait read at a type variable only through a
+// shape that names it.  The shape IsInjective reads the trait, the entry at a
+// composite has the shape as its context at the two parts, and the reader's
+// body asks the shape, never the trait.  The second half does the same for a
+// trait whose value is a number.
+namespace badge_probe {
+using std::size_t;
+namespace l1 = listing1_self_contained;
+template <typename F>
+constexpr bool injective = false;
+template <>
+constexpr bool injective<l1::Succ> = true;
+template <>
+constexpr bool injective<l1::Neg> = true;
+template <typename F>
+concept IsInjective = l1::Arrow<F> && injective<F>;
+template <IsInjective F, IsInjective G>
+constexpr bool injective<l1::Then<F, G>> = true;
+template <l1::Arrow F>
+constexpr bool is_injective(F) {
+  return IsInjective<F>;
+}
+constexpr auto up = l1::Neg{} >> l1::Succ{};
+static_assert(is_injective(up) && is_injective(up >> up) &&
+              !is_injective(up >> l1::Pred{}) &&
+              !is_injective(up >> l1::Half{}) &&
+              !is_injective(l1::Pred{} >> up));
+
+template <typename F>
+constexpr size_t length = 1;
+template <typename F>
+concept HasLength = requires {
+  { length<F> } -> std::convertible_to<size_t>;
+};
+template <HasLength F, HasLength G>
+constexpr size_t length<l1::Then<F, G>> = length<F> + length<G>;
+static_assert(length<l1::Then<l1::Succ, l1::Then<l1::Neg, l1::Succ>>> == 3 &&
+              length<l1::Succ> == 1);
+}  // namespace badge_probe
+
 namespace carrier_probe {
 template <typename T, T e>
 concept IsZero = e == T{0};

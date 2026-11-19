@@ -431,7 +431,7 @@ The right panel reaches a second carrier by inference.
 It declares one law, that \cppinline{size_t} under \cppinline{plus} and \cppinline{multiplies} is a semiring, and the one flag stands for the semiring's several equations.
 The entry of \cppinline{associative} for the $2 \times 2$ matrices is not declared: it is read from the semiring of their entries, an entry with a context, as the entry of \cppinline{injective} for a composite is in Listing~\ref{lst:rule1}.
 So the compiler infers that the matrices are a monoid, and that inference is what selects the overload by squaring.
-A $2 \times 2$ matrix is a value of structural type, so its unit, the identity matrix, is passed to the shape as $0$ is for addition.
+A $2 \times 2$ matrix is a value of structural type, as an array of structural values is~\cite[{\texttt{array.overview}}]{cpp23standard}, so its unit, the identity matrix, is passed to the shape as $0$ is for addition.
 \cppinline{fib} to the power $n$ holds the $n$-th Fibonacci number, so the last assertion computes one for $n = 10^8$, modulo $2^{64}$, in 64 steps, where the plain fold would not finish while compiling.
 \RuleThree{} makes the plain fold computable, with a stated bound of $10^8$ steps, and the law makes it affordable, with a bound of 64.
 No theorem of Section~\ref{sec:guarantees} says that the declared law is true: that \cppinline{size_t} is a semiring is the programmer's declaration.
