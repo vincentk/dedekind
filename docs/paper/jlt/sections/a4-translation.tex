@@ -101,6 +101,26 @@ The right-hand column says which case a line is.}
 \label{fig:fjlt-translation}
 \end{figure}
 
+\paragraph{Value parameters.}
+\label{app:fjlt:translation:value}
+The target has no type that depends on a term, so a value parameter (Appendix~\ref{app:fjlt:value}) goes to the two places System~F has for it.
+In a type it is erased, and in a term it is one more $\lambda$:
+\[
+\begin{array}{@{}l@{\quad}l@{}}
+\llbracket T\texttt{<}\overline{\theta}\texttt{>} \rrbracket = \llbracket T\texttt{<}\overline{\tau}\texttt{>} \rrbracket \qquad \llbracket C\texttt{<}\overline{\theta}\texttt{>} \rrbracket = \llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket & \note{$\overline{\tau}$ the types among $\overline{\theta}$} \\
+\texttt{template <}\overline{\alpha}\texttt{, }\overline{\tau_z\; z}\texttt{> requires } \overline{Q}\texttt{ ... } f\texttt{(}\overline{x}\texttt{) ... } e & \\
+\qquad \mapsto\; f = \Lambda\overline{\alpha}.\,\lambda\overline{z : \llbracket \tau_z \rrbracket}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \note{after the types, before the records} \\
+\llbracket f\texttt{<}\overline{\sigma}\texttt{, }\overline{\theta_z}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_i\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \theta_z \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket} & \note{the arguments' images, as terms} \\
+\llbracket z \rrbracket = z & \note{\textsc{T-Val}} \\
+\end{array}
+\]
+An atom is a term, a constant or a construction of atoms, and has that term's image.
+A trait's default, an entry and a function object take their value parameters the same way, a function object's call function before its fields, and a read or a construction passes the arguments' images.
+A dictionary is built at its arguments as before, a law evaluated at the atoms, and under a value parameter it is the record variable of the assumed shape.
+Nothing is lost by the erasure: resolution reads the source's types, atoms included, before the translation, and the image applies the declaration it chose.
+So \cppinline{Const<7uz>} and \cppinline{Const<8uz>} have one type in the target and two values, each the pair of no fields and its own call function.
+The unit \texttt{e} in Section~\ref{sec:translation}'s side-by-side translation is this $\lambda$.
+
 \paragraph{Declarations and terms.}
 Figure~\ref{fig:fjlt-translation} translates each declaration on its own; together they form one program.
 The program's image is its definitions in declaration order, each scoping over the definitions and the term after it, so a name is bound before every use (Appendix~\ref{app:fjlt:typing}).

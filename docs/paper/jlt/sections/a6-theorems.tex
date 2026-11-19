@@ -126,6 +126,7 @@ rule & applies to \\
 \textsc{T-Req-Assumed} & a call matching an assumed requirement, tried first: the leftmost assumed shape and its first matching requirement in declaration order, nested shapes included, with \textsc{T-Conv} where the requirement converts \\
 \textsc{T-Call} & any other call to a generic function: the declaration resolution selects \\
 \textsc{T-Trait} & a read of a trait at concrete types: the entry or the default it resolves to \\
+\textsc{T-Val} & a value parameter, a name of $\Delta$ \\
 \textsc{T-Op}, \textsc{T-App} & a call of a function object: \textsc{T-Op} for a standard one, \textsc{T-App} for a declared one \\
 \textsc{T-Fold}, \textsc{T-Fold-R} & a fold over a range of $\mathcal{R}$, or over a type variable $R$ under $\mathit{IsRange}$ \\
 \textsc{T-Size}, \textsc{T-Size-R} & the length of a range of $\mathcal{R}$, or of a type variable $R$ under $\mathit{IsRange}$ \\
@@ -152,6 +153,16 @@ The translation of dictionaries and terms is therefore a function of the program
 (i) By induction on $\tau$: each row of Figure~\ref{fig:fjlt-types} builds a type's image from its parts' images, and $\alpha$ translates to itself.
 (ii) By induction on $e$: every row of the term translation is structural in the subterms, and a variable translates to itself; nothing in the induction asks the substituted terms to be values.
 \end{proof}
+
+\paragraph{Value parameters in the proofs.}
+The statements and tables of this appendix are written for type variables, as the rules are (Appendix~\ref{app:fjlt:value}).
+For a value parameter $z$ and an atom $w$ they read as follows.
+In Lemma~\ref{lem:subst}, (i) gains $\llbracket \tau[w/z] \rrbracket = \llbracket \tau \rrbracket$, since the image of a type has no value argument (Appendix~\ref{app:fjlt:translation:value}), and (ii) gains $\llbracket e[w/z] \rrbracket = \llbracket e \rrbracket[\llbracket w \rrbracket/z]$, a value parameter being a variable of the image.
+Resolution stays a function at concrete arguments: two atoms are compared by their normal forms, which is decidable, so the proof of Theorem~\ref{thm:coherence} reads as it stands, with a dictionary a function of $\Delta$ and of $Q$'s arguments of both kinds.
+In Theorem~\ref{thm:preservation}, $\llbracket \Delta \rrbracket$ holds $z : \llbracket \tau_z \rrbracket$ for each value parameter, a declaration's image binds it with one $\lambda$, and a use applies the image to $\llbracket \theta \rrbracket$, of that type by \textsc{A-Val} or by \textsc{A-Atom} and the induction hypothesis.
+In Lemma~\ref{lem:subst-dict} and in fact (b) of Lemma~\ref{lem:subject}, the substitution puts atoms for the value parameters with the types for the type variables, and a typing is kept because \textsc{A-Inst} gives each atom its parameter's type.
+Progress has no new case: a closed term holds no value parameter, and an atom in a type is not a redex.
+In Lemma~\ref{lem:forward}, a step that instantiates a declaration is matched with one more $\beta$-step for each value parameter.
 
 \begin{lemma}[Dictionaries are well typed]
 \label{lem:dict}
@@ -213,6 +224,7 @@ rule & its image has its type, because & relies on \\
 \textsc{T-Conv} & the conversion constant, on $\llbracket e \rrbracket : \llbracket \tau' \rrbracket$${}^{\textsc{ih}}$ &  \\
 \textsc{T-Inj}, \textsc{T-Case} & the target's injection and case, the branches at $\sigma$${}^{\textsc{ih}}$ &  \\
 \textsc{T-Req-Assumed} & $q_Q.r$'s field type in $\llbracket \Delta \rrbracket$, the arguments theirs${}^{\textsc{ih}}$ &  \\
+\textsc{T-Val} & $z : \llbracket \tau \rrbracket$ in $\llbracket \Delta \rrbracket$, bound by the declaration's image &  \\
 \textsc{T-Trait} & the entry's image at the types that match, with its dictionaries${}^{\dagger}$ and the images of its reads at the parts, or the default's image, either of type $\llbracket \rho_f[\overline{\sigma}/\overline{\alpha}] \rrbracket$, the entry having the trait's result type (\textsc{D-Entry}). The reads at the parts are reads of the same trait at smaller types, typed by this row for them: an inner induction on the size of $\overline{\sigma}$ & \textsc{D-Trait}, \textsc{D-Entry} \\
 \textsc{T-Construct} & below & \textsc{D-Op} \\
 \textsc{T-Op}, \textsc{T-App} & below & \textsc{T-Construct} \\
@@ -293,6 +305,7 @@ rule & what the substitution changes & reduces to the concrete side, because \\
 \textsc{T-Req-Assumed} & $q_Q.r\,\ldots$ becomes $d.r\,\ldots$ & it reduces to the resolved instance's translation${}^{\dagger}$ \\
 \textsc{T-Call}, \textsc{T-Op}, \textsc{T-App} & their dictionaries & they reduce by (i) \\
 \textsc{T-Trait} & nothing: a read in a typed term is at concrete types & the same closed term on both sides \\
+\textsc{T-Val} & $z$ becomes the atom's image & the same closed term on both sides \\
 \textsc{T-Fold-R}, \textsc{T-Size-R}, \textsc{T-Guard-R} & its record & it reduces by (i) \\
 every other rule & its subterms & structural${}^{\textsc{ih}}$ \\
 \end{longtable}

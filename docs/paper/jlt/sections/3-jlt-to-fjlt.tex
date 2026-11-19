@@ -12,7 +12,7 @@ This section shows them desugared, Section~\ref{sec:translation} translated into
 The paragraphs marked as sketches are drafts of that revision, and the text around them is the previous version's.
 Figure~\ref{fig:sketch-desugar} shows every spelling in the two terms that the grammar does not have, each beside the kernel form it stands for.
 Both sides are \Cpp{}, since the kernel is a subset of it, and the arrow carries the name of the sugar.
-Two rows run ahead of the kernel as Figure~\ref{fig:fjlt-syntax} and Appendix~\ref{app:fjlt:typing} state it: the value parameter, and \cppinline{then}, a function whose result type follows its argument's.
+One row runs ahead of the kernel as Figure~\ref{fig:fjlt-syntax} and Appendix~\ref{app:fjlt:typing} state it: \cppinline{then}, a function whose result type follows its argument's.
 
 \begin{figure}[htbp]
 \small
@@ -25,7 +25,7 @@ As written in Listings~\ref{lst:rule1} to~\ref{lst:rule3} & sugar & Kernel form 
 \texttt{injective<F> \&\& injective<G>}, the entry at \texttt{Then<F, G>} & $\xrightarrow{\text{\scriptsize recursion at the parts}}$ & unchanged: the initialiser of an entry at a form, which reads the trait at the parts (\textsc{D-Entry}, Equation~\eqref{eq:cata}) \\[3pt]
 \texttt{then(t.f, then(t.g, h))} & $\xrightarrow{\text{\scriptsize recursion at the parts}}$ & unchanged: two overloads ordered by specificity, and the kernel is to type a result that follows its argument's type \\[3pt]
 \texttt{ranges::sized\_range R} with \texttt{range\_value\_t<R>} the same as \texttt{T} & $\xrightarrow{\text{\scriptsize range}}$ & $\mathit{IsRange}\texttt{<R, T>}$, the kernel's constraint on a range that declares its bound \\[3pt]
-\texttt{template <typename T, typename Op, T e>} & $\xrightarrow{\text{\scriptsize value parameter}}$ & unchanged: a parameter of structural type~\cite[{\texttt{temp.param}}]{cpp23standard} \\[3pt]
+\texttt{template <typename T, typename Op, T e>} & $\xrightarrow{\text{\scriptsize value parameter}}$ & unchanged: the kernel's value parameter, of structural type~\cite[{\texttt{temp.param}}]{cpp23standard} \\[3pt]
 \texttt{views::reverse(views::iota(0uz, 10uz))} & $\longrightarrow$ & unchanged: a range of $\mathcal{R}$, of length 10 (Appendix~\ref{app:fjlt:translation}) \\[3pt]
 \bottomrule
 \end{tabularx}
@@ -44,9 +44,10 @@ Over a value it is a fold over a range with a bound known before the first step,
 The library reifies them by default as \cppinline{cata} over a term type and as the standard's \cppinline{ranges::fold_left}, admitted only over a range that declares its bound; everything above them is library.
 In the terms of Meijer et al.~\cite{meijer1991functional}, \cppinline{fold_left} over the chain is a hylomorphism: the chain is never built as a list, only folded (Appendix~\ref{app:fjlt:translation}).
 Listing~\ref{lst:rule1} is a program in the grammar up to its constrained parameters (Figure~\ref{fig:sketch-desugar}), with its assertions the program's terms (Appendix~\ref{app:fjlt:closure}).
-Listings~\ref{lst:rule2} and~\ref{lst:rule3} are programs in the grammar up to the same spellings, and to a value among a template's parameters.
+Listings~\ref{lst:rule2} and~\ref{lst:rule3} are programs in the grammar up to the same spellings, their value parameters the kernel's (Appendix~\ref{app:fjlt:value}).
 Listing~\ref{lst:laws} adds further spellings, each with its image in Appendix~\ref{app:fjlt:closure}: a member operator and a defaulted equality, an operator under a constraint that names the standard's function object and that function object at a declared type, and a \cppinline{concept} as a truth value.
-Its value parameters on a struct are the same construct as in Listing~\ref{lst:rule2}, ahead of the kernel, so the listing is an exhibit of the posture and not yet a term the theorems cover.
+Its value parameters on a struct are the same construct as in Listing~\ref{lst:rule2}, and the kernel's.
+One spelling in Listings~\ref{lst:rule1} and~\ref{lst:laws} is ahead of the kernel: \cppinline{Const}'s parameter is written \cppinline{auto}, where the kernel's value parameter states its type.
 
 \begin{figure}[!htb]
 \[
