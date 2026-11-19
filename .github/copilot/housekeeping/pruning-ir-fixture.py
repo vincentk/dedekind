@@ -524,6 +524,8 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             "listing1_law",
             "listing3_length",
             "listing3_term",
+            "listing4_fib",
+            "listing4_fib_plain",
         ):
             block = extract_function_block(ir_text, symbol)
             if block is None:
