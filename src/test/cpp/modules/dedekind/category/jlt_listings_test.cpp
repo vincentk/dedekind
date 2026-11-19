@@ -842,8 +842,9 @@ static_assert((Succ{} >> Pred{})(0uz) == 0 && up(1uz) == 0 &&
               !is_injective(up >> Half{}));
 static_assert(constant<decltype(up >> Const<7uz>{})> &&
               constant<decltype(Const<7uz>{} >> up)> &&
-              !constant<decltype(up)> && (up >> Const<7uz>{})(41uz) == 7 &&
-              Arrow<Const<7uz>>);
+              !constant<decltype(Neg{} >> Succ{})> &&
+              !constant<std::remove_const_t<decltype(up)>> &&
+              (up >> Const<7uz>{})(41uz) == 7 && Arrow<Const<7uz>>);
 // Beyond the listing: the order of >> matters, the wrap that makes Succ and
 // Pred inverses, the involution, the fold at depth, what Half identifies,
 // and an arrow whose call is not const is no Arrow.
@@ -1247,7 +1248,8 @@ constexpr T power(T x, size_t n) {
 }
 // The fast fold, for the image of an arrow that is known to be constant: the
 // law selects it, and associativity makes it correct.
-template <typename T, typename Op, T e, typename V, IsConstant F>
+template <typename T, typename Op, T e, std::ranges::sized_range V,
+          IsConstant F>
   requires IsMonoid<T, Op, e> &&
            std::same_as<
                std::ranges::range_value_t<std::ranges::transform_view<V, F>>, T>

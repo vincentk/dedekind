@@ -101,7 +101,7 @@ concept IsConstant = constant<F>;
 constexpr auto up = Neg{} >> Succ{};
 static_assert((Succ{} >> Pred{})(0uz) == 0 && up(1uz) == 0 &&
               is_injective(up) && !is_injective(up >> Pred{}) && !is_injective(up >> Half{}) &&
-              constant<decltype(up >> Const<7uz>{})> && !constant<decltype(up)>);
+              constant<decltype(up >> Const<7uz>{})> && !constant<decltype(Neg{} >> Succ{})>);
 \end{cpp}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution.
 Left: arrows on \cppinline{size_t} as values, a constant one among them, and their composite.
@@ -450,7 +450,7 @@ constexpr M fib{1, 1, 1, 0};
 \end{minipage}
 \vspace{-6pt}
 \begin{cpp}
-template <typename T, typename Op, T e, typename V, IsConstant F>
+template <typename T, typename Op, T e, ranges::sized_range V, IsConstant F>
   requires IsMonoid<T, Op, e> &&
            same_as<ranges::range_value_t<ranges::transform_view<V, F>>, T>
 constexpr T concat(ranges::transform_view<V, F> r) {
