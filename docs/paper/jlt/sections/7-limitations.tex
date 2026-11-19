@@ -22,6 +22,9 @@ So a faster version of a function for one's own type cannot be added below earli
 It goes through a hook that the function declares, a table it reads or a call it names as a requirement, and an entry for one's own type may then be added later.
 A function that declares no hook cannot be specialised from outside, as the standard lets a program specialise \cppinline{std::hash} and not add an overload of \cppinline{std::sort}~\cite[{\texttt{namespace.std}}]{cpp23standard}.
 The linter reports none of the three conditions yet: its one check of order concerns an instance whose context names a shape declared too late.
+Nor does it check the guard of Appendix~\ref{app:fjlt:typing}, that the head of a range or the content of an optional is read only in the branch its guard selects and on the variable the guard tests.
+\Cpp{} does not check it either: outside constant evaluation an unguarded dereference is undefined behaviour.
+The repository lists these unchecked conditions beside the linter's rules.
 
 
 \paragraph{A shape knows the laws someone declared.}
