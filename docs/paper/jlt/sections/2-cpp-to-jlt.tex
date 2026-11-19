@@ -74,9 +74,13 @@ constexpr bool injective<Neg> = true;
 template <Arrow F, Arrow G>
 constexpr bool injective<Then<F, G>> =
     injective<F> && injective<G>;
+
+template <typename F>
+concept IsInjective =
+    Arrow<F> && injective<F>;
 template <Arrow F>
 constexpr bool is_injective(F)
-  { return injective<F>; }
+  { return IsInjective<F>; }
 constexpr auto up = Neg{} >> Succ{};
 static_assert(
 (Succ{} >> Pred{})(0uz) == 0 && up(1uz) == 0 &&
@@ -87,7 +91,7 @@ is_injective(up) &&
 \end{minipage}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution.
 Left: four arrows on \cppinline{size_t} as values, and their composite.
-Right: a law declared as a table, inferred at a composite and read by a function.
+Right: a law declared as a table, inferred at a composite and read through a shape.
 The table is a trait of the kernel, and the constrained parameters are sugar (Appendix~\ref{app:fjlt:closure}).}
 \label{lst:rule1}
 \end{listing}
@@ -106,7 +110,9 @@ The right panel is a first look at a law.
 A law is a statement about an arrow that the compiler is told and does not check, here that the arrow is injective, or one-to-one: distinct arguments give distinct results.
 It is declared as a table from types to truth values.
 The table answers \cppinline{false} for every type, a declaration that begins \cppinline{template <>} enters \cppinline{true} for one type, and the entry for a composite is computed from the entries of its parts.
-\cppinline{is_injective} reads the table at the type of a value.
+A trait is written by cases and read through a shape that names it, here \cppinline{IsInjective}, so that a function's declaration or its body says which trait it depends on.
+\cppinline{is_injective} asks the shape at the type of a value, which uses a \cppinline{concept} as what it is, a predicate on types.
+Only an entry reads its trait directly, and only at the parts of its own head, which is the recursion that \RuleThree{} takes up.
 \cppinline{Pred} is one-to-one and has no entry, and \cppinline{Half} is not one-to-one.
 Both answer \cppinline{false}: of a law, \cppinline{false} means that it is not known, never that it is refuted.
 The entry for a composite is a recursion over the type of a term, which \RuleThree{} takes up.

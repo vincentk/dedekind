@@ -814,9 +814,11 @@ template <>
 constexpr bool injective<Neg> = true;
 template <Arrow F, Arrow G>
 constexpr bool injective<Then<F, G>> = injective<F> && injective<G>;
+template <typename F>
+concept IsInjective = Arrow<F> && injective<F>;
 template <Arrow F>
 constexpr bool is_injective(F) {
-  return injective<F>;
+  return IsInjective<F>;
 }
 constexpr auto up = Neg{} >> Succ{};
 static_assert((Succ{} >> Pred{})(0uz) == 0 && up(1uz) == 0 &&

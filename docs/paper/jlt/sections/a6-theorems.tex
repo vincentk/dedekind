@@ -125,7 +125,7 @@ rule & applies to \\
 \midrule
 \textsc{T-Req-Assumed} & a call matching an assumed requirement, tried first: the leftmost assumed shape and its first matching requirement in declaration order, nested shapes included, with \textsc{T-Conv} where the requirement converts \\
 \textsc{T-Call} & any other call to a generic function: the declaration resolution selects \\
-\textsc{T-Trait} & a read of a trait: at concrete types the entry or the default it resolves to, at a type with a type variable the trait's result type alone \\
+\textsc{T-Trait} & a read of a trait at concrete types: the entry or the default it resolves to \\
 \textsc{T-Op}, \textsc{T-App} & a call of a function object: \textsc{T-Op} for a standard one, \textsc{T-App} for a declared one \\
 \textsc{T-Fold}, \textsc{T-Fold-R} & a fold over a range of $\mathcal{R}$, or over a type variable $R$ under $\mathit{IsRange}$ \\
 \textsc{T-Size}, \textsc{T-Size-R} & the length of a range of $\mathcal{R}$, or of a type variable $R$ under $\mathit{IsRange}$ \\
@@ -204,7 +204,7 @@ rule & its image has its type, because & relies on \\
 \multicolumn{3}{@{}l}{\textit{declarations, Figure~\ref{fig:fjlt-declarations}}} \\
 \textsc{D-Generic} & below & \textsc{T-Req-Assumed} \\
 \textsc{D-Op} & as \textsc{D-Generic}, the fields among the variables & \textsc{D-Generic} \\
-\textsc{D-Trait}, \textsc{D-Entry} & as \textsc{D-Generic} with no term variables: the initialiser is typed${}^{\textsc{ih}}$ under its type variables, an entry's also under its record variables and one variable for each of its reads, so the abstraction has the stated type & \textsc{D-Generic} \\
+\textsc{D-Trait}, \textsc{D-Entry} & as \textsc{D-Generic} with no term variables: the initialiser is typed${}^{\textsc{ih}}$ under its type variables, an entry's also under its record variables and one variable for its own trait at each part it reads, so the abstraction has the stated type & \textsc{D-Generic} \\
 \textsc{D-Const} & the initialiser's type${}^{\textsc{ih}}$, under empty contexts &  \\
 \multicolumn{3}{@{}l}{\textit{terms, Figures~\ref{fig:fjlt-typing} to~\ref{fig:fjlt-typing-recursion}}} \\
 \textsc{T-Var} & $\llbracket \Gamma \rrbracket$ types $x$ &  \\
@@ -213,7 +213,7 @@ rule & its image has its type, because & relies on \\
 \textsc{T-Conv} & the conversion constant, on $\llbracket e \rrbracket : \llbracket \tau' \rrbracket$${}^{\textsc{ih}}$ &  \\
 \textsc{T-Inj}, \textsc{T-Case} & the target's injection and case, the branches at $\sigma$${}^{\textsc{ih}}$ &  \\
 \textsc{T-Req-Assumed} & $q_Q.r$'s field type in $\llbracket \Delta \rrbracket$, the arguments theirs${}^{\textsc{ih}}$ &  \\
-\textsc{T-Trait} & at concrete types, the entry's image at the types that match, with its dictionaries${}^{\dagger}$ and the images of its reads${}^{\textsc{ih}}$, or the default's image, either of type $\llbracket \rho[\overline{\sigma}/\overline{\alpha}] \rrbracket$; at a type with a type variable, the variable for the read, of that type in the image of the context. The induction is on the size of the read's types, an entry reading only at proper parts & \textsc{D-Trait}, \textsc{D-Entry} \\
+\textsc{T-Trait} & the entry's image at the types that match, with its dictionaries${}^{\dagger}$ and the images of its reads at the parts, or the default's image, either of type $\llbracket \rho_f[\overline{\sigma}/\overline{\alpha}] \rrbracket$, the entry having the trait's result type (\textsc{D-Entry}). The reads at the parts are reads of the same trait at smaller types, typed by this row for them: an inner induction on the size of $\overline{\sigma}$ & \textsc{D-Trait}, \textsc{D-Entry} \\
 \textsc{T-Construct} & below & \textsc{D-Op} \\
 \textsc{T-Op}, \textsc{T-App} & below & \textsc{T-Construct} \\
 \textsc{T-Call} & below & \textsc{D-Generic} \\
@@ -226,14 +226,13 @@ rule & its image has its type, because & relies on \\
 \end{longtable}
 \addtocounter{table}{-1}
 \endgroup
-\case{\textsc{D-Generic}}the body is typed${}^{\textsc{ih}}$ under $\overline{\alpha}$, the record variables $\overline{q : \llbracket Q \rrbracket}$, one variable for each of its reads at the trait's result type there, and $\overline{x : \llbracket \tau_x \rrbracket}$, so the abstraction has the stated type, $\tau$ the premise's own where $\rho$ is \texttt{auto}.
+\case{\textsc{D-Generic}}the body is typed${}^{\textsc{ih}}$ under $\overline{\alpha}$, the record variables $\overline{q : \llbracket Q \rrbracket}$ and $\overline{x : \llbracket \tau_x \rrbracket}$, so the abstraction has the stated type, $\tau$ the premise's own where $\rho$ is \texttt{auto}.
 Its calls on constrained types are \textsc{T-Req-Assumed}; the declaration order makes the induction well founded, as no body calls itself.
 \case{\textsc{T-Construct}}the fields have their types${}^{\textsc{ih}}$, and $O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket}$ the call function's, its body typed as a generic function's${}^{\textsc{ih}}$, a standard one's by its constant's type in the target (Definition~\ref{def:target}); so the pair has type $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$.
 \case{\textsc{T-Op} and \textsc{T-App}}$\pi_2\,\llbracket e \rrbracket$ has the call function's type${}^{\textsc{ih}}$, instantiated at the deduced $\overline{\sigma}$; the dictionaries $\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\beta}] \rrbracket}$ have the parameter types${}^{\dagger}$, and the arguments theirs${}^{\textsc{ih}}$.
 \case{\textsc{T-Call}}$f = \Lambda\overline{\alpha}.\,\lambda\overline{q}.\,\lambda\overline{x}.\,\llbracket e_f \rrbracket : \forall\overline{\alpha}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$${}^{\textsc{ih}}$.
 At $\overline{\llbracket \sigma \rrbracket}$ this is the same type with $\overline{\sigma}$ for $\overline{\alpha}$${}^{\ddagger}$.
 The records have the parameter types${}^{\dagger}$, and the arguments theirs${}^{\textsc{ih}}$.
-Where the declaration has reads, their parameters stand after the records, and the call supplies the reads' images at $\overline{\sigma}$, typed by the row for \textsc{T-Trait}.
 \case{\textsc{T-Fold}}$\mathit{iter}$ is at $\llbracket R \rrbracket \times \sigma$, with the count $\mathit{toNat}\,|\llbracket r \rrbracket| : \mathbb{N}$.
 The step has the pair type, since each branch of $\mathit{uncons} : \llbracket R \rrbracket \to 1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket$ gives it and the callable has type $\sigma \to \tau \to \sigma$${}^{\textsc{ih}}$, its dictionaries theirs${}^{\dagger}$.
 $\llbracket r \rrbracket : \llbracket R \rrbracket$${}^{\textsc{ih}}$, by the constructor's type where $r$ is written on its arguments, and $\llbracket a \rrbracket : \sigma$${}^{\textsc{ih}}$; so $\pi_2$ of the result has type $\sigma$.
@@ -270,7 +269,7 @@ The field is built by \textsc{E-Op} as $\lambda\overline{a}.\,\llbracket \tau^{S
 \begin{lemma}[Dictionaries commute with substitution]
 \label{lem:subst-dict}
 (i) If $\Delta \Vdash Q$ and $\varnothing \Vdash Q[\overline{\sigma}/\overline{\alpha}]$, then $\llbracket \Delta \Vdash Q \rrbracket[\overline{\llbracket \sigma \rrbracket}/\overline{\alpha}][\overline{d}/\overline{q}] \longrightarrow^{*} \llbracket \varnothing \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket$, where $\overline{d}$ are the dictionaries of $\Delta$'s constraints at $\overline{\sigma}$.
-(ii) For a term $e$ typed under $\Delta$, $\llbracket e \rrbracket[\overline{\llbracket \sigma \rrbracket}/\overline{\alpha}][\overline{d}/\overline{q}][\overline{r}/\overline{t}] \longrightarrow^{*} \llbracket e[\overline{\sigma}/\overline{\alpha}] \rrbracket$, with $\overline{r}$ the images of $e$'s reads at $\overline{\sigma}$ and $\overline{t}$ their variables, the right side typed at the concrete types.
+(ii) For a term $e$ typed under $\Delta$, $\llbracket e \rrbracket[\overline{\llbracket \sigma \rrbracket}/\overline{\alpha}][\overline{d}/\overline{q}] \longrightarrow^{*} \llbracket e[\overline{\sigma}/\overline{\alpha}] \rrbracket$, the right side typed at the concrete types.
 \end{lemma}
 \noindent\emph{Sketch.}\ A generic body's dictionary variables are replaced by the records built at the concrete types, and each \textsc{T-Req-Assumed} site then reduces to the resolved call by Lemma~\ref{lem:resolve}.
 
@@ -292,8 +291,8 @@ rule & what the substitution changes & reduces to the concrete side, because \\
 \textsc{E-Law}, \textsc{E-Law-Assumed}, \textsc{E-Not}, \textsc{E-Range} & nothing & the same closed term on both sides \\
 \multicolumn{3}{@{}l}{\textit{(ii), terms}} \\
 \textsc{T-Req-Assumed} & $q_Q.r\,\ldots$ becomes $d.r\,\ldots$ & it reduces to the resolved instance's translation${}^{\dagger}$ \\
-\textsc{T-Call}, \textsc{T-Op}, \textsc{T-App} & their dictionaries, and the reads they supply & they reduce by (i), and the reads by the row below \\
-\textsc{T-Trait} & the variable $t$ for the read becomes the image of the read at the concrete types & the two are one term: the substitution puts for $t$ exactly what the translation gives the read there \\
+\textsc{T-Call}, \textsc{T-Op}, \textsc{T-App} & their dictionaries & they reduce by (i) \\
+\textsc{T-Trait} & nothing: a read in a typed term is at concrete types & the same closed term on both sides \\
 \textsc{T-Fold-R}, \textsc{T-Size-R}, \textsc{T-Uncons-R} & its record & it reduces by (i) \\
 every other rule & its subterms & structural${}^{\textsc{ih}}$ \\
 \end{longtable}
@@ -368,7 +367,7 @@ redex & steps by & because \\
 a non-value in an evaluation position & \textsc{S-Ctx} & the leftmost such subterm steps${}^{\textsc{ih}}$ \\
 a constant's name & \textsc{S-Const} & its definition \\
 a call $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)}$ & \textsc{S-Call} & the premise of \textsc{T-Call} says it resolves; \textsc{T-Req-Assumed} cannot occur, $\Delta$ being empty \\
-a read $f\texttt{<}\overline{\sigma}\texttt{>}$ & \textsc{S-Trait} & at concrete types a read resolves, to an entry or else to the default \\
+a read $f\texttt{<}\overline{\sigma}\texttt{>}$ & \textsc{S-Trait} & the premise of \textsc{T-Trait} says it resolves, and \textsc{D-Entry}'s condition on overlapping entries that it does so at every types \\
 $O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)}$ & \textsc{S-Op}, \textsc{S-Std} & the choice of $O$ \\
 $\ominus v$, $v_1 \oplus v_2$ & \textsc{S-Prim}, or the call it resolves to & the choice of $\Sigma$, on constants by canonical forms \\
 $\tau\texttt{(}c\texttt{)}$ & \textsc{S-Conv} & the condition on conversions \\
@@ -406,7 +405,7 @@ source step & target steps & landing, because \\
 \bottomrule
 \endlastfoot
 \textsc{S-Const} & one step & $\llbracket x \rrbracket = x$ unfolds to its definition $\llbracket e \rrbracket$ \\
-\textsc{S-Trait} & unfolding, then type application and $\beta$-reduction & the entry's image at the types that match, its dictionaries and the images of its reads, reduces to $\llbracket e[\overline{\sigma'}/\overline{\beta}] \rrbracket$ as a call to a generic function does, by Lemma~\ref{lem:subst-dict}~(ii); the default's by one type application \\
+\textsc{S-Trait} & unfolding, then type application and $\beta$-reduction & the entry's image at the types that match, its dictionaries and the images of its reads at the parts, reduces by type application and $\beta$-reduction to $\llbracket e[\overline{\sigma'}/\overline{\beta}] \rrbracket$, the variables for the parts replaced by exactly the images of those reads, and the dictionaries by Lemma~\ref{lem:subst-dict}; the default's by the unfolding of its name and its type applications \\
 \textsc{S-Call} to a generic function & several & below \\
 \textsc{S-Op} & several & below \\
 \textsc{S-Std}, \textsc{S-Prim}, \textsc{S-Conv} between distinct carriers & a projection where there is one, then a $\delta$-step & the constant the standard or the declaration assigns, by Definition~\ref{def:standard} \\
@@ -421,7 +420,7 @@ source step & target steps & landing, because \\
 \end{longtable}
 \addtocounter{table}{-1}
 \endgroup
-\case{\textsc{S-Call} to a generic function}$f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d}\,\overline{r}\,\overline{\llbracket v \rrbracket}$ reduces by type application and $\beta$-reduction to $\llbracket e_f \rrbracket$ with $\overline{\llbracket \sigma \rrbracket}$ for $\overline{\alpha}$, $\overline{d}$ for $\overline{q}$, the reads' images $\overline{r}$ for their variables and $\overline{\llbracket v \rrbracket}$ for $\overline{x}$; by Lemma~\ref{lem:subst-dict}~(ii), with $\overline{d}$ the records \textsc{E-Shape} built for the closed call, the result reduces further to $\llbracket e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \rrbracket$, the term the source stepped to, whose requirement uses are typed by \textsc{T-Call}, under \textsc{T-Conv} where the requirement converts, whose reads are at concrete types, and whose folds at the former type variable are \textsc{T-Fold}'s at the concrete instance.
+\case{\textsc{S-Call} to a generic function}$f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by type application and $\beta$-reduction to $\llbracket e_f \rrbracket$ with $\overline{\llbracket \sigma \rrbracket}$ for $\overline{\alpha}$, $\overline{d}$ for $\overline{q}$ and $\overline{\llbracket v \rrbracket}$ for $\overline{x}$; by Lemma~\ref{lem:subst-dict}~(ii), with $\overline{d}$ the records \textsc{E-Shape} built for the closed call, the result reduces further to $\llbracket e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \rrbracket$, the term the source stepped to, whose requirement uses are typed by \textsc{T-Call}, under \textsc{T-Conv} where the requirement converts, whose reads are at concrete types, and whose folds at the former type variable are \textsc{T-Fold}'s at the concrete instance.
 \case{\textsc{S-Op}}$(\pi_2\,(\overline{\llbracket v_y \rrbracket}, O_{\mathrm{call}}\,\overline{\llbracket v_y \rrbracket}))\,[\overline{\sigma}]\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by projection, type application and $\beta$-reduction to $\llbracket e_O \rrbracket$ with fields, dictionaries and arguments substituted, which is $\llbracket e' \rrbracket$ by the same argument as for a generic call.
 \case{\textsc{S-Fold}}with $|r| = k + 1$:
 \[ \begin{array}{@{}l@{}}

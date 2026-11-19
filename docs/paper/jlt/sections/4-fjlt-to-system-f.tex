@@ -24,8 +24,8 @@ FJlt & Typed by & System~F & Listing \\
 \texttt{concept C = Ā} & \textsc{E-Shape} & $\mathit{Dict}_C\,\overline{\alpha} = \{\,\overline{r : \llbracket A \rrbracket}\,\}$ & \ref{lst:rule2} \\
 \texttt{\{ e\_r \} -> S<τ>}, met at concrete types by the type's own operation & \textsc{E-Op} & $\lambda\overline{a}.\,\llbracket \tau^{S}\texttt{(}e_r\texttt{)} \rrbracket$, a field filled by the primitive & \ref{lst:rule2} \\
 \texttt{template <ᾱ>}\newline\texttt{constexpr τ f = e} & \textsc{D-Trait} & $\Lambda\overline{\alpha}.\,\llbracket e \rrbracket$ & \ref{lst:rule1} \\
-\texttt{template <β̄> requires Q̄}\newline\texttt{constexpr τ f<τ̄> = e} & \textsc{D-Entry} & $\Lambda\overline{\beta}.\,\lambda\overline{q}.\,\lambda\overline{t}.\,\llbracket e \rrbracket$, $\overline{t}$ the trait's values at the parts & \ref{lst:rule1} \\
-\texttt{f<τ̄>} & \textsc{T-Trait} & the image of the entry or the default it resolves to, or, at a type variable, a parameter & \ref{lst:rule1} \\
+\texttt{template <β̄> requires Q̄}\newline\texttt{constexpr τ f<τ̄> = e} & \textsc{D-Entry} & $\Lambda\overline{\beta}.\,\lambda\overline{q}.\,\lambda\overline{t}.\,\llbracket e \rrbracket$, $\overline{t}$ its own trait's values at the parts & \ref{lst:rule1} \\
+\texttt{f<τ̄>}, at concrete types & \textsc{T-Trait} & the image of the entry or the default it resolves to & \ref{lst:rule1} \\
 \texttt{template <ᾱ> requires }$\overline{C\texttt{<}\overline{\tau}\texttt{>}}$\newline\texttt{constexpr τ f(x̄) \{ e \}} & \textsc{D-Generic} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_C\,\overline{\llbracket \tau \rrbracket}}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & \ref{lst:rule2} \\
 $\tau^{S}\texttt{(}e_r[\overline{e}/\overline{a}]\texttt{)}$, a requirement $r$ of $Q \in \Delta$ & \textsc{T-Req-Assumed} & $q_Q.r\,\overline{\llbracket e \rrbracket}$ & \ref{lst:rule2} \\
 \texttt{f<τ̄>(ē)} & \textsc{T-Call} & $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket}$ & \ref{lst:rule2} \\

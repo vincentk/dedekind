@@ -64,7 +64,7 @@ A negated constraint \cppinline{!C<T>} carries no evidence.
 \\[12pt]
 \textsc{(T-Call)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to } f_i : \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau \quad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \quad \Delta; \Gamma \vdash \overline{e : \tau_x[\overline{\sigma}/\overline{\alpha}]}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau[\overline{\sigma}/\overline{\alpha}]}
 \\[12pt]
-\textsc{(T-Trait)} & \dfrac{f \text{ a trait with result type } \rho \quad \tau = \rho[\overline{\sigma}/\overline{\alpha}]}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>} : \tau}
+\textsc{(T-Trait)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves, at concrete } \overline{\sigma} \text{, to an entry or the default of } f \quad \tau = \rho_f[\overline{\sigma}/\overline{\alpha}]}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>} : \tau}
 \\[12pt]
 \textsc{(T-Const)} & \dfrac{\vdash \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \text{ at } \tau^{\S} \quad x \notin \Gamma}{\Delta; \Gamma \vdash x : \tau}
 \end{array}
@@ -94,9 +94,12 @@ FJlt asks for one entry at a head, which is stricter than \Cpp{}, where two entr
 The trait's result type is its default's, the type \textsc{D-Trait} derives where it is written \cppinline{auto}, and every entry has it (\textsc{D-Entry}).
 So at concrete types a read is a function of its types, which is what Theorem~\ref{thm:coherence} needs of it.
 An entry at $\overline{\tau}$ itself is an axiom of Section~\ref{sec:posture}, and an entry at a form, whose initialiser reads the trait at the parts, is a theorem inferred from them: the two lines of Equation~\eqref{eq:cata}.
-At a type that has a type variable, a read is not resolved in the body that makes it.
-\textsc{T-Trait} types it at the trait's result type, and its value is supplied where the body is instantiated, as a shape's record is (Appendix~\ref{app:fjlt:translation}).
-This is the second way in which \RuleTwo{} lets generic code vary with a type: through its shapes, and through its traits.
+\textsc{T-Trait} types a read at concrete types only, where it resolves.
+At a type that has a type variable a read is admitted in two places.
+An entry's initialiser reads its own trait at the parts of its head: that is the right-hand side of Equation~\eqref{eq:cata}, and \textsc{D-Entry} types it with one variable, of the trait's result type, for the trait's value at each part.
+Anywhere else such a read stands in a shape, as a law or as a required expression, and a body reaches it only through the shape (\textsc{E-Law-Assumed}, \textsc{T-Req-Assumed}).
+So a trait is written by cases and read through a shape, and a declaration names every trait it depends on, as \RuleTwo{} asks.
+A dispatch like that of \cppinline{guessed} in Listing~\ref{lst:rule2}, rewritten as a trait read in the body, is refused for the same reason as the call: the body would depend on a trait that its declaration does not name.
 
 \paragraph{Resolution at a type variable.}
 At concrete types FJlt takes \Cpp{}'s rule as it is.
@@ -176,7 +179,7 @@ The library needs the conversion form in three cases: an expression that is a re
 \\[30pt]
 \textsc{(D-Trait)} & \dfrac{\overline{\alpha};\; \varnothing \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\}}{\vdash \texttt{template <typename }\overline{\alpha}\texttt{> constexpr } \rho\; f \texttt{ = } e\texttt{;}}
 \\[12pt]
-\textsc{(D-Entry)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ is an entry of the trait } f^{\diamond} \quad \overline{\beta}, \overline{Q};\; \varnothing \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\}}{\begin{array}[t]{@{}l@{}}\vdash \texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q}\\ \quad\texttt{constexpr } \rho\; f\texttt{<}\overline{\sigma}\texttt{>} \texttt{ = } e\texttt{;}\end{array}}
+\textsc{(D-Entry)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ is an entry of the trait } f^{\diamond} \quad \overline{\beta}, \overline{Q};\; \overline{t : \tau_t} \vdash e^{t} : \tau \quad \rho \in \{\tau, \texttt{auto}\}}{\begin{array}[t]{@{}l@{}}\vdash \texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q}\\ \quad\texttt{constexpr } \rho\; f\texttt{<}\overline{\sigma}\texttt{>} \texttt{ = } e\texttt{;}\end{array}}
 \\[12pt]
 \textsc{(D-Op)} & \dfrac{\overline{\alpha} \vdash \overline{\tau_y} \quad \overline{\alpha}, \overline{\beta}, \overline{Q};\; \overline{y : \tau_y}, \overline{x : \tau_x} \vdash e : \tau \quad \rho \in \{\tau, \texttt{auto}\}}{\begin{array}[t]{@{}l@{}}\vdash \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau_y\; y}\texttt{;}\\ \quad\texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q}\\ \quad\texttt{constexpr } \rho \texttt{ operator()(}\overline{\tau_x\; x}\texttt{) const \{ return } e\texttt{; \} \};}\end{array}}
 \\[44pt]
@@ -185,7 +188,7 @@ The library needs the conversion form in three cases: an expression that is a re
 \]
 \caption{The definition check and the declarations, $\vdash D$: a generic body sees its constraints' requirements only.
 $^{\dagger}$~A requirement of $C$, with parameters $\overline{a : \tau_a}$.~$^{\ddagger}$~A constant initialiser.
-$^{\diamond}$~Six conditions. The trait's default is declared before. The head $\overline{\sigma}$ is more specialised than the default's~\cite[{\texttt{temp.spec.partial}}]{cpp23standard}. The initialiser's type $\tau$ is the trait's result type at the head, which \Cpp{} does not ask of a specialisation and FJlt does. The initialiser reads $f$ only at proper parts of $\overline{\sigma}$, the $|t_i| < |t|$ of Equation~\eqref{eq:cata}. Of any two entries of $f$ whose heads unify, one is the more specialised at their unifier, so no read is ambiguous at any types. The entry stands above the first read it matches, the second condition on the order of declarations.
+$e^{t}$ is $e$ with a variable $t$ for each read of $f$ at a part of $\overline{\sigma}$, of the trait's result type $\tau_t$ there; $e$ makes no other read at a type with a type variable. $^{\diamond}$~Six conditions. The trait's default is declared before. The head $\overline{\sigma}$ is more specialised than the default's~\cite[{\texttt{temp.spec.partial}}]{cpp23standard}. The initialiser's type $\tau$ is the trait's result type at the head, which \Cpp{} does not ask of a specialisation and FJlt does. The initialiser reads $f$ only at proper parts of $\overline{\sigma}$, the $|t_i| < |t|$ of Equation~\eqref{eq:cata}. Of any two entries of $f$ whose heads unify, one is the more specialised at their unifier, so no read is ambiguous at any types. The entry stands above the first read it matches, the second condition on the order of declarations.
 $\overline{\alpha} \vdash \overline{\tau_y}$: a field's type names only the struct's own type variables.}
 \label{fig:fjlt-declarations}
 \end{figure}
@@ -193,7 +196,8 @@ $\overline{\alpha} \vdash \overline{\tau_y}$: a field's type names only the stru
 \paragraph{The definition check.}
 \textsc{D-Generic} types a generic body under its constraints, and \textsc{T-Req-Assumed} is what makes that a check.
 \textsc{D-Op} is the same with a function object's fields among the variables.
-\textsc{D-Trait} and \textsc{D-Entry} type a trait's default and each entry's initialiser the same way, an entry under its own context, and neither has term variables.
+\textsc{D-Trait} and \textsc{D-Entry} type a trait's default and each entry's initialiser the same way, an entry under its own context.
+A default has no term variables and reads no trait at a type variable, and an entry's only variables stand for its own trait at the parts of its head.
 Inside a constrained body, a call on a constrained type is typed only as an instance of a requirement of a constraint in $\Delta$.
 \cppinline{Op{}(x, x)} is the pattern \cppinline{{ Op{}(a, b) }} at $a, b := x$.
 \cppinline{unit<T>(Op{})} is the pattern \cppinline{{ unit<T>(Op{}) }}, whose parameters are the variables of the \cppinline{requires} clause free in it, here none.
