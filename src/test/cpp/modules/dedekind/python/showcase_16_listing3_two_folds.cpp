@@ -119,29 +119,25 @@ constexpr bool distributes<size_t, std::multiplies<size_t>, std::plus<size_t>> =
 template <typename T, typename Add, typename Times, T zero, T one>
 concept IsSemiring = IsMonoid<T, Add, zero> && IsMonoid<T, Times, one> &&
                      commutative<T, Add> && distributes<T, Times, Add>;
-// 2x2 matrices over a semiring, row by row.  The product names the calls it
-// makes through the shape.
-template <typename T, typename Add, typename Times, T zero, T one>
+// 2x2 matrices over a semiring under the type's own + and *, row by row.  The
+// body writes the operators, and the constraint names std::plus<T> and
+// std::multiplies<T>, which the standard defines as those operators.
+template <typename T, T zero, T one>
 struct MatMul {
   constexpr std::array<T, 4> operator()(std::array<T, 4> a,
                                         std::array<T, 4> b) const
-    requires IsSemiring<T, Add, Times, zero, one>
+    requires IsSemiring<T, std::plus<T>, std::multiplies<T>, zero, one>
   {
-    return {Add{}(Times{}(a[0], b[0]), Times{}(a[1], b[2])),
-            Add{}(Times{}(a[0], b[1]), Times{}(a[1], b[3])),
-            Add{}(Times{}(a[2], b[0]), Times{}(a[3], b[2])),
-            Add{}(Times{}(a[2], b[1]), Times{}(a[3], b[3]))};
+    return {a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3],
+            a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3]};
   }
 };
-// The inferred law: the matrices' product is associative, provided their
-// entries form a semiring.  An entry with a context, and no law of its own.
-template <typename T, typename Add, typename Times, T zero, T one>
-  requires IsSemiring<T, Add, Times, zero, one>
-constexpr bool associative<std::array<T, 4>, MatMul<T, Add, Times, zero, one>> =
-    true;
+// The inferred law: the matrices' product is associative for a semiring T.
+template <typename T, T zero, T one>
+  requires IsSemiring<T, std::plus<T>, std::multiplies<T>, zero, one>
+constexpr bool associative<std::array<T, 4>, MatMul<T, zero, one>> = true;
 using M = std::array<size_t, 4>;
-using Mul =
-    MatMul<size_t, std::plus<size_t>, std::multiplies<size_t>, 0uz, 1uz>;
+using Mul = MatMul<size_t, 0uz, 1uz>;
 constexpr M fib{1, 1, 1, 0};
 // The same value at every position, through a range that is not a
 // repeat_view: the plain fold is chosen for it.

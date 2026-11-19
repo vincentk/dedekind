@@ -1241,7 +1241,7 @@ concept IsSemiring = IsMonoid<T, Add, zero> && IsMonoid<T, Times, one> &&
 // 2x2 matrices over a semiring, row by row.  The product names the calls it
 // makes through the shape.
 template <typename T, typename Add, typename Times, T zero, T one>
-struct MatMul {
+struct MatMulOver {
   constexpr std::array<T, 4> operator()(std::array<T, 4> a,
                                         std::array<T, 4> b) const
     requires IsSemiring<T, Add, Times, zero, one>
@@ -1256,11 +1256,27 @@ struct MatMul {
 // entries form a semiring.  An entry with a context, and no law of its own.
 template <typename T, typename Add, typename Times, T zero, T one>
   requires IsSemiring<T, Add, Times, zero, one>
-constexpr bool associative<std::array<T, 4>, MatMul<T, Add, Times, zero, one>> =
-    true;
+constexpr bool
+    associative<std::array<T, 4>, MatMulOver<T, Add, Times, zero, one>> = true;
+// 2x2 matrices over a semiring under the type's own + and *, row by row.  The
+// body writes the operators, and the constraint names std::plus<T> and
+// std::multiplies<T>, which the standard defines as those operators.
+template <typename T, T zero, T one>
+struct MatMul {
+  constexpr std::array<T, 4> operator()(std::array<T, 4> a,
+                                        std::array<T, 4> b) const
+    requires IsSemiring<T, std::plus<T>, std::multiplies<T>, zero, one>
+  {
+    return {a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3],
+            a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3]};
+  }
+};
+// The inferred law: the matrices' product is associative for a semiring T.
+template <typename T, T zero, T one>
+  requires IsSemiring<T, std::plus<T>, std::multiplies<T>, zero, one>
+constexpr bool associative<std::array<T, 4>, MatMul<T, zero, one>> = true;
 using M = std::array<size_t, 4>;
-using Mul =
-    MatMul<size_t, std::plus<size_t>, std::multiplies<size_t>, 0uz, 1uz>;
+using Mul = MatMul<size_t, 0uz, 1uz>;
 constexpr M fib{1, 1, 1, 0};
 // The inference, asked directly: a semiring below gives a monoid of matrices,
 // and where the entries are no semiring nothing is known.
@@ -1270,8 +1286,8 @@ static_assert(
     IsMonoid<M, Mul, M{1, 0, 0, 1}> &&
     !IsSemiring<size_t, std::minus<size_t>, std::multiplies<size_t>, 0uz,
                 1uz> &&
-    !associative<M, MatMul<size_t, std::minus<size_t>, std::multiplies<size_t>,
-                           0uz, 1uz>>);
+    !associative<M, MatMulOver<size_t, std::minus<size_t>,
+                               std::multiplies<size_t>, 0uz, 1uz>>);
 // A second semiring costs four entries and no code: the bits of size_t under
 // | and &, with units 0 and all ones.  The same concat then composes
 // relations: the swap of two nodes, taken twice, is the identity relation,
@@ -1286,7 +1302,8 @@ template <>
 constexpr bool distributes<size_t, std::bit_and<size_t>, std::bit_or<size_t>> =
     true;
 constexpr size_t top = ~0uz;
-using Rel = MatMul<size_t, std::bit_or<size_t>, std::bit_and<size_t>, 0uz, top>;
+using Rel =
+    MatMulOver<size_t, std::bit_or<size_t>, std::bit_and<size_t>, 0uz, top>;
 constexpr M swap_nodes{0, top, top, 0};
 static_assert(
     concat<M, Rel, M{top, 0, 0, top}>(std::views::repeat(swap_nodes, 2uz)) ==
