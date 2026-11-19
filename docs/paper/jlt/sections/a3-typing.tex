@@ -223,7 +223,9 @@ $R\texttt{<}\tau\texttt{>}$ is an instance of $\mathcal{R}$, a family defined by
 A fold reads its length $|r|$, a value of the range's size type and so a natural number below a fixed limit, fixed before the fold starts, and, when $|r| > 0$, its head $\mathit{head}\,r$ and its tail $\mathit{next}\,r$, functions on range values, with $|\mathit{next}\,r| = |r| - 1$; FJlt has a term for the length, \cppinline{ranges::size(r)} (\textsc{T-Size}), which is the bound of \RuleThree{}, and none for the head or the tail, so a program folds a range and never takes its head.
 Its type is the range's own size type $b_R$, as the standard gives it~\cite[{\texttt{range.prim.size}}]{cpp23standard}: a type that the instance fixes, whose values $\mathit{toNat}$ reads as numerals.
 It is \cppinline{size_t} for the ranges of the listings.
-It need not be one word: an instance whose length does not fit one may give it as a term over \cppinline{size_t}, a pair for instance, read by a fold over that term (Equation~\eqref{eq:cata}), and the kernel has no such instance yet.
+It need not be one number: an instance may give its length as a term over \cppinline{size_t}, as a range of ranges has a pair of lengths, one for each of two nested folds.
+$\mathit{toNat}$ reads such a term by a fold over it (Equation~\eqref{eq:cata}), a pair as the product of its two lengths.
+The kernel has no such instance yet.
 At a type variable the size type is not known, and the term is the length converted to \cppinline{size_t}, the default (\textsc{T-Size-R}), as Listing~\ref{lst:laws} writes it.
 A range is typed by its instance's conditions, \cppinline{iota(i, j)} only at $i \le j$, and \textsc{S-Fold} preserves them, since $\mathit{next}$ does.
 The conditions are semantic, that a step descends or that two bounds are ordered, so a chain whose step does not descend is ill-typed, and the termination of a fold is, to that extent, assumed in the typing of its range.
