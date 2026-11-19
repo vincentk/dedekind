@@ -1497,6 +1497,68 @@ static_assert(length<l1::Then<l1::Succ, l1::Then<l1::Neg, l1::Succ>>> == 3 &&
               length<l1::Succ> == 1);
 }  // namespace badge_probe
 
+// A probe, not yet a listing: constancy as a law on arrows, as injectivity
+// is, with the opposite lemma (either part), and a fold that is selected by
+// it.  Two ranges of one type, a transform of an iota, differ only in whether
+// their arrow is known to be constant: the first takes the power, the second
+// the plain fold.  The call at 10^8 can only finish through the power.
+namespace constant_probe {
+using std::size_t;
+namespace l1 = listing1_self_contained;
+namespace l24 = listings_2_to_4;
+template <auto v>
+struct Const {
+  constexpr auto operator()(size_t) const { return v; }
+};
+template <typename F>
+constexpr bool constant = false;
+template <auto v>
+constexpr bool constant<Const<v>> = true;
+template <l1::Arrow F, l1::Arrow G>
+constexpr bool constant<l1::Then<F, G>> = constant<F> || constant<G>;
+template <typename F>
+concept IsConstant = constant<F>;
+static_assert(l1::Arrow<Const<7uz>> && IsConstant<Const<7uz>> &&
+              constant<decltype(l1::Succ{} >> Const<7uz>{})> &&
+              constant<decltype(Const<7uz>{} >> l1::Succ{})> &&
+              !constant<decltype(l1::Succ{} >> l1::Neg{})> &&
+              (l1::Succ{} >> Const<7uz>{})(41uz) == 7);
+
+template <typename T, typename Op, T e, std::ranges::sized_range R>
+  requires l24::IsMonoid<T, Op, e> &&
+           std::same_as<std::ranges::range_value_t<R>, T>
+constexpr T fold_all(R r) {
+  return std::ranges::fold_left(r, e, Op{});
+}
+template <typename T, typename Op, T e, typename V, IsConstant F>
+  requires l24::IsMonoid<T, Op, e> &&
+           std::same_as<
+               std::ranges::range_value_t<std::ranges::transform_view<V, F>>, T>
+constexpr T fold_all(std::ranges::transform_view<V, F> r) {
+  return std::ranges::size(r) == 0
+             ? e
+             : l24::power<T, Op, e>(*std::ranges::begin(r),
+                                    std::ranges::size(r));
+}
+// The same values, by an arrow that nobody declared constant.
+struct Undeclared {
+  constexpr l24::M operator()(size_t) const { return l24::fib; }
+};
+static_assert(
+    fold_all<l24::M, l24::Mul, l24::identity>(
+        std::views::transform(std::views::iota(0uz, 10uz), Const<l24::fib>{}))
+            .b == 55 &&
+    fold_all<l24::M, l24::Mul, l24::identity>(
+        std::views::transform(std::views::iota(0uz, 100'000'000uz),
+                              Const<l24::fib>{}))
+            .b == 14'139'011'350'745'967'675uz &&
+    fold_all<l24::M, l24::Mul, l24::identity>(
+        std::views::transform(std::views::iota(0uz, 10uz), Undeclared{}))
+            .b == 55 &&
+    fold_all<size_t, std::plus<size_t>, 0uz>(std::views::transform(
+        std::views::iota(0uz, 10uz), Const<7uz>{})) == 70);
+}  // namespace constant_probe
+
 namespace carrier_probe {
 template <typename T, T e>
 concept IsZero = e == T{0};
