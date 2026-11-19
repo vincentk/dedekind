@@ -75,6 +75,18 @@ Omitted as textbook~\cite[Chapters~8, 9 and~11]{pierce2002tapl}: \textsc{T-Var},
 \label{fig:fjlt-typing}
 \end{figure}
 
+\paragraph{Parts.}
+\label{app:fjlt:parts}
+The recursions over a type are stated on the parts of a type, and this is the relation they mean.
+A type is a term, and its parts are its subterms~\cite{baader1998term}: $\tau' \trianglelefteq \tau$, read $\tau'$ is a \emph{part} of $\tau$, when $\tau'$ is $\tau$ or $\tau$ is $T\texttt{<}\overline{\theta}\texttt{>}$ and $\tau'$ is a part of a type among $\overline{\theta}$.
+A \emph{proper part} is a part other than the type itself, $\tau' \triangleleft \tau$.
+Proper parthood is irreflexive and transitive, a strict partial order, which is what every theory of parts and wholes asks of it~\cite{simons1987parts}.
+Nothing more of such a theory is claimed: a constructor of one argument has one proper part and no remainder beside it.
+A type is a finite term, so it has finitely many parts, and a proper part is strictly shorter: $\tau' \triangleleft \tau$ implies $|\tau'| < |\tau|$, with $|\tau|$ the number of constructors in $\tau$.
+The relation is therefore well founded, and a definition that reaches a type only through its proper parts is a definition by Noetherian induction~\cite[III, \S 6.5]{bourbaki1968theoryofsets}.
+That is the form of Equation~\eqref{eq:cata}, and the kernel has it twice: an entry of a trait reads its trait at proper parts of its head (\textsc{D-Entry}), and a function calls itself at proper parts of its first parameter's type (\textsc{D-Rec}, below).
+A base type and a type variable have no proper part.
+
 \paragraph{Value parameters.}
 \label{app:fjlt:value}
 A declaration's parameters are type variables and value parameters (Figure~\ref{fig:fjlt-syntax}), as Listing~\ref{lst:rule2}'s \cppinline{template <typename T, typename Op, T e>}.
@@ -128,7 +140,7 @@ The two can differ in one direction only: equal normal forms are equal under any
 A shape is then asked, and its laws are checked, once for each normal form.
 
 \emph{What a value parameter is not.}
-A value argument is an atom of its type and never a part of it: the parts of $T\texttt{<}\overline{\theta}\texttt{>}$ are the types among $\overline{\theta}$.
+A value argument is an atom of its type and never a part of it: parts are types (\emph{Parts}, above).
 So the recursion over a type (Equation~\eqref{eq:cata}) does not read a value argument, and \textsc{D-Entry}'s condition on the parts is unchanged.
 An entry whose head has a value parameter, as the lemma at \cppinline{Mat<T, zero, one>} in Listing~\ref{lst:laws}, matches at every atom of the parameter's type.
 A call operator's own parameters are type variables only.
@@ -160,6 +172,50 @@ An entry's initialiser reads its own trait at the parts of its head: that is the
 Anywhere else such a read stands in a shape, as a law or as a required expression, and a body reaches it only through the shape (\textsc{E-Law-Assumed}, \textsc{T-Req-Assumed}).
 So a trait is written by cases and read through a shape, and a declaration names every trait it depends on, as \RuleTwo{} asks.
 A dispatch like that of \cppinline{guessed} in Listing~\ref{lst:rule2}, rewritten as a trait read in the body, is refused for the same reason as the call: the body would depend on a trait that its declaration does not name.
+
+\paragraph{A function by recursion over a type.}
+\label{app:fjlt:rec}
+An entry of a trait reads its own trait at the parts of its head.
+A generic function may do the same with a call, as the second case of \cppinline{then} in Listing~\ref{lst:rule3} calls \cppinline{then} at the parts of \cppinline{Then<F, G>}.
+Figure~\ref{fig:fjlt-rec} gives the two rules, which follow \textsc{D-Entry} and \textsc{T-Trait}.
+
+\begin{figure}[htbp]
+\[
+\begin{array}{@{}l@{\quad}l@{}}
+\textsc{(D-Rec)} & \dfrac{\overline{\alpha}, \overline{\chi}, \overline{Q};\; \overline{x : \tau_x},\ \overline{r_i : \overline{\sigma_i} \to \chi_i} \vdash e^{r} : \tau \qquad f \text{ calls itself in } e \text{ only at proper parts}^{\diamond}}{\begin{array}[t]{@{}l@{}}\vdash \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q}\\ \quad\texttt{constexpr auto } f\texttt{(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}\end{array}}
+\\[26pt]
+\textsc{(T-Rec)} & \dfrac{\begin{array}{c} f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves, at concrete } \overline{\sigma} \text{, to } f_j : \forall\overline{\alpha}.\,\forall\overline{\chi}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau \text{ of \textsc{D-Rec}} \\ \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \quad \Delta; \Gamma \vdash \overline{e : \tau_x[\overline{\sigma}/\overline{\alpha}]} \\ f \text{ at } \overline{\sigma_i}[\overline{\sigma}/\overline{\alpha}][\overline{\tau'}/\overline{\chi}] \text{ has type } \tau'_i \text{, for each } i \end{array}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau[\overline{\sigma}/\overline{\alpha}][\overline{\tau'}/\overline{\chi}]}
+\end{array}
+\]
+\caption{A function by recursion over a type.
+$e^{r}$ is $e$ with a variable $r_i$ for the $i$-th call of $f$ in it, in the order of evaluation, $\overline{\sigma_i}$ the types of that call's arguments and $\chi_i$ a type variable of its own for its result.
+$^{\diamond}$~The first parameter's type $\tau_{x_1}$ is a form $T\texttt{<}\overline{\tau}\texttt{>}$, and the first argument of each call of $f$ has a type $\sigma_{i1} \triangleleft \tau_{x_1}$.
+In \textsc{T-Rec}, $f$ at types $\overline{\sigma}$ has type $\tau$ when a call of $f$ on arguments of those types is typed at $\tau$, by \textsc{T-Call} or by \textsc{T-Rec}.}
+\label{fig:fjlt-rec}
+\end{figure}
+
+\emph{The declaration.}
+\textsc{D-Rec} types the body with each call of its own function as a variable, as \textsc{D-Entry} types an initialiser with a variable for each read.
+A read of a trait has the trait's one result type.
+A call's result type follows its arguments' types, so each call has a type variable for its result, and the function's own result type, written \cppinline{auto}, may name them.
+For \cppinline{then} the body is $r_2\texttt{(t.f, }r_1\texttt{(t.g, h))}$ with $r_1 : G \times H \to \chi_1$ and $r_2 : F \times \chi_1 \to \chi_2$, and the result type is $\chi_2$.
+
+\emph{The condition.}
+The recursion is on the first argument: each call of $f$ in the body has there a proper part of the first parameter's type, as \texttt{t.g} and \texttt{t.f} have the types \texttt{G} and \texttt{F}, proper parts of \cppinline{Then<F, G>}.
+The other arguments are free, and the second argument of the outer call is the result of the inner one, a part of nothing.
+So the measure that falls is the length of the first argument's type, and the recursion is Noetherian on $\triangleleft$ (Appendix~\ref{app:fjlt:parts}).
+A function that calls itself in any other way is not in the kernel.
+
+\emph{The call.}
+\textsc{T-Rec} types a call at concrete types only, as \textsc{T-Trait} types a read.
+There the calls in the body are at concrete types too, the earlier ones fixing the types of the later ones' arguments, and each is typed in turn, by \textsc{T-Call} where it resolves to a case that does not recurse and by \textsc{T-Rec} where it does.
+The derivation is finite because the first argument's type is shorter at each step.
+At a type variable such a call is reached through an assumed shape that requires it (\textsc{T-Req-Assumed}), as any call is.
+
+\emph{What the declaration does not check.}
+The body is typed with its own function's calls as variables, so the constraints of the cases those calls resolve to are checked where the function is called, at concrete types, and not where it is declared.
+For \cppinline{then} that is \cppinline{Arrow} at the result of the inner call.
+A trait has no such gap, since a read has no constraints of its own to meet.
 
 \paragraph{The axioms of a program.}
 \label{app:fjlt:axioms}
@@ -294,7 +350,7 @@ The library needs the conversion form in three cases: an expression that is a re
 \]
 \caption{The definition check and the declarations, $\vdash D$: a generic body sees its constraints' requirements only.
 $^{\dagger}$~A requirement of $C$, with parameters $\overline{a : \tau_a}$.~$^{\ddagger}$~A constant initialiser.
-$e^{t}$ is $e$ with a variable $t$ for each read of $f$ at a part of $\overline{\sigma}$, of the trait's result type $\tau_t$ there; $e$ makes no other read at a type with a type variable. $^{\diamond}$~Six conditions. The trait's default is declared before. The head $\overline{\sigma}$ is more specialised than the default's~\cite[{\texttt{temp.spec.partial}}]{cpp23standard}. The initialiser's type $\tau$ is the trait's result type at the head, which \Cpp{} does not ask of a specialisation and FJlt does. The initialiser reads $f$ only at proper parts of $\overline{\sigma}$, the $|t_i| < |t|$ of Equation~\eqref{eq:cata}. Of any two entries of $f$ whose heads unify, one is the more specialised at their unifier, so no read is ambiguous at any types. The entry stands above the first read it matches, the second condition on the order of declarations.
+$e^{t}$ is $e$ with a variable $t$ for each read of $f$ at a part of $\overline{\sigma}$, of the trait's result type $\tau_t$ there; $e$ makes no other read at a type with a type variable. $^{\diamond}$~Six conditions. The trait's default is declared before. The head $\overline{\sigma}$ is more specialised than the default's~\cite[{\texttt{temp.spec.partial}}]{cpp23standard}. The initialiser's type $\tau$ is the trait's result type at the head, which \Cpp{} does not ask of a specialisation and FJlt does. The initialiser reads $f$ only at proper parts of $\overline{\sigma}$, $\triangleleft$ of Appendix~\ref{app:fjlt:parts}, the $|t_i| < |t|$ of Equation~\eqref{eq:cata}. Of any two entries of $f$ whose heads unify, one is the more specialised at their unifier, so no read is ambiguous at any types. The entry stands above the first read it matches, the second condition on the order of declarations.
 $\overline{\alpha} \vdash \overline{\tau_y}$: a field's type names only the struct's own type variables.}
 \label{fig:fjlt-declarations}
 \end{figure}
