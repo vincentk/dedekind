@@ -48,6 +48,7 @@ Nothing else survives: not the range, not its views, not the shape, not the tabl
 For the sum the optimiser goes further and replaces the loop by a closed formula.
 That is the optimiser's doing and not Jlt's, and the product shows the fold as it was written.
 The folds over a type leave nothing: the law is the constant \texttt{true}, the length the constant 3.
+That is the standard's doing and not the optimiser's: a trait is a \cppinline{constexpr} variable, whose initialiser must be a constant expression~\cite[{\texttt{dcl.constexpr}}]{cpp23standard}, so the compiler evaluates every entry a program reads, and each read is its value before anything runs.
 The term \texttt{a}, three arrows composed, is one subtraction, since $-(x + 1) + 1 = -x$.
 In these cases the discipline costs nothing at run time, and there is a structural reason: a Jlt fold names in the source the parameter the compiler would otherwise recover from assignments.
 The agreement holds where both evaluations finish and neither meets undefined behaviour.
