@@ -42,6 +42,37 @@ A law is a field of type \texttt{Bool}, and a shape built from shapes is a recor
 The whole is dictionary passing, Wadler and Blott's translation of type classes, here into System~F, the record being the dictionary~\cite{wadler1989adhoc}.
 
 \paragraph{Sketch: the two terms, translated.}
+Listing~\ref{lst:rule2}'s \cppinline{concat} at two arguments, with its call, lands piece on piece.
+The type parameters of the head are the $\Lambda$s, the value parameter \cppinline{e} is a $\lambda$, the \cppinline{requires} clause is the record parameter $q$, the function's parameters are the remaining $\lambda$s, and \cppinline{Op{}(v, w)} is the record's field applied.
+
+\noindent\begin{minipage}[t]{0.52\linewidth}
+\begin{cpp}
+template <typename T, typename Op, T e>
+  requires IsMonoid<T, Op, e>
+constexpr T concat(T v, T w) {
+  return Op{}(v, w);
+}
+static_assert(
+  concat<size_t, plus<size_t>, 0uz>(40uz, 2uz)
+  == 42);
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.46\linewidth}
+\begin{minted}{text}
+concat = Λ T. Λ Op. λ e : T.
+  λ q : { law : Bool, op : T → T → T }.
+  λ v. λ w. q.op v w
+
+concat size_t plus 0 d 40 2  ⟶*  42
+\end{minted}
+\end{minipage}
+
+\noindent The record $d$ that the call passes is the derivation of \cppinline{IsMonoid<size_t, plus<size_t>, 0uz>}: the law is a \texttt{true} because Listing~\ref{lst:rule2} declared the entry (\textsc{E-Law}), and the operation is the call the shape asks for (\textsc{E-Op}).
+\cppinline{size_t} is a monoid twice, so it has two records, and the second goes with the unit $1$:
+\begin{minted}{text}
+d  = { law = true, op = plus  }      concat size_t plus  0 d  40 2  ⟶*  42
+d' = { law = true, op = times }      concat size_t times 1 d' 40 2  ⟶*  80
+\end{minted}
 A typing derivation is a tree, each node one rule applied to one piece of the program, and each rule has its piece of System~F (Table~\ref{tab:rules}).
 So the tree and the translated term have one shape, and Figure~\ref{fig:sketch-derivations} sets them side by side, with the rule that joins them in the middle column.
 
@@ -51,16 +82,16 @@ So the tree and the translated term have one shape, and Figure~\ref{fig:sketch-d
 \toprule
 \Cpp{}, a tree by indentation & by rule & System~F \\
 \midrule
-\texttt{concat<plus<size\_t>, 0uz>(ns)} & $\xrightarrow{\text{\scriptsize\textsc{T-Call}}}$ & $\mathit{concat}\,[\mathit{plus}]\;0\;d\;\mathit{ns}$ \\
-\hspace*{1.0em}\texttt{IsMonoid<plus<size\_t>, 0uz>} & $\xrightarrow{\text{\scriptsize\textsc{E-Shape}}}$ & $d = \{\,\mathit{law} = \mathit{true},\ \mathit{op} = \lambda a\,b.\,a + b\,\}$ \\
-\hspace*{2.0em}\texttt{monoid<plus<size\_t>, 0uz>}, an entry & $\xrightarrow{\text{\scriptsize\textsc{E-Law}}}$ & $\mathit{law}$ \\
+\texttt{concat<size\_t, plus<size\_t>, 0uz>(ns)} & $\xrightarrow{\text{\scriptsize\textsc{T-Call}}}$ & $\mathit{concat}\;\mathit{size\_t}\;\mathit{plus}\;0\;d\;\mathit{ns}$ \\
+\hspace*{1.0em}\texttt{IsMonoid<size\_t, plus<size\_t>, 0uz>} & $\xrightarrow{\text{\scriptsize\textsc{E-Shape}}}$ & $d = \{\,\mathit{law} = \mathit{true},\ \mathit{op} = \mathit{plus}\,\}$ \\
+\hspace*{2.0em}\texttt{monoid<size\_t, plus<size\_t>, 0uz>} & $\xrightarrow{\text{\scriptsize\textsc{E-Law}}}$ & $\mathit{law}$ \\
 \hspace*{2.0em}\texttt{plus\{\}(a, b)} & $\xrightarrow{\text{\scriptsize\textsc{E-Op}}}$ & $\mathit{op}$ \\
 \hspace*{1.0em}\texttt{ns}, a range of length 10 & $\longrightarrow$ & $\mathit{chain}\;10$ \\
-\hspace*{1.0em}the body of \texttt{concat}, checked once & $\xrightarrow{\text{\scriptsize\textsc{D-Generic}}}$ & $\Lambda \mathit{Op}.\,\lambda e.\,\lambda q.\,\lambda r.\ \ldots$ \\
+\hspace*{1.0em}the body of \texttt{concat}, checked once & $\xrightarrow{\text{\scriptsize\textsc{D-Generic}}}$ & $\Lambda T.\,\Lambda \mathit{Op}.\,\lambda e.\,\lambda q.\,\lambda r.\ \ldots$ \\
 \hspace*{2.0em}\texttt{fold\_left(r, e, Op\{\})} & $\xrightarrow{\text{\scriptsize\textsc{T-Fold}}}$ & $\pi_2\,(\mathit{iter}\,|r|\,\mathit{step}\,(r, e))$ \\
 \hspace*{3.0em}\texttt{Op\{\}(a, s)}, a requirement & $\xrightarrow{\text{\scriptsize\textsc{T-Req-Assumed}}}$ & $q.\mathit{op}\;a\;s$ \\
 \midrule
-\multicolumn{3}{@{}l}{$\mathit{concat}\,[\mathit{plus}]\;0\;d\;\mathit{ns} \;\longrightarrow^{*}\; \pi_2\,(\mathit{iter}\,10\,\mathit{step}\,(\mathit{chain}\,10, 0)) \;\longrightarrow^{*}\; 45$} \\
+\multicolumn{3}{@{}l}{$\mathit{concat}\;\mathit{size\_t}\;\mathit{plus}\;0\;d\;\mathit{ns} \;\longrightarrow^{*}\; \pi_2\,(\mathit{iter}\,10\,\mathit{step}\,(\mathit{chain}\,10, 0)) \;\longrightarrow^{*}\; 45$} \\
 \midrule
 \texttt{is\_injective(a)} & $\xrightarrow{\text{\scriptsize\textsc{T-Call}}}$ & $\mathit{is\_injective}\,[\,t\,]\;a$ \\
 \hspace*{1.0em}\texttt{injective<Then<Succ, Then<Neg, Succ>>>} & $\xrightarrow{\text{\scriptsize table, at the parts}}$ & $i_{\mathit{Succ}} \wedge (i_{\mathit{Neg}} \wedge i_{\mathit{Succ}})$ \\
@@ -79,9 +110,8 @@ The arrows marked ``table'' have no rule yet: the kernel states its recursion ov
 \label{fig:sketch-derivations}
 \end{figure}
 
-\noindent In the fold over a value the unit is an argument, where the previous version's record had it as a field: the value among the template's parameters is one more $\lambda$.
-The record $d$ holds what the shape asks for, the law as a truth value and the operation, and \cppinline{concat} reaches the operation only through it.
-\cppinline{size_t} is a monoid twice, so there are two such calls, the other with $1$ and a record whose operation is multiplication.
+\noindent The fold over a value takes the same $d$ as the two-argument \cppinline{concat} above, and reaches the operation only through it.
+The unit is an argument and not a field of the record: the value among the template's parameters is one more $\lambda$.
 The range is never a list, and termination is the syntax, $\mathit{iter}\,10$.
 In the fold over a type the law is an ordinary truth value of the translation, a conjunction of the entries declared at the atoms, with nothing else in the term.
 An atom with no entry would contribute $\mathit{false}$, and the same tree would then end in $\mathit{false}$, which means not known.
