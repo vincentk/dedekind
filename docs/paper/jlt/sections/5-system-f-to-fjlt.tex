@@ -186,6 +186,7 @@ The entry of \cppinline{associative} for the $2 \times 2$ matrices is not declar
 So the compiler infers that the matrices are a monoid, and that inference is what selects the overload by squaring.
 A $2 \times 2$ matrix is a value of structural type, so its unit, the identity matrix, is passed to the shape as $0$ is for addition.
 \cppinline{fib} to the power $n$ holds the $n$-th Fibonacci number, so the last assertion computes one for $n = 10^8$, modulo $2^{64}$, in 64 steps, where the plain fold would not finish while compiling.
+\RuleThree{} makes the plain fold computable, with a stated bound of $10^8$ steps, and the law makes it affordable, with a bound of 64.
 No theorem of this section says that the declared law is true: that \cppinline{size_t} is a semiring is the programmer's declaration.
 
 \paragraph{Certified and inferred laws.}
