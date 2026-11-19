@@ -226,7 +226,7 @@ extern "C" __attribute__((noinline)) std::size_t listing3_term(std::size_t x) {
  *  squaring chosen because the matrices are inferred to be a monoid. */
 extern "C" __attribute__((noinline)) std::size_t listing4_fib(std::size_t n) {
   return concat<M, Mul, identity>(
-             std::views::transform(std::views::iota(0uz, nuz), Const<fib>{}))
+             std::views::transform(std::views::iota(0uz, n), Const<fib>{}))
       .b;
 }
 /** @return the same number by the plain fold, one step for each copy. */
