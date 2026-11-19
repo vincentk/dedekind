@@ -1219,16 +1219,51 @@ constexpr T concat(std::ranges::repeat_view<T, B> r) {
                    Squaring<T, Op>{})
                    .result;
 }
-using M = std::array<size_t, 4>;  // a 2x2 matrix, row by row
-struct Mul {
-  constexpr M operator()(M a, M b) const {
-    return {a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3],
-            a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3]};
+// One declared law, that the entries form a semiring.  The associativity of
+// the 2x2 matrices over them (row by row) is inferred from it, an entry with
+// a context.
+template <typename T, typename Add, typename Times>
+constexpr bool semiring = false;
+template <>
+constexpr bool semiring<size_t, std::plus<size_t>, std::multiplies<size_t>> =
+    true;
+template <typename T, typename Add, typename Times>
+struct MatMul {
+  constexpr std::array<T, 4> operator()(std::array<T, 4> a,
+                                        std::array<T, 4> b) const {
+    return {Add{}(Times{}(a[0], b[0]), Times{}(a[1], b[2])),
+            Add{}(Times{}(a[0], b[1]), Times{}(a[1], b[3])),
+            Add{}(Times{}(a[2], b[0]), Times{}(a[3], b[2])),
+            Add{}(Times{}(a[2], b[1]), Times{}(a[3], b[3]))};
   }
 };
-template <>
-constexpr bool associative<M, Mul> = true;
+template <typename T, typename Add, typename Times>
+constexpr bool associative<std::array<T, 4>, MatMul<T, Add, Times>> =
+    semiring<T, Add, Times>;
+using M = std::array<size_t, 4>;
+using Mul = MatMul<size_t, std::plus<size_t>, std::multiplies<size_t>>;
 constexpr M fib{1, 1, 1, 0};
+// The inference, asked directly: associative with a semiring below, not
+// known without one.
+static_assert(
+    associative<M, Mul> && IsMonoid<M, Mul, M{1, 0, 0, 1}> &&
+    !associative<M,
+                 MatMul<size_t, std::minus<size_t>, std::multiplies<size_t>>>);
+// A second semiring costs one entry: the bits of size_t under | and &, with
+// units 0 and all ones.  The same concat then composes relations: the swap of
+// two nodes, taken twice, is the identity relation, and taken three times is
+// itself.
+template <>
+constexpr bool semiring<size_t, std::bit_or<size_t>, std::bit_and<size_t>> =
+    true;
+using Rel = MatMul<size_t, std::bit_or<size_t>, std::bit_and<size_t>>;
+constexpr size_t top = ~0uz;
+constexpr M swap_nodes{0, top, top, 0};
+static_assert(
+    concat<M, Rel, M{top, 0, 0, top}>(std::views::repeat(swap_nodes, 2uz)) ==
+        M{top, 0, 0, top} &&
+    concat<M, Rel, M{top, 0, 0, top}>(std::views::repeat(swap_nodes, 3uz)) ==
+        swap_nodes);
 static_assert(
     concat<size_t, std::plus<size_t>, 0uz>(
         std::views::repeat(7uz, 1'000'000'000'000uz)) == 7'000'000'000'000uz &&
