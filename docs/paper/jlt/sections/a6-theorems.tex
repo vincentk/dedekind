@@ -129,6 +129,7 @@ rule & applies to \\
 \textsc{T-Op}, \textsc{T-App} & a call of a function object: \textsc{T-Op} for a standard one, \textsc{T-App} for a declared one \\
 \textsc{T-Fold}, \textsc{T-Fold-R} & a fold over a range of $\mathcal{R}$, or over a type variable $R$ under $\mathit{IsRange}$ \\
 \textsc{T-Size}, \textsc{T-Size-R} & the length of a range of $\mathcal{R}$, or of a type variable $R$ under $\mathit{IsRange}$ \\
+\textsc{T-Uncons}, \textsc{T-Uncons-R} & the two cases of a range of $\mathcal{R}$, or of a type variable $R$ under $\mathit{IsRange}$ \\
 \textsc{T-Node} & a term of node type, only where $\mu F$ is expected \\
 \bottomrule
 \end{tabularx}
@@ -219,6 +220,7 @@ rule & its image has its type, because & relies on \\
 \textsc{T-Fold} & below & the callable's rule \\
 \textsc{T-Fold-R} & as \textsc{T-Fold}, with $q_Q$'s fields for the operations, the length coerced to $\mathbb{N}$ & \textsc{T-Fold} \\
 \textsc{T-Size}, \textsc{T-Size-R} & the instance's length, $|\cdot| : \llbracket R \rrbracket \to \llbracket b_R \rrbracket$, or $q_Q$'s field, at \texttt{size\_t}, applied to $\llbracket r \rrbracket$${}^{\textsc{ih}}$ &  \\
+\textsc{T-Uncons}, \textsc{T-Uncons-R} & the instance's $\mathit{uncons} : \llbracket R \rrbracket \to 1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket$, the image of the term's type, or $q_Q$'s field of that type, applied to $\llbracket r \rrbracket$${}^{\textsc{ih}}$ &  \\
 \textsc{T-Node} & $\mathit{node}_{O} : \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket \to \mu F$, by induction on the term type, whose legs are smaller, applied to $\llbracket t \rrbracket$ of the node's type${}^{\textsc{ih}}$ &  \\
 \textsc{T-Cata} & below & \textsc{T-Node} \\
 \end{longtable}
@@ -290,7 +292,7 @@ rule & what the substitution changes & reduces to the concrete side, because \\
 \multicolumn{3}{@{}l}{\textit{(ii), terms}} \\
 \textsc{T-Req-Assumed} & $q_Q.r\,\ldots$ becomes $d.r\,\ldots$ & it reduces to the resolved instance's translation${}^{\dagger}$ \\
 \textsc{T-Call}, \textsc{T-Op}, \textsc{T-App}, \textsc{T-Trait} with a context & their dictionaries & they reduce by (i) \\
-\textsc{T-Fold-R}, \textsc{T-Size-R} & its record & it reduces by (i) \\
+\textsc{T-Fold-R}, \textsc{T-Size-R}, \textsc{T-Uncons-R} & its record & it reduces by (i) \\
 every other rule & its subterms & structural${}^{\textsc{ih}}$ \\
 \end{longtable}
 \addtocounter{table}{-1}
@@ -332,6 +334,7 @@ step & the result has the type, because & relies on \\
 \textsc{S-Proj}, \textsc{S-Unbox} & the component's or the content's type &  \\
 \textsc{S-Fold} & the step's result has type $\sigma$, and the tail the range's type, its conditions kept & \textsc{T-Fold} \\
 \textsc{S-Size} & a constant of the range's size type & \textsc{T-Size} \\
+\textsc{S-Uncons} & nothing, or the pair of the head, of type $\tau$, and the tail, of the range's type, its conditions kept & \textsc{T-Uncons} \\
 \textsc{S-Cata} & the algebra applied to the node and its legs' results, each of type $\sigma$ & \textsc{T-Cata}, \textsc{T-Node} \\
 \textsc{S-Ctx} & the hole's type is unchanged${}^{\textsc{ih}}$ &  \\
 \end{longtable}
@@ -369,6 +372,7 @@ $\tau\texttt{(}c\texttt{)}$ & \textsc{S-Conv} & the condition on conversions \\
 a conditional, a case, a projection, an unbox & \textsc{S-If}, \textsc{S-Case}, \textsc{S-Proj}, \textsc{S-Unbox} & canonical forms: a constant of type \texttt{bool}, an injection (\textsc{T-Case}), a pair or a constructed object, a box \\
 a fold over a range value & \textsc{S-Fold} & its two cases cover every length \\
 the length of a range value & \textsc{S-Size} & every range value has one \\
+the two cases of a range value & \textsc{S-Uncons} & its two cases cover every length \\
 a \texttt{cata} on a node & \textsc{S-Cata} & it covers every node, leaves included \\
 \end{longtable}
 \addtocounter{table}{-1}
@@ -409,6 +413,7 @@ source step & target steps & landing, because \\
 \textsc{S-Unbox} & a projection & the box being a unary product, unboxing is a step on both sides and the simulation stays strict \\
 \textsc{S-Fold} & several & below \\
 \textsc{S-Size} & the rules of the instance's length & the constant of the range's size type for $|r|$, by Assumption~\ref{ass:ranges} \\
+\textsc{S-Uncons} & the rules of the instance's $\mathit{uncons}$ & $\iota_1\,()$, or $\iota_2$ of the pair of the head's and the tail's translations, by Assumption~\ref{ass:ranges} \\
 \textsc{S-Cata} & several & below \\
 \end{longtable}
 \addtocounter{table}{-1}

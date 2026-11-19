@@ -119,7 +119,7 @@ constexpr T concat(
   return ranges::size(r) == 0 ? e
     : ranges::fold_left(
           views::iota(0uz, 64uz),
-          Power<T>{e, *r.begin(),
+          Power<T>{e, *ranges::begin(r),
                    size_t(ranges::size(r))},
           Squaring<T, Op>{}).result; }
 \end{cpp}

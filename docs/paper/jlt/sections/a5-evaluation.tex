@@ -73,6 +73,8 @@ $\Sigma$ is not a list; the listings also use \cppinline{std::string} with conca
 \textsc{(S-Fold)} & \texttt{fold\_left(}v_r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow \texttt{fold\_left(}\mathit{next}\,v_r\texttt{, }v_f\texttt{(}v_a\texttt{, }\mathit{head}\,v_r\texttt{), }v_f\texttt{)} \quad \text{if } |v_r| > 0 \\
  & \texttt{fold\_left(}v_r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow v_a \quad \text{if } |v_r| = 0 \\[5pt]
 \textsc{(S-Size)} & \texttt{ranges::size(}v_r\texttt{)} \longrightarrow c \quad \text{the constant of the range's size type for } |v_r| \\[5pt]
+\textsc{(S-Uncons)} & \texttt{uncons(}v_r\texttt{)} \longrightarrow \texttt{optional\{pair\{}\mathit{head}\,v_r\texttt{, }\mathit{next}\,v_r\texttt{\}\}} \quad \text{if } |v_r| > 0 \\
+ & \texttt{uncons(}v_r\texttt{)} \longrightarrow \texttt{nullopt} \quad \text{if } |v_r| = 0 \\[5pt]
 \textsc{(S-Cata)} & \texttt{cata(}v_{\mathit{alg}}\texttt{, }n\texttt{)} \longrightarrow v_{\mathit{alg}}\texttt{(}n\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_1\texttt{), }\ldots\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_k\texttt{))} \\
  & \qquad \text{for a node } n \text{ with legs } l_1 \ldots l_k \\[5pt]
 \textsc{(S-Ctx)} & E[e] \longrightarrow E[e'] \quad \text{if } e \longrightarrow e' \\
@@ -84,7 +86,7 @@ $\Sigma$ is not a list; the listings also use \cppinline{std::string} with conca
 
 \paragraph{Data and recursion.}
 In Figure~\ref{fig:fjlt-eval}, \textsc{S-Fold} consumes the head of the range, so a fold takes as many steps as the range has elements, the bound \RuleThree{} asks for.
-\textsc{S-Size} gives that bound as a value.
+\textsc{S-Size} gives that bound as a value, and \textsc{S-Uncons} the two cases of Equation~\eqref{eq:fold}.
 \textsc{S-Cata} unfolds one node, passing the node itself beside its legs' folds; a leaf has no legs and the algebra is applied to it alone.
 \textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, and constant evaluation does not share its heap with run time (Table~\ref{tab:binding}).
 A law, a constant's initialiser or a \cppinline{static_assert} premise is therefore a constant expression whose value keeps no allocation alive, \cppinline{make_shared} excluded, the condition under which every FJlt program is a Jlt program.

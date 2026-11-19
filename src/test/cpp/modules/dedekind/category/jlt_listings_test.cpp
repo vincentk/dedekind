@@ -1213,10 +1213,10 @@ template <typename T, typename Op, T e, typename B>
 constexpr T concat(std::ranges::repeat_view<T, B> r) {
   return std::ranges::size(r) == 0
              ? e
-             : std::ranges::fold_left(
-                   std::views::iota(0uz, 64uz),
-                   Power<T>{e, *r.begin(), size_t(std::ranges::size(r))},
-                   Squaring<T, Op>{})
+             : std::ranges::fold_left(std::views::iota(0uz, 64uz),
+                                      Power<T>{e, *std::ranges::begin(r),
+                                               size_t(std::ranges::size(r))},
+                                      Squaring<T, Op>{})
                    .result;
 }
 // One declared law, that the entries form a semiring.  The associativity of

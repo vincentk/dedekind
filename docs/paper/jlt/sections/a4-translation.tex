@@ -35,7 +35,7 @@ Records are nested pairs.
 \qquad \text{where } \texttt{concept } C \texttt{ = } \overline{A} & \\
 \llbracket Q \rrbracket \text{ for a nested shape } Q & \note{its record type} \\
 \llbracket \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = 1 & \note{a negation carries no evidence} \\
-\llbracket \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \rrbracket = \{\,\mathit{size} : \llbracket R \rrbracket \to \llbracket \texttt{size\_t} \rrbracket, & \note{the kernel's constraint, read only by \textsc{T-Fold-R} and \textsc{T-Size-R}} \\
+\llbracket \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>} \rrbracket = \{\,\mathit{size} : \llbracket R \rrbracket \to \llbracket \texttt{size\_t} \rrbracket, & \note{the kernel's constraint, read only by \textsc{T-Fold-R}, \textsc{T-Size-R} and \textsc{T-Uncons-R}} \\
 \qquad \mathit{uncons} : \llbracket R \rrbracket \to 1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket\,\} & \\
 \llbracket e \rrbracket = \mathit{Bool} \text{ for a law } e & \\
 \llbracket \texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket & \note{an operation on parameters $\overline{x : \tau_x}$} \\
@@ -128,7 +128,8 @@ A term with a run-time \cppinline{n} translates to a term with $n$ free, of type
 \qquad \text{with } |\cdot|, \mathit{uncons} \text{ the operations of } R & \\
 \qquad \text{at a type variable } R \text{ (\textsc{T-Fold-R}):} & \\
 \qquad\quad \mathit{toNat} \circ q_Q.\mathit{size}, q_Q.\mathit{uncons} \text{ in their place} & \note{$q_Q$  the record of $Q = \mathit{IsRange}\texttt{<}R\texttt{, }\tau\texttt{>}$  in $\Delta$} \\
-\multicolumn{2}{l}{\textit{the length of a range}} \\
+\multicolumn{2}{l}{\textit{the length and the two cases of a range}} \\
+\llbracket \texttt{uncons(}r\texttt{)} \rrbracket = \mathit{uncons}\,\llbracket r \rrbracket & \note{\textsc{T-Uncons}: the instance's operation, whose type $1 + \llbracket \tau \rrbracket \times \llbracket R \rrbracket$ is the image of the term's; at a type variable $R$ (\textsc{T-Uncons-R}), $q_Q.\mathit{uncons}\,\llbracket r \rrbracket$} \\
 \llbracket \texttt{ranges::size(}r\texttt{)} \rrbracket = |\llbracket r \rrbracket| & \note{\textsc{T-Size}: the instance's length, at its size type; at a type variable $R$ (\textsc{T-Size-R}), the converted length is $q_Q.\mathit{size}\,\llbracket r \rrbracket$, at \texttt{size\_t}} \\
 \end{array}
 \]
@@ -205,7 +206,7 @@ $1 + \tau$, inl, inr, case & \texttt{optional<τ>}, $\iota_1\,e$, $\iota_2\,e$, 
 $\tau + \sigma$, inl, inr, case & \texttt{variant<τ, σ>}, $\iota_1\,e$, $\iota_2\,e$, \texttt{case(s, f, g)} & \texttt{variant<τ, σ>(in\_place\_index<i-1>, e)}, a dispatch on the index, as the library's \texttt{Copairing} & \textsc{T-Inj}, \textsc{T-Case}; \textsc{S-Case} \\
 $\tau \times \sigma$, $(a, b)$, $\pi_1$, $\pi_2$~\cite{pierce1991basic} & \texttt{pair<τ, σ>}, \texttt{pair\{a, b\}}, \texttt{.first}, \texttt{.second} & the same & \textsc{T-Construct}, \textsc{T-Field}; \textsc{S-Proj} \\
 a unary product & \texttt{shared\_ptr<const τ>}, \texttt{make\_shared}, \texttt{*} & the same & \textsc{S-Unbox} \\
-a state $\llbracket R \rrbracket$, \textit{iter} & $R\texttt{<}\tau\texttt{>}$, \texttt{fold\_left(r, a, f)} & \texttt{std::ranges::fold\_left}, the instance's $|\cdot|$ and $\mathit{uncons}$ spelt \texttt{ranges::size} and, under a guard, \texttt{*ranges::begin} with the range after it & \textsc{T-Fold}, \textsc{T-Fold-R}, \textsc{E-Range}; \textsc{S-Fold} \\
+a state $\llbracket R \rrbracket$, \textit{iter} & $R\texttt{<}\tau\texttt{>}$, \texttt{fold\_left(r, a, f)}, \texttt{ranges::size(r)}, \texttt{uncons(r)} & \texttt{std::ranges::fold\_left}, the instance's $|\cdot|$ and $\mathit{uncons}$ spelt \texttt{ranges::size} and, under a guard, \texttt{*ranges::begin} with the range after it & \textsc{T-Fold}, \textsc{T-Size}, \textsc{T-Uncons}, each also at \textsc{-R}, \textsc{E-Range}; \textsc{S-Fold}, \textsc{S-Size}, \textsc{S-Uncons} \\
 $\mu F$, its fold & nested nodes $O\texttt{<}\overline{\tau}\texttt{>}$, \texttt{cata(alg, t)} & the library's & \textsc{T-Cata}, \textsc{T-Node}; \textsc{S-Cata} \\
 \bottomrule
 \end{tabularx}
