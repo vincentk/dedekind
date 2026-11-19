@@ -792,6 +792,11 @@ struct Neg {
 struct Half {
   constexpr size_t operator()(size_t x) const { return x / 2; }
 };
+// A constant arrow, its value in its type.
+template <auto v>
+struct Const {
+  constexpr auto operator()(size_t) const { return v; }
+};
 template <typename F>
 concept Arrow = requires(const F f, size_t x) {
   { f(x) } -> std::same_as<size_t>;
@@ -821,10 +826,24 @@ template <Arrow F>
 constexpr bool is_injective(F) {
   return IsInjective<F>;
 }
+// A second law on arrows, with the opposite lemma: a composite is constant
+// where either part is.
+template <typename F>
+constexpr bool constant = false;
+template <auto v>
+constexpr bool constant<Const<v>> = true;
+template <Arrow F, Arrow G>
+constexpr bool constant<Then<F, G>> = constant<F> || constant<G>;
+template <typename F>
+concept IsConstant = constant<F>;
 constexpr auto up = Neg{} >> Succ{};
 static_assert((Succ{} >> Pred{})(0uz) == 0 && up(1uz) == 0 &&
               is_injective(up) && !is_injective(up >> Pred{}) &&
               !is_injective(up >> Half{}));
+static_assert(constant<decltype(up >> Const<7uz>{})> &&
+              constant<decltype(Const<7uz>{} >> up)> &&
+              !constant<decltype(up)> && (up >> Const<7uz>{})(41uz) == 7 &&
+              Arrow<Const<7uz>>);
 // Beyond the listing: the order of >> matters, the wrap that makes Succ and
 // Pred inverses, the involution, the fold at depth, what Half identifies,
 // and an arrow whose call is not const is no Arrow.
@@ -1089,6 +1108,8 @@ constexpr bool computes =
 // std::multiplies are used as the standard gives them; a wrong unit, and an
 // operation with no entry, are refused.
 namespace listings_2_to_4 {
+using listing1_self_contained::Const;
+using listing1_self_contained::IsConstant;
 using std::size_t;
 template <typename T, typename Op>
 constexpr bool associative = false;
@@ -1224,18 +1245,13 @@ constexpr T power(T x, size_t n) {
              Power<T>{e, x, n}, Halving<T, Op, e>{})
       .product;
 }
-// A law of the standard's types, not of the program: a repeat_view holds one
-// value at every position.  It is what selects the overload below, where
-// associativity is what makes it correct.
-template <typename R>
-constexpr bool constant = false;
-template <typename T>
-constexpr bool constant<std::ranges::repeat_view<T, size_t>> = true;
-template <typename R>
-concept IsConstant = std::ranges::sized_range<R> && constant<R>;
-template <typename T, typename Op, T e, IsConstant R>
-  requires IsMonoid<T, Op, e> && std::same_as<std::ranges::range_value_t<R>, T>
-constexpr T concat(R r) {
+// The fast fold, for the image of an arrow that is known to be constant: the
+// law selects it, and associativity makes it correct.
+template <typename T, typename Op, T e, typename V, IsConstant F>
+  requires IsMonoid<T, Op, e> &&
+           std::same_as<
+               std::ranges::range_value_t<std::ranges::transform_view<V, F>>, T>
+constexpr T concat(std::ranges::transform_view<V, F> r) {
   return std::ranges::size(r) == 0
              ? e
              : power<T, Op, e>(*std::ranges::begin(r), std::ranges::size(r));
@@ -1335,35 +1351,42 @@ constexpr size_t top = ~0uz;
 using Rel =
     MatMulOver<size_t, std::bit_or<size_t>, std::bit_and<size_t>, 0uz, top>;
 constexpr A swap_nodes{0, top, top, 0};
-static_assert(
-    concat<A, Rel, A{top, 0, 0, top}>(std::views::repeat(swap_nodes, 2uz)) ==
-        A{top, 0, 0, top} &&
-    concat<A, Rel, A{top, 0, 0, top}>(std::views::repeat(swap_nodes, 3uz)) ==
-        swap_nodes);
+static_assert(concat<A, Rel, A{top, 0, 0, top}>(std::views::transform(
+                  std::views::iota(0uz, 2uz), Const<swap_nodes>{})) ==
+                  A{top, 0, 0, top} &&
+              concat<A, Rel, A{top, 0, 0, top}>(std::views::transform(
+                  std::views::iota(0uz, 3uz), Const<swap_nodes>{})) ==
+                  swap_nodes);
 // The listing's assertions.  One function at two monoids of size_t: under * it
 // is 2 to the power 10, under + it is 2 times 10.
-static_assert(power<size_t, std::multiplies<size_t>, 1uz>(2uz, 10uz) == 1024 &&
-              power<size_t, std::plus<size_t>, 0uz>(2uz, 10uz) == 20 &&
-              IsMonoid<M, Mul, identity> && !commutative<M, Mul> &&
-              concat<M, Mul, identity>(std::views::repeat(fib, 10uz)).b == 55 &&
-              concat<M, Mul, identity>(std::views::repeat(fib, 100'000'000uz))
-                      .b == 14'139'011'350'745'967'675uz);
-// The law selects: a repeat_view counted in size_t is known to be constant, a
-// reversed iota is not, and a repeat_view counted in int has no entry.
-static_assert(IsConstant<std::ranges::repeat_view<size_t, size_t>> &&
-              !IsConstant<decltype(ns)> &&
-              !IsConstant<std::ranges::repeat_view<size_t, int>>);
+static_assert(
+    power<size_t, std::multiplies<size_t>, 1uz>(2uz, 10uz) == 1024 &&
+    power<size_t, std::plus<size_t>, 0uz>(2uz, 10uz) == 20 &&
+    IsMonoid<M, Mul, identity> && !commutative<M, Mul> &&
+    concat<M, Mul, identity>(std::views::transform(std::views::iota(0uz, 10uz),
+                                                   Const<fib>{}))
+            .b == 55 &&
+    concat<M, Mul, identity>(
+        std::views::transform(std::views::iota(0uz, 100'000'000uz),
+                              Const<fib>{}))
+            .b == 14'139'011'350'745'967'675uz);
+// The law selects: the image of a constant arrow takes the power, and it is
+// the arrow that is asked, not the range.
+static_assert(IsConstant<Const<fib>> && IsConstant<Const<7uz>> &&
+              !IsConstant<listing1_self_contained::Succ>);
 // Beyond the listing: the scale at +, no copies give the unit, a few copies
 // agree with the plain fold, and a matrix that is not the unit is refused.
-static_assert(
-    concat<size_t, std::plus<size_t>, 0uz>(
-        std::views::repeat(7uz, 1'000'000'000'000uz)) == 7'000'000'000'000uz &&
-    concat<size_t, std::plus<size_t>, 0uz>(std::views::repeat(7uz, 0uz)) == 0 &&
-    concat<size_t, std::plus<size_t>, 0uz>(std::views::repeat(7uz, 10)) == 70 &&
-    concat<size_t, std::multiplies<size_t>, 1uz>(std::views::repeat(3uz,
-                                                                    13uz)) ==
-        1'594'323 &&
-    !IsMonoid<M, Mul, fib>);
+static_assert(concat<size_t, std::plus<size_t>, 0uz>(std::views::transform(
+                  std::views::iota(0uz, 1'000'000'000'000uz), Const<7uz>{})) ==
+                  7'000'000'000'000uz &&
+              concat<size_t, std::plus<size_t>, 0uz>(std::views::transform(
+                  std::views::iota(0uz, 0uz), Const<7uz>{})) == 0 &&
+              concat<size_t, std::plus<size_t>, 0uz>(std::views::transform(
+                  std::views::iota(0uz, 10uz), Const<7uz>{})) == 70 &&
+              concat<size_t, std::multiplies<size_t>, 1uz>(
+                  std::views::transform(std::views::iota(0uz, 13uz),
+                                        Const<3uz>{})) == 1'594'323 &&
+              !IsMonoid<M, Mul, fib>);
 
 // The standard's structural types: a value of one can be lifted into a type,
 // and the compiler decides the identity of two lifted values member by

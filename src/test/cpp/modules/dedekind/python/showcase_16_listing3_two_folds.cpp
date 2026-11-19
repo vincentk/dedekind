@@ -58,6 +58,21 @@ template <Arrow F>
 constexpr bool is_injective(F) {
   return injective<F>;
 }
+// A constant arrow, its value in its type.
+template <auto v>
+struct Const {
+  constexpr auto operator()(size_t) const { return v; }
+};
+// A second law on arrows, with the opposite lemma: a composite is constant
+// where either part is.
+template <typename F>
+constexpr bool constant = false;
+template <auto v>
+constexpr bool constant<Const<v>> = true;
+template <Arrow F, Arrow G>
+constexpr bool constant<Then<F, G>> = constant<F> || constant<G>;
+template <typename F>
+concept IsConstant = constant<F>;
 
 // Listing 2: a monoid as a carrier, an operation and its unit.
 template <typename T, typename Op>
@@ -105,18 +120,13 @@ constexpr T power(T x, size_t n) {
              Power<T>{e, x, n}, Halving<T, Op, e>{})
       .product;
 }
-// A law of the standard's types, not of the program: a repeat_view holds one
-// value at every position.  It is what selects the overload below, where
-// associativity is what makes it correct.
-template <typename R>
-constexpr bool constant = false;
-template <typename T>
-constexpr bool constant<std::ranges::repeat_view<T, size_t>> = true;
-template <typename R>
-concept IsConstant = std::ranges::sized_range<R> && constant<R>;
-template <typename T, typename Op, T e, IsConstant R>
-  requires IsMonoid<T, Op, e> && std::same_as<std::ranges::range_value_t<R>, T>
-constexpr T concat(R r) {
+// The fast fold, for the image of an arrow that is known to be constant: the
+// law selects it, and associativity makes it correct.
+template <typename T, typename Op, T e, typename V, IsConstant F>
+  requires IsMonoid<T, Op, e> &&
+           std::same_as<
+               std::ranges::range_value_t<std::ranges::transform_view<V, F>>, T>
+constexpr T concat(std::ranges::transform_view<V, F> r) {
   return std::ranges::size(r) == 0
              ? e
              : power<T, Op, e>(*std::ranges::begin(r), std::ranges::size(r));
@@ -162,7 +172,7 @@ using Mul = std::multiplies<M>;
 constexpr M identity{1, 0, 0, 1};
 constexpr M fib{1, 1, 1, 0};
 // The same value at every position, through a range that is not a
-// repeat_view: the plain fold is chosen for it.
+// constant arrow: nobody declared it one, so the plain fold is chosen for it.
 struct Fib {
   constexpr M operator()(size_t) const { return fib; }
 };
@@ -215,7 +225,9 @@ extern "C" __attribute__((noinline)) std::size_t listing3_term(std::size_t x) {
 /** @return the n-th Fibonacci number: n copies of one matrix, the overload by
  *  squaring chosen because the matrices are inferred to be a monoid. */
 extern "C" __attribute__((noinline)) std::size_t listing4_fib(std::size_t n) {
-  return concat<M, Mul, identity>(std::views::repeat(fib, n)).b;
+  return concat<M, Mul, identity>(
+             std::views::transform(std::views::iota(0uz, nuz), Const<fib>{}))
+      .b;
 }
 /** @return the same number by the plain fold, one step for each copy. */
 extern "C" __attribute__((noinline)) std::size_t listing4_fib_plain(
