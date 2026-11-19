@@ -107,9 +107,9 @@ An axiom has one spelling among a trait's declarations: an entry at one type who
 A default, an entry at a form and an entry whose value is computed are not axioms, so a program's axioms can be listed from its text, as Coq's \texttt{Print Assumptions} and Lean's \texttt{\#print axioms} list what a development rests on~\cite{Coq,demoura2021lean}.
 The repository's linter has a rule that does so, with a control that tells the forms apart, and Table~\ref{tab:axioms} is its list for the four listings of Section~\ref{sec:posture}.
 A unit named at a use is a claim of the second form (Section~\ref{sec:posture}), which the shape checks at one point and the rule does not list, and the table gives those by hand.
-An entry at a form is a rule of inference, and the rule is a claim as well: the compiler applies it and never asks why it holds, where a proof assistant would ask for the proof of a lemma.
+An entry at a form is a lemma, a rule of inference, and it is a claim as well: Jlt applies its lemmas where a proof assistant proves them, and applying them while compiling is what specialises the program (Section~\ref{sec:binding}).
 The table gives the two that carry the listings, also by hand.
-Read through the correspondence of Curry and Howard~\cite{curry1934functionality,howard1980formulae,sorensen2006lectures}, a shape is a proposition about types, its record under the translation is the evidence for it, and a rule of inference is a function from evidence to evidence (Appendix~\ref{app:fjlt:translation}).
+Read through the correspondence of Curry and Howard~\cite{curry1934functionality,howard1980formulae,sorensen2006lectures}, a shape is a proposition about types, its record under the translation is the evidence for it, and a lemma is a function from evidence to evidence (Appendix~\ref{app:fjlt:translation}).
 The correspondence stops at the laws: the evidence for a law is the truth value \texttt{true}, which a declaration supplies, and no term that a checker could verify.
 What a reviewer, a person or a model, then has to judge is the list: whether each claim is true, whether it is needed or follows from the others, and whether it is there twice.
 
@@ -132,13 +132,13 @@ Listing & the claim, as written & says \\
 \ref{lst:rule2} & \texttt{0uz} at \texttt{plus<size\_t>}, \texttt{1uz} at \texttt{multiplies<size\_t>} & 0 is the unit of the sum, 1 of the product \\
 \ref{lst:laws} & \texttt{identity} at \texttt{multiplies<M>} & the identity matrix is the unit of the matrices' product \\
 \midrule
-\multicolumn{3}{@{}l}{\textit{entries at a form: rules of inference, stated and not proved}} \\
+\multicolumn{3}{@{}l}{\textit{entries at a form: lemmas, stated and not proved}} \\
 \ref{lst:rule1} & \texttt{injective<Then<F, G>\kern0pt>}, from \texttt{injective<F>} and \texttt{injective<G>} & a composite of one-to-one arrows is one-to-one \\
 \ref{lst:laws} & \texttt{associative<Mat<T, zero, one>, }\ldots\texttt{>}, under \texttt{IsSemiring<T, zero, one>} & matrices over a semiring multiply associatively \\
 \bottomrule
 \end{tabularx}
-\caption{The unproved claims behind Listings~\ref{lst:rule1} to~\ref{lst:laws}: six axioms, three named units and two rules of inference.
-The compiler applies the rules to the axioms and computes the rest.}
+\caption{The unproved claims behind Listings~\ref{lst:rule1} to~\ref{lst:laws}: six axioms, three named units and two lemmas.
+The compiler applies the lemmas to the axioms and computes the rest.}
 \label{tab:axioms}
 \end{table}
 

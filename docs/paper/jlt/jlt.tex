@@ -45,10 +45,11 @@ The translation is defined on every well-typed program and preserves types and e
 Jlt beyond the kernel is syntactic sugar.
 This paper hypothesises that the desugaring preserves meaning.
 
-The programmer declares a law, and the compiler does not check it.
-Where declared laws compose, the compiler infers further laws mechanically.
+A law about a program is an axiom, a lemma or a theorem.
+The programmer supplies the axioms and the lemmas, the compiler takes them at face value, and it applies the lemmas mechanically to infer the theorems.
+What the programmer supplies is not proved, so it has to be listed and audited: a tool lists the axioms.
 A law licenses an overload written for it, and overload resolution composes such overloads.
-From a declared law, through the laws inferred from it, to faster code is specialisation, and one program is followed along it: a fold of $n$ steps becomes one of at most 64.
+From an axiom, through the theorems inferred from it, to faster code is specialisation, and one program is followed along it: a fold of $n$ steps becomes one of at most 64.
 Another program searches a text for a set of words that share a symmetry, declared as a law.
 An automaton would list the words, exponentially many in their length, and the test derived from the law is linear in that length.
 The paper also exhibits a \Cpp{20} program in which a generic function's result depends on a constraint it never declared, a call that GHC's rule for overlapping instances refuses, and Jlt adopts a refinement of that rule.

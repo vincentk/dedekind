@@ -91,8 +91,8 @@ is_injective(up) &&
 \end{minipage}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution.
 Left: four arrows on \cppinline{size_t} as values, and their composite.
-Right: a law declared as a table, inferred at a composite and read through a shape.
-The table is a trait of the kernel, and the constrained parameters are sugar (Appendix~\ref{app:fjlt:closure}).}
+Right: a law as a trait: its default, two axioms, a lemma for a composite, and the shape through which it is read.
+The constrained parameters are sugar (Appendix~\ref{app:fjlt:closure}).}
 \label{lst:rule1}
 \end{listing}
 
@@ -107,16 +107,15 @@ With the address and mutation out of reach, no arrow tells a copy from its origi
 So the named arrow \cppinline{up} may stand wherever its definition could.
 
 The right panel is a first look at a law.
-A law is a statement about an arrow that the compiler is told and does not check, here that the arrow is injective, or one-to-one: distinct arguments give distinct results.
-It is declared as a table from types to truth values.
-The table answers \cppinline{false} for every type, a declaration that begins \cppinline{template <>} enters \cppinline{true} for one type, and the entry for a composite is computed from the entries of its parts.
-A trait is written by cases and read through a shape that names it, here \cppinline{IsInjective}, so that a function's declaration or its body says which trait it depends on.
-\cppinline{is_injective} asks the shape at the type of a value, which uses a \cppinline{concept} as what it is, a predicate on types.
-Only an entry reads its trait directly, and only at the parts of its own head, which is the recursion that \RuleThree{} takes up.
-\cppinline{Pred} is one-to-one and has no entry, and \cppinline{Half} is not one-to-one.
-Both answer \cppinline{false}: of a law, \cppinline{false} means that it is not known, never that it is refuted.
-The entry for a composite is a recursion over the type of a term, which \RuleThree{} takes up.
-The library that accompanies the paper declares the same for more arrows and more laws.
+A law is a statement about a program that the compiler is told and does not check, here that an arrow is injective, or one-to-one: distinct arguments give distinct results.
+It is written as a trait, a function from types to truth values given by cases (\RuleTwo{}, Appendix~\ref{app:fjlt:trait}).
+The default answers \cppinline{false} for every type.
+An entry at one type, a declaration that begins \cppinline{template <>}, is an axiom: here, that \cppinline{Succ} and \cppinline{Neg} are injective.
+The entry at a composite is a lemma, a rule by which the law at a composite follows from the law at its two parts, and what the compiler infers by it is a theorem, here that \cppinline{up} is injective.
+Axioms and lemmas are the programmer's, stated and not proved (Appendix~\ref{app:fjlt:axioms}).
+\cppinline{Pred} is one-to-one and has no entry, \cppinline{Half} is not one-to-one, and both answer \cppinline{false}: of a law, \cppinline{false} means not known, never refuted.
+A trait is read through a shape that names it, here \cppinline{IsInjective}, which \cppinline{is_injective} asks at the type of a value (\RuleTwo{}).
+Only an entry reads its trait directly, at the parts of its own head, which is recursion over a type (\RuleThree{}, Equation~\eqref{eq:cata}).
 
 \paragraph{Rule 2, Abstraction: generic code varies with a type only through its concepts and traits.}
 \phantomsection\label{def:rule2}
@@ -140,7 +139,7 @@ A false law declaration is possible, and the compiler does not detect it.
 The standard treats its own concepts alike: a type may satisfy one without modelling it, and the program is then ill-formed with no diagnostic required~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.}
 A value named at a use can be checked, and a check can refute a claim and cannot prove it.
 An entry has one spelling in the source, so a program's axioms can be listed by a tool, and the four listings of this section rest on six (Appendix~\ref{app:fjlt:axioms}, Table~\ref{tab:axioms}).
-The rules by which a theorem follows are stated in the same way, as entries at a form, and they are not proved either: the compiler applies them.
+The lemmas, the rules by which a theorem follows, are stated in the same way, as entries at a form, and they are not proved either: the compiler applies them.
 A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts, a fold over its type (\RuleThree{}), as Listing~\ref{lst:rule1}'s \cppinline{up} is inferred to be injective from its two parts.
 The compiler's search for the entry of a trait, and then for an overload, is a simple proof search that finds either kind~\cite{augustsson2005djinn} (Appendix~\ref{app:fjlt:trait}).
 A law is stated of a carrier, a type taken as a bare set of values, together with an operation.\footnote{A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.}
