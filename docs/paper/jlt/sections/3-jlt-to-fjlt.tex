@@ -52,22 +52,25 @@ Its value parameters on a struct are the same construct as in Listing~\ref{lst:r
 \[
 \begin{array}{lcl@{\hspace{0.2em}}l}
 P &::=& \overline{D}\; e & \text{program} \\[3pt]
-D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \texttt{ = } \overline{A}\texttt{;} & \text{shape} \\
-  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> constexpr } \rho\; f \texttt{ = } e\texttt{;} & \text{trait, its default} \\
-  & \mid & \texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q} & \text{entry of a trait} \\
-  &   & \qquad \texttt{constexpr } \rho\; f\texttt{<}\overline{\tau}\texttt{>} \texttt{ = } e\texttt{;} & \\
-  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} & \text{generic function} \\
+D &::=& \texttt{template <}\overline{p}\texttt{> concept } C \texttt{ = } \overline{A}\texttt{;} & \text{shape} \\
+  & \mid & \texttt{template <}\overline{p}\texttt{> constexpr } \rho\; f \texttt{ = } e\texttt{;} & \text{trait, its default} \\
+  & \mid & \texttt{template <}\overline{p}\texttt{> requires } \overline{Q} & \text{entry of a trait} \\
+  &   & \qquad \texttt{constexpr } \rho\; f\texttt{<}\overline{\theta}\texttt{>} \texttt{ = } e\texttt{;} & \\
+  & \mid & \texttt{template <}\overline{p}\texttt{> requires } \overline{Q} & \text{generic function} \\
   &   & \qquad \texttt{constexpr } \rho\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \\
-  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau\; y}\texttt{;} & \text{function object} \\
+  & \mid & \texttt{template <}\overline{p}\texttt{> struct } O \texttt{ \{ } \overline{\tau\; y}\texttt{;} & \text{function object} \\
   &   & \qquad \texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q} & \\
   &   & \qquad \texttt{constexpr } \rho \texttt{ operator()(}\overline{\tau\; x}\texttt{) const \{ return } e\texttt{; \} \};} & \\
   & \mid & \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} & \text{constant} \\[3pt]
 A &::=& Q \;\mid\; e & \text{nested shape, law} \\
   & \mid & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>;}} \texttt{ \}} & \text{required calls} \\[3pt]
-Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
-\tau &::=& \alpha \;\mid\; b \;\mid\; T\texttt{<}\overline{\tau}\texttt{>} & \text{type} \\[3pt]
+p &::=& \texttt{typename } \alpha \;\mid\; \tau\; z & \text{parameter} \\[3pt]
+Q &::=& C\texttt{<}\overline{\theta}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\overline{\theta}\texttt{>} & \text{constraint} \\[3pt]
+\tau &::=& \alpha \;\mid\; b \;\mid\; T\texttt{<}\overline{\theta}\texttt{>} & \text{type} \\[3pt]
+\theta &::=& \tau \;\mid\; z \;\mid\; w & \text{argument} \\[3pt]
+w &::=& c \;\mid\; x \;\mid\; O\texttt{<}\overline{\theta}\texttt{>\{}\overline{w}\texttt{\}} & \text{atom} \\[3pt]
 \rho &::=& \tau \;\mid\; \texttt{auto} & \text{result type} \\[3pt]
-e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>} \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} & \text{term} \\
+e &::=& x \;\mid\; z \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\theta}\texttt{>} \;\mid\; f\texttt{<}\overline{\theta}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\theta}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} & \text{term} \\
   & \mid & \ominus e \;\mid\; \texttt{*}e \;\mid\; e\texttt{.}y \;\mid\; \tau\texttt{(}e\texttt{)} \;\mid\; e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e & \text{operators, by arity} \\
 \end{array}
 \]
@@ -76,10 +79,13 @@ Terminals are in monospace, and an overbar abbreviates a sequence.
 A letter with a row has the structure the row gives; a letter with no row is a name or a symbol.
 $P$ is a program.
 $D$ is a declaration.
-A trait is a function on types, declared by its default and its entries (Section~\ref{sec:posture}): an entry with no type variables is written \texttt{template <>} and has no \texttt{requires} clause, another entry's clause may be empty, and the term $f\texttt{<}\overline{\tau}\texttt{>}$ reads the trait at $\overline{\tau}$.
+A trait is a function on types, declared by its default and its entries (Section~\ref{sec:posture}): an entry with no parameters is written \texttt{template <>} and has no \texttt{requires} clause, another entry's clause may be empty, and the term $f\texttt{<}\overline{\tau}\texttt{>}$ reads the trait at $\overline{\theta}$.
 $A$ is a requirement.
 $Q$ is a constraint.
+$p$ is a parameter of a declaration: a type variable, or a value parameter $z$ with its type.
 $\tau$ is a type, and $\rho$ a result type, written or deduced.
+$\theta$ is an argument: a type, a value parameter in scope, or an atom.
+$w$ is an atom: a constant, the name of a declared constant, or a record of atoms (Appendix~\ref{app:fjlt:value}).
 $e$ is a term.
 $\alpha, \beta$ are type variables, $b$ base types.
 $T$ are type constructors, declared or adopted from the standard library; $O$ the structs among them, function objects (standard, such as \cppinline{std::plus}, or declared), \cppinline{std::pair} and \cppinline{std::optional}; $y$ their fields.

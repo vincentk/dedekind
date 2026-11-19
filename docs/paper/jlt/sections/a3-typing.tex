@@ -10,7 +10,7 @@ They hold it to \RuleThree{} through its two forms of recursion: instantiation, 
 A judgment is a statement about a program, and it holds when the rules derive it.
 There are three judgments:
 \begin{enumerate}
-\item $\Delta \Vdash Q$ says that the constraint $Q$ is \emph{entailed} in the context $\Delta$, which holds type variables and assumed constraints (Figure~\ref{fig:fjlt-entailment}).
+\item $\Delta \Vdash Q$ says that the constraint $Q$ is \emph{entailed} in the context $\Delta$, which holds type variables, value parameters with their types, and assumed constraints (Figure~\ref{fig:fjlt-entailment}).
 \item $\Delta; \Gamma \vdash e : \tau$ types a term, $\Gamma$ holding the term variables with their types (Figures~\ref{fig:fjlt-typing} and~\ref{fig:fjlt-typing-recursion}).
 \item $\vdash D$ says a declaration is well formed (Figure~\ref{fig:fjlt-declarations}).
 \end{enumerate}
@@ -74,6 +74,61 @@ $^{\ast}$~The standard's signature of the function object.~$^{\S}$~Declared befo
 Omitted as textbook~\cite[Chapters~8, 9 and~11]{pierce2002tapl}: \textsc{T-Var}, \textsc{T-Construct}, \textsc{T-Field}, \textsc{T-Inj}, \textsc{T-Case}, and the rules for pairs, boxes, conditionals and the arithmetic of base types.}
 \label{fig:fjlt-typing}
 \end{figure}
+
+\paragraph{Value parameters.}
+\label{app:fjlt:value}
+A declaration's parameters are type variables and value parameters (Figure~\ref{fig:fjlt-syntax}), as Listing~\ref{lst:rule2}'s \cppinline{template <typename T, typename Op, T e>}.
+The rules of this appendix are written for the type variables, $\overline{\alpha}$ and their arguments $\overline{\sigma}$, and they hold for all parameters once four things are added.
+
+\begin{figure}[htbp]
+\[
+\begin{array}{@{}l@{\quad}l@{}}
+\textsc{(T-Val)} & \dfrac{z : \tau \in \Delta}{\Delta; \Gamma \vdash z : \tau}
+\qquad
+\textsc{(A-Val)} \quad \dfrac{z : \tau \in \Delta}{\Delta \vdash z :: \tau}
+\qquad
+\textsc{(A-Atom)} \quad \dfrac{\varnothing; \varnothing \vdash w : \tau \quad \tau \text{ atomic}}{\Delta \vdash w :: \tau}
+\\[14pt]
+\textsc{(A-Inst)} & \dfrac{\theta_i \text{ a type, for each } p_i = \texttt{typename } \alpha_i \qquad \Delta \vdash \theta_i :: \tau_i[\overline{\theta}/\overline{p}] \text{, for each } p_i = \tau_i\; z_i}{\Delta \vdash \overline{\theta} \text{ for } \overline{p}}
+\end{array}
+\]
+\caption{Value parameters.
+$\Delta \vdash \theta :: \tau$ says that $\theta$ is an argument for a value parameter of type $\tau$, and $\Delta \vdash \overline{\theta} \text{ for } \overline{p}$ that a list of arguments fits a list of parameters.
+A type is atomic when it is a base type or a struct whose fields all have atomic types.
+In \textsc{A-Inst} the type of a value parameter may name the parameters before it, and only those.}
+\label{fig:fjlt-value}
+\end{figure}
+
+\emph{The parameter.}
+A declaration with parameters $\overline{p}$ is checked with its type variables and its value parameters, each with its type, in $\Delta$ (\textsc{D-Generic}, \textsc{D-Trait}, \textsc{D-Entry}, \textsc{D-Op}, and a shape's requirements).
+A value parameter is in scope in the types, the constraints and the terms of its declaration, and as a term it has its declared type (\textsc{T-Val}).
+Its type is a base type, a struct, or a type variable declared before it.
+
+\emph{The argument.}
+An argument for a value parameter is a value parameter in scope (\textsc{A-Val}) or an atom (\textsc{A-Atom}).
+An atom is a closed normal form of the kernel's own evaluation (Appendix~\ref{app:fjlt:evaluation}) that is built from constants and records alone: no function, no sum, no optional and no range.
+The name of a declared constant stands for the normal form of its initialiser, which exists by Corollary~\ref{cor:termination} and is unique since evaluation is deterministic, and it is an argument where that normal form is an atom.
+No other term is an argument, so a type holds no term that is still to be evaluated.
+This is \Cpp{}'s condition that the parameter's type is structural~\cite[{\texttt{temp.param}}]{cpp23standard}, narrowed to what the listings use.
+
+\emph{The instantiation.}
+Wherever a rule puts arguments $\overline{\sigma}$ for parameters $\overline{\alpha}$, in a type, a constraint or a term, the arguments fit the parameters (\textsc{A-Inst}), and $[\overline{\sigma}/\overline{\alpha}]$ puts an atom or a value parameter for each value parameter as it puts a type for each type variable.
+That is the case in \textsc{E-Shape}, \textsc{E-Law-Assumed}, \textsc{T-Call}, \textsc{T-App}, \textsc{T-Trait} and \textsc{T-Req-Assumed}.
+A law that names a value parameter, as \cppinline{Op{}(e, e) == e} in Listing~\ref{lst:rule2}, is closed once an atom stands for the parameter, and \textsc{E-Law} evaluates it then.
+Under a value parameter it is entailed only through an assumed shape, as at a type variable.
+
+\emph{Equality.}
+Two types are equal when they are the same once every constant's name is replaced by its normal form.
+So two value arguments are equal when their normal forms are, which is how \Cpp{} decides whether two arguments name one specialisation~\cite[{\texttt{temp.type}}]{cpp23standard}.
+It does not call \cppinline{operator==}.
+The two can differ in one direction only: equal normal forms are equal under any \cppinline{operator==} the program declares, since a function has one result at one argument, and a declared \cppinline{operator==} may also equate two normal forms that differ.
+A shape is then asked, and its laws are checked, once for each normal form.
+
+\emph{What a value parameter is not.}
+A value argument is an atom of its type and never a part of it: the parts of $T\texttt{<}\overline{\theta}\texttt{>}$ are the types among $\overline{\theta}$.
+So the recursion over a type (Equation~\eqref{eq:cata}) does not read a value argument, and \textsc{D-Entry}'s condition on the parts is unchanged.
+An entry whose head has a value parameter, as \cppinline{constant<Const<v>>} in Listing~\ref{lst:rule1}, matches at every atom of the parameter's type and is an axiom for the family.
+An argument is not a compound term over parameters, so no declaration instantiates itself at a value computed from its own, and the kernel has no recursion on a value parameter.
 
 \paragraph{Overload resolution.}
 A call $f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)}$ of a generic function \emph{resolves} at concrete types to one declaration of $f$, by \Cpp{}'s overload resolution~\cite[{\texttt{over.match}}]{cpp23standard}.
