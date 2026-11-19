@@ -290,6 +290,46 @@ $^{\P}$~At each node of arity $k$.}
 \label{fig:fjlt-typing-recursion}
 \end{figure}
 
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[column sep={2.7em,between origins}, row sep=1.5em, every label/.append style={font=\small}, cells={nodes={minimum width=2em}}]
+  \llap{$\mathbf{1}$:\quad}
+  &[2.7em] & & & & & & & & \mathbf{1} \arrow[d, "n"] \\
+  \llap{$\mu F$:\quad} \ast
+  & 0 \arrow[l, "\mathit{out}"'] \arrow[d]
+  & & 1 \arrow[ll, "\mathit{out}"'] \arrow[d]
+  & & \cdots \arrow[ll, "\mathit{out}"']
+  & & n-1 \arrow[ll, "\mathit{out}"'] \arrow[d]
+  & & n \arrow[ll, "\mathit{out}"'] \arrow[rr, dashed, "\mathit{in}^*"]
+  & &[1.4em] \cdots \\
+  \llap{$S$:\quad}
+  & f(0) \arrow[d]
+  & & f(1) \arrow[d]
+  & & \cdots
+  & & f(n-1) \arrow[d]
+  & \\
+  \llap{$M$:\quad}
+  & m_0
+  & & m_1 \arrow[ll, "h"']
+  & & \cdots \arrow[ll, "h"']
+  & & m_{n-1} \arrow[ll, "h"']
+  & & e \arrow[ll, "h"']
+\end{tikzcd}
+
+\caption{Recursion over a finite prefix, in the notation of initial algebras (Table~\ref{tab:recursion-names}).
+The bound $n$ is a point of $\mu F$, given before the first step, and $\mathit{out}$ steps down from it until nothing is left, $\ast$.
+$\mathit{in}$, dashed, would build up without end, and no recursion of Jlt follows it.
+$f$ lands in $S$, and $h : M \times S \to M$ folds along the walk: $m_n = e$ and $m_k = h(m_{k+1}, f(k))$, to the result $m_0$.
+For a value the prefix is of the naturals, $n$ a range's length (Equation~\eqref{eq:fold}); for a type it is of the chain of terms, $n$ a term's length, and at a node with several parts the step takes the results of them all (Equation~\eqref{eq:cata}).}
+\label{fig:structures}
+\end{figure}
+
+\paragraph{The finite prefix.}
+Every recursion of the kernel is over a finite prefix (Figure~\ref{fig:structures}), so neither the naturals nor the type of all terms is needed as a completed whole.
+A fold over a value reads a range whose length is a \cppinline{size_t}, and a recursion over a type reads a term whose length its type fixes.
+\cppinline{length} in Listing~\ref{lst:rule3} is the map from a term to that bound, which is why it is the measure of Equation~\eqref{eq:cata}.
+The bound is given before the first step and each step lowers it, so it is never raised, and a bound beyond one word is reached by nesting and not by a longer walk.
+
 \paragraph{Ranges.}
 A range is homogeneous: its elements share one type $\tau$, and its length is a value.
 $R\texttt{<}\tau\texttt{>}$ is an instance of $\mathcal{R}$, a family defined by conditions: the range of Equation~\eqref{eq:fold}, and the object of Table~\ref{tab:recursion-names}'s row over a value.
@@ -300,7 +340,7 @@ The guard is sound without any analysis of flow, because $r$ is a value and cann
 An optional is read the same way, by \textsc{T-Guard-Opt}: \texttt{*}$s$ is typed only in the branch that the optional $s$, as a condition, admits.
 The translation reads a guard as a case on a sum, $1 + \tau \times R$ for a range and $1 + \tau$ for an optional (Appendix~\ref{app:fjlt:translation}).
 For a range it is the sum the fold itself reads at each step (Figure~\ref{fig:fjlt-recursion}), so the guard adds no new type.
-The kernel fixes the length's type at \cppinline{size_t}, a restriction: the standard gives it in the range's own size type~\cite[{\texttt{range.prim.size}}]{cpp23standard}, which is \cppinline{size_t} for every instance of $\mathcal{R}$, a \cppinline{repeat_view} being one where it is counted in \cppinline{size_t}, as in Listing~\ref{lst:laws}.
+The kernel fixes the length's type at \cppinline{size_t}, a restriction: the standard gives it in the range's own size type~\cite[{\texttt{range.prim.size}}]{cpp23standard}, which is \cppinline{size_t} for every instance of $\mathcal{R}$.
 A length is thus one number, and a bound beyond one word is reached by nesting: a range of ranges is folded by a fold whose step is a fold, each over a range with a length of its own.
 The shape of such a nest is the tuple of its lengths, a term over \cppinline{size_t} in the sense of Equation~\eqref{eq:cata}, and no rule needs a single length to hold it.
 A range is typed by its instance's conditions, \cppinline{iota(i, j)} only at $i \le j$, and \textsc{S-Fold} preserves them, since $\mathit{next}$ does.

@@ -274,6 +274,8 @@ Pierce's \texttt{fold} builds up: it is $\mathit{in}$, not the fold that consume
 Recursion in Jlt is structural~\cite{burstall1969proving}: every step strictly decreases a bound, a natural number, so the recursion ends.\footnote{A variant function, in Dijkstra's word~\cite{dijkstra1976discipline}.}
 Several literatures describe this recursion, each in its own words, and Table~\ref{tab:recursion-names} sets them side by side.
 Jlt has two forms of it, over a value and over a type, and both have one shape: a case where the recursion ends, and a step on something strictly shorter.
+Either way the recursion runs over a finite prefix: of the naturals for a value, and of the chain of ever longer terms for a type.
+Its bound is there before the first step and can only decrease (Appendix~\ref{app:fjlt:typing}, Figure~\ref{fig:structures}).
 
 \begin{itemize}
 \item \emph{Over a value.}
