@@ -107,7 +107,8 @@ An axiom has one spelling among a trait's declarations: an entry at one type who
 A default, an entry at a form and an entry whose value is computed are not axioms, so a program's axioms can be listed from its text, as Coq's \texttt{Print Assumptions} and Lean's \texttt{\#print axioms} list what a development rests on~\cite{Coq,demoura2021lean}.
 The repository's linter has a rule that does so, with a control that tells the forms apart, and Table~\ref{tab:axioms} is its list for the four listings of Section~\ref{sec:posture}.
 A unit named at a use is a claim of the second form (Section~\ref{sec:posture}), which the shape checks at one point and the rule does not list, and the table gives those by hand.
-An entry at a form is a lemma, a rule of inference, and it is a claim as well: Jlt applies its lemmas where a proof assistant proves them, and applying them while compiling is what specialises the program (Section~\ref{sec:binding}).
+An entry at a form is a lemma, a rule of inference, and it is a claim as well: Jlt applies its lemmas without proof, where a proof assistant proves them first.
+What the application buys, done while compiling, is the specialisation of the program (Section~\ref{sec:binding}).
 The table gives the two that carry the listings, also by hand.
 Read through the correspondence of Curry and Howard~\cite{curry1934functionality,howard1980formulae,sorensen2006lectures}, a shape is a proposition about types, its record under the translation is the evidence for it, and a lemma is a function from evidence to evidence (Appendix~\ref{app:fjlt:translation}).
 The correspondence stops at the laws: the evidence for a law is the truth value \texttt{true}, which a declaration supplies, and no term that a checker could verify.

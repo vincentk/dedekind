@@ -70,62 +70,76 @@ concat size_t plus 0 d 40 2  ⟶*  42
 \noindent The record $d$ that the call passes is the derivation of \cppinline{IsMonoid<size_t, plus<size_t>, 0uz>}, which Figure~\ref{fig:sketch-derivations} builds field by field.
 \cppinline{size_t} is a monoid twice, so the same term takes a second record, $d'$, with \texttt{times} for its operation, and $\mathit{concat}\;\mathit{size\_t}\;\mathit{times}\;1\;d'\;6\;7$ reduces to 42, as Listing~\ref{lst:rule2} asserts.
 A typing derivation is a tree, each node one rule applied to one piece of the program, and each rule has its piece of System~F (Table~\ref{tab:rules}).
-So the tree and the translated term have one shape, and Figure~\ref{fig:sketch-derivations} sets them side by side, with the rule that joins them in the middle column.
+So the tree and the translated term have one shape, and Figures~\ref{fig:sketch-derivations} and~\ref{fig:sketch-fib} set them side by side, with the rule that joins them in the middle column.
 
 \begin{figure}[htbp]
 \small
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.46\linewidth}l>{\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.44\linewidth}l>{\raggedright\arraybackslash}X@{}}
 \toprule
 \Cpp{}, a tree by indentation & by rule & System~F \\
 \midrule
-\texttt{concat<size\_t, plus<size\_t>, 0uz>(ns)} & $\xrightarrow{\text{\scriptsize\textsc{T-Call}}}$ & $\mathit{concat}\;\mathit{size\_t}\;\mathit{plus}\;0\;d\;\mathit{ns}$ \\
-\hspace*{1.0em}\texttt{IsMonoid<size\_t, plus<size\_t>, 0uz>} & $\xrightarrow{\text{\scriptsize\textsc{E-Shape}}}$ & $d = \{\,\mathit{assoc} = \mathit{true},\ \mathit{check} = \mathit{true},\ \mathit{op} = \mathit{plus}\,\}$ \\
-\hspace*{2.0em}\texttt{associative<size\_t, plus<size\_t>>} & $\xrightarrow{\text{\scriptsize\textsc{E-Law}}}$ & $\mathit{assoc}$ \\
-\hspace*{2.0em}\texttt{plus\{\}(0uz, 0uz) == 0uz} & $\xrightarrow{\text{\scriptsize\textsc{E-Law}}}$ & $\mathit{check}$ \\
-\hspace*{2.0em}\texttt{plus\{\}(a, b)} & $\xrightarrow{\text{\scriptsize\textsc{E-Op}}}$ & $\mathit{op}$ \\
-\hspace*{1.0em}\texttt{ns}, a range of length 10 & $\longrightarrow$ & $\mathit{chain}\;10$ \\
-\hspace*{1.0em}the body of \texttt{concat}, checked once & $\xrightarrow{\text{\scriptsize\textsc{D-Generic}}}$ & $\Lambda T.\,\Lambda \mathit{Op}.\,\lambda e.\,\lambda q.\,\lambda r.\ \ldots$ \\
-\hspace*{2.0em}\texttt{fold\_left(r, e, Op\{\})} & $\xrightarrow{\text{\scriptsize\textsc{T-Fold}}}$ & $\pi_2\,(\mathit{iter}\,|r|\,\mathit{step}\,(r, e))$ \\
-\hspace*{3.0em}\texttt{Op\{\}(a, s)}, a requirement & $\xrightarrow{\text{\scriptsize\textsc{T-Req-Assumed}}}$ & $q.\mathit{op}\;a\;s$ \\
+\texttt{concat<size\_t, plus<size\_t>, 0uz>(ns)} & $\xrightarrow{\text{\scriptsize \textsc{T-Call}}}$ & $\mathit{concat}\;\mathit{size\_t}\;\mathit{plus}\;R\;0\;d\;d_R\;\mathit{ns}$ \\
+\hspace*{1.0em}\texttt{IsMonoid<size\_t, plus<size\_t>, 0uz>} & $\xrightarrow{\text{\scriptsize \textsc{E-Shape}}}$ & $d = \{\,\mathit{assoc} = \mathit{true},\ \mathit{check} = \mathit{true},\ \mathit{op} = \mathit{plus}\,\}$ \\
+\hspace*{2.0em}\texttt{associative<size\_t, plus<size\_t>\kern0pt>} & $\xrightarrow{\text{\scriptsize \textsc{E-Law}, an axiom}}$ & $\mathit{assoc}$ \\
+\hspace*{2.0em}\texttt{plus\{\}(0uz, 0uz) == 0uz} & $\xrightarrow{\text{\scriptsize \textsc{E-Law}, a check}}$ & $\mathit{check}$ \\
+\hspace*{2.0em}\texttt{plus\{\}(a, b)} & $\xrightarrow{\text{\scriptsize \textsc{E-Op}}}$ & $\mathit{op}$ \\
+\hspace*{1.0em}\texttt{sized\_range} at the type of \texttt{ns} & $\xrightarrow{\text{\scriptsize \textsc{E-Range}}}$ & $d_R = \{\,\mathit{size},\ \mathit{uncons}\,\}$, those of a reversed \texttt{iota} \\
+\hspace*{1.0em}the body of \texttt{concat}, checked once & $\xrightarrow{\text{\scriptsize \textsc{D-Generic}}}$ & $\Lambda T.\,\Lambda \mathit{Op}.\,\Lambda R.\,\lambda e.\,\lambda q.\,\lambda q_R.\,\lambda r.\ \ldots$ \\
+\hspace*{2.0em}\texttt{fold\_left(r, e, Op\{\})} & $\xrightarrow{\text{\scriptsize \textsc{T-Fold-R}}}$ & $\pi_2\,(\mathit{iter}\,(\mathit{toNat}\,(q_R.\mathit{size}\;r))\,\mathit{step}\,(r, e))$ \\
+\hspace*{3.0em}\texttt{Op\{\}(a, s)}, a requirement & $\xrightarrow{\text{\scriptsize \textsc{T-Req-Assumed}}}$ & $q.\mathit{op}\;a\;s$ \\
 \midrule
-\multicolumn{3}{@{}l}{$\mathit{concat}\;\mathit{size\_t}\;\mathit{plus}\;0\;d\;\mathit{ns} \;\longrightarrow^{*}\; \pi_2\,(\mathit{iter}\,10\,\mathit{step}\,(\mathit{chain}\,10, 0)) \;\longrightarrow^{*}\; 45$} \\
+\multicolumn{3}{@{}l}{$\mathit{concat}\;\mathit{size\_t}\;\mathit{plus}\;R\;0\;d\;d_R\;\mathit{ns} \;\longrightarrow^{*}\; \pi_2\,(\mathit{iter}\,10\,\mathit{step}\,(\mathit{ns}, 0)) \;\longrightarrow^{*}\; 45$} \\
 \midrule
-\texttt{is\_injective(a)} & $\xrightarrow{\text{\scriptsize\textsc{T-Call}}}$ & $\mathit{is\_injective}\,[\,t\,]\;a$ \\
-\hspace*{1.0em}\texttt{injective<Then<Succ, Then<Neg, Succ>>>} & $\xrightarrow{\text{\scriptsize\textsc{T-Trait}, at a form}}$ & $i_{\mathit{Succ}} \wedge (i_{\mathit{Neg}} \wedge i_{\mathit{Succ}})$ \\
-\hspace*{2.0em}\texttt{injective<Succ>}, an entry & $\xrightarrow{\text{\scriptsize\textsc{T-Trait}, an entry}}$ & $\mathit{true}$ \\
-\hspace*{2.0em}\texttt{injective<Then<Neg, Succ>>} & $\xrightarrow{\text{\scriptsize\textsc{T-Trait}, at a form}}$ & $i_{\mathit{Neg}} \wedge i_{\mathit{Succ}}$ \\
-\hspace*{3.0em}\texttt{injective<Neg>}, an entry & $\xrightarrow{\text{\scriptsize\textsc{T-Trait}, an entry}}$ & $\mathit{true}$ \\
-\hspace*{3.0em}\texttt{injective<Succ>}, an entry & $\xrightarrow{\text{\scriptsize\textsc{T-Trait}, an entry}}$ & $\mathit{true}$ \\
+\texttt{is\_injective(a)} & $\xrightarrow{\text{\scriptsize \textsc{T-Call}}}$ & $\mathit{is\_injective}^{+}\;t\;d_I\;a$ \\
+\hspace*{1.0em}\texttt{IsInjective<t>} & $\xrightarrow{\text{\scriptsize \textsc{E-Shape}}}$ & $d_I = \{\,\mathit{arrow} = d_A,\ \mathit{law} = \mathit{true}\,\}$ \\
+\hspace*{2.0em}\texttt{injective<Then<Succ, Then<Neg, Succ>\kern0pt>\kern0pt>} & $\xrightarrow{\text{\scriptsize \textsc{T-Trait}, a lemma}}$ & $i_{\mathit{Succ}} \wedge (i_{\mathit{Neg}} \wedge i_{\mathit{Succ}})$ \\
+\hspace*{3.0em}\texttt{injective<Succ>}, \texttt{injective<Neg>} & $\xrightarrow{\text{\scriptsize \textsc{T-Trait}, axioms}}$ & $\mathit{true}$, $\mathit{true}$ \\
+\hspace*{3.0em}\texttt{injective<Then<Neg, Succ>\kern0pt>} & $\xrightarrow{\text{\scriptsize \textsc{T-Trait}, a lemma}}$ & $i_{\mathit{Neg}} \wedge i_{\mathit{Succ}}$ \\
 \midrule
-\multicolumn{3}{@{}l}{$\mathit{is\_injective}\,[\,t\,]\;a \;\longrightarrow^{*}\; \mathit{true} \wedge (\mathit{true} \wedge \mathit{true}) \;\longrightarrow^{*}\; \mathit{true}$, by \textsc{S-Trait} at each node, with $t$ the type of \texttt{a}} \\
-\midrule
-\texttt{concat<M, Mul, I>(views::repeat(fib, n))} & $\xrightarrow{\text{\scriptsize\textsc{T-Call}}}$ & $\mathit{concat}_{\mathit{rep}}\;M\;\mathit{Mul}\;I\;d_M\;(\mathit{repeat}\;\mathit{fib}\;n)$ \\
-\hspace*{1.0em}\texttt{IsMonoid<M, Mul, I>} & $\xrightarrow{\text{\scriptsize\textsc{E-Shape}}}$ & $d_M = \{\,\mathit{assoc} = s,\ \mathit{check} = \mathit{true},\ \mathit{op} = \mathit{mul}\,\}$ \\
-\hspace*{2.0em}\texttt{associative<M, Mul>} & $\xrightarrow{\text{\scriptsize\textsc{T-Trait}, at a form}}$ & $s$, the entry of \texttt{semiring} below \\
-\hspace*{3.0em}\texttt{semiring<size\_t, }\ldots\texttt{>}, an entry & $\xrightarrow{\text{\scriptsize\textsc{T-Trait}, an entry}}$ & $\mathit{true}$ \\
-\hspace*{2.0em}\texttt{Mul\{\}(I, I) == I} & $\xrightarrow{\text{\scriptsize\textsc{E-Law}}}$ & $\mathit{check}$ \\
-\hspace*{2.0em}\texttt{Mul\{\}(a, b)} & $\xrightarrow{\text{\scriptsize\textsc{E-Op}}}$ & $\mathit{op}$ \\
-\hspace*{1.0em}the overload's body, checked once & $\xrightarrow{\text{\scriptsize\textsc{D-Generic}}}$ & $\Lambda T.\,\Lambda \mathit{Op}.\,\lambda e.\,\lambda q.\,\lambda r.\ \ldots$ \\
-\hspace*{2.0em}\texttt{ranges::size(r) == 0 ? e : }\ldots & $\xrightarrow{\text{\scriptsize\textsc{T-Uncons}, \textsc{T-Case}}}$ & $\mathit{case}\,(\mathit{uncons}\;r,\ e,\ \lambda c.\ \ldots)$ \\
-\hspace*{3.0em}\texttt{fold\_left(views::iota(0uz, 64uz), }\ldots\texttt{)} & $\xrightarrow{\text{\scriptsize\textsc{T-Fold}}}$ & $\pi_2\,(\mathit{iter}\,64\,\mathit{step}\,(\mathit{iota}\,0\,64,\ (e, \pi_1 c, |r|)))$ \\
-\hspace*{4.0em}\texttt{Op\{\}(s.square, s.square)} & $\xrightarrow{\text{\scriptsize\textsc{T-Req-Assumed}}}$ & $q.\mathit{op}\;\ldots$ \\
-\midrule
-\multicolumn{3}{@{}l}{$\mathit{concat}_{\mathit{rep}}\;M\;\mathit{Mul}\;I\;d_M\;(\mathit{repeat}\;\mathit{fib}\;10) \;\longrightarrow^{*}\; \ldots\,\mathit{iter}\,64\,\ldots \;\longrightarrow^{*}\;$ a matrix whose second entry is 55} \\
+\multicolumn{3}{@{}l}{$\mathit{is\_injective}^{+}\;t\;d_I\;a \;\longrightarrow^{*}\; \mathit{true}$, with $d_I.\mathit{law}$ the value of $\mathit{true} \wedge (\mathit{true} \wedge \mathit{true})$} \\
 \bottomrule
 \end{tabularx}
-\caption{Sketch. The two running terms and Listing~\ref{lst:laws}'s Fibonacci call, each as its typing derivation beside its translation.
+\caption{The two running terms of Listing~\ref{lst:rule3}, each as its typing derivation beside its translation.
 The rules are those of Appendix~\ref{app:fjlt:typing}, and the right column is built by Appendix~\ref{app:fjlt:translation}, one clause per rule.
-$t$ abbreviates the type of \texttt{a}, and $i_x$ the entry of \texttt{injective} at $x$.
-In the third, \texttt{I} abbreviates \texttt{M\{1, 0, 0, 1\}}, $\mathit{concat}_{\mathit{rep}}$ is the overload for a \texttt{repeat\_view}, and the count of its iterator is 64 whatever $n$ is, where the plain fold's is $n$.
-An arrow marked \textsc{T-Trait} is a read of a trait: at one type it resolves to an entry, at a form to an entry that reads the trait at the parts, and evaluation unfolds each read by \textsc{S-Trait} (Appendix~\ref{app:fjlt:evaluation}).}
+$R$ and $t$ abbreviate the types of \texttt{ns} and of \texttt{a}, and $i_x$ the value of \texttt{injective} at $x$.
+$\mathit{is\_injective}^{+}$ is the function under the shape, which the body's \texttt{return IsInjective<F>} is sugar for, beside one under its negation (Appendix~\ref{app:fjlt:closure}).
+The value parameter \texttt{e} is one more $\lambda$, which runs ahead of the kernel (Section~\ref{sec:jlt-to-fjlt}).}
 \label{fig:sketch-derivations}
+\end{figure}
+
+\begin{figure}[htbp]
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.44\linewidth}l>{\raggedright\arraybackslash}X@{}}
+\toprule
+\Cpp{}, a tree by indentation & by rule & System~F \\
+\midrule
+\texttt{concat<M, Mul, identity>(views::repeat(fib, n))} & $\xrightarrow{\text{\scriptsize \textsc{T-Call}}}$ & $\mathit{concat}_{\mathit{rep}}\;M\;\mathit{Mul}\;I\;d_M\;(\mathit{repeat}\;\mathit{fib}\;n)$ \\
+\hspace*{1.0em}\texttt{IsMonoid<M, Mul, identity>} & $\xrightarrow{\text{\scriptsize \textsc{E-Shape}}}$ & $d_M = \{\,\mathit{assoc} = \mathit{true},\ \mathit{check} = \mathit{true},\ \mathit{op} = \mathit{mul}\,\}$ \\
+\hspace*{2.0em}\texttt{associative<M, Mul>} & $\xrightarrow{\text{\scriptsize \textsc{T-Trait}, a lemma}}$ & the entry for the matrices at $d_S$: $\mathit{true}$ \\
+\hspace*{3.0em}\texttt{IsSemiring<size\_t, 0uz, 1uz>} & $\xrightarrow{\text{\scriptsize \textsc{E-Shape}}}$ & $d_S = \{\,d,\ d',\ \mathit{comm} = \mathit{true},\ \mathit{distr} = \mathit{true}\,\}$ \\
+\hspace*{4.0em}its two monoids and two laws & $\xrightarrow{\text{\scriptsize \textsc{E-Law}, four axioms}}$ & $d$, $d'$, $\mathit{true}$, $\mathit{true}$ \\
+\hspace*{2.0em}\texttt{identity * identity == identity} & $\xrightarrow{\text{\scriptsize \textsc{E-Law}, a check}}$ & $\mathit{check}$ \\
+\hspace*{2.0em}\texttt{a * b} on \texttt{M} & $\xrightarrow{\text{\scriptsize \textsc{E-Op}}}$ & $\mathit{op}$, the matrices' product at $d_S$ \\
+\hspace*{1.0em}the overload's body, checked once & $\xrightarrow{\text{\scriptsize \textsc{D-Generic}}}$ & $\Lambda T.\,\Lambda \mathit{Op}.\,\lambda e.\,\lambda q.\,\lambda r.\ \ldots$ \\
+\hspace*{2.0em}\texttt{ranges::size(r) == 0 ? e : power<T, Op, e>(}\ldots\texttt{)} & $\xrightarrow{\text{\scriptsize \textsc{T-Uncons}, \textsc{T-Case}}}$ & $\mathit{case}\,(\mathit{uncons}\;r,\ e,\ \lambda c.\ \mathit{power}\;T\;\mathit{Op}\;e\;q\;(\pi_1 c)\;|r|)$ \\
+\hspace*{1.0em}the body of \texttt{power}, checked once & $\xrightarrow{\text{\scriptsize \textsc{D-Generic}}}$ & $\Lambda T.\,\Lambda \mathit{Op}.\,\lambda e.\,\lambda q.\,\lambda x.\,\lambda n.\ \ldots$ \\
+\hspace*{2.0em}\texttt{fold\_left(views::iota(0uz, size\_t(bit\_width(n))), }\ldots\texttt{)} & $\xrightarrow{\text{\scriptsize \textsc{T-Fold}}}$ & $\mathit{iter}\,(\mathit{toNat}\,(\mathit{bit\_width}\;n))\,\mathit{step}\,\ldots$ \\
+\hspace*{3.0em}\texttt{Op\{\}(p.base, p.base)}, in \texttt{Halving} & $\xrightarrow{\text{\scriptsize \textsc{T-Req-Assumed}}}$ & $q.\mathit{op}\;\ldots$ \\
+\midrule
+\multicolumn{3}{@{}l}{$\mathit{concat}_{\mathit{rep}}\;M\;\mathit{Mul}\;I\;d_M\;(\mathit{repeat}\;\mathit{fib}\;10) \;\longrightarrow^{*}\; \ldots\,\mathit{iter}\,4\,\ldots \;\longrightarrow^{*}\;$ a matrix whose entry \texttt{b} is 55} \\
+\bottomrule
+\end{tabularx}
+\caption{Listing~\ref{lst:laws}'s Fibonacci call, as its typing derivation beside its translation.
+$I$ abbreviates \texttt{identity}, $d$ and $d'$ are the records of the two monoids of \cppinline{size_t}, and $\mathit{concat}_{\mathit{rep}}$ is the overload for a \texttt{repeat\_view}.
+The count of the iterator is the number of bits of $n$, 4 for $n = 10$, where the plain fold's is $n$.}
+\label{fig:sketch-fib}
 \end{figure}
 
 \noindent The fold over a value takes the same $d$ as the two-argument \cppinline{concat} above, and reaches the operation only through it.
 The unit is an argument and not a field of the record: the value among the template's parameters is one more $\lambda$.
 The range is never a list, and termination is the syntax, $\mathit{iter}\,10$.
-In the third term the law is inferred before it is used: the record $d_M$ exists because the entry for the matrices reads the entry for their elements, and the overload whose iterator counts to 64 is eligible because $d_M$ exists, and is chosen as the more specific of the two.
-Section~\ref{sec:binding} shows the same 64 in the code Clang emits for this call.
+In Figure~\ref{fig:sketch-fib} the law is inferred before it is used: the record $d_M$ exists because the lemma for the matrices applies at the semiring of their elements, $d_S$, whose laws are four axioms, and the overload whose iterator counts the bits of $n$ is eligible because $d_M$ exists, and is chosen as the more specific of the two.
+Section~\ref{sec:binding} shows the same count, the number of bits of $n$, in the code Clang emits for this call.
 In the fold over a type the law is an ordinary truth value of the translation, a conjunction of the entries declared at the atoms, with nothing else in the term.
 An atom with no entry would contribute $\mathit{false}$, and the same tree would then end in $\mathit{false}$, which means not known.
 

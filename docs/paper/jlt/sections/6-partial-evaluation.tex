@@ -24,7 +24,7 @@ Figure~\ref{fig:sketch-ir} shows what Clang leaves of the terms of Listing~\ref{
 \texttt{concat<size\_t, plus<size\_t>, 0uz>(ns)} & $\xrightarrow{\text{\scriptsize all known}}$ & \texttt{ret i64 45} \\[3pt]
 \texttt{concat<size\_t, multiplies<size\_t>, 1uz>(}\newline \texttt{\ \ views::reverse(views::iota(1uz, n)))} & $\xrightarrow{\text{\scriptsize n at run time}}$ & \texttt{\%k\ = phi i64 [ \%k1, \%loop ], [ \%m, \%entry ]}\newline \texttt{\%a\ = phi i64 [ \%p, \%loop ], [ \%m, \%entry ]}\newline \texttt{\%k1 = add i64 \%k, -1}\newline \texttt{\%p\ = mul i64 \%k1, \%a}\newline \texttt{\%z\ = icmp eq i64 \%k1, 1}\newline \texttt{br i1 \%z, label \%exit, label \%loop} \\[3pt]
 \texttt{concat<size\_t, plus<size\_t>, 0uz>(}\newline \texttt{\ \ views::reverse(views::iota(0uz, n)))} & $\xrightarrow{\text{\scriptsize n at run time}}$ & no loop: thirteen instructions that compute $n(n-1)/2$, a closed formula that the optimiser found \\[3pt]
-\texttt{concat<M, Mul, identity>(}\newline \texttt{\ \ views::repeat(fib, n)).b} & $\xrightarrow{\text{\scriptsize n at run time}}$ & a loop that squares the matrix and multiplies it in where a bit of $n$ is set, and ends on\newline \texttt{\%z = icmp eq i64 \%i1, 64} \\[3pt]
+\texttt{concat<M, Mul, identity>(}\newline \texttt{\ \ views::repeat(fib, n)).b} & $\xrightarrow{\text{\scriptsize n at run time}}$ & \texttt{\%lz = call i64 @llvm.ctlz.i64(i64 \%n, i1 true)}\newline \texttt{\%w\ \ = sub i64 64, \%lz}\newline a loop that squares the matrix and multiplies it in where a bit of $n$ is set, and ends on\newline \texttt{\%z\ \ = icmp eq i64 \%i1, \%w} \\[3pt]
 the same values through a range that is not a \texttt{repeat\_view} & $\xrightarrow{\text{\scriptsize n at run time}}$ & \texttt{\%s\ = add i64 \%a, \%b}\newline \texttt{\%i1 = add i64 \%i, 1}\newline \texttt{\%z\ = icmp eq i64 \%i1, \%n}\newline \texttt{br i1 \%z, label \%exit, label \%loop} \\[3pt]
 \texttt{is\_injective(a)} & $\xrightarrow{\text{\scriptsize a type}}$ & \texttt{ret i1 true} \\[3pt]
 \texttt{length<Then<Succ, Then<Neg, Succ>>>} & $\xrightarrow{\text{\scriptsize a type}}$ & \texttt{ret i64 3} \\[3pt]
@@ -36,7 +36,7 @@ Top three rows: the fold over a value.
 Next two: Listing~\ref{lst:laws}'s Fibonacci call, by the overload that the inferred law licenses and by the plain fold, the latter over \texttt{views::transform(views::iota(0uz, n), Fib\{\})} with \texttt{Fib} returning \texttt{fib} at every position.
 Bottom three: the folds over a term's type, and the term \texttt{a} applied.
 In the first loop, \texttt{\%m} is $n - 1$, the first element and the first result.
-In the loop by squaring, the first of the 64 rounds is done on entry, so the counter starts at 1.
+In the loop by squaring, \texttt{\%w} is the number of bits of $n$, 64 less its leading zeros, and the first round is done on entry, so the counter starts at 1.
 From the repository's fixture \texttt{showcase\_16}.}
 \label{fig:sketch-ir}
 \end{figure}
@@ -56,8 +56,8 @@ Table~\ref{tab:binding} lists where the two binding times part.
 
 The two rows for Listing~\ref{lst:laws} show what a law leaves behind.
 A law is a field of the dictionary (Section~\ref{sec:translation}), and in Jlt a dictionary is resolved while compiling and never exists at run time.
-So the law is used up there, and what it decided remains: with the semiring declared, the loop for $n$ copies of \cppinline{fib} runs 64 times, and the plain fold over the same values runs $n$ times.
-The translation makes the same choice of overload, so the iterator's count is 64 in the first and $n$ in the second.
+So the law is used up there, and what it decided remains: with the semiring's laws declared, the loop for $n$ copies of \cppinline{fib} runs once for each bit of $n$, and the plain fold over the same values runs $n$ times.
+The translation makes the same choice of overload, so the iterator's count is the number of bits of $n$ in the first and $n$ in the second (Figure~\ref{fig:sketch-fib}).
 In the terms of partial evaluation~\cite{jones1993partial}, the types and the declared laws are the static input, $n$ is the dynamic one, and the loop is the residual program.
 The word specialisation then has one meaning twice: the compiler chooses the specialisation of each trait and the most specialised overload, and in doing so it specialises the program to its laws~\cite{veldhuizen1999partial}.
 In the plain fold the optimiser has reduced the matrix product to one addition, the recurrence of the Fibonacci numbers, which is again its doing and not Jlt's.
