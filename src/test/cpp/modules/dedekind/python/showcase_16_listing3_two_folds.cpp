@@ -105,9 +105,18 @@ constexpr T power(T x, size_t n) {
              Power<T>{e, x, n}, Halving<T, Op, e>{})
       .product;
 }
-template <typename T, typename Op, T e>
-  requires IsMonoid<T, Op, e>
-constexpr T concat(std::ranges::repeat_view<T, size_t> r) {
+// A law of the standard's types, not of the program: a repeat_view holds one
+// value at every position.  It is what selects the overload below, where
+// associativity is what makes it correct.
+template <typename R>
+constexpr bool constant = false;
+template <typename T>
+constexpr bool constant<std::ranges::repeat_view<T, size_t>> = true;
+template <typename R>
+concept IsConstant = std::ranges::sized_range<R> && constant<R>;
+template <typename T, typename Op, T e, IsConstant R>
+  requires IsMonoid<T, Op, e> && std::same_as<std::ranges::range_value_t<R>, T>
+constexpr T concat(R r) {
   return std::ranges::size(r) == 0
              ? e
              : power<T, Op, e>(*std::ranges::begin(r), std::ranges::size(r));
