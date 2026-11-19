@@ -121,17 +121,35 @@ The library that accompanies the paper declares the same for more arrows and mor
 \paragraph{Rule 2, Abstraction: generic code varies with a type only through its concepts and traits.}
 \phantomsection\label{def:rule2}
 Generic code may do with a type argument exactly what the type's constraints permit~\cite{reynolds1983types,wadler1989theorems}.
-Listing~\ref{lst:rule2}'s \cppinline{concat} is written once, against a monoid: it may combine two elements and start from the unit, and it can use nothing the monoid does not name.
-So it is a function of the monoid's dictionary, the record of its operations, and it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
-The listing takes a monoid to be a carrier, an operation and its unit, as algebra writes $(S, +, 0)$.
-The shape and \cppinline{concat} are generic in all three, and the listing declares two monoids, both on \cppinline{size_t}.
-Associativity is declared in a table, as the law of Listing~\ref{lst:rule1} is.
-The unit is passed to the shape as a value, and the shape checks it at one point, \cppinline{Op{}(e, e) == e}.
-A value may be a template argument where its type is structural (\RuleOne{}).
-A shape indexed by a value makes a type depend on a value, in a restricted form.
-The value is a constant of structural type, fixed while compiling~\cite[{\texttt{temp.param}}]{cpp23standard}, as the index of a type is drawn from a constraint domain in Xi and Pfenning's DML~\cite{xi1999dependent}.
+The reason is that a function's type should say what the function depends on, so that it can be read, and audited, from its declaration alone.
+A function that keeps the rule is a function of its constraints' dictionaries, the records of their operations, and it respects every relation they respect (Corollary~\ref{cor:parametricity}).
+
+In \Cpp{23} a \cppinline{concept} is a predicate on a type's structure~\cite{cpp23standard}, and a trait is a compile-time function on types~\cite{myers1995traits}.
+A trait is type-indexed: it is defined by cases on the form of a type, which \Cpp{} writes as specialisations~\cite[{\texttt{temp.spec.partial}}]{cpp23standard}, and its result is a value, a type-indexed value~\cite{hinze2000generic}, or a type~\cite{hinze2004typeindexed}.
+The standard library names the same two kinds, a unary type trait and a transformation trait~\cite[{\texttt{meta.rqmts}}]{cpp23standard}.
+Together, concepts and traits take the place of type classes~\cite{wadler1989adhoc}.
+Both are resolved while compiling, so no dictionaries exist as run-time values (Section~\ref{sec:binding}).
+A type that has the operations satisfies the \cppinline{concept} without a declaration, so the standard library's types are admitted unmodified.
+A shape may also be indexed by a value, where the value's type is structural (\RuleOne{}), which makes a type depend on a value in a restricted form.
+The value is a constant, fixed while compiling~\cite[{\texttt{temp.param}}]{cpp23standard}, as the index of a type is drawn from a constraint domain in Xi and Pfenning's DML~\cite{xi1999dependent}.
 It is never a value of the running program, which dependent type theory admits~\cite{martinlof1984intuitionistic}.
-The standard's \cppinline{plus} and \cppinline{multiplies} are used as they are.
+
+Laws are \emph{certificates}, of two kinds.
+An axiom is the programmer's claim, which the compiler does not prove: an entry of a trait at one type, or a value named at a use.\footnote{Similarly, \texttt{sorry} admits a statement in Lean~\cite{demoura2021lean}, and \texttt{Admitted} one in Coq~\cite{Coq}.
+A false law declaration is possible, and the compiler does not detect it.
+The standard treats its own concepts alike: a type may satisfy one without modelling it, and the program is then ill-formed with no diagnostic required~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.}
+A value named at a use can be checked, and a check can refute a claim and cannot prove it.
+An entry has one spelling in the source, so a program's axioms can be listed by a tool, and the four listings of this section rest on six (Appendix~\ref{app:fjlt:axioms}, Table~\ref{tab:axioms}).
+A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts, a fold over its type (\RuleThree{}), as Listing~\ref{lst:rule1}'s \cppinline{up} is inferred to be injective from its two parts.
+The compiler's search for the entry of a trait, and then for an overload, is a simple proof search that finds either kind~\cite{augustsson2005djinn} (Appendix~\ref{app:fjlt:trait}).
+A law is stated of a carrier, a type taken as a bare set of values, together with an operation.\footnote{A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.}
+
+\Cpp{20} checks a template's body at each instantiation, and never its definition against the constraints it declares (Section~\ref{sec:intro}), so the rule is the programmer's to keep.
+Overload resolution selects the most specific candidate~\cite{cpp23standard}, and a generic body may so come to depend on a constraint it never declared.
+Where two instances overlap, GHC refuses to commit to one that the types do not yet decide~\cite{ghc2024overlapping}, and Jlt asks the same of a call in a generic body.
+Rust takes the other side of dispatch: a generic function may use only what its declared bounds provide, and overlapping implementations are rejected~\cite{rustreference}.
+Jlt follows Rust in asking for the declaration, and keeps the dispatch.
+A function declares its dependence by requiring the constraint, by negating it, or by naming the call as a requirement, which makes the choice a parameter that each caller supplies.
 
 \begin{listing}[htbp]
 \begin{cpp}
@@ -200,35 +218,18 @@ Bottom right: the style Jlt requires: a function's constraints name the shape, i
 \label{lst:undecided}
 \end{listing}
 
-In \Cpp{23} a \cppinline{concept} is a predicate on a type's structure~\cite{cpp23standard}, and a trait is a compile-time function on types~\cite{myers1995traits}.
-A trait is type-indexed: it is defined by cases on the form of a type, which \Cpp{} writes as specialisations~\cite[{\texttt{temp.spec.partial}}]{cpp23standard}, and its result is a value, a type-indexed value~\cite{hinze2000generic}, or a type~\cite{hinze2004typeindexed}.
-The standard library names the same two kinds, a unary type trait and a transformation trait~\cite[{\texttt{meta.rqmts}}]{cpp23standard}.
-Together they take the place of type classes~\cite{wadler1989adhoc}.
-Both are resolved while compiling, so no dictionaries exist as run-time values (Section~\ref{sec:binding}).
-A type that has the operations satisfies the \cppinline{concept} without a declaration, so the standard library's types are admitted unmodified.
-Overload resolution selects the most specific instance~\cite{cpp23standard}.
-Where two instances overlap, GHC refuses to commit to one that the types do not yet decide~\cite{ghc2024overlapping}, and Jlt asks the same of a call in a generic body.
-\Cpp{20} checks a template's body at each instantiation, and never its definition against the constraints it declares (Section~\ref{sec:intro}), so the rule is the programmer's to keep, and the lower left panel of Listing~\ref{lst:rule2} shows a body that breaks it.
+Listing~\ref{lst:rule2}'s top panel takes a monoid to be a carrier, an operation and its unit, as algebra writes $(S, +, 0)$.
+The shape and \cppinline{concat} are generic in all three, and the standard's \cppinline{plus} and \cppinline{multiplies} are used as they are.
+Associativity is an axiom, an entry of a trait, as the law of Listing~\ref{lst:rule1} is.
+The unit is an axiom of the other form: it is passed to the shape as a value, and the shape checks it at one point, \cppinline{Op{}(e, e) == e}, which refuses 1 for \cppinline{plus} and would not refuse 0 for \cppinline{multiplies}.
+That \cppinline{IsMonoid<size_t, plus<size_t>, 0uz>} holds is then a theorem, inferred from the entry, the call and the check, and \cppinline{size_t} is a monoid twice, under $(+, 0)$ and under $(\times, 1)$.
+\cppinline{concat} is written once, against a monoid: it may combine two elements and start from the unit, and it can use nothing the monoid does not name.
+The lower left panel shows a body that breaks the rule.
 \cppinline{guessed} returns the value of an empty fold, which is 0 unless the operation is known to have the unit 1, and its declaration says neither.
-The call it shows is a common idiom for dispatch: a general function that takes a faster path at a more specific type, as the standard's \cppinline{ranges::advance} does~\cite[{\texttt{range.iter.op.advance}}]{cpp23standard}.
+The call it makes is a common idiom for dispatch: a general function that takes a faster path at a more specific type, as the standard's \cppinline{ranges::advance} does~\cite[{\texttt{range.iter.op.advance}}]{cpp23standard}.
 Leaving the choice implicit is established practice in \Cpp{}, and it asks the reader to know every overload in scope.
-Rust takes the other side: a generic function may use only what its declared bounds provide, and overlapping implementations are rejected~\cite{rustreference}.
-Jlt follows Rust in asking for the declaration, and keeps the dispatch.
-The function declares it: by requiring the constraint, by negating it, or by naming the call as a requirement, which makes the choice a parameter that each caller supplies.
-The lower right panel shows the three.
+The lower right panel shows the three ways to declare it.
 \cppinline{concat}, above them, needs none: it is handed its unit.
-The reason is that a function's type should say what the function depends on, so that it can be read, and audited, from its declaration alone.
-
-Laws are \emph{certificates}, of two kinds.
-An axiom is the programmer's claim, which the compiler does not prove: an entry in a table, as for associativity, or a value named at a use, as for the unit.\footnote{Similarly, \texttt{sorry} admits a statement in Lean~\cite{demoura2021lean}, and \texttt{Admitted} one in Coq~\cite{Coq}.
-A false law declaration is possible, and the compiler does not detect it.
-The standard treats its own concepts alike: a type may satisfy one without modelling it, and the program is then ill-formed with no diagnostic required~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.}
-The check on the unit can refute the claim and cannot prove it: it refuses 1 for \cppinline{plus}, and would not refuse 0 for \cppinline{multiplies}.
-An axiom of the first form has one spelling in the source, so a program's axioms can be listed by a tool, and the four listings of this section rest on six (Appendix~\ref{app:fjlt:axioms}, Table~\ref{tab:axioms}).
-A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts, a fold over its type (\RuleThree{}).
-That Listing~\ref{lst:rule1}'s \cppinline{up} is injective is one, inferred for a composite arrow from its two parts, and \cppinline{IsMonoid<size_t, plus<size_t>, 0uz>} is another, inferred from the entry, the call and the check.
-Overload resolution is a simple proof search that finds either kind~\cite{augustsson2005djinn}.
-A law is stated of a carrier, a type taken as a bare set of values, together with an operation: \cppinline{size_t} is a monoid twice, under $(0, +)$ and under $(1, \times)$.\footnote{A carrier with its operations is an algebra of a signature, in the sense of universal algebra~\cite{birkhoff1935structure,burris1981universalalgebra}, and its laws are equations between the signature's terms.}
 
 \begin{table}[tb]
 \centering
