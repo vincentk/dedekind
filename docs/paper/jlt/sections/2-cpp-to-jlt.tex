@@ -410,23 +410,25 @@ constexpr T power(T x, size_t n) {
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <typename T, T zero, T one>
-struct MatMul {
-  constexpr array<T, 4> operator()(
-      array<T, 4> a, array<T, 4> b) const
+struct Mat { T a, b, c, d;
+  constexpr bool operator==(
+      const Mat&) const = default;
+  constexpr Mat operator*(Mat y) const
     requires IsSemiring<T, zero, one> {
     return {
-      a[0] * b[0] + a[1] * b[2],
-      a[0] * b[1] + a[1] * b[3],
-      a[2] * b[0] + a[3] * b[2],
-      a[2] * b[1] + a[3] * b[3]}; } };
+      a * y.a + b * y.c,
+      a * y.b + b * y.d,
+      c * y.a + d * y.c,
+      c * y.b + d * y.d}; } };
 
 template <typename T, T zero, T one>
   requires IsSemiring<T, zero, one>
-constexpr bool associative<array<T, 4>,
-    MatMul<T, zero, one>> = true;
+constexpr bool associative<
+    Mat<T, zero, one>,
+    multiplies<Mat<T, zero, one>>> = true;
 
-using M = array<size_t, 4>;
-using Mul = MatMul<size_t, 0uz, 1uz>;
+using M = Mat<size_t, 0uz, 1uz>;
+using Mul = multiplies<M>;
 constexpr M identity{1, 0, 0, 1};
 constexpr M fib{1, 1, 1, 0};
 \end{cpp}
@@ -438,11 +440,11 @@ constexpr T concat(ranges::repeat_view<T, size_t> r) {
   return ranges::size(r) == 0 ? e : power<T, Op, e>(*ranges::begin(r), ranges::size(r)); }
 
 static_assert(
+    power<size_t, multiplies<size_t>, 1uz>(2uz, 10uz) == 1024 &&
+    power<size_t, plus<size_t>, 0uz>(2uz, 10uz) == 20 &&
     IsMonoid<M, Mul, identity> && !commutative<M, Mul> &&
-    concat<size_t, plus<size_t>, 0uz>(views::repeat(7uz, 1'000'000'000'000uz))
-        == 7'000'000'000'000uz &&
-    concat<M, Mul, identity>(views::repeat(fib, 10uz))[1] == 55 &&
-    concat<M, Mul, identity>(views::repeat(fib, 100'000'000uz))[1]
+    concat<M, Mul, identity>(views::repeat(fib, 10uz)).b == 55 &&
+    concat<M, Mul, identity>(views::repeat(fib, 100'000'000uz)).b
         == 14'139'011'350'745'967'675uz);
 \end{cpp}
 \caption{A declared law, a law inferred from it, and the faster overload they license.
@@ -450,7 +452,7 @@ Top left: two more laws, each a trait with one entry.
 Top right: a semiring as a shape, under the type's own \cppinline{plus} and \cppinline{multiplies}: the two monoids of Listing~\ref{lst:rule2} and the two laws.
 Middle left: a power by repeated squaring, in at most 64 steps.
 Middle right: the $2 \times 2$ matrices over a semiring, the inferred law that their product is associative, and their unit.
-Bottom: \cppinline{concat} over $n$ copies of one value as that power, and a Fibonacci number by it.}
+Bottom: \cppinline{concat} over $n$ copies of one value as that power, the power at two monoids of \cppinline{size_t}, and a Fibonacci number.}
 \label{lst:laws}
 \end{listing}
 
@@ -462,7 +464,7 @@ Each step keeps the product times the base to the power of the exponent unchange
 The overload then reads as a sentence: an empty range gives the unit, and any other the head to the power of the length.
 The power is not an operation that some monoids happen to have: it is the one homomorphism from the naturals under addition that sends 1 to the value~\cite[Ch.~I]{lang2002algebra}, so every monoid has it.
 For a commutative monoid that is the monoid as a semimodule over $\mathbb{N}$, in exactly one way~\cite[Ch.~14]{golan1999semirings}.
-At \cppinline{plus} it is multiplication, as it is first taught, and at \cppinline{multiplies} it is the power.
+At \cppinline{plus} it is multiplication, as it is first taught, and at \cppinline{multiplies} it is the power: the first two assertions ask the one function both ways, and get $2 \times 10$ and $2^{10}$.
 The overload is itself a fold over a value with a declared bound, the 64 bits of $n$ (Equation~\eqref{eq:fold}), so the faster program keeps \RuleThree{} as the slower one does.
 Overload resolution picks it as the more specific, and by Theorem~\ref{thm:coherence} every call makes that choice the same way.
 The listing then repeats Listing~\ref{lst:rule2}'s pattern one level up.
@@ -471,9 +473,9 @@ For \cppinline{size_t} the listing declares those two, and the two associativiti
 The entry of \cppinline{associative} for the $2 \times 2$ matrices is not declared: it is an entry with a context, true provided their elements form a semiring, as Listing~\ref{lst:rule1}'s entry of \cppinline{injective} at a composite is computed from its parts.
 So the compiler infers that the matrices are a monoid, and that inference is what makes the overload by squaring eligible.
 It infers no more than follows: the matrices are a monoid, with the identity matrix as the unit, and their product is not known to commute, and the last block asserts both.
-\cppinline{Halving} and \cppinline{MatMul} each name in a constraint the calls they make, as \RuleTwo{} asks of a body.
-The semiring is that of the type's own \cppinline{+} and \cppinline{*}: the body of \cppinline{MatMul} writes the operators, and the shape names \cppinline{plus} and \cppinline{multiplies}, which the standard defines as those operators~\cite[{\texttt{arithmetic.operations}}]{cpp23standard}.
-A $2 \times 2$ matrix is a value of structural type, as an array of structural values is~\cite[{\texttt{array.overview}}]{cpp23standard}, so its unit, the identity matrix, is passed to the shape as $0$ is for addition.
+\cppinline{Halving} and the matrices' product each name in a constraint the calls they make, as \RuleTwo{} asks of a body.
+The semiring is that of the type's own \cppinline{+} and \cppinline{*}: the product of two matrices writes the operators, and the shape names \cppinline{plus} and \cppinline{multiplies}, which the standard defines as those operators~\cite[{\texttt{arithmetic.operations}}]{cpp23standard}.
+The matrix is a type with a product of its own, so the standard's \cppinline{multiplies} names that product, as it names \cppinline{*} on \cppinline{size_t}. It is a value of structural type, four values of one (\RuleOne{}), so its unit, the identity matrix, is passed to the shape as $0$ is for addition.
 \cppinline{fib} to the power $n$ holds the $n$-th Fibonacci number, so the last assertion computes one for $n = 10^8$, modulo $2^{64}$, in 64 steps, where the plain fold would not finish while compiling.
 \RuleThree{} makes the plain fold computable, with a stated bound of $10^8$ steps, and the law makes it affordable, with a bound of 64.
 No theorem of Section~\ref{sec:guarantees} says that a declared law is true: that \cppinline{plus} commutes and that \cppinline{multiplies} distributes over it are the programmer's declarations, as the two associativities are.
