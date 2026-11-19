@@ -139,8 +139,11 @@ rule here yet, and a reader holds them:
   shape.
 - **The unproved claims beyond entries at one type.**  The rule `axioms` and
   the ledger list an entry at one type whose value is `true`.  They do not list
-  an axiom for a family of types (`template <auto v> ... = true`), a lemma (an
-  entry at a form), or a unit named at a use.
+  an axiom for a family of types (an entry whose head has a parameter and whose
+  value is `true`), a lemma (an entry at a form), or a unit named at a use.
+- **Well-founded declarations.**  Nothing checks that the instantiations a
+  program can ask for are well founded.  The linter checks one of the two
+  syntactic conditions that approximate it; they do not imply it.
 - **The printed listings.**  The paper's self-contained listings
   (`listing1_self_contained`, `listings_2_to_4`, `listing4_self_contained`,
   `appendix_a_reading` in `jlt_listings_test.cpp`) are under the `axioms`

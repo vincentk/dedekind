@@ -70,7 +70,7 @@ A negated constraint \cppinline{!C<T>} carries no evidence.
 \end{array}
 \]
 \caption{The rules for terms, $\Delta; \Gamma \vdash e : \tau$: calls, conversions and constants.
-$^{\ast}$~The standard's signature of the function object.~$^{\S}$~Declared before $x$'s use.
+$^{\ast}$~The standard's signature of the function object, at base types; at a declared type the call is the declared operator's (Appendix~\ref{app:fjlt:closure}).~$^{\S}$~Declared before $x$'s use.
 Omitted as textbook~\cite[Chapters~8, 9 and~11]{pierce2002tapl}: \textsc{T-Var}, \textsc{T-Construct}, \textsc{T-Field}, \textsc{T-Inj}, \textsc{T-Case}, and the rules for pairs, boxes, conditionals and the arithmetic of base types.}
 \label{fig:fjlt-typing}
 \end{figure}
@@ -503,7 +503,7 @@ The relation is on instantiations, not on bare declarations, and no single measu
 Resolution, entailment, \textsc{E-Not}'s negative premise and \textsc{E-Law}'s evaluation all recurse along it, so its being well founded makes the rules define one relation and resolution terminate.
 \Cpp{} has a rule of its own for a satisfaction that depends on itself, which the condition makes unnecessary.
 
-Two syntactic conditions are necessary for that and not sufficient, one per kind of entry head, and the repository's linter checks the second.
+Two syntactic conditions approximate it, one per kind of entry head, and the repository's linter checks the second; they do not imply it.
 They constrain an entry and not what a shape reads: a shape that reads a trait at a type larger than its own argument, where that trait has an entry whose context is the shape, loops although both conditions hold.
 An entry on a structured head, such as \cppinline{Then<F, G>}, reads its trait and asks its context only at the parts of its type arguments: \cppinline{injective} at \cppinline{Then<F, G>} reads \cppinline{injective} at \cppinline{F} and at \cppinline{G}.
 So each step descends by the type, as Haskell's Paterson conditions do~\cite{sulzmann2007understanding}, and as Equation~\eqref{eq:cata} writes it.

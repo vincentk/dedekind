@@ -23,7 +23,8 @@ It goes through a hook that the function declares, a table it reads or a call it
 A function that declares no hook cannot be specialised from outside, as the standard lets a program specialise \cppinline{std::hash} and not add an overload of \cppinline{std::sort}~\cite[{\texttt{namespace.std}}]{cpp23standard}.
 The linter reports none of the three conditions yet: its one check of order concerns an instance whose context names a shape declared too late.
 Nor does it check the guard of Appendix~\ref{app:fjlt:typing}, that the head of a range or the content of an optional is read only in the branch its guard selects and on the variable the guard tests.
-\Cpp{} does not check it either: outside constant evaluation an unguarded dereference is undefined behaviour.
+\Cpp{} does not check it either: outside constant evaluation, reading the head of an empty range or the content of an empty optional is undefined behaviour.
+Nor does anything check that a program's declarations are well founded: the linter checks one of two syntactic conditions that approximate it (Appendix~\ref{app:fjlt:order}).
 The repository lists these unchecked conditions beside the linter's rules.
 
 
