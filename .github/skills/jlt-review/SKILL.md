@@ -55,7 +55,11 @@ findings that are breaches over a list of style remarks.
    at a form or an entry with a context, from axioms already declared. An axiom
    you can refute with a counterexample is the most serious finding there is:
    the compiler will never find it. An entry at a form whose value is the literal
-   `true` with no context is an axiom in disguise; say so.
+   `true` with no context is an axiom in disguise; say so. Check the list for
+   duplication as well as for truth: the same claim declared twice (in two files,
+   under two traits, or at two spellings of one type), and an axiom that an entry
+   at a form or a shape already yields from the others. A redundant axiom is not
+   wrong, but it is one more unproved claim to keep true, so ask for it to go.
 
 ## What not to report
 
