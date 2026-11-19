@@ -97,18 +97,18 @@ So the tree and the translated term have one shape, and Figure~\ref{fig:sketch-d
 \multicolumn{3}{@{}l}{$\mathit{concat}\;\mathit{size\_t}\;\mathit{plus}\;0\;d\;\mathit{ns} \;\longrightarrow^{*}\; \pi_2\,(\mathit{iter}\,10\,\mathit{step}\,(\mathit{chain}\,10, 0)) \;\longrightarrow^{*}\; 45$} \\
 \midrule
 \texttt{is\_injective(a)} & $\xrightarrow{\text{\scriptsize\textsc{T-Call}}}$ & $\mathit{is\_injective}\,[\,t\,]\;a$ \\
-\hspace*{1.0em}\texttt{injective<Then<Succ, Then<Neg, Succ>>>} & $\xrightarrow{\text{\scriptsize table, at the parts}}$ & $i_{\mathit{Succ}} \wedge (i_{\mathit{Neg}} \wedge i_{\mathit{Succ}})$ \\
-\hspace*{2.0em}\texttt{injective<Succ>}, an entry & $\xrightarrow{\text{\scriptsize table, an entry}}$ & $\mathit{true}$ \\
-\hspace*{2.0em}\texttt{injective<Then<Neg, Succ>>} & $\xrightarrow{\text{\scriptsize table, at the parts}}$ & $i_{\mathit{Neg}} \wedge i_{\mathit{Succ}}$ \\
-\hspace*{3.0em}\texttt{injective<Neg>}, an entry & $\xrightarrow{\text{\scriptsize table, an entry}}$ & $\mathit{true}$ \\
-\hspace*{3.0em}\texttt{injective<Succ>}, an entry & $\xrightarrow{\text{\scriptsize table, an entry}}$ & $\mathit{true}$ \\
+\hspace*{1.0em}\texttt{injective<Then<Succ, Then<Neg, Succ>>>} & $\xrightarrow{\text{\scriptsize\textsc{T-Trait}, at a form}}$ & $i_{\mathit{Succ}} \wedge (i_{\mathit{Neg}} \wedge i_{\mathit{Succ}})$ \\
+\hspace*{2.0em}\texttt{injective<Succ>}, an entry & $\xrightarrow{\text{\scriptsize\textsc{T-Trait}, an entry}}$ & $\mathit{true}$ \\
+\hspace*{2.0em}\texttt{injective<Then<Neg, Succ>>} & $\xrightarrow{\text{\scriptsize\textsc{T-Trait}, at a form}}$ & $i_{\mathit{Neg}} \wedge i_{\mathit{Succ}}$ \\
+\hspace*{3.0em}\texttt{injective<Neg>}, an entry & $\xrightarrow{\text{\scriptsize\textsc{T-Trait}, an entry}}$ & $\mathit{true}$ \\
+\hspace*{3.0em}\texttt{injective<Succ>}, an entry & $\xrightarrow{\text{\scriptsize\textsc{T-Trait}, an entry}}$ & $\mathit{true}$ \\
 \midrule
-\multicolumn{3}{@{}l}{$\mathit{is\_injective}\,[\,t\,]\;a \;\longrightarrow^{*}\; \mathit{true} \wedge (\mathit{true} \wedge \mathit{true}) \;\longrightarrow^{*}\; \mathit{true}$, with $t$ the type of \texttt{a}} \\
+\multicolumn{3}{@{}l}{$\mathit{is\_injective}\,[\,t\,]\;a \;\longrightarrow^{*}\; \mathit{true} \wedge (\mathit{true} \wedge \mathit{true}) \;\longrightarrow^{*}\; \mathit{true}$, by \textsc{S-Trait} at each node, with $t$ the type of \texttt{a}} \\
 \midrule
 \texttt{concat<M, Mul, I>(views::repeat(fib, n))} & $\xrightarrow{\text{\scriptsize\textsc{T-Call}}}$ & $\mathit{concat}_{\mathit{rep}}\;M\;\mathit{Mul}\;I\;d_M\;(\mathit{repeat}\;\mathit{fib}\;n)$ \\
 \hspace*{1.0em}\texttt{IsMonoid<M, Mul, I>} & $\xrightarrow{\text{\scriptsize\textsc{E-Shape}}}$ & $d_M = \{\,\mathit{assoc} = s,\ \mathit{check} = \mathit{true},\ \mathit{op} = \mathit{mul}\,\}$ \\
-\hspace*{2.0em}\texttt{associative<M, Mul>} & $\xrightarrow{\text{\scriptsize table, with a context}}$ & $s$, the entry of \texttt{semiring} below \\
-\hspace*{3.0em}\texttt{semiring<size\_t, }\ldots\texttt{>}, an entry & $\xrightarrow{\text{\scriptsize table, an entry}}$ & $\mathit{true}$ \\
+\hspace*{2.0em}\texttt{associative<M, Mul>} & $\xrightarrow{\text{\scriptsize\textsc{T-Trait}, at a form}}$ & $s$, the entry of \texttt{semiring} below \\
+\hspace*{3.0em}\texttt{semiring<size\_t, }\ldots\texttt{>}, an entry & $\xrightarrow{\text{\scriptsize\textsc{T-Trait}, an entry}}$ & $\mathit{true}$ \\
 \hspace*{2.0em}\texttt{Mul\{\}(I, I) == I} & $\xrightarrow{\text{\scriptsize\textsc{E-Law}}}$ & $\mathit{check}$ \\
 \hspace*{2.0em}\texttt{Mul\{\}(a, b)} & $\xrightarrow{\text{\scriptsize\textsc{E-Op}}}$ & $\mathit{op}$ \\
 \hspace*{1.0em}the overload's body, checked once & $\xrightarrow{\text{\scriptsize\textsc{D-Generic}}}$ & $\Lambda T.\,\Lambda \mathit{Op}.\,\lambda e.\,\lambda q.\,\lambda r.\ \ldots$ \\
@@ -123,7 +123,7 @@ So the tree and the translated term have one shape, and Figure~\ref{fig:sketch-d
 The rules are those of Appendix~\ref{app:fjlt:typing}, and the right column is built by Appendix~\ref{app:fjlt:translation}, one clause per rule.
 $t$ abbreviates the type of \texttt{a}, and $i_x$ the entry of \texttt{injective} at $x$.
 In the third, \texttt{I} abbreviates \texttt{M\{1, 0, 0, 1\}}, $\mathit{concat}_{\mathit{rep}}$ is the overload for a \texttt{repeat\_view}, and the count of its iterator is 64 whatever $n$ is, where the plain fold's is $n$.
-The arrows marked ``table'' have no rule yet: the kernel states its recursion over a type for a term's value (\textsc{T-Cata}), and is to state it for a table over types.}
+An arrow marked \textsc{T-Trait} is a read of a trait: at one type it resolves to an entry, at a form to an entry that reads the trait at the parts, and evaluation unfolds each read by \textsc{S-Trait} (Appendix~\ref{app:fjlt:evaluation}).}
 \label{fig:sketch-derivations}
 \end{figure}
 
