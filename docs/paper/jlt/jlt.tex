@@ -48,7 +48,7 @@ This paper hypothesises that the desugaring preserves meaning.
 The programmer declares a law, and the compiler does not check it.
 Where declared laws compose, the compiler infers further laws mechanically.
 A law licenses an overload written for it, and overload resolution composes such overloads.
-In one program a declared law, associativity, turns a fold of $n$ steps into one of at most 64, even at compile time, where no optimiser runs.
+From a declared law, through the laws inferred from it, to faster code is specialisation, and one program is followed along it: a fold of $n$ steps becomes one of at most 64.
 Another program searches a text for a set of words that share a symmetry, declared as a law.
 An automaton would list the words, exponentially many in their length, and the test derived from the law is linear in that length.
 The paper also exhibits a \Cpp{20} program in which a generic function's result depends on a constraint it never declared, a call that GHC's rule for overlapping instances refuses, and Jlt adopts a refinement of that rule.
