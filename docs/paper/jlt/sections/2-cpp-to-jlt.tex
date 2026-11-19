@@ -395,38 +395,32 @@ constexpr T concat(
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-template <typename T, typename Add,
-          typename Times, T zero, T one>
+template <typename T, T zero, T one>
 struct MatMul { constexpr array<T, 4>
   operator()(array<T, 4> a,
              array<T, 4> b) const
-    requires IsSemiring<T, Add, Times,
-                        zero, one> {
+    requires IsSemiring<T, plus<T>,
+        multiplies<T>, zero, one> {
     return {
-      Add{}(Times{}(a[0], b[0]),
-            Times{}(a[1], b[2])),
-      Add{}(Times{}(a[0], b[1]),
-            Times{}(a[1], b[3])),
-      Add{}(Times{}(a[2], b[0]),
-            Times{}(a[3], b[2])),
-      Add{}(Times{}(a[2], b[1]),
-            Times{}(a[3], b[3]))}; } };
+      a[0] * b[0] + a[1] * b[2],
+      a[0] * b[1] + a[1] * b[3],
+      a[2] * b[0] + a[3] * b[2],
+      a[2] * b[1] + a[3] * b[3]}; } };
 
-template <typename T, typename Add,
-          typename Times, T zero, T one>
-  requires IsSemiring<T, Add, Times,
-                      zero, one>
-constexpr bool associative<array<T, 4>,
-    MatMul<T, Add, Times, zero, one>>
+template <typename T, T zero, T one>
+  requires IsSemiring<T, plus<T>,
+      multiplies<T>, zero, one>
+constexpr bool associative<
+    array<T, 4>, MatMul<T, zero, one>>
   = true;
+
+using M = array<size_t, 4>;
+using Mul = MatMul<size_t, 0uz, 1uz>;
+constexpr M fib{1, 1, 1, 0};
 \end{cpp}
 \end{minipage}
 \vspace{-6pt}
 \begin{cpp}
-using M = array<size_t, 4>;
-using Mul = MatMul<size_t, plus<size_t>, multiplies<size_t>, 0uz, 1uz>;
-constexpr M fib{1, 1, 1, 0};
-
 static_assert(
     associative<M, Mul> && !commutative<M, Mul> &&
     concat<size_t, plus<size_t>, 0uz>(views::repeat(7uz, 1'000'000'000'000uz))
@@ -438,7 +432,7 @@ static_assert(
 \caption{A declared law, a law inferred from it, and the faster overload they license.
 Top: two more laws, and a semiring as a shape: two monoids of Listing~\ref{lst:rule2} and the two laws.
 Left: \cppinline{concat} over $n$ copies of one value, by repeated squaring, in at most 64 steps.
-Right: the $2 \times 2$ matrices over a semiring, and the inferred law that their product is associative.
+Right: the $2 \times 2$ matrices over a semiring under its own \cppinline{+} and \cppinline{*}, and the inferred law that their product is associative.
 Bottom: the same \cppinline{concat} gives a Fibonacci number.}
 \label{lst:laws}
 \end{listing}
@@ -455,6 +449,7 @@ The entry of \cppinline{associative} for the $2 \times 2$ matrices is not declar
 So the compiler infers that the matrices are a monoid, and that inference is what makes the overload by squaring eligible.
 It infers no more than follows: the matrices' product is associative and is not known to commute, and the last block asserts both.
 \cppinline{Squaring} and \cppinline{MatMul} each name in a constraint the calls they make, as \RuleTwo{} asks of a body.
+\cppinline{MatMul} takes the type's own \cppinline{+} and \cppinline{*}, which is less than the general case and enough here: its body writes the operators, and its constraint names \cppinline{plus} and \cppinline{multiplies}, which the standard defines as those operators~\cite[{\texttt{arithmetic.operations}}]{cpp23standard}.
 A $2 \times 2$ matrix is a value of structural type, as an array of structural values is~\cite[{\texttt{array.overview}}]{cpp23standard}, so its unit, the identity matrix, is passed to the shape as $0$ is for addition.
 \cppinline{fib} to the power $n$ holds the $n$-th Fibonacci number, so the last assertion computes one for $n = 10^8$, modulo $2^{64}$, in 64 steps, where the plain fold would not finish while compiling.
 \RuleThree{} makes the plain fold computable, with a stated bound of $10^8$ steps, and the law makes it affordable, with a bound of 64.

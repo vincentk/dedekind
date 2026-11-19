@@ -72,6 +72,7 @@ Most of what a program writes beyond the grammar is a kernel term spelt another 
 A deduced result type, a call's deduced type arguments and a constant are the kernel's own (Appendix~\ref{app:fjlt:typing}); an \cppinline{auto} parameter adds a template parameter the declaration does not write, and is sugar.
 A variable template is the kernel's trait as it stands: its primary is the default, and its specialisations are the entries (Appendix~\ref{app:fjlt:trait}).
 A class template with a static constant member is a spelling of it, and constant evaluation of the two agrees.
+An operator on values of a type variable, \cppinline{a + b}, under a constraint that names \cppinline{plus<T>{}(a, b)}, is that call: the standard defines the function object as the operator~\cite[{\texttt{arithmetic.operations}}]{cpp23standard}, and \cppinline{multiplies} and \cppinline{*} alike.
 A function template can spell a trait only in part, since \Cpp{} has no partial specialisation of one, so an entry at a form cannot be written that way, which is why the kernel takes the variable template.
 The library also registers an operation as a function template with a deleted primary and one explicit specialisation for each carrier.
 That is read as generic functions of one name, one for each carrier, and an operation nobody registered is then a call with no candidate, which fails the shape that asks for it.
