@@ -31,20 +31,20 @@ the same values through a range that is not a \texttt{repeat\_view} & $\xrightar
 \texttt{a(x)} & $\xrightarrow{\text{\scriptsize x at run time}}$ & \texttt{\%r = sub i64 0, \%x}\newline \texttt{ret i64 \%r} \\[3pt]
 \bottomrule
 \end{tabularx}
-\caption{Sketch. The two running terms compiled by Clang~23 at \texttt{-O2}, with unrolling and vectorisation off and names shortened.
+\caption{The terms of Listings~\ref{lst:rule3} and~\ref{lst:laws} compiled by Clang~23 at \texttt{-O2}, with unrolling and vectorisation off and names shortened.
 Top three rows: the fold over a value.
 Next two: Listing~\ref{lst:laws}'s Fibonacci call, by the overload that the inferred law licenses and by the plain fold, the latter over \texttt{views::transform(views::iota(0uz, n), Fib\{\})} with \texttt{Fib} returning \texttt{fib} at every position.
 Bottom three: the folds over a term's type, and the term \texttt{a} applied.
 In the first loop, \texttt{\%m} is $n - 1$, the first element and the first result.
 In the loop by squaring, \texttt{\%w} is the number of bits of $n$, 64 less its leading zeros, and the first round is done on entry, so the counter starts at 1.
-From the repository's fixture \texttt{showcase\_16}.}
+A transcript of one run of the repository's fixture \texttt{showcase\_16}, which checks that the functions exist and allocate nothing, and not their instructions.}
 \label{fig:sketch-ir}
 \end{figure}
 
 Read as a function, after Appel~\cite{appel1998ssa}, a basic block is a local function and its $\phi$-nodes are that function's parameters (Appendix~\ref{app:fjlt:ssa}).
 The loop's two $\phi$-nodes are the iterator's state in Figure~\ref{fig:fjlt-recursion}, the pair $(\llbracket r \rrbracket, \llbracket a \rrbracket)$: the range's state is its current element, counting down, and $\llbracket a \rrbracket$ is the result so far.
 The body is the step, one multiplication, and the decrement ends the loop.
-Nothing else survives: not the range, not its views, not the shape, not the table.
+Nothing else survives: not the range, not its views, not the shape, not the trait.
 For the sum the optimiser goes further and replaces the loop by a closed formula.
 That is the optimiser's doing and not Jlt's, and the product shows the fold as it was written.
 The folds over a type leave nothing: the law is the constant \texttt{true}, the length the constant 3.
@@ -54,7 +54,7 @@ In these cases the discipline costs nothing at run time, and there is a structur
 The agreement holds where both evaluations finish and neither meets undefined behaviour.
 Table~\ref{tab:binding} lists where the two binding times part.
 
-The two rows for Listing~\ref{lst:laws} show what a law leaves behind.
+The two rows for Listing~\ref{lst:laws} show what is left of a law: the type of the range selects the overload, and the law is what makes that overload correct.
 A law is a field of the dictionary (Section~\ref{sec:translation}), and in Jlt a dictionary is resolved while compiling and never exists at run time.
 So the law is used up there, and what it decided remains: with the semiring's laws declared, the loop for $n$ copies of \cppinline{fib} runs once for each bit of $n$, and the plain fold over the same values runs $n$ times.
 The translation makes the same choice of overload, so the iterator's count is the number of bits of $n$ in the first and $n$ in the second (Figure~\ref{fig:sketch-fib}).

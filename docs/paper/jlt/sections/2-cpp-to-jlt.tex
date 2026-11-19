@@ -115,7 +115,7 @@ The entry at a composite is a lemma, a rule by which the law at a composite foll
 Axioms and lemmas are the programmer's, stated and not proved (Appendix~\ref{app:fjlt:axioms}).
 \cppinline{Pred} is one-to-one and has no entry, \cppinline{Half} is not one-to-one, and both answer \cppinline{false}: of a law, \cppinline{false} means not known, never refuted.
 A trait is read through a shape that names it, here \cppinline{IsInjective}, which \cppinline{is_injective} asks at the type of a value (\RuleTwo{}).
-Only an entry reads its trait directly, at the parts of its own head, which is recursion over a type (\RuleThree{}, Equation~\eqref{eq:cata}).
+At a type variable only an entry reads its trait directly, at the parts of its own head, which is recursion over a type (\RuleThree{}, Equation~\eqref{eq:cata}).
 
 \paragraph{Rule 2, Abstraction: generic code varies with a type only through its concepts and traits.}
 \phantomsection\label{def:rule2}
@@ -138,7 +138,7 @@ An axiom is the programmer's claim, which the compiler does not prove: an entry 
 A false law declaration is possible, and the compiler does not detect it.
 The standard treats its own concepts alike: a type may satisfy one without modelling it, and the program is then ill-formed with no diagnostic required~\cite[{\texttt{res.on.requirements}}]{cpp23standard}.}
 A value named at a use can be checked, and a check can refute a claim and cannot prove it.
-An entry has one spelling in the source, so a program's axioms can be listed by a tool, and the four listings of this section rest on six (Appendix~\ref{app:fjlt:axioms}, Table~\ref{tab:axioms}).
+An entry has one spelling in the source, so a tool can list a program's entries of that kind, and Table~\ref{tab:axioms} gives what the four listings of this section rest on (Appendix~\ref{app:fjlt:axioms}).
 The lemmas, the rules by which a theorem follows, are stated in the same way, as entries at a form, and they are not proved either: the compiler applies them.
 A theorem is inferred from the axioms while compiling, by local inference on a composite from its parts, a fold over its type (\RuleThree{}), as Listing~\ref{lst:rule1}'s \cppinline{up} is inferred to be injective from its two parts.
 The compiler's search for the entry of a trait, and then for an overload, is a simple proof search that finds either kind~\cite{augustsson2005djinn} (Appendix~\ref{app:fjlt:trait}).
@@ -211,7 +211,7 @@ constexpr size_t named(Op op)
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
-Top: a monoid as a carrier, an operation and its unit: the law as a table, the shape, the function \cppinline{concat}, and what the shape refuses.
+Top: a monoid as a carrier, an operation and its unit: the law as a trait, the shape, the function \cppinline{concat}, and what the shape refuses.
 Bottom left: \cppinline{guessed} makes a call that \Cpp{} accepts, while Rule~2 and the linter refuse it.
 Bottom right: the style Jlt requires: a function's constraints name the shape, its negation, or the call itself.}
 \label{lst:rule2}
@@ -455,14 +455,15 @@ Bottom: \cppinline{concat} over $n$ copies of one value as that power.}
 \paragraph{A law buys something.}
 Listing~\ref{lst:laws} adds one overload to Listing~\ref{lst:rule3}'s \cppinline{concat}, chosen where the range is $n$ copies of one value.
 Those copies combined are the $n$-th power in the monoid, and the listing computes it by the power method for monoids~\cite{lang2002algebra,knuth1997art2,stepanov2009elements,ghc2025semigroup}.
-The method regroups the copies, so it is correct exactly where the operation is associative, and the shape it requires declares that law.
+The method regroups the copies, so it is correct where the operation is associative, and the shape it requires declares that law.
 It takes as many steps as the count has bits~\cite[{\texttt{bit.pow.two}}]{cpp23standard}, a bound stated before the first step (Equation~\eqref{eq:fold}), so the faster program keeps \RuleThree{} as the slower one does.
 At \cppinline{plus} the power is multiplication, and at \cppinline{multiplies} it is the power, and the first two assertions ask the one function both ways.
-Overload resolution picks the overload as the more specific, and by Theorem~\ref{thm:coherence} every call makes that choice the same way.
+Overload resolution picks the overload as the more specific, by the type of the range, and by Theorem~\ref{thm:coherence} every call makes that choice the same way.
 The listing then repeats Listing~\ref{lst:rule2}'s pattern one level up: a semiring is a shape that names two monoids on one carrier and two more laws, each a trait with its entries.
 For \cppinline{size_t} the listing declares those two, and the two associativities are Listing~\ref{lst:rule2}'s.
-The entry of \cppinline{associative} for the $2 \times 2$ matrices is not declared: it is an entry with a context, true provided their elements form a semiring.
-So the compiler infers that the matrices are a monoid, which makes the overload eligible, and it infers no more than follows: their product is not known to commute.
+That the matrices' product is associative is declared once, for every semiring, as a lemma, an entry with a context, and that it holds at \cppinline{M} is inferred.
+So the compiler infers that the matrices are a monoid, without which neither overload of \cppinline{concat} applies, and it infers no more than follows: their product is not known to commute.
+What selects the faster overload is the type of the range, $n$ copies of one value, and what makes it correct is the law.
 \cppinline{Halving} and the matrices' product each name in a constraint the calls they make, as \RuleTwo{} asks, and the product writes the type's own \cppinline{+} and \cppinline{*}, which the standard defines \cppinline{plus} and \cppinline{multiplies} to be~\cite[{\texttt{arithmetic.operations}}]{cpp23standard}.
 \cppinline{fib} to the power $n$ holds the $n$-th Fibonacci number, so the last assertion computes one for $n = 10^8$, modulo $2^{64}$, in 27 steps, where the plain fold would not finish while compiling.
 \RuleThree{} makes the plain fold computable, with a stated bound of $10^8$ steps, and the law makes it affordable.

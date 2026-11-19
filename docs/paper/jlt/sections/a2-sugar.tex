@@ -72,7 +72,9 @@ Most of what a program writes beyond the grammar is a kernel term spelt another 
 A deduced result type, a call's deduced type arguments and a constant are the kernel's own (Appendix~\ref{app:fjlt:typing}); an \cppinline{auto} parameter adds a template parameter the declaration does not write, and is sugar.
 A variable template is the kernel's trait as it stands: its primary is the default, and its specialisations are the entries (Appendix~\ref{app:fjlt:trait}).
 A class template with a static constant member is a spelling of it, and constant evaluation of the two agrees.
-An operator on values of a type variable, \cppinline{a + b}, under a constraint that names \cppinline{plus<T>{}(a, b)}, is that call: the standard defines the function object as the operator~\cite[{\texttt{arithmetic.operations}}]{cpp23standard}, and \cppinline{multiplies} and \cppinline{*} alike.
+At a declared type \cppinline{M}, \cppinline{multiplies<M>{}(a, b)} is the call \cppinline{operator*(a, b)}, typed and translated as any call to a declared function, with the records of its constraints: the kernel's own rule for a standard function object is for base types, where it is a constant.
+A defaulted \cppinline{operator==} of a struct is the conjunction of the equalities of its fields, a declared function like any other.
+A \cppinline{concept} written as a truth value, as \cppinline{IsInjective<F>} in a body, is the branch on a constraint of Table~\ref{tab:closure:choice}, and in an assertion it is the entailment itself.
 A function template can spell a trait only in part, since \Cpp{} has no partial specialisation of one, so an entry at a form cannot be written that way, which is why the kernel takes the variable template.
 The library also registers an operation as a function template with a deleted primary and one explicit specialisation for each carrier.
 That is read as generic functions of one name, one for each carrier, and an operation nobody registered is then a call with no candidate, which fails the shape that asks for it.
@@ -84,7 +86,7 @@ An explicit conversion between carriers is a declared function, total by a reade
 A non-type template parameter is a type per value, as \cppinline{integral_constant} spells it, the value a constant of a carrier, which the compiler holds.
 A user-defined literal is a named function call, which the compiler holds.
 A \cppinline{static_assert(e)}, \cppinline{e} a closed \cppinline{bool} term, is the claim that \cppinline{e} evaluates to \cppinline{true}, which the compiler holds; a listing's assertions are its program's terms.
-At a type variable no candidate of an operator is known, so an operator on a constrained type is the call of the standard function object the constraint names: \cppinline{a + b} with \cppinline{IsMonoid<T, plus<T>>} in $\Delta$ is \cppinline{plus<T>{}(a, b)}.
+At a type variable no candidate of an operator is known, so an operator on a constrained type is the call of the standard function object the constraint names: \cppinline{a + b} with \cppinline{IsMonoid<T, plus<T>, e>} in $\Delta$ is \cppinline{plus<T>{}(a, b)}, as the standard defines the function object~\cite[{\texttt{arithmetic.operations}}]{cpp23standard}.
 Its result type is the one the requirement states; the linter holds the spelling and a reader the result type.
 An alias is the type it names, substituted, and \cppinline{decltype(e)} the type the compiler deduces for \cppinline{e}.
 A \cppinline{tuple} is nested pairs, a \cppinline{friend} function a free function, and an access specifier nothing.

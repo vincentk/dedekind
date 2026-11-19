@@ -45,6 +45,8 @@ The library reifies them by default as \cppinline{cata} over a term type and as 
 In the terms of Meijer et al.~\cite{meijer1991functional}, \cppinline{fold_left} over the chain is a hylomorphism: the chain is never built as a list, only folded (Appendix~\ref{app:fjlt:translation}).
 Listing~\ref{lst:rule1} is a program in the grammar up to its constrained parameters (Figure~\ref{fig:sketch-desugar}), with its assertions the program's terms (Appendix~\ref{app:fjlt:closure}).
 Listings~\ref{lst:rule2} and~\ref{lst:rule3} are programs in the grammar up to the same spellings, and to a value among a template's parameters.
+Listing~\ref{lst:laws} adds further spellings, each with its image in Appendix~\ref{app:fjlt:closure}: a member operator and a defaulted equality, an operator under a constraint that names the standard's function object and that function object at a declared type, a \cppinline{concept} as a truth value, and the head of a range under a guard on its length.
+Its value parameters on a struct are the same construct as in Listing~\ref{lst:rule2}, ahead of the kernel, so the listing is an exhibit of the posture and not yet a term the theorems cover.
 
 \begin{figure}[!htb]
 \[

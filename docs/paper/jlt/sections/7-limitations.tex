@@ -15,7 +15,7 @@ Rules~1 and~3 are posture outside compile-time evaluation (Table~\ref{tab:postur
 
 \paragraph{Lookup stops at \cppinline{std}.}
 A name in a template is looked up twice: at the template's definition, among the declarations visible there, and at instantiation only by argument-dependent lookup, in the namespaces of the argument types, which for a standard type is \cppinline{std}, where no instance of ours lives.
-So an instance declared after the shape is found only as a specialisation of a primary template the shape names, and a constrained overload must precede the shape.
+So an entry declared after the shape is found only as a specialisation of a primary template the shape names, and a constrained overload must precede the shape.
 The translation's instance resolution has no such constraint on order, so FJlt admits only programs in which the order makes no difference, by three conditions on where a declaration stands (Appendix~\ref{app:fjlt:order}).
 The third has a cost for extension: every overload of a function stands above the first call it could be chosen for.
 So a faster version of a function for one's own type cannot be added below earlier calls as a plain overload.

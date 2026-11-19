@@ -93,7 +93,7 @@ Two entries that match, neither the more specialised, would make the read ambigu
 FJlt asks for one entry at a head, which is stricter than \Cpp{}, where two entries with one head and different contexts are distinct.
 The trait's result type is its default's, the type \textsc{D-Trait} derives where it is written \cppinline{auto}, and every entry has it (\textsc{D-Entry}).
 So at concrete types a read is a function of its types, which is what Theorem~\ref{thm:coherence} needs of it.
-An entry at $\overline{\tau}$ itself is an axiom of Section~\ref{sec:posture}, and an entry at a form, whose initialiser reads the trait at the parts, is a theorem inferred from them: the two lines of Equation~\eqref{eq:cata}.
+An entry at $\overline{\tau}$ itself is an axiom of Section~\ref{sec:posture}, and an entry at a form, whose initialiser reads the trait at the parts, is a lemma by which a theorem follows from them: the two lines of Equation~\eqref{eq:cata}.
 \textsc{T-Trait} types a read at concrete types only, where it resolves.
 At a type that has a type variable a read is admitted in two places.
 An entry's initialiser reads its own trait at the parts of its head: that is the right-hand side of Equation~\eqref{eq:cata}, and \textsc{D-Entry} types it with one variable, of the trait's result type, for the trait's value at each part.
@@ -104,14 +104,15 @@ A dispatch like that of \cppinline{guessed} in Listing~\ref{lst:rule2}, rewritte
 \paragraph{The axioms of a program.}
 \label{app:fjlt:axioms}
 An axiom has one spelling among a trait's declarations: an entry at one type whose value is the literal \cppinline{true}.
-A default, an entry at a form and an entry whose value is computed are not axioms, so a program's axioms can be listed from its text, as Coq's \texttt{Print Assumptions} and Lean's \texttt{\#print axioms} list what a development rests on~\cite{Coq,demoura2021lean}.
+A default, an entry at a form and an entry whose value is computed are not axioms, so a program's axioms of this form can be listed from its text.
+The aim is what Coq's \texttt{Print Assumptions} and Lean's \texttt{\#print axioms} give for a theorem, everything unproved that it rests on~\cite{Coq,demoura2021lean}; what exists today is less, a list for a whole program of one of three kinds of unproved claim.
 The repository's linter has a rule that does so, with a control that tells the forms apart, and Table~\ref{tab:axioms} is its list for the four listings of Section~\ref{sec:posture}.
 A unit named at a use is a claim of the second form (Section~\ref{sec:posture}), which the shape checks at one point and the rule does not list, and the table gives those by hand.
 An entry at a form is a lemma, a rule of inference, and it is a claim as well: Jlt applies its lemmas without proof, where a proof assistant proves them first.
 What the application buys, done while compiling, is the specialisation of the program (Section~\ref{sec:binding}).
 The table gives the two that carry the listings, also by hand.
-Read through the correspondence of Curry and Howard~\cite{curry1934functionality,howard1980formulae,sorensen2006lectures}, a shape is a proposition about types, its record under the translation is the evidence for it, and a lemma is a function from evidence to evidence (Appendix~\ref{app:fjlt:translation}).
-The correspondence stops at the laws: the evidence for a law is the truth value \texttt{true}, which a declaration supplies, and no term that a checker could verify.
+Read through the correspondence of Curry and Howard~\cite{curry1934functionality,howard1980formulae,sorensen2006lectures}, a shape is a proposition about types and its record under the translation is the evidence for it (Appendix~\ref{app:fjlt:translation}).
+The correspondence stops at the laws: the evidence for a law is the truth value \texttt{true}, which a declaration supplies, and no term that a checker could verify, and a lemma is a function from its context's records and the truth values at the parts to a truth value.
 What a reviewer, a person or a model, then has to judge is the list: whether each claim is true, whether it is needed or follows from the others, and whether it is there twice.
 
 \begin{table}[htbp]
@@ -168,7 +169,7 @@ Typing, translation and evaluation read the rewritten call.
 \label{app:fjlt:inferred}
 A law at a construction is entailed, not declared.
 The law is a read of a trait, resolution picks the entry whose head matches and whose context the program entails, and \textsc{E-Law} evaluates it, to \texttt{true}.
-Listing~\ref{lst:laws}'s entry of \cppinline{associative} at the matrices is such an entry, its value the entry of \cppinline{semiring} at their elements, and Listing~\ref{lst:rule1}'s entry of \cppinline{injective} at a composite is another.
+Listing~\ref{lst:laws}'s entry of \cppinline{associative} at the matrices is such an entry, true under the shape \cppinline{IsSemiring} at their elements, and Listing~\ref{lst:rule1}'s entry of \cppinline{injective} at a composite is another.
 Composed, these give a derived rule, the instance rule of the entailment of qualified types~\cite{jones1994qualified}:
 \[
 \textsc{(E-Law-Ctx)}\quad \dfrac{\begin{array}{c} \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \text{ resolves to } \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \mathit{law}\texttt{<}\overline{\tau'}\texttt{>} \\ \overline{\tau} = \overline{\tau'}[\overline{\sigma}/\overline{\alpha}] \quad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \quad \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \Downarrow \texttt{true} \end{array}}{\Delta \Vdash \mathit{law}\texttt{<}\overline{\tau}\texttt{>}}
@@ -374,7 +375,7 @@ The first and the third are stated here ahead of the rules, and the linter repor
 
 \paragraph{Well-founded declarations.}
 Typing is itself a computation: resolving a call may ask whether a constraint holds, which may ask for another resolution, and \RuleThree{} asks that this chain end too.
-Listing~\ref{lst:laws}'s \cppinline{associative} at the matrices reads \cppinline{semiring} at their elements, and Listing~\ref{lst:rule1}'s \cppinline{injective} at a composite reads itself at the two parts (Section~\ref{sec:translation:contexts}): a trait asks for itself, but at smaller types, so the chain ends.
+Listing~\ref{lst:laws}'s \cppinline{associative} at the matrices asks \cppinline{IsSemiring} at their elements, and Listing~\ref{lst:rule1}'s \cppinline{injective} at a composite reads itself at the two parts (Section~\ref{sec:translation:contexts}): a trait asks for itself, but at smaller types, so the chain ends.
 Well-formedness therefore requires the declarations, taken at their type arguments, to be well founded under \emph{depends on}, which relates a declaration at some types to the declarations below, each at the types it names.
 \begin{center}
 \small
@@ -390,15 +391,16 @@ constant & the declarations its initialiser names \\
 \bottomrule
 \end{tabularx}
 \end{center}
-The relation is on instantiations, not on bare declarations, as the pair shows, and the measure that falls is the pair of the depth of the type arguments and the declaration's position.
+The relation is on instantiations, not on bare declarations, and no single measure is given here: well-formedness asks for its well-foundedness outright.
 Resolution, entailment, \textsc{E-Not}'s negative premise and \textsc{E-Law}'s evaluation all recurse along it, so its being well founded makes the rules define one relation and resolution terminate.
 \Cpp{} has a rule of its own for a satisfaction that depends on itself, which the condition makes unnecessary.
 
-Two syntactic conditions rule the loops out, one per kind of entry head, and the repository's linter checks the second.
+Two syntactic conditions are necessary for that and not sufficient, one per kind of entry head, and the repository's linter checks the second.
+They constrain an entry and not what a shape reads: a shape that reads a trait at a type larger than its own argument, where that trait has an entry whose context is the shape, loops although both conditions hold.
 An entry on a structured head, such as \cppinline{Then<F, G>}, reads its trait and asks its context only at the parts of its type arguments: \cppinline{injective} at \cppinline{Then<F, G>} reads \cppinline{injective} at \cppinline{F} and at \cppinline{G}.
 So each step descends by the type, as Haskell's Paterson conditions do~\cite{sulzmann2007understanding}, and as Equation~\eqref{eq:cata} writes it.
 An entry on an unstructured head, a concrete type, has no parts to descend to, so it reads only traits, and asks only shapes, that are declared before its own trait.
-An entry of \cppinline{associative} at a concrete type whose context asked \cppinline{IsMonoid} there, a shape that reads \cppinline{associative}, would make the shape ask for itself at the same types, and the condition refuses it, so each step descends by declaration order instead.
+An entry of \cppinline{associative} at a concrete type whose initialiser asked \cppinline{IsMonoid} there, a shape that reads \cppinline{associative}, would make the shape ask for itself at the same types, and the condition refuses it.
 A trait's entries may still follow the shapes that read it, since they depend on a shape only through their initialisers and contexts.
 
 Two more conditions close the recursion of the declarations themselves.
