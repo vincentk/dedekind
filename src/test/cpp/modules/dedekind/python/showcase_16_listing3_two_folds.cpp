@@ -126,25 +126,28 @@ concept IsSemiring =
     IsMonoid<T, std::plus<T>, zero> && IsMonoid<T, std::multiplies<T>, one> &&
     commutative<T, std::plus<T>> &&
     distributes<T, std::multiplies<T>, std::plus<T>>;
-// 2x2 matrices over a semiring under the type's own + and *, row by row.  The
-// body writes the operators, and the constraint names std::plus<T> and
+// The 2x2 matrices over a semiring under the type's own + and *, as a type
+// with a product of its own, so that std::multiplies names that product.  The
+// product's body writes the operators, and the shape names std::plus<T> and
 // std::multiplies<T>, which the standard defines as those operators.
 template <typename T, T zero, T one>
-struct MatMul {
-  constexpr std::array<T, 4> operator()(std::array<T, 4> a,
-                                        std::array<T, 4> b) const
+struct Mat {
+  T a, b, c, d;
+  constexpr bool operator==(const Mat&) const = default;
+  constexpr Mat operator*(Mat y) const
     requires IsSemiring<T, zero, one>
   {
-    return {a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3],
-            a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3]};
+    return {a * y.a + b * y.c, a * y.b + b * y.d, c * y.a + d * y.c,
+            c * y.b + d * y.d};
   }
 };
 // The inferred law: the matrices' product is associative for a semiring T.
 template <typename T, T zero, T one>
   requires IsSemiring<T, zero, one>
-constexpr bool associative<std::array<T, 4>, MatMul<T, zero, one>> = true;
-using M = std::array<size_t, 4>;
-using Mul = MatMul<size_t, 0uz, 1uz>;
+constexpr bool
+    associative<Mat<T, zero, one>, std::multiplies<Mat<T, zero, one>>> = true;
+using M = Mat<size_t, 0uz, 1uz>;
+using Mul = std::multiplies<M>;
 constexpr M identity{1, 0, 0, 1};
 constexpr M fib{1, 1, 1, 0};
 // The same value at every position, through a range that is not a
@@ -201,11 +204,12 @@ extern "C" __attribute__((noinline)) std::size_t listing3_term(std::size_t x) {
 /** @return the n-th Fibonacci number: n copies of one matrix, the overload by
  *  squaring chosen because the matrices are inferred to be a monoid. */
 extern "C" __attribute__((noinline)) std::size_t listing4_fib(std::size_t n) {
-  return concat<M, Mul, identity>(std::views::repeat(fib, n))[1];
+  return concat<M, Mul, identity>(std::views::repeat(fib, n)).b;
 }
 /** @return the same number by the plain fold, one step for each copy. */
 extern "C" __attribute__((noinline)) std::size_t listing4_fib_plain(
     std::size_t n) {
   return concat<M, Mul, identity>(
-      std::views::transform(std::views::iota(0uz, n), Fib{}))[1];
+             std::views::transform(std::views::iota(0uz, n), Fib{}))
+      .b;
 }

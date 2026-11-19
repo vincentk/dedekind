@@ -1269,25 +1269,28 @@ template <typename T, typename Add, typename Times, T zero, T one>
   requires IsSemiringOver<T, Add, Times, zero, one>
 constexpr bool
     associative<std::array<T, 4>, MatMulOver<T, Add, Times, zero, one>> = true;
-// 2x2 matrices over a semiring under the type's own + and *, row by row.  The
-// body writes the operators, and the constraint names std::plus<T> and
+// The 2x2 matrices over a semiring under the type's own + and *, as a type
+// with a product of its own, so that std::multiplies names that product.  The
+// product's body writes the operators, and the shape names std::plus<T> and
 // std::multiplies<T>, which the standard defines as those operators.
 template <typename T, T zero, T one>
-struct MatMul {
-  constexpr std::array<T, 4> operator()(std::array<T, 4> a,
-                                        std::array<T, 4> b) const
+struct Mat {
+  T a, b, c, d;
+  constexpr bool operator==(const Mat&) const = default;
+  constexpr Mat operator*(Mat y) const
     requires IsSemiring<T, zero, one>
   {
-    return {a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3],
-            a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3]};
+    return {a * y.a + b * y.c, a * y.b + b * y.d, c * y.a + d * y.c,
+            c * y.b + d * y.d};
   }
 };
 // The inferred law: the matrices' product is associative for a semiring T.
 template <typename T, T zero, T one>
   requires IsSemiring<T, zero, one>
-constexpr bool associative<std::array<T, 4>, MatMul<T, zero, one>> = true;
-using M = std::array<size_t, 4>;
-using Mul = MatMul<size_t, 0uz, 1uz>;
+constexpr bool
+    associative<Mat<T, zero, one>, std::multiplies<Mat<T, zero, one>>> = true;
+using M = Mat<size_t, 0uz, 1uz>;
+using Mul = std::multiplies<M>;
 constexpr M identity{1, 0, 0, 1};
 constexpr M fib{1, 1, 1, 0};
 // The inference, asked directly: a semiring below gives a monoid of matrices,
@@ -1295,10 +1298,14 @@ constexpr M fib{1, 1, 1, 0};
 static_assert(IsSemiringOver<size_t, std::plus<size_t>, std::multiplies<size_t>,
                              0uz, 1uz> &&
               IsSemiring<size_t, 0uz, 1uz> && associative<M, Mul> &&
-              !commutative<M, Mul> && IsMonoid<M, Mul, M{1, 0, 0, 1}> &&
+              !commutative<M, Mul> && IsMonoid<M, Mul, identity> &&
               !IsSemiringOver<size_t, std::minus<size_t>,
-                              std::multiplies<size_t>, 0uz, 1uz> &&
-              !associative<M, MatMulOver<size_t, std::minus<size_t>,
+                              std::multiplies<size_t>, 0uz, 1uz>);
+// The general form, on arrays and with the two operations as parameters.
+using A = std::array<size_t, 4>;
+static_assert(associative<A, MatMulOver<size_t, std::plus<size_t>,
+                                        std::multiplies<size_t>, 0uz, 1uz>> &&
+              !associative<A, MatMulOver<size_t, std::minus<size_t>,
                                          std::multiplies<size_t>, 0uz, 1uz>>);
 // A second semiring costs four entries and no code: the bits of size_t under
 // | and &, with units 0 and all ones.  The same concat then composes
@@ -1316,28 +1323,31 @@ constexpr bool distributes<size_t, std::bit_and<size_t>, std::bit_or<size_t>> =
 constexpr size_t top = ~0uz;
 using Rel =
     MatMulOver<size_t, std::bit_or<size_t>, std::bit_and<size_t>, 0uz, top>;
-constexpr M swap_nodes{0, top, top, 0};
+constexpr A swap_nodes{0, top, top, 0};
 static_assert(
-    concat<M, Rel, M{top, 0, 0, top}>(std::views::repeat(swap_nodes, 2uz)) ==
-        M{top, 0, 0, top} &&
-    concat<M, Rel, M{top, 0, 0, top}>(std::views::repeat(swap_nodes, 3uz)) ==
+    concat<A, Rel, A{top, 0, 0, top}>(std::views::repeat(swap_nodes, 2uz)) ==
+        A{top, 0, 0, top} &&
+    concat<A, Rel, A{top, 0, 0, top}>(std::views::repeat(swap_nodes, 3uz)) ==
         swap_nodes);
+// The listing's assertions.  One function at two monoids of size_t: under * it
+// is 2 to the power 10, under + it is 2 times 10.
+static_assert(power<size_t, std::multiplies<size_t>, 1uz>(2uz, 10uz) == 1024 &&
+              power<size_t, std::plus<size_t>, 0uz>(2uz, 10uz) == 20 &&
+              IsMonoid<M, Mul, identity> && !commutative<M, Mul> &&
+              concat<M, Mul, identity>(std::views::repeat(fib, 10uz)).b == 55 &&
+              concat<M, Mul, identity>(std::views::repeat(fib, 100'000'000uz))
+                      .b == 14'139'011'350'745'967'675uz);
+// Beyond the listing: the scale at +, no copies give the unit, a few copies
+// agree with the plain fold, and a matrix that is not the unit is refused.
 static_assert(
     concat<size_t, std::plus<size_t>, 0uz>(
         std::views::repeat(7uz, 1'000'000'000'000uz)) == 7'000'000'000'000uz &&
-    IsMonoid<M, Mul, identity> &&
-    concat<M, Mul, identity>(std::views::repeat(fib, 10uz))[1] == 55 &&
-    concat<M, Mul, identity>(std::views::repeat(fib, 100'000'000uz))[1] ==
-        14'139'011'350'745'967'675uz);
-// Beyond the listing: no copies give the unit, a few copies agree with the
-// plain fold, and a matrix that is not the unit is refused as one.
-static_assert(
     concat<size_t, std::plus<size_t>, 0uz>(std::views::repeat(7uz, 0uz)) == 0 &&
     concat<size_t, std::plus<size_t>, 0uz>(std::views::repeat(7uz, 10)) == 70 &&
     concat<size_t, std::multiplies<size_t>, 1uz>(std::views::repeat(3uz,
                                                                     13uz)) ==
         1'594'323 &&
-    !IsMonoid<M, Mul, M{1, 1, 1, 0}>);
+    !IsMonoid<M, Mul, fib>);
 
 // The standard's structural types: a value of one can be lifted into a type,
 // and the compiler decides the identity of two lifted values member by
