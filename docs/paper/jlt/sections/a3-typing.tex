@@ -249,6 +249,8 @@ $R\texttt{<}\tau\texttt{>}$ is an instance of $\mathcal{R}$, a family defined by
 A fold reads its length $|r|$, a value of \cppinline{size_t} and so a natural number below a fixed limit, fixed before the fold starts, and, when $|r| > 0$, its head $\mathit{head}\,r$ and its tail $\mathit{next}\,r$, functions on range values, with $|\mathit{next}\,r| = |r| - 1$; FJlt has a term for the length, \cppinline{ranges::size(r)} (\textsc{T-Size}), which is the bound of \RuleThree{}.
 For the head and the tail it has one term, $\texttt{uncons(}r\texttt{)}$ (\textsc{T-Uncons}): nothing for the empty range, and otherwise the head beside the tail.
 These are the two cases of Equation~\eqref{eq:fold}, and a program reads them by the case form, so it never takes a head unguarded.
+Its type, an optional of a pair, is the sum $1 + \tau \times R$ written in the standard's types (Table~\ref{tab:conventions}): a closed sum of two summands, one for each line of the equation.
+It is the sum the fold itself reads at each step in the translation (Figure~\ref{fig:fjlt-recursion}), so the term adds a name and no new type.
 \Cpp{} spells the term as a conditional on the length (Appendix~\ref{app:fjlt:closure}).
 The kernel fixes the length's type at \cppinline{size_t}, a restriction: the standard gives it in the range's own size type~\cite[{\texttt{range.prim.size}}]{cpp23standard}, which is \cppinline{size_t} for every instance of $\mathcal{R}$, a \cppinline{repeat_view} being one where it is counted in \cppinline{size_t}, as in Listing~\ref{lst:laws}.
 A length is thus one number, and a bound beyond one word is reached by nesting: a range of ranges is folded by a fold whose step is a fold, each over a range with a length of its own.
