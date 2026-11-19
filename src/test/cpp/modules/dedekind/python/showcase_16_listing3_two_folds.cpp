@@ -54,25 +54,27 @@ template <>
 constexpr bool injective<Neg> = true;
 template <Arrow F, Arrow G>
 constexpr bool injective<Then<F, G>> = injective<F> && injective<G>;
+template <typename F>
+concept IsInjective = Arrow<F> && injective<F>;
 template <Arrow F>
 constexpr bool is_injective(F) {
-  return injective<F>;
+  return IsInjective<F>;
 }
-// A constant arrow, its value in its type.
-template <auto v>
+// A constant arrow: it returns the value it holds.
 struct Const {
-  constexpr auto operator()(size_t) const { return v; }
+  size_t v;
+  constexpr size_t operator()(size_t) const { return v; }
 };
 // A second law on arrows, with the opposite lemma: a composite is constant
 // where either part is.
 template <typename F>
 constexpr bool constant = false;
-template <auto v>
-constexpr bool constant<Const<v>> = true;
+template <>
+constexpr bool constant<Const> = true;
 template <Arrow F, Arrow G>
 constexpr bool constant<Then<F, G>> = constant<F> || constant<G>;
 template <typename F>
-concept IsConstant = constant<F>;
+concept IsConstant = Arrow<F> && constant<F>;
 
 // Listing 2: a monoid as a carrier, an operation and its unit.
 template <typename T, typename Op>
@@ -172,8 +174,7 @@ using M = Mat<size_t, 0uz, 1uz>;
 using Mul = std::multiplies<M>;
 constexpr M identity{1, 0, 0, 1};
 constexpr M fib{1, 1, 1, 0};
-// The same value at every position, through a range that is not a
-// constant arrow: nobody declared it one, so the plain fold is chosen for it.
+// The same value at every position, for the plain fold over n copies.
 struct Fib {
   constexpr M operator()(size_t) const { return fib; }
 };
@@ -223,12 +224,10 @@ extern "C" __attribute__((noinline)) std::size_t listing3_length() {
 extern "C" __attribute__((noinline)) std::size_t listing3_term(std::size_t x) {
   return a(x);
 }
-/** @return the n-th Fibonacci number: n copies of one matrix, the overload by
- *  squaring chosen because the matrices are inferred to be a monoid. */
+/** @return the n-th Fibonacci number: the n-th power of one matrix, which the
+ *  matrices' inferred monoid licenses. */
 extern "C" __attribute__((noinline)) std::size_t listing4_fib(std::size_t n) {
-  return concat<M, Mul, identity>(
-             std::views::transform(std::views::iota(0uz, n), Const<fib>{}))
-      .b;
+  return power<M, Mul, identity>(fib, n).b;
 }
 /** @return the same number by the plain fold, one step for each copy. */
 extern "C" __attribute__((noinline)) std::size_t listing4_fib_plain(

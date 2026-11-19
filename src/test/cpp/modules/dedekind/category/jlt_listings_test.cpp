@@ -792,10 +792,10 @@ struct Neg {
 struct Half {
   constexpr size_t operator()(size_t x) const { return x / 2; }
 };
-// A constant arrow, its value in its type.
-template <auto v>
+// A constant arrow: it returns the value it holds.
 struct Const {
-  constexpr auto operator()(size_t) const { return v; }
+  size_t v;
+  constexpr size_t operator()(size_t) const { return v; }
 };
 template <typename F>
 concept Arrow = requires(const F f, size_t x) {
@@ -830,21 +830,22 @@ constexpr bool is_injective(F) {
 // where either part is.
 template <typename F>
 constexpr bool constant = false;
-template <auto v>
-constexpr bool constant<Const<v>> = true;
+template <>
+constexpr bool constant<Const> = true;
 template <Arrow F, Arrow G>
 constexpr bool constant<Then<F, G>> = constant<F> || constant<G>;
 template <typename F>
-concept IsConstant = constant<F>;
+concept IsConstant = Arrow<F> && constant<F>;
 constexpr auto up = Neg{} >> Succ{};
 static_assert((Succ{} >> Pred{})(0uz) == 0 && up(1uz) == 0 &&
               is_injective(up) && !is_injective(up >> Pred{}) &&
               !is_injective(up >> Half{}));
-static_assert(constant<decltype(up >> Const<7uz>{})> &&
-              constant<decltype(Const<7uz>{} >> up)> &&
+static_assert(constant<decltype(up >> Const{7uz})> &&
+              constant<decltype(Const{7uz} >> up)> &&
               !constant<decltype(Neg{} >> Succ{})> &&
               !constant<std::remove_const_t<decltype(up)>> &&
-              (up >> Const<7uz>{})(41uz) == 7 && Arrow<Const<7uz>>);
+              (up >> Const{7uz})(41uz) == 7 && Arrow<Const> &&
+              IsConstant<decltype(up >> Const{7uz})> && !IsConstant<Succ>);
 // Beyond the listing: the order of >> matters, the wrap that makes Succ and
 // Pred inverses, the involution, the fold at depth, what Half identifies,
 // and an arrow whose call is not const is no Arrow.
@@ -1353,41 +1354,38 @@ constexpr size_t top = ~0uz;
 using Rel =
     MatMulOver<size_t, std::bit_or<size_t>, std::bit_and<size_t>, 0uz, top>;
 constexpr A swap_nodes{0, top, top, 0};
-static_assert(concat<A, Rel, A{top, 0, 0, top}>(std::views::transform(
-                  std::views::iota(0uz, 2uz), Const<swap_nodes>{})) ==
+static_assert(power<A, Rel, A{top, 0, 0, top}>(swap_nodes, 2uz) ==
                   A{top, 0, 0, top} &&
-              concat<A, Rel, A{top, 0, 0, top}>(std::views::transform(
-                  std::views::iota(0uz, 3uz), Const<swap_nodes>{})) ==
-                  swap_nodes);
+              power<A, Rel, A{top, 0, 0, top}>(swap_nodes, 3uz) == swap_nodes);
 // The listing's assertions.  One function at two monoids of size_t: under * it
 // is 2 to the power 10, under + it is 2 times 10.
-static_assert(
-    power<size_t, std::multiplies<size_t>, 1uz>(2uz, 10uz) == 1024 &&
-    power<size_t, std::plus<size_t>, 0uz>(2uz, 10uz) == 20 &&
-    IsMonoid<M, Mul, identity> && !commutative<M, Mul> &&
-    concat<M, Mul, identity>(std::views::transform(std::views::iota(0uz, 10uz),
-                                                   Const<fib>{}))
-            .b == 55 &&
-    concat<M, Mul, identity>(
-        std::views::transform(std::views::iota(0uz, 100'000'000uz),
-                              Const<fib>{}))
-            .b == 14'139'011'350'745'967'675uz);
-// The law selects: the image of a constant arrow takes the power, and it is
-// the arrow that is asked, not the range.
-static_assert(IsConstant<Const<fib>> && IsConstant<Const<7uz>> &&
-              !IsConstant<listing1_self_contained::Succ>);
+static_assert(power<size_t, std::multiplies<size_t>, 1uz>(2uz, 10uz) == 1024 &&
+              power<size_t, std::plus<size_t>, 0uz>(2uz, 10uz) == 20 &&
+              IsMonoid<M, Mul, identity> && !commutative<M, Mul> &&
+              power<M, Mul, identity>(fib, 10uz).b == 55 &&
+              power<M, Mul, identity>(fib, 100'000'000uz).b ==
+                  14'139'011'350'745'967'675uz &&
+              concat<size_t, std::plus<size_t>, 0uz>(std::views::transform(
+                  std::views::iota(0uz, 10uz),
+                  listing1_self_contained::up >> Const{7uz})) == 70);
+// The lemma selects: a composite with a constant part is constant, so its
+// image takes the power.  10^12 copies can only finish that way.
+static_assert(concat<size_t, std::plus<size_t>, 0uz>(std::views::transform(
+                  std::views::iota(0uz, 1'000'000'000'000uz),
+                  listing1_self_contained::up >> Const{7uz})) ==
+              7'000'000'000'000uz);
 // Beyond the listing: the scale at +, no copies give the unit, a few copies
 // agree with the plain fold, and a matrix that is not the unit is refused.
 static_assert(concat<size_t, std::plus<size_t>, 0uz>(std::views::transform(
-                  std::views::iota(0uz, 1'000'000'000'000uz), Const<7uz>{})) ==
+                  std::views::iota(0uz, 1'000'000'000'000uz), Const{7uz})) ==
                   7'000'000'000'000uz &&
               concat<size_t, std::plus<size_t>, 0uz>(std::views::transform(
-                  std::views::iota(0uz, 0uz), Const<7uz>{})) == 0 &&
+                  std::views::iota(0uz, 0uz), Const{7uz})) == 0 &&
               concat<size_t, std::plus<size_t>, 0uz>(std::views::transform(
-                  std::views::iota(0uz, 10uz), Const<7uz>{})) == 70 &&
+                  std::views::iota(0uz, 10uz), Const{7uz})) == 70 &&
               concat<size_t, std::multiplies<size_t>, 1uz>(
                   std::views::transform(std::views::iota(0uz, 13uz),
-                                        Const<3uz>{})) == 1'594'323 &&
+                                        Const{3uz})) == 1'594'323 &&
               !IsMonoid<M, Mul, fib>);
 
 // The standard's structural types: a value of one can be lifted into a type,
@@ -1521,68 +1519,6 @@ constexpr size_t length<l1::Then<F, G>> = length<F> + length<G>;
 static_assert(length<l1::Then<l1::Succ, l1::Then<l1::Neg, l1::Succ>>> == 3 &&
               length<l1::Succ> == 1);
 }  // namespace badge_probe
-
-// A probe, not yet a listing: constancy as a law on arrows, as injectivity
-// is, with the opposite lemma (either part), and a fold that is selected by
-// it.  Two ranges of one type, a transform of an iota, differ only in whether
-// their arrow is known to be constant: the first takes the power, the second
-// the plain fold.  The call at 10^8 can only finish through the power.
-namespace constant_probe {
-using std::size_t;
-namespace l1 = listing1_self_contained;
-namespace l24 = listings_2_to_4;
-template <auto v>
-struct Const {
-  constexpr auto operator()(size_t) const { return v; }
-};
-template <typename F>
-constexpr bool constant = false;
-template <auto v>
-constexpr bool constant<Const<v>> = true;
-template <l1::Arrow F, l1::Arrow G>
-constexpr bool constant<l1::Then<F, G>> = constant<F> || constant<G>;
-template <typename F>
-concept IsConstant = constant<F>;
-static_assert(l1::Arrow<Const<7uz>> && IsConstant<Const<7uz>> &&
-              constant<decltype(l1::Succ{} >> Const<7uz>{})> &&
-              constant<decltype(Const<7uz>{} >> l1::Succ{})> &&
-              !constant<decltype(l1::Succ{} >> l1::Neg{})> &&
-              (l1::Succ{} >> Const<7uz>{})(41uz) == 7);
-
-template <typename T, typename Op, T e, std::ranges::sized_range R>
-  requires l24::IsMonoid<T, Op, e> &&
-           std::same_as<std::ranges::range_value_t<R>, T>
-constexpr T fold_all(R r) {
-  return std::ranges::fold_left(r, e, Op{});
-}
-template <typename T, typename Op, T e, typename V, IsConstant F>
-  requires l24::IsMonoid<T, Op, e> &&
-           std::same_as<
-               std::ranges::range_value_t<std::ranges::transform_view<V, F>>, T>
-constexpr T fold_all(std::ranges::transform_view<V, F> r) {
-  return std::ranges::size(r) == 0
-             ? e
-             : l24::power<T, Op, e>(*std::ranges::begin(r),
-                                    std::ranges::size(r));
-}
-// The same values, by an arrow that nobody declared constant.
-struct Undeclared {
-  constexpr l24::M operator()(size_t) const { return l24::fib; }
-};
-static_assert(
-    fold_all<l24::M, l24::Mul, l24::identity>(
-        std::views::transform(std::views::iota(0uz, 10uz), Const<l24::fib>{}))
-            .b == 55 &&
-    fold_all<l24::M, l24::Mul, l24::identity>(
-        std::views::transform(std::views::iota(0uz, 100'000'000uz),
-                              Const<l24::fib>{}))
-            .b == 14'139'011'350'745'967'675uz &&
-    fold_all<l24::M, l24::Mul, l24::identity>(
-        std::views::transform(std::views::iota(0uz, 10uz), Undeclared{}))
-            .b == 55 &&
-    fold_all<size_t, std::plus<size_t>, 0uz>(std::views::transform(
-        std::views::iota(0uz, 10uz), Const<7uz>{})) == 70);
-}  // namespace constant_probe
 
 namespace carrier_probe {
 template <typename T, T e>
