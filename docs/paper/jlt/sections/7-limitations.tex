@@ -40,7 +40,7 @@ So \cppinline{false} means \emph{not known}, not \emph{no}, and the same declara
 \cppinline{double} under \cppinline{+} has the signature of a monoid, but \cppinline{+} is not associative and the unit law fails at NaN, and nobody certifies it.}
 
 \paragraph{Undefined behaviour has one binding time.}
-Constant evaluation refuses it and run time does not (Table~\ref{tab:binding}), the one way the two evaluations of Theorem~\ref{thm:simulation} can disagree in \Cpp{} where they cannot in FJlt, and the reason the listings' carriers are unsigned.
+Constant evaluation refuses it and run time does not (Section~\ref{sec:binding}), the one way the two evaluations of Theorem~\ref{thm:simulation} can disagree in \Cpp{} where they cannot in FJlt, and the reason the listings' carriers are unsigned.
 A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cannot overflow, a fact no rule checks.\footnote{A signed integer is a chain under \cppinline{<} and a bounded lattice under \cppinline{min} and \cppinline{max}, but no monoid under \cppinline{+} or \cppinline{*}, since overflow is undefined.}
 
 \paragraph{The posture is opinionated about idiom.}
@@ -57,7 +57,7 @@ That is a convention of the library, not a construct of the language, and anothe
 A class hierarchy is nominal, where a \cppinline{concept} is structural, and a base that holds state or a virtual function is outside the posture.
 
 \paragraph{The compiler has its own limits.}
-Table~\ref{tab:binding} lists two, steps and call depth, and the template instantiation depth bounds both binding times.
+Section~\ref{sec:binding} names two, steps and call depth, and the template instantiation depth bounds both binding times.
 Rule~3 keeps them predictable, because every fold's length is in the program: a count, which meets no depth limit, or the depth of a term, one instantiation or one call per nesting.
 
 \subsubsection*{Limits of this presentation}

@@ -62,7 +62,10 @@ That is the standard's doing and not the optimiser's: a trait is a \cppinline{co
 The term \texttt{a}, three arrows composed, is one subtraction, since $-(x + 1) + 1 = -x$.
 In these cases the discipline costs nothing at run time, and there is a structural reason: a Jlt fold names in the source the parameter the compiler would otherwise recover from assignments.
 The agreement holds where both evaluations finish and neither meets undefined behaviour.
-Table~\ref{tab:binding} lists where the two binding times part.
+The two part in three ways, for Clang~23 with its default limits.
+Constant evaluation is bounded in work, at about a million steps and 512 nested calls, past which a program does not compile.
+It refuses undefined behaviour, which at run time is met with no diagnostic and no guarantee.
+And the standard leaves it unspecified whether floating-point arithmetic gives one result in both~\cite[{\texttt{expr.const}}]{cpp23standard}.
 
 The two rows for Listing~\ref{lst:laws} show what is left of a law.
 That the matrices' product is associative is inferred, and it licenses the power in the first row, which replaces the plain fold of the second.
@@ -73,28 +76,6 @@ In the terms of partial evaluation~\cite{jones1993partial}, the types and the de
 The word specialisation then has one meaning twice: the compiler chooses the specialisation of each trait and the most specialised overload, and in doing so it specialises the program to its laws~\cite{veldhuizen1999partial}.
 In the plain fold the optimiser has reduced the matrix product to one addition, the recurrence of the Fibonacci numbers, which is again its doing and not Jlt's.
 
-\begin{table}[htbp]
-\centering
-\small
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
-\toprule
-& at compile time, in constant evaluation & at run time \\
-\midrule
-who evaluates & the front end's interpreter, one step at a time & the processor, after the optimiser \\
-a fold's length & at most 1\,048\,576 steps (\texttt{-fconstexpr-steps}), past which the program does not compile & the count alone \\
-a call's depth & at most 512 nested calls (\texttt{-fconstexpr-depth}) & the stack \\
-floating point & the compiler's arithmetic & the processor's: the standard leaves it unspecified whether the two give one result~\cite[{\texttt{expr.const}}]{cpp23standard} \\
-undefined behaviour & refused: the expression is not a constant, and the program does not compile & no diagnostic required and no guarantee: the optimiser may assume it never happens \\
-a shortcut & only by resolution, a declared law, as Listing~\ref{lst:laws}'s overload & the optimiser's, as it fuses Listing~\ref{lst:sites}'s stages into one loop \\
-the heap & its own: an allocation may not outlive the evaluation, so no box crosses to run time; \Cpp{26} admits \texttt{make\_shared} within one~\cite{keir2025constexprsharedptr} and lets an array through~\cite{childers2025static} & shared: a box lives as long as its owners \\
-telling them apart & \texttt{if consteval} and \texttt{is\_constant\_evaluated()} say compile time & they say run time, and FJlt desugars it to the first where both agree \\
-\bottomrule
-\end{tabularx}
-\caption{Where the two binding times differ, for Clang~23 with its default limits.
-Each limit counts the evaluator's work, and can be raised.
-Apart from floating point and the last row, no difference is a different value: where both evaluations finish without undefined behaviour, they agree, by the standard's one abstract machine.}
-\label{tab:binding}
-\end{table}
 
 \Cpp{} passes no dictionaries but instantiates, so the translation models what a constrained call means, not what the compiler emits.
 Instantiation is partial evaluation~\cite{veldhuizen1999partial}, here of the dictionary-passing term at a static type.
