@@ -29,8 +29,7 @@ D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \text
   & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} & \text{case of a function} \\
   &   & \qquad \texttt{constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \\
   & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau\; y\texttt{;}}\ \ M \texttt{ \};} & \text{named type} \\[3pt]
-M &::=& \varepsilon \;\mid\; \texttt{template <typename }\overline{\beta}\texttt{>} & \text{its call} \\
-  &   & \qquad \texttt{constexpr } \tau \texttt{ operator()(}\overline{\tau\; x}\texttt{) const} & \\
+M &::=& \varepsilon \;\mid\; \texttt{constexpr } \tau \texttt{ operator()(}\overline{\tau\; x}\texttt{) const} & \text{its call} \\
   &   & \qquad\quad \texttt{requires } \overline{Q} \texttt{ \{ return } e\texttt{; \}} & \\[3pt]
 A &::=& Q \;\mid\; e & \text{shape, law} \\
   & \mid & \texttt{requires (}\overline{\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> same\_as<}\tau\texttt{>;}} \texttt{ \}} & \text{required calls} \\[3pt]
@@ -46,7 +45,7 @@ e &::=& x \;\mid\; c \;\mid\; f\texttt{<}\overline{\tau}\texttt{>} \;\mid\; f\te
 Terminals are in monospace and an overbar is a sequence, possibly empty.
 An empty \texttt{requires} clause, an empty list of a \texttt{requires} expression with its parentheses, and an empty \texttt{template} head are left out, except that an entry with no type variables keeps \texttt{template <>}.
 The requirements $\overline{A}$ of a shape and the constraints $\overline{Q}$ of a clause are joined by \texttt{\&\&}, and a negated constraint is written in parentheses.
-$\alpha, \beta$ are type variables, $C$ names of shapes, the standard's \texttt{copyable}, \texttt{equality\_comparable} and \texttt{same\_as} among them, $f$ names of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
+$\alpha$ are type variables, $C$ names of shapes, the standard's \texttt{copyable}, \texttt{equality\_comparable} and \texttt{same\_as} among them, $f$ names of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
 A parameter that is not used may go unnamed.
 $T$ is a declared type $O$, \texttt{std::pair}, a carrier, or an arrow supplied with a carrier, as the standard's \texttt{std::plus} is.
 $c$ is a constant of an atom, or a value of a carrier that its type provides.
@@ -66,18 +65,10 @@ In an iteration the first term is the count, the second the start, and the third
 %  - A result type is written, not deduced, and only same_as is a result
 %    concept.
 %  - The number of bits of a count, size_t(bit_width(n)), is one primitive.
-%  - TO DECIDE, from the theorist's read of 2026-11-20: a value T{} at a
-%    carrier variable must be refused by the rules (only a function object
-%    named in a required call may be built at a type variable); the template
-%    head on a call operator contradicts "prenex" in Table 1 and no kernel
-%    line uses it; the grammar admits a function that calls itself, which the
-%    rules must refuse.
 %  - Rows removed from the earlier figure: value parameters, arguments and
 %    atoms in types; the dereference; the general conversion; the deduced call.
-%  - Checked line by line against the three listings on 2026-11-20.  What that
-%    found and is not yet repaired: Via's call operator in Listing 3 has a
-%    result type that follows its argument's type (auto), which no row writes;
-%    the declarations that supply a carrier with its arrows (Bare with its
+%  - Checked line by line against the three listings on 2026-11-20.  The
+%    declarations that supply a carrier with its arrows (Bare with its
 %    equality, Size and IsEmpty with string's own members) are outside the
 %    grammar by design and are said to be so in the prose.
 
@@ -120,7 +111,33 @@ Its step is a function of the state and the index, and a state of several parts 
 The resolution layer is where \Cpp{} lives.
 A named type gives the compiler something to select by, a shape says what a generic definition may assume, and a trait and a function with several cases are each a selection by the form of a type.
 Every program of the kernel is a \Cpp{} program and means what \Cpp{} says it means.
-The kernel leaves out what would break that reading: assignment to anything that outlives a call, references and pointers as values, inheritance, exceptions, and a function that calls itself.
+The kernel leaves out what would break that reading, some of it by its grammar and some by rules that the grammar cannot state (Table~\ref{tab:excluded}).
+
+\begin{table}[tb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+left out by the grammar & refused by a rule \\
+\midrule
+assignment & a call on a value of a type parameter that no shape names \\
+a loop & a value built at a type variable outside a call that a shape requires \\
+a reference or a pointer as a value & a function that calls itself, directly or through another \\
+inheritance & a trait read at a type variable outside a shape \\
+an exception & an entry of a trait at a form that reads the trait elsewhere than at proper parts \\
+a value among a template's parameters & an entry that stands below a use that could read it \\
+a template on a call operator & two cases of a function of which neither is the more specific \\
+\bottomrule
+\end{tabularx}
+\caption{What FJlt leaves out, and how.}
+\label{tab:excluded}
+\end{table}
+% TODO(kernel): the rules of the right column are stated here and written out
+% nowhere yet; they are the appendix's "the kernel, complete" and the linter's
+% specification.  Decided 2026-11-20: a value at a type variable only inside a
+% required call; no template on a call operator (so "prenex" holds); a
+% self-call refused by rule.  A recursion controlled by an order on the
+% arguments is not attempted: the kernel has no such order to offer.
 
 \subsection{Derived forms}
 \label{sec:kernel:derived}
@@ -139,7 +156,7 @@ written & stands for & the same because \\
 \midrule
 a range, as \texttt{array\{...\}}, \texttt{views::iota}, \texttt{views::repeat}, \texttt{views::transform}, or a parameter \texttt{R} & a count and an arrow from an index to an element & a fold visits the same values in the same order \\
 \texttt{ranges::fold\_left} over a range & iteration over its count, the step reading the element at the index & by the row above \\
-\texttt{ranges::sized\_range R}, an alias, a deduced type, an \texttt{auto} parameter & the \texttt{requires} clause, the type or the template parameter written out & the standard defines them so \\
+\texttt{ranges::sized\_range R}, an alias, a deduced type & the \texttt{requires} clause or the type written out & the standard defines them so \\
 an integer literal where a count is meant, a braced \texttt{return}, two fields in one declaration & the count, the value with its type, the fields one by one & the standard defines them so \\
 \texttt{static\_assert} & the observation of a truth value & it is what is observed \\
 \bottomrule

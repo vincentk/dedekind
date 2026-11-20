@@ -2030,26 +2030,39 @@ struct Not {
 template <>
 constexpr bool homomorphism<Not, All, Any> = true;
 // One function after another, by way of a monoid in the middle, which the
-// composite names because the compiler cannot guess it.
-template <typename F, typename B, typename G>
+// composite names because the compiler cannot guess it.  It names its three
+// carriers as well, so that its call has a written type and asks, through a
+// shape, for the two calls it makes.
+template <typename F, typename X, typename Y>
+concept Maps = requires(F f, X x) {
+  { f(x) } -> std::same_as<Y>;
+};
+template <typename F, typename B, typename G, typename X, typename Y,
+          typename Z>
 struct Via {
   F f;
   G g;
-  constexpr auto operator()(auto x) const { return g(f(x)); }
+  constexpr Z operator()(X x) const
+    requires Maps<F, X, Y> && Maps<G, Y, Z>
+  {
+    return g(f(x));
+  }
 };
 // The lemma, stated once and not proved: a homomorphism after a homomorphism
 // is a homomorphism.  An entry at a composite that reads its own trait at the
 // two parts.
-template <typename F, typename B, typename G, typename A, typename C>
-constexpr bool homomorphism<Via<F, B, G>, A, C> =
+template <typename F, typename B, typename G, typename X, typename Y,
+          typename Z, typename A, typename C>
+constexpr bool homomorphism<Via<F, B, G, X, Y, Z>, A, C> =
     homomorphism<F, A, B> && homomorphism<G, B, C>;
 // Nobody declared anything about "is not empty".  The compiler concludes that
 // it is a homomorphism from strings to the truth values under "or", and it
 // concludes nothing about a composite whose middle does not fit.
-using NonEmpty = Via<IsEmpty, All, Not>;
-static_assert(homomorphism<NonEmpty, Strings, Any> &&
-              !homomorphism<NonEmpty, Strings, All> &&
-              !homomorphism<Via<IsEmpty, Any, Not>, Strings, Any>);
+using NonEmpty = Via<IsEmpty, All, Not, Str, bool, bool>;
+static_assert(
+    homomorphism<NonEmpty, Strings, Any> &&
+    !homomorphism<NonEmpty, Strings, All> &&
+    !homomorphism<Via<IsEmpty, Any, Not, Str, bool, bool>, Strings, Any>);
 // The free theorem of concat2 as a function whose signature is its
 // hypothesis: a shape that names the law and the one call the body makes of
 // the function.  (An earlier form read the law directly in the requires

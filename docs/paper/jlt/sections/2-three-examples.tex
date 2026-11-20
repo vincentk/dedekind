@@ -322,25 +322,31 @@ homomorphism<Not, All, Any> = true;
 \end{cpp}
 \end{minipage}
 
+\vspace{-7pt}
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <typename F, typename B,
-          typename G>
+    typename G, typename X,
+    typename Y, typename Z>
 struct Via { F f; G g;
-  constexpr auto operator()(auto x) const {
+  constexpr Z operator()(X x) const
+    requires Maps<F, X, Y> &&
+             Maps<G, Y, Z> {
     return g(f(x)); } };
 template <typename F, typename B,
-          typename G, typename A,
-          typename C>
-constexpr bool
-homomorphism<Via<F, B, G>, A, C> =
-    homomorphism<F, A, B> &&
-    homomorphism<G, B, C>;
+    typename G, typename X,
+    typename Y, typename Z,
+    typename A, typename C>
+constexpr bool homomorphism<
+    Via<F, B, G, X, Y, Z>, A, C> =
+  homomorphism<F, A, B> &&
+  homomorphism<G, B, C>;
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-using NonEmpty = Via<IsEmpty, All, Not>;
+using NonEmpty = Via<IsEmpty, All, Not,
+                     string, bool, bool>;
 static_assert(
 homomorphism<NonEmpty, Strings, Any> &&
 !homomorphism<NonEmpty, Strings, All>);
@@ -357,6 +363,7 @@ concept IsHomomorphism =
 \end{cpp}
 \end{minipage}
 
+\vspace{-7pt}
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <typename T, typename Op,
@@ -386,6 +393,7 @@ free_theorem(Strings{}, Any{}, NonEmpty{},
     array{""s, "ab"s}));
 \end{cpp}
 \end{minipage}
+\vspace{-7pt}
 {\small\[
 \begin{array}{@{}l@{}}
 \mathit{free\_theorem} = \Lambda T.\,\Lambda U.\,\ldots\,\lambda q : \mathit{Monoid}\;T.\,\lambda q' : \mathit{Monoid}\;U.\,\lambda l : \mathit{Bool}.\,\lambda \mathit{eq} : U \to U \to \mathit{Bool}.\,\lambda h : T \to U.\,\lambda n.\,\lambda f. \\
@@ -397,7 +405,8 @@ Left: the law, a lemma, the theorem. Right: three axioms, the inferred fact, thr
 \label{lst:theorems}
 \end{listing}
 % TODO(listings): code from the probe (namespace triple_probe), green on CI.
-% Via's call operator is written with auto, which the kernel does not have.
+% The shape Maps (a required call from one carrier to another) is omitted from
+% the panels.
 % Parked: the semiring, under which a power is one product, and the lemma that
 % a power is a homomorphism where the operation commutes; their code is in the
 % probe and their text in this file's history.
@@ -407,6 +416,7 @@ The listing names each monoid by one type and makes ``is a homomorphism'' a law,
 Three axioms are declared: the length of a concatenation is the sum of the lengths, a concatenation is empty exactly when every part is, and De Morgan's law, that the negation of a conjunction is the disjunction of the negations.
 One lemma is stated and not proved, since it is a textbook fact: a homomorphism after a homomorphism is a homomorphism.
 It is an entry at a composite that reads the same law at the two parts, and the composite names the monoid in the middle, which the compiler could not guess.
+\cppinline{Via} also names the three carriers it passes through, and \cppinline{Maps<F, X, Y>} is the shape that asks for a call of \cppinline{F} from \cppinline{X} to \cppinline{Y}.
 
 Nobody declared anything about a string not being empty.
 The compiler concludes, from emptiness and De Morgan's law, that it is a homomorphism into the truth values under disjunction: a concatenation is not empty exactly when some part is not.
@@ -417,8 +427,7 @@ A derived law is worth having because of a theorem that comes with every functio
 Each of its three calls reads as a sentence: from this monoid, to that one, by this function, on these values.
 The third can be written only because of the fact the compiler derived.
 A call checks one case and proves nothing, and the theorem holds whether or not anyone calls it.
-The lines of Listing~\ref{lst:theorems} are in the kernel as written, apart from the ranges and from one line.
-The call operator of \cppinline{Via} is written with \cppinline{auto}: its result type follows its argument's type, which the kernel cannot write, so \cppinline{Via} is outside the kernel as it stands (Section~\ref{sec:kernel:derived}).
+The lines of Listing~\ref{lst:theorems} are in the kernel as written, apart from the ranges (Section~\ref{sec:kernel:derived}).
 An axiom, in turn, is only as good as its author: ``a sum of counts is zero exactly when every count is'' looks as safe as the three above, and is false of \cppinline{size_t}, where a sum can wrap around to zero.
 
 \subsection{What the three have in common}
