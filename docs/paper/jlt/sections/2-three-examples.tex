@@ -342,7 +342,6 @@ using NonEmpty = Via<IsEmpty, All, Not>;
 static_assert(
 homomorphism<NonEmpty, Strings, Any> &&
 !homomorphism<NonEmpty, Strings, All>);
-
 template <typename H, typename T,
     typename Op, typename E, typename U,
     typename Op2, typename E2>
