@@ -1588,13 +1588,19 @@ constexpr bool unital<size_t, std::multiplies<size_t>, One> = true;
 template <>
 constexpr bool unital<std::string, std::plus<std::string>, Empty> = true;
 
+// The shape, built up as algebra builds it: a magma is a carrier with an
+// operation, a unital magma has a unit as well, and a monoid is a unital
+// magma whose operation is associative.
+template <typename T, typename Op>
+concept IsMagma = std::regular<T> && requires(T a, T b) {
+  { Op{}(a, b) } -> std::same_as<T>;
+};
 template <typename T, typename Op, typename E>
-concept IsMonoid = std::regular<T> && associative<T, Op> && unital<T, Op, E> &&
-                   requires(T a, T b) {
-                     { Op{}(a, b) } -> std::same_as<T>;
-                   } && requires {
-                     { E{}() } -> std::same_as<T>;
-                   } && Op{}(E{}(), E{}()) == E{}();
+concept IsUnitalMagma = IsMagma<T, Op> && unital<T, Op, E> && requires {
+  { E{}() } -> std::same_as<T>;
+} && Op{}(E{}(), E{}()) == E{}();
+template <typename T, typename Op, typename E>
+concept IsMonoid = IsUnitalMagma<T, Op, E> && associative<T, Op>;
 
 template <typename T, typename Op, typename E>
   requires IsMonoid<T, Op, E>
@@ -1676,7 +1682,7 @@ static_assert(IsMonoid<bool, And, True> &&
 // it hard-codes the operation, +, and the unit, a default-constructed value.
 // Its signature asks for nothing of the kind.
 template <std::ranges::range R>
-constexpr auto concat1(R r) {
+constexpr std::ranges::range_value_t<R> concat1(R r) {
   std::ranges::range_value_t<R> s{};
   for (auto x : r) s = s + x;
   return s;
@@ -1717,6 +1723,17 @@ constexpr bool unital<Bare, BareOp, BareUnit> = true;
 static_assert(IsMonoid<Bare, BareOp, BareUnit> &&
               concat2<Bare, BareOp, BareUnit>(std::array{Bare{}, Bare{}}) ==
                   Bare{});
+// What C++ itself says of concat1 at Bare: asked whether the call is valid,
+// it answers yes, since it reads the signature and not the body.  The call
+// does not compile.  For concat2 the same question has the right answers.
+template <typename R>
+concept Accepts1 = requires(R r) { concat1(r); };
+template <typename T, typename Op, typename E, typename R>
+concept Accepts2 = requires(R r) { concat2<T, Op, E>(r); };
+static_assert(
+    Accepts1<std::array<Bare, 2>> &&
+    Accepts2<Bare, BareOp, BareUnit, std::array<Bare, 2>> &&
+    !Accepts2<size_t, std::minus<size_t>, Zero, std::array<size_t, 3>>);
 
 // A candidate second listing: the power of a monoid.  power_plain is its
 // definition, concat2 over n copies of one value, in n steps.  power computes
