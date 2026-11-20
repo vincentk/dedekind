@@ -73,6 +73,7 @@ State, on the branch `docs/paper-three-examples`, stacked on `docs/paper-listing
 - The abstract's promise stays in the third person.
 - Where an axiom or a lemma may be declared is not a new rule: it is the second of the order conditions the kernel already has. They stay in Appendix B, with a reference from Rule 2, and the strict check is to report them.
 - The check restricts its audience to recent Clang. The language stays portable.
+- The kernel's surface stays close to ISO C++: calls, parameters and fields are sequences, and its iteration is the standard's `fold_left` over an `iota`. System F is reached by currying and products, which are textbook. Several parameters and records are therefore kernel, not derived forms.
 
 ## For you to decide
 

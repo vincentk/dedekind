@@ -266,7 +266,7 @@ The power of the unit is the unit, whatever the count, as the last line of the t
 \cppinline{power} has no case for that.
 With the base fixed to the unit and the count left for later, the compiler removes the fold and the count by itself, since the unit squared is the unit and it finds that by computing it (Section~\ref{sec:binding}).
 
-Of the lines of Listing~\ref{lst:power}, the fold over a count is the kernel's one recursion over a value, and \cppinline{Power} with its three fields is a derived form of two nested pairs (Section~\ref{sec:kernel:derived}).
+The lines of Listing~\ref{lst:power} are in the kernel as written, the fold over a count being its one recursion over a value, apart from the range in the first line of the test (Section~\ref{sec:kernel:derived}).
 
 The lower panels show what the rules are for.
 Where the operation is idempotent, as conjunction is, a power is the value itself, and a second case of \cppinline{power}, on the same signature with one more law, says so in one step.
@@ -407,7 +407,7 @@ A derived law is worth having because of a theorem that comes with every functio
 Each of its three calls reads as a sentence: from this monoid, to that one, by this function, on these values.
 The third can be written only because of the fact the compiler derived.
 A call checks one case and proves nothing, and the theorem holds whether or not anyone calls it.
-Of the lines of Listing~\ref{lst:theorems}, the law, its entries and the lemma at a composite are in the kernel as written, and a function of several arguments is a derived form (Section~\ref{sec:kernel:derived}).
+The lines of Listing~\ref{lst:theorems} are in the kernel as written, apart from the ranges and from the \cppinline{auto} of \cppinline{Via}, which stands for a template parameter (Section~\ref{sec:kernel:derived}).
 An axiom, in turn, is only as good as its author: ``a sum of counts is zero exactly when every count is'' looks as safe as the three above, and is false of \cppinline{size_t}, where a sum can wrap around to zero.
 
 \subsection{What the three have in common}
