@@ -1546,6 +1546,94 @@ static_assert(
 // concrete carriers, as in Listing 2.
 }  // namespace carrier_probe
 
+// A probe, not yet a listing: a monoid as a triple of types, as the algebraic
+// statement has it: a carrier, a binary operation and a nullary one.  The
+// unit is the type of a function object of no arguments, so no value stands
+// among the template's parameters and the carrier need not be a structural
+// type: strings under concatenation are a monoid here.  Then the free theorem
+// of concat on two monoids and a homomorphism between them: the length of a
+// concatenation is the sum of the lengths.
+namespace triple_probe {
+using std::size_t;
+using namespace std::string_literals;
+
+template <typename T, typename Op>
+constexpr bool associative = false;
+template <>
+constexpr bool associative<size_t, std::plus<size_t>> = true;
+template <>
+constexpr bool associative<size_t, std::multiplies<size_t>> = true;
+template <>
+constexpr bool associative<std::string, std::plus<std::string>> = true;
+
+struct Zero {
+  constexpr size_t operator()() const { return 0; }
+};
+struct One {
+  constexpr size_t operator()() const { return 1; }
+};
+struct Empty {
+  constexpr std::string operator()() const { return {}; }
+};
+
+template <typename T, typename Op, typename E>
+concept IsMonoid = std::regular<T> && associative<T, Op> && requires(T a, T b) {
+  { Op{}(a, b) } -> std::same_as<T>;
+} && requires {
+  { E{}() } -> std::same_as<T>;
+} && Op{}(E{}(), E{}()) == E{}();
+
+template <typename T, typename Op, typename E>
+  requires IsMonoid<T, Op, E>
+constexpr T concat() {
+  return E{}();
+}
+template <typename T, typename Op, typename E>
+  requires IsMonoid<T, Op, E>
+constexpr T concat(T v, T w) {
+  return Op{}(v, w);
+}
+template <typename T, typename Op, typename E, std::ranges::sized_range R>
+  requires IsMonoid<T, Op, E> && std::same_as<std::ranges::range_value_t<R>, T>
+constexpr T concat(R r) {
+  return std::ranges::fold_left(r, E{}(), Op{});
+}
+
+using Str = std::string;
+using Cat = std::plus<std::string>;
+
+// The triple, at size_t twice and at strings; a wrong unit, an operation
+// that is not associative and a unit of another carrier are refused.
+static_assert(IsMonoid<size_t, std::plus<size_t>, Zero> &&
+              IsMonoid<size_t, std::multiplies<size_t>, One> &&
+              IsMonoid<Str, Cat, Empty> &&
+              !IsMonoid<size_t, std::plus<size_t>, One> &&
+              !IsMonoid<size_t, std::minus<size_t>, Zero> &&
+              !IsMonoid<Str, Cat, Zero>);
+static_assert(concat<size_t, std::plus<size_t>, Zero>() == 0 &&
+              concat<size_t, std::plus<size_t>, Zero>(40uz, 2uz) == 42 &&
+              concat<size_t, std::multiplies<size_t>, One>(6uz, 7uz) == 42 &&
+              concat<Str, Cat, Empty>() == ""s &&
+              concat<Str, Cat, Empty>("ab"s, "c"s) == "abc"s &&
+              concat<Str, Cat, Empty>(std::array{"ab"s, "c"s, "def"s}) ==
+                  "abcdef"s);
+
+// A homomorphism from strings to size_t: the length.  That it is one is a
+// law somebody states; here it is checked at one point.
+struct Size {
+  constexpr size_t operator()(Str s) const { return s.size(); }
+};
+static_assert(Size{}(Empty{}()) == Zero{}() &&
+              Size{}("ab"s + "c"s) == Size{}("ab"s) + Size{}("c"s));
+
+// The free theorem of concat, on these two monoids and this homomorphism:
+// the length of the concatenation is the concat of the lengths.
+static_assert(Size{}(concat<Str, Cat, Empty>(std::array{"ab"s, "c"s,
+                                                        "def"s})) ==
+              concat<size_t, std::plus<size_t>, Zero>(std::views::transform(
+                  std::array{"ab"s, "c"s, "def"s}, Size{})));
+}  // namespace triple_probe
+
 TEST_CASE("Spelling probe: a law as a function and as a table",
           "[category][jlt][spelling][probe]") {
   using namespace spelling_probe;
