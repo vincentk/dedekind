@@ -154,6 +154,9 @@ A range is there its length $n$ and the arrow $f$ from an index to an element, a
 \cppinline{concat1} has no image: no record gives it a \cppinline{+}, and a checker that holds a body to its signature refuses it and says so, that no operation \cppinline{+} is declared for the range's elements.
 \Cpp{} accepts both functions.
 
+Of the lines of Listing~\ref{lst:motivation}, the shapes, the traits with their entries and the function objects are in the kernel as written.
+The range that \cppinline{concat2} folds over, and the arrays and strings of the tests, are derived forms of it (Section~\ref{sec:kernel:derived}).
+
 \subsection{What a law permits}
 \label{sec:examples:law}
 
@@ -262,6 +265,8 @@ The field of the record that says the operation is associative is what licenses 
 The power of the unit is the unit, whatever the count, as the last line of the test shows at strings.
 \cppinline{power} has no case for that.
 With the base fixed to the unit and the count left for later, the compiler removes the fold and the count by itself, since the unit squared is the unit and it finds that by computing it (Section~\ref{sec:binding}).
+
+Of the lines of Listing~\ref{lst:power}, the fold over a count is the kernel's one recursion over a value, and \cppinline{Power} with its three fields is a derived form of two nested pairs (Section~\ref{sec:kernel:derived}).
 
 The lower panels show what the rules are for.
 Where the operation is idempotent, as conjunction is, a power is the value itself, and a second case of \cppinline{power}, on the same signature with one more law, says so in one step.
@@ -402,12 +407,78 @@ A derived law is worth having because of a theorem that comes with every functio
 Each of its three calls reads as a sentence: from this monoid, to that one, by this function, on these values.
 The third can be written only because of the fact the compiler derived.
 A call checks one case and proves nothing, and the theorem holds whether or not anyone calls it.
+Of the lines of Listing~\ref{lst:theorems}, the law, its entries and the lemma at a composite are in the kernel as written, and a function of several arguments is a derived form (Section~\ref{sec:kernel:derived}).
 An axiom, in turn, is only as good as its author: ``a sum of counts is zero exactly when every count is'' looks as safe as the three above, and is false of \cppinline{size_t}, where a sum can wrap around to zero.
 
 \subsection{What the three have in common}
 \label{sec:examples:common}
+\label{sec:posture}
 
 None of the three listings needs anything but standard \Cpp{}.
 What they need is that their signatures can be trusted, and nothing in \Cpp{} ensures that.
-The rest of the paper supplies it: a small language in which a signature means what it says, and a check that a program is written in it.
+What the functions that behave have in common can be said in three rules, which together are the \emph{Juliet Posture}.
+Table~\ref{tab:posture} sets them side by side.
 
+\begin{table}[tb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+rule & keeps out of Jlt & buys & costs & held by \\
+\midrule
+1 Substitution & state, pointers, exceptions & one program, at compile time and at run time & no state beyond a call's own locals, no I/O & $\ast$~in part\newline $\dagger$~syntax \\
+2 Abstraction & a body using what its constraints do not name & parametricity & no ad hoc use of a type & $\dagger$~names\newline $\ddagger$~the rest \\
+3 Descent & unbounded loops, general recursion & termination & a bound on every fold, stated before it starts & $\ast$~compile time\newline $\dagger$, $\ddagger$~loops \\
+\bottomrule
+\end{tabularx}
+\caption{The posture at a glance: what each rule keeps out of Jlt, what it buys, what it costs and who holds it: $\ast$~the compiler, $\dagger$~the linter, $\ddagger$~an agentic reviewer.}
+\label{tab:posture}
+\end{table}
+
+\paragraph{Rule 1, Substitution.}
+\phantomsection\label{def:rule1}
+A value is data that can be copied, and a function depends on its arguments alone and can be evaluated while compiling.
+Every function in the three listings is \cppinline{constexpr} and takes and returns values, which is why each can be tested by a \cppinline{static_assert}.
+The rule keeps out state that outlives a call, pointers, exceptions and input and output.
+What it buys is that a value may be replaced by its equal anywhere, and that a program means the same while compiling and while running.
+
+\paragraph{Rule 2, Abstraction.}
+\phantomsection\label{def:rule2}
+Generic code varies with a type only through what its declaration names.
+\cppinline{concat1} breaks it by using a \cppinline{+} that its signature never asked for, and \cppinline{guessed_power} by depending on a law that its signature never named.
+What a declaration may name is a \emph{shape}, written as a \cppinline{concept}, and a shape asks for calls and for laws.
+A law is a \emph{trait}: a value that the compiler looks up by type, \cppinline{false} unless someone has said otherwise.
+An \emph{axiom} is an entry of a trait at one type, stated by the programmer and not proved.
+A \emph{lemma} is an entry at a form of type, which reads the same trait at the parts, as the entry at \cppinline{Via} does in Listing~\ref{lst:theorems}.
+A \emph{theorem} is what the compiler concludes from the two.
+An entry holds for the whole program or not at all, so it is declared above every use that could read it (Appendix~\ref{app:fjlt:order}).
+
+\paragraph{Rule 3, Descent.}
+\phantomsection\label{def:rule3}
+Recursion is structural, and its number of steps is bounded before the first step.
+It has two forms.
+Over a value it is the fold of \cppinline{concat2} and of \cppinline{power}:
+\begin{equation}
+\label{eq:fold}
+\begin{aligned}
+\mathit{fold}_h\,(e, \langle\rangle) &= e \\
+\mathit{fold}_h\,(e, s \cdot r) &= \mathit{fold}_h\,(h(e, s), r) \qquad |r| < |s \cdot r|
+\end{aligned}
+\end{equation}
+where $s \cdot r$ is a range with first element $s$ and tail $r$, $h$ the step and $e$ the start.
+The bound is the length of the range: $n$ for \cppinline{concat2}, and the number of bits of $n$ for \cppinline{power}.
+Over a type it is the lemma of Listing~\ref{lst:theorems}:
+\begin{equation}
+\label{eq:cata}
+\begin{aligned}
+g(x) &= d_x \\
+g(t_1 \gg t_2) &= g(t_1) \otimes g(t_2) \qquad t_1, t_2 \triangleleft t_1 \gg t_2
+\end{aligned}
+\end{equation}
+where $x$ is a type with no parts, $d_x$ what is declared for it, $t_1 \gg t_2$ a composite, and $t' \triangleleft t$ says that $t'$ is a proper part of $t$.
+A proper part is smaller than its whole, so the compiler's search ends.
+The rule keeps out a loop with no stated end and a function that calls itself.
+
+The three rules are a heuristic: what a programmer keeps in mind.
+They do not define a language, and keeping them does not by itself put a program inside one.
+The rest of the paper supplies that: a small language in which a signature means what it says (Section~\ref{sec:kernel}), and a check that a program is written in it (Section~\ref{sec:check}).

@@ -41,7 +41,12 @@ Artefact, on a stable branch released to Zenodo:
 - the examples "for the curious", packaged with it;
 - the tests that pair each listing with its kernel form, the ledger of axioms, the build that prints the emitted code.
 
-State: the three listings and their prose are moved into a new Section 2 with three subsections. The former Sections 2 to 6 still follow unchanged, renumbered, and are the quarry for the new Sections 3 to 5.
+State, on the branch `docs/paper-three-examples`, stacked on `docs/paper-listings-in-action` (which is the backup of everything before the cut):
+
+- Section 2 is complete in outline: three examples, and 2.4 with the three rules, their table, and the two equations.
+- The former Section 2 (the rules with the four old listings) and the sequence case study (Appendix G) are deleted, with the abstract's two sentences on the case study and the paragraph on parallelism.
+- The former Sections 3 to 6 still follow, renumbered, as the quarry for the new Sections 3 to 5.
+- The build prints about 110 broken references. They are reminders, by design: every `lst:rule1`, `lst:rule2`, `lst:rule3`, `lst:laws` marks text that still speaks of a deleted listing, and `sec:kernel`, `sec:kernel:derived`, `sec:check` mark sections not yet written.
 
 ## Decided
 

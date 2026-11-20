@@ -96,12 +96,6 @@ Apart from floating point and the last row, no difference is a different value: 
 \label{tab:binding}
 \end{table}
 
-\paragraph{The same laws license parallelism.}
-A parallel \cppinline{concat} is one more overload, licensed by \cppinline{IsCommutativeMonoid}.
-It is selected by a branch on the binding time, \texttt{if consteval}.
-The kernel has no such branch, and the desugaring keeps the compile-time side.
-Nothing is lost, because the law that licenses the parallel overload also proves that the two sides agree (Appendix~\ref{app:fjlt:consteval}).
-
 \Cpp{} passes no dictionaries but instantiates, so the translation models what a constrained call means, not what the compiler emits.
 Instantiation is partial evaluation~\cite{veldhuizen1999partial}, here of the dictionary-passing term at a static type.
 So the two agree on every closed term, and parametricity holds of every instantiation.
