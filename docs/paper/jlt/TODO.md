@@ -36,12 +36,12 @@ The state of the promise is the comment "WHERE THE LIE STANDS" in the abstract's
   That `concat1` is refused at the minimal monoid is said in the prose and held by a test that expects the compiler to refuse it.
 - Delete aggressively. The sequence case study (Appendix G, its listing, its sentences in the abstract) and the parallelism paragraph go with step 2.
 - The abstract's promise stays in the third person.
+- Where an axiom or a lemma may be declared is not a new rule: it is the second of the order conditions the kernel already has. They stay in Appendix B, with a reference from Rule 2, and the strict check is to report them.
 - The check restricts its audience to recent Clang. The language stays portable.
 
 ## For you to decide
 
-1. Where an axiom or a lemma may be declared (in the file or module of its trait, or of a type in its head): a fourth rule, a condition of the check, or a stated limitation?
-2. In the first listing, which accident `concat1` shows: the hard-coded `+`, the wrong unit, or both.
+1. In the first listing, which accident `concat1` shows: the hard-coded `+`, the wrong unit, or both.
 
 ## Work, in order
 
@@ -93,6 +93,7 @@ Designed on paper with you first.
 - One command runs it on the listings and prints the axioms.
 - A handful of files that each break one thing, each refused with a message.
 - States what it does not see.
+- Reports the three conditions on the order of declarations (Appendix B), conservatively, and across files by location: an entry in the file or module of its trait or of a type in its head. Flagged in Section 7 and in the linter's README.
 - Reports two lists: axioms, and forms licensed beyond the paper's.
 
 Shortens: "a check that a tool performs", and with it "a template means what its signature says".

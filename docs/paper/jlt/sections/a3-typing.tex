@@ -533,7 +533,7 @@ Under the three, a use that is valid at one place is valid at any later place an
 The listings keep the three.
 Listing~\ref{lst:rule2}'s entries precede its assertions, and Listing~\ref{lst:rule3} declares both cases of \cppinline{then} together, where a second case of Listing~\ref{lst:rule1}'s \cppinline{>>} would have changed what an earlier \cppinline{>>} builds.
 The second is a condition of \textsc{D-Entry}.
-The first and the third are stated here ahead of the rules, and the linter reports none of the three (Section~\ref{sec:limits}).
+The first and the third are stated here ahead of the rules. A tool can check all three, and the linter does not yet report them (Section~\ref{sec:limits}).
 
 \paragraph{Well-founded declarations.}
 Typing is itself a computation: resolving a call may ask whether a constraint holds, which may ask for another resolution, and \RuleThree{} asks that this chain end too.

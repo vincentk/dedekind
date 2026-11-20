@@ -126,6 +126,7 @@ The default answers \cppinline{false} for every type.
 An entry at one type, a declaration that begins \cppinline{template <>}, is an axiom: here, that \cppinline{Succ} and \cppinline{Neg} are injective.
 The entry at a composite is a lemma, a rule by which the law at a composite follows from the law at its two parts, and what the compiler infers by it is a theorem, here that \cppinline{up} is injective.
 Axioms and lemmas are the programmer's, stated and not proved (Appendix~\ref{app:fjlt:axioms}).
+An entry holds for the whole program or not at all, so it is declared above every use that could read it (Appendix~\ref{app:fjlt:order}).
 \cppinline{Pred} is one-to-one and has no entry, \cppinline{Half} is not one-to-one, and both answer \cppinline{false}: of a law, \cppinline{false} means not known, never refuted.
 A second law, that an arrow is constant, has the opposite lemma: a composite is constant where either part is.
 Its axiom is at \cppinline{Const}, an arrow that returns the value it holds.

@@ -134,6 +134,15 @@ rule here yet, and a reader holds them:
 - **The order of declarations.**  What a shape names stands above it; an entry
   of a trait stands above the first read it matches; every overload of a
   function stands above the first call it could be chosen for.
+  **TODO, checkable:** the tool sees each declaration with its place (it
+  already has `context-order`), so it can report all three.  Planned form:
+  (1) each function or trait a shape mentions is declared above the shape;
+  (2) no read of a trait, and no use of a shape that reads it, stands above an
+  entry it could match, judged conservatively by the trait's name and the
+  head's constructor; (3) all overloads of a name stand above the first call
+  of that name.  Across files: an entry stands in the file or module of its
+  trait or of a type in its head.  The check errs on the side of refusing, and
+  it cannot see what the preprocessor hides.
 - **Reads of a trait.**  At a type with a type variable a trait is read only in
   an entry's initialiser, at the parts of the entry's own head, or inside a
   shape.

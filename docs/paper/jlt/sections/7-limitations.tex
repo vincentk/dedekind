@@ -21,7 +21,11 @@ The third has a cost for extension: every overload of a function stands above th
 So a faster version of a function for one's own type cannot be added below earlier calls as a plain overload.
 It goes through a hook that the function declares, a table it reads or a call it names as a requirement, and an entry for one's own type may then be added later.
 A function that declares no hook cannot be specialised from outside, as the standard lets a program specialise \cppinline{std::hash} and not add an overload of \cppinline{std::sort}~\cite[{\texttt{namespace.std}}]{cpp23standard}.
-The linter reports none of the three conditions yet: its one check of order concerns an instance whose context names a shape declared too late.
+All three can be checked by a tool that sees each declaration with its place, as the repository's linter does, and the linter does not yet report them: its one check of order concerns an instance whose context names a shape declared too late.
+% TODO(linter): report the three order conditions of Appendix B, conservatively,
+% and across files by location (an entry in the file or module of its trait or
+% of a type in its head).  See tools/jlt-lint/README.md.
+Such a check would be conservative, refusing some programs that keep the conditions, and across files it would ask that an entry stand in the file or module of its trait or of a type in its head.
 Nor does it check the guard of Appendix~\ref{app:fjlt:typing}, that the head of a range or the content of an optional is read only in the branch its guard selects and on the variable the guard tests.
 \Cpp{} does not check it either: outside constant evaluation, reading the head of an empty range or the content of an empty optional is undefined behaviour.
 Nor does anything check that a program's declarations are well founded: the linter checks one of two syntactic conditions that approximate it (Appendix~\ref{app:fjlt:order}).
