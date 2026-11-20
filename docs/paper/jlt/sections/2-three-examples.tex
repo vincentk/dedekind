@@ -1,0 +1,413 @@
+% !TEX root = ../jlt.tex
+\section{Jlt, by Three Examples}
+\label{sec:examples}
+
+This section makes the case in three listings, each on a function the reader already knows.
+The first shows a bug that a signature would have prevented.
+The second shows an optimisation that a declared law permits.
+The third shows a fact that the compiler works out from facts it was given.
+Each listing has its code on the left, the tests of that code on the right, and below them what the code becomes under the translation of Section~\ref{sec:translation}.
+
+\subsection{What a signature prevents}
+\label{sec:examples:signature}
+
+Listing~\ref{lst:motivation} is about a function every \Cpp{} programmer has written.
+
+\begin{listing}[p]
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T, typename Op>
+constexpr bool associative = false;
+template <typename T, typename Op,
+          typename E>
+constexpr bool unital = false;
+template <typename T, typename Op>
+concept IsMagma = regular<T> &&
+  requires(T a, T b) {
+    { Op{}(a, b) } -> same_as<T>; };
+template <typename T, typename Op,
+          typename E>
+concept IsUnitalMagma =
+  IsMagma<T, Op> && unital<T, Op, E> &&
+  requires { { E{}() } -> same_as<T>; } &&
+  Op{}(E{}(), E{}()) == E{}();
+template <typename T, typename Op,
+          typename E>
+concept IsMonoid =
+  IsUnitalMagma<T, Op, E> &&
+  associative<T, Op>;
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+struct True { constexpr bool
+  operator()() const { return true; } };
+template <> constexpr bool
+associative<bool, logical_and<bool>> = true;
+template <> constexpr bool
+unital<bool, logical_and<bool>, True> = true;
+
+struct Bare { constexpr bool
+  operator==(const Bare&) const = default; };
+struct BareOp { constexpr Bare
+  operator()(Bare, Bare) const { return {}; } };
+struct BareUnit { constexpr Bare
+  operator()() const { return {}; } };
+template <> constexpr bool
+associative<Bare, BareOp> = true;
+template <> constexpr bool
+unital<Bare, BareOp, BareUnit> = true;
+\end{cpp}
+\end{minipage}
+
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <ranges::range R>
+constexpr ranges::range_value_t<R>
+concat1(R r) {
+  ranges::range_value_t<R> s{};
+  for (auto x : r) s = s + x;
+  return s; }
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename R>
+concept Accepts1 =
+    requires(R r) { concat1(r); };
+static_assert(
+concat1(array{1uz, 2uz, 3uz}) == 6 &&
+concat1(array{"ab"s, "c"s}) == "abc"s &&
+concat1(array{true, false}) == true &&
+Accepts1<array<Bare, 2>>);
+\end{cpp}
+\end{minipage}
+
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T, typename Op,
+          typename E, ranges::sized_range R>
+  requires IsMonoid<T, Op, E> && same_as<
+      ranges::range_value_t<R>, T>
+constexpr T concat2(R r) {
+  return ranges::fold_left(
+      r, E{}(), Op{}); }
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+static_assert(
+concat2<size_t, plus<size_t>, Zero>(
+    array{1uz, 2uz, 3uz}) == 6 &&
+concat2<string, plus<string>, Empty>(
+    array{"ab"s, "c"s}) == "abc"s &&
+concat2<bool, logical_and<bool>, True>(
+    array{true, false}) == false &&
+concat2<Bare, BareOp, BareUnit>(
+    array{Bare{}, Bare{}}) == Bare{});
+\end{cpp}
+\end{minipage}
+{\small\[
+\begin{array}{@{}l@{}}
+\mathit{Magma}\;T = \{\,\mathit{eq} : T \to T \to \mathit{Bool},\ \mathit{op} : T \to T \to T\,\} \\[2pt]
+\mathit{UnitalMagma}\;T = \{\,\mathit{magma} : \mathit{Magma}\;T,\ \mathit{unital} : \mathit{Bool},\ \mathit{unit} : T,\ \mathit{check} : \mathit{Bool}\,\} \\[2pt]
+\mathit{Monoid}\;T = \{\,\mathit{um} : \mathit{UnitalMagma}\;T,\ \mathit{assoc} : \mathit{Bool}\,\} \\[4pt]
+\mathit{concat2} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda n.\,\lambda f. \\
+\qquad\qquad\quad \pi_2\,(\mathit{iter}\;n\;(\lambda (k, s).\,(k + 1,\ q.\mathit{um}.\mathit{magma}.\mathit{op}\;s\;(f\;k)))\;(0,\ q.\mathit{um}.\mathit{unit}))
+\end{array}
+\]}
+\caption{What a signature prevents: a function that keeps less than it promises, and one held to its signature.
+Left: a monoid as a shape; \cppinline{concat1}; \cppinline{concat2}.
+Right: two monoids declared, the second the smallest there is; a test of each function.
+Below: the image of \cppinline{concat2} in System~F.}
+\label{lst:motivation}
+\end{listing}
+% TODO(listings): Listing lst:rule2 still shows the earlier form of IsMonoid,
+% with the unit as a value, and follows.  The image is the one of the smaller
+% kernel (a range as a count and an arrow, the iterator on a pair), which
+% Section 4 does not yet describe; it is a translation by hand.  The test that
+% expects the compiler to refuse a call of concat1 at Bare is to be written.
+
+The left column is code as it would stand in a program, and the right column tests it.
+A monoid is built up as algebra builds it.
+A \emph{magma} is a carrier with an operation, a \emph{unital magma} has a unit as well, and a \emph{monoid} is a unital magma whose operation is associative.
+The carrier, the operation and the unit are each a type, so the shape reads as the triple it is.
+That the operation is associative, and that the unit is its unit, are axioms: the programmer states them, as the top right panel does for the truth values under conjunction, and the compiler takes them at their word.
+The monoids of \cppinline{size_t} and of strings are declared the same way, with units \cppinline{Zero} and \cppinline{Empty}.
+The unit is also checked at one point, which can refute a false claim and cannot prove a true one.
+
+\cppinline{concat1} is the loop one writes without a second thought: a sum that starts from a default value.
+Its signature asks only for a range.
+Its body needs more: an operation \cppinline{+} on the elements, and a default value that is that operation's unit.
+At \cppinline{size_t} and at strings that is what the caller meant.
+At the truth values under conjunction it is not.
+The compiler adds two truth values as integers, the function returns \cppinline{true} for a range of \cppinline{true} and \cppinline{false}, and nothing objects, at any warning level this paper's build enables.
+\cppinline{Bare} is the smallest monoid there is: a type with an equality, one operation and one unit, and nothing more.
+Asked whether \cppinline{concat1} accepts a range of it, \Cpp{} answers yes, as the last line of the test shows, because it reads the signature and not the body.
+The call itself does not compile.
+That is an experiment a reader can make on a template of their own: hand it the barest type that meets its constraints.
+
+\cppinline{concat2} names in its signature what it uses, and its body uses nothing else.
+So it is right at all three monoids, and it is defined at \cppinline{Bare}.
+Its image below the panels says the same in another language: a shape becomes a record with one field for each thing the shape asks, a nested shape a nested record, and the function takes that record as an argument.
+A range is there its length $n$ and the arrow $f$ from an index to an element, and the body reaches a value of $T$ only through $q$.
+\cppinline{concat1} has no image: no record gives it a \cppinline{+}, and a checker that holds a body to its signature refuses it and says so, that no operation \cppinline{+} is declared for the range's elements.
+\Cpp{} accepts both functions.
+
+\subsection{What a law permits}
+\label{sec:examples:law}
+
+The function of Listing~\ref{lst:motivation} is not new.
+A Haskell programmer knows it as \texttt{mconcat}, and knows its companion \texttt{stimes}, which combines $n$ copies of one value~\cite{ghc2025semigroup}.
+Listing~\ref{lst:power} is that companion, the \emph{power} of a monoid.
+
+\begin{listing}[p]
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T> struct Power {
+  T product, base; size_t exponent; };
+template <typename T, typename Op,
+          typename E>
+struct Halving {
+  constexpr Power<T> operator()(
+      Power<T> p, size_t) const
+    requires IsMonoid<T, Op, E> {
+    return {
+      p.exponent % 2 == 1
+          ? Op{}(p.product, p.base) : p.product,
+      Op{}(p.base, p.base),
+      p.exponent / 2}; } };
+template <typename T, typename Op,
+          typename E>
+  requires IsMonoid<T, Op, E>
+constexpr T power(T x, size_t n) {
+  return ranges::fold_left(
+      views::iota(0uz, size_t(bit_width(n))),
+      Power<T>{E{}(), x, n},
+      Halving<T, Op, E>{}).product; }
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+static_assert(
+power<size_t, plus<size_t>, Zero>(
+    2uz, 10uz) ==
+concat2<size_t, plus<size_t>, Zero>(
+    views::repeat(2uz, 10uz)) &&
+power<size_t, plus<size_t>, Zero>(
+    2uz, 10uz) == 20 &&
+power<size_t, multiplies<size_t>, One>(
+    2uz, 10uz) == 1024 &&
+power<string, plus<string>, Empty>(
+    "ab"s, 3uz) == "ababab"s &&
+power<size_t, multiplies<size_t>, One>(
+    3uz, 1'000'000'000uz) ==
+    9'215'150'800'219'179'009uz &&
+power<string, plus<string>, Empty>(
+    ""s, 1'000'000'000'000uz) == ""s);
+\end{cpp}
+\end{minipage}
+
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T, typename Op,
+          typename E>
+  requires IsIdempotentMonoid<T, Op, E>
+constexpr T power(T x, size_t n) {
+  return n == 0 ? E{}() : x; }
+template <typename T, typename Op,
+          typename E>
+  requires IsMonoid<T, Op, E>
+constexpr T guessed_power(T x, size_t n) {
+  return power<T, Op, E>(x, n); }
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+static_assert(
+guessed_power<size_t, plus<size_t>,
+    Zero>(2uz, 10uz) == 20 &&
+guessed_power<size_t, Plus2,
+    Zero>(2uz, 10uz) == 2);
+\end{cpp}
+\end{minipage}
+{\small\[
+\begin{array}{@{}l@{}}
+\mathit{power}_0 = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{concat2}\;T\;\mathit{Op}\;E\;q\;n\;(\lambda k.\,x) \\[3pt]
+\mathit{power} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \pi_1\,(\mathit{iter}\;(\mathit{bits}\;n)\;\mathit{step}\;(q.\mathit{um}.\mathit{unit},\ x,\ n)) \\
+\qquad \mathit{step}\,(p, b, e) = (\,\mathit{if}\ \mathit{odd}\;e\ \mathit{then}\ p \cdot b\ \mathit{else}\ p,\ \ b \cdot b,\ \ e / 2\,) \qquad a \cdot b = q.\mathit{um}.\mathit{magma}.\mathit{op}\;a\;b
+\end{array}
+\]}
+\caption{What a law permits: the power of a monoid, and a caller that names too little.
+Left: the power by repeated squaring; a case of it that a law selects, and a function that calls it.
+Right: their tests.
+Below: the power's definition and the power in System~F.}
+\label{lst:power}
+\end{listing}
+% TODO(listings): code from the probe (namespace triple_probe).  The shapes
+% IsCommutativeMonoid (a monoid whose operation is declared commutative) and
+% the law commutative are omitted from the panels.  The free theorem as a
+% guarded function (fold_commutes, in the probe) is a candidate for an
+% appendix.  The citations for the
+% lemma and for the Russian peasant method are from memory, to be verified.
+
+The power of $x$ is $x$ combined with itself $n$ times: the concatenation of a repetition, which the first line of the test says in \Cpp{}.
+Computed that way it takes $n$ steps.
+\cppinline{power} takes as many steps as $n$ has bits, by squaring: the method known for multiplication as that of the Russian peasant~\cite[\S 4.6.3]{knuth1997art2}.
+The two agree because the operation is associative, which the shape in the signature states.
+It is one function with a meaning at each monoid: a multiple under \cppinline{+}, a power under \cppinline{*}, a repetition at strings.
+The images below the panels differ in one place, the count of the iterator, $n$ in the definition and the bits of $n$ in \cppinline{power}.
+System~F does not know that they are equal.
+The field of the record that says the operation is associative is what licenses putting the second for the first.
+The power of the unit is the unit, whatever the count, as the last line of the test shows at strings.
+\cppinline{power} has no case for that.
+With the base fixed to the unit and the count left for later, the compiler removes the fold and the count by itself, since the unit squared is the unit and it finds that by computing it (Section~\ref{sec:binding}).
+
+The lower panels show what the rules are for.
+Where the operation is idempotent, as conjunction is, a power is the value itself, and a second case of \cppinline{power}, on the same signature with one more law, says so in one step.
+The compiler selects it wherever that law is declared.
+\cppinline{guessed_power} declares a monoid and calls \cppinline{power}, so which case it gets is decided where it is used, by a law its signature never named.
+\cppinline{Plus2} is addition under another name, which someone has declared idempotent.
+That axiom is false, the caller never chose to depend on it, and ten twos come out as two.
+\Cpp{} accepts this function, and the rules of this paper do not: a generic function names every law its result depends on (\RuleTwo{}).
+
+\subsection{What the compiler infers}
+\label{sec:examples:inference}
+
+Both listings rest on laws that someone declared.
+Listing~\ref{lst:theorems} shows the compiler deriving one, and what a derived law is good for.
+
+\begin{listing}[p]
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T, typename Op,
+          typename E>
+struct Mon {};
+using Strings =
+    Mon<string, plus<string>, Empty>;
+using Counts =
+    Mon<size_t, plus<size_t>, Zero>;
+using All =
+    Mon<bool, logical_and<bool>, True>;
+using Any =
+    Mon<bool, logical_or<bool>, False>;
+template <typename H, typename A,
+          typename B>
+constexpr bool homomorphism = false;
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+struct Size { constexpr size_t
+  operator()(string s) const {
+    return s.size(); } };
+struct IsEmpty { constexpr bool
+  operator()(string s) const {
+    return s.empty(); } };
+struct Not { constexpr bool
+  operator()(bool b) const { return !b; } };
+template <> constexpr bool
+homomorphism<Size, Strings, Counts> = true;
+template <> constexpr bool
+homomorphism<IsEmpty, Strings, All> = true;
+template <> constexpr bool
+homomorphism<Not, All, Any> = true;
+\end{cpp}
+\end{minipage}
+
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename F, typename B,
+          typename G>
+struct Via { F f; G g;
+  constexpr auto operator()(auto x) const {
+    return g(f(x)); } };
+template <typename F, typename B,
+          typename G, typename A,
+          typename C>
+constexpr bool
+homomorphism<Via<F, B, G>, A, C> =
+    homomorphism<F, A, B> &&
+    homomorphism<G, B, C>;
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+using NonEmpty = Via<IsEmpty, All, Not>;
+static_assert(
+homomorphism<NonEmpty, Strings, Any> &&
+!homomorphism<NonEmpty, Strings, All>);
+\end{cpp}
+\end{minipage}
+
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T, typename Op,
+    typename E, typename U, typename Op2,
+    typename E2, typename H,
+    ranges::sized_range R>
+  requires IsMonoid<T, Op, E> &&
+    IsMonoid<U, Op2, E2> &&
+    homomorphism<H, Mon<T, Op, E>,
+                 Mon<U, Op2, E2>> &&
+    same_as<ranges::range_value_t<R>, T>
+constexpr bool free_theorem(
+    Mon<T, Op, E>, Mon<U, Op2, E2>,
+    H h, R r) {
+  return h(concat2<T, Op, E>(r)) ==
+      concat2<U, Op2, E2>(
+          views::transform(r, h)); }
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+static_assert(
+free_theorem(Strings{}, Counts{}, Size{},
+    array{"ab"s, ""s, "c"s}) &&
+free_theorem(Strings{}, All{}, IsEmpty{},
+    array{"ab"s, ""s}) &&
+free_theorem(Strings{}, Any{}, NonEmpty{},
+    array{""s, "ab"s}));
+\end{cpp}
+\end{minipage}
+{\small\[
+\begin{array}{@{}l@{}}
+\mathit{free\_theorem} = \Lambda T.\,\Lambda U.\,\ldots\,\lambda q : \mathit{Monoid}\;T.\,\lambda q' : \mathit{Monoid}\;U.\,\lambda l : \mathit{Bool}.\,\lambda h : T \to U.\,\lambda n.\,\lambda f. \\
+\qquad\qquad q'.\mathit{um}.\mathit{magma}.\mathit{eq}\;(h\,(\mathit{concat2}\;q\;n\;f))\;(\mathit{concat2}\;q'\;n\;(\lambda k.\,h\,(f\,k)))
+\end{array}
+\]}
+\caption{What the compiler infers: a law derived from laws, and three theorems for free.
+Left: the law that a function is a homomorphism; a lemma; the free theorem of \cppinline{concat2}.
+Right: three axioms; the inferred fact; three theorems. Below: the theorem in System~F.}
+\label{lst:theorems}
+\end{listing}
+% TODO(listings): code from the probe (namespace triple_probe), green on CI.
+% Via's call operator is written with auto, which the kernel does not have.
+% Parked: the semiring, under which a power is one product, and the lemma that
+% a power is a homomorphism where the operation commutes; their code is in the
+% probe and their text in this file's history.
+
+A \emph{homomorphism} is a function from one monoid to another that respects their operations and their units.
+The listing names each monoid by one type and makes ``is a homomorphism'' a law, as associativity is.
+Three axioms are declared: the length of a concatenation is the sum of the lengths, a concatenation is empty exactly when every part is, and De Morgan's law, that the negation of a conjunction is the disjunction of the negations.
+One lemma is stated and not proved, since it is a textbook fact: a homomorphism after a homomorphism is a homomorphism.
+It is an entry at a composite that reads the same law at the two parts, and the composite names the monoid in the middle, which the compiler could not guess.
+
+Nobody declared anything about a string not being empty.
+The compiler concludes, from emptiness and De Morgan's law, that it is a homomorphism into the truth values under disjunction: a concatenation is not empty exactly when some part is not.
+It concludes nothing more than follows, and the same function against conjunction is refused.
+
+A derived law is worth having because of a theorem that comes with every function written under the rules of this paper: it commutes with every homomorphism of the shape it names, which follows from its type alone~\cite{reynolds1983types,wadler1989theorems}.
+\cppinline{free_theorem} states that for \cppinline{concat2} in plain \Cpp{}, with the theorem's hypothesis as its signature.
+Each of its three calls reads as a sentence: from this monoid, to that one, by this function, on these values.
+The third can be written only because of the fact the compiler derived.
+A call checks one case and proves nothing, and the theorem holds whether or not anyone calls it.
+An axiom, in turn, is only as good as its author: ``a sum of counts is zero exactly when every count is'' looks as safe as the three above, and is false of \cppinline{size_t}, where a sum can wrap around to zero.
+
+\subsection{What the three have in common}
+\label{sec:examples:common}
+
+None of the three listings needs anything but standard \Cpp{}.
+What they need is that their signatures can be trusted, and nothing in \Cpp{} ensures that.
+The rest of the paper supplies it: a small language in which a signature means what it says, and a check that a program is written in it.
+

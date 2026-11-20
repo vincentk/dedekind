@@ -16,6 +16,33 @@ The paper needs three things and no more:
 The model is Table 1 of the introduction.
 The state of the promise is the comment "WHERE THE LIE STANDS" in the abstract's source; each item of work below should shorten it.
 
+## Architecture (agreed 2026-11-20)
+
+Modelled on "The Essence of JavaScript": a short introduction, the language introduced by example, a short formal part that cites, an application, and the detail in an artefact.
+
+| Section | Content |
+|---|---|
+| 1. Introduction | the gap between the concepts proposed and the concepts shipped; the promise; contributions as bullets; Figure 1 and Table 1 as the map |
+| 2. Jlt, by three examples | what a signature prevents; what a law permits; what the compiler infers. Each: the listing, the rule it shows at work, which of its lines are kernel and which are derived forms, and its image. The three rules are stated as what the three have in common |
+| 3. The kernel and its warrant | FJlt in a page, the cited theory, the free theorem; the adequacy of the derived forms, by test, stated as such |
+| 4. The check | the tool, on the three listings: what it accepts, what it refuses, the list it prints |
+| 5. At run time | what the compiler leaves |
+| 6 to 8 | limits, related work, conclusion |
+
+Appendix, short:
+
+- the kernel, complete;
+- the observation about resolution, stated;
+- the desugarings, as a table; the linter points to it.
+
+Artefact, on a stable branch released to Zenodo:
+
+- the linter, first brought up to speed in features and packaged more nicely, reviewed just before submission;
+- the examples "for the curious", packaged with it;
+- the tests that pair each listing with its kernel form, the ledger of axioms, the build that prints the emitted code.
+
+State: the three listings and their prose are moved into a new Section 2 with three subsections. The former Sections 2 to 6 still follow unchanged, renumbered, and are the quarry for the new Sections 3 to 5.
+
 ## Decided
 
 - Perspective: Art. Done in the header.
