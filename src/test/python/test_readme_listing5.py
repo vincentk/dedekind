@@ -62,7 +62,6 @@ def readme_panel(panel: str, language: str) -> str:
     )
 
 
-
 def definitions(cpp: str) -> set[str]:
     """What a panel defines: its constants, functions and parameters."""
     code = re.sub(r"'[^']*'|\"[^\"]*\"|//[^\n]*", "", cpp)
