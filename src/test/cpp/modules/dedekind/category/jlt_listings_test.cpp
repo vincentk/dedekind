@@ -1985,6 +1985,85 @@ static_assert(
     power<size_t, std::multiplies<size_t>, One>(1uz, 1'000'000'000'000uz) ==
         1 &&
     power<Str, Cat, Empty>(""s, 1'000'000'000'000uz) == ""s);
+
+// A candidate third listing: theorems for free, and one fact the compiler
+// works out.  A homomorphism is a function between two monoids that respects
+// their operations and their units.  That a function is one is a law, a trait
+// on the function and the two monoids, each monoid named by a type.
+template <typename T, typename Op, typename E>
+struct Mon {};
+using Strings = Mon<Str, Cat, Empty>;
+using Counts = Mon<size_t, std::plus<size_t>, Zero>;
+using All = Mon<bool, And, True>;
+using Any = Mon<bool, Or, False>;
+template <typename H, typename A, typename B>
+constexpr bool homomorphism = false;
+// Two axioms.  The length of a concatenation is the sum of the lengths, and a
+// concatenation is empty exactly when every part is.
+struct IsEmpty {
+  constexpr bool operator()(Str s) const { return s.empty(); }
+};
+template <>
+constexpr bool homomorphism<Size, Strings, Counts> = true;
+template <>
+constexpr bool homomorphism<IsEmpty, Strings, All> = true;
+// A third, De Morgan's: not (a and b) is (not a) or (not b), and not true is
+// false.
+struct Not {
+  constexpr bool operator()(bool b) const { return !b; }
+};
+template <>
+constexpr bool homomorphism<Not, All, Any> = true;
+// One function after another, by way of a monoid in the middle, which the
+// composite names because the compiler cannot guess it.
+template <typename F, typename B, typename G>
+struct Via {
+  F f;
+  G g;
+  constexpr auto operator()(auto x) const { return g(f(x)); }
+};
+// The lemma, stated once and not proved: a homomorphism after a homomorphism
+// is a homomorphism.  An entry at a composite that reads its own trait at the
+// two parts.
+template <typename F, typename B, typename G, typename A, typename C>
+constexpr bool homomorphism<Via<F, B, G>, A, C> =
+    homomorphism<F, A, B> && homomorphism<G, B, C>;
+// Nobody declared anything about "is not empty".  The compiler concludes that
+// it is a homomorphism from strings to the truth values under "or", and it
+// concludes nothing about a composite whose middle does not fit.
+using NonEmpty = Via<IsEmpty, All, Not>;
+static_assert(homomorphism<NonEmpty, Strings, Any> &&
+              !homomorphism<NonEmpty, Strings, All> &&
+              !homomorphism<Via<IsEmpty, Any, Not>, Strings, Any>);
+// The free theorem of concat2 as a function whose signature is its
+// hypothesis.  The two monoids are passed by name, so that nothing has to be
+// spelled twice.
+template <typename T, typename Op, typename E, typename U, typename Op2,
+          typename E2, typename H, std::ranges::sized_range R>
+  requires IsMonoid<T, Op, E> && IsMonoid<U, Op2, E2> &&
+           homomorphism<H, Mon<T, Op, E>, Mon<U, Op2, E2>> &&
+           std::same_as<std::ranges::range_value_t<R>, T>
+constexpr bool free_theorem(Mon<T, Op, E>, Mon<U, Op2, E2>, H h, R r) {
+  return h(concat2<T, Op, E>(r)) ==
+         concat2<U, Op2, E2>(std::views::transform(r, h));
+}
+// Three theorems for free.  The lengths add; a concatenation is empty when
+// all its parts are; and, from the inferred fact, it is not empty when some
+// part is not.
+static_assert(
+    free_theorem(Strings{}, Counts{}, Size{}, std::array{"ab"s, ""s, "c"s}) &&
+    free_theorem(Strings{}, All{}, IsEmpty{}, std::array{"ab"s, ""s}) &&
+    free_theorem(Strings{}, All{}, IsEmpty{}, std::array{""s, ""s}) &&
+    free_theorem(Strings{}, Any{}, NonEmpty{}, std::array{""s, "ab"s}) &&
+    free_theorem(Strings{}, Any{}, NonEmpty{}, std::array{""s, ""s}));
+// An axiom one might have declared, and that is false: "a sum of counts is
+// zero exactly when every one is".  It holds of the naturals and not of
+// size_t, where a sum can wrap around to zero.
+struct IsZero {
+  constexpr bool operator()(size_t n) const { return n == 0; }
+};
+constexpr size_t half = size_t{1} << 63;
+static_assert(IsZero{}(half + half) && !IsZero{}(half));
 }  // namespace triple_probe
 
 TEST_CASE("Spelling probe: a law as a function and as a table",
