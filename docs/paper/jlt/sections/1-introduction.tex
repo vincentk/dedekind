@@ -32,7 +32,10 @@ Concepts, as proposed for \Cpp{0x}, checked a template's definition against its 
 As standardised in \Cpp{20} they check only its uses~\cite{stroustrup2020thriving}, so a template's body may use operations its constraints do not name.
 The designers named the problem at the outset, in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
 
-Listing~\ref{lst:motivation} shows what that costs, on a function that every \Cpp{} programmer has written.
+Three listings make the case, each on a function the reader already knows.
+The first shows a bug that a signature would have prevented.
+The second shows an optimisation that a declared law permits.
+The third shows a fact that the compiler works out from facts it was given.
 
 \begin{listing}[p]
 \begin{minipage}[t]{0.48\linewidth}
@@ -137,7 +140,7 @@ concat2<Bare, BareOp, BareUnit>(
 \qquad\qquad\quad \pi_2\,(\mathit{iter}\;n\;(\lambda (k, s).\,(k + 1,\ q.\mathit{um}.\mathit{magma}.\mathit{op}\;s\;(f\;k)))\;(0,\ q.\mathit{um}.\mathit{unit}))
 \end{array}
 \]}
-\caption{A function that keeps less than it promises, and one held to its signature.
+\caption{What a signature prevents: a function that keeps less than it promises, and one held to its signature.
 Left: a monoid as a shape; \cppinline{concat1}; \cppinline{concat2}.
 Right: two monoids declared, the second the smallest there is; a test of each function.
 Below: the image of \cppinline{concat2} in System~F.}
@@ -174,7 +177,6 @@ Its image below the panels says the same in another language: a shape becomes a 
 A range is there its length $n$ and the arrow $f$ from an index to an element, and the body reaches a value of $T$ only through $q$.
 \cppinline{concat1} has no image: no record gives it a \cppinline{+}, and a checker that holds a body to its signature refuses it and says so, that no operation \cppinline{+} is declared for the range's elements.
 \Cpp{} accepts both functions.
-The rest of the paper is about what it takes to write the second and to know that one has.
 
 The function is not new.
 A Haskell programmer knows it as \texttt{mconcat}, and knows its companion \texttt{stimes}, which combines $n$ copies of one value~\cite{ghc2025semigroup}.
@@ -258,7 +260,7 @@ guessed_power<size_t, Plus2,
 \qquad \mathit{step}\,(p, b, e) = (\,\mathit{if}\ \mathit{odd}\;e\ \mathit{then}\ p \cdot b\ \mathit{else}\ p,\ \ b \cdot b,\ \ e / 2\,) \qquad a \cdot b = q.\mathit{um}.\mathit{magma}.\mathit{op}\;a\;b
 \end{array}
 \]}
-\caption{The power of a monoid, and a caller that names too little.
+\caption{What a law permits: the power of a monoid, and a caller that names too little.
 Left: the power by repeated squaring; a case of it that a law selects, and a function that calls it.
 Right: their tests.
 Below: the power's definition and the power in System~F.}
@@ -291,11 +293,139 @@ The compiler selects it wherever that law is declared.
 That axiom is false, the caller never chose to depend on it, and ten twos come out as two.
 \Cpp{} accepts this function, and the rules of this paper do not: a generic function names every law its result depends on (\RuleTwo{}).
 
-% Parked 2026-11-20: a third listing, the semiring (one product for the power
-% under its first monoid), the lemma that a power is a homomorphism where the
-% operation commutes, and the free theorem of concat2 as an equation.  Its code
-% is in the probe (namespace triple_probe); its text is in the history of this
-% file.
+Both listings rest on laws that someone declared.
+Listing~\ref{lst:theorems} shows the compiler deriving one, and what a derived law is good for.
+
+\begin{listing}[p]
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T, typename Op,
+          typename E>
+struct Mon {};
+using Strings =
+    Mon<string, plus<string>, Empty>;
+using Counts =
+    Mon<size_t, plus<size_t>, Zero>;
+using All =
+    Mon<bool, logical_and<bool>, True>;
+using Any =
+    Mon<bool, logical_or<bool>, False>;
+template <typename H, typename A,
+          typename B>
+constexpr bool homomorphism = false;
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+struct Size { constexpr size_t
+  operator()(string s) const {
+    return s.size(); } };
+struct IsEmpty { constexpr bool
+  operator()(string s) const {
+    return s.empty(); } };
+struct Not { constexpr bool
+  operator()(bool b) const { return !b; } };
+template <> constexpr bool
+homomorphism<Size, Strings, Counts> = true;
+template <> constexpr bool
+homomorphism<IsEmpty, Strings, All> = true;
+template <> constexpr bool
+homomorphism<Not, All, Any> = true;
+\end{cpp}
+\end{minipage}
+
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename F, typename B,
+          typename G>
+struct Via { F f; G g;
+  constexpr auto operator()(auto x) const {
+    return g(f(x)); } };
+template <typename F, typename B,
+          typename G, typename A,
+          typename C>
+constexpr bool
+homomorphism<Via<F, B, G>, A, C> =
+    homomorphism<F, A, B> &&
+    homomorphism<G, B, C>;
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+using NonEmpty = Via<IsEmpty, All, Not>;
+static_assert(
+homomorphism<NonEmpty, Strings, Any> &&
+!homomorphism<NonEmpty, Strings, All>);
+\end{cpp}
+\end{minipage}
+
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T, typename Op,
+    typename E, typename U, typename Op2,
+    typename E2, typename H,
+    ranges::sized_range R>
+  requires IsMonoid<T, Op, E> &&
+    IsMonoid<U, Op2, E2> &&
+    homomorphism<H, Mon<T, Op, E>,
+                 Mon<U, Op2, E2>> &&
+    same_as<ranges::range_value_t<R>, T>
+constexpr bool free_theorem(
+    Mon<T, Op, E>, Mon<U, Op2, E2>,
+    H h, R r) {
+  return h(concat2<T, Op, E>(r)) ==
+      concat2<U, Op2, E2>(
+          views::transform(r, h)); }
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+static_assert(
+free_theorem(Strings{}, Counts{}, Size{},
+    array{"ab"s, ""s, "c"s}) &&
+free_theorem(Strings{}, All{}, IsEmpty{},
+    array{"ab"s, ""s}) &&
+free_theorem(Strings{}, Any{}, NonEmpty{},
+    array{""s, "ab"s}));
+\end{cpp}
+\end{minipage}
+{\small\[
+\begin{array}{@{}l@{}}
+\mathit{free\_theorem} = \Lambda T.\,\Lambda U.\,\ldots\,\lambda q : \mathit{Monoid}\;T.\,\lambda q' : \mathit{Monoid}\;U.\,\lambda l : \mathit{Bool}.\,\lambda h : T \to U.\,\lambda n.\,\lambda f. \\
+\qquad\qquad q'.\mathit{um}.\mathit{magma}.\mathit{eq}\;(h\,(\mathit{concat2}\;q\;n\;f))\;(\mathit{concat2}\;q'\;n\;(\lambda k.\,h\,(f\,k)))
+\end{array}
+\]}
+\caption{What the compiler infers: a law derived from laws, and three theorems for free.
+Left: the law that a function is a homomorphism; a lemma; the free theorem of \cppinline{concat2}.
+Right: three axioms; the inferred fact; three theorems. Below: the theorem in System~F.}
+\label{lst:theorems}
+\end{listing}
+% TODO(listings): code from the probe (namespace triple_probe), green on CI.
+% Via's call operator is written with auto, which the kernel does not have.
+% Parked: the semiring, under which a power is one product, and the lemma that
+% a power is a homomorphism where the operation commutes; their code is in the
+% probe and their text in this file's history.
+
+A \emph{homomorphism} is a function from one monoid to another that respects their operations and their units.
+The listing names each monoid by one type and makes ``is a homomorphism'' a law, as associativity is.
+Three axioms are declared: the length of a concatenation is the sum of the lengths, a concatenation is empty exactly when every part is, and De Morgan's law, that the negation of a conjunction is the disjunction of the negations.
+One lemma is stated and not proved, since it is a textbook fact: a homomorphism after a homomorphism is a homomorphism.
+It is an entry at a composite that reads the same law at the two parts, and the composite names the monoid in the middle, which the compiler could not guess.
+
+Nobody declared anything about a string not being empty.
+The compiler concludes, from emptiness and De Morgan's law, that it is a homomorphism into the truth values under disjunction: a concatenation is not empty exactly when some part is not.
+It concludes nothing more than follows, and the same function against conjunction is refused.
+
+A derived law is worth having because of a theorem that comes with every function written under the rules of this paper: it commutes with every homomorphism of the shape it names, which follows from its type alone~\cite{reynolds1983types,wadler1989theorems}.
+\cppinline{free_theorem} states that for \cppinline{concat2} in plain \Cpp{}, with the theorem's hypothesis as its signature.
+Each of its three calls reads as a sentence: from this monoid, to that one, by this function, on these values.
+The third can be written only because of the fact the compiler derived.
+A call checks one case and proves nothing, and the theorem holds whether or not anyone calls it.
+An axiom, in turn, is only as good as its author: ``a sum of counts is zero exactly when every count is'' looks as safe as the three above, and is false of \cppinline{size_t}, where a sum can wrap around to zero.
+
+None of the three listings needs anything but standard \Cpp{}.
+What they need is that their signatures can be trusted, and nothing in \Cpp{} ensures that.
+The rest of the paper supplies it: a small language in which a signature means what it says, and a check that a program is written in it.
 
 \Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary.
 This paper documents a discipline of three rules that does, and that recovers some of what a functional language guarantees.

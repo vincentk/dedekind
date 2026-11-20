@@ -28,10 +28,12 @@ The state of the promise is the comment "WHERE THE LIE STANDS" in the abstract's
 - `then` is dropped as it stands.
 - Value parameters leave the kernel. Done in Table 1; the rules go in step 2.
 - The unit law is a listed axiom, an entry of a trait on `(T, Op, E)`, and the check at one point stays: it checks and does not prove (1 · 1 = 1).
-- Two listings are the body's material, each a structure and a function, with code on the left, its tests on the right, and its image in System F below. Both are drafted in the introduction.
+- Three listings are the body's material, each on a function the reader knows, with code on the left, its tests on the right, and its image in System F below. Both are drafted in the introduction.
   - Listing 1, the monoid and `concat`: the shape as magma, unital magma, monoid; `concat1`, the loop with `+` and a default start hard-coded; `concat2`; three monoids and the minimal one; C++ asked whether `concat1` accepts the minimal monoid, answering yes.
   - Listing 2, the monoid and `power`: the concatenation of a repetition; repeated squaring; the power of the unit is the unit, whatever the count; a case that idempotence selects; a caller whose result depends on a law it never named.
-  - A third listing (the semiring and one product; the lemma that a power is a homomorphism where the operation commutes; the free theorem as an equation) is dropped for now. Its code stays in the probe.
+  - Listing 3, what the compiler infers: monoids by name and the law that a function is a homomorphism; three axioms (lengths add, emptiness, De Morgan); the lemma that one homomorphism after another is one; the inferred fact about non-emptiness; the free theorem of `concat2` as a function and three calls of it.
+  - The three are introduced as what a signature prevents, what a law permits, what the compiler infers, and closed by what the rest of the paper supplies. The abstract's promise follows the same three, then the list.
+  - Parked, with code in the probe: the semiring and one product; the lemma that a power is a homomorphism where the operation commutes.
   - Further listings go to an appendix "for the curious".
   - Not written yet: the test that expects the compiler to refuse a call of `concat1` at the minimal monoid.
 - Delete aggressively. The sequence case study (Appendix G, its listing, its sentences in the abstract) and the parallelism paragraph go with step 2.
