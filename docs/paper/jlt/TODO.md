@@ -26,16 +26,22 @@ The state of the promise is the comment "WHERE THE LIE STANDS" in the abstract's
 - Carriers are opaque. Every value is `semiregular`; `regular` only where a shape asks.
 - The written negation `!C` stays, read as "not known here".
 - `then` is dropped as it stands.
+- Value parameters leave the kernel. Done in Table 1; the rules go in step 2.
+- The unit law is a listed axiom, an entry of a trait on `(T, Op, E)`, and the check at one point stays: it checks and does not prove (1 · 1 = 1).
+- A first listing shows the problem, in four panels:
+  - left, top: `concat1`, which by accident hard-codes the operator `+` or the wrong unit;
+  - left, bottom: `concat2`, fixed;
+  - right, top: both called at a lucky monoid, where both happen to work;
+  - right, bottom: `concat2` called at the minimal monoid, the bare type that offers only what the shape names.
+  That `concat1` is refused at the minimal monoid is said in the prose and held by a test that expects the compiler to refuse it.
+- The sequence case study and the parallelism paragraph stay for now, with a view to dropping them.
+- The abstract's promise stays in the third person.
 - The check restricts its audience to recent Clang. The language stays portable.
 
 ## For you to decide
 
-1. Value parameters leave the kernel, now that the probe is green? (Table 1, and Thursday's rules.)
-2. A first listing that shows the problem: an ordinary constrained template, and the bare type at which it does not compile. Which template?
-3. The unit law: keep the check `Op{}(E{}(), E{}()) == E{}()` inside the shape, or make "E is the unit" an entry of a trait, listed like other axioms, with the check as an assertion beside it?
-4. Where entries may live (with their trait or with a type in their head): a fourth rule, a condition of the check, or a stated limitation?
-5. The case study on sequences (Appendix G) and the "laws license parallelism" paragraph: keep, shorten, or move to another paper?
-6. The abstract's sentence in the third person, or addressed to the reader?
+1. Where an axiom or a lemma may be declared (in the file or module of its trait, or of a type in its head): a fourth rule, a condition of the check, or a stated limitation?
+2. In the first listing, which accident `concat1` shows: the hard-coded `+`, the wrong unit, or both.
 
 ## Work, in order
 
@@ -52,7 +58,7 @@ Pure removal, with references repaired.
 - The ranges `chain` and `repeat`.
 - D-Rec and T-Rec, their translation and proof cases; `then` from Listing 3 and from Figure 2.
 - Conversions between carriers beyond a literal.
-- Value parameters, if decision 1 says so: three grammar rows, T-Val, A-Val, A-Atom, A-Inst, the two "Value parameters" paragraphs, their proof rows.
+- Value parameters: three grammar rows, T-Val, A-Val, A-Atom, A-Inst, the two "Value parameters" paragraphs, their proof rows.
 
 Shortens: nothing in the promise, but most of Appendices B to E.
 
@@ -68,10 +74,10 @@ Shortens: nothing in the promise, but most of Appendices B to E.
 - Listings 2 to 4 with the triple of types. `Zero`, `One`, an empty-string unit.
 - The string monoid, and the free theorem as one assertion: the length of a concatenation is the sum of the lengths.
 - Listing 4: `Mat<T, Zero, One>`, its identity as a function object, Fibonacci by `power`. The fast `concat` on an arrow and a count.
-- The first listing, if decision 2 says so.
+- The first listing, in four panels as decided.
 - Each listing beside its FJlt form, both compiled, with an assertion that they agree.
 
-Shortens: "what was taken on trust comes out as a list", if units become entries.
+Shortens: "what was taken on trust comes out as a list", since a unit becomes a listed entry.
 
 ### 5. The derived forms, written down
 
