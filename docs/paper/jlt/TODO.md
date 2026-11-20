@@ -55,7 +55,7 @@ Where to work: branch `docs/paper-three-examples`, draft PR #1209 (based on `mai
 
 Code of the three listings: namespace `triple_probe` in `src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp`. The printed listings must stay verbatim with it, up to formatting and omitted declarations. The showcase `showcase_16_listing3_two_folds.cpp` still holds the older listings' code and prints the emitted code of `power` at the unit.
 
-Unconfirmed at the time of writing: CI on the last code change (the shape asks only `copyable`, the unit's check is an assertion beside its axiom, `free_theorem` asks `equality_comparable` of the receiving carrier). If it fails, the listings follow the code that compiles.
+Confirmed by CI on #1209 (run on edbe86ed, 2026-11-20): the code of all three listings as printed, including the shape that asks only `copyable`, the unit's check as an assertion beside its axiom, `free_theorem` through the shape `IsHomomorphism`, and `Via` with its three carriers.
 
 Open findings from the two reads of the preview (a C++ practitioner and a theorist), none acted on unless listed under "Decided":
 
