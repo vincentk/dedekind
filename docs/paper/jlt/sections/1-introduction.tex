@@ -202,7 +202,7 @@ template <typename T, typename Op,
           typename E>
   requires IsMonoid<T, Op, E>
 constexpr T power(T x, size_t n) {
-  return x == E{}() ? x : ranges::fold_left(
+  return ranges::fold_left(
       views::iota(0uz, size_t(bit_width(n))),
       Power<T>{E{}(), x, n},
       Halving<T, Op, E>{}).product; }
@@ -255,8 +255,7 @@ guessed_power<size_t, Plus2,
 {\small\[
 \begin{array}{@{}l@{}}
 \mathit{power}_0 = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{concat2}\;T\;\mathit{Op}\;E\;q\;n\;(\lambda k.\,x) \\[3pt]
-\mathit{power} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{if}\ q.\mathit{um}.\mathit{magma}.\mathit{eq}\;x\;q.\mathit{um}.\mathit{unit}\ \mathit{then}\ x \\
-\qquad\qquad \mathit{else}\ \pi_1\,(\mathit{iter}\;(\mathit{bits}\;n)\;\mathit{step}\;(q.\mathit{um}.\mathit{unit},\ x,\ n)) \\
+\mathit{power} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \pi_1\,(\mathit{iter}\;(\mathit{bits}\;n)\;\mathit{step}\;(q.\mathit{um}.\mathit{unit},\ x,\ n)) \\
 \qquad \mathit{step}\,(p, b, e) = (\,\mathit{if}\ \mathit{odd}\;e\ \mathit{then}\ p \cdot b\ \mathit{else}\ p,\ \ b \cdot b,\ \ e / 2\,) \qquad a \cdot b = q.\mathit{um}.\mathit{magma}.\mathit{op}\;a\;b
 \end{array}
 \]}
@@ -281,9 +280,9 @@ It is one function with a meaning at each monoid: a multiple under \cppinline{+}
 The images below the panels differ in one place, the count of the iterator, $n$ in the definition and the bits of $n$ in \cppinline{power}.
 System~F does not know that they are equal.
 The field of the record that says the operation is associative is what licenses putting the second for the first.
-\cppinline{power} also returns at once where it is handed the unit, since the power of the unit is the unit: the unit law, in the instance the shape checks.
-The count then no longer matters, and the result is known before anything runs, as the last line of the test shows at strings.
-It is the first use of the carrier's equality, the field $\mathit{eq}$ of the record.
+The power of the unit is the unit, whatever the count, as the last line of the test shows at strings.
+\cppinline{power} has no case for that.
+With the base fixed to the unit and the count left for later, the compiler removes the fold and the count by itself, since the unit squared is the unit and it finds that by computing it (Section~\ref{sec:binding}).
 
 The lower panels show what the rules are for.
 Where the operation is idempotent, as conjunction is, a power is the value itself, and a second case of \cppinline{power}, on the same signature with one more law, says so in one step.

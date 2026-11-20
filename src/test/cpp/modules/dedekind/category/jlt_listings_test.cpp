@@ -1768,11 +1768,10 @@ struct Halving {
 template <typename T, typename Op, typename E>
   requires IsMonoid<T, Op, E>
 constexpr T power(T x, size_t n) {
-  return x == E{}() ? x
-                    : std::ranges::fold_left(
-                          std::views::iota(0uz, size_t(std::bit_width(n))),
-                          Power<T>{E{}(), x, n}, Halving<T, Op, E>{})
-                          .product;
+  return std::ranges::fold_left(
+             std::views::iota(0uz, size_t(std::bit_width(n))),
+             Power<T>{E{}(), x, n}, Halving<T, Op, E>{})
+      .product;
 }
 // A law selects a faster case on the same signature: where the operation is
 // idempotent, a power is the value itself, in one step.
@@ -1978,8 +1977,10 @@ static_assert(
         concat2<size_t, std::plus<size_t>, Zero>(
             std::views::transform(std::array{1uz, 2uz, 3uz}, Sum{3uz})));
 
-// The power of the unit is the unit, whatever the count: the unit law, in the
-// instance the shape checks.  power says so before it folds.
+// The power of the unit is the unit, whatever the count.  power has no case
+// for it: the fold computes it, and with the base known while compiling the
+// compiler removes the fold and the count (the showcase's power_of_zero and
+// power_of_identity).
 static_assert(
     power<size_t, std::plus<size_t>, Zero>(0uz, 1'000'000'000'000uz) == 0 &&
     power<size_t, std::multiplies<size_t>, One>(1uz, 1'000'000'000'000uz) ==

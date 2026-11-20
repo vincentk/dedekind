@@ -12,6 +12,16 @@ Constant evaluation follows the rules of the abstract machine~\cite[{\texttt{exp
 So moving a call from compile time to run time changes where it is evaluated, not what it evaluates to.
 The agreement is the standard's: the paper takes it as given and does not prove it.
 
+% TODO(binding): an exhibit for this section, from CI run 44790757233 on
+% 10ae8a6ce (Clang 23, -O2), showcase_16.  With the base fixed to the unit and
+% the count an argument known only at run time, the squaring fold compiles to
+% one instruction and the count is unused:
+%   @power_of_zero(i64 %0)      ->  ret i64 0    (0 under + on size_t)
+%   @power_of_identity(i64 %0)  ->  ret i64 1    (an entry of the identity matrix)
+% The same functions with the unit recognised before the fold give the same
+% code, so the explicit case buys nothing here and Listing lst:power has none.
+% How the compiler gets there (the unit is a fixed point of squaring, found by
+% computing it) is inferred from the output and not observed.
 \paragraph{Sketch: the two terms, compiled.}
 Figure~\ref{fig:sketch-ir} shows what Clang leaves of the terms of Listings~\ref{lst:rule3} and~\ref{lst:laws}, with the binding time on the arrow.
 
