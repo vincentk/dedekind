@@ -1,0 +1,29 @@
+% !TEX root = ../jlt.tex
+\section{The Check}
+\label{sec:check}
+
+\Cpp{} holds a program to part of the three rules, and a tool holds it to more.
+The repository of this paper has such a tool, a linter built on Clang's own libraries, and this section says what it does today.
+% TODO(check): this section describes the linter as it is.  To be built, and
+% then described here: a strict mode in which every construct is kernel or a
+% listed derived form; the modes "check" (all rules satisfied, the axioms
+% listed) and "warn" (the axioms and each violation listed) on a named file;
+% the three conditions on the order of declarations, conservatively, and across
+% files by location; its output on the three listings (concat1 and
+% guessed_power refused, the false axiom on the list); a list of the derived
+% forms a project licenses beyond the paper's; what it does not see.  None of
+% the three listings is under the linter yet: their code is in a probe.
+
+It reads a source file as the compiler does and applies a set of rules to a named part of it.
+A rule either refuses the file or reports what it found.
+For the first rule it checks, among others, that functions are \cppinline{constexpr}, that call operators are \cppinline{const}, that nothing is thrown and that no mutable state is global.
+For the second it checks that a template is constrained and that a generic body calls on its type parameters only what its constraints name, by the names of the calls.
+For the third it checks that there is no loop without a stated end and no function that calls itself.
+
+It also prints a list.
+Every entry of a trait at one type whose value is \cppinline{true} is an axiom, and the tool lists them with their places, for a file or for a whole library.
+The build compares that list with one that is kept under version control, so an axiom cannot be added without the change being seen.
+
+What the tool does not yet do is decide whether a program is Jlt.
+That needs a mode in which every construct is either in the kernel or a listed derived form and anything else is refused, and it needs the conditions on the order of declarations (Section~\ref{sec:limits}).
+Until then the first clause of this paper's promise, that a template means what its signature says, rests on the programmer and on a reviewer.

@@ -77,6 +77,10 @@ It does not hold a generic function to its declared constraints: the body may us
 %     names too little shows what the check must refuse, and no check does.
 %   - "the compiler carries laws through composition": true of Listing 3 (a
 %     homomorphism after a homomorphism), on three axioms.
+%   - Section 3.2, "the evidence is a test that compiles a listing beside its
+%     kernel form": no such test exists yet.
+%   - Section 3.3, the three results about the target: stated from the agreed
+%     model, not yet checked against a written-out kernel.
 %   - "what was taken on trust comes out as a list": true for entries at one
 %     type.  Lemmas and units named at a use are not listed.
 Under the rules of this paper and a check that a tool performs, a template means what its signature says, a declared law licenses a faster program, and the compiler carries laws through composition.
@@ -113,9 +117,8 @@ The compiler enforces the rules where the standard requires a check, and the pro
 
 \input{sections/1-introduction}
 \input{sections/2-three-examples}
-\input{sections/3-jlt-to-fjlt}
-\input{sections/4-fjlt-to-system-f}
-\input{sections/5-system-f-to-fjlt}
+\input{sections/3-kernel}
+\input{sections/4-check}
 \input{sections/6-partial-evaluation}
 \input{sections/7-limitations}
 \input{sections/8-related-work}

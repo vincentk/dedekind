@@ -1,0 +1,157 @@
+% !TEX root = ../jlt.tex
+\section{The Kernel and Its Warrant}
+\label{sec:kernel}
+
+The three examples are written in a language, Jlt, that is defined in two steps (Table~\ref{tab:model}).
+A small kernel, Featherweight Jlt or FJlt, is a subset of \Cpp{} whose meaning is given by a translation into a calculus that is well understood.
+Jlt is that kernel with \emph{derived forms}, each a way of writing something the kernel can already say.
+The first step follows Featherweight Java~\cite{igarashi2001featherweight}: a kernel small enough to reason about, every program of which is a program of the full language.
+The second follows the treatment of JavaScript by a small core and a desugaring into it~\cite{guha2010essence}.
+% TODO(related): the bare language and derived forms of the Definition of
+% Standard ML are the older precedent for the second step; cite once verified.
+
+\subsection{The kernel}
+\label{sec:kernel:fjlt}
+
+FJlt has two layers.
+The \emph{value layer} is what a program computes with.
+The \emph{resolution layer} is what the compiler chooses before the program runs.
+Table~\ref{tab:kernel} lists what is in each, as it is written in \Cpp{} and where the three listings use it.
+
+\begin{table}[tb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.3\linewidth}@{}}
+\toprule
+construct & written in \Cpp{} as & in the listings \\
+\midrule
+\multicolumn{3}{@{}l}{\textit{value layer}} \\
+atom & \texttt{bool}, \texttt{size\_t}: a truth value, a count & \texttt{true}, the count \texttt{n} \\
+carrier & any type of values, known only by the calls a shape names & \texttt{string}, \texttt{Bare}, the \texttt{T} of a template \\
+pair & \texttt{std::pair} & the state of a fold \\
+arrow & a \texttt{struct} with a \texttt{constexpr}, \texttt{const} call operator of one parameter or none & \texttt{True}, \texttt{Size}, \texttt{Not} \\
+choice & the conditional \texttt{?:} on a truth value & in \texttt{Halving} \\
+iteration & a step applied to a state a counted number of times & the fold of \texttt{concat2} and of \texttt{power} \\
+abstraction & a template over types & every generic definition \\
+\midrule
+\multicolumn{3}{@{}l}{\textit{resolution layer}} \\
+named type & a \texttt{struct}, or a \texttt{struct} template over types & \texttt{Mon}, \texttt{Via}, \texttt{PowerBy} \\
+shape & a \texttt{concept}: other shapes, laws and required calls, joined by \texttt{\&\&}; its negation & \texttt{IsMagma}, \texttt{IsMonoid} \\
+trait & a variable template with a default and entries; an entry at a form reads its own trait at proper parts & \texttt{associative}, \texttt{unital}, \texttt{homomorphism} \\
+case & function templates of one name under \texttt{requires} clauses, the most specific chosen & the two cases of \texttt{power} \\
+\bottomrule
+\end{tabularx}
+\caption{The kernel, FJlt.}
+\label{tab:kernel}
+\end{table}
+% TODO(kernel): the complete grammar and rules go to the appendix ("the kernel,
+% complete").  Decide the C++ spelling of iteration: a constexpr function that
+% calls itself at n - 1, as the primitive's definition, or fold_left over an
+% iota with the index ignored.  The table states what was agreed on 2026-11-20
+% and has not been checked line by line against the three listings.
+
+The value layer has little of \Cpp{} in it, on purpose.
+A carrier is a type the kernel never looks inside: a generic definition reaches a value of it only through the calls that a shape names, and that is all the kernel knows of a string.
+The one recursion over a value is iteration, with its count given before the first step.
+A fold that also wants the index, or a state of several parts, carries them in a pair.
+
+The resolution layer is where \Cpp{} lives.
+A named type gives the compiler something to select by, a shape says what a generic definition may assume, and a trait and a function with several cases are each a selection by the form of a type.
+Every program of the kernel is a \Cpp{} program and means what \Cpp{} says it means.
+The kernel leaves out what would break that reading: assignment to anything that outlives a call, references and pointers as values, inheritance, exceptions, and a function that calls itself.
+
+\subsection{Derived forms}
+\label{sec:kernel:derived}
+
+A derived form is a rewrite of a Jlt program into FJlt that may change types inside the program and leaves every observable value unchanged.
+An observable value is the value of a closed term at an atom, while compiling and while running.
+Time is not observed, so a program and its rewrite may differ in cost and in nothing else.
+Table~\ref{tab:derived} lists the derived forms that the three listings use.
+
+\begin{table}[tb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.28\linewidth}@{}}
+\toprule
+written & stands for & the same because \\
+\midrule
+a function of several parameters, as the step of a fold & a function of one pair & it has the same value at every argument \\
+a \texttt{struct} of three fields, as \texttt{Power} & nested pairs & field by field \\
+a range, as \texttt{array\{...\}}, \texttt{views::iota}, \texttt{views::repeat}, \texttt{views::transform}, or a parameter \texttt{R} & a count and an arrow from an index to an element & a fold visits the same values in the same order \\
+\texttt{ranges::fold\_left} over a range & iteration on a pair of an index and a result & by the row above \\
+\texttt{ranges::sized\_range R}, an alias, a deduced type, an \texttt{auto} parameter & the \texttt{requires} clause, the type or the template parameter written out & the standard defines them so \\
+\texttt{static\_assert} & the observation of a truth value & it is what is observed \\
+\bottomrule
+\end{tabularx}
+\caption{The derived forms used by Listings~\ref{lst:motivation} to~\ref{lst:theorems}.}
+\label{tab:derived}
+\end{table}
+% TODO(derived): the complete table goes to the appendix, and the linter points
+% to it.  The sentence below, that each row is held by a test, is not yet true:
+% the tests that compile a listing beside its kernel form are to be written.
+% Standard clauses for the fifth row are to be cited.
+
+The list is open by design.
+A new derived form is one more rewrite into the kernel and touches nothing that is said about the kernel.
+This paper does not prove that a derived form preserves values.
+Where the standard defines one construct as another, that is the evidence.
+Elsewhere the evidence is a test that compiles a listing beside its kernel form and asserts that the two agree, which is the standard of evidence of the work on JavaScript~\cite{guha2010essence}.
+
+\subsection{The image}
+\label{sec:translation}
+
+The meaning of a kernel program is its image in System~F~\cite{girard1972interpretation,reynolds1974towards} with truth values, counts and an iterator over a count.
+The translation is the one that gives Haskell's type classes their meaning, dictionary passing~\cite{wadler1989adhoc,jones1994qualified}, and Table~\ref{tab:image} states it.
+The images below the panels of the three listings were made by hand according to it.
+
+\begin{table}[tb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+in the kernel & in the image \\
+\midrule
+the value layer & itself \\
+a template over a type & an abstraction over a type, $\Lambda T$ \\
+a shape & a type of records, with a field for each law, each required call and each shape it names \\
+a \texttt{requires} clause & one more parameter, a record of the shape's type \\
+a law & a field of type $\mathit{Bool}$, which holds $\mathit{true}$ and proves nothing \\
+a trait & a definition for its default and one for each entry, an entry at a form taking its values at the parts as arguments \\
+a function with several cases & a definition for each case \\
+a use of a shape, a trait or a function & the record, the entry or the case that the compiler selected, applied \\
+\bottomrule
+\end{tabularx}
+\caption{The translation of the kernel into System~F.}
+\label{tab:image}
+\end{table}
+
+Two things follow from the table.
+The first is that everything in the resolution layer is gone from the image.
+A named type is its fields, a shape is a record that is passed, and where the source had a selection the image has the thing that was selected.
+The selection is made while compiling, so no record exists when the program runs (Section~\ref{sec:binding}).
+
+The second is what System~F is, and is not, claimed for.
+A program is instantiated in full before it runs, and after instantiation nothing in it is polymorphic: it is simply typed, over atoms and carriers, with an iterator.
+So System~F is not needed to say what a kernel program computes.
+It is needed for what a generic definition means before anyone uses it: a template under a \texttt{requires} clause has a type of the form ``for all $T$, given a record for $T$, \ldots'', which is a System~F type.
+
+Three results about the target then hold of a kernel program, and none of them is proved here.
+\begin{enumerate}
+\item A well-typed program does not go wrong~\cite{pierce2002tapl}.
+\item Every program ends, since the target's only recursion is iteration over a count~\cite{girard1989proofs}.
+\item A generic definition commutes with every homomorphism of the shape it names, by the theorem that its type alone gives~\cite{reynolds1983types,wadler1989theorems}.
+\end{enumerate}
+The third is the one a programmer can use, and \cppinline{free_theorem} in Listing~\ref{lst:theorems} is its statement for \cppinline{concat2}.
+None of the three says that a declared law is true.
+A law is a field that holds $\mathit{true}$ because someone wrote it, and what a program rests on in that way is a list (Section~\ref{sec:check}).
+% TODO(warrant): each of the three must be checked against the kernel as the
+% appendix will specify it; they are stated here from the agreed model.  The
+% second also needs the compiler's own search to end, which is the condition
+% on well-founded declarations.
+
+What is specific to \Cpp{}, and is this paper's own observation, concerns the selection.
+The image is a function of the program only if the compiler's choice of an entry or a case is.
+\Cpp{} makes it one at concrete types, by its rules for the most specialised candidate, and it does not ask that the choice be the same wherever it is asked.
+A generic body may select by a law that its declaration never named, as \cppinline{guessed_power} does in Listing~\ref{lst:power}, and an entry declared below a use is not seen by that use.
+So the kernel asks two things that \Cpp{} does not check: that a generic body selects only by what its declaration names (\RuleTwo{}), and that an entry stands above every use that could read it (Appendix~\ref{app:fjlt:order}).
+Under those two, a selection has one answer in a program, and the image is a function of it.

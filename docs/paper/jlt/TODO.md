@@ -43,10 +43,11 @@ Artefact, on a stable branch released to Zenodo:
 
 State, on the branch `docs/paper-three-examples`, stacked on `docs/paper-listings-in-action` (which is the backup of everything before the cut):
 
-- Section 2 is complete in outline: three examples, and 2.4 with the three rules, their table, and the two equations.
-- The former Section 2 (the rules with the four old listings) and the sequence case study (Appendix G) are deleted, with the abstract's two sentences on the case study and the paragraph on parallelism.
-- The former Sections 3 to 6 still follow, renumbered, as the quarry for the new Sections 3 to 5.
-- The build prints about 110 broken references. They are reminders, by design: every `lst:rule1`, `lst:rule2`, `lst:rule3`, `lst:laws` marks text that still speaks of a deleted listing, and `sec:kernel`, `sec:kernel:derived`, `sec:check` mark sections not yet written.
+- The body has the agreed architecture: 1 Introduction, 2 Jlt by three examples (with 2.4, the three rules), 3 The kernel and its warrant (3.1 the kernel, 3.2 derived forms, 3.3 the image), 4 The check, 5 At run time, 6 Limits, 7 Related work, 8 Conclusion. It ends on page 25.
+- Written new: 2.4, Section 3 and Section 4. Section 4 describes the linter as it is and says what it does not yet do.
+- Deleted: the former Section 2 (the rules with the four old listings), the former Sections 3 to 5 (desugaring, translation, guarantees, with the grammar figure, the theorem statements and the worked derivations), the sequence case study, the paragraph on parallelism.
+- Not yet touched: the introduction's old text, Section 5 (retitled only), Sections 6 to 8, and Appendices A to F, which still describe the larger kernel.
+- The build prints about 130 broken references, by design. The old listings' labels mark text that still speaks of them; the labels of the deleted theorems, figures and sections mark appendix text that proves or uses what is gone.
 
 ## Decided
 
