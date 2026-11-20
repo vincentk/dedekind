@@ -176,14 +176,17 @@ A range is there its length $n$ and the arrow $f$ from an index to an element, a
 \Cpp{} accepts both functions.
 The rest of the paper is about what it takes to write the second and to know that one has.
 
-A function held to its signature can be reasoned about from that signature, and Listing~\ref{lst:power} shows what that buys, on a second function that every monoid has: the power, one value combined with itself $n$ times.
+The function is not new.
+A Haskell programmer knows it as \texttt{mconcat}, and knows its companion \texttt{stimes}, which combines $n$ copies of one value~\cite{ghc2025semigroup}.
+Listing~\ref{lst:power} is that companion, the \emph{power} of a monoid.
 
 \begin{listing}[p]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <typename T> struct Power {
   T product, base; size_t exponent; };
-template <typename T, typename Op, typename E>
+template <typename T, typename Op,
+          typename E>
 struct Halving {
   constexpr Power<T> operator()(
       Power<T> p, size_t) const
@@ -193,7 +196,8 @@ struct Halving {
           ? Op{}(p.product, p.base) : p.product,
       Op{}(p.base, p.base),
       p.exponent / 2}; } };
-template <typename T, typename Op, typename E>
+template <typename T, typename Op,
+          typename E>
   requires IsMonoid<T, Op, E>
 constexpr T power(T x, size_t n) {
   return ranges::fold_left(
@@ -204,28 +208,27 @@ constexpr T power(T x, size_t n) {
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-template <typename T, typename Op>
-constexpr bool idempotent = false;
-template <> constexpr bool
-idempotent<bool, logical_and<bool>> = true;
-template <typename T, typename Op, typename E>
-  requires IsIdempotentMonoid<T, Op, E>
-constexpr T power(T x, size_t n) {
-  return n == 0 ? E{}() : x; }
 static_assert(
+power<size_t, plus<size_t>, Zero>(
+    2uz, 10uz) ==
+concat2<size_t, plus<size_t>, Zero>(
+    views::repeat(2uz, 10uz)) &&
 power<size_t, plus<size_t>, Zero>(
     2uz, 10uz) == 20 &&
 power<size_t, multiplies<size_t>, One>(
     2uz, 10uz) == 1024 &&
 power<string, plus<string>, Empty>(
     "ab"s, 3uz) == "ababab"s &&
-power<bool, logical_and<bool>, True>(
-    false, 5uz) == false);
+power<size_t, multiplies<size_t>, One>(
+    3uz, 1'000'000'000uz) ==
+    9'215'150'800'219'179'009uz);
 \end{cpp}
 \end{minipage}
+
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-template <typename T, typename Op, typename E>
+template <typename T, typename Op,
+          typename E>
 struct PowerBy { size_t n;
   constexpr T operator()(T x) const
     requires IsMonoid<T, Op, E> {
@@ -233,7 +236,8 @@ struct PowerBy { size_t n;
 template <typename H, typename T,
           typename Op, typename E>
 constexpr bool endomorphism = false;
-template <typename T, typename Op, typename E>
+template <typename T, typename Op,
+          typename E>
   requires IsCommutativeMonoid<T, Op, E>
 constexpr bool endomorphism<
     PowerBy<T, Op, E>, T, Op, E> = true;
@@ -241,69 +245,185 @@ constexpr bool endomorphism<
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-template <typename T, typename Op, typename E,
-          typename H, ranges::sized_range R>
-  requires IsEndomorphism<H, T, Op, E> &&
-    same_as<ranges::range_value_t<R>, T>
-constexpr bool fold_commutes(H h, R r) {
-  return h(concat2<T, Op, E>(r)) ==
-      concat2<T, Op, E>(
-          views::transform(r, h)); }
-template <typename T, typename Op, typename E>
+using Sum =
+    PowerBy<size_t, plus<size_t>, Zero>;
+using Rep =
+    PowerBy<string, plus<string>, Empty>;
+static_assert(
+endomorphism<Sum, size_t,
+             plus<size_t>, Zero> &&
+!endomorphism<Rep, string,
+              plus<string>, Empty> &&
+Sum{3uz}(concat2<size_t, plus<size_t>, Zero>(
+    array{1uz, 2uz, 3uz})) ==
+concat2<size_t, plus<size_t>, Zero>(
+    views::transform(
+        array{1uz, 2uz, 3uz}, Sum{3uz})));
+\end{cpp}
+\end{minipage}
+{\small\[
+\begin{array}{@{}l@{}}
+\mathit{power}_0 = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{concat2}\;T\;\mathit{Op}\;E\;q\;n\;(\lambda k.\,x) \\[3pt]
+\mathit{power} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \pi_1\,(\mathit{iter}\;(\mathit{bits}\;n)\;\mathit{step}\;(q.\mathit{um}.\mathit{unit},\ x,\ n)) \\
+\qquad \mathit{step}\,(p, b, e) = (\,\mathit{if}\ \mathit{odd}\;e\ \mathit{then}\ p \cdot b\ \mathit{else}\ p,\ \ b \cdot b,\ \ e / 2\,) \qquad a \cdot b = q.\mathit{um}.\mathit{magma}.\mathit{op}\;a\;b
+\end{array}
+\]}
+\caption{The power of a monoid, and a law about it.
+Left: the power by repeated squaring; a lemma, that it is a homomorphism where the operation commutes.
+Right: their tests.
+Below: the power's definition and the power in System~F.}
+\label{lst:power}
+\end{listing}
+% TODO(listings): code from the probe (namespace triple_probe).  The shapes
+% IsCommutativeMonoid (a monoid whose operation is declared commutative) and
+% the law commutative are omitted from the panels.  The free theorem as a
+% guarded function (fold_commutes, in the probe) and the case of power that
+% idempotence selects are candidates for an appendix.  The citations for the
+% lemma and for the Russian peasant method are from memory, to be verified.
+
+The power of $x$ is $x$ combined with itself $n$ times: the concatenation of a repetition, which the first line of the test says in \Cpp{}.
+Computed that way it takes $n$ steps.
+\cppinline{power} takes as many steps as $n$ has bits, by squaring: the method known for multiplication as that of the Russian peasant~\cite[\S 4.6.3]{knuth1997art2}.
+The two agree because the operation is associative, which the shape in the signature states.
+It is one function with a meaning at each monoid: a multiple under \cppinline{+}, a power under \cppinline{*}, a repetition at strings.
+The images below the panels differ in one place, the count of the iterator, $n$ in the definition and the bits of $n$ in \cppinline{power}.
+System~F does not know that they are equal.
+The field of the record that says the operation is associative is what licenses putting the second for the first.
+
+The lower panels use a word that may be new to the reader.
+A \emph{homomorphism} of a monoid is a function that respects its operation and its unit, and \cppinline{endomorphism} is the law that says a function is one, from a monoid to itself.
+One lemma is stated for it, and not proved: where the operation commutes, raising to a power is a homomorphism, since $(xy)^n = x^n y^n$ in a commutative monoid~\cite{lang2002algebra}.
+Nobody states that for \cppinline{size_t}.
+The compiler infers it from the axiom that \cppinline{+} commutes there, and it does not infer it for strings, whose concatenation does not commute.
+
+The last assertion is the reason to care.
+A generic function written under the rules of this paper commutes with every homomorphism of the shape it names, a theorem that follows from its type alone~\cite{reynolds1983types,wadler1989theorems}.
+For \cppinline{concat2} it reads: applying a homomorphism to the combined value is combining the values after applying it to each.
+Three times a sum is the sum of three times each.
+At strings the same equation fails, \cppinline{"abc"} twice against \cppinline{"ab"} twice and then \cppinline{"c"} twice, and there the compiler had not inferred that the function is a homomorphism.
+So the equation may be used exactly where the law was inferred, and the assertion checks one case of a theorem that holds in all.
+
+Where a carrier has two monoids that fit together, the power under the first is one use of the second.
+Listing~\ref{lst:semiring} names that structure, the \emph{semiring}.
+
+\begin{listing}[p]
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T, typename Add,
+          typename Nil, typename Mul,
+          typename Unit, typename Num>
+concept IsSemiring =
+  IsMonoid<T, Add, Nil> &&
+  IsMonoid<T, Mul, Unit> &&
+  commutative<T, Add> &&
+  distributes<T, Mul, Add> &&
+  counts<T, Add, Mul, Num> &&
+  requires(size_t n) {
+    { Num{}(n) } -> same_as<T>; };
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+struct False { constexpr bool
+  operator()() const { return false; } };
+struct Positive { constexpr bool
+  operator()(size_t n) const { return n > 0; } };
+using Or = logical_or<bool>;
+using And = logical_and<bool>;
+template <> constexpr bool
+distributes<bool, And, Or> = true;
+template <> constexpr bool
+counts<bool, Or, And, Positive> = true;
+\end{cpp}
+\end{minipage}
+
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T, typename Add,
+          typename Nil, typename Mul,
+          typename Unit, typename Num>
+  requires IsSemiring<T, Add, Nil,
+                      Mul, Unit, Num>
+constexpr T multiple(T x, size_t n) {
+  return Mul{}(Num{}(n), x); }
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+static_assert(
+multiple<size_t, plus<size_t>, Zero,
+    multiplies<size_t>, One, Count>(
+    2uz, 10uz) ==
+power<size_t, plus<size_t>, Zero>(
+    2uz, 10uz) &&
+multiple<bool, Or, False,
+    And, True, Positive>(true, 3uz) ==
+power<bool, Or, False>(true, 3uz));
+\end{cpp}
+\end{minipage}
+
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T, typename Op,
+          typename E>
+  requires IsIdempotentMonoid<T, Op, E>
+constexpr T power(T x, size_t n) {
+  return n == 0 ? E{}() : x; }
+template <typename T, typename Op,
+          typename E>
   requires IsMonoid<T, Op, E>
 constexpr T guessed_power(T x, size_t n) {
   return power<T, Op, E>(x, n); }
 \end{cpp}
-\end{minipage}
-\vspace{-6pt}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-using Sum = PowerBy<size_t, plus<size_t>, Zero>;
-using Rep = PowerBy<string, plus<string>, Empty>;
 static_assert(
-    endomorphism<Sum, size_t, plus<size_t>, Zero> && !endomorphism<Rep, string, plus<string>, Empty> &&
-    fold_commutes<size_t, plus<size_t>, Zero>(Sum{3uz}, array{1uz, 2uz, 3uz}) &&
-    !CanAsk<string, plus<string>, Empty, Rep, array<string, 2>> &&
-    guessed_power<size_t, plus<size_t>, Zero>(2uz, 10uz) == 20 &&
-    guessed_power<size_t, Plus2, Zero>(2uz, 10uz) == 2);
+guessed_power<size_t, plus<size_t>,
+    Zero>(2uz, 10uz) == 20 &&
+guessed_power<size_t, Plus2,
+    Zero>(2uz, 10uz) == 2);
 \end{cpp}
-\caption{The power of a monoid, and what its signature buys.
-Top: the power, and a case that a law selects.
-Middle: a lemma about it, the free theorem of \cppinline{concat2} as a function, and a caller that names too little.
-Bottom: their tests.}
-\label{lst:power}
+\end{minipage}
+{\small\[
+\begin{array}{@{}l@{}}
+\mathit{Semiring}\;T = \{\,\mathit{add} : \mathit{Monoid}\;T,\ \mathit{mul} : \mathit{Monoid}\;T,\ \mathit{comm} : \mathit{Bool},\ \mathit{distr} : \mathit{Bool}, \\
+\qquad\qquad\qquad\quad\ \mathit{counts} : \mathit{Bool},\ \mathit{num} : \mathit{Nat} \to T\,\} \\[3pt]
+\mathit{multiple} = \Lambda T.\,\ldots\,\lambda q : \mathit{Semiring}\;T.\,\lambda x.\,\lambda n.\ q.\mathit{mul}.\mathit{um}.\mathit{magma}.\mathit{op}\;(q.\mathit{num}\;n)\;x
+\end{array}
+\]}
+\caption{The semiring, and a caller that names too little.
+Left: a semiring as a shape; the power under its first monoid as one product; a case of \cppinline{power} that a law selects, and a function that calls \cppinline{power}.
+Right: the truth values as a semiring; tests.
+Below: the image of the one product in System~F.}
+\label{lst:semiring}
 \end{listing}
-% TODO(listings): the code is the probe's (namespace triple_probe) and waits
-% for CI.  Not shown and still to decide: the semiring, under which a multiple
-% is one product (multiple, IsSemiring with six types, in the probe); the
-% definition of power as concat2 over n copies (power_plain, in the probe).
-% The lemma's citation is from memory and to be verified.
+% TODO(listings): code from the probe.  Omitted from the panels: the laws
+% distributes and counts (defaults), the axioms of size_t's semiring and
+% Count, IsIdempotentMonoid, and Plus2 with its three axioms, one of them
+% false.  The structure named in the prose (the naturals as the first
+% semiring, the semiring of a commutative monoid's endomorphisms) is from
+% memory, to be verified.
 
-\cppinline{power} is one function with a meaning at each monoid: a multiple under \cppinline{+}, a power under \cppinline{*}, a repetition at strings.
-It takes as many steps as $n$ has bits, where combining $n$ copies one after another takes $n$.
-The two agree because the operation is associative, which the shape in its signature states.
-Where the operation is also idempotent, as conjunction is, a power is the value itself, and a second case of \cppinline{power}, on the same signature with one more law, says so in one step.
+A \emph{semiring} is two monoids on one carrier, the first commutative, with the second distributing over the first.
+The last parameter says what a count stands for in it: the count itself in \cppinline{size_t}, and whether it is positive for the truth values.
+Naming a semiring in a signature is stating a hypothesis, and \cppinline{multiple} is what follows from it: $n$ copies combined under the first operation are one product under the second.
+So the iterator of Listing~\ref{lst:power} is gone from the image.
+Each step up is licensed by what the signature names: a monoid allows squaring, a semiring allows one product, and \cppinline{concat1}, which named nothing, was allowed nothing.
+Strings stop at the second step, since they have one monoid only.
+
+The second operation is not an arbitrary choice.
+For a commutative monoid, repeating $n$ times is a homomorphism, by the lemma of Listing~\ref{lst:power}, and such homomorphisms compose: repeating $m$ times and then $n$ times is repeating $mn$ times.
+Their composition is the product, and its unit is repeating once.
+Where every element of the carrier is a count of ones, as in \cppinline{size_t} and in the truth values, that determines the second operation and its unit completely: multiplication is repeated addition~\cite{golan1999semirings}.
+
+The last row shows what the rules are for.
+Where the operation is idempotent, as both operations of the truth values are, a power is the value itself, and a second case of \cppinline{power}, on the same signature with one more law, says so in one step.
 The compiler selects it wherever that law is declared.
-
-The lower panels use a word that may be new to the reader: a \emph{homomorphism} of a monoid is a function that respects its operation and its unit.
-\cppinline{endomorphism} is a law that says a function is one, from a monoid to itself.
-One lemma is stated for it: where the operation commutes, raising to a power is a homomorphism, since $(xy)^n = x^n y^n$ in a commutative monoid~\cite{lang2002algebra}.
-Nobody states that for \cppinline{size_t}.
-The compiler infers it from the axiom that \cppinline{+} commutes there, and does not infer it for strings, whose concatenation does not commute.
-
-\cppinline{fold_commutes} is the reason to care.
-A generic function written under the rules of this paper commutes with every homomorphism of the shape it names, a theorem that follows from its type alone~\cite{reynolds1983types,wadler1989theorems}.
-For \cppinline{concat2} it reads: applying a homomorphism to the combined value is combining the values after applying it to each.
-The function states that in plain \Cpp{}, with the theorem's hypothesis as its signature.
-At \cppinline{size_t} it can be called, and three times a sum is the sum of three times each.
-At strings it cannot be called at all, and rightly: \cppinline{"abc"} twice is not \cppinline{"ab"} twice followed by \cppinline{"c"} twice.
-The function checks one case and proves nothing, and the theorem holds whether or not anyone calls it.
-
-\cppinline{guessed_power} shows what the rules are for.
-It declares a monoid and calls \cppinline{power}, and which case of \cppinline{power} it gets is decided where it is used, by a law its signature never named.
+\cppinline{guessed_power} declares a monoid and calls \cppinline{power}, so which case it gets is decided where it is used, by a law its signature never named.
 \cppinline{Plus2} is addition under another name, which someone has declared idempotent.
 That axiom is false, the caller never chose to depend on it, and ten twos come out as two.
 \Cpp{} accepts this function, and the rules of this paper do not: a generic function names every law its result depends on (\RuleTwo{}).
-
 
 \Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary.
 This paper documents a discipline of three rules that does, and that recovers some of what a functional language guarantees.

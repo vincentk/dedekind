@@ -1958,6 +1958,24 @@ constexpr T guessed_power(T x, size_t n) {
 }
 static_assert(guessed_power<size_t, std::plus<size_t>, Zero>(2uz, 10uz) == 20 &&
               guessed_power<size_t, Plus2, Zero>(2uz, 10uz) == 2);
+
+// As the paper's listings print them: the power is the concatenation of a
+// repetition, and the free theorem at one homomorphism, with the aliases the
+// listing uses.
+using Sum = PowerBy<size_t, std::plus<size_t>, Zero>;
+using Rep = PowerBy<Str, Cat, Empty>;
+static_assert(
+    power<size_t, std::plus<size_t>, Zero>(2uz, 10uz) ==
+        concat2<size_t, std::plus<size_t>, Zero>(std::views::repeat(2uz,
+                                                                    10uz)) &&
+    power<Str, Cat, Empty>("ab"s, 3uz) ==
+        concat2<Str, Cat, Empty>(std::views::repeat("ab"s, 3uz)) &&
+    endomorphism<Sum, size_t, std::plus<size_t>, Zero> &&
+    !endomorphism<Rep, Str, Cat, Empty> &&
+    Sum{3uz}(concat2<size_t, std::plus<size_t>, Zero>(std::array{1uz, 2uz,
+                                                                 3uz})) ==
+        concat2<size_t, std::plus<size_t>, Zero>(
+            std::views::transform(std::array{1uz, 2uz, 3uz}, Sum{3uz})));
 }  // namespace triple_probe
 
 TEST_CASE("Spelling probe: a law as a function and as a table",
