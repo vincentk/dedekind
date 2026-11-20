@@ -1717,6 +1717,198 @@ constexpr bool unital<Bare, BareOp, BareUnit> = true;
 static_assert(IsMonoid<Bare, BareOp, BareUnit> &&
               concat2<Bare, BareOp, BareUnit>(std::array{Bare{}, Bare{}}) ==
                   Bare{});
+
+// A candidate second listing: the power of a monoid.  power_plain is its
+// definition, concat2 over n copies of one value, in n steps.  power computes
+// the same in as many steps as n has bits, which is right because the
+// operation is associative.
+template <typename T>
+struct Always {
+  T x;
+  constexpr T operator()(size_t) const { return x; }
+};
+template <typename T, typename Op, typename E>
+  requires IsMonoid<T, Op, E>
+constexpr T power_plain(T x, size_t n) {
+  return concat2<T, Op, E>(
+      std::views::transform(std::views::iota(0uz, n), Always<T>{x}));
+}
+template <typename T>
+struct Power {
+  T product;
+  T base;
+  size_t exponent;
+};
+template <typename T, typename Op, typename E>
+struct Halving {
+  constexpr Power<T> operator()(Power<T> p, size_t) const
+    requires IsMonoid<T, Op, E>
+  {
+    return {p.exponent % 2 == 1 ? Op{}(p.product, p.base) : p.product,
+            Op{}(p.base, p.base), p.exponent / 2};
+  }
+};
+template <typename T, typename Op, typename E>
+  requires IsMonoid<T, Op, E>
+constexpr T power(T x, size_t n) {
+  return std::ranges::fold_left(
+             std::views::iota(0uz, size_t(std::bit_width(n))),
+             Power<T>{E{}(), x, n}, Halving<T, Op, E>{})
+      .product;
+}
+// A law selects a faster case on the same signature: where the operation is
+// idempotent, a power is the value itself, in one step.
+template <typename T, typename Op>
+constexpr bool idempotent = false;
+template <>
+constexpr bool idempotent<bool, And> = true;
+template <>
+constexpr bool idempotent<bool, Or> = true;
+template <typename T, typename Op, typename E>
+concept IsIdempotentMonoid = IsMonoid<T, Op, E> && idempotent<T, Op>;
+template <typename T, typename Op, typename E>
+  requires IsIdempotentMonoid<T, Op, E>
+constexpr T power(T x, size_t n) {
+  return n == 0 ? E{}() : x;
+}
+// One function, a meaning at each monoid: a multiple, a power, a repetition.
+static_assert(power<size_t, std::plus<size_t>, Zero>(2uz, 10uz) == 20 &&
+              power<size_t, std::multiplies<size_t>, One>(2uz, 10uz) == 1024 &&
+              power<Str, Cat, Empty>("ab"s, 3uz) == "ababab"s &&
+              power<bool, And, True>(false, 5uz) == false &&
+              power<bool, And, True>(false, 0uz) == true &&
+              power_plain<size_t, std::plus<size_t>, Zero>(2uz, 10uz) == 20 &&
+              power_plain<size_t, std::multiplies<size_t>, One>(2uz, 10uz) ==
+                  1024 &&
+              power_plain<Str, Cat, Empty>("ab"s, 3uz) == "ababab"s &&
+              power_plain<bool, And, True>(false, 5uz) == false &&
+              power<size_t, std::multiplies<size_t>, One>(3uz,
+                                                          1'000'000'000uz) ==
+                  9'215'150'800'219'179'009uz);
+
+// The semiring: two monoids on one carrier, with three more laws, and the map
+// that says what a count stands for in it.  Under it a multiple is one
+// product.  size_t and bool are semirings; strings have one monoid only.
+struct False {
+  constexpr bool operator()() const { return false; }
+};
+template <>
+constexpr bool unital<bool, Or, False> = true;
+template <typename T, typename Op>
+constexpr bool commutative = false;
+template <>
+constexpr bool commutative<size_t, std::plus<size_t>> = true;
+template <>
+constexpr bool commutative<size_t, std::multiplies<size_t>> = true;
+template <>
+constexpr bool commutative<bool, And> = true;
+template <>
+constexpr bool commutative<bool, Or> = true;
+template <typename T, typename Mul, typename Add>
+constexpr bool distributes = false;
+template <>
+constexpr bool distributes<size_t, std::multiplies<size_t>, std::plus<size_t>> =
+    true;
+template <>
+constexpr bool distributes<bool, And, Or> = true;
+struct Count {
+  constexpr size_t operator()(size_t n) const { return n; }
+};
+struct Positive {
+  constexpr bool operator()(size_t n) const { return n > 0; }
+};
+template <typename T, typename Add, typename Mul, typename Num>
+constexpr bool counts = false;
+template <>
+constexpr bool
+    counts<size_t, std::plus<size_t>, std::multiplies<size_t>, Count> = true;
+template <>
+constexpr bool counts<bool, Or, And, Positive> = true;
+template <typename T, typename Add, typename Nil, typename Mul, typename Unit,
+          typename Num>
+concept IsSemiring =
+    IsMonoid<T, Add, Nil> && IsMonoid<T, Mul, Unit> && commutative<T, Add> &&
+    distributes<T, Mul, Add> && counts<T, Add, Mul, Num> && requires(size_t n) {
+      { Num{}(n) } -> std::same_as<T>;
+    };
+template <typename T, typename Add, typename Nil, typename Mul, typename Unit,
+          typename Num>
+  requires IsSemiring<T, Add, Nil, Mul, Unit, Num>
+constexpr T multiple(T x, size_t n) {
+  return Mul{}(Num{}(n), x);
+}
+static_assert(IsSemiring<size_t, std::plus<size_t>, Zero,
+                         std::multiplies<size_t>, One, Count> &&
+              IsSemiring<bool, Or, False, And, True, Positive> &&
+              multiple<size_t, std::plus<size_t>, Zero, std::multiplies<size_t>,
+                       One, Count>(2uz, 10uz) ==
+                  power<size_t, std::plus<size_t>, Zero>(2uz, 10uz) &&
+              multiple<bool, Or, False, And, True, Positive>(true, 3uz) ==
+                  power<bool, Or, False>(true, 3uz) &&
+              multiple<bool, Or, False, And, True, Positive>(true, 0uz) ==
+                  power<bool, Or, False>(true, 0uz) &&
+              multiple<bool, Or, False, And, True, Positive>(false, 3uz) ==
+                  power<bool, Or, False>(false, 3uz));
+
+// A law inferred from a law of another kind.  Where the operation commutes,
+// raising to a power is a homomorphism of the monoid to itself: (x.y)^n is
+// x^n.y^n.  The lemma is stated once, and the compiler applies it.
+template <typename T, typename Op, typename E>
+struct PowerBy {
+  size_t n;
+  constexpr T operator()(T x) const
+    requires IsMonoid<T, Op, E>
+  {
+    return power<T, Op, E>(x, n);
+  }
+};
+template <typename T, typename Op, typename E>
+concept IsCommutativeMonoid = IsMonoid<T, Op, E> && commutative<T, Op>;
+template <typename H, typename T, typename Op, typename E>
+constexpr bool endomorphism = false;
+template <typename T, typename Op, typename E>
+  requires IsCommutativeMonoid<T, Op, E>
+constexpr bool endomorphism<PowerBy<T, Op, E>, T, Op, E> = true;
+static_assert(endomorphism<PowerBy<size_t, std::plus<size_t>, Zero>, size_t,
+                           std::plus<size_t>, Zero> &&
+              endomorphism<PowerBy<size_t, std::multiplies<size_t>, One>,
+                           size_t, std::multiplies<size_t>, One> &&
+              endomorphism<PowerBy<bool, And, True>, bool, And, True> &&
+              !endomorphism<PowerBy<Str, Cat, Empty>, Str, Cat, Empty>);
+// The free theorem of concat2 then applies where the homomorphism was
+// inferred: three times a sum is the sum of three times each.  At strings it
+// was not inferred, and it does not hold.
+static_assert(
+    PowerBy<size_t, std::plus<size_t>, Zero>{3uz}(
+        concat2<size_t, std::plus<size_t>, Zero>(std::array{1uz, 2uz, 3uz})) ==
+        concat2<size_t, std::plus<size_t>, Zero>(std::views::transform(
+            std::array{1uz, 2uz, 3uz},
+            PowerBy<size_t, std::plus<size_t>, Zero>{3uz})) &&
+    PowerBy<Str, Cat, Empty>{
+        2uz}(concat2<Str, Cat, Empty>(std::array{"ab"s, "c"s})) == "abcabc"s &&
+    concat2<Str, Cat, Empty>(std::views::transform(
+        std::array{"ab"s, "c"s}, PowerBy<Str, Cat, Empty>{2uz})) == "ababcc"s);
+
+// A generic caller that declares a monoid and calls power.  Which case of
+// power it gets is decided where it is used, by laws its signature never
+// named.  With a false axiom in sight the value changes: Plus2 adds, someone
+// declared it idempotent, and ten twos come out as two.
+struct Plus2 {
+  constexpr size_t operator()(size_t a, size_t b) const { return a + b; }
+};
+template <>
+constexpr bool associative<size_t, Plus2> = true;
+template <>
+constexpr bool unital<size_t, Plus2, Zero> = true;
+template <>
+constexpr bool idempotent<size_t, Plus2> = true;  // false
+template <typename T, typename Op, typename E>
+  requires IsMonoid<T, Op, E>
+constexpr T guessed_power(T x, size_t n) {
+  return power<T, Op, E>(x, n);
+}
+static_assert(guessed_power<size_t, std::plus<size_t>, Zero>(2uz, 10uz) == 20 &&
+              guessed_power<size_t, Plus2, Zero>(2uz, 10uz) == 2);
 }  // namespace triple_probe
 
 TEST_CASE("Spelling probe: a law as a function and as a table",
