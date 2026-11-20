@@ -200,6 +200,12 @@ static_assert(concat<size_t, std::plus<size_t>, 0uz>(ns) == 45 &&
 static_assert(IsConstant<decltype(Succ{} >> Const{7uz})> &&
               concat<size_t, std::plus<size_t>, 0uz>(std::views::transform(
                   std::views::iota(0uz, 10uz), Succ{} >> Const{7uz})) == 70);
+// The power of the unit is the unit: power, with that said before it folds.
+template <typename T, typename Op, T e>
+  requires IsMonoid<T, Op, e>
+constexpr T power_unit_first(T x, size_t n) {
+  return x == e ? x : power<T, Op, e>(x, n);
+}
 }  // namespace
 
 /** @return the fold over a value, everything known while compiling. */
@@ -240,4 +246,25 @@ extern "C" __attribute__((noinline)) std::size_t listing4_fib_plain(
   return concat<M, Mul, identity>(
              std::views::transform(std::views::iota(0uz, n), Fib{}))
       .b;
+}
+/** @return the power of the unit under +, by the fold alone, the count known
+ *  only when the program runs. */
+extern "C" __attribute__((noinline)) std::size_t power_of_zero(std::size_t n) {
+  return power<size_t, std::plus<size_t>, 0uz>(0uz, n);
+}
+/** @return the same, with the unit recognised before the fold. */
+extern "C" __attribute__((noinline)) std::size_t power_of_zero_unit_first(
+    std::size_t n) {
+  return power_unit_first<size_t, std::plus<size_t>, 0uz>(0uz, n);
+}
+/** @return an entry of the identity matrix to the n-th power, by the fold
+ *  alone. */
+extern "C" __attribute__((noinline)) std::size_t power_of_identity(
+    std::size_t n) {
+  return power<M, Mul, identity>(identity, n).a;
+}
+/** @return the same, with the unit recognised before the fold. */
+extern "C" __attribute__((noinline)) std::size_t power_of_identity_unit_first(
+    std::size_t n) {
+  return power_unit_first<M, Mul, identity>(identity, n).a;
 }
