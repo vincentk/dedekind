@@ -1889,6 +1889,38 @@ static_assert(
     concat2<Str, Cat, Empty>(std::views::transform(
         std::array{"ab"s, "c"s}, PowerBy<Str, Cat, Empty>{2uz})) == "ababcc"s);
 
+// The free theorem as a function in plain C++: its signature is its
+// hypothesis.  It can be called where h is known to be a homomorphism of the
+// monoid, and there it returns true.  Where that is not known it cannot be
+// called at all.
+template <typename H, typename T, typename Op, typename E>
+concept IsEndomorphism = IsMonoid<T, Op, E> && endomorphism<H, T, Op, E> &&
+                         requires(const H h, T x) {
+                           { h(x) } -> std::same_as<T>;
+                         };
+template <typename T, typename Op, typename E, typename H,
+          std::ranges::sized_range R>
+  requires IsEndomorphism<H, T, Op, E> &&
+           std::same_as<std::ranges::range_value_t<R>, T>
+constexpr bool fold_commutes(H h, R r) {
+  return h(concat2<T, Op, E>(r)) ==
+         concat2<T, Op, E>(std::views::transform(r, h));
+}
+template <typename T, typename Op, typename E, typename H, typename R>
+concept CanAsk = requires(H h, R r) { fold_commutes<T, Op, E>(h, r); };
+static_assert(
+    fold_commutes<size_t, std::plus<size_t>, Zero>(
+        PowerBy<size_t, std::plus<size_t>, Zero>{3uz},
+        std::array{1uz, 2uz, 3uz}) &&
+    fold_commutes<size_t, std::multiplies<size_t>, One>(
+        PowerBy<size_t, std::multiplies<size_t>, One>{2uz},
+        std::array{1uz, 2uz, 3uz}) &&
+    fold_commutes<bool, And, True>(PowerBy<bool, And, True>{4uz},
+                                   std::array{true, false}) &&
+    CanAsk<size_t, std::plus<size_t>, Zero,
+           PowerBy<size_t, std::plus<size_t>, Zero>, std::array<size_t, 3>> &&
+    !CanAsk<Str, Cat, Empty, PowerBy<Str, Cat, Empty>, std::array<Str, 2>>);
+
 // A generic caller that declares a monoid and calls power.  Which case of
 // power it gets is decided where it is used, by laws its signature never
 // named.  With a false axiom in sight the value changes: Plus2 adds, someone
