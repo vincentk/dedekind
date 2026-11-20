@@ -86,6 +86,24 @@ The bottom edge says that the two paths compute one value.}
 \label{fig:arrows}
 \end{figure}
 
+\begin{table}[tb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.13\linewidth}>{\raggedright\arraybackslash}p{0.16\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.25\linewidth}@{}}
+\toprule
+ & & contents & status \\
+\midrule
+\textbf{FJlt}: a fragment of System~F embedded in \Cpp{} & value layer: what is computed & atoms: bit sequences, a finite prefix of the naturals; pairs; arrows of one argument; templates over types; the conditional; the iterator & its image is itself: System~F with those atoms and that iterator \\[3pt]
+ & resolution layer: what the compiler chooses & named type constructors; value parameters; shapes and their negation; traits with atomic results, laws among them; overloads & its image is records and separate definitions, and the selection is gone \\
+\midrule
+\textbf{Jlt}: what the programmer writes & derived forms: the domain of desugaring beyond FJlt & several parameters, records, tagged unions of data, sequences, ranges, loops, folds with an index, the standard's shorthands & each has an FJlt program with the same observable values \\[3pt]
+ & the posture: three rules & substitution, declared structure, bounded recursion & a heuristic and an outer bound: what the programmer remembers \\
+\bottomrule
+\end{tabularx}
+\caption{The two languages of the paper, each in two parts.}
+\label{tab:model}
+\end{table}
+
 \paragraph{Contributions.}
 The paper contributes a route, not a piece of software: each step from \Cpp{23} to System~F is a known construction, and the contribution is that the steps connect.
 \begin{enumerate}
