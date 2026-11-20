@@ -35,6 +35,29 @@ Parametric polymorphism, type classes and structural recursion let a functional 
 \Cpp{23}, which runs much of machine learning and most embedded devices, has the material for them: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
 It does not hold a generic function to its declared constraints: the body may use any operation its type argument happens to have.
 
+% THE PROMISE (agreed 2026-11-20).  The sentence below is what the paper offers
+% its reader, a C++ programmer who knows the theory and cannot use it at work.
+% If the paper strays from it, the sentence is false and must not stay.
+%
+% Keeping the three rules is a discipline: a value can be replaced by its
+% equal, a generic function depends on a type only through what its
+% declaration names, and every computation has a bound read off before it
+% starts.  That much rests on the programmer's care.
+%
+% Passing the check gives four things that do not:
+%   1. The signature is the contract: a generic body is checked against its
+%      declaration where it is defined, not at each use.
+%   2. A free theorem for each generic definition, usable as an equation in a
+%      review (a function written for any monoid commutes with every monoid
+%      homomorphism).
+%   3. Laws compose by themselves: stated once at the smallest pieces, carried
+%      by the compiler to every composite, and refused where they do not
+%      follow.
+%   4. A printed list of every law that was stated and not proved.
+% All of it is decided while compiling.  The theory is not new, and that it
+% can be used here is the contribution.
+Under the rules of this paper and a check that a tool performs, a template means what its signature says, the compiler carries a law through every composition, and what was taken on trust comes out as a list.
+
 This paper characterises a fragment of \Cpp{23} as it ships, with no language modification or compiler extension, and no tool required: an embedded language whose domain is System~F and whose programs are ordinary \Cpp{23} programs.
 The fragment is type-class-style code under three rules, called the Juliet Posture (Jlt):
 i) values are copyable data and functions are pure and evaluable at compile time;
