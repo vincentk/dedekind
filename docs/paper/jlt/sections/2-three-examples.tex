@@ -342,6 +342,17 @@ using NonEmpty = Via<IsEmpty, All, Not>;
 static_assert(
 homomorphism<NonEmpty, Strings, Any> &&
 !homomorphism<NonEmpty, Strings, All>);
+
+template <typename H, typename T,
+    typename Op, typename E, typename U,
+    typename Op2, typename E2>
+concept IsHomomorphism =
+  IsMonoid<T, Op, E> &&
+  IsMonoid<U, Op2, E2> &&
+  homomorphism<H, Mon<T, Op, E>,
+               Mon<U, Op2, E2>> &&
+  requires(H h, T x) {
+    { h(x) } -> same_as<U>; };
 \end{cpp}
 \end{minipage}
 
@@ -351,10 +362,8 @@ template <typename T, typename Op,
     typename E, typename U, typename Op2,
     typename E2, typename H,
     ranges::sized_range R>
-  requires IsMonoid<T, Op, E> &&
-    IsMonoid<U, Op2, E2> &&
-    homomorphism<H, Mon<T, Op, E>,
-                 Mon<U, Op2, E2>> &&
+  requires IsHomomorphism<H, T, Op, E,
+                          U, Op2, E2> &&
     same_as<ranges::range_value_t<R>, T>
 constexpr bool free_theorem(
     Mon<T, Op, E>, Mon<U, Op2, E2>,
@@ -383,7 +392,7 @@ free_theorem(Strings{}, Any{}, NonEmpty{},
 \]}
 \caption{What the compiler infers: a law derived from laws, and three theorems for free.
 Left: the law that a function is a homomorphism; a lemma; the free theorem of \cppinline{concat2}.
-Right: three axioms; the inferred fact; three theorems. Below: the theorem in System~F.}
+Right: three axioms; the inferred fact, and the shape the theorem asks for; three theorems. Below: the theorem in System~F.}
 \label{lst:theorems}
 \end{listing}
 % TODO(listings): code from the probe (namespace triple_probe), green on CI.
@@ -403,11 +412,12 @@ The compiler concludes, from emptiness and De Morgan's law, that it is a homomor
 It concludes nothing more than follows, and the same function against conjunction is refused.
 
 A derived law is worth having because of a theorem that comes with every function written under the rules of this paper: it commutes with every homomorphism of the shape it names, which follows from its type alone~\cite{reynolds1983types,wadler1989theorems}.
-\cppinline{free_theorem} states that for \cppinline{concat2} in plain \Cpp{}, with the theorem's hypothesis as its signature.
+\cppinline{free_theorem} states that for \cppinline{concat2} in plain \Cpp{}, with the theorem's hypothesis as its signature: a shape that names the law and the one call the body makes of the function.
 Each of its three calls reads as a sentence: from this monoid, to that one, by this function, on these values.
 The third can be written only because of the fact the compiler derived.
 A call checks one case and proves nothing, and the theorem holds whether or not anyone calls it.
-The lines of Listing~\ref{lst:theorems} are in the kernel as written, apart from the ranges and from the \cppinline{auto} of \cppinline{Via}, which stands for a template parameter (Section~\ref{sec:kernel:derived}).
+The lines of Listing~\ref{lst:theorems} are in the kernel as written, apart from the ranges and from one line.
+The call operator of \cppinline{Via} is written with \cppinline{auto}: its result type follows its argument's type, which the kernel cannot write, so \cppinline{Via} is outside the kernel as it stands (Section~\ref{sec:kernel:derived}).
 An axiom, in turn, is only as good as its author: ``a sum of counts is zero exactly when every count is'' looks as safe as the three above, and is false of \cppinline{size_t}, where a sum can wrap around to zero.
 
 \subsection{What the three have in common}

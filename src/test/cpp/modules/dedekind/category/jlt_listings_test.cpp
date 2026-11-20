@@ -2037,12 +2037,21 @@ static_assert(homomorphism<NonEmpty, Strings, Any> &&
               !homomorphism<NonEmpty, Strings, All> &&
               !homomorphism<Via<IsEmpty, Any, Not>, Strings, Any>);
 // The free theorem of concat2 as a function whose signature is its
-// hypothesis.  The two monoids are passed by name, so that nothing has to be
-// spelled twice.
+// hypothesis: a shape that names the law and the one call the body makes of
+// the function.  (An earlier form read the law directly in the requires
+// clause and called h without naming the call, a breach of Rule 2 that the
+// check of the listings against the grammar found.)  The two monoids are
+// passed by name, so that nothing has to be spelled twice.
+template <typename H, typename T, typename Op, typename E, typename U,
+          typename Op2, typename E2>
+concept IsHomomorphism =
+    IsMonoid<T, Op, E> && IsMonoid<U, Op2, E2> &&
+    homomorphism<H, Mon<T, Op, E>, Mon<U, Op2, E2>> && requires(H h, T x) {
+      { h(x) } -> std::same_as<U>;
+    };
 template <typename T, typename Op, typename E, typename U, typename Op2,
           typename E2, typename H, std::ranges::sized_range R>
-  requires IsMonoid<T, Op, E> && IsMonoid<U, Op2, E2> &&
-           homomorphism<H, Mon<T, Op, E>, Mon<U, Op2, E2>> &&
+  requires IsHomomorphism<H, T, Op, E, U, Op2, E2> &&
            std::same_as<std::ranges::range_value_t<R>, T>
 constexpr bool free_theorem(Mon<T, Op, E>, Mon<U, Op2, E2>, H h, R r) {
   return h(concat2<T, Op, E>(r)) ==

@@ -37,18 +37,21 @@ A &::=& Q \;\mid\; e & \text{shape, law} \\
 Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
 \tau &::=& \alpha \;\mid\; b \;\mid\; T\texttt{<}\overline{\tau}\texttt{>} & \text{type} \\[3pt]
 b &::=& \texttt{bool} \;\mid\; \texttt{size\_t} & \text{atom} \\[3pt]
-e &::=& x \;\mid\; c \;\mid\; f\texttt{<}\overline{\tau}\texttt{>} \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
+e &::=& x \;\mid\; c \;\mid\; f\texttt{<}\overline{\tau}\texttt{>} \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; \tau\texttt{\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
   & \mid & \ominus e \;\mid\; e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e & \text{operators, choice} \\
   & \mid & \texttt{ranges::fold\_left(views::iota(0uz, }e\texttt{), }e\texttt{, }e\texttt{)} & \text{iteration} \\
 \end{array}
 \]
 \caption{The grammar of FJlt, a subset of \Cpp{23}, with namespace qualifiers elided.
-Terminals are in monospace, an overbar is a sequence, possibly empty, and an empty \texttt{requires} clause or \texttt{template} head is left out.
-$\alpha, \beta$ are type variables, $C$ names of shapes, $f$ of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
-$T$ is a declared type $O$, \texttt{std::pair}, one of the standard's function objects such as \texttt{std::plus}, or a carrier, a type of values that the kernel does not look inside.
+Terminals are in monospace and an overbar is a sequence, possibly empty.
+An empty \texttt{requires} clause, an empty list of a \texttt{requires} expression with its parentheses, and an empty \texttt{template} head are left out, except that an entry with no type variables keeps \texttt{template <>}.
+The requirements $\overline{A}$ of a shape and the constraints $\overline{Q}$ of a clause are joined by \texttt{\&\&}, and a negated constraint is written in parentheses.
+$\alpha, \beta$ are type variables, $C$ names of shapes, the standard's \texttt{regular} and \texttt{same\_as} among them, $f$ names of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
+A parameter that is not used may go unnamed.
+$T$ is a declared type $O$, \texttt{std::pair}, a carrier, or an arrow supplied with a carrier, as the standard's \texttt{std::plus} is.
 $c$ is a constant of an atom, or a value of a carrier that its type provides.
-$\ominus$ and $\oplus$ are the total operators of the atoms, and \texttt{==} at a carrier whose shape asks for it.
-A negated constraint is written in parentheses.
+$\tau\texttt{\{}\overline{e}\texttt{\}}$ is a value of a declared type from values for its fields, and at a type variable, with no fields, the one value of a function object.
+$\ominus$ and $\oplus$ are the operators of the atoms that are defined at every argument, with division and remainder by a constant that is not zero and the number of bits of a count, and \texttt{==} at a carrier whose shape asks for it.
 In an iteration the first term is the count, the second the start, and the third the step, a function of the state and the index.}
 \label{fig:fjlt-syntax}
 \end{figure}
@@ -65,7 +68,12 @@ In an iteration the first term is the count, the second the start, and the third
 %  - The number of bits of a count, size_t(bit_width(n)), is one primitive.
 %  - Rows removed from the earlier figure: value parameters, arguments and
 %    atoms in types; the dereference; the general conversion; the deduced call.
-%  - Not yet checked line by line against the three listings.
+%  - Checked line by line against the three listings on 2026-11-20.  What that
+%    found and is not yet repaired: Via's call operator in Listing 3 has a
+%    result type that follows its argument's type (auto), which no row writes;
+%    the declarations that supply a carrier with its arrows (Bare with its
+%    equality, Size and IsEmpty with string's own members) are outside the
+%    grammar by design and are said to be so in the prose.
 
 \begin{table}[tb]
 \centering
@@ -99,6 +107,7 @@ case & function templates of one name under \texttt{requires} clauses, the most 
 
 The value layer has little of \Cpp{} in it, on purpose.
 A carrier is a type the kernel never looks inside: a generic definition reaches a value of it only through the calls that a shape names, and that is all the kernel knows of a string.
+A carrier comes with arrows of its own, as \cppinline{std::plus} comes with strings and \cppinline{Size} is written with a string's own length, and their declarations are given to the kernel, not written in it.
 The one recursion over a value is iteration, with its count given before the first step.
 Its step is a function of the state and the index, and a state of several parts is a record.
 
@@ -125,6 +134,7 @@ written & stands for & the same because \\
 a range, as \texttt{array\{...\}}, \texttt{views::iota}, \texttt{views::repeat}, \texttt{views::transform}, or a parameter \texttt{R} & a count and an arrow from an index to an element & a fold visits the same values in the same order \\
 \texttt{ranges::fold\_left} over a range & iteration over its count, the step reading the element at the index & by the row above \\
 \texttt{ranges::sized\_range R}, an alias, a deduced type, an \texttt{auto} parameter & the \texttt{requires} clause, the type or the template parameter written out & the standard defines them so \\
+an integer literal where a count is meant, a braced \texttt{return}, two fields in one declaration & the count, the value with its type, the fields one by one & the standard defines them so \\
 \texttt{static\_assert} & the observation of a truth value & it is what is observed \\
 \bottomrule
 \end{tabularx}

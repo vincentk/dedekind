@@ -27,7 +27,7 @@ Modelled on "The Essence of JavaScript": a short introduction, the language intr
 | 3. The kernel and its warrant | FJlt in a page, the cited theory, the free theorem; the adequacy of the derived forms, by test, stated as such |
 | 4. The check | the tool, on the three listings: what it accepts, what it refuses, the list it prints |
 | 5. At run time | what the compiler leaves |
-| 6 to 8 | limits, related work, conclusion |
+| 6. Discussion | known limitations (the linter's own are in Section 4); related work; conclusion |
 
 Appendix, short:
 

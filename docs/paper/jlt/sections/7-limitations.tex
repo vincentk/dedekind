@@ -1,10 +1,10 @@
 % !TEX root = ../jlt.tex
-\section{Known Limitations}
+\subsection{Known Limitations}
 \label{sec:limits}
 
 Table~\ref{tab:posture} says which instrument holds each rule at build time.
 
-\subsection{Limits of principle}
+\subsubsection*{Limits of principle}
 
 \paragraph{The compiler does not check a template's definition against its constraints.}
 Definition checking was the half of the \Cpp{0x} design~\cite{gregor2006concepts} that \Cpp{20} did not take up (Section~\ref{sec:intro}).
@@ -60,14 +60,7 @@ A class hierarchy is nominal, where a \cppinline{concept} is structural, and a b
 Table~\ref{tab:binding} lists two, steps and call depth, and the template instantiation depth bounds both binding times.
 Rule~3 keeps them predictable, because every fold's length is in the program: a count, which meets no depth limit, or the depth of a term, one instantiation or one call per nesting.
 
-\subsection{Limits of this presentation}
-
-\paragraph{The linter is a check, not a proof.}
-The repository's linter, run in continuous integration on the compiler's own front end and documented there, checks Rule~3 for every instantiated body, Rule~1's syntactic part, and Rule~2 at the level of names: a body may use, on a value of parameter type, only what a declared constraint names.
-For Rule~1 it closes each channel a mutation could leak through at run time: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference.
-For Rule~3 it reports every loop statement, a loop admitted as sugar included, and the reviewer judges whether a reported loop shows its end.
-A finding is a breach or a gap in its reading of the standard's concepts, and its silence is not a proof.
-Review complements it: an agentic reviewer reads every pull request against the three rules, and the listings and the library's core are held at zero on all three to the extent the two instruments reach.
+\subsubsection*{Limits of this presentation}
 
 \paragraph{The adequacy argument covers part of the library.}
 The constructions of Appendix~\ref{app:fjlt:closure} are measured complete for the listings and the library's core only.
