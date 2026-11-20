@@ -56,6 +56,26 @@ It does not hold a generic function to its declared constraints: the body may us
 %   4. A printed list of every law that was stated and not proved.
 % All of it is decided while compiling.  The theory is not new, and that it
 % can be used here is the contribution.
+%
+% THE CONTEXT, for the introduction and the related work, not for the
+% abstract.  The concepts designed for C++0x checked a template's body against
+% its constraints where it is defined, and let a concept state axioms.  That
+% design was voted into the working draft and then withdrawn (2009, to be
+% verified with its sources), and the concepts of C++20 check only the use.
+% What the paper gives a developer is that difference back, inside a fragment
+% (values, declared dependencies, bounded recursion) and at modest effort:
+% three rules to keep and one check to run.  Concept maps are not recovered.
+%
+% WHERE THE LIE STANDS.  The sentence is not yet true, and the work is to make
+% the untrue part smaller.  Update this list as it shrinks.
+%   - "a check that a tool performs": not built.  The linter checks Rule 2 by
+%     names only, and nothing decides whether a program is Jlt.
+%   - "a template means what its signature says": follows from that check, so
+%     it is on trust until the check exists.
+%   - "the compiler carries a law through every composition": true of the
+%     listings today.
+%   - "what was taken on trust comes out as a list": true for entries at one
+%     type.  Lemmas and units named at a use are not listed.
 Under the rules of this paper and a check that a tool performs, a template means what its signature says, the compiler carries a law through every composition, and what was taken on trust comes out as a list.
 
 This paper characterises a fragment of \Cpp{23} as it ships, with no language modification or compiler extension, and no tool required: an embedded language whose domain is System~F and whose programs are ordinary \Cpp{23} programs.
