@@ -1594,13 +1594,15 @@ static_assert(std::plus<size_t>{}(Zero{}(), Zero{}()) == Zero{}() &&
 // The shape, built up as algebra builds it: a magma is a carrier with an
 // operation, a unital magma has a unit as well, and a monoid is a unital
 // magma whose operation is associative.
-// The shape asks for no equality on the carrier.  A shape that did would
+// The shape asks of the carrier only that its values can be copied: no
+// equality, and no default value, which a body could otherwise build and
+// which no homomorphism need respect.  A shape that did would
 // make equality one of its operations, and the free theorem of a function
 // over it would then hold only for homomorphisms that preserve equality, the
 // one-to-one ones.  So the unit is checked at one point beside its axiom, by
 // an assertion, and not inside the shape.
 template <typename T, typename Op>
-concept IsMagma = std::semiregular<T> && requires(T a, T b) {
+concept IsMagma = std::copyable<T> && requires(T a, T b) {
   { Op{}(a, b) } -> std::same_as<T>;
 };
 template <typename T, typename Op, typename E>

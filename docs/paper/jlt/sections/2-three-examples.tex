@@ -22,7 +22,7 @@ template <typename T, typename Op,
           typename E>
 constexpr bool unital = false;
 template <typename T, typename Op>
-concept IsMagma = semiregular<T> &&
+concept IsMagma = copyable<T> &&
   requires(T a, T b) {
     { Op{}(a, b) } -> same_as<T>; };
 template <typename T, typename Op,
@@ -136,7 +136,7 @@ The carrier, the operation and the unit are each a type, so the shape reads as t
 That the operation is associative, and that the unit is its unit, are axioms: the programmer states them, as the top right panel does for the truth values under conjunction, and the compiler takes them at their word.
 The monoids of \cppinline{size_t} and of strings are declared the same way, with units \cppinline{Zero} and \cppinline{Empty}.
 The unit is also checked at one point, by an assertion beside its axiom, which can refute a false claim and cannot prove a true one.
-The shape itself asks for no equality on the carrier, for a reason that Section~\ref{sec:translation} gives.
+The shape itself asks of the carrier only that its values can be copied, and in particular no equality, for a reason that Section~\ref{sec:translation} gives.
 
 \cppinline{concat1} is the loop one writes without a second thought: a sum that starts from a default value.
 Its signature asks only for a range.
@@ -392,9 +392,9 @@ free_theorem(Strings{}, Any{}, NonEmpty{},
 \qquad\qquad \mathit{eq}\;(h\,(\mathit{concat2}\;q\;n\;f))\;(\mathit{concat2}\;q'\;n\;(\lambda k.\,h\,(f\,k)))
 \end{array}
 \]}
-\caption{What the compiler infers: a law derived from laws, and three instances of a theorem that comes for free.
+\caption{What the compiler infers: a law derived from laws, and a theorem that comes for free.
 Left: the law that a function is a homomorphism; a lemma; the free theorem of \cppinline{concat2}.
-Right: three axioms; the inferred fact, and the shape the theorem asks for; three instances. Below: the theorem in System~F.}
+Right: three axioms; the inferred fact and the theorem's shape; three instances of it. Below: its image.}
 \label{lst:theorems}
 \end{listing}
 % TODO(listings): code from the probe (namespace triple_probe), green on CI.
