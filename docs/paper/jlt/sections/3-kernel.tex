@@ -16,7 +16,56 @@ The second follows the treatment of JavaScript by a small core and a desugaring 
 FJlt has two layers.
 The \emph{value layer} is what a program computes with.
 The \emph{resolution layer} is what the compiler chooses before the program runs.
-Table~\ref{tab:kernel} lists what is in each, as it is written in \Cpp{} and where the three listings use it.
+Figure~\ref{fig:fjlt-syntax} is its grammar, and Table~\ref{tab:kernel} says of each construct which layer it belongs to and where the three listings use it.
+
+\begin{figure}[tb]
+\[
+\begin{array}{lcl@{\hspace{0.6em}}l}
+P &::=& \overline{D}\; e & \text{program} \\[3pt]
+D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \texttt{ = } \overline{A}\texttt{;} & \text{shape} \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> constexpr } b\; f \texttt{ = } e\texttt{;} & \text{trait, its default} \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} & \text{entry of a trait} \\
+  &   & \qquad \texttt{constexpr } b\; f\texttt{<}\overline{\tau}\texttt{>} \texttt{ = } e\texttt{;} & \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} & \text{case of a function} \\
+  &   & \qquad \texttt{constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau\; y\texttt{;}}\ \ M \texttt{ \};} & \text{named type} \\[3pt]
+M &::=& \varepsilon \;\mid\; \texttt{template <typename }\overline{\beta}\texttt{>} & \text{its call} \\
+  &   & \qquad \texttt{constexpr } \tau \texttt{ operator()(}\overline{\tau\; x}\texttt{) const} & \\
+  &   & \qquad\quad \texttt{requires } \overline{Q} \texttt{ \{ return } e\texttt{; \}} & \\[3pt]
+A &::=& Q \;\mid\; e & \text{shape, law} \\
+  & \mid & \texttt{requires (}\overline{\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> same\_as<}\tau\texttt{>;}} \texttt{ \}} & \text{required calls} \\[3pt]
+Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
+\tau &::=& \alpha \;\mid\; b \;\mid\; T\texttt{<}\overline{\tau}\texttt{>} & \text{type} \\[3pt]
+b &::=& \texttt{bool} \;\mid\; \texttt{size\_t} & \text{atom} \\[3pt]
+e &::=& x \;\mid\; c \;\mid\; f\texttt{<}\overline{\tau}\texttt{>} \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
+  & \mid & \ominus e \;\mid\; e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e & \text{operators, choice} \\
+  & \mid & \texttt{ranges::fold\_left(views::iota(0uz, }e\texttt{), }e\texttt{, }e\texttt{)} & \text{iteration} \\
+\end{array}
+\]
+\caption{The grammar of FJlt, a subset of \Cpp{23}, with namespace qualifiers elided.
+Terminals are in monospace, an overbar is a sequence, possibly empty, and an empty \texttt{requires} clause or \texttt{template} head is left out.
+$\alpha, \beta$ are type variables, $C$ names of shapes, $f$ of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
+$T$ is a declared type $O$, \texttt{std::pair}, one of the standard's function objects such as \texttt{std::plus}, or a carrier, a type of values that the kernel does not look inside.
+$c$ is a constant of an atom, or a value of a carrier that its type provides.
+$\ominus$ and $\oplus$ are the total operators of the atoms, and \texttt{==} at a carrier whose shape asks for it.
+A negated constraint is written in parentheses.
+In an iteration the first term is the count, the second the start, and the third the step, a function of the state and the index.}
+\label{fig:fjlt-syntax}
+\end{figure}
+% TODO(kernel), for discussion, found while trimming the grammar:
+%  - Calls, parameters and fields are SEQUENCES here, where Table 1 and the
+%    table of derived forms say "one argument" and "pairs".  The listings call
+%    Op{}(a, b), and the standard's std::plus takes two arguments, so a kernel
+%    of one-argument functions could not use it as it stands.
+%  - A declared constant is left out: a function object of no parameters does
+%    its work.
+%  - A result type is written, not deduced, and only same_as is a result
+%    concept.
+%  - The number of bits of a count, size_t(bit_width(n)), is one primitive.
+%  - The spelling of iteration is not decided.
+%  - Rows removed from the earlier figure: value parameters, arguments and
+%    atoms in types; the dereference; the general conversion; the deduced call.
+%  - Not yet checked line by line against the three listings.
 
 \begin{table}[tb]
 \centering
