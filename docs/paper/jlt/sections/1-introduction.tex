@@ -22,7 +22,8 @@ Listing~\ref{lst:sites} is a case.}
 %For them the repository binds the library's combinators into Python as handles to the compiled core, so the laws declared in \Cpp{} hold in an interactive session: the specialisations they license run there at run time, and only what the compiler evaluates of them is fixed when the bindings are built (Section~\ref{sec:binding}).
 The whole language may be too large to work in with confidence, so a functional fragment of it is worth drawing.
 \Cpp{23} is the first standard with every ingredient of such a fragment: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
-Compliance with a fragment's rules is also easier to check than a decade ago: a language model of code~\cite{chen2021evaluating} can be instructed to read every change against them, as an agentic reviewer.
+Compliance with a fragment's rules is also cheaper to check than a decade ago: a language model of code~\cite{chen2021evaluating} can be instructed to read every change against them, as an agentic reviewer.
+Such reviewers are now ubiquitous, and the instructions this paper's reviewer follows are a file in the repository, so a reader can repeat the review with an agent of their own.
 Such a review is a read, not a proof (Section~\ref{sec:limits}).
 
 A compile-time check is a claim about a program that the compiler verifies.
@@ -30,6 +31,8 @@ For generic code, \Cpp{} lacks one such check.
 Concepts, as proposed for \Cpp{0x}, checked a template's definition against its constraints~\cite{gregor2006concepts,dosreis2006specifying}.
 As standardised in \Cpp{20} they check only its uses~\cite{stroustrup2020thriving}, so a template's body may use operations its constraints do not name.
 The designers named the problem at the outset, in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
+
+Section~\ref{sec:examples} makes the case on three functions the reader already knows: a bug that a signature would have prevented, an optimisation that a declared law permits, and a fact that the compiler works out from facts it was given.
 
 \Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary.
 This paper documents a discipline of three rules that does, and that recovers some of what a functional language guarantees.
@@ -85,6 +88,24 @@ The bottom edge says that the two paths compute one value.}
 \label{fig:arrows}
 \end{figure}
 
+\begin{table}[tb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.13\linewidth}>{\raggedright\arraybackslash}p{0.16\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.25\linewidth}@{}}
+\toprule
+ & & contents & status \\
+\midrule
+\textbf{FJlt}: a subset of \Cpp{} whose generic definitions have System~F types & value layer: what is computed & atoms: truth values and counts, a finite prefix of the naturals; carriers: any type of values, known only by the operations a shape names; pairs; arrows of one argument or none; templates over types; the conditional; the iterator & its image is itself: prenex polymorphism over those atoms, with that iterator. A generic definition has a System~F type, and so its free theorem at every carrier \\[3pt]
+ & resolution layer: what the compiler chooses & named type constructors; shapes, of laws and required calls, and their negation; traits with atomic results, laws among them; overloads & its image is records and separate definitions, and the selection is gone \\
+\midrule
+\textbf{Jlt}: what the programmer writes & derived forms: the domain of desugaring beyond FJlt & several parameters, records, tagged unions of data, sequences, ranges, loops, folds with an index, the standard's shorthands & each has an FJlt program with the same observable values \\[3pt]
+ & the Juliet Posture: three rules & substitution, declared structure, bounded recursion & a heuristic and an outer bound: what the programmer remembers \\
+\bottomrule
+\end{tabularx}
+\caption{The two languages of the paper, each in two parts.}
+\label{tab:model}
+\end{table}
+
 \paragraph{Contributions.}
 The paper contributes a route, not a piece of software: each step from \Cpp{23} to System~F is a known construction, and the contribution is that the steps connect.
 \begin{enumerate}
@@ -97,7 +118,7 @@ GHC's rule for overlapping instances refuses such a call.
 Jlt adopts a refinement of that rule, and the repository's linter reports a call that breaks it, on an argument whose type is a template parameter (Section~\ref{sec:posture}, Appendix~\ref{app:fjlt:typing}).
 \item The exhibits: every \Cpp{} listing in this paper but one compiles and runs under a stock compiler, at compile time and at run time, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}.
 Each of these is held to the three rules by an agentic review of every change against them and by a mechanical linter in the same repository, as the library's core is.
-The exception is Listing~\ref{lst:undecided}, a fixture of the linter whose left panel breaks Rule~2 on purpose: it is evaluated at compile time only, and linted for that one rule.
+The exception is the lower left panel of Listing~\ref{lst:rule2}, which breaks Rule~2 on purpose and is also a fixture of the linter: it is evaluated at compile time only, and linted for that one rule.
 That is what compliance means here.
 \end{enumerate}
 
@@ -120,8 +141,8 @@ The inclusion is proper: \Cpp{23} is Jlt without the rules.
 The inclusion is proper: Jlt is the kernel and the sugar.
 The dashed arrow, labelled $-$sugar, is $\mathit{desugar}$, and $\mathit{incl}$ is the inclusion beside it.
 That $\mathit{desugar}$ preserves meaning is a working hypothesis: it is total on Jlt and a retraction of the inclusion.
-$\mathit{desugar} \circ \mathit{incl} = \mathit{id}$ holds exactly, by construction.
-$\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ holds up to the value a program computes.
+A kernel program desugars to itself: $\mathit{desugar} \circ \mathit{incl} = \mathit{id}$, by construction.
+A Jlt program and its desugaring compute the same value: $\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ up to that value, which is the hypothesis.
 \item[Section~\ref{sec:translation}, the translation $\llbracket\cdot\rrbracket$.]
 It is total on well-typed FJlt programs.
 Its target, which the figure calls System~F, is System~F extended with records, sums, inductive types and iterators (Definition~\ref{def:target}).
@@ -139,9 +160,8 @@ Under the hypothesis it holds for every Jlt program $p$: $\mathit{eval}\,\llbrac
 \end{description}
 One example runs through the listings: \cppinline{concat}, which combines the elements of a monoid.
 Listing~\ref{lst:rule2} writes it for zero and two arguments, where no recursion is needed.
-Listing~\ref{lst:rule3} writes it as a fold over a range, of counts and of Fibonacci's matrices, and Figure~\ref{fig:structures} sketches the recursion.
-In Listing~\ref{lst:laws} two declared laws reduce that fold to logarithmically many steps.
-Listing~\ref{lst:sites} leaves the example: it counts restriction sites in a DNA sequence.
+Listing~\ref{lst:rule3} writes it as a fold over a range of counts, and Equations~\eqref{eq:fold} and~\eqref{eq:cata} state the recursion.
+A case study in Appendix~\ref{app:measurements} leaves the example: Listing~\ref{lst:sites} counts restriction sites in a DNA sequence.
 The compiler partially evaluates the matcher in its pattern, and a symmetry the sites share gives a test linear in their length, where an automaton would list them.
 Section~\ref{sec:limits} states the limits, Section~\ref{sec:related} the related work, and the appendices hold the calculus.
 

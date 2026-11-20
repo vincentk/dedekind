@@ -6,12 +6,17 @@
 Dictionary passing is Wadler and Blott's~\cite{wadler1989adhoc}.
 Table~\ref{tab:rules} is that translation, and its \textsc{E-Op} row, structural satisfaction, has no counterpart in a nominal type-class system, a difference Bernardy et al.~\cite{bernardy2010generic} weigh in their comparison of concepts and type classes.
 Coherence, that a program has one meaning however its constraints are resolved, is where the designs diverge: Racordon et al.~\cite{racordon2025coherence} survey how Haskell, Swift, Rust and Scala keep or trade it, between unique instances and context-dependent resolution.
-FJlt takes the strict side by construction, since an instance is a function specialisation and the one-definition rule admits one per head.
+FJlt takes the strict side by construction, since an instance is an entry of a trait and FJlt admits one per head.
 Jlt thus sits between Rust and standard \Cpp{}: it takes Rust's discipline of declared dependencies and coherent resolution~\cite{rustreference}, in \Cpp{23} as it ships, and keeps \Cpp{}'s dispatch on overloads where a function declares it (Section~\ref{sec:posture}).
 Theorem~\ref{thm:coherence} is that choice stated as a property of the translation.
 Instance resolution is the inference half of type classes, Hindley--Milner's~\cite{milner1978theory,damas1982principal} extended with predicates~\cite{jones1994qualified}; FJlt infers types only locally~\cite{pierce2000local}, a result type from its body, but it infers laws the same way.
 Rust and Swift also check a generic body against its bounds: a comparison on an unconstrained type parameter is a compile error in both, and Rust's message names the missing bound~\cite{klabnik2023rust,swift2026generics}.
 That is Rule~2 as a compiler check, the half \Cpp{20} dropped, and the posture, together with the linter of Section~\ref{sec:limits}, is what recovering it by hand costs.
+The power of a monoid, $n$ copies of an element combined, is classical algebra~\cite[Ch.~I]{lang2002algebra}, and computing it in about $\log n$ steps by squaring is older than the algebra~\cite[\S 4.6.3]{knuth1997art2}.
+It is the one homomorphism from the naturals under addition that sends 1 to the element, and for a commutative monoid it is the monoid as a semimodule over $\mathbb{N}$~\cite[Ch.~14]{golan1999semirings}.
+Stepanov and McJones state the algorithm once, for any associative operation~\cite[Ch.~3]{stepanov2009elements}, and Listing~\ref{lst:laws}'s \cppinline{power} is that function: total, because it asks for a monoid, and chosen in place of the plain fold because a law is declared or inferred.
+Stepanov's library shipped it as \texttt{power(x, n, op)}, with the unit found by a function \texttt{identity\_element(op)} and associativity a requirement in its documentation; it did not enter the standard, and one implementation still carries it as an extension~\cite{libstdcxx2024extnumeric}.
+Haskell's \texttt{base} library has it as a method of the class \texttt{Semigroup}, \texttt{stimes}, whose default is undefined at a count of zero and which an instance may replace~\cite{ghc2025semigroup}.
 
 \paragraph{Rewrite rules and fusion.}
 GHC lets a library declare equations the optimiser rewrites by~\cite{peytonjones2001rules}, wherever their pattern matches and unchecked.
@@ -22,7 +27,7 @@ A pipeline of \Cpp{} ranges builds none: a range already is the stream, so inlin
 \paragraph{Concepts, and the calculus next door.}
 The nearest neighbour of FJlt is Siek and Lumsdaine's $F^G$~\cite{siek2005essential,siek2004formalization}: System~F with concepts and models, translated into System~F by dictionary passing, with the translation proved sound in Isabelle.
 It grew from the same work as the concepts then proposed for \Cpp{0x}~\cite{gregor2006concepts,dosreis2006specifying}, which checked template bodies and were removed~\cite{stroustrup2009remove}, leaving the gap Rule~2 names.
-$F^G$'s models are nominal and can be declared for whole families of types, which is what the library behind this paper's listings needs after its shapes, where FJlt's function-specialisation instances are not found (Section~\ref{sec:limits}).
+$F^G$'s models are nominal and can be declared for whole families of types, which is what the library behind this paper's listings needs after its shapes, where FJlt's entries, declared after a shape's first use, are not found (Section~\ref{sec:limits}).
 FJlt is the smaller calculus, and the price of being a subset of a shipped language.
 Of the generic-programming features Garcia et al.~\cite{garcia2007extended} compare across eight languages, two that \Cpp{} then had no explicit support for, multi-type concepts and retroactive modelling, are what Listing~\ref{lst:rule2} exercises.
 

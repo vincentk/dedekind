@@ -110,6 +110,7 @@
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Frontend/MultiplexConsumer.h"
 #include "clang/Frontend/TextDiagnostic.h"
+#include "llvm/ADT/APSInt.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 #include "llvm/Support/CommandLine.h"
@@ -1539,8 +1540,15 @@ void guaranteed(const clang::Expr* e, bool positive, std::vector<Atom>& out,
   if (!cs) return;
   Atom atom{cs->getNamedConcept()->getName().str(), {}, positive};
   for (const clang::TemplateArgument& a : cs->getTemplateArguments()) {
-    if (a.getKind() != clang::TemplateArgument::Type) return;  // not read
-    atom.args.push_back(renderArg(a.getAsType(), subst));
+    if (a.getKind() == clang::TemplateArgument::Type) {
+      atom.args.push_back(renderArg(a.getAsType(), subst));
+    } else if (a.getKind() == clang::TemplateArgument::Integral) {
+      // A value argument, as IsMonoid<Op, 1u> has: the atom is the concept at
+      // that value, so IsMonoid<Op, 0u> and IsMonoid<Op, 1u> are two facts.
+      atom.args.push_back(llvm::toString(a.getAsIntegral(), 10));
+    } else {
+      return;  // a value that depends on a parameter, a template: not read
+    }
   }
   out.push_back(atom);
   const clang::ConceptDecl* c = cs->getNamedConcept();

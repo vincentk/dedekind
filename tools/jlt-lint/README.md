@@ -121,6 +121,43 @@ return (stored into a member or global), and a returned one that a non-std
 function calls at once (both need dataflow); a template never instantiated in the file being checked; a function
 naming itself inside a requires-expression (reported, though not recursion).
 
+## Stated in the paper, not yet checked
+
+The paper's Appendix B is the specification.  These of its conditions have no
+rule here yet, and a reader holds them:
+
+- **The guard.**  A dereference of a range's head, `*ranges::begin(r)`, or of
+  an optional, `*s`, is admitted only (1) in the branch of a conditional that
+  its guard selects (`ranges::size(r) == 0 ? a : b`, `s ? b : a`), (2) on the
+  same variable the guard tests, (3) that variable being a variable and not an
+  arbitrary expression (rules T-Guard, T-Guard-Opt).
+- **The order of declarations.**  What a shape names stands above it; an entry
+  of a trait stands above the first read it matches; every overload of a
+  function stands above the first call it could be chosen for.
+  **TODO, checkable:** the tool sees each declaration with its place (it
+  already has `context-order`), so it can report all three.  Planned form:
+  (1) each function or trait a shape mentions is declared above the shape;
+  (2) no read of a trait, and no use of a shape that reads it, stands above an
+  entry it could match, judged conservatively by the trait's name and the
+  head's constructor; (3) all overloads of a name stand above the first call
+  of that name.  Across files: an entry stands in the file or module of its
+  trait or of a type in its head.  The check errs on the side of refusing, and
+  it cannot see what the preprocessor hides.
+- **Reads of a trait.**  At a type with a type variable a trait is read only in
+  an entry's initialiser, at the parts of the entry's own head, or inside a
+  shape.
+- **The unproved claims beyond entries at one type.**  The rule `axioms` and
+  the ledger list an entry at one type whose value is `true`.  They do not list
+  an axiom for a family of types (an entry whose head has a parameter and whose
+  value is `true`), a lemma (an entry at a form), or a unit named at a use.
+- **Well-founded declarations.**  Nothing checks that the instantiations a
+  program can ask for are well founded.  The linter checks one of the two
+  syntactic conditions that approximate it; they do not imply it.
+- **The printed listings.**  The paper's self-contained listings
+  (`listing1_self_contained`, `listings_2_to_4`, `listing4_self_contained`,
+  `appendix_a_reading` in `jlt_listings_test.cpp`) are under the `axioms`
+  report only, and under none of the gates.
+
 ## Plan
 
 1. A trivial gate in CI, a step of the build per layer (this).

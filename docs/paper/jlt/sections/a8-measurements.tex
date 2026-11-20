@@ -1,8 +1,107 @@
 % !TEX root = ../jlt.tex
-\section{Measurements}
+\section{A Case Study: Sequence Processing}
 \label{app:measurements}
 
-This appendix measures Section~\ref{sec:binding}'s claim that the compiler vectorises the test a law writes.
+This appendix is a case study in Jlt beyond the kernel.
+Its listing uses the library's vocabulary and is not a kernel program, so the theorems of Section~\ref{sec:guarantees} reach it only through the desugaring hypothesis (Appendix~\ref{app:fjlt:closure}).
+Listing~\ref{lst:sites} shows partial evaluation (Section~\ref{sec:binding}) on both of its panels, each followed through the translation.
+With the sequence free, the compiler evaluates what it can, the table, and keeps the fold over the sequence, which only the run time can finish.
+What remains is the loop the optimiser emits, read as a function after Appel~\cite{appel1998ssa}: at \texttt{-O2} it allocates nothing and calls nothing, and each letter is four loads, the letter, its column, the next state and whether that state accepts; each call first copies the table by value, as Rule~1 has it.
+With the sequence given and bound by \cppinline{constexpr}, the term evaluates to its count, and so does the code: Figure~\ref{fig:arrows}'s bottom edge on one program.
+Given but not bound, the optimiser keeps the loop, so the constant is the binding's and not the optimiser's.
+
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// Σ, the alphabet :
+constexpr Alphabet bases = abc("ACGT");
+// Σ* = ⊔ₙ Σⁿ :
+constexpr Words oligos = words(bases);
+// ~rev, the reverse complement: CCTA ↦ TAGG
+// { w ∈ Σ⁶ | ~rev w = w }, the palindromes :
+constexpr auto pali6 =
+  oligos & len(6) & fixed_by(~rev);
+// { (s, i) ∈ Σᴺ × ℕ | s[i, i+6) ∈ pali6 } :
+constexpr auto cuts(size_t N) {
+  return (oligos & len(N)) >> pali6;
+}
+
+static_assert(
+  count(cuts(12)) == 1'835'008uz &&
+  count(cuts(32)) == 27uz << 58);
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// those of pali6 beginning GA :
+constexpr auto sites =
+  pali6 & prefix("GA");
+
+// the table, computed once by the compiler,
+// a function of any s :
+constexpr auto scanner =
+  *automaton(sites);
+static_assert(states(scanner) == 11uz);
+
+// and only now a sequence :
+constexpr auto dna = bytes(
+  "GAATTCGAGCTCGGTACCCGGGGATCC"
+  "TCTAGAGTCGACCTGCAGGCATGCAAGCTT");
+
+// ten by definition, in windows of six :
+static_assert(count(dna >> pali6) == 10uz);
+
+// two by the table, in one pass :
+// EcoRI's and SacI's
+static_assert(
+  count(dna >> scanner) == 2uz &&
+  sites(bytes("GAATTC")) &&
+  sites(bytes("GAGCTC")));
+\end{cpp}
+\end{minipage}
+\begin{minipage}[t]{0.49\linewidth}
+\begin{minted}{text}
+-- the right panel's query at every N-mer, the
+-- bind of the bag monad, counted by its laws:
+-- a cylinder per offset, 4^3 · 4^(N−6), N − 5 alike
+cuts N = Σ^N >>= (λ s. s >> pali6)
+count (cuts N)
+       = (N − 5) · 4^3 · 4^(N − 6)
+count (cuts 32) ~> 27 · 2^58
+         -- a constant; no sequence built
+\end{minted}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{minted}{text}
+-- the table is a closed term,
+-- the pass over the sequence is not
+automaton sites ~> (0, T, F)
+  -- static, 11 states: the compiler's
+count (s >> scanner) =       -- the residual
+  π₂ (fold (λ (q, c) a. (T q a, c + F (T q a)))
+           (0, 0) (map rank s))
+automaton pali6 ~> (0, T', F')
+  -- 277 states: past the step limit, so
+  -- the same function runs at run time
+\end{minted}
+\end{minipage}
+\caption{Palindromic DNA restriction sites, counted two ways on one definition.
+A palindrome is a word equal to its reverse complement, a $\theta$-palindrome for $\theta$ that antimorphic involution~\cite{kari2010watson}, as EcoRI's \texttt{GAATTC}; an enzyme cuts where one occurs.
+Left: how many cuts a cocktail of every six-cutter makes in all $4^N$ $N$-mers, each digested once.
+Right: the cuts of a smaller cocktail, the six-cutters beginning \texttt{GA}, in any one sequence, the caller's bytes read where they lie; here the polylinker of the plasmid pUC19.
+Below each: its translation (Section~\ref{sec:translation}), a closed term the compiler reduces and a residual for the run time.
+Without the count's laws, the left panel would build the $N$-mers and exhaust the step limit (Table~\ref{tab:binding}) before reaching its \cppinline{static_assert}.
+The table is Brzozowski's automaton~\cite{brzozowski1964derivatives}, for one site the matcher of Knuth, Morris and Pratt~\cite{knuth1977fast}, which partial evaluation derives~\cite{consel1989partial}.
+Its cost is moved to compile time where the step limit admits: ``negative overhead abstraction''~\cite{stroustrup2026peterman}.}
+\label{lst:sites}
+\end{listing}
+The right panel's section says in its type what its words have in common, a symmetry, and how long they are, a bound as large as one likes but known before the scan.
+The bound makes the language finite, where without one palindromes are not even regular~\cite{kari2010watson}; the symmetry makes its test one pair per offset, linear in the length, where an automaton lists the words, exponentially in it (Table~\ref{tab:batch}).
+So one more overload of \cppinline{count} takes no table and tests every window at once: the compiler vectorises it.
+The overload names a law of biochemistry and no instruction of any machine; \Cpp{26}'s \cppinline{std::simd}~\cite{kretz2024simd} would make the lanes explicit.
+
+\paragraph{Measurements.}
+The rest of this appendix measures the claim that the compiler vectorises the test a law writes.
 A vector register is a direct product of lanes, and its operations act pointwise.
 A computation fits it when two conditions hold: no position depends on another, and the values are contiguous and small, under operations the unit has.
 Either can fail alone, as Table~\ref{tab:batch} shows.

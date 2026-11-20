@@ -8,7 +8,7 @@
 \graphicspath{{../figures/}}
 
 \paperdetails{
-  perspective=theoretical,
+  perspective=art,
   area={Systems programming, Type systems, Generic programming},
 }
 
@@ -35,20 +35,68 @@ Parametric polymorphism, type classes and structural recursion let a functional 
 \Cpp{23}, which runs much of machine learning and most embedded devices, has the material for them: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
 It does not hold a generic function to its declared constraints: the body may use any operation its type argument happens to have.
 
+% THE PROMISE (agreed 2026-11-20).  The sentence below is what the paper offers
+% its reader, a C++ programmer who knows the theory and cannot use it at work.
+% If the paper strays from it, the sentence is false and must not stay.
+%
+% Keeping the three rules is a discipline: a value can be replaced by its
+% equal, a generic function depends on a type only through what its
+% declaration names, and every computation has a bound read off before it
+% starts.  That much rests on the programmer's care.
+%
+% Passing the check gives four things that do not:
+%   1. The signature is the contract: a generic body is checked against its
+%      declaration where it is defined, not at each use.
+%   2. A free theorem for each generic definition, usable as an equation in a
+%      review (a function written for any monoid commutes with every monoid
+%      homomorphism).
+%   3. Laws compose by themselves: stated once at the smallest pieces, carried
+%      by the compiler to every composite, and refused where they do not
+%      follow.
+%   4. A printed list of every law that was stated and not proved.
+% All of it is decided while compiling.  The theory is not new, and that it
+% can be used here is the contribution.
+%
+% THE CONTEXT, for the introduction and the related work, not for the
+% abstract.  The concepts designed for C++0x checked a template's body against
+% its constraints where it is defined, and let a concept state axioms.  That
+% design was voted into the working draft and then withdrawn (2009, to be
+% verified with its sources), and the concepts of C++20 check only the use.
+% What the paper gives a developer is that difference back, inside a fragment
+% (values, declared dependencies, bounded recursion) and at modest effort:
+% three rules to keep and one check to run.  Concept maps are not recovered.
+%
+% WHERE THE LIE STANDS.  The sentence is not yet true, and the work is to make
+% the untrue part smaller.  Update this list as it shrinks.
+%   - "a check that a tool performs": not built.  The linter checks Rule 2 by
+%     names only, and nothing decides whether a program is Jlt.
+%   - "a template means what its signature says": follows from that check, so
+%     it is on trust until the check exists.
+%   - "a declared law licenses a faster program": true of Listing 2 (the power).
+%     The selection of the faster case is by a declared law; the caller that
+%     names too little shows what the check must refuse, and no check does.
+%   - "the compiler carries laws through composition": true of Listing 3 (a
+%     homomorphism after a homomorphism), on three axioms.
+%   - "what was taken on trust comes out as a list": true for entries at one
+%     type.  Lemmas and units named at a use are not listed.
+Under the rules of this paper and a check that a tool performs, a template means what its signature says, a declared law licenses a faster program, and the compiler carries laws through composition.
+What was taken on trust comes out as a list.
+
 This paper characterises a fragment of \Cpp{23} as it ships, with no language modification or compiler extension, and no tool required: an embedded language whose domain is System~F and whose programs are ordinary \Cpp{23} programs.
 The fragment is type-class-style code under three rules, called the Juliet Posture (Jlt):
 i) values are copyable data and functions are pure and evaluable at compile time;
 ii) generic code varies with a type only through that type's concepts and traits;
 iii) recursion is structural, over a type or over a value, in a number of steps bounded before the first step.
 Its kernel, Featherweight Jlt (FJlt), translates by dictionary passing, as Haskell's type classes do, into System~F extended with data types and iterators.
-The translation is defined on every well-typed program and preserves types and evaluation, so an FJlt program inherits termination, parametricity and type soundness.
+The translation is defined on every well-typed program and preserves types and evaluation, so an FJlt program inherits parametricity and type soundness and, relative to two stated assumptions, termination.
 Jlt beyond the kernel is syntactic sugar.
 This paper hypothesises that the desugaring preserves meaning.
 
-The programmer declares a law, and the compiler does not check it.
-Where declared laws compose, the compiler infers further laws mechanically.
+A law about a program is an axiom, a lemma or a theorem.
+The programmer supplies the axioms and the lemmas, the compiler takes them at face value, and it applies the lemmas mechanically to infer the theorems.
+What the programmer supplies is not proved, so it has to be listed and audited: a tool lists the declared axioms.
 A law licenses an overload written for it, and overload resolution composes such overloads.
-In one program the action law and associativity, neither aware of the other, turn a fold of $n$ steps into one of $\log n$, even at compile time, where no optimiser runs.
+From an axiom, through the theorems inferred from it, to faster code is specialisation, and one program is followed along it: a fold of $n$ steps becomes one of at most 64.
 Another program searches a text for a set of words that share a symmetry, declared as a law.
 An automaton would list the words, exponentially many in their length, and the test derived from the law is linear in that length.
 The paper also exhibits a \Cpp{20} program in which a generic function's result depends on a constraint it never declared, a call that GHC's rule for overlapping instances refuses, and Jlt adopts a refinement of that rule.
@@ -66,6 +114,7 @@ The compiler enforces the rules where the standard requires a check, and the pro
 % follows once the calculus (appendix) is drafted.
 
 \input{sections/1-introduction}
+\input{sections/2-three-examples}
 \input{sections/2-cpp-to-jlt}
 \input{sections/3-jlt-to-fjlt}
 \input{sections/4-fjlt-to-system-f}

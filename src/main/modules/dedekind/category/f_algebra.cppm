@@ -148,6 +148,8 @@ import :morphism;    // IsArrow, Compose, π_1 / π_2: the first concrete term
 import :logic;       // Ternary: the bounded chain, the non-example
 import :nno;  // In = [Z, S] and Prior, its inverse: the NNO's structure maps
               // functor
+import :species;  // unit: a monoid's unit, read by is_monoid
+import :total;    // IsMonoid: the monoid two arrows present
 
 namespace dedekind::category {
 
@@ -322,21 +324,59 @@ inline constexpr bool selects_v<Pairing<F, G>, 2> = HonoursSignature<G>;
 template <typename P, typename Y>
 concept ProjectsPairing = (IsPairProjection<Y, 1> && selects_v<P, 1>) ||
                           (IsPairProjection<Y, 2> && selects_v<P, 2>);
+/** @brief The leg @c K of a copairing may stand for @c ι_K then the copairing
+ *  where the leg honours its signature, as a pairing's leg above. */
+template <typename Y, std::size_t K>
+inline constexpr bool cases_v = false;
+template <typename F, typename G>
+inline constexpr bool cases_v<Copairing<F, G>, 1> = HonoursSignature<F>;
+template <typename F, typename G>
+inline constexpr bool cases_v<Copairing<F, G>, 2> = HonoursSignature<G>;
+/** @brief The summand an injection injects, 0 for any other arrow. */
+template <typename P>
+inline constexpr std::size_t injects_v = 0;
+template <std::size_t K, typename A, typename B>
+inline constexpr std::size_t injects_v<Injection<K, A, B>> = K;
+/** @brief A copairing after an injection: @f$[f_1, f_2] \circ \iota_k =
+ *  f_k@f$, the coproduct's β (Pierce, @e Basic @e Category @e Theory @e for
+ *  @e Computer @e Scientists, Definition 1.5.4: the arrow @f$[f, g]@f$ makes
+ *  the diagram commute), the dual of @c ProjectsPairing: the case is decided
+ *  by the injection, so one leg runs. */
+template <typename P, typename Y>
+concept InjectsCopairing = (injects_v<P> == 1 && cases_v<Y, 1>) ||
+                           (injects_v<P> == 2 && cases_v<Y, 2>);
 /** @brief Two adjacent atoms, @c p then @c y, both honouring their
  *  signatures, that a law rewrites: an identity on either side (unit), a
- *  copy that @c CancelsAdjacent, a constant after any arrow, or a projection
- *  after a pairing. */
+ *  copy that @c CancelsAdjacent, a constant after any arrow, any arrow after
+ *  a constant, a projection after a pairing, or a copairing after an
+ *  injection. */
 template <typename P, typename Y>
-concept Rewrites = HonoursSignature<P> && HonoursSignature<Y> &&
-                   (IsIdentityArrow<P> || IsIdentityArrow<Y> ||
-                    (std::same_as<P, Y> && CancelsAdjacent<P>) ||
-                    IsConstantAtom<Y> || ProjectsPairing<P, Y>);
+concept Rewrites =
+    HonoursSignature<P> && HonoursSignature<Y> &&
+    (IsIdentityArrow<P> || IsIdentityArrow<Y> ||
+     (std::same_as<P, Y> && CancelsAdjacent<P>) || IsConstantAtom<Y> ||
+     IsConstantAtom<P> || ProjectsPairing<P, Y> || InjectsCopairing<P, Y>);
 /** @brief @f$c \circ f = c@f$: the constant, from @c f's domain.
  *  @param c the constant.  @return it, from @c f's domain. */
 template <IsArrow P, typename B, typename C>
 constexpr ConstantMorphism<Dom<P>, C> absorbed(
     const P&, const ConstantMorphism<B, C>& c) {
   return {c.value};
+}
+/** @brief @f$f \circ c = f(c)@f$: an arrow after a constant is the constant
+ *  of its value there, application read as composition with a point (the
+ *  elements of an object are the arrows into it from the terminal object, and
+ *  from any other object the constant ones; Pierce, @e Basic @e Category
+ *  @e Theory @e for @e Computer @e Scientists, Example 1.4.5: "the element
+ *  f(x) is the unique element of T that is the image of the composite function
+ *  f ∘ x").  The one law that calls an atom:
+ *  the atom honours its signature, so it takes the constant's value as it is.
+ *  @param c the constant.  @param y the arrow after it.  @return the constant
+ *  of @c y at @c c's value, from @c c's domain. */
+template <typename B, typename C, IsArrow Y>
+constexpr ConstantMorphism<B, Cod<Y>> applied(const ConstantMorphism<B, C>& c,
+                                              const Y& y) {
+  return {y(c.value)};
 }
 /** @brief @f$\pi_k \circ \langle f_1, f_2 \rangle = f_k@f$: the leg.
  *  @param p the pairing.  @return its leg @c k. */
@@ -347,6 +387,16 @@ constexpr F selected(const Pairing<F, G>& p, At<1>) {
 template <typename F, typename G>
 constexpr G selected(const Pairing<F, G>& p, At<2>) {
   return p.g;
+}
+/** @brief @f$[f_1, f_2] \circ \iota_k = f_k@f$: the leg.
+ *  @param c the copairing.  @return its leg @c k. */
+template <typename F, typename G>
+constexpr F selected(const Copairing<F, G>& c, At<1>) {
+  return c.f;
+}
+template <typename F, typename G>
+constexpr G selected(const Copairing<F, G>& c, At<2>) {
+  return c.g;
 }
 /** @brief The path two adjacent atoms rewrite to.  @param p the first atom.
  *  @param y the second.  @return the path. */
@@ -359,18 +409,29 @@ constexpr auto rewrite(const P& p, const Y& y) {
     return p;  // f ∘ id = f
   } else if constexpr (IsConstantAtom<Y>) {
     return absorbed(p, y);
+  } else if constexpr (IsConstantAtom<P>) {
+    return applied(p, y);  // f ∘ c = the constant f(c)
   } else if constexpr (ProjectsPairing<P, Y>) {
     return selected(p, At<IsPairProjection<Y, 1> ? 1 : 2>{});
+  } else if constexpr (InjectsCopairing<P, Y>) {
+    return selected(y, At<injects_v<P>>{});
   } else {
     return Identity<Dom<P>>{};  // x x = id
   }
 }
 /** @brief The concatenation of two normal paths: the result associates to
  *  the right (associativity), and two adjacent atoms that a law @c Rewrites
- *  are rewritten (unit, involution, constant, product), across the junction
+ *  are rewritten (unit, involution, constant, application, product, sum),
+ *  across
+ *  the junction
  *  as often as it recurs.  Every decision is made here, on the flattened
- *  path, so the result does not depend on how the term was associated.  A
- *  recursion over the paths' types.
+ *  path.  The result does not depend on how the term was associated, given
+ *  that the declared involutions hold: a constant followed by an involution
+ *  twice is that constant with the involution applied twice to its value
+ *  when bracketed to the left, and the constant itself when bracketed to the
+ *  right, the same arrow exactly when the declaration is true (the Jlt
+ *  paper's Appendix B, the proposition on the normal form).  A recursion
+ *  over the paths' types.
  *  @param p the first path.  @param q the second.  @return the normal path. */
 template <IsArrow P, IsArrow Q>
   requires std::same_as<Cod<P>, Dom<Q>>
@@ -414,14 +475,31 @@ constexpr auto reduce_β(const Compose<F, G>&, const RF& rf, const RG& rg) {
   // atoms a law rewrites rewritten.
   return detail_f_algebra::path_concat(rf, rg);
 }
-/** @brief A pairing (copairing) rebuilt from its reduced legs: inert. */
+/** @brief A pairing (copairing) rebuilt from its reduced legs, with the
+ *  product's (coproduct's) η: the pairing of a pair's two projections is the
+ *  identity, @f$\langle \pi_1, \pi_2 \rangle = \mathrm{id}@f$, and dually
+ *  @f$[\iota_1, \iota_2] = \mathrm{id}@f$.  The mediating arrow is the only
+ *  one (Pierce, @e Basic @e Category @e Theory @e for @e Computer
+ *  @e Scientists, Definitions 1.5.1 and 1.5.4: "exactly one arrow"), and the
+ *  identity is one.  So @c id @c * @c id is the identity on the product. */
 export template <typename F, typename G, typename RF, typename RG>
 constexpr auto reduce_β(const Pairing<F, G>&, const RF& rf, const RG& rg) {
-  return Pairing<RF, RG>{rf, rg};
+  if constexpr (IsPairProjection<RF, 1> && IsPairProjection<RG, 2> &&
+                std::same_as<Dom<RF>, Dom<RG>>) {
+    return Identity<Dom<RF>>{};
+  } else {
+    return Pairing<RF, RG>{rf, rg};
+  }
 }
 export template <typename F, typename G, typename RF, typename RG>
 constexpr auto reduce_β(const Copairing<F, G>&, const RF& rf, const RG& rg) {
-  return Copairing<RF, RG>{rf, rg};
+  if constexpr (detail_f_algebra::injects_v<RF> == 1 &&
+                detail_f_algebra::injects_v<RG> == 2 &&
+                std::same_as<Cod<RF>, Cod<RG>>) {
+    return Identity<Cod<RF>>{};
+  } else {
+    return Copairing<RF, RG>{rf, rg};
+  }
 }
 /** @} */
 
@@ -677,7 +755,8 @@ concept IsComparableConstant =
     IsConstantAtom<P> && std::equality_comparable<Cod<P>> &&
     (!std::floating_point<Cod<P>>);
 /** @brief Two normal paths are the same, atom by atom: by the type where an
- *  atom has one value, by the values of two constants, by the atom's own
+ *  atom has one value, a pairing or copairing leg by leg, by the values of
+ *  two constants, by the atom's own
  *  @c == where it carries one; where it carries one and has no @c ==, not
  *  known to be the same. */
 template <IsArrow P, IsArrow Q>
@@ -690,6 +769,8 @@ constexpr bool same_path(const P& p, const Q& q) {
     return same_path(π_1(p), π_1(q)) && same_path(π_2(p), π_2(q));
   } else if constexpr (IsIdentityArrow<P> || has_one_value_v<P>) {
     return true;
+  } else if constexpr (is_former_v<P>) {
+    return same_path(p.f, q.f) && same_path(p.g, q.g);  // leg by leg
   } else if constexpr (IsComparableConstant<P>) {
     return same_value(p, q);
   } else if constexpr (std::equality_comparable<P>) {
@@ -703,11 +784,16 @@ constexpr bool same_path(const P& p, const Q& q) {
  *  @details The normal form of an arrow term is its path in the free
  *  category on its atoms (Mac Lane, @e Categories for the Working
  *  Mathematician, §II.7), identities dropped and composition associated,
- *  under three laws read on adjacent atoms (@c reduce_β above): a certified
+ *  under five laws read on adjacent atoms (@c reduce_β above): a certified
  *  one-valued involution cancelled against itself, @f$f f \to
  *  \mathrm{id}@f$; a constant absorbing the arrow before it, @f$c \circ f
- *  \to c@f$; a projection after a pairing selecting its leg, @f$\pi_k \circ
- *  \langle f_1, f_2 \rangle \to f_k@f$.  The laws are read on atoms that
+ *  \to c@f$; an arrow after a constant applied to it, @f$f \circ c \to
+ *  f(c)@f$, the constant of its value; a projection after a pairing selecting
+ *  its leg, @f$\pi_k \circ \langle f_1, f_2 \rangle \to f_k@f$; a copairing
+ *  after an injection selecting its leg, @f$[f_1, f_2] \circ \iota_k \to
+ *  f_k@f$.  A pairing of a pair's two projections, and a copairing of a sum's
+ *  two injections, is the identity (the formers' η).  The laws
+ *  are read on atoms that
  *  honour their declared signatures (@c HonoursSignature: the call takes the
  *  domain and returns the codomain themselves); any other atom is opaque, no
  *  rewrite crossing it, since a composite converts at its boundaries and the
@@ -774,6 +860,45 @@ constexpr bool is_epic(const F&) {
 export template <IsArrow F>
 constexpr bool is_iso(const F&) {
   return IsIsomorphism<F> || IsIsomorphism<detail_f_algebra::normal_form_t<F>>;
+}
+namespace detail_f_algebra {
+/** @brief The operation an arrow out of a square names in its type: that of
+ *  @c Uncurried, none for any other arrow. */
+template <typename M>
+struct names_operation {};
+template <typename T, typename Op>
+struct names_operation<Uncurried<T, Op>> {
+  using Carrier = T;
+  using Operation = Op;
+};
+/** @brief An arrow whose type names an operation. */
+template <typename M>
+concept NamesOperation = requires { typename names_operation<M>::Operation; };
+}  // namespace detail_f_algebra
+/** @brief A monoid presented by its two arrows (the Jlt paper's Listing 2): a
+ *  point @f$e : 1 \to M@f$, an element as an arrow from the terminal object
+ *  (Pierce, @e Basic @e Category @e Theory @e for @e Computer @e Scientists,
+ *  Example 1.4.5), and a multiplication @f$m : M \times M \to M@f$, an arrow
+ *  out of a product (Definition 1.5.1).  It is the monoid @c IsMonoid<M, Op>
+ *  declares, for the operation @c Op that @c m names at its normal form, with
+ *  @c e its unit.  The operation is read off @c m's type; the point's type
+ *  records its carrier and not its value, so the unit is asked on the value,
+ *  and two points of one type differ here.
+ *  @param e the point.  @param m the multiplication.
+ *  @return whether @c (e, m) is that monoid. */
+export template <typename T, IsArrow M>
+constexpr bool is_monoid(const ConstantMorphism<One, T>& e, const M& m) {
+  using Names =
+      detail_f_algebra::names_operation<detail_f_algebra::normal_form_t<M>>;
+  if constexpr (detail_f_algebra::NamesOperation<
+                    detail_f_algebra::normal_form_t<M>>) {
+    if constexpr (std::same_as<typename Names::Carrier, T> &&
+                  IsMonoid<T, typename Names::Operation> &&
+                  std::equality_comparable<T>) {
+      return e.value == unit<T>(cata(m).op);
+    }
+  }
+  return false;
 }
 /** @brief An arrow's involution law: certified at its type, or read off its
  *  normal form, where the laws leave another arrow (a pairing of the swapped

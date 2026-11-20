@@ -99,6 +99,11 @@ SOURCES = [
         _PYTHON_DIR / "showcase_15_listing3_fibonacci.cpp",
         _PYTHON_DIR / "showcase_15_listing3_fibonacci.ll",
     ),
+    # showcase_16 is the paper's two recursions, self-contained and compiled.
+    (
+        _PYTHON_DIR / "showcase_16_listing3_two_folds.cpp",
+        _PYTHON_DIR / "showcase_16_listing3_two_folds.ll",
+    ),
 ]
 
 # Keep single-source aliases for backward compatibility with any callers.
@@ -503,6 +508,33 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             )
         if re.search(r"^\s*(%\S+ = )?((must|no)?tail )?(call|invoke|callbr)\b", block, re.MULTILINE):
             raise AssertionError("Expected no call in the fold's loop.")
+        heap = heap_calls(ir_text)
+        if heap:
+            raise AssertionError(
+                f"Expected no heap allocation, found {sorted(heap)}."
+            )
+    elif "showcase_16_listing3_two_folds" in name:
+        # The two recursions of the Jlt paper, self-contained.  For now the
+        # check is that each symbol is there and that nothing is allocated;
+        # each block is printed, to be read.
+        for symbol in (
+            "listing3_sum_known",
+            "listing3_sum",
+            "listing3_product",
+            "listing1_law",
+            "listing3_length",
+            "listing3_term",
+            "listing4_fib",
+            "listing4_fib_plain",
+            "power_of_zero",
+            "power_of_zero_unit_first",
+            "power_of_identity",
+            "power_of_identity_unit_first",
+        ):
+            block = extract_function_block(ir_text, symbol)
+            if block is None:
+                raise AssertionError(f"IR missing {symbol} symbol.")
+            print(f"--- {symbol}: {len(block.splitlines())} lines\n{block}")
         heap = heap_calls(ir_text)
         if heap:
             raise AssertionError(
