@@ -32,6 +32,98 @@ Concepts, as proposed for \Cpp{0x}, checked a template's definition against its 
 As standardised in \Cpp{20} they check only its uses~\cite{stroustrup2020thriving}, so a template's body may use operations its constraints do not name.
 The designers named the problem at the outset, in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
 
+Listing~\ref{lst:motivation} shows what that costs, on a function that every \Cpp{} programmer has written.
+
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <ranges::range R>
+constexpr auto concat1(R r) {
+  ranges::range_value_t<R> s{};
+  for (auto x : r) s = s + x;
+  return s; }
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+static_assert(
+concat1(array{1uz, 2uz, 3uz}) == 6 &&
+concat2<size_t, plus<size_t>, Zero>(
+    array{1uz, 2uz, 3uz}) == 6 &&
+concat1(array{"ab"s, "c"s}) == "abc"s &&
+concat2<string, plus<string>, Empty>(
+    array{"ab"s, "c"s}) == "abc"s &&
+concat1(array{true, false}) == true &&
+concat2<bool, logical_and<bool>, True>(
+    array{true, false}) == false);
+\end{cpp}
+\end{minipage}
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <typename T, typename Op,
+          typename E, ranges::sized_range R>
+  requires IsMonoid<T, Op, E> && same_as<
+      ranges::range_value_t<R>, T>
+constexpr T concat2(R r) {
+  return ranges::fold_left(
+      r, E{}(), Op{}); }
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+struct Bare { constexpr bool
+  operator==(const Bare&) const = default; };
+struct BareOp { constexpr Bare
+  operator()(Bare, Bare) const { return {}; } };
+struct BareUnit { constexpr Bare
+  operator()() const { return {}; } };
+template <> constexpr bool
+associative<Bare, BareOp> = true;
+template <> constexpr bool
+unital<Bare, BareOp, BareUnit> = true;
+static_assert(
+concat2<Bare, BareOp, BareUnit>(
+    array{Bare{}, Bare{}}) == Bare{});
+\end{cpp}
+\end{minipage}
+\caption{A generic function that keeps less than it seems to promise, and one held to its signature.
+Left: the two functions.
+Right: both at three monoids, and the second at the smallest monoid there is.}
+\label{lst:motivation}
+\end{listing}
+% TODO(listings): IsMonoid<T, Op, E> here is the triple of types; Listing
+% lst:rule2 still shows the earlier form with the unit as a value, and
+% follows.  The image below is the one of the smaller kernel (a range as a
+% count and an arrow, the iterator on a pair), which Section 4 does not yet
+% describe.  The test that expects the compiler to refuse concat1 at Bare is
+% to be written.
+
+\cppinline{concat1} is the loop one writes without a second thought: a sum that starts from a default value.
+Its signature asks only for a range.
+Its body needs more: an operation \cppinline{+} on the elements, and a default value that is that operation's unit.
+At \cppinline{size_t} and at strings that is what the caller meant.
+At the truth values under conjunction it is not.
+The compiler adds two truth values as integers, the function returns \cppinline{true} for a range of \cppinline{true} and \cppinline{false}, and nothing objects.
+\cppinline{concat2} names in its signature what it uses: a carrier, an operation and a unit that form a monoid, each a type (Section~\ref{sec:posture}).
+Its body uses nothing else, so it is right at all three.
+It is also defined at \cppinline{Bare}, a type with an equality, one operation and one unit, and nothing more.
+\cppinline{concat1} does not compile there.
+That is an experiment a reader can make on a template of their own: hand it the barest type that meets its constraints.
+
+\Cpp{} accepts both functions.
+The translation of this paper gives the second an image, a function of the record that its signature names:
+\[
+\begin{array}{@{}l@{}}
+\mathit{Monoid}\;T = \{\,\mathit{eq} : T \to T \to \mathit{Bool},\ \mathit{assoc} : \mathit{Bool},\ \mathit{unital} : \mathit{Bool}, \\
+\qquad\qquad\qquad\ \ \mathit{op} : T \to T \to T,\ \mathit{unit} : T,\ \mathit{check} : \mathit{Bool}\,\} \\[3pt]
+\mathit{concat2} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda n.\,\lambda f. \\
+\qquad\qquad\qquad\ \ \pi_2\,(\mathit{iter}\;n\;(\lambda (k, s).\,(k + 1,\ q.\mathit{op}\;s\;(f\;k)))\;(0,\ q.\mathit{unit}))
+\end{array}
+\]
+Here a range is its length $n$ and the arrow $f$ from an index to an element, and the body reaches a value of $T$ only through $q$.
+The first function has no image: no record gives it a \cppinline{+}, and a checker that holds a body to its signature refuses it and says so, that no operation \cppinline{+} is declared for the range's elements.
+The rest of the paper is about what it takes to write the second function and to know that one has.
+
 \Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary.
 This paper documents a discipline of three rules that does, and that recovers some of what a functional language guarantees.
 The rules are a cost paid once, in how a program is written.
