@@ -34,7 +34,7 @@ The state of the promise is the comment "WHERE THE LIE STANDS" in the abstract's
   - right, top: both called at a lucky monoid, where both happen to work;
   - right, bottom: `concat2` called at the minimal monoid, the bare type that offers only what the shape names.
   That `concat1` is refused at the minimal monoid is said in the prose and held by a test that expects the compiler to refuse it.
-- The sequence case study and the parallelism paragraph stay for now, with a view to dropping them.
+- Delete aggressively. The sequence case study (Appendix G, its listing, its sentences in the abstract) and the parallelism paragraph go with step 2.
 - The abstract's promise stays in the third person.
 - The check restricts its audience to recent Clang. The language stays portable.
 
@@ -58,6 +58,7 @@ Pure removal, with references repaired.
 - The ranges `chain` and `repeat`.
 - D-Rec and T-Rec, their translation and proof cases; `then` from Listing 3 and from Figure 2.
 - Conversions between carriers beyond a literal.
+- The sequence case study: Appendix G with its listing and measurements, the two sentences on it in the abstract, and "The same laws license parallelism" in Section 6.
 - Value parameters: three grammar rows, T-Val, A-Val, A-Atom, A-Inst, the two "Value parameters" paragraphs, their proof rows.
 
 Shortens: nothing in the promise, but most of Appendices B to E.
