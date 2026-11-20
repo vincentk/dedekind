@@ -49,6 +49,31 @@ State, on the branch `docs/paper-three-examples`, stacked on `docs/paper-listing
 - Not yet touched: the introduction's old text, Section 5 (retitled only), Sections 6 to 8, and Appendices A to F, which still describe the larger kernel.
 - The build prints about 130 broken references, by design. The old listings' labels mark text that still speaks of them; the labels of the deleted theorems, figures and sections mark appendix text that proves or uses what is gone.
 
+## Handover, 2026-11-20 evening
+
+Where to work: branch `docs/paper-three-examples`, draft PR #1209 (based on `main` so that CI runs). Branch `docs/paper-listings-in-action`, PR #1208, is the backup of the paper before the cut and is not to be developed further. The C++ workflow runs only for pull requests, so code is confirmed by CI on #1209. No local C++ builds; `lualatex` locally is fine.
+
+Code of the three listings: namespace `triple_probe` in `src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp`. The printed listings must stay verbatim with it, up to formatting and omitted declarations. The showcase `showcase_16_listing3_two_folds.cpp` still holds the older listings' code and prints the emitted code of `power` at the unit.
+
+Unconfirmed at the time of writing: CI on the last code change (the shape asks only `copyable`, the unit's check is an assertion beside its axiom, `free_theorem` asks `equality_comparable` of the receiving carrier). If it fails, the listings follow the code that compiles.
+
+Open findings from the two reads of the preview (a C++ practitioner and a theorist), none acted on unless listed under "Decided":
+
+1. Listing 1: the Boolean case is a correct "or", not a wrong "and". Claim only that the signature does not say which monoid. A clang-tidy check flags that line; the sentence "nothing objects at any warning level this paper's build enables" invites that reply.
+2. Listing 2: show the accepted version of `guessed_power` (what Rule 2 wants written). Nothing turns a fold into `power`: the abstract's "a fold of n steps becomes one of at most 64" reads as a transformation.
+3. Listing 3: `Via`'s call operator is written with `auto` and is outside the kernel. Either give `Via` its carrier types as parameters or keep it marked. "The compiler infers" is a conjunction through a specialisation: keep the tone plain.
+4. Kernel, for the author to decide: refuse `T{}` at a carrier variable (a value of a carrier arises only through a call a shape names); the template head on a call operator contradicts "prenex" in Table 1 and no kernel line uses it; the grammar admits a function that calls itself, and the rules must refuse it; say which exclusions are the grammar's and which are rules to come.
+5. Section 3.1 says a program "means what C++ says" and 3.3 says "its meaning is its image": state their agreement once, as an adequacy hypothesis.
+6. Section 3.3: "under those two, a selection has one answer" is a coherence claim. Prove it in the appendix or mark it as a condition, and position it against the literature on coherence and stability of resolution (references the theorist gave from memory, to be verified). "Every program ends" needs its hypotheses: carrier arrows terminate, the compiler's selection ends, no function calls itself.
+7. Name the fragments: what runs is simply typed with an iterator (System T with products and base types); what a signature has is a rank-1 type. Results 1 and 2 need nothing from Rule 2; only the free theorem does. Say so: it is the paper's structural point.
+8. "Counts, a finite prefix of the naturals" in Table 1 is wrong for the test at 3 to the 10^9, which wraps: the atom is arithmetic modulo 2^64.
+9. The list of what is trusted must include lemmas (entries at a form), not only axioms.
+10. Restrict the claim about derived forms to "as used in Listings 1 to 3". The range row is a change of representation, not a local abbreviation.
+11. Practitioner: the tool must be installable against a released Clang, read `compile_commands.json`, select rules singly, and print diagnostics in the usual form; the axiom list is most useful as a diff, and should cover the standard's own opt-in variable templates (`enable_borrowed_range`, `enable_view`); floating point as a declared, listed assumption is a use the paper undersells. Asked for: one module of a few hundred lines taken through the rules.
+12. The agentic reviewer in the "held by" column of Table 2 lowers trust in the column.
+
+Not yet rewritten: the introduction (old text, four pages), Section 5 (retitled only; its figure still shows the old listings), the Discussion (old text), Appendices A to F (the larger kernel). The appendix is to become: the kernel complete, the observation on resolution, the desugarings.
+
 ## Decided
 
 - Perspective: Art. Done in the header.
