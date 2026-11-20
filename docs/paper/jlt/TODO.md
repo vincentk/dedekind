@@ -28,14 +28,12 @@ The state of the promise is the comment "WHERE THE LIE STANDS" in the abstract's
 - `then` is dropped as it stands.
 - Value parameters leave the kernel. Done in Table 1; the rules go in step 2.
 - The unit law is a listed axiom, an entry of a trait on `(T, Op, E)`, and the check at one point stays: it checks and does not prove (1 · 1 = 1).
-- A first listing motivates the paper, in four panels, both functions over a range:
-  - left, top: `concat1`, the loop one writes without thinking, with `+` and a default-constructed start hard-coded and a signature that asks for nothing;
-  - left, bottom: `concat2`, the fold with the monoid in its signature;
-  - right, top: both at `(size_t, +, 0)` and `(string, +, "")`, where they agree, and at `(bool, &&, true)`, where `concat1` compiles, runs and is wrong;
-  - right, bottom: `concat2` at the minimal monoid, the bare type that offers only what the shape names.
-  What it argues: correct generalisation, across types and across ranges, enforced by the signature, by the check, and tested at the minimal monoid.
-  Beside it, in the prose or a small figure: the image of `concat2` (a record type, a function of the record, one run) and the fact that `concat1` has no image, with the message a checker would print ("no operation `+` is declared ...").
-  That `concat1` is refused at the minimal monoid is held by a test that expects the compiler to refuse it. Prototyped in the probe; that test is not written yet.
+- Two listings are the body's material, each a structure and a function, with code on the left, its tests on the right, and its image in System F below. Both are drafted in the introduction.
+  - Listing 1, the monoid and `concat`: the shape as magma, unital magma, monoid; `concat1`, the loop with `+` and a default start hard-coded; `concat2`; three monoids and the minimal one; C++ asked whether `concat1` accepts the minimal monoid, answering yes.
+  - Listing 2, the monoid and `power`: the concatenation of a repetition; repeated squaring; the power of the unit is the unit, whatever the count; a case that idempotence selects; a caller whose result depends on a law it never named.
+  - A third listing (the semiring and one product; the lemma that a power is a homomorphism where the operation commutes; the free theorem as an equation) is dropped for now. Its code stays in the probe.
+  - Further listings go to an appendix "for the curious".
+  - Not written yet: the test that expects the compiler to refuse a call of `concat1` at the minimal monoid.
 - Delete aggressively. The sequence case study (Appendix G, its listing, its sentences in the abstract) and the parallelism paragraph go with step 2.
 - The abstract's promise stays in the third person.
 - Where an axiom or a lemma may be declared is not a new rule: it is the second of the order conditions the kernel already has. They stay in Appendix B, with a reference from Rule 2, and the strict check is to report them.
