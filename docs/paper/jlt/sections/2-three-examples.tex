@@ -22,15 +22,14 @@ template <typename T, typename Op,
           typename E>
 constexpr bool unital = false;
 template <typename T, typename Op>
-concept IsMagma = regular<T> &&
+concept IsMagma = semiregular<T> &&
   requires(T a, T b) {
     { Op{}(a, b) } -> same_as<T>; };
 template <typename T, typename Op,
           typename E>
 concept IsUnitalMagma =
   IsMagma<T, Op> && unital<T, Op, E> &&
-  requires { { E{}() } -> same_as<T>; } &&
-  Op{}(E{}(), E{}()) == E{}();
+  requires { { E{}() } -> same_as<T>; };
 template <typename T, typename Op,
           typename E>
 concept IsMonoid =
@@ -46,6 +45,8 @@ template <> constexpr bool
 associative<bool, logical_and<bool>> = true;
 template <> constexpr bool
 unital<bool, logical_and<bool>, True> = true;
+static_assert(logical_and<bool>{}(
+    True{}(), True{}()) == True{}());
 
 struct Bare { constexpr bool
   operator==(const Bare&) const = default; };
@@ -109,8 +110,8 @@ concat2<Bare, BareOp, BareUnit>(
 \end{minipage}
 {\small\[
 \begin{array}{@{}l@{}}
-\mathit{Magma}\;T = \{\,\mathit{eq} : T \to T \to \mathit{Bool},\ \mathit{op} : T \to T \to T\,\} \\[2pt]
-\mathit{UnitalMagma}\;T = \{\,\mathit{magma} : \mathit{Magma}\;T,\ \mathit{unital} : \mathit{Bool},\ \mathit{unit} : T,\ \mathit{check} : \mathit{Bool}\,\} \\[2pt]
+\mathit{Magma}\;T = \{\,\mathit{op} : T \to T \to T\,\} \\[2pt]
+\mathit{UnitalMagma}\;T = \{\,\mathit{magma} : \mathit{Magma}\;T,\ \mathit{unital} : \mathit{Bool},\ \mathit{unit} : T\,\} \\[2pt]
 \mathit{Monoid}\;T = \{\,\mathit{um} : \mathit{UnitalMagma}\;T,\ \mathit{assoc} : \mathit{Bool}\,\} \\[4pt]
 \mathit{concat2} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda n.\,\lambda f. \\
 \qquad\qquad\quad \pi_2\,(\mathit{iter}\;n\;(\lambda (k, s).\,(k + 1,\ q.\mathit{um}.\mathit{magma}.\mathit{op}\;s\;(f\;k)))\;(0,\ q.\mathit{um}.\mathit{unit}))
@@ -134,7 +135,8 @@ A \emph{magma} is a carrier with an operation, a \emph{unital magma} has a unit 
 The carrier, the operation and the unit are each a type, so the shape reads as the triple it is.
 That the operation is associative, and that the unit is its unit, are axioms: the programmer states them, as the top right panel does for the truth values under conjunction, and the compiler takes them at their word.
 The monoids of \cppinline{size_t} and of strings are declared the same way, with units \cppinline{Zero} and \cppinline{Empty}.
-The unit is also checked at one point, which can refute a false claim and cannot prove a true one.
+The unit is also checked at one point, by an assertion beside its axiom, which can refute a false claim and cannot prove a true one.
+The shape itself asks for no equality on the carrier, for a reason that Section~\ref{sec:translation} gives.
 
 \cppinline{concat1} is the loop one writes without a second thought: a sum that starts from a default value.
 Its signature asks only for a range.
@@ -142,7 +144,7 @@ Its body needs more: an operation \cppinline{+} on the elements, and a default v
 At \cppinline{size_t} and at strings that is what the caller meant.
 At the truth values under conjunction it is not.
 The compiler adds two truth values as integers, the function returns \cppinline{true} for a range of \cppinline{true} and \cppinline{false}, and nothing objects, at any warning level this paper's build enables.
-\cppinline{Bare} is the smallest monoid there is: a type with an equality, one operation and one unit, and nothing more.
+\cppinline{Bare} is the smallest monoid there is: a type with one operation and one unit, and an equality only so that the test can state a result.
 Asked whether \cppinline{concat1} accepts a range of it, \Cpp{} answers yes, as the last line of the test shows, because it reads the signature and not the body.
 The call itself does not compile.
 That is an experiment a reader can make on a template of their own: hand it the barest type that meets its constraints.
@@ -363,6 +365,7 @@ template <typename T, typename Op,
     ranges::sized_range R>
   requires IsHomomorphism<H, T, Op, E,
                           U, Op2, E2> &&
+    equality_comparable<U> &&
     same_as<ranges::range_value_t<R>, T>
 constexpr bool free_theorem(
     Mon<T, Op, E>, Mon<U, Op2, E2>,
@@ -385,13 +388,13 @@ free_theorem(Strings{}, Any{}, NonEmpty{},
 \end{minipage}
 {\small\[
 \begin{array}{@{}l@{}}
-\mathit{free\_theorem} = \Lambda T.\,\Lambda U.\,\ldots\,\lambda q : \mathit{Monoid}\;T.\,\lambda q' : \mathit{Monoid}\;U.\,\lambda l : \mathit{Bool}.\,\lambda h : T \to U.\,\lambda n.\,\lambda f. \\
-\qquad\qquad q'.\mathit{um}.\mathit{magma}.\mathit{eq}\;(h\,(\mathit{concat2}\;q\;n\;f))\;(\mathit{concat2}\;q'\;n\;(\lambda k.\,h\,(f\,k)))
+\mathit{free\_theorem} = \Lambda T.\,\Lambda U.\,\ldots\,\lambda q : \mathit{Monoid}\;T.\,\lambda q' : \mathit{Monoid}\;U.\,\lambda l : \mathit{Bool}.\,\lambda \mathit{eq} : U \to U \to \mathit{Bool}.\,\lambda h : T \to U.\,\lambda n.\,\lambda f. \\
+\qquad\qquad \mathit{eq}\;(h\,(\mathit{concat2}\;q\;n\;f))\;(\mathit{concat2}\;q'\;n\;(\lambda k.\,h\,(f\,k)))
 \end{array}
 \]}
-\caption{What the compiler infers: a law derived from laws, and three theorems for free.
+\caption{What the compiler infers: a law derived from laws, and three instances of a theorem that comes for free.
 Left: the law that a function is a homomorphism; a lemma; the free theorem of \cppinline{concat2}.
-Right: three axioms; the inferred fact, and the shape the theorem asks for; three theorems. Below: the theorem in System~F.}
+Right: three axioms; the inferred fact, and the shape the theorem asks for; three instances. Below: the theorem in System~F.}
 \label{lst:theorems}
 \end{listing}
 % TODO(listings): code from the probe (namespace triple_probe), green on CI.

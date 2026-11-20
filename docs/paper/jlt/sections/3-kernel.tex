@@ -66,6 +66,12 @@ In an iteration the first term is the count, the second the start, and the third
 %  - A result type is written, not deduced, and only same_as is a result
 %    concept.
 %  - The number of bits of a count, size_t(bit_width(n)), is one primitive.
+%  - TO DECIDE, from the theorist's read of 2026-11-20: a value T{} at a
+%    carrier variable must be refused by the rules (only a function object
+%    named in a required call may be built at a type variable); the template
+%    head on a call operator contradicts "prenex" in Table 1 and no kernel
+%    line uses it; the grammar admits a function that calls itself, which the
+%    rules must refuse.
 %  - Rows removed from the earlier figure: value parameters, arguments and
 %    atoms in types; the dereference; the general conversion; the deduced call.
 %  - Checked line by line against the three listings on 2026-11-20.  What that
@@ -195,9 +201,11 @@ Three results about the target then hold of a kernel program, and none of them i
 \begin{enumerate}
 \item A well-typed program does not go wrong~\cite{pierce2002tapl}.
 \item Every program ends, since the target's only recursion is iteration over a count~\cite{girard1989proofs}.
-\item A generic definition commutes with every homomorphism of the shape it names, by the theorem that its type alone gives~\cite{reynolds1983types,wadler1989theorems}.
+\item A generic definition commutes with every homomorphism of the shape it names, a function that respects every call the shape requires, by the theorem that its type alone gives~\cite{reynolds1983types,wadler1989theorems}.
 \end{enumerate}
 The third is the one a programmer can use, and \cppinline{free_theorem} in Listing~\ref{lst:theorems} is its statement for \cppinline{concat2}.
+It is also why the monoid of Listing~\ref{lst:motivation} asks for no equality on its carrier.
+A shape that required one would count it among its calls, and a function that respects equality is one-to-one, which the length of a string is not.
 None of the three says that a declared law is true.
 A law is a field that holds $\mathit{true}$ because someone wrote it, and what a program rests on in that way is a list (Section~\ref{sec:check}).
 % TODO(warrant): each of the three must be checked against the kernel as the
@@ -207,7 +215,8 @@ A law is a field that holds $\mathit{true}$ because someone wrote it, and what a
 
 What is specific to \Cpp{}, and is this paper's own observation, concerns the selection.
 The image is a function of the program only if the compiler's choice of an entry or a case is.
-\Cpp{} makes it one at concrete types, by its rules for the most specialised candidate, and it does not ask that the choice be the same wherever it is asked.
+\Cpp{} makes it one at concrete types, by its rules for the most specialised candidate.
+That the choice be the same wherever it is asked, \Cpp{} requires and does not check.
 A generic body may select by a law that its declaration never named, as \cppinline{guessed_power} does in Listing~\ref{lst:power}, and an entry declared below a use is not seen by that use.
 So the kernel asks two things that \Cpp{} does not check: that a generic body selects only by what its declaration names (\RuleTwo{}), and that an entry stands above every use that could read it (Appendix~\ref{app:fjlt:order}).
 Under those two, a selection has one answer in a program, and the image is a function of it.

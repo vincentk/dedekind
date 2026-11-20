@@ -1577,8 +1577,8 @@ struct Empty {
 };
 
 // That E is the unit of Op on T is an axiom like the others, an entry of a
-// trait, so that a tool lists it.  The shape also checks it at one point,
-// which can refute it and cannot prove it.
+// trait, so that a tool lists it.  It is checked at one point by an assertion
+// beside the entry, which can refute it and cannot prove it.
 template <typename T, typename Op, typename E>
 constexpr bool unital = false;
 template <>
@@ -1587,18 +1587,26 @@ template <>
 constexpr bool unital<size_t, std::multiplies<size_t>, One> = true;
 template <>
 constexpr bool unital<std::string, std::plus<std::string>, Empty> = true;
+static_assert(std::plus<size_t>{}(Zero{}(), Zero{}()) == Zero{}() &&
+              std::multiplies<size_t>{}(One{}(), One{}()) == One{}() &&
+              std::plus<std::string>{}(Empty{}(), Empty{}()) == Empty{}());
 
 // The shape, built up as algebra builds it: a magma is a carrier with an
 // operation, a unital magma has a unit as well, and a monoid is a unital
 // magma whose operation is associative.
+// The shape asks for no equality on the carrier.  A shape that did would
+// make equality one of its operations, and the free theorem of a function
+// over it would then hold only for homomorphisms that preserve equality, the
+// one-to-one ones.  So the unit is checked at one point beside its axiom, by
+// an assertion, and not inside the shape.
 template <typename T, typename Op>
-concept IsMagma = std::regular<T> && requires(T a, T b) {
+concept IsMagma = std::semiregular<T> && requires(T a, T b) {
   { Op{}(a, b) } -> std::same_as<T>;
 };
 template <typename T, typename Op, typename E>
 concept IsUnitalMagma = IsMagma<T, Op> && unital<T, Op, E> && requires {
   { E{}() } -> std::same_as<T>;
-} && Op{}(E{}(), E{}()) == E{}();
+};
 template <typename T, typename Op, typename E>
 concept IsMonoid = IsUnitalMagma<T, Op, E> && associative<T, Op>;
 
@@ -1652,10 +1660,11 @@ static_assert(Size{}(concat<Str, Cat, Empty>(std::array{"ab"s, "c"s,
               concat<size_t, std::plus<size_t>, Zero>(std::views::transform(
                   std::array{"ab"s, "c"s, "def"s}, Size{})));
 
-// The check at one point, on two false axioms.  It refutes the first, since
-// 2 + 2 is not 2.  It does not refute the second: true is not the unit of ||,
-// but true || true is true, as for any idempotent element.  So the check is a
-// check and not a proof, and the axiom stays the programmer's.
+// Two false axioms.  The shape takes both at their word.  The check at one
+// point refutes the first, since 2 + 2 is not 2, if someone writes it.  It
+// does not refute the second: true is not the unit of ||, but true || true is
+// true, as for any idempotent element.  So the check is a check and not a
+// proof, and the axiom stays the programmer's.
 struct True {
   constexpr bool operator()() const { return true; }
 };
@@ -1675,8 +1684,11 @@ constexpr bool unital<size_t, std::plus<size_t>, Two> = true;  // false
 template <>
 constexpr bool unital<bool, Or, True> = true;  // false
 static_assert(IsMonoid<bool, And, True> &&
-              !IsMonoid<size_t, std::plus<size_t>, Two> &&
-              IsMonoid<bool, Or, True>);
+              IsMonoid<size_t, std::plus<size_t>, Two> &&
+              IsMonoid<bool, Or, True> &&
+              And{}(True{}(), True{}()) == True{}() &&
+              std::plus<size_t>{}(Two{}(), Two{}()) != Two{}() &&
+              Or{}(True{}(), True{}()) == True{}());
 
 // A candidate first listing.  concat1 is what one writes without thinking:
 // it hard-codes the operation, +, and the unit, a default-constructed value.
@@ -1917,7 +1929,7 @@ concept IsEndomorphism = IsMonoid<T, Op, E> && endomorphism<H, T, Op, E> &&
                          };
 template <typename T, typename Op, typename E, typename H,
           std::ranges::sized_range R>
-  requires IsEndomorphism<H, T, Op, E> &&
+  requires IsEndomorphism<H, T, Op, E> && std::equality_comparable<T> &&
            std::same_as<std::ranges::range_value_t<R>, T>
 constexpr bool fold_commutes(H h, R r) {
   return h(concat2<T, Op, E>(r)) ==
@@ -2052,6 +2064,7 @@ concept IsHomomorphism =
 template <typename T, typename Op, typename E, typename U, typename Op2,
           typename E2, typename H, std::ranges::sized_range R>
   requires IsHomomorphism<H, T, Op, E, U, Op2, E2> &&
+           std::equality_comparable<U> &&
            std::same_as<std::ranges::range_value_t<R>, T>
 constexpr bool free_theorem(Mon<T, Op, E>, Mon<U, Op2, E2>, H h, R r) {
   return h(concat2<T, Op, E>(r)) ==
