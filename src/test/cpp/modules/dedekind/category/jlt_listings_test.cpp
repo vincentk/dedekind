@@ -1768,10 +1768,11 @@ struct Halving {
 template <typename T, typename Op, typename E>
   requires IsMonoid<T, Op, E>
 constexpr T power(T x, size_t n) {
-  return std::ranges::fold_left(
-             std::views::iota(0uz, size_t(std::bit_width(n))),
-             Power<T>{E{}(), x, n}, Halving<T, Op, E>{})
-      .product;
+  return x == E{}() ? x
+                    : std::ranges::fold_left(
+                          std::views::iota(0uz, size_t(std::bit_width(n))),
+                          Power<T>{E{}(), x, n}, Halving<T, Op, E>{})
+                          .product;
 }
 // A law selects a faster case on the same signature: where the operation is
 // idempotent, a power is the value itself, in one step.
@@ -1976,6 +1977,14 @@ static_assert(
                                                                  3uz})) ==
         concat2<size_t, std::plus<size_t>, Zero>(
             std::views::transform(std::array{1uz, 2uz, 3uz}, Sum{3uz})));
+
+// The power of the unit is the unit, whatever the count: the unit law, in the
+// instance the shape checks.  power says so before it folds.
+static_assert(
+    power<size_t, std::plus<size_t>, Zero>(0uz, 1'000'000'000'000uz) == 0 &&
+    power<size_t, std::multiplies<size_t>, One>(1uz, 1'000'000'000'000uz) ==
+        1 &&
+    power<Str, Cat, Empty>(""s, 1'000'000'000'000uz) == ""s);
 }  // namespace triple_probe
 
 TEST_CASE("Spelling probe: a law as a function and as a table",
