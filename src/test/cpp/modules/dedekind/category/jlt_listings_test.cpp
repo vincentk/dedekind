@@ -1576,12 +1576,25 @@ struct Empty {
   constexpr std::string operator()() const { return {}; }
 };
 
+// That E is the unit of Op on T is an axiom like the others, an entry of a
+// trait, so that a tool lists it.  The shape also checks it at one point,
+// which can refute it and cannot prove it.
 template <typename T, typename Op, typename E>
-concept IsMonoid = std::regular<T> && associative<T, Op> && requires(T a, T b) {
-  { Op{}(a, b) } -> std::same_as<T>;
-} && requires {
-  { E{}() } -> std::same_as<T>;
-} && Op{}(E{}(), E{}()) == E{}();
+constexpr bool unital = false;
+template <>
+constexpr bool unital<size_t, std::plus<size_t>, Zero> = true;
+template <>
+constexpr bool unital<size_t, std::multiplies<size_t>, One> = true;
+template <>
+constexpr bool unital<std::string, std::plus<std::string>, Empty> = true;
+
+template <typename T, typename Op, typename E>
+concept IsMonoid = std::regular<T> && associative<T, Op> && unital<T, Op, E> &&
+                   requires(T a, T b) {
+                     { Op{}(a, b) } -> std::same_as<T>;
+                   } && requires {
+                     { E{}() } -> std::same_as<T>;
+                   } && Op{}(E{}(), E{}()) == E{}();
 
 template <typename T, typename Op, typename E>
   requires IsMonoid<T, Op, E>
@@ -1632,6 +1645,78 @@ static_assert(Size{}(concat<Str, Cat, Empty>(std::array{"ab"s, "c"s,
                                                         "def"s})) ==
               concat<size_t, std::plus<size_t>, Zero>(std::views::transform(
                   std::array{"ab"s, "c"s, "def"s}, Size{})));
+
+// The check at one point, on two false axioms.  It refutes the first, since
+// 2 + 2 is not 2.  It does not refute the second: true is not the unit of ||,
+// but true || true is true, as for any idempotent element.  So the check is a
+// check and not a proof, and the axiom stays the programmer's.
+struct True {
+  constexpr bool operator()() const { return true; }
+};
+struct Two {
+  constexpr size_t operator()() const { return 2; }
+};
+using And = std::logical_and<bool>;
+using Or = std::logical_or<bool>;
+template <>
+constexpr bool associative<bool, And> = true;
+template <>
+constexpr bool associative<bool, Or> = true;
+template <>
+constexpr bool unital<bool, And, True> = true;
+template <>
+constexpr bool unital<size_t, std::plus<size_t>, Two> = true;  // false
+template <>
+constexpr bool unital<bool, Or, True> = true;  // false
+static_assert(IsMonoid<bool, And, True> &&
+              !IsMonoid<size_t, std::plus<size_t>, Two> &&
+              IsMonoid<bool, Or, True>);
+
+// A candidate first listing.  concat1 is what one writes without thinking:
+// it hard-codes the operation, +, and the unit, a default-constructed value.
+// Its signature asks for nothing of the kind.
+template <std::ranges::range R>
+constexpr auto concat1(R r) {
+  std::ranges::range_value_t<R> s{};
+  for (auto x : r) s = s + x;
+  return s;
+}
+// concat2 names the monoid in its signature and uses nothing else.
+template <typename T, typename Op, typename E, std::ranges::sized_range R>
+  requires IsMonoid<T, Op, E> && std::same_as<std::ranges::range_value_t<R>, T>
+constexpr T concat2(R r) {
+  return std::ranges::fold_left(r, E{}(), Op{});
+}
+// At two lucky monoids the two agree.
+static_assert(concat1(std::array{1uz, 2uz, 3uz}) == 6 &&
+              concat2<size_t, std::plus<size_t>, Zero>(std::array{1uz, 2uz,
+                                                                  3uz}) == 6 &&
+              concat1(std::array{"ab"s, "c"s}) == "abc"s &&
+              concat2<Str, Cat, Empty>(std::array{"ab"s, "c"s}) == "abc"s);
+// At a third, concat1 compiles, runs and is wrong: bool + bool is "or" from
+// false, and the monoid is "and" from true.
+static_assert(concat1(std::array{true, false}) == true &&
+              concat2<bool, And, True>(std::array{true, false}) == false);
+// The minimal monoid: a value with an equality, an operation and a unit, and
+// nothing else.  concat2 is defined there, so its body uses only what its
+// signature names.  concat1 is not: it does not compile at Bare, which no
+// assertion can say and a test that expects the refusal will hold.
+struct Bare {
+  constexpr bool operator==(const Bare&) const = default;
+};
+struct BareOp {
+  constexpr Bare operator()(Bare, Bare) const { return {}; }
+};
+struct BareUnit {
+  constexpr Bare operator()() const { return {}; }
+};
+template <>
+constexpr bool associative<Bare, BareOp> = true;
+template <>
+constexpr bool unital<Bare, BareOp, BareUnit> = true;
+static_assert(IsMonoid<Bare, BareOp, BareUnit> &&
+              concat2<Bare, BareOp, BareUnit>(std::array{Bare{}, Bare{}}) ==
+                  Bare{});
 }  // namespace triple_probe
 
 TEST_CASE("Spelling probe: a law as a function and as a table",
