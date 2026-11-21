@@ -23,7 +23,7 @@ It needs only a standard C++23 toolchain, and the tests fetch Catch2.
 
 ### The exhibit: restriction sites, two ways
 
-Listing 5 of the [Jlt paper](https://vincentk.github.io/dedekind/jlt.pdf), in C++ and in Python through `pynzli`.
+In C++ and in Python through `pynzli`.
 A restriction site is a word equal to its reverse complement, as EcoRI's `GAATTC`.
 
 #### All sequences, counted
@@ -116,7 +116,7 @@ Scanning random DNA for the palindromic sites, on one core, to one significant d
 | `pynzli`, by the table | 2 | 5× |
 | Python `re` | 300 | 600× |
 
-The C++ compiles in [a test](src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp), the Python runs as [a doctest](python/pynzli/jlt.py), and [another test](src/test/python/test_readme_listing5.py) holds this page and the paper to them.
+The C++ compiles in [a test](src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp), the Python runs as [a doctest](python/pynzli/jlt.py), and [another test](src/test/python/test_readme_listing5.py) holds this page to them.
 
 ### Another exhibit: a set collapsed to a point
 

@@ -211,9 +211,14 @@ constexpr bool epic_times = is_epic(cpl_times_neg);
 constexpr bool iso_plus = is_iso(id_plus_cpl);
 constexpr bool iso_in = is_iso(in_n);
 
-// The fold over an interval of the naturals, by the standard's fold.
-static_assert(std::ranges::fold_left(std::views::iota(size_t{3}, size_t{7}),
-                                     size_t{0}, std::plus<N>{}) == 18);
+// The product's η keeps the codomain: on a pair with a const element the
+// projections drop the const, so their pairing is not the identity and stays.
+using CN = std::pair<const size_t, size_t>;
+constexpr auto fst_c = Π<1, CN>{};
+constexpr auto snd_c = Π<2, CN>{};
+static_assert(
+    std::same_as<Cod<decltype(reduce_β(Pairing{fst_c, snd_c}, fst_c, snd_c))>,
+                 Cod<decltype(Pairing{fst_c, snd_c})>>);
 }  // namespace pierce_probe
 
 TEST_CASE("Pierce's basic constructions, composed: what the laws decide",

@@ -484,8 +484,12 @@ constexpr auto reduce_β(const Compose<F, G>&, const RF& rf, const RG& rg) {
  *  identity is one.  So @c id @c * @c id is the identity on the product. */
 export template <typename F, typename G, typename RF, typename RG>
 constexpr auto reduce_β(const Pairing<F, G>&, const RF& rf, const RG& rg) {
+  // Only where the pairing's codomain is its domain: on a pair with a const
+  // element the projections drop the const, and the pairing is then not the
+  // identity on the pair.
   if constexpr (IsPairProjection<RF, 1> && IsPairProjection<RG, 2> &&
-                std::same_as<Dom<RF>, Dom<RG>>) {
+                std::same_as<Dom<RF>, Dom<RG>> &&
+                std::same_as<std::pair<Cod<RF>, Cod<RG>>, Dom<RF>>) {
     return Identity<Dom<RF>>{};
   } else {
     return Pairing<RF, RG>{rf, rg};

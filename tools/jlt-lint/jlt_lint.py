@@ -74,6 +74,12 @@ def read_scope():
             sys.exit(f"jlt-lint: scope:{n}: want <rule> <file-glob> <namespace> <expected|report>")
         rule, pattern, namespace, expected = line
         files = sorted(glob.glob(str(ROOT / pattern), recursive=True))
+        if not files and expected == "report":
+            # A control outside the tree (Catch2, under the build directory)
+            # may be absent in another build or a layer-only run: nothing to
+            # report.  A gate that names no file is still an error.
+            print(f"jlt-lint: scope:{n}: {pattern} names no file, reported line skipped", file=sys.stderr)
+            continue
         if not files:
             sys.exit(f"jlt-lint: scope:{n}: {pattern} names no file")
         for f in files:

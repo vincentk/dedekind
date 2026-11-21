@@ -40,7 +40,13 @@ def findings(text):
 
 
 def main():
-    status, found = scope(), findings(sys.stdin.read())
+    text = sys.stdin.read()
+    status, found = scope(), findings(text)
+    gated = {f for r in status.values() for f, s in r.items() if s == "gate"}
+    seen = set(re.findall(r"jlt-lint: gate +\S+ (" + re.escape(LIB) + r"\S+): ", text))
+    if not gated <= seen:
+        sys.exit(f"table.py: the report lacks the gate lines of {len(gated - seen)} library files; "
+                 "a whole, successful run is needed, not a part or a failed one")
     library = sorted(pathlib.Path(f).relative_to(ROOT).as_posix()
                      for f in glob.glob(str(ROOT / LIB / "**/*.cppm"), recursive=True))
     linted = sorted({f for r in status.values() for f in r})
