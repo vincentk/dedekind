@@ -10,7 +10,7 @@ The checks are those of the scope file in the repository, each with a fixture th
 Every check today is a deny-rule: a match refuses a construct outside Jlt, and the rows are sorted by the rule it serves.
 The ledger of axioms is a list, not a rule.
 The inner boundaries, the kernel against the derived forms, are a question of admission, whether each construct is kernel or a listed derived form; the linter's inventory of the syntax a file uses is its material, and a strict mode that answers it is not yet built.
-The library's 148 modules, of 74\,045 lines, are all in scope; the twelve left out only re-export the others.
+The library has 160 module units~\cite[{\texttt{module.unit}}]{cpp23standard}, 143 of them partitions; 148, of 74\,045 lines, are in scope, and the twelve left out are interfaces that only re-export the others.
 The table is generated from a report of the build by a script in the repository, \texttt{tools/jlt-lint/table.py}.
 
 \makeatletter\let\lintinput\@@input\makeatother
@@ -24,7 +24,7 @@ check & gated & reported & with findings & findings \\
 \lintinput generated/lint-table.tex 
 \bottomrule
 \end{tabular}
-\caption{The checks of \texttt{jlt-lint} on the library's 148 modules: the files on which each is a gate, the files on which it is reported, how many of those have findings, and how many findings there are.
+\caption{The checks of \texttt{jlt-lint} on the library's 148 module units: the files on which each is a gate, the files on which it is reported, how many of those have findings, and how many findings there are.
 Counted on commit \texttt{8d0aac109}.}
 \label{tab:lint}
 \end{table}
@@ -33,3 +33,8 @@ Three rows carry most of what is left.
 \texttt{constrained-templates}, that every template is constrained, is reported everywhere, with 547 findings in 60 files.
 \texttt{definition}, the definition check by names, is a gate on 78 files and has 120 findings in 11 more.
 \texttt{no-loops} has 91 findings in 19 files, loops that are still to become folds.
+
+A deny-rule can only say that a construct is outside Jlt, and a file it does not refuse is not thereby inside: the list of refusals is not complete.
+On that commit 69 of the 148 units, 21\,115 lines, are refused by no check, and 116 if \texttt{constrained-templates} is set aside.
+To say that a file is inside needs admission as well: inside FJlt when every construct of its inventory is admitted as kernel and no deny-rule fires, inside Jlt when every construct is kernel or a listed derived form and no deny-rule fires.
+Both halves are needed, because some exclusions are conditions on admitted syntax: \cppinline{guessed_power} is a call to an overload set, kernel syntax, and only the deny-rule sees that its signature does not decide the overload.
