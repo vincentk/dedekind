@@ -10,7 +10,7 @@ Table~\ref{tab:posture} says which instrument holds each rule at build time.
 Definition checking was the half of the \Cpp{0x} design~\cite{gregor2006concepts} that \Cpp{20} did not take up (Section~\ref{sec:intro}).
 So Rule~2 is posture: it is held outside the compiler.
 Concept archetypes bring one part of it back in~\cite{siek2000concept}: a template instantiated at a type that provides exactly what its concept requires fails to compile where its body uses more.
-An archetype is written by hand for each concept, and it tests the operations a body uses, not the overload a body selects, so the call in Listing~\ref{lst:rule2}'s lower left panel compiles at every archetype.
+An archetype is written by hand for each concept, and it tests the operations a body uses, not the overload a body selects, so \cppinline{guessed_power} in Listing~\ref{lst:declare} compiles at every archetype.
 Rules~1 and~3 are posture outside compile-time evaluation (Table~\ref{tab:posture}).
 
 \paragraph{Lookup stops at \cppinline{std}.}
@@ -40,7 +40,7 @@ So \cppinline{false} means \emph{not known}, not \emph{no}, and the same declara
 \cppinline{double} under \cppinline{+} has the signature of a monoid, but \cppinline{+} is not associative and the unit law fails at NaN, and nobody certifies it.}
 
 \paragraph{Undefined behaviour has one binding time.}
-Constant evaluation refuses it and run time does not (Section~\ref{sec:binding}), the one way the two evaluations of Theorem~\ref{thm:simulation} can disagree in \Cpp{} where they cannot in FJlt, and the reason the listings' carriers are unsigned.
+Constant evaluation refuses it and run time does not (Section~\ref{sec:binding}), the one way a program's value at compile time and at run time can disagree in \Cpp{} where it cannot in the image, and the reason the listings' carriers are unsigned.
 A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cannot overflow, a fact no rule checks.\footnote{A signed integer is a chain under \cppinline{<} and a bounded lattice under \cppinline{min} and \cppinline{max}, but no monoid under \cppinline{+} or \cppinline{*}, since overflow is undefined.}
 
 \paragraph{The posture is opinionated about idiom.}
