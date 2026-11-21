@@ -1,0 +1,237 @@
+% !TEX root = ../jlt.tex
+\section{The Kernel and Its Warrant}
+\label{sec:kernel}
+
+The three examples are written in a language, Jlt, that is defined in two steps (Table~\ref{tab:model}).
+A small kernel, Featherweight Jlt or FJlt, is a subset of \Cpp{} whose meaning is given by a translation into a calculus that is well understood.
+Jlt is that kernel with \emph{derived forms}, each a way of writing something the kernel can already say.
+The first step follows Featherweight Java~\cite{igarashi2001featherweight}: a kernel small enough to reason about, every program of which is a program of the full language.
+The second follows the treatment of JavaScript by a small core and a desugaring into it~\cite{guha2010essence}.
+% TODO(related): the bare language and derived forms of the Definition of
+% Standard ML are the older precedent for the second step; cite once verified.
+
+\subsection{The kernel}
+\label{sec:kernel:fjlt}
+
+FJlt has two layers.
+The \emph{value layer} is what a program computes with.
+The \emph{resolution layer} is what the compiler chooses before the program runs.
+Figure~\ref{fig:fjlt-syntax} is its grammar, and Table~\ref{tab:kernel} says of each construct which layer it belongs to and where the three listings use it.
+
+\begin{figure}[htbp]
+\[
+\begin{array}{lcl@{\hspace{0.6em}}l}
+P &::=& \overline{D}\; e & \text{program} \\[3pt]
+D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \texttt{ = } \overline{A}\texttt{;} & \text{shape} \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> constexpr } b\; f \texttt{ = } e\texttt{;} & \text{trait, its default} \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} & \text{entry of a trait} \\
+  &   & \qquad \texttt{constexpr } b\; f\texttt{<}\overline{\tau}\texttt{>} \texttt{ = } e\texttt{;} & \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} & \text{case of a function} \\
+  &   & \qquad \texttt{constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau\; y\texttt{;}}\ \ M \texttt{ \};} & \text{named type} \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> struct } g \texttt{ \{\};} & \text{associated type, its default} \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} & \text{entry of an associated type} \\
+  &   & \qquad \texttt{struct } g\texttt{<}\overline{\tau}\texttt{> \{ using type = } \tau \texttt{; \};} & \\[3pt]
+M &::=& \varepsilon \;\mid\; \texttt{constexpr } \tau \texttt{ operator()(}\overline{\tau\; x}\texttt{) const} & \text{its call} \\
+  &   & \qquad\quad \texttt{requires } \overline{Q} \texttt{ \{ return } e\texttt{; \}} & \\[3pt]
+A &::=& Q \;\mid\; e & \text{shape, law} \\
+  & \mid & \texttt{requires (}\overline{\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> same\_as<}\tau\texttt{>;}} \texttt{ \}} & \text{required calls} \\[3pt]
+Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
+\tau &::=& \alpha \;\mid\; b \;\mid\; T\texttt{<}\overline{\tau}\texttt{>} \;\mid\; g\texttt{<}\overline{\tau}\texttt{>::type} & \text{type} \\[3pt]
+b &::=& \texttt{bool} \;\mid\; \texttt{size\_t} & \text{atom} \\[3pt]
+e &::=& x \;\mid\; c \;\mid\; f\texttt{<}\overline{\tau}\texttt{>} \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; \tau\texttt{\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
+  & \mid & \ominus e \;\mid\; e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e & \text{operators, choice} \\
+  & \mid & \texttt{ranges::fold\_left(views::iota(0uz, }e\texttt{), }e\texttt{, }e\texttt{)} & \text{iteration} \\
+\end{array}
+\]
+\caption{The grammar of FJlt, a subset of \Cpp{23}, with namespace qualifiers elided.
+Terminals are in monospace and an overbar is a sequence, possibly empty.
+An empty \texttt{requires} clause, an empty list of a \texttt{requires} expression with its parentheses, and an empty \texttt{template} head are left out, except that an entry with no type variables keeps \texttt{template <>}.
+The requirements $\overline{A}$ of a shape and the constraints $\overline{Q}$ of a clause are joined by \texttt{\&\&}, and a negated constraint is written in parentheses.
+$\alpha$ are type variables, $g$ names of associated types, $C$ names of shapes, the standard's \texttt{copyable}, \texttt{equality\_comparable} and \texttt{same\_as} among them, $f$ names of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
+A parameter that is not used may go unnamed.
+$T$ is a declared type $O$, \texttt{std::pair}, a carrier, or an arrow supplied with a carrier, as the standard's \texttt{std::plus} is.
+$c$ is a constant of an atom, or a value of a carrier that its type provides.
+$\tau\texttt{\{}\overline{e}\texttt{\}}$ is a value of a declared type from values for its fields, and at a type variable, with no fields, the one value of a function object.
+$\ominus$ and $\oplus$ are the operators of the atoms that are defined at every argument, with division and remainder by a constant that is not zero and the number of bits of a count, and \texttt{==} at a carrier whose shape asks for it.
+In an iteration the first term is the count, the second the start, and the third the step, a function of the state and the index.}
+\label{fig:fjlt-syntax}
+\end{figure}
+% TODO(kernel), for discussion, found while trimming the grammar:
+%  - DECIDED 2026-11-20: calls, parameters and fields are sequences.  The
+%    kernel's surface stays close to ISO C++ (the listings call Op{}(a, b) and
+%    std::plus takes two arguments), and System F is reached by currying and
+%    products, which are textbook.  Iteration is the standard's fold_left over
+%    an iota.
+%  - A declared constant is left out: a function object of no parameters does
+%    its work.
+%  - A result type is written, not deduced, and only same_as is a result
+%    concept.
+%  - The number of bits of a count, size_t(bit_width(n)), is one primitive.
+%  - Rows removed from the earlier figure: value parameters, arguments and
+%    atoms in types; the dereference; the general conversion; the deduced call.
+%  - Checked line by line against the three listings on 2026-11-20.  The
+%    declarations that supply a carrier with its arrows (Bare with its
+%    equality, Size and IsEmpty with string's own members) are outside the
+%    grammar by design and are said to be so in the prose.
+
+\begin{table}[tb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.3\linewidth}@{}}
+\toprule
+construct & written in \Cpp{} as & in the listings \\
+\midrule
+\multicolumn{3}{@{}l}{\textit{value layer}} \\
+atom & \texttt{bool}, \texttt{size\_t}: a truth value, a count modulo $2^{64}$ & \texttt{true}, the count \texttt{n} \\
+carrier & any type of values, known only by the calls a shape names & \texttt{string}, \texttt{Bare}, the \texttt{T} of a template \\
+pair, record & \texttt{std::pair}, or a \texttt{struct} of fields & \texttt{Power}, the state of a fold \\
+arrow & a \texttt{struct} with a \texttt{constexpr}, \texttt{const} call operator, or one of the standard's function objects & \texttt{True}, \texttt{Size}, \texttt{Halving}, \texttt{std::plus} \\
+choice & the conditional \texttt{?:} on a truth value & in \texttt{Halving} \\
+iteration & the standard's fold over the counts below a bound & the fold of \texttt{power} \\
+abstraction & a template over types & every generic definition \\
+\midrule
+\multicolumn{3}{@{}l}{\textit{resolution layer}} \\
+named type & a \texttt{struct}, or a \texttt{struct} template over types & \texttt{All}, \texttt{Squaring}, \texttt{Via} \\
+shape & a \texttt{concept}: other shapes, laws and required calls, joined by \texttt{\&\&}; its negation & \texttt{IsMagma}, \texttt{IsMonoid} \\
+trait & a variable template with a default and entries; an entry at a form reads its own trait at proper parts & \texttt{associative}, \texttt{unital}, \texttt{homomorphism} \\
+case & function templates of one name under \texttt{requires} clauses, the most specific chosen & the two cases of \texttt{power} \\
+associated type & a \texttt{struct} template whose entries each name one type, read as \texttt{g<T>::type} & \texttt{op\_of}, \texttt{range\_value\_t} \\
+\bottomrule
+\end{tabularx}
+\caption{The kernel, FJlt.}
+\label{tab:kernel}
+\end{table}
+% TODO(kernel): the complete grammar and rules go to the appendix ("the kernel,
+% complete").  The table states what was agreed on 2026-11-20
+% and has not been checked line by line against the three listings.
+
+The value layer has little of \Cpp{} in it, on purpose.
+A carrier is a type the kernel never looks inside: a generic definition reaches a value of it only through the calls that a shape names, and that is all the kernel knows of a string.
+A carrier comes with arrows of its own, as \cppinline{std::plus} comes with strings and \cppinline{Size} is written with a string's own length, and their declarations are given to the kernel, not written in it.
+The one recursion over a value is iteration, with its count given before the first step.
+Its step is a function of the state and the index, and a state of several parts is a record.
+
+The resolution layer is where \Cpp{} lives.
+A named type gives the compiler something to select by, a shape says what a generic definition may assume, and a trait and a function with several cases are each a selection by the form of a type.
+An associated type is a trait whose result is a type: a function on types with one entry for each head, as the standard's \cppinline{range_value_t} gives the type of a range's elements.
+Read at a type variable, it may only name a type in a declaration, never choose a case.
+Every program of the kernel is a \Cpp{} program, and \Cpp{} says what it computes.
+The kernel leaves out what would break that reading, some of it by its grammar and some by rules that the grammar cannot state (Table~\ref{tab:excluded}).
+
+\begin{table}[tb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+left out by the grammar & refused by a rule \\
+\midrule
+assignment & a call on a value of a type parameter that no shape names \\
+a loop & a call whose case depends on a law that the declaration does not decide \\
+a reference or a pointer as a value & a value built at a type variable outside a call that a shape requires \\
+inheritance & a function that calls itself, directly or through another \\
+an exception & a trait read at a type variable outside a shape \\
+a value among a template's parameters & an associated type read at a type variable outside a declaration's types \\
+a template on a call operator & an entry of a trait at a form that reads the trait elsewhere than at proper parts \\
+& an entry that stands below a use that could read it \\
+& two entries, or two cases, of which neither is the more specific \\
+\bottomrule
+\end{tabularx}
+\caption{What FJlt leaves out, and how.}
+\label{tab:excluded}
+\end{table}
+% TODO(kernel): the rules of the right column are stated here and written out
+% nowhere yet; they are the appendix's "the kernel, complete" and the linter's
+% specification.  Decided 2026-11-20: a value at a type variable only inside a
+% required call; no template on a call operator (so "prenex" holds); a
+% self-call refused by rule.  A recursion controlled by an order on the
+% arguments is not attempted: the kernel has no such order to offer.
+
+\paragraph{Derived forms.}
+\label{sec:kernel:derived}
+Jlt is this kernel and its derived forms: rewrites of a Jlt program into FJlt that may change types inside the program and leave every observable value unchanged, the value of a closed term at an atom, while compiling and while running.
+Time is not observed, so a program and its rewrite may differ in cost and in nothing else.
+Most of what the listings write beyond the grammar is \Cpp{} that the standard itself defines as something in the kernel: a constrained template parameter, an alias, an integer literal converted to a count, a braced \cppinline{return}, two fields in one declaration, and \cppinline{static_assert} as the observation of a truth value.
+One derived form carries weight, and it is a change of representation more than an abbreviation: a range, as an array or a view, stands for its length and the function that reads it, and \cppinline{ranges::fold_left} over a range for the kernel's iteration over that count.
+This paper does not prove that a derived form preserves values, and it claims them only as the listings use them.
+The list is open, and a new derived form touches nothing that is said about the kernel.
+% TODO(derived): the standard's clauses for the first group are to be cited;
+% the tests that compile a listing beside its kernel form are to be written,
+% the standard of evidence of the work on JavaScript~\cite{guha2010essence}.
+
+\subsection{The image}
+\label{sec:translation}
+
+The meaning of a kernel program is its image in System~F~\cite{girard1972interpretation,reynolds1974towards} with truth values, counts and an iterator over a count.
+A function of several arguments is curried in the image and a record of several fields is a product, the textbook's treatment of both~\cite{pierce2002tapl}.
+That a closed program of an atom has the same value in \Cpp{} and in its image is this paper's hypothesis of adequacy.
+It is neither proved nor yet tested, and the results below are about the image.
+The translation is the one that gives Haskell's type classes their meaning, dictionary passing~\cite{wadler1989adhoc,jones1994qualified}, and Table~\ref{tab:image} states it.
+The images below the panels of the three listings were made by hand according to it.
+
+\begin{table}[tb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+in the kernel & in the image \\
+\midrule
+the value layer & itself \\
+a template over a type & an abstraction over a type, $\Lambda T$ \\
+a shape & a type of records, with a field for each law, each required call and each shape it names \\
+a \texttt{requires} clause & one more parameter, a record of the shape's type \\
+a law & a field of type $\mathit{Bool}$, which holds $\mathit{true}$ and proves nothing \\
+a trait & a definition for its default and one for each entry, an entry at a form taking its values at the parts as arguments \\
+a function with several cases & a definition for each case \\
+a use of a shape, a trait or a function & the record, the entry or the case that the compiler selected, applied \\
+an associated type read at a type variable & one more type parameter, supplied at each use by the entry at the concrete types \\
+\bottomrule
+\end{tabularx}
+\caption{The translation of the kernel into System~F.}
+\label{tab:image}
+\end{table}
+
+Two things follow from the table.
+The first is that everything in the resolution layer is gone from the image.
+A named type is its fields, a shape is a record that is passed, and where the source had a selection the image has the thing that was selected.
+The selection is made while compiling, so no record exists when the program runs (Section~\ref{sec:binding}).
+
+The second is what System~F is, and is not, claimed for.
+A program is instantiated in full before it runs, and after instantiation nothing in it is polymorphic: it is simply typed, over atoms and carriers, with an iterator, a fragment of G\"odel's System~T~\cite{girard1989proofs}.
+So System~F is not needed to say what a kernel program computes.
+It is needed for what a generic definition means before anyone uses it: a template under a \texttt{requires} clause whose body keeps to it has a type of the form ``for all $T$, given a record for $T$, \ldots'', a System~F type of rank one.
+
+Three results about the target then hold of a kernel program, and none of them is proved here.
+\begin{enumerate}
+\item A well-typed program does not go wrong~\cite{pierce2002tapl}.
+\item Every program ends, since the target's only recursion is iteration over a count~\cite{girard1989proofs}, provided the arrows supplied with carriers end, the compiler's selection ends, and no function calls itself.
+\item A generic definition commutes with every homomorphism of the shape it names, a function that respects every call the shape requires, by the theorem that its type alone gives~\cite{reynolds1983types,wadler1989theorems}.
+\end{enumerate}
+The first two need nothing of \RuleTwo{}: the compiler checks every body once it is instantiated.
+Only the third does, since it is about a definition before it is instantiated, and \Cpp{} does not check a body against its declaration.
+The third is the one a programmer can use, and \cppinline{free_theorem} in Listing~\ref{lst:theorems} is its statement for \cppinline{concat}.
+It is also why the monoid of Listing~\ref{lst:motivation} asks for no equality on its carrier.
+A shape that required one would count it among its calls, and a function that respects equality is one-to-one, which the length of a string is not.
+None of the three says that a declared law is true, and a law is read in two ways, made safe by a condition:
+\begin{itemize}
+\item \cppinline{true} means declared: the program rests on it, its image is a field that holds $\mathit{true}$ and proves nothing, and it is on the list of what the program takes on trust (Section~\ref{sec:check}).
+\item Anything else means nothing yet: \cppinline{false} is \emph{not known}, not \emph{no}, and a negated constraint reads \emph{not derived}.
+\item A case chosen by a law computes the value of the general case wherever the law holds, so a declaration can change what a program costs and never what it computes.
+\end{itemize}
+% TODO(warrant): each of the three must be checked against the kernel as the
+% appendix will specify it; they are stated here from the agreed model.  The
+% second also needs the compiler's own search to end, which is the condition
+% on well-founded declarations.
+
+What is specific to \Cpp{} concerns the selection.
+The image is a function of the program only if the compiler's choice of an entry or a case is.
+\Cpp{} makes it one at concrete types, by its rules for the most specialised candidate.
+That the choice be the same wherever it is asked, \Cpp{} requires and does not check.
+A generic body may select by a law that its declaration never named, as \cppinline{guessed_power} does in Listing~\ref{lst:declare}, and an entry declared below a use is not seen by that use.
+So the kernel asks two things that \Cpp{} does not check: that a generic body selects only by what its declaration names (\RuleTwo{}), and that an entry stands above every use that could read it (Appendix~\ref{app:fjlt:order}).
+Under those two a selection should have one answer in a program, so that the image is a function of it.
+That is the coherence of resolution~\cite{jones1994qualified}, stated here as a condition and to be proved for the kernel in the appendix.
+An associated type is resolved the same way, at concrete types, and at a type variable it becomes one more type parameter whose value each use supplies, as associated types are translated for Haskell~\cite{chakravarty2005class,chakravarty2005synonyms} and for the concepts of \Cpp{0x}~\cite{siek2005essential}.
+\Cpp{} asks for the same when two cases must be ordered and the type appears among their parameters, as in Listing~\ref{lst:power}.
+% TODO(related): functional dependencies (Jones, ESOP 2000) to be verified
+% and cited beside the associated types.

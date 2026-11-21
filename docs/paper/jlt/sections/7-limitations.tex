@@ -1,45 +1,64 @@
 % !TEX root = ../jlt.tex
-\section{Known Limitations}
+\subsection{Known Limitations}
 \label{sec:limits}
 
 Table~\ref{tab:posture} says which instrument holds each rule at build time.
 
-\subsection{Limits of principle}
+\subsubsection*{Limits of principle}
 
-\paragraph{The compiler does not check a template's body against its constraints.}
+\paragraph{The compiler does not check a template's definition against its constraints.}
 Definition checking was the half of the \Cpp{0x} design~\cite{gregor2006concepts} that \Cpp{20} did not take up (Section~\ref{sec:intro}).
-So Rule~2 is posture: it is held outside the compiler, and no tool turns it into the compiler's verdict.
+So Rule~2 is posture: it is held outside the compiler.
+Concept archetypes bring one part of it back in~\cite{siek2000concept}: a template instantiated at a type that provides exactly what its concept requires fails to compile where its body uses more.
+An archetype is written by hand for each concept, and it tests the operations a body uses, not the overload a body selects, so \cppinline{guessed_power} in Listing~\ref{lst:declare} compiles at every archetype.
 Rules~1 and~3 are posture outside compile-time evaluation (Table~\ref{tab:posture}).
 
 \paragraph{Lookup stops at \cppinline{std}.}
 A name in a template is looked up twice: at the template's definition, among the declarations visible there, and at instantiation only by argument-dependent lookup, in the namespaces of the argument types, which for a standard type is \cppinline{std}, where no instance of ours lives.
-So an instance declared after the shape is found only as a specialisation of a primary template the shape names, as Listing~\ref{lst:rule2}'s deleted \cppinline{unit} is, and a constrained overload must precede the shape.
-This is a constraint on declaration order that the translation's instance resolution does not have, and FJlt resolves it by fiat: an instance is a specialisation of the trait, found by the trait's name.
+So an entry declared after the shape is found only as a specialisation of a primary template the shape names, and a constrained overload must precede the shape.
+The translation's instance resolution has no such constraint on order, so FJlt admits only programs in which the order makes no difference, by three conditions on where a declaration stands (Appendix~\ref{app:fjlt:order}).
+The third has a cost for extension: every overload of a function stands above the first call it could be chosen for.
+So a faster version of a function for one's own type cannot be added below earlier calls as a plain overload.
+It goes through a hook that the function declares, a table it reads or a call it names as a requirement, and an entry for one's own type may then be added later.
+A function that declares no hook cannot be specialised from outside, as the standard lets a program specialise \cppinline{std::hash} and not add an overload of \cppinline{std::sort}~\cite[{\texttt{namespace.std}}]{cpp23standard}.
+All three can be checked by a tool that sees each declaration with its place, as the repository's linter does, and the linter does not yet report them: its one check of order concerns an instance whose context names a shape declared too late.
+% TODO(linter): report the three order conditions of Appendix B, conservatively,
+% and across files by location (an entry in the file or module of its trait or
+% of a type in its head).  See tools/jlt-lint/README.md.
+Such a check would be conservative, refusing some programs that keep the conditions, and across files it would ask that an entry stand in the file or module of its trait or of a type in its head.
+Nor does it check the guard of Appendix~\ref{app:fjlt:typing}, that the head of a range or the content of an optional is read only in the branch its guard selects and on the variable the guard tests.
+\Cpp{} does not check it either: outside constant evaluation, reading the head of an empty range or the content of an empty optional is undefined behaviour.
+Nor does anything check that a program's declarations are well founded: the linter checks one of two syntactic conditions that approximate it (Appendix~\ref{app:fjlt:order}).
+The repository lists these unchecked conditions beside the linter's rules.
 
 
 \paragraph{A shape knows the laws someone declared.}
-\Cpp{}'s own words are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not~\cite[{\texttt{res.on.requirements}}]{cpp23standard}, and the Core Guidelines ask that a concept carry meaningful semantics~\cite[T.20]{cppcoreguidelines}.\footnote{The standard calls the first kind of requirement syntactic and the second semantic.
-That split is between what the compiler decides and what it leaves to the programmer, and it does not coincide with the split of programming-language theory between static and dynamic semantics~\cite{pierce2002tapl}, whose static semantics, type checking, falls on the syntactic side here.}
-A law is what modelling asks beyond satisfying, and the posture makes it a declared certificate, a specialisation the compiler finds but does not check against the operation.
-So \cppinline{false} means \emph{not known}, not \emph{no}, and the same declaration is the only refusal available for a carrier that passes a shape by signature and breaks its law by value.\footnote{\cppinline{*} on \cppinline{size_t} is commutative, but nobody in the listings certifies it, so \cppinline{IsCommutativeMonoid<size_t, multiplies<size_t>>} is refused.
+A law is what modelling asks beyond satisfying (Section~\ref{sec:intro}), and the posture makes it a declared certificate, a specialisation the compiler finds but does not check against the operation.
+Since \cppinline{false} means \emph{not known} (Section~\ref{sec:translation}), the same declaration is the only refusal available for a carrier that passes a shape by signature and breaks its law by value.\footnote{\cppinline{*} on \cppinline{size_t} is commutative, but nobody in the listings certifies it, so \cppinline{IsCommutativeMonoid<size_t, multiplies<size_t>>} is refused.
 \cppinline{double} under \cppinline{+} has the signature of a monoid, but \cppinline{+} is not associative and the unit law fails at NaN, and nobody certifies it.}
 
 \paragraph{Undefined behaviour has one binding time.}
-Constant evaluation refuses it and run time does not (Table~\ref{tab:binding}), the one way the two evaluations of Theorem~\ref{thm:simulation} can disagree in \Cpp{} where they cannot in FJlt, and the reason the listings' carriers are unsigned.
+Constant evaluation refuses it and run time does not (Section~\ref{sec:binding}), the one way a program's value at compile time and at run time can disagree in \Cpp{} where it cannot in the image, and the reason the listings' carriers are unsigned.
 A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cannot overflow, a fact no rule checks.\footnote{A signed integer is a chain under \cppinline{<} and a bounded lattice under \cppinline{min} and \cppinline{max}, but no monoid under \cppinline{+} or \cppinline{*}, since overflow is undefined.}
 
+\paragraph{The posture is opinionated about idiom.}
+Jlt works best where a program is a composition of arrows over products and sums, in the constructions of Pierce~\cite{pierce1991basic}.
+The type of such a term is its structure, so a \cppinline{concept} can read it and a specialisation can be chosen by it: a pairing into a \cppinline{std::pair} is recognised as a pairing.
+Composition is also what lets laws be derived: a law passes from a term's parts to the term by one conditional law for each way of composing them (Table~\ref{tab:law-propagation}).
+Two common idioms of \Cpp{} fit less well.
+By the standard a lambda's type is a unique, unnamed class type~\cite[{\texttt{expr.prim.lambda.closure}}]{cpp23standard}, so no law can be declared of it and no fold reads inside it.
+The limit is the language's, not a compiler's.
+Jlt admits it as sugar for a function object (Appendix~\ref{app:fjlt:closure}), not as a pattern to build on.
+What dispatch by a \cppinline{concept} needs is that a function's domain and codomain be known from its type.
+The accompanying library states them as two member types of a function object and calls such an object an arrow.
+That is a convention of the library, not a construct of the language, and another convention that names both would serve.
+A class hierarchy is nominal, where a \cppinline{concept} is structural, and a base that holds state or a virtual function is outside the posture.
+
 \paragraph{The compiler has its own limits.}
-Table~\ref{tab:binding} lists two, steps and call depth, and the template instantiation depth bounds both binding times.
+Section~\ref{sec:binding} names two, steps and call depth, and the template instantiation depth bounds both binding times.
 Rule~3 keeps them predictable, because every fold's length is in the program: a count, which meets no depth limit, or the depth of a term, one instantiation or one call per nesting.
 
-\subsection{Limits of this presentation}
-
-\paragraph{The linter is a check, not a proof.}
-The repository's linter, run in continuous integration on the compiler's own front end and documented there, checks Rule~3 for every instantiated body, Rule~1's syntactic part, and Rule~2 at the level of names: a body may use, on a value of parameter type, only what a declared constraint names.
-For Rule~1 it closes each channel a mutation could leak through at run time: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference.
-For Rule~3 it reports every loop statement, a loop admitted as sugar included, and the reviewer judges whether a reported loop shows its end.
-A finding is a breach or a gap in its reading of the standard's concepts, and its silence is not a proof.
-Review complements it: an agentic reviewer reads every pull request against the three rules, and the listings and the library's core are held at zero on all three to the extent the two instruments reach.
+\subsubsection*{Limits of this presentation}
 
 \paragraph{The adequacy argument covers part of the library.}
 The constructions of Appendix~\ref{app:fjlt:closure} are measured complete for the listings and the library's core only.

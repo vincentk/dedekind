@@ -1,0 +1,40 @@
+% !TEX root = ../jlt.tex
+\section{The Check}
+\label{sec:check}
+
+\Cpp{} holds a program to part of the three rules, and a tool holds it to more.
+The repository of this paper has such a tool, a linter built on Clang's own libraries, and this section says what it does today.
+% TODO(check): this section describes the linter as it is.  To be built, and
+% then described here: a strict mode in which every construct is kernel or a
+% listed derived form; the modes "check" (all rules satisfied, the axioms
+% listed) and "warn" (the axioms and each violation listed) on a named file;
+% the three conditions on the order of declarations, conservatively, and across
+% files by location; its output on the three listings (guessed_concat and
+% guessed_power refused, the false axiom on the list); a list of the derived
+% forms a project licenses beyond the paper's; what it does not see.  None of
+% the three listings is under the linter yet: their code is in a probe.
+
+It reads a source file as the compiler does and applies a set of rules to a named part of it.
+A rule either refuses the file or reports what it found.
+For the first rule it checks, among others, that functions are \cppinline{constexpr}, that call operators are \cppinline{const}, that nothing is thrown and that no mutable state is global.
+For the second it checks that a template is constrained and that a generic body calls on its type parameters only what its constraints name, by the names of the calls.
+For the third it checks that there is no loop without a stated end and no function that calls itself.
+
+It also prints a list.
+Every entry of a trait at one type whose value is \cppinline{true} is an axiom, and the tool lists them with their places, for a file or for a whole library.
+A conditional law, an entry at a form, is taken on trust in the same way and is not yet on the list.
+The build compares that list with one that is kept under version control, so an axiom cannot be added without the change being seen.
+
+\paragraph{The linter is a check, not a proof.}
+The repository's linter, run in continuous integration on the compiler's own front end and documented there, checks Rule~3 for every instantiated body, Rule~1's syntactic part, and Rule~2 at the level of names: a body may use, on a value of parameter type, only what a declared constraint names.
+For Rule~1 it closes each channel a mutation could leak through at run time: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference.
+For Rule~3 it reports every loop statement, a loop admitted as sugar included, and the reviewer judges whether a reported loop shows its end.
+A finding is a breach or a gap in its reading of the standard's concepts, and its silence is not a proof.
+Review complements it: an agentic reviewer reads every pull request against the three rules.
+On the library behind the listings, 148 module units, each check is a gate on the files it finds clean and a count on the rest; Table~\ref{tab:lint} in Appendix~\ref{app:lint} gives the counts, check by check.
+On the listings themselves it is not yet what the paper needs: it lists \cppinline{idempotent<Sum2>} with the other axioms and refuses the loop of \cppinline{guessed_concat} by Rule~3, but neither check of Rule~2 refuses \cppinline{guessed_concat} or \cppinline{guessed_power} yet, the first because its constraint is a concept of the standard, which the check does not read, and the second because its cases are told apart by a type that is not the type of its argument.
+
+What the tool does not yet do is decide whether a program is Jlt.
+Every check in that table is a deny-rule, which refuses a construct outside Jlt.
+That needs a mode in which every construct is either in the kernel or a listed derived form and anything else is refused, and it needs the conditions on the order of declarations (Section~\ref{sec:limits}).
+Until then the first clause of this paper's promise, that a template means what its signature says, rests on the programmer and on a reviewer.

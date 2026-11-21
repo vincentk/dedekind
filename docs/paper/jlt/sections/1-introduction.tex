@@ -2,6 +2,18 @@
 \section{Introduction}
 \label{sec:intro}
 
+A programmer who knows that string concatenation is associative, with the empty string as its unit, has no way to tell a \Cpp{} compiler so.
+Odersky and Wadler had described the cause in 1997: ``\Cpp{} templates are implemented by macro expansion, such that all type checking is performed only on the function instances, not on the template itself''~\cite[\S 1]{odersky1997pizza}.
+The designers of \Cpp{} named the same problem in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
+The language then meant to give them a way: concepts, as proposed for \Cpp{0x}, checked a template's definition against its constraints and let a concept state axioms~\cite{gregor2006concepts,dosreis2006specifying,bagge2009axioms}.
+The proposal was withdrawn in 2009~\cite{stroustrup2009remove}, and the concepts of \Cpp{20} check only a template's uses~\cite{stroustrup2020thriving}, so a template's body may use operations its constraints do not name, and a law has nowhere to be written but the documentation.
+The standard's own words are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not~\cite[{\texttt{res.on.requirements}}]{cpp23standard}, and the Core Guidelines ask that a concept carry meaningful semantics~\cite[T.20]{cppcoreguidelines}.\footnote{The standard calls the first kind of requirement syntactic and the second semantic.
+That split is between what the compiler decides and what it leaves to the programmer, and it does not coincide with the split of programming-language theory between static and dynamic semantics~\cite{pierce2002tapl}, whose static semantics, type checking, falls on the syntactic side here.}
+Rust, released in 2015, has the definition check: a generic body is checked against its declared bounds, and the message for a missing one names it~\cite{klabnik2023rust}.
+A \Cpp{} programmer is free to adopt a fragment of the language by policy, and this paper names one, of three rules.
+Inside it, \texttt{jlt-lint} recovers part of the definition check, by names rather than by types, refuses a body whose overload its signature leaves undecided, and lists every axiom a program declares, a property where \Cpp{0x} stated an equation; on the two examples of this paper that break Rule~2 it does not yet refuse them (Section~\ref{sec:check}).
+
+What the programmer is missing is old.
 Functional programs can be reasoned about by equations.
 A function that depends on its arguments alone can be replaced by its value~\cite{backus1978can}.
 A function that is polymorphic in a type cannot inspect that type, so its type alone yields theorems about it~\cite{wadler1989theorems}.
@@ -11,25 +23,23 @@ Polymorphism and classes each give equations: a free theorem holds of every term
 Substitution of equals turns either into a rewrite.
 For the declared laws the reasoning is complete: an equation follows from the laws by equational reasoning exactly when it holds in every model of them~\cite{birkhoff1935structure,burris1981universalalgebra}.
 A stronger class has fewer instances and more laws, so it licenses more rewrites.
+The theory is not new; that it can be used in \Cpp{23} as shipped is.
 
 These benefits are usually pursued in a language designed for them.
 The ideas themselves are not niche: the most widely used functional languages may well be the formula language of spreadsheets~\cite{peytonjones2003excel} and SQL's \texttt{SELECT}, a declarative query over relations~\cite{iso9075sql,codd1970relational}.
 This paper pursues them in \Cpp{23}, a mainstream systems language.
 Much of machine learning and most embedded devices run on \Cpp{}, and a growing number of the people who write it arrive from Python with a functional vocabulary.
 \Cpp{} offers a compiler for nearly every machine, and abstraction without run-time overhead, its zero-overhead principle~\cite{stroustrup2005abstraction}.\footnote{Stroustrup has since called the phrase an understatement: ``It's compiled away. This is why I talk about zero overhead abstraction, and people are beginning to take me to task for that because that's understating and underestimating the ability of the \Cpp{} compiler. We can do negative overhead abstraction''~\cite{stroustrup2026peterman}.
-Listing~\ref{lst:sites} is a case.}
+Figure~\ref{fig:sketch-ir} shows cases.}
 % Should probably go to conclusions or something:
 %For them the repository binds the library's combinators into Python as handles to the compiled core, so the laws declared in \Cpp{} hold in an interactive session: the specialisations they license run there at run time, and only what the compiler evaluates of them is fixed when the bindings are built (Section~\ref{sec:binding}).
 The whole language may be too large to work in with confidence, so a functional fragment of it is worth drawing.
 \Cpp{23} is the first standard with every ingredient of such a fragment: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
-Compliance with a fragment's rules is also easier to check than a decade ago: a language model of code~\cite{chen2021evaluating} can be instructed to read every change against them, as an agentic reviewer.
+Compliance with a fragment's rules is also cheaper to check than a decade ago: a language model of code~\cite{chen2021evaluating} can be instructed to read every change against them, as an agentic reviewer.
+Such reviewers are now ubiquitous, and the instructions this paper's reviewer follows are a file in the repository, so a reader can repeat the review with an agent of their own.
 Such a review is a read, not a proof (Section~\ref{sec:limits}).
 
-A compile-time check is a claim about a program that the compiler verifies.
-For generic code, \Cpp{} lacks one such check.
-Concepts, as proposed for \Cpp{0x}, checked a template's definition against its constraints~\cite{gregor2006concepts,dosreis2006specifying}.
-As standardised in \Cpp{20} they check only its uses~\cite{stroustrup2020thriving}, so a template's body may use operations its constraints do not name.
-The designers named the problem at the outset, in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
+Section~\ref{sec:examples} makes the case on functions the reader already knows: a bug that a signature would have prevented, an optimisation that a declared law permits, a dependency that a signature must declare, and a fact that the compiler works out from facts it was given.
 
 \Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary.
 This paper documents a discipline of three rules that does, and that recovers some of what a functional language guarantees.
@@ -38,7 +48,7 @@ In return, what follows from a law holds in every model of it, and a specialisat
 An optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point.
 Under the discipline, a program declares such laws itself.
 The programmer declares a law, and the compiler does not check it: a law declared falsely is the programmer's error, as the standard has it for a concept (Section~\ref{sec:posture}).
-What the compiler does mechanically is compose: it infers laws of a construction from the laws of its parts, and it selects among the overloads that those laws license (Section~\ref{sec:guarantees}).
+What the compiler does mechanically is compose: it derives laws of a construction from the laws of its parts, and it selects among the overloads that those laws license (Section~\ref{sec:examples:inference}).
 
 The fragment is the \emph{Juliet Posture}, or Jlt, and it has two boundaries.
 The outer boundary is drawn by the three rules: Jlt is the proper subset of \Cpp{23} they define.
@@ -57,7 +67,6 @@ Nothing is added to the host.
 A Jlt program is an ordinary \Cpp{23} program, type-checked and compiled by an unmodified toolchain, Clang~23 in this paper (Section~\ref{sec:limits}).
 So the paper designs no language, and its claim is one of existence: \Cpp{23} already contains an embedding of a fragment of System~F, and the listings exhibit it.
 The fragment includes prenex polymorphism with type classes, which Wadler and Blott's translation covers~\cite{wadler1989adhoc}.
-It goes one step further: a function object whose call operator is generic is a polymorphic value, and it can be passed as an argument (\textsc{T-App}, Appendix~\ref{app:fjlt:typing}).
 The embedding follows the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}: an embedded term is generic code over a \cppinline{concept}, and an interpretation of it is a model of that \cppinline{concept}.
 Jlt is assembled from canonical pieces: System~F, Wadler and Blott's translation, and the concepts and folds of the standard.
 That does not make the assembly canonical, and whether another fragment would serve as well is left open.
@@ -85,24 +94,38 @@ The bottom edge says that the two paths compute one value.}
 \label{fig:arrows}
 \end{figure}
 
+\begin{table}[tb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.13\linewidth}>{\raggedright\arraybackslash}p{0.16\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.25\linewidth}@{}}
+\toprule
+ & & contents & status \\
+\midrule
+\textbf{FJlt}: a subset of \Cpp{} whose generic definitions have System~F types & value layer: what is computed & atoms: truth values, and counts modulo $2^{64}$; carriers: any type of values, known only by the operations a shape names; pairs and records; arrows; templates over types; the conditional; the iterator & its image is itself: prenex polymorphism over those atoms, with that iterator. A generic definition has a System~F type, and so its free theorem at every carrier \\[3pt]
+ & resolution layer: what the compiler chooses & named type constructors; shapes, of laws and required calls, and their negation; traits with atomic results, laws among them; associated types; overloads & its image is records and separate definitions, and the selection is gone \\
+\midrule
+\textbf{Jlt}: what the programmer writes & derived forms: the domain of desugaring beyond FJlt & ranges, loops, folds over a range, the standard's shorthands & each has an FJlt program with the same observable values \\[3pt]
+ & the Juliet Posture: three rules & substitution, declared structure, bounded recursion & a heuristic and an outer bound: what the programmer remembers \\
+\bottomrule
+\end{tabularx}
+\caption{The two languages of the paper, each in two parts.}
+\label{tab:model}
+\end{table}
+
 \paragraph{Contributions.}
 The paper contributes a route, not a piece of software: each step from \Cpp{23} to System~F is a known construction, and the contribution is that the steps connect.
 \begin{enumerate}
-\item The posture: three rules on standard \Cpp{23}, each with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:posture}).
-\item Featherweight Jlt, the kernel: a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F.
-Three theorems about the translation and three corollaries, proved on paper relative to stated assumptions (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt:theorems}).
-\item An adequacy argument from \Cpp{} to the calculus, which states its gaps (Sections~\ref{sec:jlt-to-fjlt} and~\ref{sec:limits}), and the sugar, named with its desugaring (Appendix~\ref{app:fjlt:closure}).
-\item An observation about \Cpp{20} concepts: with overlapping constrained overloads, a generic function's behaviour can depend on a constraint it never declared, by default and silently.
+\item The posture: three rules on standard \Cpp{23}, drawn from four listings of functions the reader already knows, each rule with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:examples}).
+\item Featherweight Jlt, the kernel: a subset of \Cpp{23} as written, in a value layer and a resolution layer, whose image in System~F is dictionary passing, and the derived forms that reduce Jlt to it (Section~\ref{sec:kernel}).
+\item An observation about \Cpp{20} concepts: with overlapping constrained overloads, a generic function's behaviour can depend on a constraint it never declared, by default and silently (Listing~\ref{lst:declare}).
 GHC's rule for overlapping instances refuses such a call.
-Jlt adopts a refinement of that rule, and the repository's linter reports a call that breaks it, on an argument whose type is a template parameter (Section~\ref{sec:posture}, Appendix~\ref{app:fjlt:typing}).
-\item The exhibits: every \Cpp{} listing in this paper but one compiles and runs under a stock compiler, at compile time and at run time, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}.
-Each of these is held to the three rules by an agentic review of every change against them and by a mechanical linter in the same repository, as the library's core is.
-The exception is Listing~\ref{lst:undecided}, a fixture of the linter whose left panel breaks Rule~2 on purpose: it is evaluated at compile time only, and linted for that one rule.
-That is what compliance means here.
+Jlt adopts a refinement of that rule, which the repository's linter is to check, and the linter lists the axioms a program takes on trust (Section~\ref{sec:check}).
+\item The exhibits: every \Cpp{} listing in this paper compiles and runs under a stock compiler, at compile time and at run time, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and Section~\ref{sec:binding} shows what the compiler emits for them.
+Two functions, \cppinline{guessed_concat} and \cppinline{guessed_power}, break Rule~2 on purpose; the linter does not yet refuse them by Rule~2 (Section~\ref{sec:check}).
 \end{enumerate}
 
 The nearest calculus is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}.
-The kernel differs from it in three ways: its syntax is \Cpp{23} as written, a constraint is satisfied structurally and may be negated, and recursion is a fold over a range or over a term.
+The kernel differs from it in three ways: its syntax is \Cpp{23} as written, a constraint is satisfied structurally and may be negated, and recursion is one iterator over a count.
 The linter's definition checking is incomplete: Section~\ref{sec:limits} says what it reads and what it misses.
 
 \paragraph{How to read this paper.}
@@ -112,36 +135,8 @@ Those who audit \Cpp{} against a policy get a statement of what a tool checks an
 Readers of programming-language research get a calculus in the line of concepts and type classes.
 Those who learn or teach, among them researchers who arrive from Python, get a fragment small enough to state in three rules, with listings that compile.
 The sections follow the arrows of Figure~\ref{fig:arrows}.
-\begin{description}
-\item[Section~\ref{sec:posture}, Jlt in \Cpp{23}.]
-The three rules carve Jlt out of \Cpp{23}.
-The inclusion is proper: \Cpp{23} is Jlt without the rules.
-\item[Section~\ref{sec:jlt-to-fjlt}, FJlt in Jlt, and the dashed arrow back.]
-The inclusion is proper: Jlt is the kernel and the sugar.
-The dashed arrow, labelled $-$sugar, is $\mathit{desugar}$, and $\mathit{incl}$ is the inclusion beside it.
-That $\mathit{desugar}$ preserves meaning is a working hypothesis: it is total on Jlt and a retraction of the inclusion.
-$\mathit{desugar} \circ \mathit{incl} = \mathit{id}$ holds exactly, by construction.
-$\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ holds up to the value a program computes.
-\item[Section~\ref{sec:translation}, the translation $\llbracket\cdot\rrbracket$.]
-It is total on well-typed FJlt programs.
-Its target, which the figure calls System~F, is System~F extended with records, sums, inductive types and iterators (Definition~\ref{def:target}).
-$\mathit{embed}$, defined on the image of the translation, is a right inverse of it~\cite{nlab:retract}.
-Composed with the two inclusions it is a partial map from System~F into \Cpp{23}, the embedding that makes Jlt an embedded language.
-\item[Section~\ref{sec:guarantees}, $\mathit{eval}$.]
-The theorems about the translation, and what an FJlt program inherits from its image.
-\item[Section~\ref{sec:binding}, \texttt{clang++} and $\mathit{run}$.]
-One program at both binding times, and how instantiation relates to the translation.
-\texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits.
-\item[The bottom edge.]
-$\mathit{eval}\,t = \mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$ for every closed $t$ of base type in the image.
-Theorem~\ref{thm:simulation} proves it inside the calculus, and Appendix~\ref{app:fjlt:ssa} argues it for the compiler's output, whose lowering is trusted.
-Under the hypothesis it holds for every Jlt program $p$: $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.
-\end{description}
-One example runs through the listings: \cppinline{concat}, which combines the elements of a monoid.
-Listing~\ref{lst:rule2} writes it for zero and two arguments, where no recursion is needed.
-Listing~\ref{lst:rule3} writes it as a fold over a range, of counts and of Fibonacci's matrices, and Figure~\ref{fig:structures} sketches the recursion.
-In Listing~\ref{lst:laws} two declared laws reduce that fold to logarithmically many steps.
-Listing~\ref{lst:sites} leaves the example: it counts restriction sites in a DNA sequence.
-The compiler partially evaluates the matcher in its pattern, and a symmetry the sites share gives a test linear in their length, where an automaton would list them.
-Section~\ref{sec:limits} states the limits, Section~\ref{sec:related} the related work, and the appendices hold the calculus.
+Section~\ref{sec:examples} carves Jlt out of \Cpp{23} by the three rules.
+Section~\ref{sec:kernel} draws FJlt inside Jlt, names the derived forms between the two, and gives the translation $\llbracket\cdot\rrbracket$ into System~F and what the image inherits.
+The dashed arrow back and the bottom edge, that the two paths compute one value, are the paper's hypothesis of adequacy, stated and not proved.
+Section~\ref{sec:check} is the linter, Section~\ref{sec:binding} the right-hand path on the listings, and Section~\ref{sec:discussion} the limits, the related work and the conclusion.
 

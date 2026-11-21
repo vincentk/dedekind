@@ -1,0 +1,9 @@
+# Not a rule: a program's axioms, listed.  A law is a trait, written by cases,
+# and an axiom has one form among the cases: an entry at one type whose value
+# is the literal true (template <> constexpr bool f<...> = true;).  A trait's
+# default, an entry at a form (a theorem, read from the parts or true under a
+# context) and an entry whose value is computed are not axioms and are not
+# listed.  Reported with its locations, as Coq's Print Assumptions and Lean's
+# #print axioms list what a development rests on; gated only on the fixture,
+# which proves the matcher tells the forms apart.
+match varDecl(isExplicitTemplateSpecialization(), unless(has(templateTypeParmDecl())), unless(has(nonTypeTemplateParmDecl())), unless(has(templateTemplateParmDecl())), hasInitializer(ignoringParenImpCasts(cxxBoolLiteral(equals(true)))), isExpansionInMainFile(), hasAncestor(scope))
