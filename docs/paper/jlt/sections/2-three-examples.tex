@@ -254,6 +254,21 @@ static_assert(
 op_t<All>{}(false, false) == false &&
 power<All>(false, 5uz) == false &&
 power<All>(false, 0uz) == true);
+
+struct Larger { constexpr size_t
+  operator()(size_t a, size_t b) const {
+    return a < b ? b : a; } };
+struct Max { constexpr size_t
+  operator()() const { return 0; } };
+template <> struct op_of<Max> {
+  using type = Larger; };
+template <> constexpr bool
+associative<Max> = true;
+template <> constexpr bool
+unital<Max> = true;
+template <> constexpr bool
+idempotent<Max> = true;
+static_assert(power<Max>(7uz, 10uz) == 7);
 \end{cpp}
 \end{minipage}
 {\small\[
@@ -288,7 +303,7 @@ With the base fixed to the unit and the count left for later, the compiler remov
 The lines of Listing~\ref{lst:power} are in the kernel as written, the fold over a count being its one recursion over a value, apart from the range in the first line of the test (Section~\ref{sec:kernel:derived}).
 
 The lower panels show a law selecting a case.
-Where the operation is idempotent, $x \cdot x = x$, as conjunction is, a power is the value itself.
+Where the operation is idempotent, $x \cdot x = x$, as conjunction and the larger of two counts are, a power is the value itself.
 A second case of \cppinline{power}, on the same signature with one more law, says so in one step, and the compiler selects it wherever that law is declared, as the more constrained of the two.
 Its axiom is checked at one point beside it, as the unit's is.
 

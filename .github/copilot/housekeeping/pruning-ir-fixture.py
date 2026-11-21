@@ -538,6 +538,8 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             "now_power_idempotent",
             "now_named_power",
             "now_derived_law",
+            "now_power_xor",
+            "now_power_max",
         ):
             block = extract_function_block(ir_text, symbol)
             if block is None:

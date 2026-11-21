@@ -382,6 +382,37 @@ constexpr T power(T x, size_t n) {
 template <>
 constexpr bool idempotent<All> = true;
 
+struct Xor {
+  constexpr size_t operator()() const { return 0; }
+};
+template <>
+struct op_of<Xor> {
+  using type = std::bit_xor<size_t>;
+};
+template <>
+constexpr bool associative<Xor> = true;
+template <>
+constexpr bool unital<Xor> = true;
+struct Larger {
+  constexpr size_t operator()(size_t a, size_t b) const {
+    return a < b ? b : a;
+  }
+};
+struct Max {
+  constexpr size_t operator()() const { return 0; }
+};
+template <>
+struct op_of<Max> {
+  using type = Larger;
+};
+template <>
+constexpr bool associative<Max> = true;
+template <>
+constexpr bool unital<Max> = true;
+template <>
+constexpr bool idempotent<Max> = true;
+static_assert(power<Xor>(5uz, 3uz) == 5 && power<Max>(7uz, 10uz) == 7);
+
 template <typename E>
 concept HasPower = IsMonoid<E> && requires(carrier_t<E> x, size_t n) {
   { power<E>(x, n) } -> std::same_as<carrier_t<E>>;
@@ -468,4 +499,14 @@ extern "C" __attribute__((noinline)) bool now_derived_law() {
   using namespace now_listings;
   return homomorphism<Via<All, Not, Any, Not, All>, All, All> ==
          (homomorphism<Not, All, Any> && homomorphism<Not, Any, All>);
+}
+/** @return the power under exclusive or: the parity of the count. */
+extern "C" __attribute__((noinline)) std::size_t now_power_xor(std::size_t x,
+                                                               std::size_t n) {
+  return now_listings::power<now_listings::Xor>(x, n);
+}
+/** @return the power under max, the case that idempotence selects. */
+extern "C" __attribute__((noinline)) std::size_t now_power_max(std::size_t x,
+                                                               std::size_t n) {
+  return now_listings::power<now_listings::Max>(x, n);
 }

@@ -2540,6 +2540,38 @@ static_assert(op_t<All>{}(false, false) == false &&
               power<All>(false, 5uz) == false &&
               power<All>(false, 0uz) == true);
 
+struct Xor {
+  constexpr size_t operator()() const { return 0; }
+};
+template <>
+struct op_of<Xor> {
+  using type = std::bit_xor<size_t>;
+};
+template <>
+constexpr bool associative<Xor> = true;
+template <>
+constexpr bool unital<Xor> = true;
+static_assert(power<Xor>(5uz, 3uz) == 5 && power<Xor>(5uz, 4uz) == 0);
+struct Larger {
+  constexpr size_t operator()(size_t a, size_t b) const {
+    return a < b ? b : a;
+  }
+};
+struct Max {
+  constexpr size_t operator()() const { return 0; }
+};
+template <>
+struct op_of<Max> {
+  using type = Larger;
+};
+template <>
+constexpr bool associative<Max> = true;
+template <>
+constexpr bool unital<Max> = true;
+template <>
+constexpr bool idempotent<Max> = true;
+static_assert(power<Max>(7uz, 10uz) == 7);
+
 // ---- Listing 3: what a signature must declare
 template <typename E>
   requires IsMonoid<E>
