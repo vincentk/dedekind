@@ -46,14 +46,22 @@ def main():
     linted = sorted({f for r in status.values() for f in r})
     lines = sum(len((ROOT / f).read_text().splitlines()) for f in linted)
     print(f"% {len(linted)} of {len(library)} library modules, {lines} lines")
-    for rule in sorted(status, key=lambda r: (not r.startswith("rule"), r)):
-        if rule == "inventory":
-            continue
-        gate = sum(1 for s in status[rule].values() if s == "gate")
-        report = sum(1 for s in status[rule].values() if s == "report")
-        hit = {f: n for f, n in found.get(rule, {}).items() if n > 0}
-        number, _, name = rule.partition("-") if rule.startswith("rule") else ("", "", rule)
-        print(f"{number.removeprefix('rule')} & \\texttt{{{name}}} & {gate} & {report} & {len(hit)} & {sum(hit.values())} \\\\")
+    groups = [
+        ("Refused, outside Jlt: Rule 1, substitution", lambda r: r.startswith("rule1-")),
+        ("Refused, outside Jlt: Rule 2, abstraction", lambda r: r.startswith("rule2-")),
+        ("Refused, outside Jlt: Rule 3, descent", lambda r: r.startswith("rule3-")),
+        ("Listed, taken on trust", lambda r: r == "axioms"),
+    ]
+    for i, (title, member) in enumerate(groups):
+        if i:
+            print("\\midrule")
+        print(f"\\multicolumn{{5}}{{@{{}}l}}{{\\emph{{{title}}}}} \\\\")
+        for rule in sorted(r for r in status if member(r)):
+            gate = sum(1 for s in status[rule].values() if s == "gate")
+            report = sum(1 for s in status[rule].values() if s == "report")
+            hit = {f: n for f, n in found.get(rule, {}).items() if n > 0}
+            name = rule.split("-", 1)[1] if rule.startswith("rule") else rule
+            print(f"\\quad\\texttt{{{name}}} & {gate} & {report} & {len(hit)} & {sum(hit.values())} \\\\")
 
 
 if __name__ == "__main__":
