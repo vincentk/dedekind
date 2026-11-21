@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <functional>
 #include <ranges>
+#include <utility>
 
 namespace {
 using std::size_t;
@@ -350,19 +351,15 @@ constexpr carrier_t<E> concat2(R r) {
   return std::ranges::fold_left(r, E{}(), op_t<E>{});
 }
 
-template <typename T>
-struct Power {
-  T product, base;
-  size_t exponent;
-};
 template <typename E>
-struct Halving {
+struct Squaring {
+  size_t n;
   using T = carrier_t<E>;
-  constexpr Power<T> operator()(Power<T> p, size_t) const
+  constexpr std::pair<T, T> operator()(std::pair<T, T> s, size_t i) const
     requires IsMonoid<E>
   {
-    return {p.exponent % 2 == 1 ? op_t<E>{}(p.product, p.base) : p.product,
-            op_t<E>{}(p.base, p.base), p.exponent / 2};
+    return {((n >> i) & 1) == 1 ? op_t<E>{}(s.first, s.second) : s.first,
+            op_t<E>{}(s.second, s.second)};
   }
 };
 template <typename E, typename T>
@@ -370,8 +367,8 @@ template <typename E, typename T>
 constexpr T power(T x, size_t n) {
   return std::ranges::fold_left(
              std::views::iota(0uz, size_t(std::bit_width(n))),
-             Power<T>{E{}(), x, n}, Halving<E>{})
-      .product;
+             std::pair<T, T>{E{}(), x}, Squaring<E>{n})
+      .first;
 }
 template <typename E>
 constexpr bool idempotent = false;
