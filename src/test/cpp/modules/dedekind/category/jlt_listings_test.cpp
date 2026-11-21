@@ -2287,17 +2287,21 @@ struct Halving {
             op_t<E>{}(p.base, p.base), p.exponent / 2};
   }
 };
-template <typename E>
-  requires IsMonoid<E>
-constexpr carrier_t<E> power(carrier_t<E> x, size_t n) {
+// The carrier is a template parameter of its own, determined by the unit: C++
+// cannot order the two cases of power by their constraints while the
+// parameter's type is computed from E, since E cannot be deduced from it.
+// Written so, the improvement is explicit, and the ordering works.
+template <typename E, typename T>
+  requires IsMonoid<E> && std::same_as<T, carrier_t<E>>
+constexpr T power(T x, size_t n) {
   return std::ranges::fold_left(
              std::views::iota(0uz, size_t(std::bit_width(n))),
-             Power<carrier_t<E>>{E{}(), x, n}, Halving<E>{})
+             Power<T>{E{}(), x, n}, Halving<E>{})
       .product;
 }
-template <typename E>
-  requires IsIdempotentMonoid<E>
-constexpr carrier_t<E> power(carrier_t<E> x, size_t n) {
+template <typename E, typename T>
+  requires IsIdempotentMonoid<E> && std::same_as<T, carrier_t<E>>
+constexpr T power(T x, size_t n) {
   return n == 0 ? E{}() : x;
 }
 
