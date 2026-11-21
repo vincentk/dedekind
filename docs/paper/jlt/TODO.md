@@ -200,6 +200,13 @@ Read, verify and cite, or decide not to. The readers named these, several from m
 
 ### 10. A cold read, briefed against the Art criteria and the promise
 
+## Tool PR (next after #1209; agreed 2026-11-21)
+
+- Rule 2 refuses `guessed_concat` (a body using `+` that a standard concept does not name) and `guessed_power` (cases told apart by `E`, not by the argument's type); fixtures in the listings' shapes; then gate `paper_listings` at the counts.
+- `rule3-bounded-fold`: a `fold_left` over `iota` (the kernel's iterator) is not a finding.
+- Admission by operator: `BinaryOperator` split, assignment refused (both cold readers).
+- Copilot on #1209: the atom key of a constraint renders only a value argument's digits, so `C<T, 1>` and `C<T, 1u>` are one fact; add the canonical integral type and a fixture (tools/jlt-lint/tool/jlt_lint.cpp, near line 1548).
+
 ## Prose pass (after the tool PR; agreed 2026-11-21)
 
 Order agreed: merge #1209, then the tool PR, then this. Inputs: the two cold reads of 2026-11-21 evening (`research_notes/Jlt cold reads/`), the rule "terms of art once, with the citation, then plain words" (most of the cut from 28 to 22 pages).
