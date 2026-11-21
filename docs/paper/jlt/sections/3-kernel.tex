@@ -212,8 +212,12 @@ Only the third does, since it is about a definition before it is instantiated, a
 The third is the one a programmer can use, and \cppinline{free_theorem} in Listing~\ref{lst:theorems} is its statement for \cppinline{concat}.
 It is also why the monoid of Listing~\ref{lst:motivation} asks for no equality on its carrier.
 A shape that required one would count it among its calls, and a function that respects equality is one-to-one, which the length of a string is not.
-None of the three says that a declared law is true.
-A law is a field that holds $\mathit{true}$ because someone wrote it, and what a program rests on in that way is a list (Section~\ref{sec:check}).
+None of the three says that a declared law is true, and a law is read in two ways, made safe by a condition:
+\begin{itemize}
+\item \cppinline{true} means declared: the program rests on it, its image is a field that holds $\mathit{true}$ and proves nothing, and it is on the list of what the program takes on trust (Section~\ref{sec:check}).
+\item Anything else means nothing yet: \cppinline{false} is \emph{not known}, not \emph{no}, and a negated constraint reads \emph{not derived}.
+\item A case chosen by a law computes the value of the general case wherever the law holds, so a declaration can change what a program costs and never what it computes.
+\end{itemize}
 % TODO(warrant): each of the three must be checked against the kernel as the
 % appendix will specify it; they are stated here from the agreed model.  The
 % second also needs the compiler's own search to end, which is the condition
