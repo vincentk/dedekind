@@ -942,13 +942,40 @@ const clang::Decl* enclosingDecl(const clang::Stmt* s, clang::ASTContext& ctx) {
   return nullptr;
 }
 
-/// Whether `c` is category's IsBoundedRange, read through transparent
-/// contexts such as a module's export.
+/// Whether `c` states a range's count before a fold starts: category's
+/// IsBoundedRange, read through transparent contexts such as a module's
+/// export, or the standard's sized_range, whose size is known before the
+/// first step.
 bool isBoundedConcept(const clang::NamedDecl* c) {
-  if (!c || c->getName() != "IsBoundedRange") return false;
+  if (!c) return false;
+  if (c->getName() == "sized_range") return inStd(c);
+  if (c->getName() != "IsBoundedRange") return false;
   const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(
       c->getDeclContext()->getRedeclContext());
   return ns && ns->getName() == "category";
+}
+
+/// Whether a folded range is a count given before the first step: the
+/// standard's views::iota with a bound, or views::repeat with a count, called
+/// with two arguments, as fold_left(views::iota(0uz, k), ...) is.
+bool isCountedView(const clang::Expr* r) {
+  const auto* call = llvm::dyn_cast_or_null<clang::CallExpr>(r);
+  if (!call) return false;
+  const clang::Expr* callee = call->getCallee()->IgnoreParenImpCasts();
+  unsigned first = 0;
+  if (const auto* op = llvm::dyn_cast<clang::CXXOperatorCallExpr>(call)) {
+    callee = op->getArg(0)->IgnoreParenImpCasts();
+    first = 1;
+  }
+  const clang::NamedDecl* d = nullptr;
+  if (const auto* ref = llvm::dyn_cast<clang::DeclRefExpr>(callee))
+    d = ref->getDecl();
+  else if (const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(callee))
+    d = u->decls().empty() ? nullptr : *u->decls().begin();
+  if (!d || !inStd(d)) return false;
+  const std::string name = d->getNameAsString();
+  return (name == "iota" || name == "repeat") &&
+         call->getNumArgs() == first + 2;
 }
 
 /// The template parameters a constraint bounds: IsBoundedRange<P> as a
@@ -1034,6 +1061,7 @@ const clang::Expr* foldedRange(const clang::DeclRefExpr* fold,
 bool foldsBoundedParameter(const clang::DeclRefExpr* fold,
                            const clang::FunctionDecl* f,
                            clang::ASTContext& ctx) {
+  if (isCountedView(foldedRange(fold, ctx))) return true;
   const auto* r =
       llvm::dyn_cast_or_null<clang::DeclRefExpr>(foldedRange(fold, ctx));
   if (!r || !llvm::isa<clang::ParmVarDecl>(r->getDecl())) return false;
@@ -1048,7 +1076,8 @@ bool foldsBoundedParameter(const clang::DeclRefExpr* fold,
 }
 
 /// A standard fold called directly, outside a function that states the
-/// bound in its signature: one finding per reference to the fold.
+/// bound in its signature and not over a counted view: one finding per
+/// reference to the fold.
 class BoundedFold : public clang::ASTConsumer,
                     public clang::RecursiveASTVisitor<BoundedFold> {
  public:

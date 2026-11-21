@@ -1,9 +1,10 @@
 // Negative control for rules/rule3-bounded-fold.query: the gate must flag
-// seven standard folds inside the jlt_listing namespace: three at namespace
+// eight standard folds inside the jlt_listing namespace: three at namespace
 // scope, one with no bound stated, one folding a range other than the bounded
-// parameter, one under a negation, one under a disjunction; and none of the
-// three that fold a bounded parameter (type constraint, requires clause,
-// trailing clause), nor the one outside the namespace.
+// parameter, one under a negation, one under a disjunction, one over an iota
+// without a bound; and none of the three that fold a bounded parameter (type
+// constraint, requires clause, trailing clause), nor one over a sized_range
+// parameter, nor one over a counted iota, nor the one outside the namespace.
 // Standalone, no imports, so it is checked without the build.
 #include <algorithm>
 #include <array>
@@ -18,8 +19,8 @@ constexpr std::array<int, 3> xs{1, 2, 3};
 constexpr int left = std::ranges::fold_left(xs, 0, std::plus<>{});  // finding 1
 constexpr int twice =  // fold_right would do, but libc++ has none yet
     std::ranges::fold_left(xs, 1, std::multiplies<>{});  // finding 2
-constexpr int pair_of_iterators =
-    std::ranges::fold_left(xs.begin(), xs.end(), 0, std::plus<>{});  // finding 3
+constexpr int pair_of_iterators = std::ranges::fold_left(
+    xs.begin(), xs.end(), 0, std::plus<>{});  // finding 3
 
 namespace category {
 extern "C++" {  // a transparent context, as a module's export is
@@ -45,8 +46,7 @@ constexpr M by_trailing(R r, const M v, const H h)
 {
   return std::ranges::fold_left(std::move(r), v, h);  // exempt: trailing
 }
-template <IsBoundedRange B, std::ranges::input_range R, typename M,
-          typename H>
+template <IsBoundedRange B, std::ranges::input_range R, typename M, typename H>
 constexpr M other_range(const B&, const R& r, const M v, const H h) {
   return std::ranges::fold_left(r, v, h);  // finding 5: R is not bounded
 }
@@ -61,6 +61,16 @@ constexpr M disjoint(const R& r, const M v, const H h) {
   return std::ranges::fold_left(r, v, h);  // finding 7: under a disjunction
 }
 constexpr int through_fold = fold(xs, 0, std::plus<>{});
+template <std::ranges::sized_range R, typename M, typename H>
+constexpr M sized(const R& r, const M v, const H h) {
+  return std::ranges::fold_left(r, v, h);  // exempt: sized_range states it
+}
+constexpr int counted =
+    std::ranges::fold_left(std::views::iota(0, 4), 0, std::plus<>{});  // exempt
+template <typename M, typename H>
+constexpr M from_zero(const M v, const H h) {
+  return std::ranges::fold_left(std::views::iota(0), v, h);  // finding 8
+}
 }  // namespace category
 
 }  // namespace jlt_listing
