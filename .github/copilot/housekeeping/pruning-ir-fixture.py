@@ -530,6 +530,14 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             "power_of_zero_unit_first",
             "power_of_identity",
             "power_of_identity_unit_first",
+            "now_concat2_known",
+            "now_concat2",
+            "now_power",
+            "now_power_plain",
+            "now_power_of_unit",
+            "now_power_idempotent",
+            "now_named_power",
+            "now_derived_law",
         ):
             block = extract_function_block(ir_text, symbol)
             if block is None:

@@ -268,3 +268,208 @@ extern "C" __attribute__((noinline)) std::size_t power_of_identity_unit_first(
     std::size_t n) {
   return power_unit_first<M, Mul, identity>(identity, n).a;
 }
+
+// The four listings of the paper's Section 2 as they now stand: a monoid named
+// by its unit, every law keyed on that name.  The same code as the namespace
+// paper_listings of the listings' test, without strings, which the IR need not
+// show.  Every declaration is used below, so that no warning fires.
+namespace now_listings {
+using std::size_t;
+
+template <typename E>
+constexpr bool associative = false;
+template <typename E>
+constexpr bool unital = false;
+template <typename E>
+struct op_of {};
+template <typename E>
+using carrier_t = decltype(E{}());
+template <typename E>
+using op_t = typename op_of<E>::type;
+template <typename E>
+concept IsMagma = requires {
+  E{}();
+  typename op_t<E>;
+} && std::copyable<carrier_t<E>> && requires(carrier_t<E> a, carrier_t<E> b) {
+  { op_t<E>{}(a, b) } -> std::same_as<carrier_t<E>>;
+};
+template <typename E>
+concept IsUnitalMagma = IsMagma<E> && unital<E>;
+template <typename E>
+concept IsMonoid = IsUnitalMagma<E> && associative<E>;
+
+struct Zero {
+  constexpr size_t operator()() const { return 0; }
+};
+template <>
+struct op_of<Zero> {
+  using type = std::plus<size_t>;
+};
+template <>
+constexpr bool associative<Zero> = true;
+template <>
+constexpr bool unital<Zero> = true;
+struct One {
+  constexpr size_t operator()() const { return 1; }
+};
+template <>
+struct op_of<One> {
+  using type = std::multiplies<size_t>;
+};
+template <>
+constexpr bool associative<One> = true;
+template <>
+constexpr bool unital<One> = true;
+struct True {
+  constexpr bool operator()() const { return true; }
+};
+template <>
+struct op_of<True> {
+  using type = std::logical_and<bool>;
+};
+template <>
+constexpr bool associative<True> = true;
+template <>
+constexpr bool unital<True> = true;
+struct False {
+  constexpr bool operator()() const { return false; }
+};
+template <>
+struct op_of<False> {
+  using type = std::logical_or<bool>;
+};
+template <>
+constexpr bool associative<False> = true;
+template <>
+constexpr bool unital<False> = true;
+
+template <typename E, std::ranges::sized_range R>
+  requires IsMonoid<E> &&
+           std::same_as<std::ranges::range_value_t<R>, carrier_t<E>>
+constexpr carrier_t<E> concat2(R r) {
+  return std::ranges::fold_left(r, E{}(), op_t<E>{});
+}
+
+template <typename T>
+struct Power {
+  T product, base;
+  size_t exponent;
+};
+template <typename E>
+struct Halving {
+  using T = carrier_t<E>;
+  constexpr Power<T> operator()(Power<T> p, size_t) const
+    requires IsMonoid<E>
+  {
+    return {p.exponent % 2 == 1 ? op_t<E>{}(p.product, p.base) : p.product,
+            op_t<E>{}(p.base, p.base), p.exponent / 2};
+  }
+};
+template <typename E, typename T>
+  requires IsMonoid<E> && std::same_as<T, carrier_t<E>>
+constexpr T power(T x, size_t n) {
+  return std::ranges::fold_left(
+             std::views::iota(0uz, size_t(std::bit_width(n))),
+             Power<T>{E{}(), x, n}, Halving<E>{})
+      .product;
+}
+template <typename E>
+constexpr bool idempotent = false;
+template <typename E>
+concept IsIdempotentMonoid = IsMonoid<E> && idempotent<E>;
+template <typename E, typename T>
+  requires IsIdempotentMonoid<E> && std::same_as<T, carrier_t<E>>
+constexpr T power(T x, size_t n) {
+  return n == 0 ? E{}() : x;
+}
+template <>
+constexpr bool idempotent<True> = true;
+
+template <typename E>
+concept HasPower = IsMonoid<E> && requires(carrier_t<E> x, size_t n) {
+  { power<E>(x, n) } -> std::same_as<carrier_t<E>>;
+};
+template <typename E>
+  requires HasPower<E>
+constexpr carrier_t<E> named_power(carrier_t<E> x, size_t n) {
+  return power<E>(x, n);
+}
+
+template <typename H, typename A, typename B>
+constexpr bool homomorphism = false;
+template <typename F, typename A, typename B>
+concept Maps = requires(F f, carrier_t<A> x) {
+  { f(x) } -> std::same_as<carrier_t<B>>;
+};
+struct IsZero {
+  constexpr bool operator()(size_t n) const { return n == 0; }
+};
+struct Not {
+  constexpr bool operator()(bool b) const { return !b; }
+};
+template <>
+constexpr bool homomorphism<Not, True, False> = true;
+template <typename A, typename F, typename B, typename G, typename C>
+struct Via {
+  F f;
+  G g;
+  constexpr carrier_t<C> operator()(carrier_t<A> x) const
+    requires Maps<F, A, B> && Maps<G, B, C>
+  {
+    return g(f(x));
+  }
+};
+template <typename A, typename F, typename B, typename G, typename C>
+constexpr bool homomorphism<Via<A, F, B, G, C>, A, C> =
+    homomorphism<F, A, B> && homomorphism<G, B, C>;
+template <>
+constexpr bool homomorphism<IsZero, True, True> = false;
+
+static_assert(IsMonoid<Zero> && IsMonoid<One> && IsMonoid<True> &&
+              IsMonoid<False> && IsIdempotentMonoid<True> && HasPower<Zero> &&
+              homomorphism<Not, True, False> &&
+              !homomorphism<IsZero, True, True> &&
+              concat2<Zero>(std::array{1uz, 2uz, 3uz}) == 6 &&
+              power<One>(2uz, 10uz) == 1024 &&
+              power<True>(false, 5uz) == false);
+}  // namespace now_listings
+
+/** @return Listing 1's concat2 at the sum, everything known while compiling. */
+extern "C" __attribute__((noinline)) std::size_t now_concat2_known() {
+  return now_listings::concat2<now_listings::Zero>(std::array{1uz, 2uz, 3uz});
+}
+/** @return the sum of the counts below n, the count known only at run time. */
+extern "C" __attribute__((noinline)) std::size_t now_concat2(std::size_t n) {
+  return now_listings::concat2<now_listings::Zero>(std::views::iota(0uz, n));
+}
+/** @return Listing 2's power at the product, by repeated squaring. */
+extern "C" __attribute__((noinline)) std::size_t now_power(std::size_t x,
+                                                           std::size_t n) {
+  return now_listings::power<now_listings::One>(x, n);
+}
+/** @return the same value by its definition, n copies folded one by one. */
+extern "C" __attribute__((noinline)) std::size_t now_power_plain(
+    std::size_t x, std::size_t n) {
+  return now_listings::concat2<now_listings::One>(std::views::repeat(x, n));
+}
+/** @return the power of the unit of the sum, the count left for later. */
+extern "C" __attribute__((noinline)) std::size_t now_power_of_unit(
+    std::size_t n) {
+  return now_listings::power<now_listings::Zero>(0uz, n);
+}
+/** @return the power under conjunction, the case that idempotence selects. */
+extern "C" __attribute__((noinline)) bool now_power_idempotent(bool x,
+                                                               std::size_t n) {
+  return now_listings::power<now_listings::True>(x, n);
+}
+/** @return Listing 3's named_power at the sum. */
+extern "C" __attribute__((noinline)) std::size_t now_named_power(
+    std::size_t x, std::size_t n) {
+  return now_listings::named_power<now_listings::Zero>(x, n);
+}
+/** @return Listing 4's lemma at a composite, a law the compiler derives. */
+extern "C" __attribute__((noinline)) bool now_derived_law() {
+  using namespace now_listings;
+  return homomorphism<Via<True, Not, False, Not, True>, True, True> ==
+         (homomorphism<Not, True, False> && homomorphism<Not, False, True>);
+}
