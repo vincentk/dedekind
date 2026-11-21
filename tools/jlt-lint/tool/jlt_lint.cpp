@@ -110,9 +110,9 @@
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Frontend/MultiplexConsumer.h"
 #include "clang/Frontend/TextDiagnostic.h"
-#include "llvm/ADT/APSInt.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
+#include "llvm/ADT/APSInt.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Path.h"
@@ -592,17 +592,31 @@ Vocabulary vocabularyOf(const clang::FunctionTemplateDecl* ft) {
   return v;
 }
 
-/// Whether a value's type is a template parameter itself (through references
-/// and cv): the value whose vocabulary Rule 2 restricts.  A value of some
-/// other dependent type, a library aggregate or a call's result, carries that
-/// type's vocabulary, not the parameter's.
-bool isParameterTyped(const clang::Expr* e) {
-  if (!e) return false;
-  clang::QualType t = e->getType();
+/// Whether a value's type is known only through the template's parameters
+/// (through references and cv): a parameter itself or an associated type of
+/// one, the values whose vocabulary Rule 2 restricts.  A value of a library
+/// aggregate's type carries that type's vocabulary, not the parameter's.
+bool parameterKnown(clang::QualType t) {
   if (t.isNull()) return false;
   t = t.getNonReferenceType().getUnqualifiedType();
-  return t->isTemplateTypeParmType() ||
-         llvm::isa<clang::SubstTemplateTypeParmType>(t.getTypePtr());
+  if (t->isTemplateTypeParmType() ||
+      llvm::isa<clang::SubstTemplateTypeParmType>(t.getTypePtr()))
+    return true;
+  // An associated type of a parameter: a dependent name (typename R::value
+  // type), a dependent template name, or the decltype of a dependent
+  // expression, read through aliases such as range_value_t<R> or
+  // carrier_t<E> to the canonical type.  It is known only through the
+  // constraints, as the parameter is.  A class template's specialisation
+  // (std::pair<T, T>) has a vocabulary of its own and is not one.
+  if (!t->isDependentType()) return false;
+  const clang::Type* c = t.getCanonicalType().getTypePtr();
+  return llvm::isa<clang::TemplateTypeParmType>(c) ||
+         llvm::isa<clang::DependentNameType>(c) ||
+         llvm::isa<clang::DependentTemplateSpecializationType>(c) ||
+         llvm::isa<clang::DecltypeType>(c);
+}
+bool isParameterTyped(const clang::Expr* e) {
+  return e && parameterKnown(e->getType());
 }
 
 bool anyParameterTyped(llvm::ArrayRef<const clang::Expr*> es) {
@@ -1492,7 +1506,9 @@ std::optional<Param> paramOf(clang::QualType t) {
 /// (after substitution), any other type by its spelling.
 using Subst = std::map<Param, std::string>;
 std::string renderParam(Param p) {
-  return "p" + std::to_string(p.first) + ":" + std::to_string(p.second);
+  // A prefix no spelled type has, so that a type such as ns::X is never
+  // taken for a parameter.
+  return "$p" + std::to_string(p.first) + ":" + std::to_string(p.second);
 }
 std::string renderArg(clang::QualType t, const Subst& subst) {
   if (std::optional<Param> p = paramOf(t)) {
@@ -1667,7 +1683,15 @@ class UndecidedResolution : public clang::ASTConsumer {
       if (!u) continue;
       llvm::SmallVector<const clang::Expr*, 4> args(call->arguments().begin(),
                                                     call->arguments().end());
-      if (!anyParameterTyped(args)) continue;
+      // A call at a type variable: an argument of a type known only through
+      // the parameters, or an explicit template argument of one, as
+      // power<E>(x, n) passes the monoid E.
+      bool atParameter = anyParameterTyped(args);
+      for (const clang::TemplateArgumentLoc& ta : u->template_arguments())
+        if (ta.getArgument().getKind() == clang::TemplateArgument::Type &&
+            parameterKnown(ta.getArgument().getAsType()))
+          atParameter = true;
+      if (!atParameter) continue;
       const std::string name = u->getName().getAsString();
       if (v.names.count(name)) continue;  // named: read through the dictionary
       // Each viable candidate's atoms, re-expressed on the enclosing
@@ -1681,6 +1705,25 @@ class UndecidedResolution : public clang::ASTConsumer {
         if (cf->isDeleted() || !viableArity(cf, args.size())) continue;
         Subst toCaller;
         std::set<std::string> callerArgs;
+        // The explicit template arguments bind the candidate's leading
+        // parameters, as power<E> binds the monoid.
+        {
+          const clang::TemplateParameterList* cps =
+              cand->getTemplateParameters();
+          unsigned k = 0;
+          for (const clang::TemplateArgumentLoc& ta : u->template_arguments()) {
+            if (k >= cps->size()) break;
+            if (ta.getArgument().getKind() == clang::TemplateArgument::Type)
+              if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(
+                      cps->getParam(k))) {
+                const std::string r =
+                    renderArg(ta.getArgument().getAsType(), {});
+                toCaller[{tp->getDepth(), tp->getIndex()}] = r;
+                callerArgs.insert(r);
+              }
+            ++k;
+          }
+        }
         for (unsigned k = 0; k < cf->getNumParams() && k < args.size(); ++k)
           if (std::optional<Param> from =
                   paramOf(cf->getParamDecl(k)->getType())) {
@@ -1694,8 +1737,7 @@ class UndecidedResolution : public clang::ASTConsumer {
                      cf->getTrailingRequiresClause().ConstraintExpr, false,
                      toCaller)) {
           for (const std::string& arg : a.args)
-            if (arg.rfind("p", 0) == 0 && arg.find(':') != std::string::npos &&
-                !callerArgs.count(arg))
+            if (arg.rfind("$p", 0) == 0 && !callerArgs.count(arg))
               bound = false;  // a candidate parameter the call does not bind
           const int k = known(a);
           if ((k == 1 && !a.positive) || (k == -1 && a.positive))

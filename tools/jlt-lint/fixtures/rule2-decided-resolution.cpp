@@ -224,6 +224,39 @@ constexpr unsigned of_the_rest(Op op) {
 }
 static_assert(of_a_product(Times{}) == 1 && of_the_rest(Plus{}) == 0);
 
+// The Jlt paper's Listing 3: a monoid named by a type E, its carrier an
+// associated type, and the two cases of pw told apart by a concept on E,
+// which the call passes as an explicit template argument.
+template <typename E>
+using carrier_t = decltype(E{}());
+template <typename E>
+constexpr bool idem = false;
+template <typename E>
+concept Mon = requires { E{}(); };
+template <typename E>
+concept IdemMon = Mon<E> && idem<E>;
+template <typename E, typename T>
+  requires Mon<E>
+constexpr T pw(T x, int) {
+  return x;
+}
+template <typename E, typename T>
+  requires IdemMon<E>
+constexpr T pw(T x, int) {
+  return x;
+}
+template <typename E>
+  requires Mon<E>
+constexpr carrier_t<E> guessed(carrier_t<E> x, int n) {
+  return pw<E>(
+      x, n);  // finding 8: pw resolves by IdemMon, which Mon does not decide
+}
+template <typename E>
+  requires IdemMon<E>
+constexpr carrier_t<E> declared(carrier_t<E> x, int n) {
+  return pw<E>(x, n);  // fine: IdemMon required
+}
+
 }  // namespace jlt_listing
 
 template <typename T>
