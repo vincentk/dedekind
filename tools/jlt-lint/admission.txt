@@ -1,0 +1,135 @@
+# Admission by syntax kind: the admit side of jlt-lint, a first cut.
+#
+# One line per AST node kind the inventory prints: <kind> <class>.  Classes:
+#   kernel       a form of FJlt (the grammar of the paper's Figure 2)
+#   derived      a derived form: Jlt, rewritten into the kernel
+#   scaffolding  organisation without meaning (modules, namespaces, tests)
+#   refused      outside Jlt
+#   open         not yet decided; counted as not admitted
+# A kind is coarser than the grammar: a CallExpr is kernel whatever it calls,
+# and the deny-rules judge what the kind cannot (a call whose overload its
+# signature leaves undecided).  So "admitted" is "admitted by kind", and inside
+# Jlt is admitted and refused by no deny-rule.  A kind not listed here is open.
+
+# ---- kernel: value layer
+Stmt:DeclRefExpr kernel
+Stmt:CallExpr kernel
+Stmt:CXXOperatorCallExpr kernel
+Stmt:BinaryOperator kernel
+Stmt:IntegerLiteral kernel
+Stmt:CXXBoolLiteralExpr kernel
+Stmt:ConditionalOperator kernel
+Stmt:ReturnStmt kernel
+Stmt:CompoundStmt kernel
+Stmt:MemberExpr kernel
+Stmt:InitListExpr kernel
+Stmt:CXXTemporaryObjectExpr kernel
+Decl:Function kernel
+Decl:ParmVar kernel
+Decl:CXXMethod kernel
+Decl:CXXRecord kernel
+Decl:Field kernel
+Type:Builtin kernel
+Type:Record kernel
+Type:FunctionProto kernel
+
+# ---- kernel: resolution layer
+Decl:FunctionTemplate kernel
+Decl:TemplateTypeParm kernel
+Type:TemplateTypeParm kernel
+Type:TemplateSpecialization kernel
+Decl:ClassTemplate kernel
+Decl:ClassTemplateSpecialization kernel
+Decl:ClassTemplatePartialSpecialization kernel
+Decl:VarTemplate kernel
+Decl:VarTemplateSpecialization kernel
+Decl:VarTemplatePartialSpecialization kernel
+Decl:Concept kernel
+Decl:RequiresExprBody kernel
+Stmt:RequiresExpr kernel
+Stmt:ConceptSpecializationExpr kernel
+Stmt:UnresolvedLookupExpr kernel
+Stmt:UnresolvedMemberExpr kernel
+Stmt:CXXDependentScopeMemberExpr kernel
+Stmt:DependentScopeDeclRefExpr kernel
+Stmt:CXXUnresolvedConstructExpr kernel
+Type:DependentName kernel
+Type:Decltype kernel
+
+# ---- derived forms
+Decl:TypeAlias derived
+Decl:TypeAliasTemplate derived
+Type:Typedef derived
+Type:Using derived
+Type:Auto derived
+Type:DeducedTemplateSpecialization derived
+Type:InjectedClassName derived
+Type:LValueReference derived
+Type:Paren derived
+Stmt:ParenExpr derived
+Decl:Var derived
+Stmt:DeclStmt derived
+Stmt:IfStmt derived
+Decl:Decomposition derived
+Decl:Binding derived
+Stmt:DesignatedInitExpr derived
+Stmt:ParenListExpr derived
+Type:PackExpansion derived
+Stmt:PackExpansionExpr derived
+Stmt:SizeOfPackExpr derived
+Stmt:CXXFoldExpr derived
+Stmt:CXXRewrittenBinaryOperator derived
+Stmt:UserDefinedLiteral derived
+Decl:CXXDeductionGuide derived
+
+# ---- scaffolding
+Decl:Export scaffolding
+Decl:Namespace scaffolding
+Decl:UsingDirective scaffolding
+Decl:Using scaffolding
+Decl:UnresolvedUsingValue scaffolding
+Decl:AccessSpec scaffolding
+Decl:StaticAssert scaffolding
+
+# ---- refused
+Stmt:CXXThrowExpr refused
+Stmt:WhileStmt refused
+Stmt:BreakStmt refused
+Stmt:ContinueStmt refused
+Stmt:CompoundAssignOperator refused
+Stmt:CStyleCastExpr refused
+Stmt:CXXNullPtrLiteralExpr refused
+Type:Pointer refused
+Type:MemberPointer refused
+Type:RValueReference refused
+Decl:CXXConversion refused
+
+# ---- open: to be decided
+Stmt:ForStmt open
+Stmt:CXXForRangeStmt open
+Stmt:LambdaExpr open
+Stmt:SwitchStmt open
+Stmt:CaseStmt open
+Stmt:DefaultStmt open
+Stmt:UnaryOperator open
+Stmt:CXXFunctionalCastExpr open
+Stmt:CXXStaticCastExpr open
+Stmt:CXXThisExpr open
+Stmt:CXXConstructExpr open
+Stmt:CXXMemberCallExpr open
+Stmt:ArraySubscriptExpr open
+Stmt:StringLiteral open
+Stmt:FloatingLiteral open
+Stmt:CharacterLiteral open
+Stmt:CXXStdInitializerListExpr open
+Stmt:CXXNoexceptExpr open
+Stmt:UnaryExprOrTypeTraitExpr open
+Decl:NonTypeTemplateParm open
+Decl:CXXConstructor open
+Decl:Friend open
+Decl:Enum open
+Decl:EnumConstant open
+Type:Enum open
+Type:ConstantArray open
+Type:IncompleteArray open
+Type:DependentSizedArray open
