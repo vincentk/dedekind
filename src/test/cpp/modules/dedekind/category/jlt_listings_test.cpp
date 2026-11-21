@@ -1985,6 +1985,9 @@ template <typename T, typename Op, typename E>
 constexpr T named_power(T x, size_t n) {
   return power<T, Op, E>(x, n);
 }
+// Listing 2's check beside the axiom of idempotence for conjunction.
+static_assert(std::logical_and<bool>{}(false, false) == false &&
+              std::logical_and<bool>{}(true, true) == true);
 static_assert(named_power<size_t, std::plus<size_t>, Zero>(2uz, 10uz) == 20 &&
               named_power<size_t, Plus2, Zero>(2uz, 10uz) == 2 &&
               Plus2{}(2uz, 2uz) != 2uz);

@@ -2,10 +2,11 @@
 \section{Jlt, by Three Examples}
 \label{sec:examples}
 
-This section makes the case in three listings, each on a function the reader already knows.
+This section makes the case in four listings, each on a function the reader already knows.
 The first shows a bug that a signature would have prevented.
 The second shows an optimisation that a declared law permits.
-The third shows a fact that the compiler works out from facts it was given.
+The third shows a dependency on a law that a signature must declare.
+The fourth shows a fact that the compiler works out from facts it was given.
 Each listing has its code on the left, the tests of that code on the right, and below them what the code becomes under the translation of Section~\ref{sec:translation}.
 
 \subsection{What a signature prevents}
@@ -226,7 +227,63 @@ template <typename T, typename Op,
   requires IsIdempotentMonoid<T, Op, E>
 constexpr T power(T x, size_t n) {
   return n == 0 ? E{}() : x; }
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+template <> constexpr bool
+idempotent<bool, logical_and<bool>> = true;
+static_assert(
+logical_and<bool>{}(false, false) == false &&
+power<bool, logical_and<bool>, True>(
+    false, 5uz) == false &&
+power<bool, logical_and<bool>, True>(
+    false, 0uz) == true);
+\end{cpp}
+\end{minipage}
+{\small\[
+\begin{array}{@{}l@{}}
+\mathit{power}_0 = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{concat2}\;T\;\mathit{Op}\;E\;q\;n\;(\lambda k.\,x) \\[3pt]
+\mathit{power} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \pi_1\,(\mathit{iter}\;(\mathit{bits}\;n)\;\mathit{step}\;(q.\mathit{um}.\mathit{unit},\ x,\ n)) \\
+\qquad \mathit{step}\,(p, b, e) = (\,\mathit{if}\ \mathit{odd}\;e\ \mathit{then}\ p \cdot b\ \mathit{else}\ p,\ \ b \cdot b,\ \ e / 2\,) \qquad a \cdot b = q.\mathit{um}.\mathit{magma}.\mathit{op}\;a\;b \\[3pt]
+\mathit{power}_{\mathit{idem}} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{IdempotentMonoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{if}\ n = 0\ \mathit{then}\ q.\mathit{m}.\mathit{um}.\mathit{unit}\ \mathit{else}\ x
+\end{array}
+\]}
+\caption{What a law permits: the power of a monoid.
+Left: the power by repeated squaring, and a case of it that a law selects.
+Right: tests. Below: the images.}
+\label{lst:power}
+\end{listing}
+% TODO(listings): code from the probe (namespace triple_probe).  The citation
+% for the Russian peasant method is from memory, to be verified.
 
+The power of $x$ is $x$ combined with itself $n$ times: the concatenation of a repetition, which the first line of the test says in \Cpp{}.
+Computed that way it takes $n$ steps.
+\cppinline{power} takes as many steps as $n$ has bits, by squaring: the method known for multiplication as that of the Russian peasant~\cite[\S 4.6.3]{knuth1997art2}.
+The two agree because the operation is associative, which the shape in the signature states.
+It is one function with a meaning at each monoid: a multiple under \cppinline{+}, a power under \cppinline{*}, a repetition at strings.
+The images below the panels differ in one place, the count of the iterator, $n$ in the definition and the bits of $n$ in \cppinline{power}.
+System~F does not know that they are equal.
+The field of the record that says the operation is associative is what licenses putting the second for the first.
+The power of the unit is the unit, whatever the count, as the last line of the test shows at strings.
+\cppinline{power} has no case for that.
+With the base fixed to the unit and the count left for later, the compiler removes the fold and the count by itself, since the unit squared is the unit and it finds that by computing it (Section~\ref{sec:binding}).
+
+The lines of Listing~\ref{lst:power} are in the kernel as written, the fold over a count being its one recursion over a value, apart from the range in the first line of the test (Section~\ref{sec:kernel:derived}).
+
+The lower panels show a law selecting a case.
+Where the operation is idempotent, $x \cdot x = x$, as conjunction is, a power is the value itself.
+A second case of \cppinline{power}, on the same signature with one more law, says so in one step, and the compiler selects it wherever that law is declared, as the more constrained of the two.
+Its axiom is checked at one point beside it, as the unit's is.
+
+\subsection{What a signature must declare}
+\label{sec:examples:declare}
+
+A law that selects a case can also be relied on without being named, and Listing~\ref{lst:declare} shows what that does.
+
+\begin{listing}[p]
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
 template <typename T, typename Op,
           typename E>
   requires IsMonoid<T, Op, E>
@@ -261,9 +318,7 @@ static_assert(
 guessed_power<size_t, plus<size_t>,
     Zero>(2uz, 10uz) == 20 &&
 guessed_power<size_t, Plus2,
-    Zero>(2uz, 10uz) == 2);
-
-static_assert(
+    Zero>(2uz, 10uz) == 2 &&
 named_power<size_t, plus<size_t>,
     Zero>(2uz, 10uz) == 20 &&
 named_power<size_t, Plus2,
@@ -273,47 +328,31 @@ Plus2{}(2uz, 2uz) != 2uz);
 \end{minipage}
 {\small\[
 \begin{array}{@{}l@{}}
-\mathit{power}_0 = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{concat2}\;T\;\mathit{Op}\;E\;q\;n\;(\lambda k.\,x) \\[3pt]
-\mathit{power} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \pi_1\,(\mathit{iter}\;(\mathit{bits}\;n)\;\mathit{step}\;(q.\mathit{um}.\mathit{unit},\ x,\ n)) \\
-\qquad \mathit{step}\,(p, b, e) = (\,\mathit{if}\ \mathit{odd}\;e\ \mathit{then}\ p \cdot b\ \mathit{else}\ p,\ \ b \cdot b,\ \ e / 2\,) \qquad a \cdot b = q.\mathit{um}.\mathit{magma}.\mathit{op}\;a\;b \\[3pt]
-\mathit{named\_power} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{HasPower}\;T.\,\lambda x.\,\lambda n.\ q.\mathit{power}\;x\;n \qquad \mathit{guessed\_power}\text{: none}
+\mathit{guessed\_power}\text{: no image} \\[3pt]
+\mathit{named\_power} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{HasPower}\;T.\,\lambda x.\,\lambda n.\ q.\mathit{power}\;x\;n
 \end{array}
 \]}
-\caption{What a law permits: the power of a monoid, and a caller that names too little.
-Left: the power; a case that a law selects; a caller that names too little; one that wears it as a badge.
-Right: tests; a false axiom, planted, and the two callers. Below: the images.}
-\label{lst:power}
+\caption{What a signature must declare: a caller that names too little, and one that wears its dependency as a badge.
+Left: the two callers. Right: a false axiom, planted, and their tests. Below: their images.}
+\label{lst:declare}
 \end{listing}
-% CONSTRUCTION SITE 2026-11-21: the lower half was crammed in to be looked at
-% (idempotent, the false axiom, named_power); nothing removed yet, no prose yet.
-% TODO(listings): code from the probe (namespace triple_probe).  The shapes
-% IsCommutativeMonoid (a monoid whose operation is declared commutative) and
-% the law commutative are omitted from the panels.  The free theorem as a
-% guarded function (fold_commutes, in the probe) is a candidate for an
-% appendix.  The citations for the
-% lemma and for the Russian peasant method are from memory, to be verified.
+% TODO(listings): code from the probe (namespace triple_probe).  The
+% refusal of guessed_power is a rule of Table tab:excluded and is to be
+% reported by the check of Section sec:check, which does not report it yet.
 
-The power of $x$ is $x$ combined with itself $n$ times: the concatenation of a repetition, which the first line of the test says in \Cpp{}.
-Computed that way it takes $n$ steps.
-\cppinline{power} takes as many steps as $n$ has bits, by squaring: the method known for multiplication as that of the Russian peasant~\cite[\S 4.6.3]{knuth1997art2}.
-The two agree because the operation is associative, which the shape in the signature states.
-It is one function with a meaning at each monoid: a multiple under \cppinline{+}, a power under \cppinline{*}, a repetition at strings.
-The images below the panels differ in one place, the count of the iterator, $n$ in the definition and the bits of $n$ in \cppinline{power}.
-System~F does not know that they are equal.
-The field of the record that says the operation is associative is what licenses putting the second for the first.
-The power of the unit is the unit, whatever the count, as the last line of the test shows at strings.
-\cppinline{power} has no case for that.
-With the base fixed to the unit and the count left for later, the compiler removes the fold and the count by itself, since the unit squared is the unit and it finds that by computing it (Section~\ref{sec:binding}).
-
-The lines of Listing~\ref{lst:power} are in the kernel as written, the fold over a count being its one recursion over a value, apart from the range in the first line of the test (Section~\ref{sec:kernel:derived}).
-
-The lower panels show what the rules are for.
-Where the operation is idempotent, as conjunction is, a power is the value itself, and a second case of \cppinline{power}, on the same signature with one more law, says so in one step.
-The compiler selects it wherever that law is declared.
-\cppinline{guessed_power} declares a monoid and calls \cppinline{power}, so which case it gets is decided where it is used, by a law its signature never named.
+\cppinline{guessed_power} asks for a monoid and calls \cppinline{power}.
+Which case of \cppinline{power} it gets is decided where it is used, at concrete types, by whether \cppinline{idempotent} holds there, a law its signature never named.
 \cppinline{Plus2} is addition under another name, which someone has declared idempotent.
 That axiom is false, the caller never chose to depend on it, and ten twos come out as two.
-\Cpp{} accepts this function, and the rules of this paper do not: a generic function names every law its result depends on (\RuleTwo{}).
+With a true axiom nothing visible would go wrong, since both cases would agree and only the cost would differ, which is why such a dependency is easy to miss.
+
+\Cpp{} accepts \cppinline{guessed_power}, and the rules of this paper do not: a generic function decides in its signature every choice of case that its body depends on (\RuleTwo{}, Table~\ref{tab:excluded}).
+It can decide by naming the law, by naming its absence, or, as \cppinline{named_power} does, by naming the call.
+\cppinline{HasPower} is a shape that requires the call to \cppinline{power}, so the signature of \cppinline{named_power} says that its result depends on how \cppinline{power} is supplied for the monoid.
+It accepts the same types and computes the same values, the two included, because the fault is the planted axiom, which a check beside it refutes in one line.
+What changed is that the dependency is in the signature, where a reader looks, and the axiom is on the list, which a tool prints.
+The images say the same: \cppinline{named_power} receives \cppinline{power} as a field of its record, filled by its caller where the types are known, and \cppinline{guessed_power} has no image, since its record does not mention \cppinline{idempotent}.
+A Haskell programmer will recognise the arrangement: the companion of \texttt{mconcat}, \texttt{stimes}, is a method of the class, and an instance may supply a faster one.
 
 \subsection{What the compiler infers}
 \label{sec:examples:inference}
@@ -471,7 +510,7 @@ An axiom, in turn, is only as good as its author: ``a sum of counts is zero exac
 \label{sec:examples:common}
 \label{sec:posture}
 
-None of the three listings needs anything but standard \Cpp{}.
+None of the four listings needs anything but standard \Cpp{}.
 What they need is that their signatures can be trusted, and nothing in \Cpp{} ensures that.
 What the functions that behave have in common can be said in three rules, which together are the \emph{Juliet Posture}.
 Table~\ref{tab:posture} sets them side by side.

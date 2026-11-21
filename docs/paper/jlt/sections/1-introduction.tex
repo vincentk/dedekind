@@ -32,7 +32,7 @@ Concepts, as proposed for \Cpp{0x}, checked a template's definition against its 
 As standardised in \Cpp{20} they check only its uses~\cite{stroustrup2020thriving}, so a template's body may use operations its constraints do not name.
 The designers named the problem at the outset, in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
 
-Section~\ref{sec:examples} makes the case on three functions the reader already knows: a bug that a signature would have prevented, an optimisation that a declared law permits, and a fact that the compiler works out from facts it was given.
+Section~\ref{sec:examples} makes the case on functions the reader already knows: a bug that a signature would have prevented, an optimisation that a declared law permits, a dependency that a signature must declare, and a fact that the compiler works out from facts it was given.
 
 \Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary.
 This paper documents a discipline of three rules that does, and that recovers some of what a functional language guarantees.
