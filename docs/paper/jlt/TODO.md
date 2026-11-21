@@ -167,6 +167,8 @@ Designed on paper with you first.
 
 Shortens: "a check that a tool performs", and with it "a template means what its signature says".
 
+State 2026-11-21: a first cut exists and is a statistic, not a gate: `tools/jlt-lint/admission.txt` classes the inventory's syntax kinds (kernel, derived, scaffolding, refused, open), `admission.py` sums them, Appendix G's Table 13. For the paper it is enough that the numbers can be collected; the user does not want to tune them now. Later, over a few PRs: decide the open kinds (six carry most: string literals, `size_t(x)` casts, `this`, enums, unary operators, value template parameters); improve the library under the posture; expect the rule set itself to change on the way. Adoption is file by file and rule by rule, so the same statistic on code not written under the posture measures the cost of adopting it: candidates Catch2 (already compiled in CI) and `std::ranges` (needs the tool to match in a header). Counted by file the picture is harsher than by construct (7 of 146 units with nothing refused or open on 8d0aac109); report both.
+
 ### 7. The theory, assembled
 
 - Value layer: state the system (prenex polymorphism over two atoms, with an iterator, parametric in its carriers) and cite its results. No proofs of ours.
