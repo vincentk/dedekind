@@ -183,28 +183,24 @@ Listing~\ref{lst:power} is that companion, the \emph{power} of a monoid.
 \begin{listing}[!p]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-template <typename T> struct Power {
-  T product, base; size_t exponent; };
 template <typename E>
-struct Halving {
+struct Squaring { size_t n;
   using T = carrier_t<E>;
-  constexpr Power<T> operator()(
-      Power<T> p, size_t) const
+  constexpr pair<T, T> operator()(
+      pair<T, T> s, size_t i) const
     requires IsMonoid<E> {
-    return {
-      p.exponent % 2 == 1
-          ? op_t<E>{}(p.product, p.base)
-          : p.product,
-      op_t<E>{}(p.base, p.base),
-      p.exponent / 2}; } };
+    return {((n >> i) & 1) == 1
+                ? op_t<E>{}(s.first, s.second)
+                : s.first,
+            op_t<E>{}(s.second, s.second)}; } };
 template <typename E, typename T>
   requires IsMonoid<E> &&
            same_as<T, carrier_t<E>>
 constexpr T power(T x, size_t n) {
   return ranges::fold_left(
       views::iota(0uz, size_t(bit_width(n))),
-      Power<T>{E{}(), x, n},
-      Halving<E>{}).product; }
+      pair<T, T>{E{}(), x},
+      Squaring<E>{n}).first; }
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
@@ -250,8 +246,8 @@ power<True>(false, 0uz) == true);
 {\small\[
 \begin{array}{@{}l@{}}
 \mathit{power}_0 = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{concat2}\;E\;T\;\mathit{Op}\;q\;n\;(\lambda k.\,x) \\[3pt]
-\mathit{power} = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \pi_1\,(\mathit{iter}\;(\mathit{bits}\;n)\;\mathit{step}\;(q.\mathit{um}.\mathit{unit},\ x,\ n)) \\
-\qquad \mathit{step}\,(p, b, e) = (\,\mathit{if}\ \mathit{odd}\;e\ \mathit{then}\ p \cdot b\ \mathit{else}\ p,\ \ b \cdot b,\ \ e / 2\,) \qquad a \cdot b = q.\mathit{um}.\mathit{magma}.\mathit{op}\;a\;b \\[3pt]
+\mathit{power} = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \pi_1\,(\mathit{iter}\;(\mathit{bits}\;n)\;\mathit{step}\;(0,\ (q.\mathit{um}.\mathit{unit},\ x))) \\
+\qquad \mathit{step}\,(i, (p, b)) = (\,i + 1,\ (\mathit{if}\ \mathit{bit}\;i\;n\ \mathit{then}\ p \cdot b\ \mathit{else}\ p,\ \ b \cdot b)\,) \qquad a \cdot b = q.\mathit{um}.\mathit{magma}.\mathit{op}\;a\;b \\[3pt]
 \mathit{power}_{\mathit{idem}} = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda q : \mathit{IdempotentMonoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{if}\ n = 0\ \mathit{then}\ q.\mathit{m}.\mathit{um}.\mathit{unit}\ \mathit{else}\ x
 \end{array}
 \]}
@@ -266,6 +262,7 @@ Right: tests. Below: the images.}
 The power of $x$ is $x$ combined with itself $n$ times: the concatenation of a repetition, which the first line of the test says in \Cpp{}.
 Computed that way it takes $n$ steps.
 \cppinline{power} takes as many steps as $n$ has bits, by squaring: the method known for multiplication as that of the Russian peasant~\cite[\S 4.6.3]{knuth1997art2}.
+Its state is a pair, the product so far and the current square; at step $i$ the square is multiplied in where bit $i$ of $n$ is set, and then squared.
 The two agree because the operation is associative, which the shape in the signature states.
 It is one function with a meaning at each monoid: a multiple under \cppinline{+}, a power under \cppinline{*}, a repetition at strings.
 The images below the panels differ in one place, the count of the iterator, $n$ in the definition and the bits of $n$ in \cppinline{power}.
