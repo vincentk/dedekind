@@ -95,7 +95,7 @@ The bottom edge says that the two paths compute one value.}
 \toprule
  & & contents & status \\
 \midrule
-\textbf{FJlt}: a subset of \Cpp{} whose generic definitions have System~F types & value layer: what is computed & atoms: truth values and counts, a finite prefix of the naturals; carriers: any type of values, known only by the operations a shape names; pairs and records; arrows; templates over types; the conditional; the iterator & its image is itself: prenex polymorphism over those atoms, with that iterator. A generic definition has a System~F type, and so its free theorem at every carrier \\[3pt]
+\textbf{FJlt}: a subset of \Cpp{} whose generic definitions have System~F types & value layer: what is computed & atoms: truth values, and counts modulo $2^{64}$; carriers: any type of values, known only by the operations a shape names; pairs and records; arrows; templates over types; the conditional; the iterator & its image is itself: prenex polymorphism over those atoms, with that iterator. A generic definition has a System~F type, and so its free theorem at every carrier \\[3pt]
  & resolution layer: what the compiler chooses & named type constructors; shapes, of laws and required calls, and their negation; traits with atomic results, laws among them; overloads & its image is records and separate definitions, and the selection is gone \\
 \midrule
 \textbf{Jlt}: what the programmer writes & derived forms: the domain of desugaring beyond FJlt & ranges, loops, folds over a range, the standard's shorthands & each has an FJlt program with the same observable values \\[3pt]

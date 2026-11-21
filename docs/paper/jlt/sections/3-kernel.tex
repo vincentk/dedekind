@@ -80,7 +80,7 @@ In an iteration the first term is the count, the second the start, and the third
 construct & written in \Cpp{} as & in the listings \\
 \midrule
 \multicolumn{3}{@{}l}{\textit{value layer}} \\
-atom & \texttt{bool}, \texttt{size\_t}: a truth value, a count & \texttt{true}, the count \texttt{n} \\
+atom & \texttt{bool}, \texttt{size\_t}: a truth value, a count modulo $2^{64}$ & \texttt{true}, the count \texttt{n} \\
 carrier & any type of values, known only by the calls a shape names & \texttt{string}, \texttt{Bare}, the \texttt{T} of a template \\
 pair, record & \texttt{std::pair}, or a \texttt{struct} of fields & \texttt{Power}, the state of a fold \\
 arrow & a \texttt{struct} with a \texttt{constexpr}, \texttt{const} call operator, or one of the standard's function objects & \texttt{True}, \texttt{Size}, \texttt{Halving}, \texttt{std::plus} \\
@@ -110,7 +110,7 @@ Its step is a function of the state and the index, and a state of several parts 
 
 The resolution layer is where \Cpp{} lives.
 A named type gives the compiler something to select by, a shape says what a generic definition may assume, and a trait and a function with several cases are each a selection by the form of a type.
-Every program of the kernel is a \Cpp{} program and means what \Cpp{} says it means.
+Every program of the kernel is a \Cpp{} program, and \Cpp{} says what it computes.
 The kernel leaves out what would break that reading, some of it by its grammar and some by rules that the grammar cannot state (Table~\ref{tab:excluded}).
 
 \begin{table}[tb]
@@ -171,7 +171,8 @@ an integer literal where a count is meant, a braced \texttt{return}, two fields 
 
 The list is open by design.
 A new derived form is one more rewrite into the kernel and touches nothing that is said about the kernel.
-This paper does not prove that a derived form preserves values.
+This paper does not prove that a derived form preserves values, and it claims them only as Listings~\ref{lst:motivation} to~\ref{lst:theorems} use them.
+The first row is a change of representation more than an abbreviation: a range is replaced by the function that reads it.
 Where the standard defines one construct as another, that is the evidence.
 Elsewhere the evidence is a test that compiles a listing beside its kernel form and asserts that the two agree, which is the standard of evidence of the work on JavaScript~\cite{guha2010essence}.
 
@@ -180,6 +181,8 @@ Elsewhere the evidence is a test that compiles a listing beside its kernel form 
 
 The meaning of a kernel program is its image in System~F~\cite{girard1972interpretation,reynolds1974towards} with truth values, counts and an iterator over a count.
 A function of several arguments is curried in the image and a record of several fields is a product, the textbook's treatment of both~\cite{pierce2002tapl}.
+That a closed program of an atom has the same value in \Cpp{} and in its image is this paper's hypothesis of adequacy.
+It is neither proved nor yet tested, and the results below are about the image.
 The translation is the one that gives Haskell's type classes their meaning, dictionary passing~\cite{wadler1989adhoc,jones1994qualified}, and Table~\ref{tab:image} states it.
 The images below the panels of the three listings were made by hand according to it.
 
@@ -210,16 +213,18 @@ A named type is its fields, a shape is a record that is passed, and where the so
 The selection is made while compiling, so no record exists when the program runs (Section~\ref{sec:binding}).
 
 The second is what System~F is, and is not, claimed for.
-A program is instantiated in full before it runs, and after instantiation nothing in it is polymorphic: it is simply typed, over atoms and carriers, with an iterator.
+A program is instantiated in full before it runs, and after instantiation nothing in it is polymorphic: it is simply typed, over atoms and carriers, with an iterator, a fragment of G\"odel's System~T~\cite{girard1989proofs}.
 So System~F is not needed to say what a kernel program computes.
-It is needed for what a generic definition means before anyone uses it: a template under a \texttt{requires} clause has a type of the form ``for all $T$, given a record for $T$, \ldots'', which is a System~F type.
+It is needed for what a generic definition means before anyone uses it: a template under a \texttt{requires} clause whose body keeps to it has a type of the form ``for all $T$, given a record for $T$, \ldots'', a System~F type of rank one.
 
 Three results about the target then hold of a kernel program, and none of them is proved here.
 \begin{enumerate}
 \item A well-typed program does not go wrong~\cite{pierce2002tapl}.
-\item Every program ends, since the target's only recursion is iteration over a count~\cite{girard1989proofs}.
+\item Every program ends, since the target's only recursion is iteration over a count~\cite{girard1989proofs}, provided the arrows supplied with carriers end, the compiler's selection ends, and no function calls itself.
 \item A generic definition commutes with every homomorphism of the shape it names, a function that respects every call the shape requires, by the theorem that its type alone gives~\cite{reynolds1983types,wadler1989theorems}.
 \end{enumerate}
+The first two need nothing of \RuleTwo{}: the compiler checks every body once it is instantiated.
+Only the third does, since it is about a definition before it is instantiated, and \Cpp{} does not check a body against its declaration.
 The third is the one a programmer can use, and \cppinline{free_theorem} in Listing~\ref{lst:theorems} is its statement for \cppinline{concat2}.
 It is also why the monoid of Listing~\ref{lst:motivation} asks for no equality on its carrier.
 A shape that required one would count it among its calls, and a function that respects equality is one-to-one, which the length of a string is not.
@@ -230,10 +235,11 @@ A law is a field that holds $\mathit{true}$ because someone wrote it, and what a
 % second also needs the compiler's own search to end, which is the condition
 % on well-founded declarations.
 
-What is specific to \Cpp{}, and is this paper's own observation, concerns the selection.
+What is specific to \Cpp{} concerns the selection.
 The image is a function of the program only if the compiler's choice of an entry or a case is.
 \Cpp{} makes it one at concrete types, by its rules for the most specialised candidate.
 That the choice be the same wherever it is asked, \Cpp{} requires and does not check.
 A generic body may select by a law that its declaration never named, as \cppinline{guessed_power} does in Listing~\ref{lst:power}, and an entry declared below a use is not seen by that use.
 So the kernel asks two things that \Cpp{} does not check: that a generic body selects only by what its declaration names (\RuleTwo{}), and that an entry stands above every use that could read it (Appendix~\ref{app:fjlt:order}).
-Under those two, a selection has one answer in a program, and the image is a function of it.
+Under those two a selection should have one answer in a program, so that the image is a function of it.
+That is the coherence of resolution~\cite{jones1994qualified}, stated here as a condition and to be proved for the kernel in the appendix.

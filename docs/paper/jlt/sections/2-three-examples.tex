@@ -141,9 +141,9 @@ The shape itself asks of the carrier only that its values can be copied, and in 
 \cppinline{concat1} is the loop one writes without a second thought: a sum that starts from a default value.
 Its signature asks only for a range.
 Its body needs more: an operation \cppinline{+} on the elements, and a default value that is that operation's unit.
-At \cppinline{size_t} and at strings that is what the caller meant.
-At the truth values under conjunction it is not.
-The compiler adds two truth values as integers, the function returns \cppinline{true} for a range of \cppinline{true} and \cppinline{false}, and nothing objects, at any warning level this paper's build enables.
+At \cppinline{size_t} and at strings that is the monoid a caller has in mind.
+At the truth values it is disjunction from \cppinline{false}, since the compiler adds two truth values as integers, so \cppinline{concat1} returns \cppinline{true} for a range of \cppinline{true} and \cppinline{false}.
+That is right for a caller who meant ``some'' and wrong for one who meant ``all'', and nothing in the signature says which.
 \cppinline{Bare} is the smallest monoid there is: a type with one operation and one unit, and an equality only so that the test can state a result.
 Asked whether \cppinline{concat1} accepts a range of it, \Cpp{} answers yes, as the last line of the test shows, because it reads the signature and not the body.
 The call itself does not compile.
@@ -451,7 +451,7 @@ rule & keeps out of Jlt & buys & costs & held by \\
 3 Descent & unbounded loops, general recursion & termination & a bound on every fold, stated before it starts & $\ast$~compile time\newline $\dagger$, $\ddagger$~loops \\
 \bottomrule
 \end{tabularx}
-\caption{The posture at a glance: what each rule keeps out of Jlt, what it buys, what it costs and who holds it: $\ast$~the compiler, $\dagger$~the linter, $\ddagger$~an agentic reviewer.}
+\caption{The posture at a glance: what each rule keeps out of Jlt, what it buys, what it costs and who holds it: $\ast$~the compiler, $\dagger$~the linter, $\ddagger$~review, by a person or an agent, which checks nothing.}
 \label{tab:posture}
 \end{table}
 

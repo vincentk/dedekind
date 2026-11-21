@@ -22,6 +22,7 @@ For the third it checks that there is no loop without a stated end and no functi
 
 It also prints a list.
 Every entry of a trait at one type whose value is \cppinline{true} is an axiom, and the tool lists them with their places, for a file or for a whole library.
+An entry at a form, a lemma, is taken on trust in the same way and is not yet on the list.
 The build compares that list with one that is kept under version control, so an axiom cannot be added without the change being seen.
 
 \paragraph{The linter is a check, not a proof.}
