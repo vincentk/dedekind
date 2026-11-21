@@ -10,7 +10,8 @@ The proposal was withdrawn in 2009~\cite{stroustrup2009remove}, and the concepts
 The standard's own words are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not~\cite[{\texttt{res.on.requirements}}]{cpp23standard}, and the Core Guidelines ask that a concept carry meaningful semantics~\cite[T.20]{cppcoreguidelines}.\footnote{The standard calls the first kind of requirement syntactic and the second semantic.
 That split is between what the compiler decides and what it leaves to the programmer, and it does not coincide with the split of programming-language theory between static and dynamic semantics~\cite{pierce2002tapl}, whose static semantics, type checking, falls on the syntactic side here.}
 Rust, released in 2015, has the definition check: a generic body is checked against its declared bounds, and the message for a missing one names it~\cite{klabnik2023rust}.
-This paper recovers part of the definition check and of the axioms inside \Cpp{23} as it ships: a fragment of three rules, and a linter, \texttt{jlt-lint}, that checks them and lists every law a program declares (Section~\ref{sec:check}).
+A \Cpp{} programmer is free to adopt a fragment of the language by policy, and this paper names one, of three rules.
+Inside it, \texttt{jlt-lint} recovers part of the definition check, by names rather than by types, refuses a body whose overload its signature leaves undecided, and lists every law a program declares, as the axioms of \Cpp{0x} would have stated them (Section~\ref{sec:check}).
 
 What the programmer is missing is old.
 Functional programs can be reasoned about by equations.
