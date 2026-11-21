@@ -90,6 +90,7 @@ Decl:Using scaffolding
 Decl:UnresolvedUsingValue scaffolding
 Decl:AccessSpec scaffolding
 Decl:StaticAssert scaffolding
+Stmt:NullStmt scaffolding
 
 # ---- refused
 Stmt:CXXThrowExpr refused
@@ -103,6 +104,12 @@ Type:Pointer refused
 Type:MemberPointer refused
 Type:RValueReference refused
 Decl:CXXConversion refused
+Stmt:CXXTryStmt refused
+Stmt:CXXCatchStmt refused
+Stmt:CXXNewExpr refused
+Stmt:CXXDeleteExpr refused
+Stmt:CXXReinterpretCastExpr refused
+Stmt:DoStmt refused
 
 # ---- open: to be decided
 Stmt:ForStmt open
@@ -133,3 +140,5 @@ Type:Enum open
 Type:ConstantArray open
 Type:IncompleteArray open
 Type:DependentSizedArray open
+Decl:CXXDestructor open
+Stmt:ImplicitValueInitExpr open

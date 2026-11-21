@@ -146,7 +146,7 @@ def run(tool, build, path, namespace, rules):
     if sorted(seen) != sorted(wanted):
         return None, None, f"jlt-lint: sections {seen}, wanted {wanted}\n" + out
     if not found["scope"]:
-        return None, None, f"namespace {namespace} does not occur in {path}"
+        return "absent", None, f"namespace {namespace} does not occur in {path}"
     # A match whose root has no location ("-") counts, but is not listed.
     counts, where = {}, {}
     for r in rules:
@@ -213,7 +213,13 @@ def block(f, ns, entries, counts, where, out):
     """One file's part of the report: its lines, failures and coverage rows."""
     text, failures = [], 0
     rows = {}
-    if counts is None:
+    # A namespace absent from a file is an error where a line gates it, and
+    # nothing to report where every line only reports (a control such as
+    # Catch2, whose glob takes in a file or two without its namespace).
+    if counts == "absent" and all(e == "report" for _, e in entries):
+        text.append(f"jlt-lint: {f}: namespace {ns} absent, nothing to report")
+        return {"key": [f, ns], "text": text, "failures": 0, "rows": rows}
+    if counts is None or counts == "absent":
         text.append(f"jlt-lint: {f}: does not parse, a rule did not run, or the scope is absent")
         text += out.splitlines()[:30]
         return {"key": [f, ns], "text": text, "failures": 1, "rows": rows}
