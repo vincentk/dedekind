@@ -1972,6 +1972,22 @@ constexpr T guessed_power(T x, size_t n) {
 }
 static_assert(guessed_power<size_t, std::plus<size_t>, Zero>(2uz, 10uz) == 20 &&
               guessed_power<size_t, Plus2, Zero>(2uz, 10uz) == 2);
+// The same caller wearing its dependency as a badge: a shape that requires the
+// call to power, so that the signature says the result depends on how power
+// is supplied for this monoid.  Same types, same values, the 2 included: the
+// fault is the planted axiom, which a check beside it refutes.
+template <typename T, typename Op, typename E>
+concept HasPower = IsMonoid<T, Op, E> && requires(T x, size_t n) {
+  { power<T, Op, E>(x, n) } -> std::same_as<T>;
+};
+template <typename T, typename Op, typename E>
+  requires HasPower<T, Op, E>
+constexpr T named_power(T x, size_t n) {
+  return power<T, Op, E>(x, n);
+}
+static_assert(named_power<size_t, std::plus<size_t>, Zero>(2uz, 10uz) == 20 &&
+              named_power<size_t, Plus2, Zero>(2uz, 10uz) == 2 &&
+              Plus2{}(2uz, 2uz) != 2uz);
 
 // As the paper's listings print them: the power is the concatenation of a
 // repetition, and the free theorem at one homomorphism, with the aliases the

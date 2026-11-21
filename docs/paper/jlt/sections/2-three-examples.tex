@@ -215,40 +215,77 @@ power<string, plus<string>, Empty>(
 
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
+template <typename T, typename Op>
+constexpr bool idempotent = false;
+template <typename T, typename Op,
+          typename E>
+concept IsIdempotentMonoid =
+  IsMonoid<T, Op, E> && idempotent<T, Op>;
 template <typename T, typename Op,
           typename E>
   requires IsIdempotentMonoid<T, Op, E>
 constexpr T power(T x, size_t n) {
   return n == 0 ? E{}() : x; }
+
 template <typename T, typename Op,
           typename E>
   requires IsMonoid<T, Op, E>
 constexpr T guessed_power(T x, size_t n) {
   return power<T, Op, E>(x, n); }
+
+template <typename T, typename Op,
+          typename E>
+concept HasPower = IsMonoid<T, Op, E> &&
+  requires(T x, size_t n) {
+    { power<T, Op, E>(x, n) } -> same_as<T>; };
+template <typename T, typename Op,
+          typename E>
+  requires HasPower<T, Op, E>
+constexpr T named_power(T x, size_t n) {
+  return power<T, Op, E>(x, n); }
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
+struct Plus2 { constexpr size_t
+  operator()(size_t a, size_t b) const {
+    return a + b; } };
+template <> constexpr bool
+associative<size_t, Plus2> = true;
+template <> constexpr bool
+unital<size_t, Plus2, Zero> = true;
+template <> constexpr bool
+idempotent<size_t, Plus2> = true;
+
 static_assert(
 guessed_power<size_t, plus<size_t>,
     Zero>(2uz, 10uz) == 20 &&
 guessed_power<size_t, Plus2,
     Zero>(2uz, 10uz) == 2);
+
+static_assert(
+named_power<size_t, plus<size_t>,
+    Zero>(2uz, 10uz) == 20 &&
+named_power<size_t, Plus2,
+    Zero>(2uz, 10uz) == 2 &&
+Plus2{}(2uz, 2uz) != 2uz);
 \end{cpp}
 \end{minipage}
 {\small\[
 \begin{array}{@{}l@{}}
 \mathit{power}_0 = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{concat2}\;T\;\mathit{Op}\;E\;q\;n\;(\lambda k.\,x) \\[3pt]
 \mathit{power} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \pi_1\,(\mathit{iter}\;(\mathit{bits}\;n)\;\mathit{step}\;(q.\mathit{um}.\mathit{unit},\ x,\ n)) \\
-\qquad \mathit{step}\,(p, b, e) = (\,\mathit{if}\ \mathit{odd}\;e\ \mathit{then}\ p \cdot b\ \mathit{else}\ p,\ \ b \cdot b,\ \ e / 2\,) \qquad a \cdot b = q.\mathit{um}.\mathit{magma}.\mathit{op}\;a\;b
+\qquad \mathit{step}\,(p, b, e) = (\,\mathit{if}\ \mathit{odd}\;e\ \mathit{then}\ p \cdot b\ \mathit{else}\ p,\ \ b \cdot b,\ \ e / 2\,) \qquad a \cdot b = q.\mathit{um}.\mathit{magma}.\mathit{op}\;a\;b \\[3pt]
+\mathit{named\_power} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{HasPower}\;T.\,\lambda x.\,\lambda n.\ q.\mathit{power}\;x\;n \qquad \mathit{guessed\_power}\text{: none}
 \end{array}
 \]}
 \caption{What a law permits: the power of a monoid, and a caller that names too little.
-Left: the power by repeated squaring; a case of it that a law selects, and a function that calls it.
-Right: their tests.
-Below: the power's definition and the power in System~F.}
+Left: the power; a case that a law selects; a caller that names too little; one that wears it as a badge.
+Right: tests; a false axiom, planted, and the two callers. Below: the images.}
 \label{lst:power}
 \end{listing}
+% CONSTRUCTION SITE 2026-11-21: the lower half was crammed in to be looked at
+% (idempotent, the false axiom, named_power); nothing removed yet, no prose yet.
 % TODO(listings): code from the probe (namespace triple_probe).  The shapes
 % IsCommutativeMonoid (a monoid whose operation is declared commutative) and
 % the law commutative are omitted from the panels.  The free theorem as a
