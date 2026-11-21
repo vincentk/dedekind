@@ -2326,6 +2326,44 @@ static_assert(power<Zero>(2uz, 10uz) == 20 && power<One>(2uz, 10uz) == 1024 &&
 static_assert(IsSemiring<Zero, One> && IsSemiring<False, True> &&
               !IsSemiring<One, Zero> && !IsSemiring<Zero, True> &&
               !IsSemiring<Empty, Empty>);
+
+// As Listing 1 prints it in the unit form: the truth values under conjunction
+// and the smallest monoid, each named by its unit, and the two functions.
+struct Bare {
+  constexpr bool operator==(const Bare&) const = default;
+};
+struct BareOp {
+  constexpr Bare operator()(Bare, Bare) const { return {}; }
+};
+struct BareUnit {
+  constexpr Bare operator()() const { return {}; }
+};
+template <>
+struct op_of<BareUnit> {
+  using type = BareOp;
+};
+template <>
+constexpr bool associative<Bare, BareOp> = true;
+template <>
+constexpr bool unital<Bare, BareOp, BareUnit> = true;
+static_assert(std::logical_and<bool>{}(True{}(), True{}()) == True{}());
+
+template <std::ranges::range R>
+constexpr std::ranges::range_value_t<R> concat1(R r) {
+  std::ranges::range_value_t<R> s{};
+  for (auto x : r) s = s + x;
+  return s;
+}
+template <typename R>
+concept Accepts1 = requires(R r) { concat1(r); };
+static_assert(concat1(std::array{1uz, 2uz, 3uz}) == 6 &&
+              concat1(std::array{"ab"s, "c"s}) == "abc"s &&
+              concat1(std::array{true, false}) == true &&
+              Accepts1<std::array<Bare, 2>>);
+static_assert(concat2<Zero>(std::array{1uz, 2uz, 3uz}) == 6 &&
+              concat2<Empty>(std::array{"ab"s, "c"s}) == "abc"s &&
+              concat2<True>(std::array{true, false}) == false &&
+              concat2<BareUnit>(std::array{Bare{}, Bare{}}) == Bare{});
 }  // namespace unit_probe
 
 TEST_CASE("Spelling probe: a law as a function and as a table",

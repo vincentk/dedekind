@@ -22,26 +22,32 @@ constexpr bool associative = false;
 template <typename T, typename Op,
           typename E>
 constexpr bool unital = false;
-template <typename T, typename Op>
-concept IsMagma = copyable<T> &&
-  requires(T a, T b) {
-    { Op{}(a, b) } -> same_as<T>; };
-template <typename T, typename Op,
-          typename E>
-concept IsUnitalMagma =
-  IsMagma<T, Op> && unital<T, Op, E> &&
-  requires { { E{}() } -> same_as<T>; };
-template <typename T, typename Op,
-          typename E>
-concept IsMonoid =
-  IsUnitalMagma<T, Op, E> &&
-  associative<T, Op>;
+template <typename E> struct op_of {};
+template <typename E>
+using carrier_t = decltype(E{}());
+template <typename E>
+using op_t = typename op_of<E>::type;
+template <typename E>
+concept IsMagma =
+  requires { E{}(); typename op_t<E>; } &&
+  copyable<carrier_t<E>> &&
+  requires(carrier_t<E> a, carrier_t<E> b) {
+    { op_t<E>{}(a, b) }
+      -> same_as<carrier_t<E>>; };
+template <typename E>
+concept IsUnitalMagma = IsMagma<E> &&
+  unital<carrier_t<E>, op_t<E>, E>;
+template <typename E>
+concept IsMonoid = IsUnitalMagma<E> &&
+  associative<carrier_t<E>, op_t<E>>;
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 struct True { constexpr bool
   operator()() const { return true; } };
+template <> struct op_of<True> {
+  using type = logical_and<bool>; };
 template <> constexpr bool
 associative<bool, logical_and<bool>> = true;
 template <> constexpr bool
@@ -55,6 +61,8 @@ struct BareOp { constexpr Bare
   operator()(Bare, Bare) const { return {}; } };
 struct BareUnit { constexpr Bare
   operator()() const { return {}; } };
+template <> struct op_of<BareUnit> {
+  using type = BareOp; };
 template <> constexpr bool
 associative<Bare, BareOp> = true;
 template <> constexpr bool
@@ -62,6 +70,7 @@ unital<Bare, BareOp, BareUnit> = true;
 \end{cpp}
 \end{minipage}
 
+\vspace{-7pt}
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <ranges::range R>
@@ -85,47 +94,49 @@ Accepts1<array<Bare, 2>>);
 \end{cpp}
 \end{minipage}
 
+\vspace{-7pt}
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-template <typename T, typename Op,
-          typename E, ranges::sized_range R>
-  requires IsMonoid<T, Op, E> && same_as<
-      ranges::range_value_t<R>, T>
-constexpr T concat2(R r) {
+template <typename E,
+          ranges::sized_range R>
+  requires IsMonoid<E> && same_as<
+      ranges::range_value_t<R>,
+      carrier_t<E>>
+constexpr carrier_t<E> concat2(R r) {
   return ranges::fold_left(
-      r, E{}(), Op{}); }
+      r, E{}(), op_t<E>{}); }
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 static_assert(
-concat2<size_t, plus<size_t>, Zero>(
-    array{1uz, 2uz, 3uz}) == 6 &&
-concat2<string, plus<string>, Empty>(
-    array{"ab"s, "c"s}) == "abc"s &&
-concat2<bool, logical_and<bool>, True>(
-    array{true, false}) == false &&
-concat2<Bare, BareOp, BareUnit>(
+concat2<Zero>(array{1uz, 2uz, 3uz}) == 6 &&
+concat2<Empty>(array{"ab"s, "c"s})
+    == "abc"s &&
+concat2<True>(array{true, false})
+    == false &&
+concat2<BareUnit>(
     array{Bare{}, Bare{}}) == Bare{});
 \end{cpp}
 \end{minipage}
 {\small\[
 \begin{array}{@{}l@{}}
-\mathit{Magma}\;T = \{\,\mathit{op} : T \to T \to T\,\} \\[2pt]
+\mathit{Magma}\;T = \{\,\mathit{op} : T \to T \to T\,\} \qquad
 \mathit{UnitalMagma}\;T = \{\,\mathit{magma} : \mathit{Magma}\;T,\ \mathit{unital} : \mathit{Bool},\ \mathit{unit} : T\,\} \\[2pt]
 \mathit{Monoid}\;T = \{\,\mathit{um} : \mathit{UnitalMagma}\;T,\ \mathit{assoc} : \mathit{Bool}\,\} \\[4pt]
-\mathit{concat2} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda n.\,\lambda f. \\
+\mathit{concat2} = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda q : \mathit{Monoid}\;T.\,\lambda n.\,\lambda f. \\
 \qquad\qquad\quad \pi_2\,(\mathit{iter}\;n\;(\lambda (k, s).\,(k + 1,\ q.\mathit{um}.\mathit{magma}.\mathit{op}\;s\;(f\;k)))\;(0,\ q.\mathit{um}.\mathit{unit}))
 \end{array}
 \]}
 \caption{What a signature prevents: a function that keeps less than it promises, and one held to its signature.
-Left: a monoid as a shape; \cppinline{concat1}; \cppinline{concat2}.
+Left: a monoid as a shape, named by its unit; \cppinline{concat1}; \cppinline{concat2}.
 Right: two monoids declared, the second the smallest there is; a test of each function.
 Below: the image of \cppinline{concat2} in System~F.}
 \label{lst:motivation}
 \end{listing}
-% TODO(listings): Listing lst:rule2 still shows the earlier form of IsMonoid,
-% with the unit as a value, and follows.  The image is the one of the smaller
+% TODO(listings): Listing 1 is in the unit form (2026-11-21); Listings 2 to 4
+% still take the triple and are to follow once the page has been looked at.
+% Code: namespace unit_probe.  Listing lst:rule2 no longer exists.  The image is the one of the smaller
 % kernel (a range as a count and an arrow, the iterator on a pair), which
 % Section 4 does not yet describe; it is a translation by hand.  The test that
 % expects the compiler to refuse a call of concat1 at Bare is to be written.
@@ -133,7 +144,9 @@ Below: the image of \cppinline{concat2} in System~F.}
 The left column is code as it would stand in a program, and the right column tests it.
 A monoid is built up as algebra builds it.
 A \emph{magma} is a carrier with an operation, a \emph{unital magma} has a unit as well, and a \emph{monoid} is a unital magma whose operation is associative.
-The carrier, the operation and the unit are each a type, so the shape reads as the triple it is.
+A monoid is named by its unit, a function object of no arguments: its carrier is the type the unit returns, and its operation is declared once, as the entry of \cppinline{op_of} for that unit.
+The triple of algebra is still there, written once where the monoid is declared and not at every use.
+The unit's value does not determine the monoid, since $0$ is the unit of both \cppinline{+} and \cppinline{max} on \cppinline{size_t}, so its type does: a name.
 That the operation is associative, and that the unit is its unit, are axioms: the programmer states them, as the top right panel does for the truth values under conjunction, and the compiler takes them at their word.
 The monoids of \cppinline{size_t} and of strings are declared the same way, with units \cppinline{Zero} and \cppinline{Empty}.
 The unit is also checked at one point, by an assertion beside its axiom, which can refute a false claim and cannot prove a true one.
@@ -154,6 +167,7 @@ That is an experiment a reader can make on a template of their own: hand it the 
 So it is right at all three monoids, and it is defined at \cppinline{Bare}.
 Its image below the panels says the same in another language: a shape becomes a record with one field for each thing the shape asks, a nested shape a nested record, and the function takes that record as an argument.
 A range is there its length $n$ and the arrow $f$ from an index to an element, and the body reaches a value of $T$ only through $q$.
+The carrier $T$ and the operation $\mathit{Op}$ of the unit $E$ are one type parameter each, supplied at every use from the unit's entry (Section~\ref{sec:translation}).
 \cppinline{concat1} has no image: no record gives it a \cppinline{+}, and a checker that holds a body to its signature refuses it and says so, that no operation \cppinline{+} is declared for the range's elements.
 \Cpp{} accepts both functions.
 
