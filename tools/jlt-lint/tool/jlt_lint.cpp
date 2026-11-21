@@ -1560,8 +1560,10 @@ void guaranteed(const clang::Expr* e, bool positive, std::vector<Atom>& out,
       atom.args.push_back(renderArg(a.getAsType(), subst));
     } else if (a.getKind() == clang::TemplateArgument::Integral) {
       // A value argument, as IsMonoid<Op, 1u> has: the atom is the concept at
-      // that value, so IsMonoid<Op, 0u> and IsMonoid<Op, 1u> are two facts.
-      atom.args.push_back(llvm::toString(a.getAsIntegral(), 10));
+      // that value and its type, so IsMonoid<Op, 0u> and IsMonoid<Op, 1u> are
+      // two facts, and so are C<T, 1> and C<T, 1u> under an auto parameter.
+      atom.args.push_back(a.getIntegralType().getCanonicalType().getAsString() +
+                          " " + llvm::toString(a.getAsIntegral(), 10));
     } else {
       return;  // a value that depends on a parameter, a template: not read
     }

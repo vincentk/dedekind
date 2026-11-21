@@ -13,7 +13,7 @@ rule3-bounded-fold           tools/jlt-lint/fixtures/rule3-bounded-fold.cpp  jlt
 rule2-definition             tools/jlt-lint/fixtures/rule2-definition.cpp  jlt_listing  17
 rule2-constrained-templates  tools/jlt-lint/fixtures/rule2-constraints.cpp  jlt_listing  2
 rule2-no-inline-requires     tools/jlt-lint/fixtures/rule2-inline-requires.cpp  jlt_listing  4
-rule2-decided-resolution     tools/jlt-lint/fixtures/rule2-decided-resolution.cpp  jlt_listing  8
+rule2-decided-resolution     tools/jlt-lint/fixtures/rule2-decided-resolution.cpp  jlt_listing  9
 rule2-context-order          tools/jlt-lint/fixtures/rule2-context-order.cpp  jlt_listing  2
 rule2-converted-result       tools/jlt-lint/fixtures/rule2-converted-result.cpp  jlt_listing  15
 rule1-no-inheritance         tools/jlt-lint/fixtures/rule1-inheritance.cpp  jlt_listing  3

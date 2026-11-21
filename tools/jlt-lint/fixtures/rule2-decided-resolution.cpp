@@ -257,6 +257,28 @@ constexpr carrier_t<E> declared(carrier_t<E> x, int n) {
   return pw<E>(x, n);  // fine: IdemMon required
 }
 
+// A value argument counts with its type: under an auto parameter, Tagged<T,
+// 1> and Tagged<T, 1u> are two facts, so refuting the first leaves the second
+// undecided.
+template <typename T, auto V>
+concept Tagged = sizeof(T) + V > 0;
+template <typename T>
+  requires Q<T>
+constexpr int h(T) {
+  return 0;
+}
+template <typename T>
+  requires Q<T> && Tagged<T, 1u>
+constexpr int h(T) {
+  return 1;
+}
+template <typename T>
+  requires Q<T> && (!Tagged<T, 1>)
+constexpr int by_int(T x) {
+  return h(x);  // finding 9: h resolves by Tagged<T, 1u>, which !Tagged<T, 1>
+                // does not decide
+}
+
 }  // namespace jlt_listing
 
 template <typename T>
