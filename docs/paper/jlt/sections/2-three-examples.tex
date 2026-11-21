@@ -1,5 +1,5 @@
 % !TEX root = ../jlt.tex
-\section{Jlt, by Three Examples}
+\section{Jlt, by Four Examples}
 \label{sec:examples}
 
 This section makes the case in four listings, each on a function the reader already knows.
@@ -512,7 +512,7 @@ A call checks one case and proves nothing, and the theorem holds whether or not 
 The lines of Listing~\ref{lst:theorems} are in the kernel as written, apart from the ranges (Section~\ref{sec:kernel:derived}).
 An axiom, in turn, is only as good as its author: ``a sum of counts is zero exactly when every count is'' looks as safe as the three above, and is false of \cppinline{size_t}, where a sum can wrap around to zero.
 
-\subsection{What the three have in common}
+\subsection{What the four have in common}
 \label{sec:examples:common}
 \label{sec:posture}
 
@@ -540,7 +540,7 @@ rule & keeps out of Jlt & buys & costs & held by \\
 \paragraph{Rule 1, Substitution.}
 \phantomsection\label{def:rule1}
 A value is data that can be copied, and a function depends on its arguments alone and can be evaluated while compiling.
-Every function in the three listings is \cppinline{constexpr} and takes and returns values, which is why each can be tested by a \cppinline{static_assert}.
+Every function in the four listings is \cppinline{constexpr} and takes and returns values, which is why each can be tested by a \cppinline{static_assert}.
 The rule keeps out state that outlives a call, pointers, exceptions and input and output.
 What it buys is that a value may be replaced by its equal anywhere, and that a program means the same while compiling and while running.
 

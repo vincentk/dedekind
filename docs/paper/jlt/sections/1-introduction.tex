@@ -11,7 +11,7 @@ The standard's own words are that a type \emph{satisfies} a concept, which the c
 That split is between what the compiler decides and what it leaves to the programmer, and it does not coincide with the split of programming-language theory between static and dynamic semantics~\cite{pierce2002tapl}, whose static semantics, type checking, falls on the syntactic side here.}
 Rust, released in 2015, has the definition check: a generic body is checked against its declared bounds, and the message for a missing one names it~\cite{klabnik2023rust}.
 A \Cpp{} programmer is free to adopt a fragment of the language by policy, and this paper names one, of three rules.
-Inside it, \texttt{jlt-lint} recovers part of the definition check, by names rather than by types, refuses a body whose overload its signature leaves undecided, and lists every law a program declares, as the axioms of \Cpp{0x} would have stated them; on the two examples of this paper that break Rule~2 it does not yet refuse them (Section~\ref{sec:check}).
+Inside it, \texttt{jlt-lint} recovers part of the definition check, by names rather than by types, refuses a body whose overload its signature leaves undecided, and lists every axiom a program declares, a property where \Cpp{0x} stated an equation; on the two examples of this paper that break Rule~2 it does not yet refuse them (Section~\ref{sec:check}).
 
 What the programmer is missing is old.
 Functional programs can be reasoned about by equations.
@@ -67,7 +67,6 @@ Nothing is added to the host.
 A Jlt program is an ordinary \Cpp{23} program, type-checked and compiled by an unmodified toolchain, Clang~23 in this paper (Section~\ref{sec:limits}).
 So the paper designs no language, and its claim is one of existence: \Cpp{23} already contains an embedding of a fragment of System~F, and the listings exhibit it.
 The fragment includes prenex polymorphism with type classes, which Wadler and Blott's translation covers~\cite{wadler1989adhoc}.
-It goes one step further: a function object whose call operator is generic is a polymorphic value, and it can be passed as an argument (\textsc{T-App}, Appendix~\ref{app:fjlt:typing}).
 The embedding follows the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}: an embedded term is generic code over a \cppinline{concept}, and an interpretation of it is a model of that \cppinline{concept}.
 Jlt is assembled from canonical pieces: System~F, Wadler and Blott's translation, and the concepts and folds of the standard.
 That does not make the assembly canonical, and whether another fragment would serve as well is left open.
@@ -120,7 +119,7 @@ The paper contributes a route, not a piece of software: each step from \Cpp{23} 
 \item Featherweight Jlt, the kernel: a subset of \Cpp{23} as written, in a value layer and a resolution layer, whose image in System~F is dictionary passing, and the derived forms that reduce Jlt to it (Section~\ref{sec:kernel}).
 \item An observation about \Cpp{20} concepts: with overlapping constrained overloads, a generic function's behaviour can depend on a constraint it never declared, by default and silently (Listing~\ref{lst:declare}).
 GHC's rule for overlapping instances refuses such a call.
-Jlt adopts a refinement of that rule, and the repository's linter reports a call that breaks it and lists the laws a program takes on trust (Section~\ref{sec:check}).
+Jlt adopts a refinement of that rule, which the repository's linter is to check, and the linter lists the axioms a program takes on trust (Section~\ref{sec:check}).
 \item The exhibits: every \Cpp{} listing in this paper compiles and runs under a stock compiler, at compile time and at run time, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and Section~\ref{sec:binding} shows what the compiler emits for them.
 Two functions, \cppinline{guessed_concat} and \cppinline{guessed_power}, break Rule~2 on purpose; the linter does not yet refuse them by Rule~2 (Section~\ref{sec:check}).
 \end{enumerate}
