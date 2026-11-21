@@ -376,7 +376,9 @@ constexpr ConstantMorphism<Dom<P>, C> absorbed(
 template <typename B, typename C, IsArrow Y>
 constexpr ConstantMorphism<B, Cod<Y>> applied(const ConstantMorphism<B, C>& c,
                                               const Y& y) {
-  return {y(c.value)};
+  // A copy, as composition passes its intermediate value: a prvalue, so an
+  // arrow overloaded on value category answers here as it does in Compose.
+  return {y(C(c.value))};
 }
 /** @brief @f$\pi_k \circ \langle f_1, f_2 \rangle = f_k@f$: the leg.
  *  @param p the pairing.  @return its leg @c k. */

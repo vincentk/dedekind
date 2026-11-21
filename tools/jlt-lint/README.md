@@ -153,10 +153,13 @@ rule here yet, and a reader holds them:
 - **Well-founded declarations.**  Nothing checks that the instantiations a
   program can ask for are well founded.  The linter checks one of the two
   syntactic conditions that approximate it; they do not imply it.
-- **The printed listings.**  The paper's self-contained listings
-  (`listing1_self_contained`, `listings_2_to_4`, `listing4_self_contained`,
-  `appendix_a_reading` in `jlt_listings_test.cpp`) are under the `axioms`
-  report only, and under none of the gates.
+- **The printed listings.**  The paper's four listings as printed
+  (`paper_listings` in `jlt_listings_test.cpp`) are under every rule, reported
+  and not gated: Rule 2 does not yet refuse `guessed_concat` or
+  `guessed_power`, and the gates wait for it.  The older probes in the same
+  file (`listing1_self_contained`, `listings_2_to_4`,
+  `listing4_self_contained`, `appendix_a_reading`) are under the `axioms`
+  report only.
 
 ## Plan
 

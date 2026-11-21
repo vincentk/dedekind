@@ -10,8 +10,10 @@
  * Each equation has one of three outcomes: PROVED (the laws decide it),
  * UNKNOWN (an == exists and the laws do not reach it) or NO-EQ (the two terms
  * have no == at all).  The TEST_CASE prints one line per equation, prefixed
- * "PROBE |", and checks the equation pointwise, so that a line the laws do
- * not decide is still known to be true of the functions.  The printed table
+ * "PROBE |", and checks the equation pointwise at sample values, so that a
+ * line the laws do not decide is known to agree on those samples, not on the
+ * whole carrier (at a boundary such as In after Prior at max it need not).
+ * The printed table
  * is the inventory the Jlt paper's listings are to be built from: the
  * expectations asserted below are only those already known to hold.
  */

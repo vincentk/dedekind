@@ -38,7 +38,7 @@ SOURCES = "src/main/modules/dedekind"
 COMMENT = re.compile(r"//[^\n]*|/\*.*?\*/", re.S)
 ENTRY = re.compile(
     r"template\s*<\s*>\s*(?:inline\s+)?constexpr\s+bool\s+"
-    r"(?P<what>[A-Za-z_]\w*\s*<[^;=]*>)\s*=\s*\(?\s*true\s*\)?\s*;"
+    r"(?P<what>[A-Za-z_]\w*\s*<[^;=]*>)\s*=\s*(?:\(\s*)*true(?:\s*\))*\s*;"
 )
 STRUCT = re.compile(
     r"template\s*<\s*>\s*struct\s+"
