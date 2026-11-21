@@ -14,7 +14,7 @@ Each listing has its code on the left, the tests of that code on the right, and 
 
 Listing~\ref{lst:motivation} is about a function every \Cpp{} programmer has written.
 
-\begin{listing}[p]
+\begin{listing}[!p]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <typename T, typename Op>
@@ -167,7 +167,7 @@ The function of Listing~\ref{lst:motivation} is not new.
 A Haskell programmer knows it as \texttt{mconcat}, and knows its companion \texttt{stimes}, which combines $n$ copies of one value~\cite{ghc2025semigroup}.
 Listing~\ref{lst:power} is that companion, the \emph{power} of a monoid.
 
-\begin{listing}[p]
+\begin{listing}[!p]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <typename T> struct Power {
@@ -281,7 +281,7 @@ Its axiom is checked at one point beside it, as the unit's is.
 
 A law that selects a case can also be relied on without being named, and Listing~\ref{lst:declare} shows what that does.
 
-\begin{listing}[p]
+\begin{listing}[!p]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <typename T, typename Op,
@@ -360,7 +360,7 @@ A Haskell programmer will recognise the arrangement: the companion of \texttt{mc
 Both listings rest on laws that someone declared.
 Listing~\ref{lst:theorems} shows the compiler deriving one, and what a derived law is good for.
 
-\begin{listing}[p]
+\begin{listing}[!p]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <typename T, typename Op,
