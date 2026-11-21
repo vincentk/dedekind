@@ -1,0 +1,32 @@
+% !TEX root = ../jlt.tex
+\section{The linter on the library}
+\label{app:lint}
+
+The linter of Section~\ref{sec:check} runs on every build of the library behind the listings, in continuous integration.
+Table~\ref{tab:lint} counts what it finds there.
+A check is a \emph{gate} on a file when the build fails on any finding, so a gated file has none.
+It is \emph{reported} on a file that is not yet clean, or not yet promoted: its findings are counted and printed, and the build does not fail.
+The checks are those of the scope file in the repository, each with a fixture that proves it fires, so a zero is not vacuous.
+The library's 148 modules, of 74\,045 lines, are all in scope; the twelve left out only re-export the others.
+The table is generated from a report of the build by a script in the repository, \texttt{tools/jlt-lint/table.py}.
+
+\makeatletter\let\lintinput\@@input\makeatother
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}cl rrrr@{}}
+\toprule
+rule & check & gated & reported & with findings & findings \\
+\midrule
+\lintinput generated/lint-table.tex 
+\bottomrule
+\end{tabular}
+\caption{The checks of \texttt{jlt-lint} on the library's 148 modules: the files on which each is a gate, the files on which it is reported, how many of those have findings, and how many findings there are.
+Counted on commit \texttt{8d0aac109}.}
+\label{tab:lint}
+\end{table}
+
+Three rows carry most of what is left.
+\texttt{constrained-templates}, that every template is constrained, is reported everywhere, with 547 findings in 60 files.
+\texttt{definition}, the definition check by names, is a gate on 78 files and has 120 findings in 11 more.
+\texttt{no-loops} has 91 findings in 19 files, loops that are still to become folds.
