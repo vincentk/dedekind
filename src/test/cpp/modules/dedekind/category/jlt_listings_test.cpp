@@ -2475,28 +2475,28 @@ template <>
 constexpr bool unital<Any> = true;
 
 template <std::ranges::range R>
-constexpr std::ranges::range_value_t<R> concat1(R r) {
+constexpr std::ranges::range_value_t<R> guessed_concat(R r) {
   std::ranges::range_value_t<R> s{};
   for (auto x : r) s = s + x;
   return s;
 }
 template <typename R>
-concept Accepts1 = requires(R r) { concat1(r); };
-static_assert(concat1(std::array{1uz, 2uz, 3uz}) == 6 &&
-              concat1(std::array{"ab"s, "c"s}) == "abc"s &&
-              concat1(std::array{true, false}) == true &&
-              Accepts1<std::array<Bare, 2>>);
+concept Accepts = requires(R r) { guessed_concat(r); };
+static_assert(guessed_concat(std::array{1uz, 2uz, 3uz}) == 6 &&
+              guessed_concat(std::array{"ab"s, "c"s}) == "abc"s &&
+              guessed_concat(std::array{true, false}) == true &&
+              Accepts<std::array<Bare, 2>>);
 
 template <typename E, std::ranges::sized_range R>
   requires IsMonoid<E> &&
            std::same_as<std::ranges::range_value_t<R>, carrier_t<E>>
-constexpr carrier_t<E> concat2(R r) {
+constexpr carrier_t<E> concat(R r) {
   return std::ranges::fold_left(r, E{}(), op_t<E>{});
 }
-static_assert(concat2<Sum>(std::array{1uz, 2uz, 3uz}) == 6 &&
-              concat2<Concat>(std::array{"ab"s, "c"s}) == "abc"s &&
-              concat2<All>(std::array{true, false}) == false &&
-              concat2<BareMonoid>(std::array{Bare{}, Bare{}}) == Bare{});
+static_assert(concat<Sum>(std::array{1uz, 2uz, 3uz}) == 6 &&
+              concat<Concat>(std::array{"ab"s, "c"s}) == "abc"s &&
+              concat<All>(std::array{true, false}) == false &&
+              concat<BareMonoid>(std::array{Bare{}, Bare{}}) == Bare{});
 
 // ---- Listing 2: what a law permits
 template <typename E>
@@ -2519,7 +2519,7 @@ constexpr T power(T x, size_t n) {
       .first;
 }
 static_assert(
-    power<Sum>(2uz, 10uz) == concat2<Sum>(std::views::repeat(2uz, 10uz)) &&
+    power<Sum>(2uz, 10uz) == concat<Sum>(std::views::repeat(2uz, 10uz)) &&
     power<Sum>(2uz, 10uz) == 20 && power<Product>(2uz, 10uz) == 1024 &&
     power<Concat>("ab"s, 3uz) == "ababab"s &&
     power<Product>(3uz, 1'000'000'000uz) == 9'215'150'800'219'179'009uz &&
@@ -2653,7 +2653,7 @@ template <typename A, typename B, typename H, std::ranges::sized_range R>
   requires IsHomomorphism<H, A, B> && std::equality_comparable<carrier_t<B>> &&
            std::same_as<std::ranges::range_value_t<R>, carrier_t<A>>
 constexpr bool free_theorem(H h, R r) {
-  return h(concat2<A>(r)) == concat2<B>(std::views::transform(r, h));
+  return h(concat<A>(r)) == concat<B>(std::views::transform(r, h));
 }
 static_assert(free_theorem<Concat, Sum>(Size{}, std::array{"ab"s, ""s, "c"s}) &&
               free_theorem<Concat, All>(IsEmpty{}, std::array{"ab"s, ""s}) &&

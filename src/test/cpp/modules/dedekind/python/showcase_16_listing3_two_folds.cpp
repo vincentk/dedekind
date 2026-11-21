@@ -347,7 +347,7 @@ constexpr bool unital<Any> = true;
 template <typename E, std::ranges::sized_range R>
   requires IsMonoid<E> &&
            std::same_as<std::ranges::range_value_t<R>, carrier_t<E>>
-constexpr carrier_t<E> concat2(R r) {
+constexpr carrier_t<E> concat(R r) {
   return std::ranges::fold_left(r, E{}(), op_t<E>{});
 }
 
@@ -456,18 +456,18 @@ constexpr bool homomorphism<IsZero, All, All> = false;
 static_assert(IsMonoid<Sum> && IsMonoid<Product> && IsMonoid<All> &&
               IsMonoid<Any> && IsIdempotentMonoid<All> && HasPower<Sum> &&
               homomorphism<Not, All, Any> && !homomorphism<IsZero, All, All> &&
-              concat2<Sum>(std::array{1uz, 2uz, 3uz}) == 6 &&
+              concat<Sum>(std::array{1uz, 2uz, 3uz}) == 6 &&
               power<Product>(2uz, 10uz) == 1024 &&
               power<All>(false, 5uz) == false);
 }  // namespace now_listings
 
 /** @return Listing 1's concat2 at the sum, everything known while compiling. */
 extern "C" __attribute__((noinline)) std::size_t now_concat2_known() {
-  return now_listings::concat2<now_listings::Sum>(std::array{1uz, 2uz, 3uz});
+  return now_listings::concat<now_listings::Sum>(std::array{1uz, 2uz, 3uz});
 }
 /** @return the sum of the counts below n, the count known only at run time. */
 extern "C" __attribute__((noinline)) std::size_t now_concat2(std::size_t n) {
-  return now_listings::concat2<now_listings::Sum>(std::views::iota(0uz, n));
+  return now_listings::concat<now_listings::Sum>(std::views::iota(0uz, n));
 }
 /** @return Listing 2's power at the product, by repeated squaring. */
 extern "C" __attribute__((noinline)) std::size_t now_power(std::size_t x,
@@ -477,7 +477,7 @@ extern "C" __attribute__((noinline)) std::size_t now_power(std::size_t x,
 /** @return the same value by its definition, n copies folded one by one. */
 extern "C" __attribute__((noinline)) std::size_t now_power_plain(
     std::size_t x, std::size_t n) {
-  return now_listings::concat2<now_listings::Product>(std::views::repeat(x, n));
+  return now_listings::concat<now_listings::Product>(std::views::repeat(x, n));
 }
 /** @return the power of the unit of the sum, the count left for later. */
 extern "C" __attribute__((noinline)) std::size_t now_power_of_unit(
