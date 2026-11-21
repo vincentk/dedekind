@@ -5,6 +5,7 @@
 # zero elsewhere is not vacuous.
 
 # Negative controls.
+axioms                       tools/jlt-lint/fixtures/axioms.cpp  jlt_listing  3
 rule3-no-loops               tools/jlt-lint/fixtures/rule3-loops.cpp  jlt_listing  4
 rule3-no-self-recursion      tools/jlt-lint/fixtures/rule3-recursion.cpp  jlt_listing  14
 rule3-no-mutual-recursion    tools/jlt-lint/fixtures/rule3-mutual.cpp  jlt_listing  5
@@ -12,7 +13,7 @@ rule3-bounded-fold           tools/jlt-lint/fixtures/rule3-bounded-fold.cpp  jlt
 rule2-definition             tools/jlt-lint/fixtures/rule2-definition.cpp  jlt_listing  16
 rule2-constrained-templates  tools/jlt-lint/fixtures/rule2-constraints.cpp  jlt_listing  2
 rule2-no-inline-requires     tools/jlt-lint/fixtures/rule2-inline-requires.cpp  jlt_listing  4
-rule2-decided-resolution     tools/jlt-lint/fixtures/rule2-decided-resolution.cpp  jlt_listing  6
+rule2-decided-resolution     tools/jlt-lint/fixtures/rule2-decided-resolution.cpp  jlt_listing  7
 rule2-context-order          tools/jlt-lint/fixtures/rule2-context-order.cpp  jlt_listing  2
 rule2-converted-result       tools/jlt-lint/fixtures/rule2-converted-result.cpp  jlt_listing  15
 rule1-no-inheritance         tools/jlt-lint/fixtures/rule1-inheritance.cpp  jlt_listing  3
@@ -58,6 +59,36 @@ rule1-no-reference-returns    src/test/cpp/modules/dedekind/category/jlt_listing
 rule1-const-member-functions  src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule1-no-mutable-globals      src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule1-no-escaping-reference-captures src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
+
+# The four listings as printed in the paper (Section 2), every rule, reported
+# until CI has counted them; then each count becomes a gate.  guessed_concat
+# and guessed_power are expected findings, and idempotent<Sum2> an axiom.
+axioms                               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-boxed-identity                 src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-boxed-mutable-pointee          src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-const-call-operator            src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-const-member-functions         src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-constexpr                      src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-forwarding-reference-params    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-lvalue-reference-params        src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-no-escaping-reference-captures src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-no-inheritance                 src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-no-mutable-globals             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-no-reference-returns           src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-no-static-locals               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-no-throw                       src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-no-volatile                    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-rvalue-reference-params        src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule2-constrained-templates          src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule2-context-order                  src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule2-converted-result               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule2-decided-resolution             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule2-definition                     src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule2-no-inline-requires             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule3-bounded-fold                   src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule3-no-loops                       src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule3-no-mutual-recursion            src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule3-no-self-recursion              src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
 
 # The paper's Listing 5, the tensor exhibit's panel (namespace listing5 of the
 # tensor test): gated at 0 under every rule the other listings are gated on,
@@ -160,7 +191,7 @@ rule1-no-escaping-reference-captures src/main/modules/dedekind/category/*.cppm  
 # against the kernel's grammar.  Not a rule, so reported, never gated.  The
 # primary module interfaces sets.cppm and relational.cppm hold no namespace
 # and are globbed around.
-inventory                    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
+inventory                    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
 inventory                    src/main/modules/dedekind/category/*.cppm  category  report
 inventory                    src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
 inventory                    src/main/modules/dedekind/sets/si*.cppm  sets  report
@@ -871,3 +902,43 @@ rule1-const-member-functions         src/main/modules/dedekind/optimization/[!o]
 rule1-no-mutable-globals             src/main/modules/dedekind/optimization/[!o]*.cppm  optimization  0
 rule1-no-escaping-reference-captures src/main/modules/dedekind/optimization/[!o]*.cppm  optimization  0
 inventory                            src/main/modules/dedekind/optimization/[!o]*.cppm  optimization  report
+
+# The axioms of the Jlt paper's self-contained listings, listed (never gated):
+# Listing 1's, those of Listings 2 to 4, and Appendix A's worked program.
+axioms                       src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  listing1_self_contained  report
+axioms                       src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  listings_2_to_4  report
+axioms                       src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  appendix_a_reading  report
+# The same list for the library's category layer: its declared laws, wherever
+# one is an entry of a variable template.
+axioms                       src/main/modules/dedekind/category/*.cppm  category  report
+
+# A control, not written under the posture: Catch2, which the build fetches
+# and compiles for the tests.  Every rule reported, never gated; what it
+# measures is what adopting the posture would cost an ordinary library.
+inventory                            build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+axioms                               build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-boxed-identity                 build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-boxed-mutable-pointee          build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-const-call-operator            build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-const-member-functions         build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-constexpr                      build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-forwarding-reference-params    build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-lvalue-reference-params        build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-no-escaping-reference-captures build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-no-inheritance                 build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-no-mutable-globals             build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-no-reference-returns           build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-no-static-locals               build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-no-throw                       build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-no-volatile                    build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-rvalue-reference-params        build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule2-constrained-templates          build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule2-context-order                  build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule2-converted-result               build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule2-decided-resolution             build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule2-definition                     build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule2-no-inline-requires             build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule3-bounded-fold                   build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule3-no-loops                       build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule3-no-mutual-recursion            build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule3-no-self-recursion              build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report

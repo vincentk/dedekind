@@ -1,9 +1,10 @@
 % !TEX root = ../jlt.tex
-\section{Conclusion}
+\subsection{Conclusion}
 \label{sec:conclusion}
 
-Three rules on standard \Cpp{23} were stated, and a program that keeps them is, up to the gaps Section~\ref{sec:jlt-to-fjlt} names, a term of a core calculus whose syntax is that \Cpp{}.
-The calculus translates into System~F by dictionary passing, and the translation is a function of the program and preserves types and evaluation (Theorems~\ref{thm:coherence} to~\ref{thm:simulation}), so a program of the calculus terminates, is parametric and is sound (Corollaries~\ref{cor:termination} to~\ref{cor:soundness}).
+Three rules on standard \Cpp{23} were stated, drawn from four listings: a signature that prevents a bug, a law that permits a faster program, a dependency that a signature must declare, and laws the compiler derives at a composite.
+A program that keeps them has an image in System~F by dictionary passing, the translation that gives Haskell's type classes their meaning, and the image is parametric, sound and terminating.
+That the image computes what \Cpp{} computes is the paper's hypothesis of adequacy, stated and not proved (Section~\ref{sec:translation}).
 
 The compiler holds no rule in full: Rule~2, and Rules~1 and~3 outside compile-time evaluation, are held by the author, a linter and an agentic reviewer (Table~\ref{tab:posture}, Section~\ref{sec:limits}).
 
@@ -13,11 +14,9 @@ Certifying that a run-time shortcut agrees with the fold it replaces, which a br
 A mechanisation of the proofs, the aspirational end, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}.
 And laws that are computed with rather than only declared, which needs terms and their composition.
 
-Declared laws, and the laws inferred from them, license optimisations of the application's own algebra, as types rule out errors: by a sound check, not a decision of equivalence.
-The same laws are those a query optimiser applies to relational algebra~\cite[Chapter~6]{abiteboul1995foundations}, so the posture reads, the other way round, as an intensional SQL: queries over relations given by their laws, not by their rows.
-Nothing allocated during constant evaluation outlives it (Table~\ref{tab:binding}), so the persistent structures of functional programming, built on the heap, do not cross to run time.
-What crosses is state whose size is fixed at compile time, and the computations that specialise well across it may be those that run in small state over an unbounded input, the streaming algorithms~\cite{alon1999space}: Listing~\ref{lst:sites}'s matcher is one, a table that crosses and a pass that keeps a state and a count.
-Streaming queries, and the plans an optimiser chooses for them, are where an intensional SQL in this posture would be tried first.
-The laws survive the trip into Python, up to the compile-time evaluation: a session that composes and counts through the bindings runs the overloads the laws license, for those who would rather tinker than compile.
+Declared laws, and the laws derived from them, license optimisations of the application's own algebra, as types rule out errors: by a sound check, not a decision of equivalence.
+The same laws are those a query optimiser applies to relational algebra~\cite[Chapter~6]{abiteboul1995foundations}.
+Nothing allocated during constant evaluation outlives it, so the persistent structures of functional programming, built on the heap, do not cross to run time.
+What crosses is state whose size is fixed at compile time, and the computations that specialise well across it may be those that run in small state over an unbounded input, the streaming algorithms~\cite{alon1999space}.
 Nothing was added to the language, the compiler or the library: what was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged, for the people who already write \Cpp{23}.
 

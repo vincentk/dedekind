@@ -34,7 +34,10 @@ struct M {
             v[0] * a.top[1] + v[1] * a.bottom[1]};
   }
 };
-constexpr auto act = [](V v, M a) { return v * a; };
+struct Act {
+  constexpr V operator()(V v, M a) const { return v * a; }
+};
+constexpr Act act{};
 constexpr M fib{{1, 1}, {1, 0}};
 
 /** @return F(n), the fold of Listing 3 over a chain of n counts. */

@@ -321,13 +321,38 @@ struct Uncurried {
   }
   constexpr bool operator==(const Uncurried&) const = default;
 };
+/** @brief An operation without state read as an arrow has one value: its
+ *  type says all there is. */
+template <typename T, typename Op>
+struct has_one_value<Uncurried<T, Op>>
+    : std::bool_constant<std::is_empty_v<Op>> {};
 /** @brief The inverse of @c curry<T>.  @param c the curried operation. */
 export template <typename T, typename Op>
 constexpr Uncurried<T, Op> uncurry(Curried<T, Op> c) {
   return {std::move(c.op)};
 }
+/** @brief An arrow into a square @f$T \times T@f$, then an operation of two
+ *  arguments on @c T: the operation read as an arrow out of the product,
+ *  @c Uncurried, composed.  @c id<T>() @c * @c id<T>() @c >> @c plus<T>{} is
+ *  addition, @f$T \times T \to T@f$, a monoid's multiplication as an arrow;
+ *  @c Pairing{f, g} @c >> @c plus<T>{} is the pointwise sum of two parallel
+ *  arrows.  The operation stays in the arrow's type.
+ *  @param f the arrow into the square.  @param op the operation, a function
+ *  object and no arrow. */
+export template <IsArrow F, typename Op>
+  requires(!IsArrow<Op>) && requires { typename Cod<F>::first_type; } &&
+          std::same_as<Cod<F>, std::pair<typename Cod<F>::first_type,
+                                         typename Cod<F>::first_type>> &&
+          (!std::invocable<Op&, const Cod<F>&>) &&
+          std::regular_invocable<const Op&, const typename Cod<F>::first_type&,
+                                 const typename Cod<F>::first_type&>
+constexpr auto operator>>(const F& f, Op op) {
+  return f >> Uncurried<typename Cod<F>::first_type, Op>{std::move(op)};
+}
 static_assert(
-    curry<unsigned>(std::plus<unsigned>{})(1u)(2u) == 3 &&
+    (Identity<std::pair<unsigned, unsigned>>{} >>
+     std::plus<unsigned>{})(std::pair{1u, 2u}) == 3 &&
+        curry<unsigned>(std::plus<unsigned>{})(1u)(2u) == 3 &&
         uncurry(curry<unsigned>(std::plus<unsigned>{}))({1u, 2u}) == 3 &&
         IsArrow<Curried<unsigned, std::plus<unsigned>>> &&
         IsArrow<Section<unsigned, std::plus<unsigned>>> &&
@@ -1416,6 +1441,9 @@ concept IsEvalArrow =
  *  (⟨f ∘ π₁, f ∘ π₁⟩ is not injective).  Monotonicity is read on a product
  *  under the product order @c ProductLeq; a sum has no canonical order, so
  *  its variance stays at the engine's value level. */
+/** @brief Whether @c T is a pairing or a copairing. */
+export template <typename T>
+inline constexpr bool is_former_v = false;
 /** @brief ⟨f, g⟩ : A → B × C, one argument into a product. */
 export template <IsArrow F, IsArrow G>
   requires std::same_as<Dom<F>, Dom<G>>
@@ -1425,6 +1453,23 @@ struct Pairing {
   F f;
   G g;
   constexpr Codomain operator()(const Domain& x) const { return {f(x), g(x)}; }
+  /** @brief Compared by the laws, through the normal form, as a composite is
+   *  (@c Compose, @c :f_algebra's @c equal_by_the_laws): @c True where the
+   *  laws prove the arrows equal, @c Unknown otherwise.  Hidden friends; a
+   *  composite on either side keeps its own.  @param p the former.
+   *  @param h an arrow on the same objects. */
+  template <IsArrow H>
+    requires(!is_compose_v<H>) && std::same_as<Dom<H>, Domain> &&
+            std::same_as<Cod<H>, Codomain>
+  friend constexpr auto operator==(const Pairing& p, const H& h) {
+    return equal_by_the_laws(p, h);
+  }
+  template <IsArrow H>
+    requires(!is_compose_v<H>) && (!is_former_v<H>) &&
+            std::same_as<Dom<H>, Domain> && std::same_as<Cod<H>, Codomain>
+  friend constexpr auto operator==(const H& h, const Pairing& p) {
+    return equal_by_the_laws(h, p);
+  }
 };
 /** @brief [f, g] : A + B → C, case analysis out of a sum. */
 export template <IsArrow F, IsArrow G>
@@ -1437,7 +1482,35 @@ struct Copairing {
   constexpr Codomain operator()(const Domain& x) const {
     return x.index() == 0 ? f(std::get<0>(x)) : g(std::get<1>(x));
   }
+  /** @brief Compared by the laws, through the normal form, as a composite is
+   *  (@c Compose, @c :f_algebra's @c equal_by_the_laws): @c True where the
+   *  laws prove the arrows equal, @c Unknown otherwise.  Hidden friends; a
+   *  composite on either side keeps its own.  @param p the former.
+   *  @param h an arrow on the same objects. */
+  template <IsArrow H>
+    requires(!is_compose_v<H>) && std::same_as<Dom<H>, Domain> &&
+            std::same_as<Cod<H>, Codomain>
+  friend constexpr auto operator==(const Copairing& p, const H& h) {
+    return equal_by_the_laws(p, h);
+  }
+  template <IsArrow H>
+    requires(!is_compose_v<H>) && (!is_former_v<H>) &&
+            std::same_as<Dom<H>, Domain> && std::same_as<Cod<H>, Codomain>
+  friend constexpr auto operator==(const H& h, const Copairing& p) {
+    return equal_by_the_laws(h, p);
+  }
 };
+/** @brief A pairing (copairing) of two one-valued arrows has one value. */
+template <typename F, typename G>
+struct has_one_value<Pairing<F, G>>
+    : std::bool_constant<has_one_value_v<F> && has_one_value_v<G>> {};
+template <typename F, typename G>
+struct has_one_value<Copairing<F, G>>
+    : std::bool_constant<has_one_value_v<F> && has_one_value_v<G>> {};
+template <typename F, typename G>
+inline constexpr bool is_former_v<Pairing<F, G>> = true;
+template <typename F, typename G>
+inline constexpr bool is_former_v<Copairing<F, G>> = true;
 /** @brief f × g = ⟨f ∘ π₁, g ∘ π₂⟩ : A × C → B × D. */
 export template <IsArrow F, IsArrow G>
 using ProductArrow = Pairing<Compose<Π<1, std::pair<Dom<F>, Dom<G>>>, F>,
@@ -1489,6 +1562,26 @@ constexpr ProductArrow<F, G> operator*(const F& f, const G& g) {
 export template <IsArrow F, IsArrow G>
 constexpr SumArrow<F, G> operator+(const F& f, const G& g) {
   return sum_arrow(f, g);
+}
+
+/** @brief A product (sum) of isomorphisms is one, with the inverses taken
+ *  leg by leg: @f$(f \times g)^{-1} = f^{-1} \times g^{-1}@f$ and
+ *  @f$(f + g)^{-1} = f^{-1} + g^{-1}@f$, since @f$\times@f$ and @f$+@f$ are
+ *  functors and a functor preserves isomorphisms.  Read off the defining
+ *  form (Pierce, Basic Category Theory, Definition 1.5.3, and its dual); any
+ *  other pairing or copairing has no inverse by this rule.
+ *  @param p the product (sum) of two isomorphisms. */
+export template <typename A, IsIsomorphism F, typename B, IsIsomorphism G>
+  requires(IsPairProjection<A, 1> && IsPairProjection<B, 2>)
+[[nodiscard]] constexpr auto inverse(
+    const Pairing<Compose<A, F>, Compose<B, G>>& p) {
+  return product_arrow(inverse(p.f.g), inverse(p.g.g));
+}
+export template <IsIsomorphism F, IsIsomorphism G, typename X, typename Y>
+[[nodiscard]] constexpr auto inverse(
+    const Copairing<Compose<F, Injection<1, X, Y>>,
+                    Compose<G, Injection<2, X, Y>>>& p) {
+  return sum_arrow(inverse(p.f.f), inverse(p.g.f));
 }
 
 /** @brief The legs of a former, for @c cata. */
@@ -1561,6 +1654,12 @@ static_assert(
     IsMonicArrow<ProductArrow<I, B>> && IsEpicArrow<ProductArrow<I, B>>,
     "id × id is a bijection: the product fact, read through ⟨id ∘ π₁, "
     "id ∘ π₂⟩");
+static_assert(IsIsomorphism<ProductArrow<I, B>> &&
+                  IsIsomorphism<SumArrow<I, B>> &&
+                  !IsIsomorphism<Pairing<I, I>> &&
+                  !IsIsomorphism<Copairing<I, I>>,
+              "id × id and id + id are isomorphisms, inverted leg by leg; the "
+              "diagonal and the codiagonal are not");
 static_assert(IsMonicArrow<SumArrow<I, B>> && IsEpicArrow<SumArrow<I, B>>,
               "id + id is a bijection: the sum fact, read through [ι₁ ∘ id, ι₂ "
               "∘ id]");
