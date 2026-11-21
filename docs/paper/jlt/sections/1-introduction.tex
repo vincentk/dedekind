@@ -3,12 +3,12 @@
 \label{sec:intro}
 
 A programmer who knows that string concatenation is associative, with the empty string as its unit, has no way to tell a \Cpp{} compiler so.
-The language once meant to give them one.
-Concepts, as proposed for \Cpp{0x}, checked a template's definition against its constraints and let a concept state axioms~\cite{gregor2006concepts,dosreis2006specifying,bagge2009axioms}.
+Odersky and Wadler had described the cause in 1997: ``\Cpp{} templates are implemented by macro expansion, such that all type checking is performed only on the function instances, not on the template itself''~\cite[\S 1]{odersky1997pizza}.
+The designers of \Cpp{} named the same problem in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
+The language then meant to give them a way: concepts, as proposed for \Cpp{0x}, checked a template's definition against its constraints and let a concept state axioms~\cite{gregor2006concepts,dosreis2006specifying,bagge2009axioms}.
 The proposal was withdrawn in 2009~\cite{stroustrup2009remove}, and the concepts of \Cpp{20} check only a template's uses~\cite{stroustrup2020thriving}, so a template's body may use operations its constraints do not name, and a law has nowhere to be written but the documentation.
 The standard's own words are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not~\cite[{\texttt{res.on.requirements}}]{cpp23standard}, and the Core Guidelines ask that a concept carry meaningful semantics~\cite[T.20]{cppcoreguidelines}.\footnote{The standard calls the first kind of requirement syntactic and the second semantic.
 That split is between what the compiler decides and what it leaves to the programmer, and it does not coincide with the split of programming-language theory between static and dynamic semantics~\cite{pierce2002tapl}, whose static semantics, type checking, falls on the syntactic side here.}
-The designers had named the problem in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
 Rust, released in 2015, has the definition check: a generic body is checked against its declared bounds, and the message for a missing one names it~\cite{klabnik2023rust}.
 This paper recovers part of the definition check and of the axioms inside \Cpp{23} as it ships: a fragment of three rules, and a linter, \texttt{jlt-lint}, that checks them and lists every law a program declares (Section~\ref{sec:check}).
 
