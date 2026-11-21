@@ -223,7 +223,7 @@ What is specific to \Cpp{} concerns the selection.
 The image is a function of the program only if the compiler's choice of an entry or a case is.
 \Cpp{} makes it one at concrete types, by its rules for the most specialised candidate.
 That the choice be the same wherever it is asked, \Cpp{} requires and does not check.
-A generic body may select by a law that its declaration never named, as \cppinline{guessed_power} does in Listing~\ref{lst:power}, and an entry declared below a use is not seen by that use.
+A generic body may select by a law that its declaration never named, as \cppinline{guessed_power} does in Listing~\ref{lst:declare}, and an entry declared below a use is not seen by that use.
 So the kernel asks two things that \Cpp{} does not check: that a generic body selects only by what its declaration names (\RuleTwo{}), and that an entry stands above every use that could read it (Appendix~\ref{app:fjlt:order}).
 Under those two a selection should have one answer in a program, so that the image is a function of it.
 That is the coherence of resolution~\cite{jones1994qualified}, stated here as a condition and to be proved for the kernel in the appendix.

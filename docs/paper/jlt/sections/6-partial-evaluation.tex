@@ -22,60 +22,64 @@ The agreement is the standard's: the paper takes it as given and does not prove 
 % code, so the explicit case buys nothing here and Listing lst:power has none.
 % How the compiler gets there (the unit is a fixed point of squaring, found by
 % computing it) is inferred from the output and not observed.
-\paragraph{Sketch: the two terms, compiled.}
-Figure~\ref{fig:sketch-ir} shows what Clang leaves of the terms of Listings~\ref{lst:rule3} and~\ref{lst:laws}, with the binding time on the arrow.
+\paragraph{The listings, compiled.}
+Figure~\ref{fig:sketch-ir} shows what Clang leaves of the functions of Listings~\ref{lst:motivation} to~\ref{lst:theorems}, with the binding time on the arrow.
 
 \begin{figure}[htbp]
 \small
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.4\linewidth}l>{\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.34\linewidth}l>{\raggedright\arraybackslash}X@{}}
 \toprule
 \Cpp{} & known & LLVM IR \\
 \midrule
-\texttt{concat<size\_t, plus<size\_t>, 0uz>(ns)} & $\xrightarrow{\text{\scriptsize all known}}$ & \texttt{ret i64 45} \\[3pt]
-\texttt{concat<size\_t, multiplies<size\_t>, 1uz>(}\newline \texttt{\ \ views::reverse(views::iota(1uz, n)))} & $\xrightarrow{\text{\scriptsize n at run time}}$ & \texttt{\%k\ = phi i64 [ \%k1, \%loop ], [ \%m, \%entry ]}\newline \texttt{\%a\ = phi i64 [ \%p, \%loop ], [ \%m, \%entry ]}\newline \texttt{\%k1 = add i64 \%k, -1}\newline \texttt{\%p\ = mul i64 \%k1, \%a}\newline \texttt{\%z\ = icmp eq i64 \%k1, 1}\newline \texttt{br i1 \%z, label \%exit, label \%loop} \\[3pt]
-\texttt{concat<size\_t, plus<size\_t>, 0uz>(}\newline \texttt{\ \ views::reverse(views::iota(0uz, n)))} & $\xrightarrow{\text{\scriptsize n at run time}}$ & no loop: thirteen instructions that compute $n(n-1)/2$, a closed formula that the optimiser found \\[3pt]
-\texttt{power<M, Mul, identity>(fib, n).b} & $\xrightarrow{\text{\scriptsize n at run time}}$ & \texttt{\%lz = call i64 @llvm.ctlz.i64(i64 \%n, i1 false)}\newline \texttt{\%w\ \ = sub i64 64, \%lz}\newline a loop that squares the matrix and multiplies it in where a bit of $n$ is set, and ends on\newline \texttt{\%z\ \ = icmp eq i64 \%i1, \%w} \\[3pt]
-Listing~\ref{lst:rule3}'s \texttt{concat<M, Mul, identity>} over $n$ copies of \texttt{fib}, the plain fold & $\xrightarrow{\text{\scriptsize n at run time}}$ & \texttt{\%s\ = add i64 \%a, \%b}\newline \texttt{\%i1 = add i64 \%i, 1}\newline \texttt{\%z\ = icmp eq i64 \%i1, \%n}\newline \texttt{br i1 \%z, label \%exit, label \%loop} \\[3pt]
-\texttt{is\_injective(a)} & $\xrightarrow{\text{\scriptsize a type}}$ & \texttt{ret i1 true} \\[3pt]
-\texttt{length<Then<Succ, Then<Neg, Succ>>>} & $\xrightarrow{\text{\scriptsize a type}}$ & \texttt{ret i64 3} \\[3pt]
-\texttt{a(x)} & $\xrightarrow{\text{\scriptsize x at run time}}$ & \texttt{\%r = sub i64 0, \%x}\newline \texttt{ret i64 \%r} \\[3pt]
+\texttt{concat<Sum>(}\newline\texttt{\ \ array\{1uz, 2uz, 3uz\})} & $\xrightarrow{\text{\scriptsize all}}$ & \texttt{ret i64 6} \\[3pt]
+\texttt{concat<Sum>(}\newline\texttt{\ \ views::iota(0uz, n))} & $\xrightarrow{\text{\scriptsize n at run time}}$ & no loop: nine instructions that compute $n(n-1)/2$ \\[3pt]
+\texttt{concat<Product>(}\newline\texttt{\ \ views::repeat(x, n))} & $\xrightarrow{\text{\scriptsize x, n at run time}}$ & a loop of $n$ steps:\newline \texttt{\%p1 = mul i64 \%p, \%x}\newline \texttt{\%i1 = add nuw i64 \%i, 1}\newline \texttt{\%z\ \ = icmp eq i64 \%i1, \%n} \\[3pt]
+\texttt{power<Product>(x, n)} & $\xrightarrow{\text{\scriptsize x, n at run time}}$ & \texttt{\%lz = call i64 @llvm.ctlz.i64(i64 \%n, i1 false)}\newline \texttt{\%w\ \ = sub nuw nsw i64 64, \%lz}\newline a loop of \texttt{\%w} steps, each a test of bit \texttt{\%i} of \texttt{\%n}, a multiplication where it is set, and a squaring:\newline \texttt{\%s1 = mul i64 \%s, \%s} \\[3pt]
+\texttt{power<Sum>(x, n)} & $\xrightarrow{\text{\scriptsize x, n at run time}}$ & the same loop, with the squaring a doubling and the product a sum:\newline \texttt{\%s1 = shl i64 \%s, 1}\newline \texttt{\%p1 = add i64 \%d, \%p} \\[3pt]
+\texttt{power<Sum>(0uz, n)} & $\xrightarrow{\text{\scriptsize n at run time}}$ & \texttt{ret i64 0} \\[3pt]
+\texttt{power<Xor>(x, n)} & $\xrightarrow{\text{\scriptsize x, n at run time}}$ & \texttt{\%b = and i64 \%n, 1}\newline \texttt{\%z = icmp eq i64 \%b, 0}\newline \texttt{\%r = select i1 \%z, i64 0, i64 \%x} \\[3pt]
+\texttt{power<Max>(x, n)} & $\xrightarrow{\text{\scriptsize x, n at run time}}$ & \texttt{\%z = icmp eq i64 \%n, 0}\newline \texttt{\%r = select i1 \%z, i64 0, i64 \%x} \\[3pt]
+\texttt{power<All>(x, n)} & $\xrightarrow{\text{\scriptsize x, n at run time}}$ & \texttt{\%z = icmp eq i64 \%n, 0}\newline \texttt{\%r = or i1 \%x, \%z} \\[3pt]
+a law derived at a composite & $\xrightarrow{\text{\scriptsize a type}}$ & \texttt{ret i1 true} \\
 \bottomrule
 \end{tabularx}
-\caption{The terms of Listings~\ref{lst:rule3} and~\ref{lst:laws} compiled by Clang~23 at \texttt{-O2}, with unrolling and vectorisation off and names shortened.
-Top three rows: the fold over a value.
-Next two: Listing~\ref{lst:laws}'s Fibonacci call, the power of the matrix, and the plain fold of Listing~\ref{lst:rule3} over as many copies of it.
-Bottom three: the folds over a term's type, and the term \texttt{a} applied.
-In the first loop, \texttt{\%m} is $n - 1$, the first element and the first result.
-In the loop by squaring, \texttt{\%w} is the number of bits of $n$, 64 less its leading zeros, and the first round is done on entry, so the counter starts at 1.
+\caption{The listings' functions compiled by Clang~23 at \texttt{-O2}, with unrolling and vectorisation off and names shortened.
+Top two rows: \cppinline{concat}.
+Next four: the power of a monoid, by its definition and by squaring, at the product and at the sum, and at the unit.
+Then the power under exclusive or and under two idempotent monoids, and a law of Listing~\ref{lst:theorems}'s kind.
+In the loop by squaring, \texttt{\%w} is the number of bits of $n$, 64 less its leading zeros.
 A transcript of one run of the repository's fixture \texttt{showcase\_16}, which checks that the functions exist and allocate nothing, and not their instructions.}
 \label{fig:sketch-ir}
 \end{figure}
+% Source: CI run on e8c921c91, showcase_16, functions now_concat2_known,
+% now_concat2, now_power_plain, now_power, now_named_power (power at Sum),
+% now_power_of_unit, now_power_xor, now_power_max, now_power_idempotent,
+% now_derived_law.  Register names shortened by hand.
 
 Read as a function, after Appel~\cite{appel1998ssa}, a basic block is a local function and its $\phi$-nodes are that function's parameters (Appendix~\ref{app:fjlt:ssa}).
-The loop's two $\phi$-nodes are the iterator's state in Figure~\ref{fig:fjlt-recursion}, the pair $(\llbracket r \rrbracket, \llbracket a \rrbracket)$: the range's state is its current element, counting down, and $\llbracket a \rrbracket$ is the result so far.
-The body is the step, one multiplication, and the decrement ends the loop.
-Nothing else survives: not the range, not its views, not the shape, not the trait.
-For the sum the optimiser goes further and replaces the loop by a closed formula.
-That is the optimiser's doing and not Jlt's, and the product shows the fold as it was written.
-The folds over a type leave nothing: the law is the constant \texttt{true}, the length the constant 3.
-That is the standard's doing and not the optimiser's: a trait is a \cppinline{constexpr} variable, whose initialiser must be a constant expression~\cite[{\texttt{dcl.constexpr}}]{cpp23standard}, so the compiler evaluates every entry a program reads, and each read is its value before anything runs.
-The term \texttt{a}, three arrows composed, is one subtraction, since $-(x + 1) + 1 = -x$.
+The loop of the definition carries the iterator's state, the count and the product so far, and its body is the step, one multiplication.
+The loop by squaring carries the index, the product and the square, the pair of Listing~\ref{lst:power} and the index the fold supplies, and it ends after as many steps as $n$ has bits.
+Nothing else survives: not the range, not its views, not the shape, not the trait, not the record.
+A law is a field of the dictionary (Section~\ref{sec:translation}), and in Jlt a dictionary is resolved while compiling and never exists at run time.
+So the law is used up there, and what it decided remains: associativity licensed the second loop in place of the first.
+
+The optimiser then does more with each monoid, and it is its doing and not Jlt's.
+For the sum over a range it finds a closed formula.
+At the sum, squaring is doubling, and the loop becomes a shift and an addition where a bit of $n$ is set: the method of the Russian peasant, without anyone having asked for it.
+At the unit, the square stays the unit, the optimiser finds that by computing it, and the loop and the count disappear.
+Under exclusive or the power is the parity of the count, and the optimiser reduces the loop to a test of the lowest bit of $n$.
+At the two idempotent monoids the case that the law selects is already one step, and what remains is a comparison of $n$ with $0$.
+A law derived at a composite is the constant \texttt{true}, since a trait is a \cppinline{constexpr} variable, whose initialiser must be a constant expression~\cite[{\texttt{dcl.constexpr}}]{cpp23standard}.
 In these cases the discipline costs nothing at run time, and there is a structural reason: a Jlt fold names in the source the parameter the compiler would otherwise recover from assignments.
-The agreement holds where both evaluations finish and neither meets undefined behaviour.
+
+In the terms of partial evaluation~\cite{jones1993partial}, the types and the declared laws are the static input, the values are the dynamic one, and the loop is the residual program.
+The word specialisation then has one meaning twice: the compiler chooses the specialisation of each trait and the most specialised overload, and in doing so it specialises the program to its laws~\cite{veldhuizen1999partial}.
+
+The agreement between compile time and run time holds where both evaluations finish and neither meets undefined behaviour.
 The two part in three ways, for Clang~23 with its default limits.
 Constant evaluation is bounded in work, at about a million steps and 512 nested calls, past which a program does not compile.
-It refuses undefined behaviour, which at run time is met with no diagnostic and no guarantee.
+It refuses undefined behaviour of the language, which at run time is met with no diagnostic and no guarantee.
 And the standard leaves it unspecified whether floating-point arithmetic gives one result in both~\cite[{\texttt{expr.const}}]{cpp23standard}.
-
-The two rows for Listing~\ref{lst:laws} show what is left of a law.
-That the matrices' product is associative is inferred, and it licenses the power in the first row, which replaces the plain fold of the second.
-A law is a field of the dictionary (Section~\ref{sec:translation}), and in Jlt a dictionary is resolved while compiling and never exists at run time.
-So the law is used up there, and what it decided remains: the power's loop runs once for each bit of $n$, and the plain fold over $n$ copies of \cppinline{fib} runs $n$ times.
-The translation has the same counts: the iterator's is the number of bits of $n$ for the power (Figure~\ref{fig:sketch-fib}) and $n$ for the fold.
-In the terms of partial evaluation~\cite{jones1993partial}, the types and the declared laws are the static input, $n$ is the dynamic one, and the loop is the residual program.
-The word specialisation then has one meaning twice: the compiler chooses the specialisation of each trait and the most specialised overload, and in doing so it specialises the program to its laws~\cite{veldhuizen1999partial}.
-In the plain fold the optimiser has reduced the matrix product to one addition, the recurrence of the Fibonacci numbers, which is again its doing and not Jlt's.
-
 
 \Cpp{} passes no dictionaries but instantiates, so the translation models what a constrained call means, not what the compiler emits.
 Instantiation is partial evaluation~\cite{veldhuizen1999partial}, here of the dictionary-passing term at a static type.
