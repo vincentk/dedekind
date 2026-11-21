@@ -82,6 +82,8 @@ Not yet rewritten: the introduction (old text, four pages), Section 5 (retitled 
 
 ## Decided
 
+- Associated types are kernel (2026-11-21): a trait whose result is a type, one entry per head, read at a type variable only in a declaration's types; its image is one more type parameter, supplied at each use (improvement). A monoid is named by its unit: the probe `unit_probe` is green. Next: Listing 1 in that form, then a look at the page, then Listings 2 to 4.
+
 - Perspective: Art. Done in the header.
 - FJlt is a value layer (two atoms, carriers, pairs, arrows, the conditional, one iterator) and a resolution layer (named types, shapes, traits, overloads).
 - Jlt is FJlt plus derived forms. The Juliet Posture is the three rules, a heuristic and an outer bound.

@@ -28,13 +28,16 @@ D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \text
   &   & \qquad \texttt{constexpr } b\; f\texttt{<}\overline{\tau}\texttt{>} \texttt{ = } e\texttt{;} & \\
   & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} & \text{case of a function} \\
   &   & \qquad \texttt{constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \\
-  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau\; y\texttt{;}}\ \ M \texttt{ \};} & \text{named type} \\[3pt]
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau\; y\texttt{;}}\ \ M \texttt{ \};} & \text{named type} \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> struct } g \texttt{ \{\};} & \text{associated type, its default} \\
+  & \mid & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q} & \text{entry of an associated type} \\
+  &   & \qquad \texttt{struct } g\texttt{<}\overline{\tau}\texttt{> \{ using type = } \tau \texttt{; \};} & \\[3pt]
 M &::=& \varepsilon \;\mid\; \texttt{constexpr } \tau \texttt{ operator()(}\overline{\tau\; x}\texttt{) const} & \text{its call} \\
   &   & \qquad\quad \texttt{requires } \overline{Q} \texttt{ \{ return } e\texttt{; \}} & \\[3pt]
 A &::=& Q \;\mid\; e & \text{shape, law} \\
   & \mid & \texttt{requires (}\overline{\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> same\_as<}\tau\texttt{>;}} \texttt{ \}} & \text{required calls} \\[3pt]
 Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
-\tau &::=& \alpha \;\mid\; b \;\mid\; T\texttt{<}\overline{\tau}\texttt{>} & \text{type} \\[3pt]
+\tau &::=& \alpha \;\mid\; b \;\mid\; T\texttt{<}\overline{\tau}\texttt{>} \;\mid\; g\texttt{<}\overline{\tau}\texttt{>::type} & \text{type} \\[3pt]
 b &::=& \texttt{bool} \;\mid\; \texttt{size\_t} & \text{atom} \\[3pt]
 e &::=& x \;\mid\; c \;\mid\; f\texttt{<}\overline{\tau}\texttt{>} \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; \tau\texttt{\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
   & \mid & \ominus e \;\mid\; e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e & \text{operators, choice} \\
@@ -45,7 +48,7 @@ e &::=& x \;\mid\; c \;\mid\; f\texttt{<}\overline{\tau}\texttt{>} \;\mid\; f\te
 Terminals are in monospace and an overbar is a sequence, possibly empty.
 An empty \texttt{requires} clause, an empty list of a \texttt{requires} expression with its parentheses, and an empty \texttt{template} head are left out, except that an entry with no type variables keeps \texttt{template <>}.
 The requirements $\overline{A}$ of a shape and the constraints $\overline{Q}$ of a clause are joined by \texttt{\&\&}, and a negated constraint is written in parentheses.
-$\alpha$ are type variables, $C$ names of shapes, the standard's \texttt{copyable}, \texttt{equality\_comparable} and \texttt{same\_as} among them, $f$ names of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
+$\alpha$ are type variables, $g$ names of associated types, $C$ names of shapes, the standard's \texttt{copyable}, \texttt{equality\_comparable} and \texttt{same\_as} among them, $f$ names of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
 A parameter that is not used may go unnamed.
 $T$ is a declared type $O$, \texttt{std::pair}, a carrier, or an arrow supplied with a carrier, as the standard's \texttt{std::plus} is.
 $c$ is a constant of an atom, or a value of a carrier that its type provides.
@@ -93,6 +96,7 @@ named type & a \texttt{struct}, or a \texttt{struct} template over types & \text
 shape & a \texttt{concept}: other shapes, laws and required calls, joined by \texttt{\&\&}; its negation & \texttt{IsMagma}, \texttt{IsMonoid} \\
 trait & a variable template with a default and entries; an entry at a form reads its own trait at proper parts & \texttt{associative}, \texttt{unital}, \texttt{homomorphism} \\
 case & function templates of one name under \texttt{requires} clauses, the most specific chosen & the two cases of \texttt{power} \\
+associated type & a \texttt{struct} template whose entries each name one type, read as \texttt{g<T>::type} & \texttt{range\_value\_t} \\
 \bottomrule
 \end{tabularx}
 \caption{The kernel, FJlt.}
@@ -110,6 +114,8 @@ Its step is a function of the state and the index, and a state of several parts 
 
 The resolution layer is where \Cpp{} lives.
 A named type gives the compiler something to select by, a shape says what a generic definition may assume, and a trait and a function with several cases are each a selection by the form of a type.
+An associated type is a trait whose result is a type: a function on types with one entry for each head, as the standard's \cppinline{range_value_t} gives the type of a range's elements.
+Read at a type variable, it may only name a type in a declaration, never choose a case.
 Every program of the kernel is a \Cpp{} program, and \Cpp{} says what it computes.
 The kernel leaves out what would break that reading, some of it by its grammar and some by rules that the grammar cannot state (Table~\ref{tab:excluded}).
 
@@ -121,13 +127,14 @@ The kernel leaves out what would break that reading, some of it by its grammar a
 left out by the grammar & refused by a rule \\
 \midrule
 assignment & a call on a value of a type parameter that no shape names \\
-& a call whose case depends on a law that the declaration does not decide \\
-a loop & a value built at a type variable outside a call that a shape requires \\
-a reference or a pointer as a value & a function that calls itself, directly or through another \\
-inheritance & a trait read at a type variable outside a shape \\
-an exception & an entry of a trait at a form that reads the trait elsewhere than at proper parts \\
-a value among a template's parameters & an entry that stands below a use that could read it \\
-a template on a call operator & two cases of a function of which neither is the more specific \\
+a loop & a call whose case depends on a law that the declaration does not decide \\
+a reference or a pointer as a value & a value built at a type variable outside a call that a shape requires \\
+inheritance & a function that calls itself, directly or through another \\
+an exception & a trait read at a type variable outside a shape \\
+a value among a template's parameters & an associated type read at a type variable outside a declaration's types \\
+a template on a call operator & an entry of a trait at a form that reads the trait elsewhere than at proper parts \\
+& an entry that stands below a use that could read it \\
+& two entries, or two cases, of which neither is the more specific \\
 \bottomrule
 \end{tabularx}
 \caption{What FJlt leaves out, and how.}
@@ -202,6 +209,7 @@ a law & a field of type $\mathit{Bool}$, which holds $\mathit{true}$ and proves 
 a trait & a definition for its default and one for each entry, an entry at a form taking its values at the parts as arguments \\
 a function with several cases & a definition for each case \\
 a use of a shape, a trait or a function & the record, the entry or the case that the compiler selected, applied \\
+an associated type read at a type variable & one more type parameter, supplied at each use by the entry at the concrete types \\
 \bottomrule
 \end{tabularx}
 \caption{The translation of the kernel into System~F.}
@@ -244,3 +252,7 @@ A generic body may select by a law that its declaration never named, as \cppinli
 So the kernel asks two things that \Cpp{} does not check: that a generic body selects only by what its declaration names (\RuleTwo{}), and that an entry stands above every use that could read it (Appendix~\ref{app:fjlt:order}).
 Under those two a selection should have one answer in a program, so that the image is a function of it.
 That is the coherence of resolution~\cite{jones1994qualified}, stated here as a condition and to be proved for the kernel in the appendix.
+An associated type is resolved the same way, at concrete types, and at a type variable it becomes one more type parameter whose value each use supplies: the improvement of qualified types~\cite{jones1994qualified}.
+\Cpp{} asks for the same when two cases must be ordered and the type appears among their parameters, as in Listing~\ref{lst:power}.
+% TODO(related): cite improvement and functional dependencies (Jones) and
+% associated type synonyms (Chakravarty, Keller, Peyton Jones) once verified.
