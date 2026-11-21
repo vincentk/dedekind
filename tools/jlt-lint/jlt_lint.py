@@ -73,7 +73,7 @@ def read_scope():
         if len(line) != 4:
             sys.exit(f"jlt-lint: scope:{n}: want <rule> <file-glob> <namespace> <expected|report>")
         rule, pattern, namespace, expected = line
-        files = sorted(glob.glob(str(ROOT / pattern)))
+        files = sorted(glob.glob(str(ROOT / pattern), recursive=True))
         if not files:
             sys.exit(f"jlt-lint: scope:{n}: {pattern} names no file")
         for f in files:

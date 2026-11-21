@@ -911,3 +911,34 @@ axioms                       src/test/cpp/modules/dedekind/category/jlt_listings
 # The same list for the library's category layer: its declared laws, wherever
 # one is an entry of a variable template.
 axioms                       src/main/modules/dedekind/category/*.cppm  category  report
+
+# A control, not written under the posture: Catch2, which the build fetches
+# and compiles for the tests.  Every rule reported, never gated; what it
+# measures is what adopting the posture would cost an ordinary library.
+inventory                            build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+axioms                               build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-boxed-identity                 build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-boxed-mutable-pointee          build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-const-call-operator            build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-const-member-functions         build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-constexpr                      build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-forwarding-reference-params    build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-lvalue-reference-params        build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-no-escaping-reference-captures build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-no-inheritance                 build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-no-mutable-globals             build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-no-reference-returns           build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-no-static-locals               build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-no-throw                       build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-no-volatile                    build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule1-rvalue-reference-params        build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule2-constrained-templates          build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule2-context-order                  build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule2-converted-result               build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule2-decided-resolution             build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule2-definition                     build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule2-no-inline-requires             build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule3-bounded-fold                   build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule3-no-loops                       build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule3-no-mutual-recursion            build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+rule3-no-self-recursion              build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report

@@ -16,7 +16,11 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 CLASSES = ["kernel", "derived", "scaffolding", "refused", "open"]
-SCOPES = [("library", "src/main/modules/dedekind/"), ("listings", "src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp")]
+SCOPES = [
+    ("library", "src/main/modules/dedekind/"),
+    ("listings", "src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp"),
+    ("Catch2", "build/_deps/catch2-src/"),
+]
 
 
 def admission():

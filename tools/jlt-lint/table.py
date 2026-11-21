@@ -25,7 +25,7 @@ def scope():
         if not line.strip() or line.startswith("#"):
             continue
         rule, pattern, _, expected = line.split()
-        for f in glob.glob(str(ROOT / pattern)):
+        for f in glob.glob(str(ROOT / pattern), recursive=True):
             f = pathlib.Path(f).relative_to(ROOT).as_posix()
             if f.startswith(LIB):
                 status[rule][f] = "report" if expected == "report" else "gate"
