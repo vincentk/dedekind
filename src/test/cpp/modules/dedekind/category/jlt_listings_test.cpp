@@ -2366,6 +2366,272 @@ static_assert(concat2<Zero>(std::array{1uz, 2uz, 3uz}) == 6 &&
               concat2<BareUnit>(std::array{Bare{}, Bare{}}) == Bare{});
 }  // namespace unit_probe
 
+// The four listings of the paper's Section 2, as printed, with std::
+// qualifiers that the paper drops and the declarations the paper omits.  A
+// monoid is named by its unit, and every law is keyed on that name.
+namespace paper_listings {
+using std::size_t;
+using namespace std::string_literals;
+using Str = std::string;
+
+// ---- Listing 1: what a signature prevents
+template <typename E>
+constexpr bool associative = false;
+template <typename E>
+constexpr bool unital = false;
+template <typename E>
+struct op_of {};
+template <typename E>
+using carrier_t = decltype(E{}());
+template <typename E>
+using op_t = typename op_of<E>::type;
+template <typename E>
+concept IsMagma = requires {
+  E{}();
+  typename op_t<E>;
+} && std::copyable<carrier_t<E>> && requires(carrier_t<E> a, carrier_t<E> b) {
+  { op_t<E>{}(a, b) } -> std::same_as<carrier_t<E>>;
+};
+template <typename E>
+concept IsUnitalMagma = IsMagma<E> && unital<E>;
+template <typename E>
+concept IsMonoid = IsUnitalMagma<E> && associative<E>;
+
+struct True {
+  constexpr bool operator()() const { return true; }
+};
+template <>
+struct op_of<True> {
+  using type = std::logical_and<bool>;
+};
+template <>
+constexpr bool associative<True> = true;
+template <>
+constexpr bool unital<True> = true;
+static_assert(op_t<True>{}(True{}(), True{}()) == True{}());
+
+struct Bare {
+  constexpr bool operator==(const Bare&) const = default;
+};
+struct BareOp {
+  constexpr Bare operator()(Bare, Bare) const { return {}; }
+};
+struct BareUnit {
+  constexpr Bare operator()() const { return {}; }
+};
+template <>
+struct op_of<BareUnit> {
+  using type = BareOp;
+};
+template <>
+constexpr bool associative<BareUnit> = true;
+template <>
+constexpr bool unital<BareUnit> = true;
+
+// Not printed: the other monoids the listings use, declared the same way.
+struct Zero {
+  constexpr size_t operator()() const { return 0; }
+};
+template <>
+struct op_of<Zero> {
+  using type = std::plus<size_t>;
+};
+template <>
+constexpr bool associative<Zero> = true;
+template <>
+constexpr bool unital<Zero> = true;
+struct One {
+  constexpr size_t operator()() const { return 1; }
+};
+template <>
+struct op_of<One> {
+  using type = std::multiplies<size_t>;
+};
+template <>
+constexpr bool associative<One> = true;
+template <>
+constexpr bool unital<One> = true;
+struct Empty {
+  constexpr Str operator()() const { return {}; }
+};
+template <>
+struct op_of<Empty> {
+  using type = std::plus<Str>;
+};
+template <>
+constexpr bool associative<Empty> = true;
+template <>
+constexpr bool unital<Empty> = true;
+struct False {
+  constexpr bool operator()() const { return false; }
+};
+template <>
+struct op_of<False> {
+  using type = std::logical_or<bool>;
+};
+template <>
+constexpr bool associative<False> = true;
+template <>
+constexpr bool unital<False> = true;
+
+template <std::ranges::range R>
+constexpr std::ranges::range_value_t<R> concat1(R r) {
+  std::ranges::range_value_t<R> s{};
+  for (auto x : r) s = s + x;
+  return s;
+}
+template <typename R>
+concept Accepts1 = requires(R r) { concat1(r); };
+static_assert(concat1(std::array{1uz, 2uz, 3uz}) == 6 &&
+              concat1(std::array{"ab"s, "c"s}) == "abc"s &&
+              concat1(std::array{true, false}) == true &&
+              Accepts1<std::array<Bare, 2>>);
+
+template <typename E, std::ranges::sized_range R>
+  requires IsMonoid<E> &&
+           std::same_as<std::ranges::range_value_t<R>, carrier_t<E>>
+constexpr carrier_t<E> concat2(R r) {
+  return std::ranges::fold_left(r, E{}(), op_t<E>{});
+}
+static_assert(concat2<Zero>(std::array{1uz, 2uz, 3uz}) == 6 &&
+              concat2<Empty>(std::array{"ab"s, "c"s}) == "abc"s &&
+              concat2<True>(std::array{true, false}) == false &&
+              concat2<BareUnit>(std::array{Bare{}, Bare{}}) == Bare{});
+
+// ---- Listing 2: what a law permits
+template <typename T>
+struct Power {
+  T product, base;
+  size_t exponent;
+};
+template <typename E>
+struct Halving {
+  using T = carrier_t<E>;
+  constexpr Power<T> operator()(Power<T> p, size_t) const
+    requires IsMonoid<E>
+  {
+    return {p.exponent % 2 == 1 ? op_t<E>{}(p.product, p.base) : p.product,
+            op_t<E>{}(p.base, p.base), p.exponent / 2};
+  }
+};
+template <typename E, typename T>
+  requires IsMonoid<E> && std::same_as<T, carrier_t<E>>
+constexpr T power(T x, size_t n) {
+  return std::ranges::fold_left(
+             std::views::iota(0uz, size_t(std::bit_width(n))),
+             Power<T>{E{}(), x, n}, Halving<E>{})
+      .product;
+}
+static_assert(power<Zero>(2uz, 10uz) ==
+                  concat2<Zero>(std::views::repeat(2uz, 10uz)) &&
+              power<Zero>(2uz, 10uz) == 20 && power<One>(2uz, 10uz) == 1024 &&
+              power<Empty>("ab"s, 3uz) == "ababab"s &&
+              power<One>(3uz, 1'000'000'000uz) == 9'215'150'800'219'179'009uz &&
+              power<Empty>(""s, 1'000'000'000'000uz) == ""s);
+
+template <typename E>
+constexpr bool idempotent = false;
+template <typename E>
+concept IsIdempotentMonoid = IsMonoid<E> && idempotent<E>;
+template <typename E, typename T>
+  requires IsIdempotentMonoid<E> && std::same_as<T, carrier_t<E>>
+constexpr T power(T x, size_t n) {
+  return n == 0 ? E{}() : x;
+}
+template <>
+constexpr bool idempotent<True> = true;
+static_assert(op_t<True>{}(false, false) == false &&
+              power<True>(false, 5uz) == false &&
+              power<True>(false, 0uz) == true);
+
+// ---- Listing 3: what a signature must declare
+template <typename E>
+  requires IsMonoid<E>
+constexpr carrier_t<E> guessed_power(carrier_t<E> x, size_t n) {
+  return power<E>(x, n);
+}
+template <typename E>
+concept HasPower = IsMonoid<E> && requires(carrier_t<E> x, size_t n) {
+  { power<E>(x, n) } -> std::same_as<carrier_t<E>>;
+};
+template <typename E>
+  requires HasPower<E>
+constexpr carrier_t<E> named_power(carrier_t<E> x, size_t n) {
+  return power<E>(x, n);
+}
+struct Plus2 {
+  constexpr size_t operator()(size_t a, size_t b) const { return a + b; }
+};
+struct Nought {
+  constexpr size_t operator()() const { return 0; }
+};
+template <>
+struct op_of<Nought> {
+  using type = Plus2;
+};
+template <>
+constexpr bool associative<Nought> = true;
+template <>
+constexpr bool unital<Nought> = true;
+template <>
+constexpr bool idempotent<Nought> = true;  // false, planted
+static_assert(guessed_power<Zero>(2, 10) == 20 &&
+              guessed_power<Nought>(2, 10) == 2 &&
+              named_power<Zero>(2, 10) == 20 &&
+              named_power<Nought>(2, 10) == 2 && op_t<Nought>{}(2, 2) != 2);
+
+// ---- Listing 4: what the compiler infers
+template <typename H, typename A, typename B>
+constexpr bool homomorphism = false;
+template <typename F, typename A, typename B>
+concept Maps = requires(F f, carrier_t<A> x) {
+  { f(x) } -> std::same_as<carrier_t<B>>;
+};
+struct Size {
+  constexpr size_t operator()(Str s) const { return s.size(); }
+};
+struct IsEmpty {
+  constexpr bool operator()(Str s) const { return s.empty(); }
+};
+struct Not {
+  constexpr bool operator()(bool b) const { return !b; }
+};
+template <>
+constexpr bool homomorphism<Size, Empty, Zero> = true;
+template <>
+constexpr bool homomorphism<IsEmpty, Empty, True> = true;
+template <>
+constexpr bool homomorphism<Not, True, False> = true;
+template <typename A, typename F, typename B, typename G, typename C>
+struct Via {
+  F f;
+  G g;
+  constexpr carrier_t<C> operator()(carrier_t<A> x) const
+    requires Maps<F, A, B> && Maps<G, B, C>
+  {
+    return g(f(x));
+  }
+};
+template <typename A, typename F, typename B, typename G, typename C>
+constexpr bool homomorphism<Via<A, F, B, G, C>, A, C> =
+    homomorphism<F, A, B> && homomorphism<G, B, C>;
+using NonEmpty = Via<Empty, IsEmpty, True, Not, False>;
+static_assert(homomorphism<NonEmpty, Empty, False> &&
+              !homomorphism<NonEmpty, Empty, True>);
+template <typename H, typename A, typename B>
+concept IsHomomorphism =
+    IsMonoid<A> && IsMonoid<B> && homomorphism<H, A, B> && Maps<H, A, B>;
+template <typename A, typename B, typename H, std::ranges::sized_range R>
+  requires IsHomomorphism<H, A, B> && std::equality_comparable<carrier_t<B>> &&
+           std::same_as<std::ranges::range_value_t<R>, carrier_t<A>>
+constexpr bool free_theorem(H h, R r) {
+  return h(concat2<A>(r)) == concat2<B>(std::views::transform(r, h));
+}
+static_assert(free_theorem<Empty, Zero>(Size{}, std::array{"ab"s, ""s, "c"s}) &&
+              free_theorem<Empty, True>(IsEmpty{}, std::array{"ab"s, ""s}) &&
+              free_theorem<Empty, False>(NonEmpty{}, std::array{""s, "ab"s}));
+}  // namespace paper_listings
+
 TEST_CASE("Spelling probe: a law as a function and as a table",
           "[category][jlt][spelling][probe]") {
   using namespace spelling_probe;
