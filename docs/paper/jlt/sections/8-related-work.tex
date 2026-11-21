@@ -38,7 +38,7 @@ That is the genre Section~\ref{sec:guarantees} is in, preservation and simulatio
 
 \paragraph{Formal semantics of \Cpp{}.}
 CoreC++~\cite{wasserrab2006operational} gives an operational semantics and a machine-checked type safety proof for multiple inheritance; Ramananandro, Dos Reis and Leroy~\cite{ramananandro2011layout,ramananandro2012construction} mechanise object layout, construction and destruction in Coq.
-These formalise the part of \Cpp{} that Rule~1 excludes, objects with identity and lifetime, and none covers templates, concepts or constant evaluation, so FJlt is a fragment with its own grammar rather than a subset of a formalised \Cpp{}.
+These formalise the part of \Cpp{} that Rule~1 excludes, objects with identity and lifetime, and templates were given a formal semantics separately~\cite{siek2006templates}, so FJlt is a fragment with its own grammar rather than a subset of a formalised \Cpp{}.
 
 \paragraph{What System~F supplies.}
 Strong normalisation is Girard's \cite{girard1989proofs}, with inductive types Matthes' \cite{matthes1999extensions}, and parametricity Reynolds' \cite{reynolds1983types}: the appendix uses both as black boxes, which is the point of translating into System~F; data types as their own folds is B\"ohm and Berarducci's reading \cite{bohm1985automatic}, which the translation takes with iterators in place of Church encodings.

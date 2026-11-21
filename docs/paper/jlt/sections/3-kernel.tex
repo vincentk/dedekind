@@ -227,7 +227,7 @@ A generic body may select by a law that its declaration never named, as \cppinli
 So the kernel asks two things that \Cpp{} does not check: that a generic body selects only by what its declaration names (\RuleTwo{}), and that an entry stands above every use that could read it (Appendix~\ref{app:fjlt:order}).
 Under those two a selection should have one answer in a program, so that the image is a function of it.
 That is the coherence of resolution~\cite{jones1994qualified}, stated here as a condition and to be proved for the kernel in the appendix.
-An associated type is resolved the same way, at concrete types, and at a type variable it becomes one more type parameter whose value each use supplies: the improvement of qualified types~\cite{jones1994qualified}.
+An associated type is resolved the same way, at concrete types, and at a type variable it becomes one more type parameter whose value each use supplies, as associated types are translated for Haskell~\cite{chakravarty2005class,chakravarty2005synonyms} and for the concepts of \Cpp{0x}~\cite{siek2005essential}.
 \Cpp{} asks for the same when two cases must be ordered and the type appears among their parameters, as in Listing~\ref{lst:power}.
-% TODO(related): cite improvement and functional dependencies (Jones) and
-% associated type synonyms (Chakravarty, Keller, Peyton Jones) once verified.
+% TODO(related): functional dependencies (Jones, ESOP 2000) to be verified
+% and cited beside the associated types.
