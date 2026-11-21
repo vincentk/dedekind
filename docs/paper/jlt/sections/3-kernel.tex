@@ -147,42 +147,17 @@ a template on a call operator & an entry of a trait at a form that reads the tra
 % self-call refused by rule.  A recursion controlled by an order on the
 % arguments is not attempted: the kernel has no such order to offer.
 
-\subsection{Derived forms}
+\paragraph{Derived forms.}
 \label{sec:kernel:derived}
-
-A derived form is a rewrite of a Jlt program into FJlt that may change types inside the program and leaves every observable value unchanged.
-An observable value is the value of a closed term at an atom, while compiling and while running.
+Jlt is this kernel and its derived forms: rewrites of a Jlt program into FJlt that may change types inside the program and leave every observable value unchanged, the value of a closed term at an atom, while compiling and while running.
 Time is not observed, so a program and its rewrite may differ in cost and in nothing else.
-Table~\ref{tab:derived} lists the derived forms that the three listings use.
-
-\begin{table}[tb]
-\centering
-\small
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.28\linewidth}@{}}
-\toprule
-written & stands for & the same because \\
-\midrule
-a range, as \texttt{array\{...\}}, \texttt{views::iota}, \texttt{views::repeat}, \texttt{views::transform}, or a parameter \texttt{R} & a count and an arrow from an index to an element & a fold visits the same values in the same order \\
-\texttt{ranges::fold\_left} over a range & iteration over its count, the step reading the element at the index & by the row above \\
-\texttt{ranges::sized\_range R}, an alias, a deduced type & the \texttt{requires} clause or the type written out & the standard defines them so \\
-an integer literal where a count is meant, a braced \texttt{return}, two fields in one declaration & the count, the value with its type, the fields one by one & the standard defines them so \\
-\texttt{static\_assert} & the observation of a truth value & it is what is observed \\
-\bottomrule
-\end{tabularx}
-\caption{The derived forms used by Listings~\ref{lst:motivation} to~\ref{lst:theorems}.}
-\label{tab:derived}
-\end{table}
-% TODO(derived): the complete table goes to the appendix, and the linter points
-% to it.  The sentence below, that each row is held by a test, is not yet true:
-% the tests that compile a listing beside its kernel form are to be written.
-% Standard clauses for the fifth row are to be cited.
-
-The list is open by design.
-A new derived form is one more rewrite into the kernel and touches nothing that is said about the kernel.
-This paper does not prove that a derived form preserves values, and it claims them only as Listings~\ref{lst:motivation} to~\ref{lst:theorems} use them.
-The first row is a change of representation more than an abbreviation: a range is replaced by the function that reads it.
-Where the standard defines one construct as another, that is the evidence.
-Elsewhere the evidence is a test that compiles a listing beside its kernel form and asserts that the two agree, which is the standard of evidence of the work on JavaScript~\cite{guha2010essence}.
+Most of what the listings write beyond the grammar is \Cpp{} that the standard itself defines as something in the kernel: a constrained template parameter, an alias, an integer literal converted to a count, a braced \cppinline{return}, two fields in one declaration, and \cppinline{static_assert} as the observation of a truth value.
+One derived form carries weight, and it is a change of representation more than an abbreviation: a range, as an array or a view, stands for its length and the function that reads it, and \cppinline{ranges::fold_left} over a range for the kernel's iteration over that count.
+This paper does not prove that a derived form preserves values, and it claims them only as the listings use them.
+The list is open, and a new derived form touches nothing that is said about the kernel.
+% TODO(derived): the standard's clauses for the first group are to be cited;
+% the tests that compile a listing beside its kernel form are to be written,
+% the standard of evidence of the work on JavaScript~\cite{guha2010essence}.
 
 \subsection{The image}
 \label{sec:translation}
