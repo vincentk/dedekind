@@ -603,7 +603,7 @@ bool parameterKnown(clang::QualType t) {
       llvm::isa<clang::SubstTemplateTypeParmType>(t.getTypePtr()))
     return true;
   // An associated type of a parameter: a dependent name (typename R::value
-  // type), a dependent template name, or the decltype of a dependent
+  // type) or the decltype of a dependent
   // expression, read through aliases such as range_value_t<R> or
   // carrier_t<E> to the canonical type.  It is known only through the
   // constraints, as the parameter is.  A class template's specialisation
@@ -612,7 +612,6 @@ bool parameterKnown(clang::QualType t) {
   const clang::Type* c = t.getCanonicalType().getTypePtr();
   return llvm::isa<clang::TemplateTypeParmType>(c) ||
          llvm::isa<clang::DependentNameType>(c) ||
-         llvm::isa<clang::DependentTemplateSpecializationType>(c) ||
          llvm::isa<clang::DecltypeType>(c);
 }
 bool isParameterTyped(const clang::Expr* e) {
