@@ -53,7 +53,6 @@ template <> constexpr bool
 unital<All> = true;
 static_assert(op_t<All>{}(
     All{}(), All{}()) == All{}());
-
 struct Bare { constexpr bool
   operator==(const Bare&) const = default; };
 struct BareOp { constexpr Bare
@@ -118,15 +117,14 @@ concat2<BareMonoid>(
     array{Bare{}, Bare{}}) == Bare{});
 \end{cpp}
 \end{minipage}
-{\small\[
-\begin{array}{@{}l@{}}
-\mathit{Magma}\;T = \{\,\mathit{op} : T \to T \to T\,\} \qquad
-\mathit{UnitalMagma}\;T = \{\,\mathit{magma} : \mathit{Magma}\;T,\ \mathit{unital} : \mathit{Bool},\ \mathit{unit} : T\,\} \\[2pt]
-\mathit{Monoid}\;T = \{\,\mathit{um} : \mathit{UnitalMagma}\;T,\ \mathit{assoc} : \mathit{Bool}\,\} \\[4pt]
-\mathit{concat2} = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda q : \mathit{Monoid}\;T.\,\lambda n.\,\lambda f. \\
-\qquad\qquad\quad \pi_2\,(\mathit{iter}\;n\;(\lambda (k, s).\,(k + 1,\ q.\mathit{um}.\mathit{magma}.\mathit{op}\;s\;(f\;k)))\;(0,\ q.\mathit{um}.\mathit{unit}))
-\end{array}
-\]}
+\vspace{-7pt}
+\begin{sysf}
+Magma T       = { op : T → T → T }
+UnitalMagma T = { magma : Magma T, unital : Bool, unit : T }
+Monoid T      = { um : UnitalMagma T, assoc : Bool }
+concat2 = ΛE. ΛT. ΛOp. λq : Monoid T. λn. λf.
+  π₂ (iter n (λ(k, s). (k + 1, q.um.magma.op s (f k))) (0, q.um.unit))
+\end{sysf}
 \caption{What a signature prevents: a function that keeps less than it promises, and one held to its signature.
 Left: a monoid as a shape, named by its unit; \cppinline{concat1}; \cppinline{concat2}.
 Right: two monoids declared, the second the smallest there is; a test of each function.
@@ -212,11 +210,8 @@ concat2<Sum>(views::repeat(2uz, 10uz)) &&
 power<Sum>(2uz, 10uz) == 20 &&
 power<Product>(2uz, 10uz) == 1024 &&
 power<Concat>("ab"s, 3uz) == "ababab"s &&
-power<Product>(3uz, 1'000'000'000uz) ==
-    9'215'150'800'219'179'009uz &&
 power<Concat>(""s, 1'000'000'000'000uz)
     == ""s);
-
 struct Xor { constexpr size_t
   operator()() const { return 0; } };
 template <> struct op_of<Xor> {
@@ -254,7 +249,6 @@ static_assert(
 op_t<All>{}(false, false) == false &&
 power<All>(false, 5uz) == false &&
 power<All>(false, 0uz) == true);
-
 struct Larger { constexpr size_t
   operator()(size_t a, size_t b) const {
     return a < b ? b : a; } };
@@ -271,17 +265,18 @@ idempotent<Max> = true;
 static_assert(power<Max>(7uz, 10uz) == 7);
 \end{cpp}
 \end{minipage}
-{\small\[
-\begin{array}{@{}l@{}}
-\mathit{power}_0 = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{concat2}\;E\;T\;\mathit{Op}\;q\;n\;(\lambda k.\,x) \\[3pt]
-\mathit{power} = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \pi_1\,(\mathit{iter}\;(\mathit{bits}\;n)\;\mathit{step}\;(0,\ (q.\mathit{um}.\mathit{unit},\ x))) \\
-\qquad \mathit{step}\,(i, (p, b)) = (\,i + 1,\ (\mathit{if}\ \mathit{bit}\;i\;n\ \mathit{then}\ p \cdot b\ \mathit{else}\ p,\ \ b \cdot b)\,) \qquad a \cdot b = q.\mathit{um}.\mathit{magma}.\mathit{op}\;a\;b \\[3pt]
-\mathit{power}_{\mathit{idem}} = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda q : \mathit{IdempotentMonoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{if}\ n = 0\ \mathit{then}\ q.\mathit{m}.\mathit{um}.\mathit{unit}\ \mathit{else}\ x
-\end{array}
-\]}
+\vspace{-7pt}
+\begin{sysf}
+power₀ = ΛE. ΛT. ΛOp. λq : Monoid T. λx. λn. concat2 E T Op q n (λk. x)
+power = ΛE. ΛT. ΛOp. λq : Monoid T. λx. λn.
+  π₁ (π₂ (iter (bits n) step (0, (q.um.unit, x))))
+  where step (i, (p, b)) = (i + 1, (if bit i n then p · b else p, b · b))
+power_idem = ΛE. ΛT. ΛOp. λq : IdempotentMonoid T. λx. λn.
+  if n = 0 then q.m.um.unit else x
+\end{sysf}
 \caption{What a law permits: the power of a monoid.
 Left: the power by repeated squaring, and a case of it that a law selects.
-Right: tests. Below: the images.}
+Right: tests. Below: the images, $\cdot$ the monoid's operation.}
 \label{lst:power}
 \end{listing}
 % TODO(listings): code from the probe (namespace triple_probe).  The citation
@@ -357,12 +352,11 @@ named_power<Sum2>(2, 10) == 2 &&
 op_t<Sum2>{}(2, 2) != 2);
 \end{cpp}
 \end{minipage}
-{\small\[
-\begin{array}{@{}l@{}}
-\mathit{guessed\_power}\text{: no image} \\[3pt]
-\mathit{named\_power} = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda q : \mathit{HasPower}\;T.\,\lambda x.\,\lambda n.\ q.\mathit{power}\;x\;n
-\end{array}
-\]}
+\vspace{-7pt}
+\begin{sysf}
+guessed_power : no image
+named_power = ΛE. ΛT. ΛOp. λq : HasPower T. λx. λn. q.power x n
+\end{sysf}
 \caption{What a signature must declare: a caller that names too little, and one that declares its dependency.
 Left: the two callers. Right: a false axiom, planted, and their tests. Below: their images.}
 \label{lst:declare}
@@ -485,12 +479,12 @@ free_theorem<Concat, Any>(NonEmpty{},
 \end{cpp}
 \end{minipage}
 \vspace{-7pt}
-{\small\[
-\begin{array}{@{}l@{}}
-\mathit{free\_theorem} = \Lambda A.\,\Lambda B.\,\Lambda T.\,\Lambda U.\,\ldots\,\lambda q : \mathit{Monoid}\;T.\,\lambda q' : \mathit{Monoid}\;U.\,\lambda l : \mathit{Bool}.\,\lambda \mathit{eq} : U \to U \to \mathit{Bool}.\,\lambda h : T \to U.\,\lambda n.\,\lambda f. \\
-\qquad\qquad \mathit{eq}\;(h\,(\mathit{concat2}\;q\;n\;f))\;(\mathit{concat2}\;q'\;n\;(\lambda k.\,h\,(f\,k)))
-\end{array}
-\]}
+\begin{sysf}
+free_theorem = ΛA. ΛB. ΛT. ΛU. …
+  λq : Monoid T. λq' : Monoid U. λl : Bool.
+  λeq : U → U → Bool. λh : T → U. λn. λf.
+    eq (h (concat2 q n f)) (concat2 q' n (λk. h (f k)))
+\end{sysf}
 \caption{What the compiler infers: a law derived from laws, and a theorem that comes for free.
 Left: the law, a lemma, the theorem. Right: three axioms, the inferred fact, three instances.}
 \label{lst:theorems}
