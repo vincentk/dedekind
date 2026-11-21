@@ -43,29 +43,29 @@ concept IsMonoid =
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-struct True { constexpr bool
+struct All { constexpr bool
   operator()() const { return true; } };
-template <> struct op_of<True> {
+template <> struct op_of<All> {
   using type = logical_and<bool>; };
 template <> constexpr bool
-associative<True> = true;
+associative<All> = true;
 template <> constexpr bool
-unital<True> = true;
-static_assert(op_t<True>{}(
-    True{}(), True{}()) == True{}());
+unital<All> = true;
+static_assert(op_t<All>{}(
+    All{}(), All{}()) == All{}());
 
 struct Bare { constexpr bool
   operator==(const Bare&) const = default; };
 struct BareOp { constexpr Bare
   operator()(Bare, Bare) const { return {}; } };
-struct BareUnit { constexpr Bare
+struct BareMonoid { constexpr Bare
   operator()() const { return {}; } };
-template <> struct op_of<BareUnit> {
+template <> struct op_of<BareMonoid> {
   using type = BareOp; };
 template <> constexpr bool
-associative<BareUnit> = true;
+associative<BareMonoid> = true;
 template <> constexpr bool
-unital<BareUnit> = true;
+unital<BareMonoid> = true;
 \end{cpp}
 \end{minipage}
 
@@ -109,12 +109,12 @@ constexpr carrier_t<E> concat2(R r) {
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 static_assert(
-concat2<Zero>(array{1uz, 2uz, 3uz}) == 6 &&
-concat2<Empty>(array{"ab"s, "c"s})
+concat2<Sum>(array{1uz, 2uz, 3uz}) == 6 &&
+concat2<Concat>(array{"ab"s, "c"s})
     == "abc"s &&
-concat2<True>(array{true, false})
+concat2<All>(array{true, false})
     == false &&
-concat2<BareUnit>(
+concat2<BareMonoid>(
     array{Bare{}, Bare{}}) == Bare{});
 \end{cpp}
 \end{minipage}
@@ -143,11 +143,12 @@ Below: the image of \cppinline{concat2} in System~F.}
 The left column is code as it would stand in a program, and the right column tests it.
 A monoid is built up as algebra builds it.
 A \emph{magma} is a carrier with an operation, a \emph{unital magma} has a unit as well, and a \emph{monoid} is a unital magma whose operation is associative.
-A monoid is named by its unit, a function object of no arguments: its carrier is the type the unit returns, its operation is declared once, as the entry of \cppinline{op_of} for that unit, and its laws are keyed on that name.
+A monoid is named by a type, \cppinline{Sum} or \cppinline{All}, whose call takes no arguments and gives the unit: the sum of nothing is $0$, and ``all'' of nothing holds.
+Its carrier is the type the call returns, its operation is declared once, as the entry of \cppinline{op_of} for that name, and its laws are keyed on that name.
 The triple of algebra is still there, written once where the monoid is declared and not at every use.
 The unit's value does not determine the monoid, since $0$ is the unit of both \cppinline{+} and \cppinline{max} on \cppinline{size_t}, so its type does: a name.
 That the operation is associative, and that the unit is its unit, are axioms, as the concepts proposed for \Cpp{0x} could state them~\cite{gregor2006concepts,bagge2009axioms}: the programmer states them, as the top right panel does for the truth values under conjunction, and the compiler takes them at their word.
-The monoids of \cppinline{size_t} and of strings are declared the same way, with units \cppinline{Zero} and \cppinline{Empty}.
+The monoids of \cppinline{size_t} and of strings are declared the same way, as \cppinline{Sum}, \cppinline{Product} and \cppinline{Concat}, and the truth values have a second monoid, \cppinline{Any}.
 The unit is also checked at one point, by an assertion beside its axiom, which can refute a false claim and cannot prove a true one.
 The shape itself asks of the carrier only that its values can be copied, and in particular no equality, for a reason that Section~\ref{sec:translation} gives.
 
@@ -206,14 +207,14 @@ constexpr T power(T x, size_t n) {
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 static_assert(
-power<Zero>(2uz, 10uz) ==
-concat2<Zero>(views::repeat(2uz, 10uz)) &&
-power<Zero>(2uz, 10uz) == 20 &&
-power<One>(2uz, 10uz) == 1024 &&
-power<Empty>("ab"s, 3uz) == "ababab"s &&
-power<One>(3uz, 1'000'000'000uz) ==
+power<Sum>(2uz, 10uz) ==
+concat2<Sum>(views::repeat(2uz, 10uz)) &&
+power<Sum>(2uz, 10uz) == 20 &&
+power<Product>(2uz, 10uz) == 1024 &&
+power<Concat>("ab"s, 3uz) == "ababab"s &&
+power<Product>(3uz, 1'000'000'000uz) ==
     9'215'150'800'219'179'009uz &&
-power<Empty>(""s, 1'000'000'000'000uz)
+power<Concat>(""s, 1'000'000'000'000uz)
     == ""s);
 \end{cpp}
 \end{minipage}
@@ -236,11 +237,11 @@ constexpr T power(T x, size_t n) {
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <> constexpr bool
-idempotent<True> = true;
+idempotent<All> = true;
 static_assert(
-op_t<True>{}(false, false) == false &&
-power<True>(false, 5uz) == false &&
-power<True>(false, 0uz) == true);
+op_t<All>{}(false, false) == false &&
+power<All>(false, 5uz) == false &&
+power<All>(false, 0uz) == true);
 \end{cpp}
 \end{minipage}
 {\small\[
@@ -310,23 +311,23 @@ constexpr carrier_t<E> named_power(
 struct Plus2 { constexpr size_t
   operator()(size_t a, size_t b) const {
     return a + b; } };
-struct Nought { constexpr size_t
+struct Sum2 { constexpr size_t
   operator()() const { return 0; } };
-template <> struct op_of<Nought> {
+template <> struct op_of<Sum2> {
   using type = Plus2; };
 template <> constexpr bool
-associative<Nought> = true;
+associative<Sum2> = true;
 template <> constexpr bool
-unital<Nought> = true;
+unital<Sum2> = true;
 template <> constexpr bool
-idempotent<Nought> = true;
+idempotent<Sum2> = true;
 
 static_assert(
-guessed_power<Zero>(2, 10) == 20 &&
-guessed_power<Nought>(2, 10) == 2 &&
-named_power<Zero>(2, 10) == 20 &&
-named_power<Nought>(2, 10) == 2 &&
-op_t<Nought>{}(2, 2) != 2);
+guessed_power<Sum>(2, 10) == 20 &&
+guessed_power<Sum2>(2, 10) == 2 &&
+named_power<Sum>(2, 10) == 20 &&
+named_power<Sum2>(2, 10) == 2 &&
+op_t<Sum2>{}(2, 2) != 2);
 \end{cpp}
 \end{minipage}
 {\small\[
@@ -345,7 +346,7 @@ Left: the two callers. Right: a false axiom, planted, and their tests. Below: th
 
 \cppinline{guessed_power} asks for a monoid and calls \cppinline{power}.
 Which case of \cppinline{power} it gets is decided where it is used, at concrete types, by whether \cppinline{idempotent} holds there, a law its signature never named.
-\cppinline{Nought} names a monoid whose operation, \cppinline{Plus2}, is addition under another name, and someone has declared it idempotent.
+\cppinline{Sum2} names a monoid whose operation, \cppinline{Plus2}, is addition under another name, and someone has declared it idempotent.
 That axiom is false, the caller never chose to depend on it, and ten twos come out as two.
 The tension between specialising an algorithm and checking a generic body against its constraints was named for the concepts proposed for \Cpp{0x}~\cite{jarvi2006specialization}; in \Cpp{20} it arises silently.
 With a true axiom nothing visible would go wrong, since both cases would agree and only the cost would differ, which is why such a dependency is easy to miss.
@@ -388,11 +389,11 @@ struct IsEmpty { constexpr bool
 struct Not { constexpr bool
   operator()(bool b) const { return !b; } };
 template <> constexpr bool
-homomorphism<Size, Empty, Zero> = true;
+homomorphism<Size, Concat, Sum> = true;
 template <> constexpr bool
-homomorphism<IsEmpty, Empty, True> = true;
+homomorphism<IsEmpty, Concat, All> = true;
 template <> constexpr bool
-homomorphism<Not, True, False> = true;
+homomorphism<Not, All, Any> = true;
 \end{cpp}
 \end{minipage}
 
@@ -418,10 +419,10 @@ constexpr bool homomorphism<
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 using NonEmpty =
-    Via<Empty, IsEmpty, True, Not, False>;
+    Via<Concat, IsEmpty, All, Not, Any>;
 static_assert(
-homomorphism<NonEmpty, Empty, False> &&
-!homomorphism<NonEmpty, Empty, True>);
+homomorphism<NonEmpty, Concat, Any> &&
+!homomorphism<NonEmpty, Concat, All>);
 template <typename H, typename A,
           typename B>
 concept IsHomomorphism =
@@ -448,11 +449,11 @@ constexpr bool free_theorem(H h, R r) {
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 static_assert(
-free_theorem<Empty, Zero>(Size{},
+free_theorem<Concat, Sum>(Size{},
     array{"ab"s, ""s, "c"s}) &&
-free_theorem<Empty, True>(IsEmpty{},
+free_theorem<Concat, All>(IsEmpty{},
     array{"ab"s, ""s}) &&
-free_theorem<Empty, False>(NonEmpty{},
+free_theorem<Concat, Any>(NonEmpty{},
     array{""s, "ab"s}));
 \end{cpp}
 \end{minipage}

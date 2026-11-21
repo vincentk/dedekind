@@ -299,50 +299,50 @@ concept IsUnitalMagma = IsMagma<E> && unital<E>;
 template <typename E>
 concept IsMonoid = IsUnitalMagma<E> && associative<E>;
 
-struct Zero {
+struct Sum {
   constexpr size_t operator()() const { return 0; }
 };
 template <>
-struct op_of<Zero> {
+struct op_of<Sum> {
   using type = std::plus<size_t>;
 };
 template <>
-constexpr bool associative<Zero> = true;
+constexpr bool associative<Sum> = true;
 template <>
-constexpr bool unital<Zero> = true;
-struct One {
+constexpr bool unital<Sum> = true;
+struct Product {
   constexpr size_t operator()() const { return 1; }
 };
 template <>
-struct op_of<One> {
+struct op_of<Product> {
   using type = std::multiplies<size_t>;
 };
 template <>
-constexpr bool associative<One> = true;
+constexpr bool associative<Product> = true;
 template <>
-constexpr bool unital<One> = true;
-struct True {
+constexpr bool unital<Product> = true;
+struct All {
   constexpr bool operator()() const { return true; }
 };
 template <>
-struct op_of<True> {
+struct op_of<All> {
   using type = std::logical_and<bool>;
 };
 template <>
-constexpr bool associative<True> = true;
+constexpr bool associative<All> = true;
 template <>
-constexpr bool unital<True> = true;
-struct False {
+constexpr bool unital<All> = true;
+struct Any {
   constexpr bool operator()() const { return false; }
 };
 template <>
-struct op_of<False> {
+struct op_of<Any> {
   using type = std::logical_or<bool>;
 };
 template <>
-constexpr bool associative<False> = true;
+constexpr bool associative<Any> = true;
 template <>
-constexpr bool unital<False> = true;
+constexpr bool unital<Any> = true;
 
 template <typename E, std::ranges::sized_range R>
   requires IsMonoid<E> &&
@@ -380,7 +380,7 @@ constexpr T power(T x, size_t n) {
   return n == 0 ? E{}() : x;
 }
 template <>
-constexpr bool idempotent<True> = true;
+constexpr bool idempotent<All> = true;
 
 template <typename E>
 concept HasPower = IsMonoid<E> && requires(carrier_t<E> x, size_t n) {
@@ -405,7 +405,7 @@ struct Not {
   constexpr bool operator()(bool b) const { return !b; }
 };
 template <>
-constexpr bool homomorphism<Not, True, False> = true;
+constexpr bool homomorphism<Not, All, Any> = true;
 template <typename A, typename F, typename B, typename G, typename C>
 struct Via {
   F f;
@@ -420,53 +420,52 @@ template <typename A, typename F, typename B, typename G, typename C>
 constexpr bool homomorphism<Via<A, F, B, G, C>, A, C> =
     homomorphism<F, A, B> && homomorphism<G, B, C>;
 template <>
-constexpr bool homomorphism<IsZero, True, True> = false;
+constexpr bool homomorphism<IsZero, All, All> = false;
 
-static_assert(IsMonoid<Zero> && IsMonoid<One> && IsMonoid<True> &&
-              IsMonoid<False> && IsIdempotentMonoid<True> && HasPower<Zero> &&
-              homomorphism<Not, True, False> &&
-              !homomorphism<IsZero, True, True> &&
-              concat2<Zero>(std::array{1uz, 2uz, 3uz}) == 6 &&
-              power<One>(2uz, 10uz) == 1024 &&
-              power<True>(false, 5uz) == false);
+static_assert(IsMonoid<Sum> && IsMonoid<Product> && IsMonoid<All> &&
+              IsMonoid<Any> && IsIdempotentMonoid<All> && HasPower<Sum> &&
+              homomorphism<Not, All, Any> && !homomorphism<IsZero, All, All> &&
+              concat2<Sum>(std::array{1uz, 2uz, 3uz}) == 6 &&
+              power<Product>(2uz, 10uz) == 1024 &&
+              power<All>(false, 5uz) == false);
 }  // namespace now_listings
 
 /** @return Listing 1's concat2 at the sum, everything known while compiling. */
 extern "C" __attribute__((noinline)) std::size_t now_concat2_known() {
-  return now_listings::concat2<now_listings::Zero>(std::array{1uz, 2uz, 3uz});
+  return now_listings::concat2<now_listings::Sum>(std::array{1uz, 2uz, 3uz});
 }
 /** @return the sum of the counts below n, the count known only at run time. */
 extern "C" __attribute__((noinline)) std::size_t now_concat2(std::size_t n) {
-  return now_listings::concat2<now_listings::Zero>(std::views::iota(0uz, n));
+  return now_listings::concat2<now_listings::Sum>(std::views::iota(0uz, n));
 }
 /** @return Listing 2's power at the product, by repeated squaring. */
 extern "C" __attribute__((noinline)) std::size_t now_power(std::size_t x,
                                                            std::size_t n) {
-  return now_listings::power<now_listings::One>(x, n);
+  return now_listings::power<now_listings::Product>(x, n);
 }
 /** @return the same value by its definition, n copies folded one by one. */
 extern "C" __attribute__((noinline)) std::size_t now_power_plain(
     std::size_t x, std::size_t n) {
-  return now_listings::concat2<now_listings::One>(std::views::repeat(x, n));
+  return now_listings::concat2<now_listings::Product>(std::views::repeat(x, n));
 }
 /** @return the power of the unit of the sum, the count left for later. */
 extern "C" __attribute__((noinline)) std::size_t now_power_of_unit(
     std::size_t n) {
-  return now_listings::power<now_listings::Zero>(0uz, n);
+  return now_listings::power<now_listings::Sum>(0uz, n);
 }
 /** @return the power under conjunction, the case that idempotence selects. */
 extern "C" __attribute__((noinline)) bool now_power_idempotent(bool x,
                                                                std::size_t n) {
-  return now_listings::power<now_listings::True>(x, n);
+  return now_listings::power<now_listings::All>(x, n);
 }
 /** @return Listing 3's named_power at the sum. */
 extern "C" __attribute__((noinline)) std::size_t now_named_power(
     std::size_t x, std::size_t n) {
-  return now_listings::named_power<now_listings::Zero>(x, n);
+  return now_listings::named_power<now_listings::Sum>(x, n);
 }
 /** @return Listing 4's lemma at a composite, a law the compiler derives. */
 extern "C" __attribute__((noinline)) bool now_derived_law() {
   using namespace now_listings;
-  return homomorphism<Via<True, Not, False, Not, True>, True, True> ==
-         (homomorphism<Not, True, False> && homomorphism<Not, False, True>);
+  return homomorphism<Via<All, Not, Any, Not, All>, All, All> ==
+         (homomorphism<Not, All, Any> && homomorphism<Not, Any, All>);
 }

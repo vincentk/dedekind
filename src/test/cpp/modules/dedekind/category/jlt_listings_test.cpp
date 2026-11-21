@@ -2397,18 +2397,18 @@ concept IsUnitalMagma = IsMagma<E> && unital<E>;
 template <typename E>
 concept IsMonoid = IsUnitalMagma<E> && associative<E>;
 
-struct True {
+struct All {
   constexpr bool operator()() const { return true; }
 };
 template <>
-struct op_of<True> {
+struct op_of<All> {
   using type = std::logical_and<bool>;
 };
 template <>
-constexpr bool associative<True> = true;
+constexpr bool associative<All> = true;
 template <>
-constexpr bool unital<True> = true;
-static_assert(op_t<True>{}(True{}(), True{}()) == True{}());
+constexpr bool unital<All> = true;
+static_assert(op_t<All>{}(All{}(), All{}()) == All{}());
 
 struct Bare {
   constexpr bool operator==(const Bare&) const = default;
@@ -2416,63 +2416,63 @@ struct Bare {
 struct BareOp {
   constexpr Bare operator()(Bare, Bare) const { return {}; }
 };
-struct BareUnit {
+struct BareMonoid {
   constexpr Bare operator()() const { return {}; }
 };
 template <>
-struct op_of<BareUnit> {
+struct op_of<BareMonoid> {
   using type = BareOp;
 };
 template <>
-constexpr bool associative<BareUnit> = true;
+constexpr bool associative<BareMonoid> = true;
 template <>
-constexpr bool unital<BareUnit> = true;
+constexpr bool unital<BareMonoid> = true;
 
 // Not printed: the other monoids the listings use, declared the same way.
-struct Zero {
+struct Sum {
   constexpr size_t operator()() const { return 0; }
 };
 template <>
-struct op_of<Zero> {
+struct op_of<Sum> {
   using type = std::plus<size_t>;
 };
 template <>
-constexpr bool associative<Zero> = true;
+constexpr bool associative<Sum> = true;
 template <>
-constexpr bool unital<Zero> = true;
-struct One {
+constexpr bool unital<Sum> = true;
+struct Product {
   constexpr size_t operator()() const { return 1; }
 };
 template <>
-struct op_of<One> {
+struct op_of<Product> {
   using type = std::multiplies<size_t>;
 };
 template <>
-constexpr bool associative<One> = true;
+constexpr bool associative<Product> = true;
 template <>
-constexpr bool unital<One> = true;
-struct Empty {
+constexpr bool unital<Product> = true;
+struct Concat {
   constexpr Str operator()() const { return {}; }
 };
 template <>
-struct op_of<Empty> {
+struct op_of<Concat> {
   using type = std::plus<Str>;
 };
 template <>
-constexpr bool associative<Empty> = true;
+constexpr bool associative<Concat> = true;
 template <>
-constexpr bool unital<Empty> = true;
-struct False {
+constexpr bool unital<Concat> = true;
+struct Any {
   constexpr bool operator()() const { return false; }
 };
 template <>
-struct op_of<False> {
+struct op_of<Any> {
   using type = std::logical_or<bool>;
 };
 template <>
-constexpr bool associative<False> = true;
+constexpr bool associative<Any> = true;
 template <>
-constexpr bool unital<False> = true;
+constexpr bool unital<Any> = true;
 
 template <std::ranges::range R>
 constexpr std::ranges::range_value_t<R> concat1(R r) {
@@ -2493,10 +2493,10 @@ template <typename E, std::ranges::sized_range R>
 constexpr carrier_t<E> concat2(R r) {
   return std::ranges::fold_left(r, E{}(), op_t<E>{});
 }
-static_assert(concat2<Zero>(std::array{1uz, 2uz, 3uz}) == 6 &&
-              concat2<Empty>(std::array{"ab"s, "c"s}) == "abc"s &&
-              concat2<True>(std::array{true, false}) == false &&
-              concat2<BareUnit>(std::array{Bare{}, Bare{}}) == Bare{});
+static_assert(concat2<Sum>(std::array{1uz, 2uz, 3uz}) == 6 &&
+              concat2<Concat>(std::array{"ab"s, "c"s}) == "abc"s &&
+              concat2<All>(std::array{true, false}) == false &&
+              concat2<BareMonoid>(std::array{Bare{}, Bare{}}) == Bare{});
 
 // ---- Listing 2: what a law permits
 template <typename E>
@@ -2518,12 +2518,12 @@ constexpr T power(T x, size_t n) {
              std::pair<T, T>{E{}(), x}, Squaring<E>{n})
       .first;
 }
-static_assert(power<Zero>(2uz, 10uz) ==
-                  concat2<Zero>(std::views::repeat(2uz, 10uz)) &&
-              power<Zero>(2uz, 10uz) == 20 && power<One>(2uz, 10uz) == 1024 &&
-              power<Empty>("ab"s, 3uz) == "ababab"s &&
-              power<One>(3uz, 1'000'000'000uz) == 9'215'150'800'219'179'009uz &&
-              power<Empty>(""s, 1'000'000'000'000uz) == ""s);
+static_assert(
+    power<Sum>(2uz, 10uz) == concat2<Sum>(std::views::repeat(2uz, 10uz)) &&
+    power<Sum>(2uz, 10uz) == 20 && power<Product>(2uz, 10uz) == 1024 &&
+    power<Concat>("ab"s, 3uz) == "ababab"s &&
+    power<Product>(3uz, 1'000'000'000uz) == 9'215'150'800'219'179'009uz &&
+    power<Concat>(""s, 1'000'000'000'000uz) == ""s);
 
 template <typename E>
 constexpr bool idempotent = false;
@@ -2535,10 +2535,10 @@ constexpr T power(T x, size_t n) {
   return n == 0 ? E{}() : x;
 }
 template <>
-constexpr bool idempotent<True> = true;
-static_assert(op_t<True>{}(false, false) == false &&
-              power<True>(false, 5uz) == false &&
-              power<True>(false, 0uz) == true);
+constexpr bool idempotent<All> = true;
+static_assert(op_t<All>{}(false, false) == false &&
+              power<All>(false, 5uz) == false &&
+              power<All>(false, 0uz) == true);
 
 // ---- Listing 3: what a signature must declare
 template <typename E>
@@ -2558,23 +2558,23 @@ constexpr carrier_t<E> named_power(carrier_t<E> x, size_t n) {
 struct Plus2 {
   constexpr size_t operator()(size_t a, size_t b) const { return a + b; }
 };
-struct Nought {
+struct Sum2 {
   constexpr size_t operator()() const { return 0; }
 };
 template <>
-struct op_of<Nought> {
+struct op_of<Sum2> {
   using type = Plus2;
 };
 template <>
-constexpr bool associative<Nought> = true;
+constexpr bool associative<Sum2> = true;
 template <>
-constexpr bool unital<Nought> = true;
+constexpr bool unital<Sum2> = true;
 template <>
-constexpr bool idempotent<Nought> = true;  // false, planted
-static_assert(guessed_power<Zero>(2, 10) == 20 &&
-              guessed_power<Nought>(2, 10) == 2 &&
-              named_power<Zero>(2, 10) == 20 &&
-              named_power<Nought>(2, 10) == 2 && op_t<Nought>{}(2, 2) != 2);
+constexpr bool idempotent<Sum2> = true;  // false, planted
+static_assert(guessed_power<Sum>(2, 10) == 20 &&
+              guessed_power<Sum2>(2, 10) == 2 &&
+              named_power<Sum>(2, 10) == 20 && named_power<Sum2>(2, 10) == 2 &&
+              op_t<Sum2>{}(2, 2) != 2);
 
 // ---- Listing 4: what the compiler infers
 template <typename H, typename A, typename B>
@@ -2593,11 +2593,11 @@ struct Not {
   constexpr bool operator()(bool b) const { return !b; }
 };
 template <>
-constexpr bool homomorphism<Size, Empty, Zero> = true;
+constexpr bool homomorphism<Size, Concat, Sum> = true;
 template <>
-constexpr bool homomorphism<IsEmpty, Empty, True> = true;
+constexpr bool homomorphism<IsEmpty, Concat, All> = true;
 template <>
-constexpr bool homomorphism<Not, True, False> = true;
+constexpr bool homomorphism<Not, All, Any> = true;
 template <typename A, typename F, typename B, typename G, typename C>
 struct Via {
   F f;
@@ -2611,9 +2611,9 @@ struct Via {
 template <typename A, typename F, typename B, typename G, typename C>
 constexpr bool homomorphism<Via<A, F, B, G, C>, A, C> =
     homomorphism<F, A, B> && homomorphism<G, B, C>;
-using NonEmpty = Via<Empty, IsEmpty, True, Not, False>;
-static_assert(homomorphism<NonEmpty, Empty, False> &&
-              !homomorphism<NonEmpty, Empty, True>);
+using NonEmpty = Via<Concat, IsEmpty, All, Not, Any>;
+static_assert(homomorphism<NonEmpty, Concat, Any> &&
+              !homomorphism<NonEmpty, Concat, All>);
 template <typename H, typename A, typename B>
 concept IsHomomorphism =
     IsMonoid<A> && IsMonoid<B> && homomorphism<H, A, B> && Maps<H, A, B>;
@@ -2623,9 +2623,9 @@ template <typename A, typename B, typename H, std::ranges::sized_range R>
 constexpr bool free_theorem(H h, R r) {
   return h(concat2<A>(r)) == concat2<B>(std::views::transform(r, h));
 }
-static_assert(free_theorem<Empty, Zero>(Size{}, std::array{"ab"s, ""s, "c"s}) &&
-              free_theorem<Empty, True>(IsEmpty{}, std::array{"ab"s, ""s}) &&
-              free_theorem<Empty, False>(NonEmpty{}, std::array{""s, "ab"s}));
+static_assert(free_theorem<Concat, Sum>(Size{}, std::array{"ab"s, ""s, "c"s}) &&
+              free_theorem<Concat, All>(IsEmpty{}, std::array{"ab"s, ""s}) &&
+              free_theorem<Concat, Any>(NonEmpty{}, std::array{""s, "ab"s}));
 }  // namespace paper_listings
 
 TEST_CASE("Spelling probe: a law as a function and as a table",
