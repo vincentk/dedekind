@@ -17,10 +17,9 @@ Listing~\ref{lst:motivation} is about a function every \Cpp{} programmer has wri
 \begin{listing}[!p]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-template <typename T, typename Op>
+template <typename E>
 constexpr bool associative = false;
-template <typename T, typename Op,
-          typename E>
+template <typename E>
 constexpr bool unital = false;
 template <typename E> struct op_of {};
 template <typename E>
@@ -35,11 +34,11 @@ concept IsMagma =
     { op_t<E>{}(a, b) }
       -> same_as<carrier_t<E>>; };
 template <typename E>
-concept IsUnitalMagma = IsMagma<E> &&
-  unital<carrier_t<E>, op_t<E>, E>;
+concept IsUnitalMagma =
+  IsMagma<E> && unital<E>;
 template <typename E>
-concept IsMonoid = IsUnitalMagma<E> &&
-  associative<carrier_t<E>, op_t<E>>;
+concept IsMonoid =
+  IsUnitalMagma<E> && associative<E>;
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
@@ -49,10 +48,10 @@ struct True { constexpr bool
 template <> struct op_of<True> {
   using type = logical_and<bool>; };
 template <> constexpr bool
-associative<bool, logical_and<bool>> = true;
+associative<True> = true;
 template <> constexpr bool
-unital<bool, logical_and<bool>, True> = true;
-static_assert(logical_and<bool>{}(
+unital<True> = true;
+static_assert(op_t<True>{}(
     True{}(), True{}()) == True{}());
 
 struct Bare { constexpr bool
@@ -64,9 +63,9 @@ struct BareUnit { constexpr Bare
 template <> struct op_of<BareUnit> {
   using type = BareOp; };
 template <> constexpr bool
-associative<Bare, BareOp> = true;
+associative<BareUnit> = true;
 template <> constexpr bool
-unital<Bare, BareOp, BareUnit> = true;
+unital<BareUnit> = true;
 \end{cpp}
 \end{minipage}
 
@@ -144,7 +143,7 @@ Below: the image of \cppinline{concat2} in System~F.}
 The left column is code as it would stand in a program, and the right column tests it.
 A monoid is built up as algebra builds it.
 A \emph{magma} is a carrier with an operation, a \emph{unital magma} has a unit as well, and a \emph{monoid} is a unital magma whose operation is associative.
-A monoid is named by its unit, a function object of no arguments: its carrier is the type the unit returns, and its operation is declared once, as the entry of \cppinline{op_of} for that unit.
+A monoid is named by its unit, a function object of no arguments: its carrier is the type the unit returns, its operation is declared once, as the entry of \cppinline{op_of} for that unit, and its laws are keyed on that name.
 The triple of algebra is still there, written once where the monoid is declared and not at every use.
 The unit's value does not determine the monoid, since $0$ is the unit of both \cppinline{+} and \cppinline{max} on \cppinline{size_t}, so its type does: a name.
 That the operation is associative, and that the unit is its unit, are axioms: the programmer states them, as the top right panel does for the truth values under conjunction, and the compiler takes them at their word.
@@ -186,59 +185,54 @@ Listing~\ref{lst:power} is that companion, the \emph{power} of a monoid.
 \begin{cpp}
 template <typename T> struct Power {
   T product, base; size_t exponent; };
-template <typename T, typename Op,
-          typename E>
+template <typename E>
 struct Halving {
+  using T = carrier_t<E>;
   constexpr Power<T> operator()(
       Power<T> p, size_t) const
-    requires IsMonoid<T, Op, E> {
+    requires IsMonoid<E> {
     return {
       p.exponent % 2 == 1
-          ? Op{}(p.product, p.base) : p.product,
-      Op{}(p.base, p.base),
+          ? op_t<E>{}(p.product, p.base)
+          : p.product,
+      op_t<E>{}(p.base, p.base),
       p.exponent / 2}; } };
-template <typename T, typename Op,
-          typename E>
-  requires IsMonoid<T, Op, E>
+template <typename E, typename T>
+  requires IsMonoid<E> &&
+           same_as<T, carrier_t<E>>
 constexpr T power(T x, size_t n) {
   return ranges::fold_left(
       views::iota(0uz, size_t(bit_width(n))),
       Power<T>{E{}(), x, n},
-      Halving<T, Op, E>{}).product; }
+      Halving<E>{}).product; }
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 static_assert(
-power<size_t, plus<size_t>, Zero>(
-    2uz, 10uz) ==
-concat2<size_t, plus<size_t>, Zero>(
-    views::repeat(2uz, 10uz)) &&
-power<size_t, plus<size_t>, Zero>(
-    2uz, 10uz) == 20 &&
-power<size_t, multiplies<size_t>, One>(
-    2uz, 10uz) == 1024 &&
-power<string, plus<string>, Empty>(
-    "ab"s, 3uz) == "ababab"s &&
-power<size_t, multiplies<size_t>, One>(
-    3uz, 1'000'000'000uz) ==
+power<Zero>(2uz, 10uz) ==
+concat2<Zero>(views::repeat(2uz, 10uz)) &&
+power<Zero>(2uz, 10uz) == 20 &&
+power<One>(2uz, 10uz) == 1024 &&
+power<Empty>("ab"s, 3uz) == "ababab"s &&
+power<One>(3uz, 1'000'000'000uz) ==
     9'215'150'800'219'179'009uz &&
-power<string, plus<string>, Empty>(
-    ""s, 1'000'000'000'000uz) == ""s);
+power<Empty>(""s, 1'000'000'000'000uz)
+    == ""s);
 \end{cpp}
 \end{minipage}
 
+\vspace{-7pt}
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-template <typename T, typename Op>
+template <typename E>
 constexpr bool idempotent = false;
-template <typename T, typename Op,
-          typename E>
+template <typename E>
 concept IsIdempotentMonoid =
-  IsMonoid<T, Op, E> && idempotent<T, Op>;
-template <typename T, typename Op,
-          typename E>
-  requires IsIdempotentMonoid<T, Op, E>
+  IsMonoid<E> && idempotent<E>;
+template <typename E, typename T>
+  requires IsIdempotentMonoid<E> &&
+           same_as<T, carrier_t<E>>
 constexpr T power(T x, size_t n) {
   return n == 0 ? E{}() : x; }
 \end{cpp}
@@ -246,21 +240,19 @@ constexpr T power(T x, size_t n) {
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <> constexpr bool
-idempotent<bool, logical_and<bool>> = true;
+idempotent<True> = true;
 static_assert(
-logical_and<bool>{}(false, false) == false &&
-power<bool, logical_and<bool>, True>(
-    false, 5uz) == false &&
-power<bool, logical_and<bool>, True>(
-    false, 0uz) == true);
+op_t<True>{}(false, false) == false &&
+power<True>(false, 5uz) == false &&
+power<True>(false, 0uz) == true);
 \end{cpp}
 \end{minipage}
 {\small\[
 \begin{array}{@{}l@{}}
-\mathit{power}_0 = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{concat2}\;T\;\mathit{Op}\;E\;q\;n\;(\lambda k.\,x) \\[3pt]
-\mathit{power} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \pi_1\,(\mathit{iter}\;(\mathit{bits}\;n)\;\mathit{step}\;(q.\mathit{um}.\mathit{unit},\ x,\ n)) \\
+\mathit{power}_0 = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{concat2}\;E\;T\;\mathit{Op}\;q\;n\;(\lambda k.\,x) \\[3pt]
+\mathit{power} = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda q : \mathit{Monoid}\;T.\,\lambda x.\,\lambda n.\ \pi_1\,(\mathit{iter}\;(\mathit{bits}\;n)\;\mathit{step}\;(q.\mathit{um}.\mathit{unit},\ x,\ n)) \\
 \qquad \mathit{step}\,(p, b, e) = (\,\mathit{if}\ \mathit{odd}\;e\ \mathit{then}\ p \cdot b\ \mathit{else}\ p,\ \ b \cdot b,\ \ e / 2\,) \qquad a \cdot b = q.\mathit{um}.\mathit{magma}.\mathit{op}\;a\;b \\[3pt]
-\mathit{power}_{\mathit{idem}} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{IdempotentMonoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{if}\ n = 0\ \mathit{then}\ q.\mathit{m}.\mathit{um}.\mathit{unit}\ \mathit{else}\ x
+\mathit{power}_{\mathit{idem}} = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda q : \mathit{IdempotentMonoid}\;T.\,\lambda x.\,\lambda n.\ \mathit{if}\ n = 0\ \mathit{then}\ q.\mathit{m}.\mathit{um}.\mathit{unit}\ \mathit{else}\ x
 \end{array}
 \]}
 \caption{What a law permits: the power of a monoid.
@@ -298,22 +290,22 @@ A law that selects a case can also be relied on without being named, and Listing
 \begin{listing}[!p]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-template <typename T, typename Op,
-          typename E>
-  requires IsMonoid<T, Op, E>
-constexpr T guessed_power(T x, size_t n) {
-  return power<T, Op, E>(x, n); }
+template <typename E>
+  requires IsMonoid<E>
+constexpr carrier_t<E> guessed_power(
+    carrier_t<E> x, size_t n) {
+  return power<E>(x, n); }
 
-template <typename T, typename Op,
-          typename E>
-concept HasPower = IsMonoid<T, Op, E> &&
-  requires(T x, size_t n) {
-    { power<T, Op, E>(x, n) } -> same_as<T>; };
-template <typename T, typename Op,
-          typename E>
-  requires HasPower<T, Op, E>
-constexpr T named_power(T x, size_t n) {
-  return power<T, Op, E>(x, n); }
+template <typename E>
+concept HasPower = IsMonoid<E> &&
+  requires(carrier_t<E> x, size_t n) {
+    { power<E>(x, n) }
+      -> same_as<carrier_t<E>>; };
+template <typename E>
+  requires HasPower<E>
+constexpr carrier_t<E> named_power(
+    carrier_t<E> x, size_t n) {
+  return power<E>(x, n); }
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
@@ -321,29 +313,29 @@ constexpr T named_power(T x, size_t n) {
 struct Plus2 { constexpr size_t
   operator()(size_t a, size_t b) const {
     return a + b; } };
+struct Nought { constexpr size_t
+  operator()() const { return 0; } };
+template <> struct op_of<Nought> {
+  using type = Plus2; };
 template <> constexpr bool
-associative<size_t, Plus2> = true;
+associative<Nought> = true;
 template <> constexpr bool
-unital<size_t, Plus2, Zero> = true;
+unital<Nought> = true;
 template <> constexpr bool
-idempotent<size_t, Plus2> = true;
+idempotent<Nought> = true;
 
 static_assert(
-guessed_power<size_t, plus<size_t>,
-    Zero>(2uz, 10uz) == 20 &&
-guessed_power<size_t, Plus2,
-    Zero>(2uz, 10uz) == 2 &&
-named_power<size_t, plus<size_t>,
-    Zero>(2uz, 10uz) == 20 &&
-named_power<size_t, Plus2,
-    Zero>(2uz, 10uz) == 2 &&
-Plus2{}(2uz, 2uz) != 2uz);
+guessed_power<Zero>(2, 10) == 20 &&
+guessed_power<Nought>(2, 10) == 2 &&
+named_power<Zero>(2, 10) == 20 &&
+named_power<Nought>(2, 10) == 2 &&
+op_t<Nought>{}(2, 2) != 2);
 \end{cpp}
 \end{minipage}
 {\small\[
 \begin{array}{@{}l@{}}
 \mathit{guessed\_power}\text{: no image} \\[3pt]
-\mathit{named\_power} = \Lambda T.\,\Lambda \mathit{Op}.\,\Lambda E.\,\lambda q : \mathit{HasPower}\;T.\,\lambda x.\,\lambda n.\ q.\mathit{power}\;x\;n
+\mathit{named\_power} = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda q : \mathit{HasPower}\;T.\,\lambda x.\,\lambda n.\ q.\mathit{power}\;x\;n
 \end{array}
 \]}
 \caption{What a signature must declare: a caller that names too little, and one that wears its dependency as a badge.
@@ -356,7 +348,7 @@ Left: the two callers. Right: a false axiom, planted, and their tests. Below: th
 
 \cppinline{guessed_power} asks for a monoid and calls \cppinline{power}.
 Which case of \cppinline{power} it gets is decided where it is used, at concrete types, by whether \cppinline{idempotent} holds there, a law its signature never named.
-\cppinline{Plus2} is addition under another name, which someone has declared idempotent.
+\cppinline{Nought} names a monoid whose operation, \cppinline{Plus2}, is addition under another name, and someone has declared it idempotent.
 That axiom is false, the caller never chose to depend on it, and ten twos come out as two.
 With a true axiom nothing visible would go wrong, since both cases would agree and only the cost would differ, which is why such a dependency is easy to miss.
 
@@ -377,20 +369,14 @@ Listing~\ref{lst:theorems} shows the compiler deriving one, and what a derived l
 \begin{listing}[!p]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-template <typename T, typename Op,
-          typename E>
-struct Mon {};
-using Strings =
-    Mon<string, plus<string>, Empty>;
-using Counts =
-    Mon<size_t, plus<size_t>, Zero>;
-using All =
-    Mon<bool, logical_and<bool>, True>;
-using Any =
-    Mon<bool, logical_or<bool>, False>;
 template <typename H, typename A,
           typename B>
 constexpr bool homomorphism = false;
+template <typename F, typename A,
+          typename B>
+concept Maps = requires(F f,
+    carrier_t<A> x) {
+  { f(x) } -> same_as<carrier_t<B>>; };
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
@@ -404,89 +390,78 @@ struct IsEmpty { constexpr bool
 struct Not { constexpr bool
   operator()(bool b) const { return !b; } };
 template <> constexpr bool
-homomorphism<Size, Strings, Counts> = true;
+homomorphism<Size, Empty, Zero> = true;
 template <> constexpr bool
-homomorphism<IsEmpty, Strings, All> = true;
+homomorphism<IsEmpty, Empty, True> = true;
 template <> constexpr bool
-homomorphism<Not, All, Any> = true;
+homomorphism<Not, True, False> = true;
 \end{cpp}
 \end{minipage}
 
 \vspace{-7pt}
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-template <typename F, typename B,
-    typename G, typename X,
-    typename Y, typename Z>
+template <typename A, typename F,
+    typename B, typename G, typename C>
 struct Via { F f; G g;
-  constexpr Z operator()(X x) const
-    requires Maps<F, X, Y> &&
-             Maps<G, Y, Z> {
+  constexpr carrier_t<C> operator()(
+      carrier_t<A> x) const
+    requires Maps<F, A, B> &&
+             Maps<G, B, C> {
     return g(f(x)); } };
-template <typename F, typename B,
-    typename G, typename X,
-    typename Y, typename Z,
-    typename A, typename C>
+template <typename A, typename F,
+    typename B, typename G, typename C>
 constexpr bool homomorphism<
-    Via<F, B, G, X, Y, Z>, A, C> =
+    Via<A, F, B, G, C>, A, C> =
   homomorphism<F, A, B> &&
   homomorphism<G, B, C>;
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-using NonEmpty = Via<IsEmpty, All, Not,
-                     string, bool, bool>;
+using NonEmpty =
+    Via<Empty, IsEmpty, True, Not, False>;
 static_assert(
-homomorphism<NonEmpty, Strings, Any> &&
-!homomorphism<NonEmpty, Strings, All>);
-template <typename H, typename T,
-    typename Op, typename E, typename U,
-    typename Op2, typename E2>
+homomorphism<NonEmpty, Empty, False> &&
+!homomorphism<NonEmpty, Empty, True>);
+template <typename H, typename A,
+          typename B>
 concept IsHomomorphism =
-  IsMonoid<T, Op, E> &&
-  IsMonoid<U, Op2, E2> &&
-  homomorphism<H, Mon<T, Op, E>,
-               Mon<U, Op2, E2>> &&
-  requires(H h, T x) {
-    { h(x) } -> same_as<U>; };
+  IsMonoid<A> && IsMonoid<B> &&
+  homomorphism<H, A, B> &&
+  Maps<H, A, B>;
 \end{cpp}
 \end{minipage}
 
 \vspace{-7pt}
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-template <typename T, typename Op,
-    typename E, typename U, typename Op2,
-    typename E2, typename H,
-    ranges::sized_range R>
-  requires IsHomomorphism<H, T, Op, E,
-                          U, Op2, E2> &&
-    equality_comparable<U> &&
-    same_as<ranges::range_value_t<R>, T>
-constexpr bool free_theorem(
-    Mon<T, Op, E>, Mon<U, Op2, E2>,
-    H h, R r) {
-  return h(concat2<T, Op, E>(r)) ==
-      concat2<U, Op2, E2>(
-          views::transform(r, h)); }
+template <typename A, typename B,
+    typename H, ranges::sized_range R>
+  requires IsHomomorphism<H, A, B> &&
+    equality_comparable<carrier_t<B>> &&
+    same_as<ranges::range_value_t<R>,
+            carrier_t<A>>
+constexpr bool free_theorem(H h, R r) {
+  return h(concat2<A>(r)) ==
+      concat2<B>(views::transform(r, h)); }
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 static_assert(
-free_theorem(Strings{}, Counts{}, Size{},
+free_theorem<Empty, Zero>(Size{},
     array{"ab"s, ""s, "c"s}) &&
-free_theorem(Strings{}, All{}, IsEmpty{},
+free_theorem<Empty, True>(IsEmpty{},
     array{"ab"s, ""s}) &&
-free_theorem(Strings{}, Any{}, NonEmpty{},
+free_theorem<Empty, False>(NonEmpty{},
     array{""s, "ab"s}));
 \end{cpp}
 \end{minipage}
 \vspace{-7pt}
 {\small\[
 \begin{array}{@{}l@{}}
-\mathit{free\_theorem} = \Lambda T.\,\Lambda U.\,\ldots\,\lambda q : \mathit{Monoid}\;T.\,\lambda q' : \mathit{Monoid}\;U.\,\lambda l : \mathit{Bool}.\,\lambda \mathit{eq} : U \to U \to \mathit{Bool}.\,\lambda h : T \to U.\,\lambda n.\,\lambda f. \\
+\mathit{free\_theorem} = \Lambda A.\,\Lambda B.\,\Lambda T.\,\Lambda U.\,\ldots\,\lambda q : \mathit{Monoid}\;T.\,\lambda q' : \mathit{Monoid}\;U.\,\lambda l : \mathit{Bool}.\,\lambda \mathit{eq} : U \to U \to \mathit{Bool}.\,\lambda h : T \to U.\,\lambda n.\,\lambda f. \\
 \qquad\qquad \mathit{eq}\;(h\,(\mathit{concat2}\;q\;n\;f))\;(\mathit{concat2}\;q'\;n\;(\lambda k.\,h\,(f\,k)))
 \end{array}
 \]}
@@ -494,19 +469,19 @@ free_theorem(Strings{}, Any{}, NonEmpty{},
 Left: the law, a lemma, the theorem. Right: three axioms, the inferred fact, three instances.}
 \label{lst:theorems}
 \end{listing}
-% TODO(listings): code from the probe (namespace triple_probe), green on CI.
-% The shape Maps (a required call from one carrier to another) is omitted from
-% the panels.
+% TODO(listings): all four listings were rewritten on 2026-11-21 in the unit
+% form, laws keyed on the unit, straight in the paper; the probe still has the
+% triple form and must follow before the printed code is confirmed.
 % Parked: the semiring, under which a power is one product, and the lemma that
 % a power is a homomorphism where the operation commutes; their code is in the
 % probe and their text in this file's history.
 
 A \emph{homomorphism} is a function from one monoid to another that respects their operations and their units.
-The listing names each monoid by one type and makes ``is a homomorphism'' a law, as associativity is.
+The listing makes ``is a homomorphism'' a law, as associativity is, from the monoid named by one unit to the monoid named by another.
 Three axioms are declared: the length of a concatenation is the sum of the lengths, a concatenation is empty exactly when every part is, and De Morgan's law, that the negation of a conjunction is the disjunction of the negations.
 One lemma is stated and not proved, since it is a textbook fact: a homomorphism after a homomorphism is a homomorphism.
-It is an entry at a composite that reads the same law at the two parts, and the composite names the monoid in the middle, which the compiler could not guess.
-\cppinline{Via} also names the three carriers it passes through, and \cppinline{Maps<F, X, Y>} is the shape that asks for a call of \cppinline{F} from \cppinline{X} to \cppinline{Y}.
+It is an entry at a composite that reads the same law at the two parts, and the composite names the three monoids it passes through, the middle one because the compiler could not guess it.
+\cppinline{Maps<F, A, B>} is the shape that asks for a call of \cppinline{F} from the carrier of \cppinline{A} to the carrier of \cppinline{B}.
 
 Nobody declared anything about a string not being empty.
 The compiler concludes, from emptiness and De Morgan's law, that it is a homomorphism into the truth values under disjunction: a concatenation is not empty exactly when some part is not.
@@ -514,7 +489,7 @@ It concludes nothing more than follows, and the same function against conjunctio
 
 A derived law is worth having because of a theorem that comes with every function written under the rules of this paper: it commutes with every homomorphism of the shape it names, which follows from its type alone~\cite{reynolds1983types,wadler1989theorems}.
 \cppinline{free_theorem} states that for \cppinline{concat2} in plain \Cpp{}, with the theorem's hypothesis as its signature: a shape that names the law and the one call the body makes of the function.
-Each of its three calls reads as a sentence: from this monoid, to that one, by this function, on these values.
+Each of its three calls reads as a sentence: from this monoid, to that one, by this function, on these values, and names the two monoids by their units.
 The third can be written only because of the fact the compiler derived.
 A call checks one case and proves nothing, and the theorem holds whether or not anyone calls it.
 The lines of Listing~\ref{lst:theorems} are in the kernel as written, apart from the ranges (Section~\ref{sec:kernel:derived}).
