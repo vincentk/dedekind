@@ -74,6 +74,12 @@ Open findings from the two reads of the preview (a C++ practitioner and a theori
 
 Not yet rewritten: the introduction (old text, four pages), Section 5 (retitled only; its figure still shows the old listings), the Discussion (old text), Appendices A to F (the larger kernel). The appendix is to become: the kernel complete, the observation on resolution, the desugarings.
 
+## To evaluate (2026-11-21)
+
+- **Planted axioms on the list.** The listings and the probe declare some axioms false on purpose (`idempotent<size_t, Plus2>` in Listing 2; `unital<size_t, plus<size_t>, Two>` and `unital<bool, logical_or<bool>, True>` in the probe). The printed list should mark them as planted and say where they are discussed, which needs a marker on such an entry in the source.
+- **An axiom checker.** Each law has a meaning that is an equation (associative, unital, idempotent, commutative, homomorphism); a checker evaluates it at sample values for each entry on the list and reports a counterexample. A check, not a proof, as the unit's check at one point. Open: it means building and running test code during linting, which may not fit the linter; a way of working has to be found. Sources of samples: for a monoid the units are already at hand, and a carrier's author can supply a few values; samples must include the cases where a law fails (both truth values; wrap-around for `size_t`). Lemmas can be checked at the composites where they are used. Prior work to verify before citing: QuickCheck and the libraries that test class laws; Bagge and Haveraaen and colleagues on concept axioms used for testing.
+- **`guessed_power` and its badge (Listing 2), discussed and not yet drawn.** Lower half: the idempotent case of `power`; `guessed_power`, refused by Jlt; `HasPower` and `named_power`, which wears the dependency as a required call; both give 2 at `Plus2`, because the fault is the planted axiom, which a check beside it (`Plus2{}(2, 2) == 2`) refutes. Image of `named_power` added below the panels; `guessed_power` has none. Table 4 gains a row: a call whose case depends on a law the declaration does not decide. The author wants to look at Listing 2 before deciding what to drop for space.
+
 ## Decided
 
 - Perspective: Art. Done in the header.
