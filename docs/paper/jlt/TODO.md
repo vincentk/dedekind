@@ -200,6 +200,23 @@ Read, verify and cite, or decide not to. The readers named these, several from m
 
 ### 10. A cold read, briefed against the Art criteria and the promise
 
+## Prose pass (after the tool PR; agreed 2026-11-21)
+
+Order agreed: merge #1209, then the tool PR, then this. Inputs: the two cold reads of 2026-11-21 evening (`research_notes/Jlt cold reads/`), the rule "terms of art once, with the citation, then plain words" (most of the cut from 28 to 22 pages).
+
+- The trait program as logic, one paragraph in Section 3, each term once with its citation:
+  - an entry at a composite is a definite Horn clause (Horn 1951), an axiom a fact (empty body); what is taken on trust is the program's facts AND rules, one list (answers "lemmas are not on the list"); plain word in the prose: "a derived law" or "a conditional law", never "rule" (Rules 1 to 3) nor "lemma";
+  - the laws a program holds are the least model, the least fixed point of the immediate-consequence operator (Tarski 1955; van Emden and Kowalski 1976);
+  - Datalog: without function symbols Horn clauses terminate; ours have type constructors, but a body reads only proper parts of the head, so resolution descends on type size (Rule 3 at the level of types);
+  - negation `!C<T>` is negation as failure, sound when stratified (Apt, Blair and Walker 1988); check first whether any law body negates; gives the image of a negated constraint the theoretician asked for;
+  - closed world (Datalog: absent = false) against the posture's open world ("false means not known"); the compiler computes the least model, the posture refuses to read absence as refutation;
+  - the standard's "models" is Tarski's satisfaction (one sentence at the satisfies/models footnote).
+  Abiteboul, Hull and Vianu (in the bibliography) covers Datalog, fixed points and stratification. Verify every other citation before adding. Links to #908 (variance as a logic program).
+- The theoretician's terms: "System F" once as "the prenex fragment"; "EDSL whose domain is System F" becomes "profile"; "structurally typed": the laws are nominal opt-ins; GHC comparison: instance contexts are ignored by GHC, compare with instance chains (Morris and Jones, in the bibliography).
+- Prior work to verify and cite: Schupp et al. (Simplicissimus, CC 2001), Tang and Järvi (LCSD 2007), Gottschling and Lumsdaine (GPCE 2008), Dos Reis, Stroustrup and Merideth (N2887), Concepts Lite/TS (Sutton and Stroustrup), Siek (LNCS 7470), Jones (PEPM 1994, dictionary-free overloading by partial evaluation), Voigtländer (ICFP 2009).
+- Appendix G: units fully admitted (the harsh count) beside the construct share; drop "so a zero is not vacuous"; state the library's shortfall up front.
+- The abstract's promise (user's ledger): both readers read "a check that a tool performs", "comes out as a list" and "preserves types and evaluation" as contradicting Section 3.2.
+
 ## To verify before it is stated
 
 - The dates and sources for the withdrawal of concepts from C++0x.
