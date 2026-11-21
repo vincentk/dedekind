@@ -216,6 +216,18 @@ power<Product>(3uz, 1'000'000'000uz) ==
     9'215'150'800'219'179'009uz &&
 power<Concat>(""s, 1'000'000'000'000uz)
     == ""s);
+
+struct Xor { constexpr size_t
+  operator()() const { return 0; } };
+template <> struct op_of<Xor> {
+  using type = bit_xor<size_t>; };
+template <> constexpr bool
+associative<Xor> = true;
+template <> constexpr bool
+unital<Xor> = true;
+static_assert(
+power<Xor>(5uz, 3uz) == 5 &&
+power<Xor>(5uz, 4uz) == 0);
 \end{cpp}
 \end{minipage}
 
@@ -265,7 +277,7 @@ Computed that way it takes $n$ steps.
 \cppinline{power} takes as many steps as $n$ has bits, by squaring: the method known for multiplication as that of the Russian peasant~\cite[\S 4.6.3]{knuth1997art2}.
 Its state is a pair, the product so far and the current square; at step $i$ the square is multiplied in where bit $i$ of $n$ is set, and then squared.
 The two agree because the operation is associative, which the shape in the signature states.
-It is one function with a meaning at each monoid: a multiple under \cppinline{+}, a power under \cppinline{*}, a repetition at strings.
+It is one function with a meaning at each monoid: a multiple under \cppinline{+}, a power under \cppinline{*}, a repetition at strings, and under exclusive or, whose unit is $0$, the parity of the count: $x$ combined with itself an odd number of times is $x$, and an even number of times is $0$.
 The images below the panels differ in one place, the count of the iterator, $n$ in the definition and the bits of $n$ in \cppinline{power}.
 System~F does not know that they are equal.
 The field of the record that says the operation is associative is what licenses putting the second for the first.
