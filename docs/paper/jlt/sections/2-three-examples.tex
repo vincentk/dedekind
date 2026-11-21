@@ -378,10 +378,17 @@ What changed is that the dependency is in the signature, where a reader looks, a
 The images say the same: \cppinline{named_power} receives \cppinline{power} as a field of its record, filled by its caller where the types are known, and \cppinline{guessed_power} has no image, since its record does not mention \cppinline{idempotent}.
 A Haskell programmer will recognise the arrangement: the companion of \texttt{mconcat}, \texttt{stimes}, is a method of the class, and an instance may supply a faster one.
 
-\subsection{What the compiler infers}
+\subsection{What the compiler derives}
 \label{sec:examples:inference}
 
-Both listings rest on laws that someone declared.
+Both listings rest on laws declared one type at a time.
+A law can also be stated once for a construction, from the same law at its parts, and the compiler then derives it at every combination of parts that has it:
+\begin{itemize}
+\item an \emph{axiom} is a law at one type, declared and not proved;
+\item a \emph{conditional law} is a law at a construction, from laws at its parts, declared once and not proved either;
+\item a \emph{derived law} is a law at a particular construction that the compiler concludes from the two, and that nobody wrote.
+\end{itemize}
+With one conditional law for composition, a few axioms about homomorphisms give the law at every chain of them, of any length, none of it written out.
 Listing~\ref{lst:theorems} shows the compiler deriving one, and what a derived law is good for.
 
 \begin{listing}[!p]
@@ -483,8 +490,8 @@ free_theorem = ΛA. ΛB. ΛT. ΛU. …
   λeq : U → U → Bool. λh : T → U. λn. λf.
     eq (h (concat q n f)) (concat q' n (λk. h (f k)))
 \end{sysf}
-\caption{What the compiler infers: a law derived from laws, and a theorem that comes for free.
-Left: the law, a lemma, the theorem. Right: three axioms, the inferred fact, three instances.}
+\caption{What the compiler derives: a law derived from laws, and a theorem that comes for free.
+Left: the law, a conditional law, the theorem. Right: three axioms, the derived law, three instances.}
 \label{lst:theorems}
 \end{listing}
 % Code of all four listings, as printed: namespace paper_listings in
@@ -496,7 +503,7 @@ Left: the law, a lemma, the theorem. Right: three axioms, the inferred fact, thr
 A \emph{homomorphism} is a function from one monoid to another that respects their operations and their units.
 The listing makes ``is a homomorphism'' a law, as associativity is, from the monoid named by one unit to the monoid named by another.
 Three axioms are declared: the length of a concatenation is the sum of the lengths, a concatenation is empty exactly when every part is, and De Morgan's law, that the negation of a conjunction is the disjunction of the negations.
-One lemma is stated and not proved, since it is a textbook fact: a homomorphism after a homomorphism is a homomorphism.
+One conditional law is declared and not proved, since it is a textbook fact: a homomorphism after a homomorphism is a homomorphism.
 It is an entry at a composite that reads the same law at the two parts, and the composite names the three monoids it passes through, the middle one because the compiler could not guess it.
 \cppinline{Maps<F, A, B>} is the shape that asks for a call of \cppinline{F} from the carrier of \cppinline{A} to the carrier of \cppinline{B}.
 
@@ -550,9 +557,7 @@ Generic code varies with a type only through what its declaration names.
 \cppinline{guessed_concat} breaks it by using a \cppinline{+} that its signature never asked for, and \cppinline{guessed_power} by depending on a law that its signature never named.
 What a declaration may name is a \emph{shape}, written as a \cppinline{concept}, and a shape asks for calls and for laws.
 A law is a \emph{trait}: a value that the compiler looks up by type, \cppinline{false} unless someone has said otherwise.
-An \emph{axiom} is an entry of a trait at one type, stated by the programmer and not proved.
-A \emph{lemma} is an entry at a form of type, which reads the same trait at the parts, as the entry at \cppinline{Via} does in Listing~\ref{lst:theorems}.
-A \emph{theorem} is what the compiler concludes from the two.
+An axiom is an entry of a trait at one type, a conditional law an entry at a form of type that reads the same trait at the parts, as the entry at \cppinline{Via} does, and a derived law what the compiler concludes from the two (Section~\ref{sec:examples:inference}).
 An entry holds for the whole program or not at all, so it is declared above every use that could read it (Appendix~\ref{app:fjlt:order}).
 
 \paragraph{Rule 3, Descent.}
@@ -569,7 +574,7 @@ Over a value it is the fold of \cppinline{concat} and of \cppinline{power}:
 \end{equation}
 where $s \cdot r$ is a range with first element $s$ and tail $r$, $h$ the step and $e$ the start.
 The bound is the length of the range: $n$ for \cppinline{concat}, and the number of bits of $n$ for \cppinline{power}.
-Over a type it is the lemma of Listing~\ref{lst:theorems}:
+Over a type it is the conditional law of Listing~\ref{lst:theorems}:
 \begin{equation}
 \label{eq:cata}
 \begin{aligned}

@@ -44,7 +44,7 @@ A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cann
 \paragraph{The posture is opinionated about idiom.}
 Jlt works best where a program is a composition of arrows over products and sums, in the constructions of Pierce~\cite{pierce1991basic}.
 The type of such a term is its structure, so a \cppinline{concept} can read it and a specialisation can be chosen by it: a pairing into a \cppinline{std::pair} is recognised as a pairing.
-Composition is also what lets laws be inferred: a law passes from a term's parts to the term by one rule for each way of composing them (Table~\ref{tab:law-propagation}).
+Composition is also what lets laws be derived: a law passes from a term's parts to the term by one conditional law for each way of composing them (Table~\ref{tab:law-propagation}).
 Two common idioms of \Cpp{} fit less well.
 By the standard a lambda's type is a unique, unnamed class type~\cite[{\texttt{expr.prim.lambda.closure}}]{cpp23standard}, so no law can be declared of it and no fold reads inside it.
 The limit is the language's, not a compiler's.
