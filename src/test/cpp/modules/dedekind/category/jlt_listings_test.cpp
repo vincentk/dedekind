@@ -2123,6 +2123,207 @@ constexpr size_t half = size_t{1} << 63;
 static_assert(IsZero{}(half + half) && !IsZero{}(half));
 }  // namespace triple_probe
 
+// A probe, not a listing: a monoid named by its unit.  Every monoid has one
+// unit, and the listings already write a type for it, so the unit's type can
+// name the monoid: the carrier is the result type of the unit's call, and the
+// operation is declared once per unit.  Only types are passed: a call reads
+// concat2<Zero>(r), and the unit's value appears only where the body asks for
+// it.  The unit's value does not determine the monoid (0 is the unit of + and
+// of max on size_t), so its type does: Zero and Bottom are two names.
+namespace unit_probe {
+using std::size_t;
+using namespace std::string_literals;
+using Str = std::string;
+
+struct Zero {
+  constexpr size_t operator()() const { return 0; }
+};
+struct One {
+  constexpr size_t operator()() const { return 1; }
+};
+struct Bottom {
+  constexpr size_t operator()() const { return 0; }
+};
+struct True {
+  constexpr bool operator()() const { return true; }
+};
+struct False {
+  constexpr bool operator()() const { return false; }
+};
+struct Empty {
+  constexpr Str operator()() const { return {}; }
+};
+struct Max {
+  constexpr size_t operator()(size_t a, size_t b) const {
+    return a < b ? b : a;
+  }
+};
+
+// The operation each unit belongs to, declared once.
+template <typename E>
+struct op_of {};
+template <>
+struct op_of<Zero> {
+  using type = std::plus<size_t>;
+};
+template <>
+struct op_of<One> {
+  using type = std::multiplies<size_t>;
+};
+template <>
+struct op_of<Bottom> {
+  using type = Max;
+};
+template <>
+struct op_of<True> {
+  using type = std::logical_and<bool>;
+};
+template <>
+struct op_of<False> {
+  using type = std::logical_or<bool>;
+};
+template <>
+struct op_of<Empty> {
+  using type = std::plus<Str>;
+};
+template <typename E>
+using carrier_t = decltype(E{}());
+template <typename E>
+using op_t = typename op_of<E>::type;
+
+// The laws, keyed on carrier and operation as before.
+template <typename T, typename Op>
+constexpr bool associative = false;
+template <typename T, typename Op, typename E>
+constexpr bool unital = false;
+template <typename T, typename Op>
+constexpr bool commutative = false;
+template <typename T, typename Op>
+constexpr bool idempotent = false;
+template <typename T, typename Mul, typename Add>
+constexpr bool distributes = false;
+template <>
+constexpr bool associative<size_t, std::plus<size_t>> = true;
+template <>
+constexpr bool associative<size_t, std::multiplies<size_t>> = true;
+template <>
+constexpr bool associative<size_t, Max> = true;
+template <>
+constexpr bool associative<bool, std::logical_and<bool>> = true;
+template <>
+constexpr bool associative<bool, std::logical_or<bool>> = true;
+template <>
+constexpr bool associative<Str, std::plus<Str>> = true;
+template <>
+constexpr bool unital<size_t, std::plus<size_t>, Zero> = true;
+template <>
+constexpr bool unital<size_t, std::multiplies<size_t>, One> = true;
+template <>
+constexpr bool unital<size_t, Max, Bottom> = true;
+template <>
+constexpr bool unital<bool, std::logical_and<bool>, True> = true;
+template <>
+constexpr bool unital<bool, std::logical_or<bool>, False> = true;
+template <>
+constexpr bool unital<Str, std::plus<Str>, Empty> = true;
+template <>
+constexpr bool commutative<size_t, std::plus<size_t>> = true;
+template <>
+constexpr bool commutative<size_t, std::multiplies<size_t>> = true;
+template <>
+constexpr bool commutative<bool, std::logical_or<bool>> = true;
+template <>
+constexpr bool idempotent<size_t, Max> = true;
+template <>
+constexpr bool idempotent<bool, std::logical_and<bool>> = true;
+template <>
+constexpr bool idempotent<bool, std::logical_or<bool>> = true;
+template <>
+constexpr bool distributes<size_t, std::multiplies<size_t>, std::plus<size_t>> =
+    true;
+template <>
+constexpr bool
+    distributes<bool, std::logical_and<bool>, std::logical_or<bool>> = true;
+
+// The ladder, on one parameter: the unit.
+template <typename E>
+concept IsMagma = requires {
+  E{}();
+  typename op_t<E>;
+} && std::copyable<carrier_t<E>> && requires(carrier_t<E> a, carrier_t<E> b) {
+  { op_t<E>{}(a, b) } -> std::same_as<carrier_t<E>>;
+};
+template <typename E>
+concept IsUnitalMagma = IsMagma<E> && unital<carrier_t<E>, op_t<E>, E>;
+template <typename E>
+concept IsMonoid = IsUnitalMagma<E> && associative<carrier_t<E>, op_t<E>>;
+template <typename E>
+concept IsIdempotentMonoid = IsMonoid<E> && idempotent<carrier_t<E>, op_t<E>>;
+template <typename Nil, typename Unit>
+concept IsSemiring = IsMonoid<Nil> && IsMonoid<Unit> &&
+                     std::same_as<carrier_t<Nil>, carrier_t<Unit>> &&
+                     commutative<carrier_t<Nil>, op_t<Nil>> &&
+                     distributes<carrier_t<Nil>, op_t<Unit>, op_t<Nil>>;
+
+template <typename E, std::ranges::sized_range R>
+  requires IsMonoid<E> &&
+           std::same_as<std::ranges::range_value_t<R>, carrier_t<E>>
+constexpr carrier_t<E> concat2(R r) {
+  return std::ranges::fold_left(r, E{}(), op_t<E>{});
+}
+
+template <typename T>
+struct Power {
+  T product;
+  T base;
+  size_t exponent;
+};
+template <typename E>
+struct Halving {
+  constexpr Power<carrier_t<E>> operator()(Power<carrier_t<E>> p, size_t) const
+    requires IsMonoid<E>
+  {
+    return {p.exponent % 2 == 1 ? op_t<E>{}(p.product, p.base) : p.product,
+            op_t<E>{}(p.base, p.base), p.exponent / 2};
+  }
+};
+template <typename E>
+  requires IsMonoid<E>
+constexpr carrier_t<E> power(carrier_t<E> x, size_t n) {
+  return std::ranges::fold_left(
+             std::views::iota(0uz, size_t(std::bit_width(n))),
+             Power<carrier_t<E>>{E{}(), x, n}, Halving<E>{})
+      .product;
+}
+template <typename E>
+  requires IsIdempotentMonoid<E>
+constexpr carrier_t<E> power(carrier_t<E> x, size_t n) {
+  return n == 0 ? E{}() : x;
+}
+
+// Each unit names a monoid; a type that is not a unit names none.
+static_assert(IsMonoid<Zero> && IsMonoid<One> && IsMonoid<Bottom> &&
+              IsMonoid<True> && IsMonoid<False> && IsMonoid<Empty> &&
+              !IsMonoid<size_t> && !IsMonoid<Str> && !IsMonoid<Max>);
+// The same unit value, two monoids: 0 under + and 0 under max.
+static_assert(Zero{}() == Bottom{}() &&
+              concat2<Zero>(std::array{1uz, 5uz, 3uz}) == 9 &&
+              concat2<Bottom>(std::array{1uz, 5uz, 3uz}) == 5);
+static_assert(concat2<True>(std::array{true, false}) == false &&
+              concat2<False>(std::array{true, false}) == true &&
+              concat2<Empty>(std::array{"ab"s, "c"s}) == "abc"s);
+// The power, and its case for an idempotent monoid, chosen as before.
+static_assert(power<Zero>(2uz, 10uz) == 20 && power<One>(2uz, 10uz) == 1024 &&
+              power<Empty>("ab"s, 3uz) == "ababab"s &&
+              power<Bottom>(7uz, 10uz) == 7 &&
+              power<True>(false, 5uz) == false &&
+              power<True>(false, 0uz) == true);
+// Two monoids on one carrier, named by their two units.
+static_assert(IsSemiring<Zero, One> && IsSemiring<False, True> &&
+              !IsSemiring<One, Zero> && !IsSemiring<Zero, True> &&
+              !IsSemiring<Empty, Empty>);
+}  // namespace unit_probe
+
 TEST_CASE("Spelling probe: a law as a function and as a table",
           "[category][jlt][spelling][probe]") {
   using namespace spelling_probe;
