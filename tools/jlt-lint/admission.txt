@@ -125,6 +125,10 @@ Derived:range derived
 Derived:view derived
 # a conversion between integer types written as a call (decided 2026-11-22)
 Cast:integer kernel
+# Decided 2026-11-22, to be counted with the library run: an implicit
+# conversion between atoms (int to bool, bool promoted to int) and a result
+# required only convertible_to<T> are a derived form, the call followed by
+# T(...), conditional on rule2-converted-result (the result used at T only).
 
 # ---- scaffolding
 Decl:Export scaffolding
