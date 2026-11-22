@@ -11,9 +11,9 @@
 // The functions are declared and never defined: the check type-checks, it
 // does not link or run.
 //
-// FIRST CUT, not yet compiled by anything: the spike on the paper's four
-// listings is its first test, and the static_asserts at the end are its
-// self-check.
+// A first cut, tried on the paper's four listings (the archetype spike in
+// src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp); the
+// static_asserts at the end are its self-check.
 #pragma once
 
 #include <concepts>
@@ -35,6 +35,19 @@ struct carrier {
   carrier& operator=(const carrier&) = default;
   carrier& operator=(carrier&&) = default;
   ~carrier() = default;
+};
+
+/// A carrier a shape asks equality of as well (std::equality_comparable):
+/// copyable, ==, and nothing else.
+template <typename Tag>
+struct comparable_carrier {
+  comparable_carrier() = delete;
+  comparable_carrier(const comparable_carrier&) = default;
+  comparable_carrier(comparable_carrier&&) = default;
+  comparable_carrier& operator=(const comparable_carrier&) = default;
+  comparable_carrier& operator=(comparable_carrier&&) = default;
+  ~comparable_carrier() = default;
+  bool operator==(const comparable_carrier&) const;
 };
 
 /// A function object whose call gives a C: a monoid named by its unit.
@@ -78,7 +91,10 @@ struct sized_range_of {
 namespace self_check {
 struct tag;
 using c = carrier<tag>;
-static_assert(std::copyable<c> && !std::default_initializable<c>);
+static_assert(std::copyable<c> && !std::default_initializable<c> &&
+              !std::equality_comparable<c>);
+static_assert(std::copyable<comparable_carrier<tag>> &&
+              std::equality_comparable<comparable_carrier<tag>>);
 static_assert(std::same_as<std::invoke_result_t<nullary<c>>, c>);
 static_assert(std::same_as<std::invoke_result_t<binary<c>, c, c>, c>);
 static_assert(std::ranges::sized_range<sized_range_of<c>> &&

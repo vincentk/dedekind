@@ -24,6 +24,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "../../../../../../tools/jlt-lint/archetypes.hpp"
+
 import dedekind.category;
 
 namespace jlt_listing {
@@ -2659,6 +2661,76 @@ static_assert(free_theorem<Concat, Sum>(Size{}, std::array{"ab"s, ""s, "c"s}) &&
               free_theorem<Concat, All>(IsEmpty{}, std::array{"ab"s, ""s}) &&
               free_theorem<Concat, Any>(NonEmpty{}, std::array{""s, "ab"s}));
 }  // namespace paper_listings
+
+// ---- The archetype spike (#1211): what the linter's second stage is to
+// generate for the listings, written here by hand first.  A monoid's
+// archetype is the type of a unit that gives a carrier with nothing but
+// copying, its operation a binary call on that carrier, its laws declared
+// true; each template is used at these, inside an inline function that is
+// never called, so the compiler instantiates and type-checks every body and
+// emits nothing: the archetypes' calls need no definitions.  That this file
+// compiles is the admission of concat, power (both cases), named_power and
+// free_theorem by type.
+namespace archetype_spike {
+namespace a = jlt::archetype;
+struct CTag;
+struct ITag;
+struct DTag;
+using C = a::carrier<CTag>;             // a carrier: copying, nothing else
+using I = a::carrier<ITag>;             // the carrier of an idempotent monoid
+using D = a::comparable_carrier<DTag>;  // a carrier a shape compares
+using EC = a::nullary<C>;               // monoids, named by their units
+using EI = a::nullary<I>;
+using ED = a::nullary<D>;
+using H = a::arrow<C, D>;  // a homomorphism from EC to ED
+}  // namespace archetype_spike
+
+namespace paper_listings {
+template <>
+struct op_of<archetype_spike::EC> {
+  using type = jlt::archetype::binary<archetype_spike::C>;
+};
+template <>
+struct op_of<archetype_spike::EI> {
+  using type = jlt::archetype::binary<archetype_spike::I>;
+};
+template <>
+struct op_of<archetype_spike::ED> {
+  using type = jlt::archetype::binary<archetype_spike::D>;
+};
+template <>
+constexpr bool associative<archetype_spike::EC> = true;
+template <>
+constexpr bool unital<archetype_spike::EC> = true;
+template <>
+constexpr bool associative<archetype_spike::EI> = true;
+template <>
+constexpr bool unital<archetype_spike::EI> = true;
+template <>
+constexpr bool idempotent<archetype_spike::EI> = true;
+template <>
+constexpr bool associative<archetype_spike::ED> = true;
+template <>
+constexpr bool unital<archetype_spike::ED> = true;
+template <>
+constexpr bool
+    homomorphism<archetype_spike::H, archetype_spike::EC, archetype_spike::ED> =
+        true;
+}  // namespace paper_listings
+
+namespace archetype_spike {
+namespace pl = paper_listings;
+static_assert(pl::IsMonoid<EC> && !pl::IsIdempotentMonoid<EC> &&
+              pl::IsIdempotentMonoid<EI> && pl::HasPower<EC> &&
+              pl::IsHomomorphism<H, EC, ED>);
+inline void admitted(C c, I i, a::sized_range_of<C> r, H h) {
+  (void)pl::concat<EC>(r);
+  (void)pl::power<EC>(c, 3uz);  // the general case
+  (void)pl::power<EI>(i, 3uz);  // the idempotent case
+  (void)pl::named_power<EC>(c, 3uz);
+  (void)pl::free_theorem<EC, ED>(h, r);
+}
+}  // namespace archetype_spike
 
 TEST_CASE("Spelling probe: a law as a function and as a table",
           "[category][jlt][spelling][probe]") {
