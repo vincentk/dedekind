@@ -53,42 +53,29 @@ It does not hold a generic function to its declared constraints: the body may us
 %   3. Laws compose by themselves: stated once at the smallest pieces, carried
 %      by the compiler to every composite, and refused where they do not
 %      follow.
-%   4. A printed list of every law that was stated and not proved.
+%   4. A printed list of every law that was stated and not proved (today the
+%      axioms only; conditional laws and the laws derived from them are yet
+%      to be listed, Appendix G).
 % All of it is decided while compiling.  The theory is not new, and that it
 % can be used here is the contribution.
 %
-% THE CONTEXT, for the introduction and the related work, not for the
-% abstract.  The concepts designed for C++0x checked a template's body against
-% its constraints where it is defined, and let a concept state axioms.  That
-% design was voted into the working draft and then withdrawn (2009, to be
-% verified with its sources), and the concepts of C++20 check only the use.
-% What the paper gives a developer is that difference back, inside a fragment
-% (values, declared dependencies, bounded recursion) and at modest effort:
-% three rules to keep and one check to run.  Concept maps are not recovered.
+% THE CONTEXT is in the introduction (C++0x checked a template's definition
+% and let a concept state axioms; withdrawn in 2009; C++20 checks only uses;
+% jlt-lint recovers part of the difference, inside the fragment).  Still to be
+% said once: concept maps are not recovered.
 %
 % WHERE THE LIE STANDS.  The sentence is not yet true, and the work is to make
 % the untrue part smaller.  Update this list as it shrinks.
-%   - "a check that a tool performs": built for the paper's listings (both
-%     stages run on them in CI, and the levels table is gated); on the
-%     library the second stage has yet to run.  Earlier: half built.  The linter refuses by
-%     name (Rule 2 now catches both guessed_ examples, #1210); admitting by
-%     type at generated archetypes is designed (Section 4, #1211) and not yet
-%     run.  The promise's first clause already says what it will give (the
-%     user's words of 2026-11-22, "some templates can then be classified as
-%     meaning what their signatures say"); it is true once the spike on the
-%     listings runs, gated in CI, the merge condition of #1211.  Then the
-%     evidence item b) says "refuses by name and admits by type".  What the
-%     classification rests on stays here: the
-%     conjecture of Section 4 (admitted at the archetypes, well typed and the
-%     same resolution at every model) and the order of declarations, not yet
-%     checked.
-%   - "some templates can then be classified as meaning what their signatures
-%     say": the classification is the linter's second stage, so it is not yet
-%     true; when it runs, what the classification means rests on the
-%     conjecture and on the order of declarations (above).
+%   - "a check that a tool performs" and "some templates can then be
+%     classified as meaning what their signatures say": built and run.  Both
+%     stages run in CI, gated, on the listings and on the library's category
+%     layer (#1211, #1212); the other layers are to follow.  What the
+%     classification means rests on the conjecture of Section 4 (admitted at
+%     the archetypes, well typed and the same resolution at every model) and
+%     on the order of declarations, not yet checked.
 %   - "a declared law licenses a faster program": true of Listing 2 (the power).
 %     The selection of the faster case is by a declared law; the caller that
-%     names too little shows what the check must refuse, and no check does.
+%     names too little, guessed_power, is refused by name (#1210).
 %   - "the compiler carries laws through composition": true of Listing 3 (a
 %     homomorphism after a homomorphism), on three axioms.
 %   - Section 3.2, "the evidence is a test that compiles a listing beside its
