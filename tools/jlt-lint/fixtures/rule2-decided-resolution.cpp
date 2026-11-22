@@ -224,6 +224,80 @@ constexpr unsigned of_the_rest(Op op) {
 }
 static_assert(of_a_product(Times{}) == 1 && of_the_rest(Plus{}) == 0);
 
+// The Jlt paper's Listing 3: a monoid named by a type E, its carrier an
+// associated type, and the two cases of pw told apart by a concept on E,
+// which the call passes as an explicit template argument.
+template <typename E>
+using carrier_t = decltype(E{}());
+template <typename E>
+constexpr bool idem = false;
+template <typename E>
+concept Mon = requires { E{}(); };
+template <typename E>
+concept IdemMon = Mon<E> && idem<E>;
+template <typename E, typename T>
+  requires Mon<E>
+constexpr T pw(T x, int) {
+  return x;
+}
+template <typename E, typename T>
+  requires IdemMon<E>
+constexpr T pw(T x, int) {
+  return x;
+}
+template <typename E>
+  requires Mon<E>
+constexpr carrier_t<E> guessed(carrier_t<E> x, int n) {
+  return pw<E>(
+      x, n);  // finding 8: pw resolves by IdemMon, which Mon does not decide
+}
+template <typename E>
+  requires IdemMon<E>
+constexpr carrier_t<E> declared(carrier_t<E> x, int n) {
+  return pw<E>(x, n);  // fine: IdemMon required
+}
+
+// A value argument counts with its type: under an auto parameter, Tagged<T,
+// 1> and Tagged<T, 1u> are two facts, so refuting the first leaves the second
+// undecided.
+template <typename T, auto V>
+concept Tagged = sizeof(T) + V > 0;
+template <typename T>
+  requires Q<T>
+constexpr int tagged(T) {
+  return 0;
+}
+template <typename T>
+  requires Q<T> && Tagged<T, 1u>
+constexpr int tagged(T) {
+  return 1;
+}
+template <typename T>
+  requires Q<T> && (!Tagged<T, 1>)
+constexpr int by_int(T x) {
+  return tagged(x);  // finding 9: tagged resolves by Tagged<T, 1u>, which
+                     // !Tagged<T, 1> does not decide
+}
+
+// An explicit template argument binds before the arguments do: gc<T>(0)
+// binds the candidate's parameter to T, whose C the caller requires, and
+// converts the 0; it is not read at int.
+template <typename T>
+  requires Q<T>
+constexpr int gc(T) {
+  return 0;
+}
+template <typename T>
+  requires Q<T> && C<T>
+constexpr int gc(T) {
+  return 1;
+}
+template <typename T>
+  requires Q<T> && C<T>
+constexpr int converts(T) {
+  return gc<T>(0);  // fine: C<T> required, the 0 converted
+}
+
 }  // namespace jlt_listing
 
 template <typename T>

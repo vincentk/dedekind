@@ -310,6 +310,28 @@ constexpr T lawful_leak(T x) {  // planted: the law names no '+'
   return x + x;
 }
 
+// The Jlt paper's guessed_concat: an operation on an associated type of a
+// parameter, here its element type, that no requirement names.
+template <typename R>
+using elem_t = typename R::value_type;
+template <typename R>
+concept HasElems = requires { typename R::value_type; };
+template <typename R>
+  requires HasElems<R>
+constexpr elem_t<R> add_elems(elem_t<R> a, elem_t<R> b) {
+  return a +
+         b;  // planted: '+' on the element type, which HasElems does not name
+}
+template <typename R>
+concept AddsElems = HasElems<R> && requires(elem_t<R> a, elem_t<R> b) {
+  { a + b };
+};
+template <typename R>
+  requires AddsElems<R>
+constexpr elem_t<R> adds_elems(elem_t<R> a, elem_t<R> b) {
+  return a + b;  // fine: '+' named
+}
+
 }  // namespace jlt_listing
 
 template <typename T>

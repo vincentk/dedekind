@@ -110,9 +110,9 @@
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Frontend/MultiplexConsumer.h"
 #include "clang/Frontend/TextDiagnostic.h"
-#include "llvm/ADT/APSInt.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
+#include "llvm/ADT/APSInt.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Path.h"
@@ -592,17 +592,30 @@ Vocabulary vocabularyOf(const clang::FunctionTemplateDecl* ft) {
   return v;
 }
 
-/// Whether a value's type is a template parameter itself (through references
-/// and cv): the value whose vocabulary Rule 2 restricts.  A value of some
-/// other dependent type, a library aggregate or a call's result, carries that
-/// type's vocabulary, not the parameter's.
-bool isParameterTyped(const clang::Expr* e) {
-  if (!e) return false;
-  clang::QualType t = e->getType();
+/// Whether a value's type is known only through the template's parameters
+/// (through references and cv): a parameter itself or an associated type of
+/// one, the values whose vocabulary Rule 2 restricts.  A value of a library
+/// aggregate's type carries that type's vocabulary, not the parameter's.
+bool parameterKnown(clang::QualType t) {
   if (t.isNull()) return false;
   t = t.getNonReferenceType().getUnqualifiedType();
-  return t->isTemplateTypeParmType() ||
-         llvm::isa<clang::SubstTemplateTypeParmType>(t.getTypePtr());
+  if (t->isTemplateTypeParmType() ||
+      llvm::isa<clang::SubstTemplateTypeParmType>(t.getTypePtr()))
+    return true;
+  // An associated type of a parameter: a dependent name (typename R::value
+  // type) or the decltype of a dependent
+  // expression, read through aliases such as range_value_t<R> or
+  // carrier_t<E> to the canonical type.  It is known only through the
+  // constraints, as the parameter is.  A class template's specialisation
+  // (std::pair<T, T>) has a vocabulary of its own and is not one.
+  if (!t->isDependentType()) return false;
+  const clang::Type* c = t.getCanonicalType().getTypePtr();
+  return llvm::isa<clang::TemplateTypeParmType>(c) ||
+         llvm::isa<clang::DependentNameType>(c) ||
+         llvm::isa<clang::DecltypeType>(c);
+}
+bool isParameterTyped(const clang::Expr* e) {
+  return e && parameterKnown(e->getType());
 }
 
 bool anyParameterTyped(llvm::ArrayRef<const clang::Expr*> es) {
@@ -928,13 +941,50 @@ const clang::Decl* enclosingDecl(const clang::Stmt* s, clang::ASTContext& ctx) {
   return nullptr;
 }
 
-/// Whether `c` is category's IsBoundedRange, read through transparent
-/// contexts such as a module's export.
+/// Whether `c` states a range's count before a fold starts: category's
+/// IsBoundedRange, read through transparent contexts such as a module's
+/// export, or the standard's sized_range, whose size is known before the
+/// first step.
 bool isBoundedConcept(const clang::NamedDecl* c) {
-  if (!c || c->getName() != "IsBoundedRange") return false;
+  if (!c) return false;
+  if (c->getName() == "sized_range") return inStd(c);
+  if (c->getName() != "IsBoundedRange") return false;
   const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(
       c->getDeclContext()->getRedeclContext());
   return ns && ns->getName() == "category";
+}
+
+/// Whether a folded range is a count given before the first step: the
+/// standard's views::iota with a bound, or views::repeat with a count, called
+/// with two arguments, as fold_left(views::iota(0uz, k), ...) is.
+bool isCountedView(const clang::Expr* r) {
+  const auto* call = llvm::dyn_cast_or_null<clang::CallExpr>(r);
+  if (!call) return false;
+  const clang::Expr* callee = call->getCallee()->IgnoreParenImpCasts();
+  unsigned first = 0;
+  if (const auto* op = llvm::dyn_cast<clang::CXXOperatorCallExpr>(call)) {
+    callee = op->getArg(0)->IgnoreParenImpCasts();
+    first = 1;
+  }
+  const clang::NamedDecl* d = nullptr;
+  if (const auto* ref = llvm::dyn_cast<clang::DeclRefExpr>(callee))
+    d = ref->getDecl();
+  else if (const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(callee))
+    d = u->decls().empty() ? nullptr : *u->decls().begin();
+  if (!d || !inStd(d)) return false;
+  const std::string name = d->getNameAsString();
+  if ((name != "iota" && name != "repeat") || call->getNumArgs() != first + 2)
+    return false;
+  // A bound of std::unreachable_sentinel_t is no bound: iota(0u,
+  // unreachable_sentinel) and repeat(x, unreachable_sentinel) never end.
+  const clang::QualType bound = call->getArg(first + 1)
+                                    ->IgnoreParenImpCasts()
+                                    ->getType()
+                                    .getNonReferenceType()
+                                    .getUnqualifiedType()
+                                    .getCanonicalType();
+  return bound.getAsString().find("unreachable_sentinel_t") ==
+         std::string::npos;
 }
 
 /// The template parameters a constraint bounds: IsBoundedRange<P> as a
@@ -1020,6 +1070,7 @@ const clang::Expr* foldedRange(const clang::DeclRefExpr* fold,
 bool foldsBoundedParameter(const clang::DeclRefExpr* fold,
                            const clang::FunctionDecl* f,
                            clang::ASTContext& ctx) {
+  if (isCountedView(foldedRange(fold, ctx))) return true;
   const auto* r =
       llvm::dyn_cast_or_null<clang::DeclRefExpr>(foldedRange(fold, ctx));
   if (!r || !llvm::isa<clang::ParmVarDecl>(r->getDecl())) return false;
@@ -1034,7 +1085,8 @@ bool foldsBoundedParameter(const clang::DeclRefExpr* fold,
 }
 
 /// A standard fold called directly, outside a function that states the
-/// bound in its signature: one finding per reference to the fold.
+/// bound in its signature and not over a counted view: one finding per
+/// reference to the fold.
 class BoundedFold : public clang::ASTConsumer,
                     public clang::RecursiveASTVisitor<BoundedFold> {
  public:
@@ -1492,7 +1544,9 @@ std::optional<Param> paramOf(clang::QualType t) {
 /// (after substitution), any other type by its spelling.
 using Subst = std::map<Param, std::string>;
 std::string renderParam(Param p) {
-  return "p" + std::to_string(p.first) + ":" + std::to_string(p.second);
+  // A prefix no spelled type has, so that a type such as ns::X is never
+  // taken for a parameter.
+  return "$p" + std::to_string(p.first) + ":" + std::to_string(p.second);
 }
 std::string renderArg(clang::QualType t, const Subst& subst) {
   if (std::optional<Param> p = paramOf(t)) {
@@ -1544,8 +1598,10 @@ void guaranteed(const clang::Expr* e, bool positive, std::vector<Atom>& out,
       atom.args.push_back(renderArg(a.getAsType(), subst));
     } else if (a.getKind() == clang::TemplateArgument::Integral) {
       // A value argument, as IsMonoid<Op, 1u> has: the atom is the concept at
-      // that value, so IsMonoid<Op, 0u> and IsMonoid<Op, 1u> are two facts.
-      atom.args.push_back(llvm::toString(a.getAsIntegral(), 10));
+      // that value and its type, so IsMonoid<Op, 0u> and IsMonoid<Op, 1u> are
+      // two facts, and so are C<T, 1> and C<T, 1u> under an auto parameter.
+      atom.args.push_back(a.getIntegralType().getCanonicalType().getAsString() +
+                          " " + llvm::toString(a.getAsIntegral(), 10));
     } else {
       return;  // a value that depends on a parameter, a template: not read
     }
@@ -1667,7 +1723,15 @@ class UndecidedResolution : public clang::ASTConsumer {
       if (!u) continue;
       llvm::SmallVector<const clang::Expr*, 4> args(call->arguments().begin(),
                                                     call->arguments().end());
-      if (!anyParameterTyped(args)) continue;
+      // A call at a type variable: an argument of a type known only through
+      // the parameters, or an explicit template argument of one, as
+      // power<E>(x, n) passes the monoid E.
+      bool atParameter = anyParameterTyped(args);
+      for (const clang::TemplateArgumentLoc& ta : u->template_arguments())
+        if (ta.getArgument().getKind() == clang::TemplateArgument::Type &&
+            parameterKnown(ta.getArgument().getAsType()))
+          atParameter = true;
+      if (!atParameter) continue;
       const std::string name = u->getName().getAsString();
       if (v.names.count(name)) continue;  // named: read through the dictionary
       // Each viable candidate's atoms, re-expressed on the enclosing
@@ -1681,9 +1745,31 @@ class UndecidedResolution : public clang::ASTConsumer {
         if (cf->isDeleted() || !viableArity(cf, args.size())) continue;
         Subst toCaller;
         std::set<std::string> callerArgs;
+        // The explicit template arguments bind the candidate's leading
+        // parameters, as power<E> binds the monoid.
+        {
+          const clang::TemplateParameterList* cps =
+              cand->getTemplateParameters();
+          unsigned k = 0;
+          for (const clang::TemplateArgumentLoc& ta : u->template_arguments()) {
+            if (k >= cps->size()) break;
+            if (ta.getArgument().getKind() == clang::TemplateArgument::Type)
+              if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(
+                      cps->getParam(k))) {
+                const std::string r =
+                    renderArg(ta.getArgument().getAsType(), {});
+                toCaller[{tp->getDepth(), tp->getIndex()}] = r;
+                callerArgs.insert(r);
+              }
+            ++k;
+          }
+        }
         for (unsigned k = 0; k < cf->getNumParams() && k < args.size(); ++k)
           if (std::optional<Param> from =
-                  paramOf(cf->getParamDecl(k)->getType())) {
+                  paramOf(cf->getParamDecl(k)->getType());
+              from && !toCaller.count(*from)) {
+            // An explicit template argument binds first: g<T>(0) binds the
+            // parameter to T and converts the 0, as C++ does.
             toCaller[*from] = renderArg(args[k]->getType(), {});
             callerArgs.insert(toCaller[*from]);
           }
@@ -1694,8 +1780,7 @@ class UndecidedResolution : public clang::ASTConsumer {
                      cf->getTrailingRequiresClause().ConstraintExpr, false,
                      toCaller)) {
           for (const std::string& arg : a.args)
-            if (arg.rfind("p", 0) == 0 && arg.find(':') != std::string::npos &&
-                !callerArgs.count(arg))
+            if (arg.rfind("$p", 0) == 0 && !callerArgs.count(arg))
               bound = false;  // a candidate parameter the call does not bind
           const int k = known(a);
           if ((k == 1 && !a.positive) || (k == -1 && a.positive))
