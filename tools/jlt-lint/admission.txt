@@ -57,16 +57,16 @@ Type:DependentName kernel
 Type:Decltype kernel
 
 # ---- derived forms
-Decl:TypeAlias derived
-Decl:TypeAliasTemplate derived
-Type:Typedef derived
-Type:Using derived
+Decl:TypeAlias kernel
+Decl:TypeAliasTemplate kernel
+Type:Typedef scaffolding
+Type:Using scaffolding
 Type:Auto derived
 Type:DeducedTemplateSpecialization derived
 Type:InjectedClassName derived
 Type:LValueReference derived
-Type:Paren derived
-Stmt:ParenExpr derived
+Type:Paren scaffolding
+Stmt:ParenExpr scaffolding
 Decl:Var derived
 Stmt:DeclStmt derived
 Stmt:IfStmt derived
@@ -81,6 +81,48 @@ Stmt:CXXFoldExpr derived
 Stmt:CXXRewrittenBinaryOperator derived
 Stmt:UserDefinedLiteral derived
 Decl:CXXDeductionGuide derived
+
+# ---- operators by spelling (definitions only; the file inventory still
+# counts Stmt:BinaryOperator and Stmt:UnaryOperator as a whole)
+Op:+ kernel
+Op:- kernel
+Op:* kernel
+Op:/ kernel
+Op:% kernel
+Op:& kernel
+Op:| kernel
+Op:^ kernel
+Op:<< kernel
+Op:>> kernel
+Op:== kernel
+Op:!= kernel
+Op:< kernel
+Op:> kernel
+Op:<= kernel
+Op:>= kernel
+Op:<=> kernel
+Op:&& kernel
+Op:|| kernel
+Op:+= refused
+Op:-= refused
+Op:*= refused
+Op:/= refused
+Op:= refused
+Op:, open
+Op:u! kernel
+Op:u- kernel
+Op:u~ kernel
+Op:u+ kernel
+Op:u& refused
+Op:u* refused
+Op:u++ refused
+Op:u-- refused
+Op:u++post refused
+Op:u--post refused
+
+# ---- the derived forms no syntax kind shows (definitions only)
+Derived:range derived
+Derived:view derived
 
 # ---- scaffolding
 Decl:Export scaffolding
@@ -122,7 +164,7 @@ Stmt:UnaryOperator open
 Stmt:CXXFunctionalCastExpr open
 Stmt:CXXStaticCastExpr open
 Stmt:CXXThisExpr open
-Stmt:CXXConstructExpr open
+Stmt:CXXConstructExpr kernel
 Stmt:CXXMemberCallExpr open
 Stmt:ArraySubscriptExpr open
 Stmt:StringLiteral open

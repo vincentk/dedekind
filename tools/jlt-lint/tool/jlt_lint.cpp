@@ -2417,6 +2417,128 @@ class Admission : public clang::ASTConsumer {
   bool successes;
 };
 
+/// The syntax kinds under one declaration, as the inventory names them.
+class Kinds : public clang::RecursiveASTVisitor<Kinds> {
+ public:
+  std::set<std::string> kinds;
+  bool shouldVisitTemplateInstantiations() const { return false; }
+  bool shouldVisitImplicitCode() const { return false; }
+  bool TraverseDecl(clang::Decl* d) {
+    // The variable a variable template declares is the template, not a
+    // local variable: counted as the VarTemplate.
+    const auto* v = llvm::dyn_cast_or_null<clang::VarDecl>(d);
+    if (d && !d->isImplicit() && !(v && v->getDescribedVarTemplate()))
+      kinds.insert(std::string("Decl:") + d->getDeclKindName());
+    return clang::RecursiveASTVisitor<Kinds>::TraverseDecl(d);
+  }
+  // The one derived form no syntax kind shows: a range.  A parameter
+  // constrained by a standard range concept, or a standard view other than
+  // the counted iota the kernel iterates over.
+  bool VisitConceptSpecializationExpr(clang::ConceptSpecializationExpr* e) {
+    const clang::ConceptDecl* c = e->getNamedConcept();
+    if (c && inStd(c) && c->getName().ends_with("range"))
+      kinds.insert("Derived:range");
+    return true;
+  }
+  bool VisitTemplateTypeParmDecl(clang::TemplateTypeParmDecl* d) {
+    if (const clang::TypeConstraint* tc = d->getTypeConstraint())
+      if (const clang::TemplateDecl* c = tc->getNamedConcept())
+        if (inStd(c) && c->getName().ends_with("range"))
+          kinds.insert("Derived:range");
+    return true;
+  }
+  bool VisitDeclRefExpr(clang::DeclRefExpr* e) {
+    const clang::ValueDecl* d = e->getDecl();
+    if (d && inStd(d) &&
+        d->getQualifiedNameAsString().find("views::") != std::string::npos &&
+        d->getName() != "iota")
+      kinds.insert("Derived:view");
+    return true;
+  }
+  bool VisitStmt(clang::Stmt* st) {
+    if (const auto* t = llvm::dyn_cast<clang::CXXThisExpr>(st))
+      if (t->isImplicit()) return true;  // a member named without this->
+    // An operator by its spelling: + is not =, ! is not ++.
+    if (const auto* o = llvm::dyn_cast<clang::BinaryOperator>(st)) {
+      kinds.insert("Op:" +
+                   clang::BinaryOperator::getOpcodeStr(o->getOpcode()).str());
+      return true;
+    }
+    if (const auto* o = llvm::dyn_cast<clang::UnaryOperator>(st)) {
+      kinds.insert("Op:u" +
+                   clang::UnaryOperator::getOpcodeStr(o->getOpcode()).str() +
+                   (o->isPostfix() ? "post" : ""));
+      return true;
+    }
+    if (!llvm::isa<clang::ImplicitCastExpr, clang::MaterializeTemporaryExpr,
+                   clang::ExprWithCleanups, clang::CXXBindTemporaryExpr,
+                   clang::ConstantExpr, clang::CXXDefaultArgExpr,
+                   clang::CXXDefaultInitExpr, clang::OpaqueValueExpr,
+                   clang::SubstNonTypeTemplateParmExpr>(st))
+      kinds.insert(std::string("Stmt:") + st->getStmtClassName());
+    return true;
+  }
+  bool VisitTypeLoc(clang::TypeLoc tl) {
+    if (!tl.isNull())
+      kinds.insert(std::string("Type:") + tl.getType()->getTypeClassName());
+    return true;
+  }
+};
+
+/// Not a rule: every declaration directly in the scope namespace, with its
+/// lines and the syntax kinds it uses, one line each, so that a script can
+/// give each definition its level (kernel or derived forms, by admission.txt)
+/// and join it with the findings that fall in its lines.
+class Definitions : public clang::ASTConsumer {
+ public:
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    const clang::SourceManager& sm = ctx.getSourceManager();
+    clang::PrintingPolicy policy = ctx.getPrintingPolicy();
+    policy.SuppressScope = true;
+    std::function<void(const clang::DeclContext*)> walk =
+        [&](const clang::DeclContext* dc) {
+          for (clang::Decl* d : dc->decls()) {
+            const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(d);
+            if (ns && ns->getName() == scope &&
+                sm.isInMainFile(sm.getExpansionLoc(ns->getLocation()))) {
+              for (clang::Decl* m : ns->decls()) report(m, sm, policy);
+              continue;
+            }
+            if (const auto* c = llvm::dyn_cast<clang::DeclContext>(d))
+              if (llvm::isa<clang::NamespaceDecl, clang::LinkageSpecDecl,
+                            clang::ExportDecl>(d))
+                walk(c);
+          }
+        };
+    walk(ctx.getTranslationUnitDecl());
+  }
+
+ private:
+  void report(clang::Decl* d, const clang::SourceManager& sm,
+              const clang::PrintingPolicy& policy) {
+    if (d->isImplicit() ||
+        llvm::isa<clang::NamespaceDecl, clang::UsingDecl,
+                  clang::UsingDirectiveDecl, clang::StaticAssertDecl>(d))
+      return;
+    const auto* nd = llvm::dyn_cast<clang::NamedDecl>(d);
+    if (!nd) return;
+    std::string name;
+    llvm::raw_string_ostream n(name);
+    nd->getNameForDiagnostic(n, policy, false);
+    const clang::SourceLocation b = sm.getExpansionLoc(d->getBeginLoc()),
+                                e = sm.getExpansionLoc(d->getEndLoc());
+    if (!sm.isInMainFile(b)) return;
+    Kinds k;
+    k.TraverseDecl(d);
+    out() << sm.getFilename(b) << ':' << sm.getExpansionLineNumber(b) << ':'
+          << sm.getExpansionColumnNumber(b) << ": " << n.str() << " lines "
+          << sm.getExpansionLineNumber(b) << '-'
+          << sm.getExpansionLineNumber(e);
+    for (const std::string& kind : k.kinds) out() << ' ' << kind;
+    out() << '\n';
+  }
+};
+
 /// One check by name, or null for an unknown name.
 std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
   if (name == "mutual-recursion") return std::make_unique<MutualRecursion>();
@@ -2431,6 +2553,7 @@ std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
     return std::make_unique<UndecidedResolution>();
   if (name == "admit") return std::make_unique<Admission>(false);
   if (name == "admitted") return std::make_unique<Admission>(true);
+  if (name == "definitions") return std::make_unique<Definitions>();
   llvm::errs() << "jlt-lint: unknown check " << name << '\n';
   return nullptr;
 }
