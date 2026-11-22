@@ -2173,7 +2173,10 @@ void readRequires(const clang::RequiresExpr* r, const TermSubst& s, Facts& f) {
                 it != f.memberCall.end() && it->second.second.empty()) {
               it->second.second = to.member;
               f.members[to.p].insert(to.member);
-              if (rn == "convertible_to") f.memberConverts.insert(to.p);
+              // Presents is convertible_to or a presentation the object
+              // names; at a fresh carrier only the conversion, at once.
+              if (rn == "convertible_to" || rn == "Presents")
+                f.memberConverts.insert(to.p);
               continue;
             }
         }
@@ -2522,12 +2525,17 @@ class MarkedUse : public clang::ASTConsumer {
         const clang::Expr* e = v->getInit()->IgnoreParenImpCasts();
         const clang::FunctionDecl* f = nullptr;
         if (const auto* l = llvm::dyn_cast<clang::LambdaExpr>(e)) {
-          // The call form: the one call in the lambda's body.
-          for (const clang::Stmt* st : l->getBody()->children())
-            if (const auto* c = llvm::dyn_cast<clang::CStyleCastExpr>(st))
-              if (const auto* ce = llvm::dyn_cast<clang::CallExpr>(
-                      c->getSubExpr()->IgnoreParenImpCasts()))
-                f = ce->getDirectCallee();
+          // The call form: the first call in the lambda's body, wherever
+          // cleanups and temporaries put it.
+          struct First : clang::RecursiveASTVisitor<First> {
+            const clang::FunctionDecl* f = nullptr;
+            bool VisitCallExpr(clang::CallExpr* c) {
+              if (!f) f = c->getDirectCallee();
+              return !f;
+            }
+          } first;
+          first.TraverseStmt(const_cast<clang::Stmt*>(l->getBody()));
+          f = first.f;
         } else {
           if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
             e = u->getSubExpr()->IgnoreParenImpCasts();
@@ -2565,13 +2573,61 @@ class MarkedUse : public clang::ASTConsumer {
         inChecked = was;
         return true;
       }
-      bool VisitCallExpr(clang::CallExpr* c) {
+      // A conversion of the proxy is admitted only where a declared T is
+      // initialised or a T is returned (Table 7: copy-initialisation of a
+      // T); an argument, an operand, a branch of ?: or a constructor's
+      // argument is late.  A proxy returned unconverted is late too.
+      clang::ASTContext* ctx = nullptr;
+      bool VisitCXXMemberCallExpr(clang::CXXMemberCallExpr* m) {
+        if (!inChecked || !convertsProxy(m)) return true;
+        clang::DynTypedNode n = clang::DynTypedNode::create(*m);
+        for (int depth = 0; depth < 16; ++depth) {
+          auto ps = ctx->getParents(n);
+          if (ps.empty()) {  // under a list's semantic form: not a T
+            sel.lateConversion = true;
+            return true;
+          }
+          n = ps[0];
+          if (const auto* x = n.get<clang::Expr>()) {
+            if (llvm::isa<clang::ImplicitCastExpr, clang::ParenExpr,
+                          clang::MaterializeTemporaryExpr,
+                          clang::CXXBindTemporaryExpr, clang::ExprWithCleanups>(
+                    x))
+              continue;
+            if (llvm::isa<clang::CXXFunctionalCastExpr,
+                          clang::CXXStaticCastExpr>(x))
+              return true;  // the conversion written out
+            sel.lateConversion = true;
+            return true;
+          }
+          if (n.get<clang::VarDecl>() || n.get<clang::ReturnStmt>())
+            return true;
+          sel.lateConversion = true;
+          return true;
+        }
+        return true;
+      }
+      // A brace list's conversions live in its semantic form, which the
+      // traversal does not visit: an element that converts the proxy is
+      // late (an aggregate's field, not a declared T).
+      bool VisitInitListExpr(clang::InitListExpr* l) {
         if (!inChecked) return true;
-        for (const clang::Expr* a : c->arguments())
-          if (convertsProxy(a)) sel.lateConversion = true;
+        const clang::InitListExpr* sem =
+            l->isSemanticForm() ? l : l->getSemanticForm();
+        if (sem)
+          for (const clang::Expr* i : sem->inits())
+            if (i && convertsProxy(i)) sel.lateConversion = true;
+        return true;
+      }
+      bool VisitReturnStmt(clang::ReturnStmt* r) {
+        if (inChecked && r->getRetValue())
+          if (const auto* rd =
+                  r->getRetValue()->getType()->getAsCXXRecordDecl())
+            if (rd->getName() == "converts_to") sel.lateConversion = true;
         return true;
       }
     } late(sel);
+    late.ctx = &ctx;
     late.TraverseDecl(ctx.getTranslationUnitDecl());
   }
 
@@ -2774,6 +2830,10 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
   for (const Facts::Law& law : f.laws) {
     std::string args;
     for (Param p : law.args) {
+      if (f.atoms.count(p)) {  // its entry would need every integer type
+        why = "a law at an integer parameter";
+        return {};
+      }
       if (!arch.count(p)) {
         why = "a law at a parameter without an archetype";
         return {};
@@ -2899,7 +2959,12 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
       "= requires { " +
       subst(instance, "N") +
       "; };\n};\nusing Lo = ::jlt::archetype::smallest_integer<fits>;\n"
-      "using Hi = ::jlt::archetype::largest_integer<fits>;\n}\n";
+      "using Hi = ::jlt::archetype::largest_integer<fits>;\ntemplate <class "
+      "N>\nstruct checked {\n  static constexpr bool value = [] {\n    if "
+      "constexpr (fits<N>::value) (void)" +
+      subst(instance, "N") +
+      ";\n    return true;\n  }();\n};\ninline constexpr bool use_all = "
+      "::jlt::archetype::every_integer<checked>;\n}\n";
   const std::string head =
       subst(text.substr(0, text.rfind("namespace " + ns + " {\n" + result)),
             ns + "::Hi");
@@ -2926,11 +2991,13 @@ const clang::ClassTemplateDecl* classTemplateOf(
 /// constrained class template, `component(const Compose<F, G>&)`, holds a
 /// value of it, so whoever calls the template has already met the class's
 /// constraints, here Cod<F> == Dom<G>; they are read as if the template had
-/// stated them.  Rust has the same reading under the name implied bounds
-/// (RFC 2089): bounds a function's argument types need are assumed in its
-/// body, not repeated in its signature.  Only for the parameter types: a
-/// result type's constraints are met by no argument, and a template whose
-/// result asks more than its constraints is refused (see admit).  A class
+/// stated them.  Rust's RFC 2089, implied bounds (accepted, not
+/// stabilised), proposes the same reading: bounds a function's argument
+/// types need are assumed in its body, not repeated in its signature, and
+/// those of its return type too.  Here only the parameter types: C++ checks
+/// a result type's constraints where the template is called, no argument
+/// meets them, and a template whose result asks more than its constraints
+/// is refused (see admit).  A class
 /// template whose arguments are not all types is skipped, and the use then
 /// shows whether its constraints hold at the archetypes.
 void readImplied(const clang::FunctionDecl* fd, Facts& f) {
@@ -3042,7 +3109,10 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   clang::tooling::ClangTool again(*compilations, {path});
   again.mapVirtualFile(path, text);
   again.appendArgumentsAdjuster(clang::tooling::getInsertArgumentAdjuster(
-      {"-Wdeprecated-declarations", "-Wno-error=deprecated-declarations"},
+      // Warnings stay warnings: an error is what the type check refuses, not
+      // what the project's -Werror promotes (a bitwise not of a bool is
+      // legal C++).
+      {"-Wdeprecated-declarations", "-Wno-error"},
       clang::tooling::ArgumentInsertPosition::END));
   Errors errors;
   errors.appendixFrom = static_cast<unsigned>(original.size());
@@ -3065,16 +3135,24 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
             "the use resolved to another overload at the archetypes"};
   if (errors.n == 0 && sel.lateConversion)
     return {Outcome::NotAdmitted,
-            "a result promised only convertible_to<T> passed straight to a "
-            "call; convert it into a declared T first"};
+            "a result promised only convertible_to<T> used other than to "
+            "initialise a declared T or to return one"};
   if (errors.n == 0) return {Outcome::Admitted, {}};
   // The result type asks more than the constraints: the archetypes satisfy
   // every stated constraint, and the result's class template refuses them,
   // so a caller who meets the signature cannot call the template.
   llvm::ArrayRef<clang::TemplateArgument> resultArgs;
+  bool paramShares = false;  // a parameter of the result's class template
+  if (const clang::ClassTemplateDecl* rt =
+          classTemplateOf(fd->getReturnType(), resultArgs))
+    for (const clang::ParmVarDecl* pv : fd->parameters()) {
+      llvm::ArrayRef<clang::TemplateArgument> pa;
+      if (const auto* pt = classTemplateOf(pv->getType(), pa))
+        paramShares |= pt->getCanonicalDecl() == rt->getCanonicalDecl();
+    }
   if (const clang::ClassTemplateDecl* rt =
           classTemplateOf(fd->getReturnType(), resultArgs);
-      rt && errors.inAppendix &&
+      rt && !paramShares && errors.inAppendix &&
       errors.first.rfind("constraints not satisfied for class template '" +
                              rt->getName().str() + "'",
                          0) == 0)

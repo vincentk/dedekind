@@ -3,6 +3,7 @@
 // uses only the promised operation (admitted), one that uses + (not
 // admitted: finding 1), and one under a disjunction no rule reads
 // (undecided: finding 2).  Standalone.
+#include <bit>
 #include <concepts>
 #include <ranges>
 
@@ -69,18 +70,19 @@ constexpr carrier_t<E> branching(carrier_t<E> x) {
 }  // finding 5: undecided, an if constexpr
 
 // 4. The use names an overload set: at the archetypes of the looser one, the
-// tighter sibling is chosen, and the looser body would go unchecked.
+// tighter sibling is chosen, and the looser body would go unchecked.  The
+// parameter is E itself, so that partial ordering compares the two and the
+// tighter constraint wins (over carrier_t<E>, an alias of a decltype, the two
+// would be ambiguous instead).
 template <typename E>
   requires Mon<E>
-constexpr carrier_t<E> pick(carrier_t<E> x) {
+constexpr E pick(E x) {
   return x + x;  // finding 6: undecided, the use resolves to the sibling
 }
 template <typename E>
-  requires Mon<E> && std::copyable<carrier_t<E>>
-constexpr carrier_t<E> pick(carrier_t<E> x) {
-  // finding 7: undecided, the compiler instantiates the looser body on the
-  // way and its error is not this body's
-  return op_t<E>{}(x, x);
+  requires Mon<E> && std::copyable<E>
+constexpr E pick(E x) {
+  return x;  // admitted: chosen, and its body uses nothing unpromised
 }
 
 // 5. Constraints that come with a type in the signature.  A class whose
@@ -154,6 +156,43 @@ constexpr N summed(N a, N b) {
 template <std::unsigned_integral N>
 constexpr N cast_sum(N a, N b) {
   return static_cast<N>(a + b);
+}
+
+// 8. More of each rule, from the cold read of #1212.
+// Finding 12: not admitted, the proxy converted in a constructor's argument,
+// not into a declared carrier: late.
+template <typename E>
+struct Boxed {
+  carrier_t<E> v;
+};
+template <typename E>
+  requires LooseMon<E>
+constexpr Boxed<E> boxed(carrier_t<E> x) {
+  return Boxed<E>{op_t<E>{}(x, x)};
+}
+// Finding 13: not admitted, std::countr_zero refuses the character types,
+// which lie between the smallest and the largest integer type admitted.
+template <std::unsigned_integral N>
+  requires(!std::same_as<N, bool>)
+constexpr int zeros(N n) {
+  return std::countr_zero(n);
+}
+// An overloaded pair whose result has a destructor, so that the call form's
+// call sits under a temporary.  The looser one is undecided, resolved to
+// its sibling; the tighter one is admitted.
+struct Owned {
+  int v;
+  constexpr ~Owned() {}
+};
+template <typename E>
+  requires Mon<E>
+constexpr Owned listed(E x) {
+  return Owned{x + x};
+}
+template <typename E>
+  requires Mon<E> && std::copyable<E>
+constexpr Owned listed(E) {
+  return Owned{0};
 }
 
 }  // namespace jlt_listing

@@ -8,7 +8,7 @@ applied undecided
 counted not admitted
 branching undecided
 pick undecided
-pick undecided
+pick admitted
 swapped admitted
 commuted not admitted
 thrice admitted
@@ -16,3 +16,7 @@ nested not admitted
 kept not admitted
 summed not admitted
 cast_sum admitted
+boxed not admitted
+zeros not admitted
+listed undecided
+listed admitted

@@ -32,9 +32,9 @@ rule1-const-member-functions  tools/jlt-lint/fixtures/members.cpp  jlt_listing  
 rule1-no-mutable-globals      tools/jlt-lint/fixtures/globals.cpp  jlt_listing  3
 rule1-no-escaping-reference-captures tools/jlt-lint/fixtures/captures.cpp  jlt_listing  3
 rule1-boxed-identity          tools/jlt-lint/fixtures/boxed.cpp  jlt_listing  5
-rule2-by-type                tools/jlt-lint/fixtures/rule2-by-type.cpp  jlt_listing  6
+rule2-by-type                tools/jlt-lint/fixtures/rule2-by-type.cpp  jlt_listing  8
 undecided-by-type            tools/jlt-lint/fixtures/rule2-by-type.cpp  jlt_listing  5
-admitted                     tools/jlt-lint/fixtures/rule2-by-type.cpp  jlt_listing  4
+admitted                     tools/jlt-lint/fixtures/rule2-by-type.cpp  jlt_listing  6
 
 # The paper's listings: gated.
 rule3-no-loops               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
