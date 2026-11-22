@@ -85,4 +85,28 @@ constexpr carrier_t<E> pick(carrier_t<E> x) {
   return op_t<E>{}(x, x);
 }
 
+// 5. Constraints that come with a type in the signature.  A class whose
+// constraints ask a law the templates below do not state.
+template <typename E>
+constexpr bool comm = false;
+template <typename E>
+  requires Mon<E> && comm<E>
+struct Commuted {
+  carrier_t<E> v;
+};
+// Admitted: whoever calls it holds a Commuted<E>, so comm<E> holds, and it
+// is read as if stated (implied bounds, after Rust's RFC 2089).
+template <typename E>
+  requires Mon<E>
+constexpr carrier_t<E> swapped(const Commuted<E>& c) {
+  return op_t<E>{}(c.v, c.v);
+}
+// Finding 8: not admitted, the result type asks comm<E>, which nothing the
+// caller holds guarantees: the constraints do not suffice to call it.
+template <typename E>
+  requires Mon<E>
+constexpr Commuted<E> commuted(carrier_t<E> x) {
+  return {x};
+}
+
 }  // namespace jlt_listing

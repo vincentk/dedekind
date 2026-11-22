@@ -7,6 +7,19 @@
 // them, and compiles with -fsyntax-only: a definition that type-checks there
 // is admitted by type, one that does not is not.
 //
+// Lineage, with credit: the archetypes of Boost's Concept Check Library were
+// written by hand (Siek and Lumsdaine, "Concept Checking: Binding Parametric
+// Polymorphism in C++", 2000); ConceptGCC generated them for the concepts
+// proposed for C++0x (Gregor et al., OOPSLA 2006); this linter generates
+// them for the concepts of C++20, inside the Jlt fragment.  The standard's
+// foundational concepts, std::equality_comparable, std::semiregular and
+// std::regular, come from the Palo Alto report (Stroustrup and Sutton, eds.,
+// "A Concept Design for the STL", WG21 N3351, 2012, Section 3.3), after
+// Stepanov and McJones, "Elements of Programming" (2009), whose default
+// constructor makes an object partially formed: it may be assigned or
+// destroyed, not read.  That is why a default value here is a derived form,
+// a local written before it is read, and not a value of the kernel.
+//
 // Part of the linter, shipped with it; it depends on nothing in dedekind.
 // The functions are declared and never defined: the check type-checks, it
 // does not link or run.

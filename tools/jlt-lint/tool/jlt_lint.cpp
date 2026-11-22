@@ -2510,6 +2510,9 @@ std::string qualifiedNamespace(const clang::Decl* d) {
   return q;
 }
 
+const clang::ClassTemplateDecl* classTemplateOf(
+    clang::QualType t, llvm::ArrayRef<clang::TemplateArgument>& args);
+
 /// Whether another function or function template in the same scope has the
 /// template's name, so that its address needs a target type.
 bool overloaded(const clang::FunctionTemplateDecl* ft) {
@@ -2634,25 +2637,42 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
   // parameter types as written, each as an alias template over the
   // template's own parameter names, in the template's namespace, so that the
   // names in them resolve as at the definition.
-  std::string aliases;
-  if (overloaded(ft)) {
-    std::string tparams;
-    for (const clang::NamedDecl* d : *ps) {
-      const auto* tp = llvm::cast<clang::TemplateTypeParmDecl>(d);
-      if (tp->getName().empty() || tp->isParameterPack()) {
-        why = "an overloaded name whose template parameters are unnamed";
-        return {};
-      }
-      tparams +=
-          (tparams.empty() ? "class " : ", class ") + tp->getName().str();
+  std::string aliases, result, tparams;
+  bool named = true;
+  for (const clang::NamedDecl* d : *ps) {
+    const auto* tp = llvm::cast<clang::TemplateTypeParmDecl>(d);
+    named = named && !tp->getName().empty() && !tp->isParameterPack();
+    tparams += (tparams.empty() ? "class " : ", class ") + tp->getName().str();
+  }
+  const clang::FunctionDecl* fd = ft->getTemplatedDecl();
+  const clang::ASTContext& ctx = ft->getASTContext();
+  const clang::SourceManager& sm = ctx.getSourceManager();
+  const std::string offset =
+      std::to_string(sm.getFileOffset(sm.getExpansionLoc(ft->getLocation())));
+  const std::string scope = qualifiedNamespace(ft);
+  // A result type that is a class template's specialization is restated
+  // first, at the archetypes, so that a result asking more than the
+  // constraints fails there, naming its class template (see admit).
+  llvm::ArrayRef<clang::TemplateArgument> resultArgs;
+  if (named && classTemplateOf(fd->getReturnType(), resultArgs)) {
+    const std::string t =
+        clang::Lexer::getSourceText(clang::CharSourceRange::getTokenRange(
+                                        fd->getReturnTypeSourceRange()),
+                                    sm, ctx.getLangOpts())
+            .str();
+    if (!t.empty() && t.find("auto") == std::string::npos) {
+      aliases += "template <" + tparams + ">\nusing jlt_admit_result_" +
+                 offset + " = " + t + ";\n";
+      result = "using result = ::" + (scope.empty() ? "" : scope + "::") +
+               "jlt_admit_result_" + offset + "<" + targs + ">;\n";
     }
-    const clang::FunctionDecl* fd = ft->getTemplatedDecl();
-    const clang::ASTContext& ctx = ft->getASTContext();
-    const clang::SourceManager& sm = ctx.getSourceManager();
-    const std::string prefix =
-        "jlt_admit_param_" +
-        std::to_string(sm.getFileOffset(sm.getExpansionLoc(ft->getLocation())));
-    const std::string scope = qualifiedNamespace(ft);
+  }
+  if (overloaded(ft)) {
+    if (!named) {
+      why = "an overloaded name whose template parameters are unnamed";
+      return {};
+    }
+    const std::string prefix = "jlt_admit_param_" + offset;
     std::string sig, lambda, call;
     for (unsigned i = 0; i < fd->getNumParams(); ++i) {
       const clang::ParmVarDecl* pv = fd->getParamDecl(i);
@@ -2683,7 +2703,6 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
       why = "an overloaded name with a C variadic parameter";
       return {};
     }
-    aliases = "namespace " + scope + " {\n" + aliases + "}\n";
     // A deduced result type cannot select from an overload set (the target
     // is then a non-deduced context), so the use is a call, resolved as at a
     // call site; otherwise the address, at the restated type.
@@ -2693,10 +2712,69 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
     else
       use = "inline constexpr auto (*use)(" + sig + ") = " + instance + ";\n";
   }
+  if (!aliases.empty())
+    aliases = "namespace " + scope + " {\n" + aliases + "}\n";
   std::string text = "\n// jlt-lint: admission by type\n";
   text += "namespace " + ns + " {\n" + types + "}\n" + entries + aliases +
-          "namespace " + ns + " {\n" + use + "}\n";
+          "namespace " + ns + " {\n" + result + use + "}\n";
   return text;
+}
+
+/// The class template a type names, if it names a specialization of one, and
+/// its arguments: `const Compose<F, G>&` gives Compose and F, G.
+const clang::ClassTemplateDecl* classTemplateOf(
+    clang::QualType t, llvm::ArrayRef<clang::TemplateArgument>& args) {
+  t = t.getNonReferenceType().getUnqualifiedType();
+  const auto* ts = t->getAs<clang::TemplateSpecializationType>();
+  if (!ts) return nullptr;
+  args = ts->template_arguments();
+  return llvm::dyn_cast_or_null<clang::ClassTemplateDecl>(
+      ts->getTemplateName().getAsTemplateDecl());
+}
+
+/// Implied constraints: a parameter whose type is a specialization of a
+/// constrained class template, `component(const Compose<F, G>&)`, holds a
+/// value of it, so whoever calls the template has already met the class's
+/// constraints, here Cod<F> == Dom<G>; they are read as if the template had
+/// stated them.  Rust has the same reading under the name implied bounds
+/// (RFC 2089): bounds a function's argument types need are assumed in its
+/// body, not repeated in its signature.  Only for the parameter types: a
+/// result type's constraints are met by no argument, and a template whose
+/// result asks more than its constraints is refused (see admit).  A class
+/// template whose arguments are not all types is skipped, and the use then
+/// shows whether its constraints hold at the archetypes.
+void readImplied(const clang::FunctionDecl* fd, Facts& f) {
+  for (const clang::ParmVarDecl* pv : fd->parameters()) {
+    llvm::ArrayRef<clang::TemplateArgument> args;
+    const clang::ClassTemplateDecl* ct = classTemplateOf(pv->getType(), args);
+    if (!ct) continue;
+    const clang::TemplateParameterList* cps = ct->getTemplateParameters();
+    if (args.size() != cps->size()) continue;
+    TermSubst sub;
+    bool types = true;
+    for (unsigned i = 0; i < cps->size() && types; ++i) {
+      const auto* tp =
+          llvm::dyn_cast<clang::TemplateTypeParmDecl>(cps->getParam(i));
+      types = tp && !tp->isParameterPack() &&
+              args[i].getKind() == clang::TemplateArgument::Type;
+      if (types)
+        sub[{tp->getDepth(), tp->getIndex()}] =
+            classify(args[i].getAsType(), {});
+    }
+    if (!types) continue;
+    // Read into a copy: an implied constraint only adds what can be read,
+    // and one that cannot is left to the use, which shows whether it holds.
+    Facts g = f;
+    for (const clang::NamedDecl* p : *cps)
+      if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
+        if (const clang::TypeConstraint* tc = tp->getTypeConstraint()) {
+          findAtoms(tc->getImmediatelyDeclaredConstraint(), sub, g);
+          readConstraint(tc->getImmediatelyDeclaredConstraint(), sub, g);
+        }
+    findAtoms(cps->getRequiresClause(), sub, g);
+    readConstraint(cps->getRequiresClause(), sub, g);
+    if (g.undecided.empty()) f = std::move(g);
+  }
 }
 
 Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
@@ -2714,6 +2792,7 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
         readConstraint(tc->getImmediatelyDeclaredConstraint(), {}, f);
   readConstraint(ft->getTemplateParameters()->getRequiresClause(), {}, f);
   readConstraint(fd->getTrailingRequiresClause().ConstraintExpr, {}, f);
+  readImplied(fd, f);
   if (!f.undecided.empty()) return {Outcome::Undecided, f.undecided};
   if (!f.opUnconfirmed.empty())
     return {Outcome::Undecided,
@@ -2795,6 +2874,19 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
     return {Outcome::Undecided,
             "the use resolved to another overload at the archetypes"};
   if (errors.n == 0) return {Outcome::Admitted, {}};
+  // The result type asks more than the constraints: the archetypes satisfy
+  // every stated constraint, and the result's class template refuses them,
+  // so a caller who meets the signature cannot call the template.
+  llvm::ArrayRef<clang::TemplateArgument> resultArgs;
+  if (const clang::ClassTemplateDecl* rt =
+          classTemplateOf(fd->getReturnType(), resultArgs);
+      rt && errors.inAppendix &&
+      errors.first.rfind("constraints not satisfied for class template '" +
+                             rt->getName().str() + "'",
+                         0) == 0)
+    return {Outcome::NotAdmitted,
+            "the result type " + rt->getName().str() +
+                " asks more than the constraints: " + errors.first};
   if (errors.inAppendix)
     return {Outcome::Undecided,
             "the appendix did not compile: " + errors.first};
