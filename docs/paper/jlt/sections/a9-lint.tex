@@ -72,32 +72,38 @@ It gives every type parameter an archetype by reading the shapes that constrain 
 The building blocks are a header that ships with the linter and depends on nothing in the library: a carrier that can only be copied, and ones that can also be compared, default-constructed, or both; a unit, a binary operation, an arrow, and a range whose size is known before the first step; a result that can only be converted; and the smallest and largest integer types a constraint admits.
 The standard's foundational concepts follow the Palo Alto report~\cite[\S 3.3]{stroustrup2012concept}: copying is the kernel's, equality is a call, and a default value is partially formed, to be written before it is read~\cite[\S 1.5]{stepanov2009elements}, the derived form of local state (Table~\ref{tab:derived}).
 A shape with a requirement of any other kind leaves the templates written against it undecided, with that requirement named.
+In the terms of Appendix~\ref{app:fjlt:typing}, a generic body reaches its shapes only as assumptions, a law by \textsc{E-Law-Assumed} and a required call by \textsc{T-Req-Assumed}; at the archetypes the same shapes are entailed instead, by \textsc{E-Shape}, \textsc{E-Law} and \textsc{E-Op}, from the entries the linter writes.
+An archetype is the concrete counterpart of an assumed shape's record variable, the dictionary of Appendix~\ref{app:fjlt:translation}, and the conjecture below is that the two derivations agree.
 A parameter whose type is a constrained class template brings that class's constraints with it, since whoever calls the template already holds a value of it; Rust's implied bounds propose the same reading~\cite{rust2017impliedbounds}.
 A result type brings nothing, since no argument guarantees it, and a template whose result asks more than its constraints is refused: a caller who meets them could not call it.
 
 \begin{table}[htbp]
 \centering
 \small
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.36\linewidth}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}X@{}}
 \toprule
-requirement in a shape & archetype \\
+requirement in a shape & rules & archetype \\
 \midrule
-a unit, \texttt{E\{\}()} & \texttt{E} is a unit that gives a fresh carrier \texttt{C\_E} \\
-an operation, \texttt{typename op\_t<E>} with \texttt{\{ op\_t<E>\{\}(a, b) \} -> same\_as<carrier\_t<E>>} & the entry of \texttt{op\_of} at \texttt{E} names a binary operation on \texttt{C\_E} \\
-a law, \texttt{unital<E>} or \texttt{homomorphism<H, A, B>} & the law declared \texttt{true} at the archetypes \\
-\texttt{copyable}, \texttt{equality\_comparable}, \texttt{semiregular} or \texttt{regular} on a carrier or a parameter & a carrier that can be copied, and also compared, default-constructed, or both, as the concept asks \\
-the library's arrow, \texttt{typename F::Domain} with \texttt{\{ f(x) \} -> Presents<typename F::Codomain>} & a type with fresh carriers as its member types and that call, and no default value \\
-\texttt{same\_as} between member types and parameters, \texttt{same\_as<Cod<F>, Dom<G>>} & one carrier for each class of the equations \\
-a result \texttt{-> convertible\_to<T>} on an operation, an arrow or a member call & a result that converts to \texttt{T} from the fresh value only; passed straight to a call, the template is refused (Table~\ref{tab:derived}: copy-initialisation of a \texttt{T}) \\
-\texttt{integral}, \texttt{signed\_integral} or \texttt{unsigned\_integral} & checked at both the smallest and the largest standard integer type the constraints admit \\
-a parameter of type \texttt{Compose<F, G>}, a constrained class template & the class's constraints, as if the template had stated them; a result type's are not implied, and a template whose result asks more than its constraints is refused \\
-a call, \texttt{\{ f(x) \} -> same\_as<carrier\_t<B>>} with \texttt{x} of \texttt{carrier\_t<A>} & \texttt{F} is an arrow from \texttt{C\_A} to \texttt{C\_B} \\
-\texttt{sized\_range<R>} with \texttt{same\_as<range\_value\_t<R>, carrier\_t<E>>} & \texttt{R} is a range of \texttt{C\_E} whose size is known before the first step \\
-\texttt{same\_as<T, carrier\_t<E>>} & \texttt{T} is \texttt{C\_E} \\
-a call to a function of the program by name, \texttt{\{ power<E>(x, n) \}} & nothing to build: the call's own constraints are checked where the template is used \\
+\multicolumn{3}{@{}l}{\emph{Kernel: the requirements $A$ of a shape (Figure~\ref{fig:fjlt-syntax})}} \\
+a constraint $Q$, \texttt{copyable} or \texttt{equality\_comparable} on a carrier & assumed / \textsc{E-Shape} & a carrier that can be copied, or also compared \\
+a constraint \texttt{same\_as<T, carrier\_t<E>>}, or between member types, \texttt{same\_as<Cod<F>, Dom<G>>} & assumed / \textsc{E-Shape} & \texttt{T} is \texttt{C\_E}; one carrier for each class of the equations \\
+a law $e$, \texttt{unital<E>} or \texttt{homomorphism<H, A, B>} & \textsc{E-Law-Assumed} / \textsc{E-Law} & the law declared \texttt{true} at the archetypes \\
+a required call, the unit \texttt{E\{\}()} & \textsc{T-Req-Assumed} / \textsc{E-Op} & \texttt{E} is a unit that gives a fresh carrier \texttt{C\_E} \\
+a required call through an associated type, \texttt{\{ op\_t<E>\{\}(a, b) \} -> same\_as<carrier\_t<E>>} & \textsc{T-Req-Assumed} / \textsc{E-Op} & the entry of \texttt{op\_of} at \texttt{E} names a binary operation on \texttt{C\_E} \\
+a required call, \texttt{\{ f(x) \} -> same\_as<carrier\_t<B>>} with \texttt{x} of \texttt{carrier\_t<A>} & \textsc{T-Req-Assumed} / \textsc{E-Op} & \texttt{F} is an arrow from \texttt{C\_A} to \texttt{C\_B} \\
+a call to a function of the program by name, \texttt{\{ power<E>(x, n) \}} & \textsc{T-Call} & nothing to build: the call's own constraints are checked where the template is used \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Jlt: derived forms (Table~\ref{tab:derived}) and the standard's concepts}} \\
+\texttt{sized\_range<R>} with \texttt{same\_as<range\_value\_t<R>, carrier\_t<E>>} & a range; \textsc{E-Range} & \texttt{R} is a range of \texttt{C\_E} whose size is known before the first step \\
+a result \texttt{-> convertible\_to<T>} on an operation, an arrow or a member call & a result required only \texttt{convertible\_to}; \textsc{T-Conv} & a result that converts to \texttt{T} from the fresh value only; passed straight to a call, the template is refused \\
+\texttt{semiregular} or \texttt{regular} on a carrier or a parameter & an assignment on a local; N3351 & a carrier that is also default-constructed, or also that and compared \\
+\texttt{integral}, \texttt{signed\_integral} or \texttt{unsigned\_integral} & the atoms $b$; an implicit conversion between atoms & checked at both the smallest and the largest standard integer type the constraints admit \\
+the library's arrow, \texttt{typename F::Domain} with \texttt{\{ f(x) \} -> Presents<typename F::Codomain>} & a call of a member function & a type with fresh carriers as its member types and that call, and no default value \\
+a parameter of type \texttt{Compose<F, G>}, a constrained class template & implied bounds, RFC~2089 & the class's constraints, as if the template had stated them; a result type's are not implied, and a template whose result asks more than its constraints is refused \\
 \bottomrule
 \end{tabularx}
-\caption{The rules by which the linter builds archetypes, one for each kind of requirement in a shape.}
+\caption{The rules by which the linter builds archetypes, one for each kind of requirement in a shape, in two groups: the kernel's requirements, and those of Jlt.
+For a requirement of the kernel the middle column names the rule of Appendix~\ref{app:fjlt:typing} by which a generic body reaches it at its type variables, and the rule by which it is entailed at the archetypes; for one of Jlt it names the row of Table~\ref{tab:derived} or the source it follows.}
 \label{tab:archetype-rules}
 \end{table}
 
