@@ -107,4 +107,39 @@ constexpr Commuted<E> commuted(carrier_t<E> x) {
   return {x};
 }
 
+// 6. A result a shape asks only to be convertible to the carrier, read as if
+// it were same_as but forced through a conversion: the archetype's result
+// converts on the spot and is good for nothing else.
+template <typename E>
+concept LooseMon = requires {
+  E{}();
+  typename op_t<E>;
+} && requires(carrier_t<E> a, carrier_t<E> b) {
+  { op_t<E>{}(a, b) } -> std::convertible_to<carrier_t<E>>;
+};
+// Admitted: each result goes into a declared carrier or the return, the
+// derived form's copy-initialisation of a T (Table 7).
+template <typename E>
+  requires LooseMon<E>
+constexpr carrier_t<E> thrice(carrier_t<E> x) {
+  const carrier_t<E> y = op_t<E>{}(x, x);
+  return op_t<E>{}(y, x);
+}
+// Finding 10: not admitted, the inner result goes straight into a call,
+// converted to whatever parameter type resolution picks there, which a real
+// operation's overloads may pick differently.
+template <typename E>
+  requires LooseMon<E>
+constexpr carrier_t<E> nested(carrier_t<E> x) {
+  return op_t<E>{}(op_t<E>{}(x, x), x);
+}
+// Finding 9: not admitted, the result is kept under a name of its own type
+// and converted later, which the shape does not promise.
+template <typename E>
+  requires LooseMon<E>
+constexpr carrier_t<E> kept(carrier_t<E> x) {
+  auto r = op_t<E>{}(x, x);
+  return op_t<E>{}(r, x);
+}
+
 }  // namespace jlt_listing

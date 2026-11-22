@@ -242,6 +242,13 @@ Goal (user): firm the situation up with a decent number of samples. #1211 shows 
 4. **The ratchet and summary statistics** (agreed 2026-11-22): every reported count becomes an exact gate, `ratchet.py` rewrites the scope from a report, CI prints a coverage line (FJlt / Jlt / undecided / refused, by definition and by line), and Appendix G tabulates it; Table 13 regenerated under the current classes.
 5. **The paper** says what the run found: Appendix G's numbers, and Section 4's sentence "on the library the second stage has yet to run" replaced by the result.
 
+Decided along the way (2026-11-22, user):
+- **Constraints that come with a type in the signature:** a parameter's class template contributes its constraints (Rust's implied bounds, RFC 2089); a result type's do not, and a template whose result asks more than its constraints is refused. Cited in the doxygen where applicable.
+- **The standard's foundational concepts** (Palo Alto report N3351 3.3; Elements of Programming 1.5): copying is kernel; same_as is kernel (one carrier per class of equations); equality is Jlt (a call); a default value is Jlt (partially formed, local state written before read); regular is both. The library's arrow archetype has no default value unless asked.
+- **convertible_to, as if same_as:** the result is a `converts_to<T>`, converted only from the fresh value, and only into a declared T or a return at T (Table 7's copy-initialisation); passed straight to a call it is refused (fixture `nested`), since a real type's overloads may resolve there differently. No new hypothesis for the conjecture.
+- **Integer parameters, next:** check at the smallest and the largest of the standard's integer types that satisfy the template's constraints (bool where the constraint admits it; IsCountWord excludes it and every promoting type), signed and unsigned alike; no list per concept, no new hypothesis.
+- **Credit:** Boost's Concept Check Library and N3351 cited (introduction, Section 4, related work, Appendix G, archetypes.hpp); MP11 only as a contrast, in the prose pass.
+
 ## Prose pass (after the tool PR; agreed 2026-11-21)
 
 Order agreed: merge #1209, then the tool PR, then this. Inputs: the two cold reads of 2026-11-21 evening (`research_notes/Jlt cold reads/`), the rule "terms of art once, with the citation, then plain words" (most of the cut from 28 to 22 pages).

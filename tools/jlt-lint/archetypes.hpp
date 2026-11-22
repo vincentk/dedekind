@@ -95,10 +95,24 @@ struct nullary {
   C operator()() const;
 };
 
-/// A function object C x C -> C: an operation.
-template <typename C>
+/// A result a shape asks only to be convertible to T (-> convertible_to<T>):
+/// it converts, from the fresh result and nothing else, so a body that
+/// compiles at it converts the result on the spot and uses a T from then on,
+/// as if the shape had said same_as<T>.  No copy, no move: a named variable
+/// of it is good for nothing.  After Boost's convertible_to_archetype (Siek
+/// and Lumsdaine), with the conversion restricted to the fresh value.
+template <typename T>
+struct converts_to {
+  converts_to(const converts_to&) = delete;
+  converts_to& operator=(const converts_to&) = delete;
+  operator T() &&;
+};
+
+/// A function object C x C -> R: an operation, its result C or, where the
+/// shape asks only convertibility, converts_to<C>.
+template <typename C, typename R = C>
 struct binary {
-  C operator()(C, C) const;
+  R operator()(C, C) const;
 };
 
 /// A function object A -> B: a homomorphism, or any required call of one
@@ -160,6 +174,9 @@ static_assert(std::regular<regular_carrier<tag>> &&
               !std::totally_ordered<regular_carrier<tag>>);
 static_assert(std::same_as<std::invoke_result_t<nullary<c>>, c>);
 static_assert(std::same_as<std::invoke_result_t<binary<c>, c, c>, c>);
+static_assert(std::convertible_to<converts_to<c>, c> &&
+              !std::copy_constructible<converts_to<c>> &&
+              !std::convertible_to<converts_to<c>&, c>);
 static_assert(std::ranges::sized_range<sized_range_of<c>> &&
               std::ranges::input_range<sized_range_of<c>> &&
               std::same_as<std::ranges::range_value_t<sized_range_of<c>>, c>);

@@ -2016,6 +2016,9 @@ struct Facts {
   // same_as between member types of parameters and parameters: equations,
   // one carrier per class (Cod<F> == Dom<G> in Compose).
   std::vector<std::pair<Term, Term>> sames;
+  // Results a shape asks only to be convertible (-> convertible_to<T>): the
+  // archetype returns converts_to<T>, so the body converts them at once.
+  std::set<Param> opConverts, arrowConverts, memberConverts;
   // F has member types (typename F::Domain), and a const call from one of
   // them to another: the library's arrow (IsArrow).
   std::map<Param, std::set<std::string>> members;
@@ -2133,7 +2136,8 @@ void readRequires(const clang::RequiresExpr* r, const TermSubst& s, Facts& f) {
         if (f.lastOp)
           if (const auto* rc = llvm::dyn_cast<clang::ConceptSpecializationExpr>(
                   ret.getTypeConstraint()->getImmediatelyDeclaredConstraint()))
-            if (rc->getNamedConcept()->getName() == "same_as" &&
+            if ((rc->getNamedConcept()->getName() == "same_as" ||
+                 rc->getNamedConcept()->getName() == "convertible_to") &&
                 !rc->getTemplateArgsAsWritten()->arguments().empty()) {
               const Term r = classify(rc->getTemplateArgsAsWritten()
                                           ->arguments()
@@ -2141,15 +2145,18 @@ void readRequires(const clang::RequiresExpr* r, const TermSubst& s, Facts& f) {
                                           .getArgument()
                                           .getAsType(),
                                       s);
-              if (r.kind == Term::CarrierOf && r.p == *f.lastOp)
+              if (r.kind == Term::CarrierOf && r.p == *f.lastOp) {
                 f.opUnconfirmed.erase(r.p);
+                if (rc->getNamedConcept()->getName() == "convertible_to")
+                  f.opConverts.insert(r.p);
+              }
             }
         // -> same_as<carrier_t<B>>: fixes an arrow's codomain.
         const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(
             ret.getTypeConstraint()->getImmediatelyDeclaredConstraint());
-        // The library's arrow: f(x) -> Presents<F::Codomain> (or same_as,
-        // or convertible_to): the archetype returns exactly the codomain's
-        // carrier, which meets each of them by its plain branch.
+        // The library's arrow: f(x) -> Presents<F::Codomain> or same_as: the
+        // archetype returns exactly the codomain's carrier, which meets each
+        // of them by its plain branch; convertible_to: a converts_to of it.
         if (cs && !cs->getTemplateArgsAsWritten()->arguments().empty()) {
           const llvm::StringRef rn = cs->getNamedConcept()->getName();
           const Term to = classify(cs->getTemplateArgsAsWritten()
@@ -2166,13 +2173,18 @@ void readRequires(const clang::RequiresExpr* r, const TermSubst& s, Facts& f) {
                 it != f.memberCall.end() && it->second.second.empty()) {
               it->second.second = to.member;
               f.members[to.p].insert(to.member);
+              if (rn == "convertible_to") f.memberConverts.insert(to.p);
               continue;
             }
         }
-        if (!cs || cs->getNamedConcept()->getName() != "same_as") {
+        const bool converts =
+            cs && cs->getNamedConcept()->getName() == "convertible_to";
+        if (!cs ||
+            (cs->getNamedConcept()->getName() != "same_as" && !converts)) {
           f.undecided =
-              "a result constraint other than same_as: " +
-              (cs ? cs->getNamedConcept()->getName().str() : std::string("?"));
+              "a result constraint other than same_as or convertible_to: " +
+              (cs ? cs->getNamedConcept()->getName().str() : std::string("?")) +
+              f.where();
           return;
         }
         const auto& args = cs->getTemplateArgsAsWritten()->arguments();
@@ -2188,8 +2200,10 @@ void readRequires(const clang::RequiresExpr* r, const TermSubst& s, Facts& f) {
                 if (const auto* v =
                         llvm::dyn_cast<clang::VarDecl>(d->getDecl()))
                   if (auto it = locals.find(v);
-                      it != locals.end() && it->second.p == fp)
+                      it != locals.end() && it->second.p == fp) {
                     ab.second = to.p;
+                    if (converts) f.arrowConverts.insert(fp);
+                  }
             }
       }
     } else if (const auto* tr =
@@ -2470,7 +2484,27 @@ class Errors : public clang::DiagnosticConsumer {
 struct Selection {
   bool resolved = false;
   bool marked = false;
+  // A result a shape promises only convertible_to<T> passed straight to a
+  // call: converted to whatever parameter type resolution picks there, which
+  // a real type's overloads may pick differently.  Table 7's derived form is
+  // copy-initialisation of a T, so the result goes into a declared T or a
+  // return at T, and nowhere else.
+  bool lateConversion = false;
 };
+
+/// Whether an expression is the conversion of a converts_to archetype.
+bool convertsProxy(const clang::Expr* e) {
+  e = e->IgnoreParenImpCasts();
+  if (const auto* m = llvm::dyn_cast<clang::MaterializeTemporaryExpr>(e))
+    e = m->getSubExpr()->IgnoreParenImpCasts();
+  if (const auto* b = llvm::dyn_cast<clang::CXXBindTemporaryExpr>(e))
+    e = b->getSubExpr()->IgnoreParenImpCasts();
+  const auto* mc = llvm::dyn_cast<clang::CXXMemberCallExpr>(e);
+  if (!mc) return false;
+  const auto* conv =
+      llvm::dyn_cast_or_null<clang::CXXConversionDecl>(mc->getMethodDecl());
+  return conv && conv->getParent()->getName() == "converts_to";
+}
 class MarkedUse : public clang::ASTConsumer {
  public:
   explicit MarkedUse(Selection& sel) : sel(sel) {}
@@ -2510,6 +2544,33 @@ class MarkedUse : public clang::ASTConsumer {
       }
     } find(sel);
     find.TraverseDecl(ctx.getTranslationUnitDecl());
+    // The instantiated body of the checked template: a converts_to result
+    // as a call's argument.
+    struct Late : clang::RecursiveASTVisitor<Late> {
+      Selection& sel;
+      explicit Late(Selection& s) : sel(s) {}
+      bool shouldVisitTemplateInstantiations() const { return true; }
+      bool inChecked = false;
+      bool TraverseFunctionDecl(clang::FunctionDecl* f) {
+        const clang::FunctionDecl* pat = f->getTemplateInstantiationPattern();
+        const bool checked =
+            pat && pat->getAttr<clang::DeprecatedAttr>() &&
+            pat->getAttr<clang::DeprecatedAttr>()->getMessage() ==
+                "jlt-admit-checked";
+        const bool was = inChecked;
+        inChecked = inChecked || checked;
+        clang::RecursiveASTVisitor<Late>::TraverseFunctionDecl(f);
+        inChecked = was;
+        return true;
+      }
+      bool VisitCallExpr(clang::CallExpr* c) {
+        if (!inChecked) return true;
+        for (const clang::Expr* a : c->arguments())
+          if (convertsProxy(a)) sel.lateConversion = true;
+        return true;
+      }
+    } late(sel);
+    late.TraverseDecl(ctx.getTranslationUnitDecl());
   }
 
  private:
@@ -2660,8 +2721,12 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
           why = "a required call on a member type without a result type";
           return {};
         }
-        body += "  " + mc[c->second.second] + " operator()(const " +
-                mc[c->second.first] + "&) const;\n";
+        const std::string r = mc[c->second.second];
+        body += "  " +
+                (f.memberConverts.count(p)
+                     ? "::jlt::archetype::converts_to<" + r + ">"
+                     : r) +
+                " operator()(const " + mc[c->second.first] + "&) const;\n";
       }
       // No default value unless a shape asks for one: an empty struct would
       // otherwise have one, more than IsArrow promises.
@@ -2673,8 +2738,11 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
         why = "a required call without a result type";
         return {};
       }
+      const std::string r = carrierName(it->second.second);
       a = "::jlt::archetype::arrow<" + carrierName(it->second.first) + ", " +
-          carrierName(it->second.second) + ">";
+          (f.arrowConverts.count(p) ? "::jlt::archetype::converts_to<" + r + ">"
+                                    : r) +
+          ">";
     } else if (f.plain.count(p)) {
       a = carrierName(p);
     } else {
@@ -2690,7 +2758,11 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
     entries += "namespace " + qualifiedNamespace(trait) +
                " {\ntemplate <>\nstruct " + trait->getName().str() + "<" +
                arch[p] + "> {\n  using type = ::jlt::archetype::binary<" + ns +
-               "::" + carrier[p] + ">;\n};\n}\n";
+               "::" + carrier[p] +
+               (f.opConverts.count(p) ? ", ::jlt::archetype::converts_to<" +
+                                            ns + "::" + carrier[p] + ">"
+                                      : std::string()) +
+               ">;\n};\n}\n";
   }
   std::set<std::string> seen;
   for (const Facts::Law& law : f.laws) {
@@ -2961,6 +3033,10 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   if (sel.resolved && !sel.marked && !errors.marked)
     return {Outcome::Undecided,
             "the use resolved to another overload at the archetypes"};
+  if (errors.n == 0 && sel.lateConversion)
+    return {Outcome::NotAdmitted,
+            "a result promised only convertible_to<T> passed straight to a "
+            "call; convert it into a declared T first"};
   if (errors.n == 0) return {Outcome::Admitted, {}};
   // The result type asks more than the constraints: the archetypes satisfy
   // every stated constraint, and the result's class template refuses them,
