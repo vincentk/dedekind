@@ -2021,6 +2021,10 @@ struct Facts {
   std::optional<Param> lastOp;
   std::string undecided;          // the first requirement no rule reads
   std::vector<std::string> path;  // the shapes followed to reach it
+  // Parameters a shape constrains to the count atom (std::unsigned_integral):
+  // their archetype is a count, std::size_t, and a constraint on them alone is
+  // left to the compiler at that type.
+  std::set<Param> atoms;
   std::string where() const {
     std::string w;
     for (const std::string& c : path) w += (w.empty() ? " (in " : " > ") + c;
@@ -2228,9 +2232,75 @@ bool readLaw(const clang::Expr* e, const TermSubst& s, Facts& f) {
   return true;
 }
 
+/// The parameters the shapes constrain to the count atom, followed through
+/// conjunctions and shapes of the program.
+void findAtoms(const clang::Expr* e, const TermSubst& s, Facts& f,
+               int depth = 0) {
+  if (!e || depth > 32) return;
+  e = e->IgnoreParenImpCasts();
+  if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {
+    if (b->getOpcode() == clang::BO_LAnd) {
+      findAtoms(b->getLHS(), s, f, depth + 1);
+      findAtoms(b->getRHS(), s, f, depth + 1);
+    }
+    return;
+  }
+  const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e);
+  if (!cs) return;
+  const clang::ConceptDecl* c = cs->getNamedConcept();
+  std::vector<Term> args;
+  for (const clang::TemplateArgument& a : cs->getTemplateArguments())
+    args.push_back(a.getKind() == clang::TemplateArgument::Type
+                       ? classify(a.getAsType(), s)
+                       : Term{});
+  if (inStd(c)) {
+    if (c->getName() == "unsigned_integral" && args.size() == 1 &&
+        args[0].kind == Term::Parameter)
+      f.atoms.insert(args[0].p);
+    return;
+  }
+  TermSubst inner;
+  const clang::TemplateParameterList* ps = c->getTemplateParameters();
+  for (unsigned k = 0; k < ps->size() && k < args.size(); ++k)
+    if (const auto* tp =
+            llvm::dyn_cast<clang::TemplateTypeParmDecl>(ps->getParam(k)))
+      inner[{tp->getDepth(), tp->getIndex()}] = args[k];
+  findAtoms(c->getConstraintExpr(), inner, f, depth + 1);
+}
+
+/// Whether an expression of a constraint mentions only atom parameters (and
+/// no other parameter): then the compiler decides it at the atom's archetype.
+bool onlyAtoms(const clang::Expr* e, const TermSubst& s, const Facts& f) {
+  struct Params : clang::RecursiveASTVisitor<Params> {
+    const TermSubst& s;
+    const Facts& f;
+    bool atom = false, other = false;
+    Params(const TermSubst& s, const Facts& f) : s(s), f(f) {}
+    void see(clang::QualType t) {
+      const Term r = classify(t, s);
+      if (r.kind == Term::Parameter)
+        (f.atoms.count(r.p) ? atom : other) = true;
+      else if (!t.isNull() && t->isDependentType())
+        other = true;
+    }
+    bool VisitTypeLoc(clang::TypeLoc tl) {
+      if (tl.getType()->getAs<clang::TemplateTypeParmType>()) see(tl.getType());
+      return true;
+    }
+    bool VisitConceptSpecializationExpr(clang::ConceptSpecializationExpr* c) {
+      for (const clang::TemplateArgument& a : c->getTemplateArguments())
+        if (a.getKind() == clang::TemplateArgument::Type) see(a.getAsType());
+      return true;
+    }
+  } v(s, f);
+  v.TraverseStmt(const_cast<clang::Expr*>(e));
+  return v.atom && !v.other;
+}
+
 void readConstraint(const clang::Expr* e, const TermSubst& s, Facts& f,
                     int depth) {
   if (!e || !f.undecided.empty()) return;
+  if (!f.atoms.empty() && onlyAtoms(e, s, f)) return;  // the compiler decides
   if (depth > 32) {
     f.undecided = "constraints nested too deep";
     return;
@@ -2458,7 +2528,9 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
     }
     const Param p{tp->getDepth(), tp->getIndex()};
     std::string a;
-    if (f.unit.count(p)) {
+    if (f.atoms.count(p)) {
+      a = "::std::size_t";
+    } else if (f.unit.count(p)) {
       a = "::jlt::archetype::nullary<" + carrierName(p) + ">";
     } else if (auto it = f.carrierOf.find(p); it != f.carrierOf.end()) {
       a = carrierName(it->second);
@@ -2545,6 +2617,12 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
 Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   Facts f;
   const clang::FunctionDecl* fd = ft->getTemplatedDecl();
+  for (const clang::NamedDecl* p : *ft->getTemplateParameters())
+    if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
+      if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
+        findAtoms(tc->getImmediatelyDeclaredConstraint(), {}, f);
+  findAtoms(ft->getTemplateParameters()->getRequiresClause(), {}, f);
+  findAtoms(fd->getTrailingRequiresClause().ConstraintExpr, {}, f);
   for (const clang::NamedDecl* p : *ft->getTemplateParameters())
     if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
       if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
