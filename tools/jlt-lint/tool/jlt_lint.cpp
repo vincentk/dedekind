@@ -1983,6 +1983,9 @@ Term classify(clang::QualType t, const TermSubst& s, int depth = 0) {
           if (!inStd(ct) && tn == "archetype" && name == "type")
             return classify(arg, s, depth + 1);
           // typename X<P>::type: the associated type a trait gives at P.
+          // Another member of a trait, SpeciesTraits<T>::Domain, is nothing
+          // the archetypes provide.
+          if (name != "type") return none;
           Term a = classify(arg, s, depth + 1);
           if (a.kind == Term::Parameter) return Term{Term::Associated, a.p, ct};
           return none;
@@ -2006,6 +2009,13 @@ struct Facts {
   std::map<Param, std::optional<Param>> range;          // R, its elements
   std::set<Param> sized;                                // R is a sized_range
   std::set<Param> comparable;                           // C_E has ==
+  std::set<Param> defaulted;  // C_E or T has a default value (semiregular)
+  // T is a carrier itself: a parameter only the standard's foundational
+  // concepts constrain (copyable, equality_comparable, semiregular, regular).
+  std::set<Param> plain;
+  // same_as between member types of parameters and parameters: equations,
+  // one carrier per class (Cod<F> == Dom<G> in Compose).
+  std::vector<std::pair<Term, Term>> sames;
   // F has member types (typename F::Domain), and a const call from one of
   // them to another: the library's arrow (IsArrow).
   std::map<Param, std::set<std::string>> members;
@@ -2190,8 +2200,16 @@ void readRequires(const clang::RequiresExpr* r, const TermSubst& s, Facts& f) {
       }
       // typename op_t<E>: read with the call that uses it; typename
       // F::Domain: a member type F must have.
+      // Any other type a shape asks to exist, SpeciesTraits<T>::Domain, is
+      // nothing the archetypes provide, so the check stops there.
       const Term m = classify(tr->getType()->getType(), s);
-      if (m.kind == Term::Member) f.members[m.p].insert(m.member);
+      if (m.kind == Term::Member) {
+        f.members[m.p].insert(m.member);
+      } else if (m.kind != Term::Associated) {
+        f.undecided = "a type requirement of another form: " +
+                      tr->getType()->getType().getAsString() + f.where();
+        return;
+      }
     } else if (const auto* nr =
                    llvm::dyn_cast<clang::concepts::NestedRequirement>(req)) {
       if (nr->hasInvalidConstraint()) {
@@ -2328,18 +2346,43 @@ void readConstraint(const clang::Expr* e, const TermSubst& s, Facts& f,
                          : Term{});
     if (inStd(c)) {
       const llvm::StringRef n = c->getName();
-      if (n == "copyable" && args.size() == 1 &&
-          args[0].kind == Term::CarrierOf)
-        return;  // every carrier archetype copies
-      if (n == "equality_comparable" && args.size() == 1 &&
-          args[0].kind == Term::CarrierOf) {
-        f.comparable.insert(args[0].p);
-        return;
+      // The foundational concepts (the Palo Alto report, N3351, 3.3): what
+      // the carrier gets, and nothing more.  Copying is the kernel's, every
+      // carrier copies; equality is a call (Jlt); a default value is
+      // partially formed (Elements of Programming, 1.5), local state written
+      // before it is read (Jlt).
+      if (args.size() == 1 && (args[0].kind == Term::Parameter ||
+                               args[0].kind == Term::CarrierOf)) {
+        const Param q = args[0].p;
+        const bool par = args[0].kind == Term::Parameter;
+        const bool copies = n == "copyable" || n == "copy_constructible" ||
+                            n == "movable" || n == "move_constructible" ||
+                            n == "destructible";
+        const bool eq = n == "equality_comparable" || n == "regular";
+        const bool def = n == "semiregular" || n == "regular" ||
+                         n == "default_initializable";
+        if (copies || eq || def) {
+          if (par) f.plain.insert(q);
+          if (eq) f.comparable.insert(q);
+          if (def) f.defaulted.insert(q);
+          return;
+        }
       }
       if ((n == "sized_range" || n == "range" || n == "input_range") &&
           args.size() == 1 && args[0].kind == Term::Parameter) {
         f.range.try_emplace(args[0].p);
         if (n == "sized_range") f.sized.insert(args[0].p);
+        return;
+      }
+      // An equation between member types, or a member type and a parameter:
+      // the two are one carrier.
+      if (n == "same_as" && args.size() == 2 &&
+          (args[0].kind == Term::Member || args[1].kind == Term::Member) &&
+          (args[0].kind == Term::Member || args[0].kind == Term::Parameter) &&
+          (args[1].kind == Term::Member || args[1].kind == Term::Parameter)) {
+        for (const Term& t : args)
+          if (t.kind == Term::Member) f.members[t.p].insert(t.member);
+        f.sames.emplace_back(args[0], args[1]);
         return;
       }
       if (n == "same_as" && args.size() == 2 &&
@@ -2537,13 +2580,46 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
     if (auto it = carrier.find(p); it != carrier.end()) return it->second;
     const std::string tag = "Tag" + std::to_string(carrier.size());
     const std::string name = "C" + std::to_string(carrier.size());
+    const bool eq = f.comparable.count(p), def = f.defaulted.count(p);
     types += "struct " + tag + ";\nusing " + name + " = ::jlt::archetype::" +
-             (f.comparable.count(p) ? "comparable_carrier" : "carrier") + "<" +
-             tag + ">;\n";
+             (def ? (eq ? "regular_carrier" : "semiregular_carrier")
+                  : (eq ? "comparable_carrier" : "carrier")) +
+             "<" + tag + ">;\n";
     carrier[p] = name;
     return name;
   };
   const std::string ns = "jlt_admit";
+  // The equations of same_as, joined into classes: a class with a count atom
+  // is the count, one with a plain parameter is its carrier, any other a
+  // fresh carrier of its own.
+  std::map<std::string, std::string> parent;
+  std::map<std::string, Param> paramOf;
+  auto key = [&](const Term& t) {
+    std::string k = (t.kind == Term::Member ? "m" : "p") +
+                    std::to_string(t.p.first) + ":" +
+                    std::to_string(t.p.second) + ":" + t.member;
+    parent.try_emplace(k, k);
+    if (t.kind == Term::Parameter) paramOf[k] = t.p;
+    return k;
+  };
+  std::function<std::string(const std::string&)> find =
+      [&](const std::string& k) {
+        return parent[k] == k ? k : parent[k] = find(parent[k]);
+      };
+  for (const auto& [x, y] : f.sames) parent[find(key(x))] = find(key(y));
+  std::map<std::string, std::string> slot;
+  auto slotType = [&](const std::string& k) -> std::string {
+    const std::string r = find(k);
+    if (auto it = slot.find(r); it != slot.end()) return it->second;
+    std::string t;
+    for (const auto& [m, q] : paramOf)
+      if (find(m) == r && f.atoms.count(q)) t = "::std::size_t";
+    if (t.empty())
+      for (const auto& [m, q] : paramOf)
+        if (find(m) == r && f.plain.count(q)) t = carrierName(q);
+    if (t.empty()) t = carrierName({~3u, static_cast<unsigned>(slot.size())});
+    return slot[r] = t;
+  };
   for (const clang::NamedDecl* d : *ps) {
     const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(d);
     if (!tp) {
@@ -2572,7 +2648,11 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
       std::string body;
       std::map<std::string, std::string> mc;
       for (const std::string& m : it->second) {
-        mc[m] = carrierName({~2u, static_cast<unsigned>(carrier.size())});
+        const std::string k = "m" + std::to_string(p.first) + ":" +
+                              std::to_string(p.second) + ":" + m;
+        mc[m] = parent.count(k)
+                    ? slotType(k)
+                    : carrierName({~2u, static_cast<unsigned>(carrier.size())});
         body += "  using " + m + " = " + mc[m] + ";\n";
       }
       if (auto c = f.memberCall.find(p); c != f.memberCall.end()) {
@@ -2583,6 +2663,9 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
         body += "  " + mc[c->second.second] + " operator()(const " +
                 mc[c->second.first] + "&) const;\n";
       }
+      // No default value unless a shape asks for one: an empty struct would
+      // otherwise have one, more than IsArrow promises.
+      if (!f.defaulted.count(p)) body += "  " + name + "() = delete;\n";
       types += "struct " + name + " {\n" + body + "};\n";
       a = name;
     } else if (auto it = f.arrow.find(p); it != f.arrow.end()) {
@@ -2592,6 +2675,8 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
       }
       a = "::jlt::archetype::arrow<" + carrierName(it->second.first) + ", " +
           carrierName(it->second.second) + ">";
+    } else if (f.plain.count(p)) {
+      a = carrierName(p);
     } else {
       why = "no archetype for template parameter " + tp->getName().str();
       return {};
@@ -2653,8 +2738,11 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
   // A result type that is a class template's specialization is restated
   // first, at the archetypes, so that a result asking more than the
   // constraints fails there, naming its class template (see admit).
+  // A friend defined in its class names its types in the class's scope,
+  // which the appendix, at namespace scope, cannot restate.
+  const bool inClass = ft->getLexicalDeclContext()->isRecord();
   llvm::ArrayRef<clang::TemplateArgument> resultArgs;
-  if (named && classTemplateOf(fd->getReturnType(), resultArgs)) {
+  if (named && !inClass && classTemplateOf(fd->getReturnType(), resultArgs)) {
     const std::string t =
         clang::Lexer::getSourceText(clang::CharSourceRange::getTokenRange(
                                         fd->getReturnTypeSourceRange()),
@@ -2668,12 +2756,16 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
     }
   }
   if (overloaded(ft)) {
+    if (inClass) {
+      why = "an overloaded friend defined in its class";
+      return {};
+    }
     if (!named) {
       why = "an overloaded name whose template parameters are unnamed";
       return {};
     }
     const std::string prefix = "jlt_admit_param_" + offset;
-    std::string sig, lambda, call;
+    std::string lambda, call;
     for (unsigned i = 0; i < fd->getNumParams(); ++i) {
       const clang::ParmVarDecl* pv = fd->getParamDecl(i);
       const clang::TypeSourceInfo* ti = pv->getTypeSourceInfo();
@@ -2695,7 +2787,6 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
       const std::string pt =
           "::" + (scope.empty() ? "" : scope + "::") + a + "<" + targs + ">";
       const std::string arg = "a" + std::to_string(i);
-      sig += (i ? ", " : "") + pt;
       lambda += (i ? ", " : "") + pt + " " + arg;
       call += (i ? ", " : "") + ("static_cast<" + pt + "&&>(" + arg + ")");
     }
@@ -2703,14 +2794,11 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
       why = "an overloaded name with a C variadic parameter";
       return {};
     }
-    // A deduced result type cannot select from an overload set (the target
-    // is then a non-deduced context), so the use is a call, resolved as at a
-    // call site; otherwise the address, at the restated type.
-    if (fd->getReturnType()->getContainedDeducedType())
-      use = "inline constexpr auto use = [](" + lambda + ") { (void)" +
-            instance.substr(1) + "(" + call + "); };\n";
-    else
-      use = "inline constexpr auto (*use)(" + sig + ") = " + instance + ";\n";
+    // The use is a call, resolved as at a call site: an address would need
+    // the result type as well, and a deduced one cannot select from an
+    // overload set (the target is then a non-deduced context).
+    use = "inline constexpr auto use = [](" + lambda + ") { (void)" +
+          instance.substr(1) + "(" + call + "); };\n";
   }
   if (!aliases.empty())
     aliases = "namespace " + scope + " {\n" + aliases + "}\n";

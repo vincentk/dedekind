@@ -63,6 +63,32 @@ struct comparable_carrier {
   bool operator==(const comparable_carrier&) const;
 };
 
+/// A carrier a shape asks a default value of as well (std::semiregular,
+/// std::default_initializable): copyable and default-constructible.  The value
+/// is partially formed in Stepanov's sense, to be written before it is read,
+/// which a type cannot say: Table 7's derived form, local state.
+template <typename Tag>
+struct semiregular_carrier {
+  semiregular_carrier() = default;
+  semiregular_carrier(const semiregular_carrier&) = default;
+  semiregular_carrier(semiregular_carrier&&) = default;
+  semiregular_carrier& operator=(const semiregular_carrier&) = default;
+  semiregular_carrier& operator=(semiregular_carrier&&) = default;
+  ~semiregular_carrier() = default;
+};
+
+/// std::regular: semiregular and ==, nothing else.
+template <typename Tag>
+struct regular_carrier {
+  regular_carrier() = default;
+  regular_carrier(const regular_carrier&) = default;
+  regular_carrier(regular_carrier&&) = default;
+  regular_carrier& operator=(const regular_carrier&) = default;
+  regular_carrier& operator=(regular_carrier&&) = default;
+  ~regular_carrier() = default;
+  bool operator==(const regular_carrier&) const;
+};
+
 /// A function object whose call gives a C: a monoid named by its unit.
 template <typename C>
 struct nullary {
@@ -128,6 +154,10 @@ static_assert(std::copyable<c> && !std::default_initializable<c> &&
               !std::equality_comparable<c>);
 static_assert(std::copyable<comparable_carrier<tag>> &&
               std::equality_comparable<comparable_carrier<tag>>);
+static_assert(std::semiregular<semiregular_carrier<tag>> &&
+              !std::regular<semiregular_carrier<tag>>);
+static_assert(std::regular<regular_carrier<tag>> &&
+              !std::totally_ordered<regular_carrier<tag>>);
 static_assert(std::same_as<std::invoke_result_t<nullary<c>>, c>);
 static_assert(std::same_as<std::invoke_result_t<binary<c>, c, c>, c>);
 static_assert(std::ranges::sized_range<sized_range_of<c>> &&
