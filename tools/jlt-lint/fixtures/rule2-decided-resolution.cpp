@@ -279,6 +279,25 @@ constexpr int by_int(T x) {
                      // !Tagged<T, 1> does not decide
 }
 
+// An explicit template argument binds before the arguments do: gc<T>(0)
+// binds the candidate's parameter to T, whose C the caller requires, and
+// converts the 0; it is not read at int.
+template <typename T>
+  requires Q<T>
+constexpr int gc(T) {
+  return 0;
+}
+template <typename T>
+  requires Q<T> && C<T>
+constexpr int gc(T) {
+  return 1;
+}
+template <typename T>
+  requires Q<T> && C<T>
+constexpr int converts(T) {
+  return gc<T>(0);  // fine: C<T> required, the 0 converted
+}
+
 }  // namespace jlt_listing
 
 template <typename T>

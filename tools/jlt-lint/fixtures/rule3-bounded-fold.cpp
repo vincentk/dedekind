@@ -1,8 +1,9 @@
 // Negative control for rules/rule3-bounded-fold.query: the gate must flag
-// eight standard folds inside the jlt_listing namespace: three at namespace
+// ten standard folds inside the jlt_listing namespace: three at namespace
 // scope, one with no bound stated, one folding a range other than the bounded
 // parameter, one under a negation, one under a disjunction, one over an iota
-// without a bound; and none of the three that fold a bounded parameter (type
+// without a bound, an iota and a repeat bounded by unreachable_sentinel; and
+// none of the three that fold a bounded parameter (type
 // constraint, requires clause, trailing clause), nor one over a sized_range
 // parameter, nor one over a counted iota, nor the one outside the namespace.
 // Standalone, no imports, so it is checked without the build.
@@ -70,6 +71,16 @@ constexpr int counted =
 template <typename M, typename H>
 constexpr M from_zero(const M v, const H h) {
   return std::ranges::fold_left(std::views::iota(0), v, h);  // finding 8
+}
+template <typename M, typename H>
+constexpr M to_nowhere(const M v, const H h) {
+  return std::ranges::fold_left(std::views::iota(0u, std::unreachable_sentinel),
+                                v, h);  // finding 9
+}
+template <typename M, typename H>
+constexpr M forever(const M v, const H h) {
+  return std::ranges::fold_left(
+      std::views::repeat(1, std::unreachable_sentinel), v, h);  // finding 10
 }
 }  // namespace category
 

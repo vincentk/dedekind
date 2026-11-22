@@ -973,8 +973,18 @@ bool isCountedView(const clang::Expr* r) {
     d = u->decls().empty() ? nullptr : *u->decls().begin();
   if (!d || !inStd(d)) return false;
   const std::string name = d->getNameAsString();
-  return (name == "iota" || name == "repeat") &&
-         call->getNumArgs() == first + 2;
+  if ((name != "iota" && name != "repeat") || call->getNumArgs() != first + 2)
+    return false;
+  // A bound of std::unreachable_sentinel_t is no bound: iota(0u,
+  // unreachable_sentinel) and repeat(x, unreachable_sentinel) never end.
+  const clang::QualType bound = call->getArg(first + 1)
+                                    ->IgnoreParenImpCasts()
+                                    ->getType()
+                                    .getNonReferenceType()
+                                    .getUnqualifiedType()
+                                    .getCanonicalType();
+  return bound.getAsString().find("unreachable_sentinel_t") ==
+         std::string::npos;
 }
 
 /// The template parameters a constraint bounds: IsBoundedRange<P> as a
@@ -1756,7 +1766,10 @@ class UndecidedResolution : public clang::ASTConsumer {
         }
         for (unsigned k = 0; k < cf->getNumParams() && k < args.size(); ++k)
           if (std::optional<Param> from =
-                  paramOf(cf->getParamDecl(k)->getType())) {
+                  paramOf(cf->getParamDecl(k)->getType());
+              from && !toCaller.count(*from)) {
+            // An explicit template argument binds first: g<T>(0) binds the
+            // parameter to T and converts the 0, as C++ does.
             toCaller[*from] = renderArg(args[k]->getType(), {});
             callerArgs.insert(toCaller[*from]);
           }
