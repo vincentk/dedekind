@@ -313,7 +313,8 @@ namespace detail_periodic {
 /** @brief The plain count of @c f(0), ..., @c f(m - 1).  @param m how many.
  *  @param f the predicate. */
 template <IsCountWord N, IsArrow F>
-  requires std::semiregular<F>  // the chain's coalgebra holds it
+  requires std::same_as<Dom<F>, N> && std::convertible_to<Cod<F>, bool> &&
+           std::semiregular<F>  // the chain's coalgebra holds it
 constexpr N count_below(N m, const F& f) {
   return count<N>(m >> chain<N>() >> opaque(f));
 }
@@ -363,7 +364,8 @@ namespace detail_periodic {
 /** @brief The plain sum of @c f(0), ..., @c f(m - 1).  @param m how many.
  *  @param f the arrow. */
 template <IsCountWord N, IsArrow F>
-  requires std::semiregular<F>  // the chain's coalgebra holds it
+  requires std::same_as<Dom<F>, N> && std::same_as<Cod<F>, N> &&
+           std::semiregular<F>  // the chain's coalgebra holds it
 constexpr N sum_below(N m, const F& f) {
   return sum(m >> chain<N>() >> opaque(f));
 }
@@ -442,7 +444,8 @@ constexpr std::ranges::range_value_t<R> exact_sum(R r) {
 namespace detail_periodic {
 /** @brief The plain exact sum of @c f(0), ..., @c f(m - 1). */
 template <IsCountWord N, IsArrow F>
-  requires std::semiregular<F>  // the chain's coalgebra holds it
+  requires std::same_as<Dom<F>, N> && std::same_as<Cod<F>, std::optional<N>> &&
+           std::semiregular<F>  // the chain's coalgebra holds it
 constexpr std::optional<N> exact_sum_below(N m, const F& f) {
   return exact_sum(m >> chain<N>() >> opaque(f));
 }

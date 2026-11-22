@@ -102,13 +102,25 @@ concept IsCountWord =
  *  below), declared here so that the view reads it in place. */
 export template <typename S, typename Coalg>
 struct walk_bound;
+/** @concept IsListCoalgebra
+ *  @brief A coalgebra of the list functor @f$S \to 1 + A \times S@f$: called
+ *  on a state, nothing, or an element and the next state.  Named once, so
+ *  that the view and both @c unfold state what the view asks: a result
+ *  type's constraints are not implied as an argument type's are (Rust's
+ *  implied bounds, RFC 2089), and jlt-lint refused @c unfold while they
+ *  were left to @c unfold_view.  @tparam Coalg the coalgebra.  @tparam S the
+ *  state. */
+export template <typename Coalg, typename S>
+concept IsListCoalgebra =
+    std::regular<S> && std::semiregular<Coalg> &&
+    std::regular_invocable<const Coalg&, const S&> &&
+    requires(std::invoke_result_t<const Coalg&, const S&> y) {
+      { y.has_value() } -> std::same_as<bool>;
+      { y->first };
+      { y->second } -> std::convertible_to<S>;
+    };
 export template <std::regular S, std::semiregular Coalg>
-  requires std::regular_invocable<const Coalg&, const S&> &&
-           requires(std::invoke_result_t<const Coalg&, const S&> y) {
-             { y.has_value() } -> std::same_as<bool>;
-             { y->first };
-             { y->second } -> std::convertible_to<S>;
-           }
+  requires IsListCoalgebra<Coalg, S>
 class unfold_view : public std::ranges::view_interface<unfold_view<S, Coalg>> {
   using Yield = std::invoke_result_t<const Coalg&, const S&>;
 
@@ -199,6 +211,7 @@ class unfold_view : public std::ranges::view_interface<unfold_view<S, Coalg>> {
  *  @tparam Coalg the coalgebra.  @param seed the first state.  @param step
  *  the coalgebra.  @return the view. */
 export template <std::regular S, std::semiregular Coalg>
+  requires IsListCoalgebra<Coalg, S>
 constexpr unfold_view<S, Coalg> unfold(S seed, Coalg step) {
   return {seed, step};
 }
@@ -206,10 +219,18 @@ constexpr unfold_view<S, Coalg> unfold(S seed, Coalg step) {
  *  and the step as the next state, while the step has a value.  Turns
  *  @c Prior, @c lower_cover or @c cover into a lens.  @tparam X the carrier.
  *  @tparam Step the partial step. */
+/** @concept IsPartialStep
+ *  @brief A partial step @f$X \to 1 + X@f$: called on an element, nothing or
+ *  the next.  Named once, so that the coalgebra and @c chain state what the
+ *  coalgebra asks (see @c IsListCoalgebra).  @tparam Step the step.
+ *  @tparam X the carrier. */
+export template <typename Step, typename X>
+concept IsPartialStep =
+    std::regular<X> && std::semiregular<Step> &&
+    std::regular_invocable<const Step&, const X&> &&
+    std::same_as<std::invoke_result_t<const Step&, const X&>, std::optional<X>>;
 export template <std::regular X, std::semiregular Step>
-  requires std::regular_invocable<const Step&, const X&> &&
-           std::same_as<std::invoke_result_t<const Step&, const X&>,
-                        std::optional<X>>
+  requires IsPartialStep<Step, X>
 struct StepCoalgebra {
   Step step{};
   /** @param x a state.  @return @c (step(x), step(x)), the element the step
@@ -235,6 +256,7 @@ struct StepCoalgebra {
 export template <std::regular X, std::semiregular Step>
 using chain_t = unfold_view<X, StepCoalgebra<X, Step>>;
 export template <std::regular X, std::semiregular Step>
+  requires IsPartialStep<Step, X>
 constexpr chain_t<X, Step> chain(X x, Step step) {
   return unfold(x, StepCoalgebra<X, Step>{step});
 }
@@ -300,6 +322,7 @@ struct Unfold {
 /** @brief The anamorphism, as an arrow.  @tparam S the state.  @param c the
  *  coalgebra. */
 export template <std::regular S, std::semiregular Coalg>
+  requires IsListCoalgebra<Coalg, S>
 constexpr Unfold<S, Coalg> unfold(Coalg c) {
   return {std::move(c)};
 }
