@@ -63,10 +63,9 @@ In the library, most of what is open is six kinds: string literals, most of them
 
 \subsection{Admission by type}
 \label{app:lint:admit}
-% STATUS: the design of the linter's second stage (Section 4); the spike on
-% the listings, written by hand, type-checks as stated below; the generator
-% that produces it is being built in #1211.  Present tense describes the
-% design; update this comment when the generator runs.
+% STATUS: the second stage runs on the paper's listings and its fixtures in
+% CI (rules rule2-by-type and admitted; levels.py for Table tab:levels); on
+% the library it has yet to run.
 
 The second stage of Section~\ref{sec:check} admits a constrained template that no deny-rule refuses when its body type-checks at archetypes of the shapes in its signature.
 It gives every type parameter an archetype by reading the shapes that constrain it, by one rule for each kind of requirement a shape may have (Table~\ref{tab:archetype-rules}).
@@ -87,6 +86,7 @@ a law, \texttt{unital<E>} or \texttt{homomorphism<H, A, B>} & the law declared \
 a call, \texttt{\{ f(x) \} -> same\_as<carrier\_t<B>>} with \texttt{x} of \texttt{carrier\_t<A>} & \texttt{F} is an arrow from \texttt{C\_A} to \texttt{C\_B} \\
 \texttt{sized\_range<R>} with \texttt{same\_as<range\_value\_t<R>, carrier\_t<E>>} & \texttt{R} is a range of \texttt{C\_E} whose size is known before the first step \\
 \texttt{same\_as<T, carrier\_t<E>>} & \texttt{T} is \texttt{C\_E} \\
+a call to a function of the program by name, \texttt{\{ power<E>(x, n) \}} & nothing to build: the call's own constraints are checked where the template is used \\
 \bottomrule
 \end{tabularx}
 \caption{The rules by which the linter builds archetypes, one for each kind of requirement in a shape.}

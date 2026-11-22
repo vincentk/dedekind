@@ -78,6 +78,21 @@ def classify(where, classes):
     return out
 
 
+READABLE = {
+    "rule2-definition": "an operation its constraints do not name",
+    "rule2-decided-resolution": "a choice its signature does not decide",
+    "rule3-no-loops": "a loop",
+    "range": "a range",
+    "view": "a view",
+    "CXXMemberCallExpr": "a member call",
+    "LValueReference": "a reference parameter",
+}
+
+
+def readable(why):
+    return ", ".join(READABLE.get(w.strip(), w.strip()) for w in why.split(",")) if why else ""
+
+
 def latex(rows):
     """The paper's rows: each function template by name, with its admission
     by type and its level; every other definition (shapes, laws, types and
@@ -86,7 +101,7 @@ def latex(rows):
     for name, _, level, why, by_type in rows:
         if by_type is not None:
             lines.append(f"\\texttt{{{name.replace('_', '\\_')}}} & {by_type} & {level}"
-                         + (f" ({why.replace('_', '\\_')})" if why else "") + " \\\\")
+                         + (f" ({readable(why).replace('_', '\\_')})" if why else "") + " \\\\")
         else:
             rest.setdefault(level, []).append(name)
     for level in ("FJlt", "Jlt", "undecided", "refused"):
