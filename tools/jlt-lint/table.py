@@ -2,10 +2,11 @@
 
 Reads the scope and a jlt-lint report (the driver's own lines, from
 build/jlt-lint/report.txt or a CI log) on standard input, and prints one row
-per rule: the library files where the rule is a gate (and so has no finding),
-the files where it is reported, how many of those have findings, and how many
-findings there are.  A reported file with no finding is not printed by the
-driver, so it is counted as clean.
+per rule: the library files where the rule is a gate (an exact count, zero or
+not: a gate pins what a file has, so that it cannot grow unseen), the files
+where it is reported, how many of all those have findings, and how many
+findings there are, read from gate and report lines alike.  A reported file
+with no finding is not printed by the driver, so it is counted as clean.
 
     python3 tools/jlt-lint/table.py < build/jlt-lint/report.txt
 """
@@ -34,7 +35,7 @@ def scope():
 
 def findings(text):
     found = collections.defaultdict(dict)
-    for rule, f, n in re.findall(r"jlt-lint: report (\S+) (" + re.escape(LIB) + r"\S+): (\d+)", text):
+    for rule, f, n in re.findall(r"jlt-lint: (?:gate|report) +(\S+) (" + re.escape(LIB) + r"\S+): (\d+)", text):
         found[rule][f] = int(n)
     return found
 
