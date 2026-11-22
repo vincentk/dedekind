@@ -2441,11 +2441,20 @@ class MarkedUse : public clang::ASTConsumer {
             llvm::dyn_cast<clang::NamespaceDecl>(v->getDeclContext());
         if (!ns || ns->getName() != "jlt_admit") return true;
         const clang::Expr* e = v->getInit()->IgnoreParenImpCasts();
-        if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
-          e = u->getSubExpr()->IgnoreParenImpCasts();
-        const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e);
-        const auto* f =
-            d ? llvm::dyn_cast<clang::FunctionDecl>(d->getDecl()) : nullptr;
+        const clang::FunctionDecl* f = nullptr;
+        if (const auto* l = llvm::dyn_cast<clang::LambdaExpr>(e)) {
+          // The call form: the one call in the lambda's body.
+          for (const clang::Stmt* st : l->getBody()->children())
+            if (const auto* c = llvm::dyn_cast<clang::CStyleCastExpr>(st))
+              if (const auto* ce = llvm::dyn_cast<clang::CallExpr>(
+                      c->getSubExpr()->IgnoreParenImpCasts()))
+                f = ce->getDirectCallee();
+        } else {
+          if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
+            e = u->getSubExpr()->IgnoreParenImpCasts();
+          if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e))
+            f = llvm::dyn_cast<clang::FunctionDecl>(d->getDecl());
+        }
         if (!f) return true;
         sel.resolved = true;
         for (const clang::FunctionDecl* g :
@@ -2499,6 +2508,18 @@ std::string qualifiedNamespace(const clang::Decl* d) {
     if (const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(c))
       q = ns->getName().str() + (q.empty() ? "" : "::" + q);
   return q;
+}
+
+/// Whether another function or function template in the same scope has the
+/// template's name, so that its address needs a target type.
+bool overloaded(const clang::FunctionTemplateDecl* ft) {
+  const clang::DeclContext* dc = ft->getDeclContext()->getRedeclContext();
+  for (const clang::NamedDecl* d : dc->lookup(ft->getDeclName()))
+    if (d->getCanonicalDecl() != ft->getCanonicalDecl() &&
+        (llvm::isa<clang::FunctionDecl>(d) ||
+         llvm::isa<clang::FunctionTemplateDecl>(d)))
+      return true;
+  return false;
 }
 
 /// The appendix for one template: archetypes, the traits' entries at them,
@@ -2606,11 +2627,75 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
     targs +=
         (targs.empty() ? "" : ", ") + arch[{tp->getDepth(), tp->getIndex()}];
   }
+  const std::string instance =
+      "&::" + ft->getQualifiedNameAsString() + "<" + targs + ">";
+  std::string use = "inline constexpr auto* use = " + instance + ";\n";
+  // An overloaded name has no address without a target type: restate the
+  // parameter types as written, each as an alias template over the
+  // template's own parameter names, in the template's namespace, so that the
+  // names in them resolve as at the definition.
+  std::string aliases;
+  if (overloaded(ft)) {
+    std::string tparams;
+    for (const clang::NamedDecl* d : *ps) {
+      const auto* tp = llvm::cast<clang::TemplateTypeParmDecl>(d);
+      if (tp->getName().empty() || tp->isParameterPack()) {
+        why = "an overloaded name whose template parameters are unnamed";
+        return {};
+      }
+      tparams +=
+          (tparams.empty() ? "class " : ", class ") + tp->getName().str();
+    }
+    const clang::FunctionDecl* fd = ft->getTemplatedDecl();
+    const clang::ASTContext& ctx = ft->getASTContext();
+    const clang::SourceManager& sm = ctx.getSourceManager();
+    const std::string prefix =
+        "jlt_admit_param_" +
+        std::to_string(sm.getFileOffset(sm.getExpansionLoc(ft->getLocation())));
+    const std::string scope = qualifiedNamespace(ft);
+    std::string sig, lambda, call;
+    for (unsigned i = 0; i < fd->getNumParams(); ++i) {
+      const clang::ParmVarDecl* pv = fd->getParamDecl(i);
+      const clang::TypeSourceInfo* ti = pv->getTypeSourceInfo();
+      const std::string t =
+          ti ? clang::Lexer::getSourceText(
+                   clang::CharSourceRange::getTokenRange(
+                       pv->getBeginLoc(), ti->getTypeLoc().getEndLoc()),
+                   sm, ctx.getLangOpts())
+                   .str()
+             : std::string();
+      if (t.empty() || t.find("auto") != std::string::npos) {
+        why =
+            "an overloaded name whose parameter types the appendix cannot "
+            "restate";
+        return {};
+      }
+      const std::string a = prefix + "_" + std::to_string(i);
+      aliases += "template <" + tparams + ">\nusing " + a + " = " + t + ";\n";
+      const std::string pt =
+          "::" + (scope.empty() ? "" : scope + "::") + a + "<" + targs + ">";
+      const std::string arg = "a" + std::to_string(i);
+      sig += (i ? ", " : "") + pt;
+      lambda += (i ? ", " : "") + pt + " " + arg;
+      call += (i ? ", " : "") + ("static_cast<" + pt + "&&>(" + arg + ")");
+    }
+    if (fd->isVariadic()) {
+      why = "an overloaded name with a C variadic parameter";
+      return {};
+    }
+    aliases = "namespace " + scope + " {\n" + aliases + "}\n";
+    // A deduced result type cannot select from an overload set (the target
+    // is then a non-deduced context), so the use is a call, resolved as at a
+    // call site; otherwise the address, at the restated type.
+    if (fd->getReturnType()->getContainedDeducedType())
+      use = "inline constexpr auto use = [](" + lambda + ") { (void)" +
+            instance.substr(1) + "(" + call + "); };\n";
+    else
+      use = "inline constexpr auto (*use)(" + sig + ") = " + instance + ";\n";
+  }
   std::string text = "\n// jlt-lint: admission by type\n";
-  text +=
-      "namespace " + ns + " {\n" + types + "}\n" + entries + "namespace " + ns +
-      " {\ninline constexpr auto* use = &::" + ft->getQualifiedNameAsString() +
-      "<" + targs + ">;\n}\n";
+  text += "namespace " + ns + " {\n" + types + "}\n" + entries + aliases +
+          "namespace " + ns + " {\n" + use + "}\n";
   return text;
 }
 

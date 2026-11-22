@@ -69,11 +69,13 @@ constexpr carrier_t<E> branching(carrier_t<E> x) {
 }  // finding 5: undecided, an if constexpr
 
 // 4. The use names an overload set: at the archetypes of the looser one, the
-// tighter sibling is chosen, and the looser body would go unchecked.
+// tighter sibling is chosen.  The compiler instantiates the looser body on
+// the way, a constexpr body, and its + fails there, inside the checked body
+// and at archetypes of its own constraints: a witness all the same.
 template <typename E>
   requires Mon<E>
 constexpr carrier_t<E> pick(carrier_t<E> x) {
-  return x + x;  // finding 6: undecided, the use resolves to the sibling
+  return x + x;  // finding 6: not admitted, though the sibling is chosen
 }
 template <typename E>
   requires Mon<E> && std::copyable<carrier_t<E>>
