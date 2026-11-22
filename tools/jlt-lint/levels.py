@@ -79,18 +79,23 @@ def classify(where, classes):
 
 
 def latex(rows):
-    """The paper's rows: a function template or a type by name; the entries of
-    laws and associated types summed by level, since there are many."""
-    lines, summed = [], {}
+    """The paper's rows: each function template by name, with its admission
+    by type and its level; every other definition (shapes, laws, types and
+    their entries) summed by level, the names of those not in FJlt given."""
+    lines, rest = [], {}
     for name, _, level, why, by_type in rows:
-        if "<" in name:  # an entry of a law or of an associated type
-            summed[level] = summed.get(level, 0) + 1
+        if by_type is not None:
+            lines.append(f"\\texttt{{{name.replace('_', '\\_')}}} & {by_type} & {level}"
+                         + (f" ({why.replace('_', '\\_')})" if why else "") + " \\\\")
+        else:
+            rest.setdefault(level, []).append(name)
+    for level in ("FJlt", "Jlt", "undecided", "refused"):
+        names = rest.get(level, [])
+        if not names:
             continue
-        name_tt = name.replace("_", "\\_")
-        typed = by_type or "---"
-        lines.append(f"\\texttt{{{name_tt}}} & {typed} & {level} \\\\")
-    for level, n in sorted(summed.items()):
-        lines.append(f"entries of laws and associated types ({n}) & --- & {level} \\\\")
+        shown = "" if level == "FJlt" else ": " + ", ".join(
+            f"\\texttt{{{n.replace('_', '\\_')}}}" for n in names)
+        lines.append(f"other definitions ({len(names)}){shown} & --- & {level} \\\\")
     return "\n".join(lines) + "\n"
 
 

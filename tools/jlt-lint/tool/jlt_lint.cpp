@@ -2448,8 +2448,10 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     return true;
   }
   bool VisitDeclRefExpr(clang::DeclRefExpr* e) {
+    // The view objects themselves (views::transform), not their call
+    // operators, whose names are operator().
     const clang::ValueDecl* d = e->getDecl();
-    if (d && inStd(d) &&
+    if (d && llvm::isa<clang::VarDecl>(d) && inStd(d) &&
         d->getQualifiedNameAsString().find("views::") != std::string::npos &&
         d->getName() != "iota")
       kinds.insert("Derived:view");
@@ -2458,6 +2460,15 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   bool VisitStmt(clang::Stmt* st) {
     if (const auto* t = llvm::dyn_cast<clang::CXXThisExpr>(st))
       if (t->isImplicit()) return true;  // a member named without this->
+    // A conversion between integer types written as a call, size_t(k): the
+    // count's own modular arithmetic, decided kernel (2026-11-22); any other
+    // functional cast keeps its kind.
+    if (const auto* c = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(st))
+      if (c->getType()->isIntegerType() &&
+          c->getSubExpr()->IgnoreParenImpCasts()->getType()->isIntegerType()) {
+        kinds.insert("Cast:integer");
+        return true;
+      }
     // An operator by its spelling: + is not =, ! is not ++.
     if (const auto* o = llvm::dyn_cast<clang::BinaryOperator>(st)) {
       kinds.insert("Op:" +

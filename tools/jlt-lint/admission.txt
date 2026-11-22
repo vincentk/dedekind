@@ -123,6 +123,8 @@ Op:u--post refused
 # ---- the derived forms no syntax kind shows (definitions only)
 Derived:range derived
 Derived:view derived
+# a conversion between integer types written as a call (decided 2026-11-22)
+Cast:integer kernel
 
 # ---- scaffolding
 Decl:Export scaffolding
@@ -165,7 +167,7 @@ Stmt:CXXFunctionalCastExpr open
 Stmt:CXXStaticCastExpr open
 Stmt:CXXThisExpr open
 Stmt:CXXConstructExpr kernel
-Stmt:CXXMemberCallExpr open
+Stmt:CXXMemberCallExpr derived
 Stmt:ArraySubscriptExpr open
 Stmt:StringLiteral open
 Stmt:FloatingLiteral open
