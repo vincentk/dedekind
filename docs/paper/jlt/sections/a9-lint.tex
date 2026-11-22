@@ -80,26 +80,26 @@ A result type brings nothing, since no argument guarantees it, and a template wh
 \begin{table}[htbp]
 \centering
 \small
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.36\linewidth}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}p{0.3\linewidth}>{\raggedright\arraybackslash}X@{}}
 \toprule
-requirement in a shape & rules & archetype \\
+requirement & rules & archetype \\
 \midrule
 \multicolumn{3}{@{}l}{\emph{Kernel: the requirements $A$ of a shape (Figure~\ref{fig:fjlt-syntax})}} \\
-a constraint $Q$, \texttt{copyable} or \texttt{equality\_comparable} on a carrier & assumed / \textsc{E-Shape} & \texttt{carrier}, \texttt{comparable\_carrier} \\
-a constraint \texttt{same\_as<T, carrier\_t<E>>}, or between member types, \texttt{same\_as<Cod<F>, Dom<G>>} & assumed / \textsc{E-Shape} & t.b.d. \\
-a law $e$, \texttt{unital<E>} or \texttt{homomorphism<H, A, B>} & \textsc{E-Law-Assumed} / \textsc{E-Law} & t.b.d. \\
-a required call, the unit \texttt{E\{\}()} & \textsc{T-Req-Assumed} / \textsc{E-Op} & \texttt{nullary<C>} \\
-a required call through an associated type, \texttt{\{ op\_t<E>\{\}(a, b) \} -> same\_as<carrier\_t<E>>} & \textsc{T-Req-Assumed} / \textsc{E-Op} & \texttt{binary<C>} \\
-a required call, \texttt{\{ f(x) \} -> same\_as<carrier\_t<B>>} with \texttt{x} of \texttt{carrier\_t<A>} & \textsc{T-Req-Assumed} / \textsc{E-Op} & \texttt{arrow<A, B>} \\
-a call to a function of the program by name, \texttt{\{ power<E>(x, n) \}} & \textsc{T-Call} & none \\
+$Q$: \texttt{copyable<T>}, \texttt{equality\_comparable<T>} & assumed / \textsc{E-Shape} & \texttt{carrier}, \texttt{comparable\_carrier} \\
+$Q$: \texttt{same\_as<T, U>} & assumed / \textsc{E-Shape} & t.b.d. \\
+$e$: \texttt{unital<E>} & \textsc{E-Law-Assumed} / \textsc{E-Law} & t.b.d. \\
+call: \texttt{E\{\}()} & \textsc{T-Req-Assumed} / \textsc{E-Op} & \texttt{nullary<C>} \\
+call: \texttt{op\_t<E>\{\}(a, b)} & \textsc{T-Req-Assumed} / \textsc{E-Op} & \texttt{binary<C>} \\
+call: \texttt{f(x)} & \textsc{T-Req-Assumed} / \textsc{E-Op} & \texttt{arrow<A, B>} \\
+call: \texttt{f<T>(x)} & \textsc{T-Call} & none \\
 \midrule
 \multicolumn{3}{@{}l}{\emph{Jlt: derived forms (Table~\ref{tab:derived}) and the standard's concepts}} \\
-\texttt{sized\_range<R>} with \texttt{same\_as<range\_value\_t<R>, carrier\_t<E>>} & a range; \textsc{E-Range} & \texttt{sized\_range\_of<C>} \\
-a result \texttt{-> convertible\_to<T>} on an operation, an arrow or a member call & a result required only \texttt{convertible\_to}; \textsc{T-Conv} & \texttt{converts\_to<T>} \\
-\texttt{semiregular} or \texttt{regular} on a carrier or a parameter & an assignment on a local; N3351 & \texttt{semiregular\_carrier}, \texttt{regular\_carrier} \\
-\texttt{integral}, \texttt{signed\_integral} or \texttt{unsigned\_integral} & the atoms $b$; an implicit conversion between atoms & \texttt{smallest\_integer}, \texttt{largest\_integer} \\
-the library's arrow, \texttt{typename F::Domain} with \texttt{\{ f(x) \} -> Presents<typename F::Codomain>} & a call of a member function & t.b.d. \\
-a parameter of type \texttt{Compose<F, G>}, a constrained class template & implied bounds, RFC~2089 & t.b.d. \\
+\texttt{sized\_range<R>} & range; \textsc{E-Range} & \texttt{sized\_range\_of<C>} \\
+\texttt{-> convertible\_to<T>} & \texttt{convertible\_to}; \textsc{T-Conv} & \texttt{converts\_to<T>} \\
+\texttt{semiregular<T>}, \texttt{regular<T>} & local state; N3351 & \texttt{semiregular\_carrier}, \texttt{regular\_carrier} \\
+\texttt{integral<N>} & atoms $b$ & \texttt{smallest\_integer}, \texttt{largest\_integer} \\
+\texttt{F::Domain}, \texttt{Presents<F::Codomain>} & member call & t.b.d. \\
+a parameter \texttt{const Compose<F, G>\&} & RFC~2089 & t.b.d. \\
 \bottomrule
 \end{tabularx}
 \caption{The rules by which the linter builds archetypes, one for each kind of requirement in a shape, in two groups: the kernel's requirements, and those of Jlt.
