@@ -1,0 +1,11 @@
+# The outcome of every template in rule2-by-type.cpp, in source order: the
+# gate in scope counts findings, and a not-admitted that turned undecided
+# would keep the count (it did once); outcomes.py compares these.
+twice admitted
+doubled not admitted
+either undecided
+applied undecided
+counted not admitted
+branching undecided
+pick undecided
+pick undecided

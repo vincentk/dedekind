@@ -32,7 +32,9 @@ import jlt_lint  # noqa: E402
 import admission  # noqa: E402
 
 LOCATION = re.compile(r"^(?P<path>\S+?):(?P<line>\d+):(?P<col>\d+)(?:: (?P<rest>.*))?$")
-NOT_DENY = {"axioms", "inventory", "definitions", "admitted"}
+# Reports, not deny-rules: rule2-constrained-templates is a proxy that only
+# reports (README), so it refuses nothing.
+NOT_DENY = {"axioms", "inventory", "definitions", "admitted", "rule2-constrained-templates"}
 
 
 def classify(where, classes):
@@ -40,8 +42,8 @@ def classify(where, classes):
     defs = []
     for l in where.get("definitions", []):
         m = LOCATION.match(l)
-        d = re.match(r"(?P<name>.+) lines (?P<a>\d+)-(?P<b>\d+)(?P<kinds>( \S+)*)$", m["rest"])
-        defs.append((d["name"], int(d["a"]), int(d["b"]), d["kinds"].split()))
+        d = re.match(r"(?P<name>.+) range (?P<a>\d+):(?P<ac>\d+)-(?P<b>\d+):(?P<bc>\d+)(?P<kinds>( \S+)*)$", m["rest"])
+        defs.append((d["name"], (int(d["a"]), int(d["ac"])), (int(d["b"]), int(d["bc"])), d["kinds"].split()))
     findings = []  # (line, rule, text)
     for rule, lines in where.items():
         if rule in NOT_DENY:
@@ -49,19 +51,21 @@ def classify(where, classes):
         for l in lines:
             m = LOCATION.match(l)
             if m:
-                findings.append((int(m["line"]), rule, m["rest"] or ""))
+                findings.append(((int(m["line"]), int(m["col"])), rule, m["rest"] or ""))
+    # Each outcome at the position of the template's name, line and column,
+    # so two definitions on one line keep their own (Copilot on #1211).
     admitted = {}
     for l in where.get("admitted", []):
         m = LOCATION.match(l)
-        admitted[int(m["line"])] = "admitted"
+        admitted[(int(m["line"]), int(m["col"]))] = "admitted"
     for l in where.get("rule2-by-type", []):
         m = LOCATION.match(l)
-        admitted[int(m["line"])] = "undecided" if " undecided: " in (m["rest"] or "") else "not admitted"
+        admitted[(int(m["line"]), int(m["col"]))] = "undecided" if " undecided: " in (m["rest"] or "") else "not admitted"
     out = []
     for name, a, b, kinds in defs:
         cls = {k: classes.get(k, "open") for k in kinds}
-        by_type = next((v for line, v in admitted.items() if a <= line <= b), None)
-        deny = sorted({r for line, r, _ in findings if a <= line <= b and r != "rule2-by-type"})
+        by_type = next((v for pos, v in admitted.items() if a <= pos <= b), None)
+        deny = sorted({r for pos, r, _ in findings if a <= pos <= b and r != "rule2-by-type"})
         if deny:
             level, why = "refused", ", ".join(deny)
         elif by_type == "not admitted":
@@ -74,7 +78,7 @@ def classify(where, classes):
             level, why = "Jlt", ", ".join(k.split(":")[1] for k, c in cls.items() if c == "derived")
         else:
             level, why = "FJlt", ""
-        out.append((name, a, level, why, by_type))
+        out.append((name, a[0], level, why, by_type))
     return out
 
 

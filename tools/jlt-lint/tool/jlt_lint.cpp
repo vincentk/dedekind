@@ -1985,6 +1985,10 @@ struct Facts {
     std::vector<Param> args;
   };
   std::vector<Law> laws;
+  // An operation is recorded only once its result is constrained to the
+  // carrier: until then it is unconfirmed (Copilot on #1211).
+  std::set<Param> opUnconfirmed;
+  std::optional<Param> lastOp;
   std::string undecided;  // the first requirement no rule reads
 };
 
@@ -2028,6 +2032,8 @@ void readRequiredCall(const clang::Expr* e,
       if (a.kind == Term::CarrierOf && b.kind == Term::CarrierOf &&
           a.p == c.p && b.p == c.p) {
         f.op[c.p] = c.trait;
+        f.opUnconfirmed.insert(c.p);
+        f.lastOp = c.p;
         return;
       }
     }
@@ -2062,9 +2068,25 @@ void readRequires(const clang::RequiresExpr* r, const TermSubst& s, Facts& f) {
         f.undecided = "a requirement that cannot be read";
         return;
       }
+      f.lastOp.reset();
       readRequiredCall(er->getExpr(), locals, s, f);
       const auto& ret = er->getReturnTypeRequirement();
       if (ret.isTypeConstraint()) {
+        // -> same_as<carrier_t<E>> on an operation: its result is the carrier.
+        if (f.lastOp)
+          if (const auto* rc = llvm::dyn_cast<clang::ConceptSpecializationExpr>(
+                  ret.getTypeConstraint()->getImmediatelyDeclaredConstraint()))
+            if (rc->getNamedConcept()->getName() == "same_as" &&
+                !rc->getTemplateArgsAsWritten()->arguments().empty()) {
+              const Term r = classify(rc->getTemplateArgsAsWritten()
+                                          ->arguments()
+                                          .back()
+                                          .getArgument()
+                                          .getAsType(),
+                                      s);
+              if (r.kind == Term::CarrierOf && r.p == *f.lastOp)
+                f.opUnconfirmed.erase(r.p);
+            }
         // -> same_as<carrier_t<B>>: fixes an arrow's codomain.
         const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(
             ret.getTypeConstraint()->getImmediatelyDeclaredConstraint());
@@ -2247,6 +2269,68 @@ class Errors : public clang::DiagnosticConsumer {
   }
 };
 
+/// The second parse's own reading of which function the appendix's use
+/// names, from the syntax tree: whether it resolved at all, and whether the
+/// function carries the marker (a failed body suppresses the deprecation
+/// warning and leaves the use unresolved, so the warning cannot be relied on).
+struct Selection {
+  bool resolved = false;
+  bool marked = false;
+};
+class MarkedUse : public clang::ASTConsumer {
+ public:
+  explicit MarkedUse(Selection& sel) : sel(sel) {}
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    struct Find : clang::RecursiveASTVisitor<Find> {
+      Selection& sel;
+      explicit Find(Selection& s) : sel(s) {}
+      bool VisitVarDecl(clang::VarDecl* v) {
+        if (v->getName() != "use" || !v->getInit()) return true;
+        const auto* ns =
+            llvm::dyn_cast<clang::NamespaceDecl>(v->getDeclContext());
+        if (!ns || ns->getName() != "jlt_admit") return true;
+        const clang::Expr* e = v->getInit()->IgnoreParenImpCasts();
+        if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
+          e = u->getSubExpr()->IgnoreParenImpCasts();
+        const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e);
+        const auto* f =
+            d ? llvm::dyn_cast<clang::FunctionDecl>(d->getDecl()) : nullptr;
+        if (!f) return true;
+        sel.resolved = true;
+        for (const clang::FunctionDecl* g :
+             {f, static_cast<const clang::FunctionDecl*>(
+                     f->getTemplateInstantiationPattern())})
+          if (g)
+            if (const auto* a = g->getAttr<clang::DeprecatedAttr>())
+              if (a->getMessage() == "jlt-admit-checked") sel.marked = true;
+        return true;
+      }
+    } find(sel);
+    find.TraverseDecl(ctx.getTranslationUnitDecl());
+  }
+
+ private:
+  Selection& sel;
+};
+class MarkedUseAction : public clang::SyntaxOnlyAction {
+ public:
+  explicit MarkedUseAction(Selection& sel) : sel(sel) {}
+  std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
+      clang::CompilerInstance&, llvm::StringRef) override {
+    return std::make_unique<MarkedUse>(sel);
+  }
+
+ private:
+  Selection& sel;
+};
+struct MarkedUseFactory : clang::tooling::FrontendActionFactory {
+  Selection& sel;
+  explicit MarkedUseFactory(Selection& s) : sel(s) {}
+  std::unique_ptr<clang::FrontendAction> create() override {
+    return std::make_unique<MarkedUseAction>(sel);
+  }
+};
+
 llvm::cl::opt<std::string> archetypes(
     "archetypes",
     llvm::cl::desc("the archetype header that ships with the linter"),
@@ -2368,6 +2452,10 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   readConstraint(ft->getTemplateParameters()->getRequiresClause(), {}, f);
   readConstraint(fd->getTrailingRequiresClause().ConstraintExpr, {}, f);
   if (!f.undecided.empty()) return {Outcome::Undecided, f.undecided};
+  if (!f.opUnconfirmed.empty())
+    return {Outcome::Undecided,
+            "a required operation whose result is not constrained to its "
+            "carrier"};
   // Hole 3: at the archetypes an if constexpr takes one branch, and the other
   // is never type-checked.
   struct Constexprs : clang::RecursiveASTVisitor<Constexprs> {
@@ -2417,20 +2505,22 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
       sm.getFileOffset(sm.getExpansionLoc(fd->getBody()->getEndLoc())) +
       marker.size());
   again.setDiagnosticConsumer(&errors);
-  again.run(clang::tooling::newFrontendActionFactory<clang::SyntaxOnlyAction>()
-                .get());
-  // Which definition the use reached comes first: an error may belong to a
-  // sibling the compiler instantiated on the way.
-  if (!errors.marked)
+  Selection sel;
+  MarkedUseFactory factory(sel);
+  again.run(&factory);
+  // Which definition the use reached comes first.  A use that resolved to an
+  // unmarked function reached a sibling; a use that resolved to nothing failed
+  // with the body it instantiated, which the first error then locates.
+  if (sel.resolved && !sel.marked && !errors.marked)
     return {Outcome::Undecided,
             "the use resolved to another overload at the archetypes"};
   if (errors.n == 0) return {Outcome::Admitted, {}};
   if (errors.inAppendix)
     return {Outcome::Undecided,
             "the appendix did not compile: " + errors.first};
-  if (errors.inMain && !errors.inBody)
+  if (!errors.inBody)
     return {Outcome::Undecided,
-            "an error in another definition: " + errors.first};
+            "an error outside the checked body: " + errors.first};
   return {Outcome::NotAdmitted, errors.first};
 }
 
@@ -2442,10 +2532,15 @@ class Admission : public clang::ASTConsumer {
   explicit Admission(bool successes) : successes(successes) {}
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     const clang::SourceManager& sm = ctx.getSourceManager();
-    static std::vector<std::pair<std::string, Outcome>> cache;
-    static bool computed = false;
+    // Shared by the two views of one file, never across files.
+    static std::map<std::string, std::vector<std::pair<std::string, Outcome>>>
+        caches;
+    const clang::OptionalFileEntryRef mainFile =
+        sm.getFileEntryRefForID(sm.getMainFileID());
+    const std::string key = mainFile ? mainFile->getName().str() : "";
+    const bool computed = caches.count(key) > 0;
+    auto& cache = caches[key];
     if (!computed) {
-      computed = true;
       struct Finder : clang::RecursiveASTVisitor<Finder> {
         std::vector<const clang::FunctionTemplateDecl*> found;
         const clang::SourceManager* sm;
@@ -2619,9 +2714,11 @@ class Definitions : public clang::ASTConsumer {
     Kinds k;
     k.TraverseDecl(d);
     out() << sm.getFilename(b) << ':' << sm.getExpansionLineNumber(b) << ':'
-          << sm.getExpansionColumnNumber(b) << ": " << n.str() << " lines "
-          << sm.getExpansionLineNumber(b) << '-'
-          << sm.getExpansionLineNumber(e);
+          << sm.getExpansionColumnNumber(b) << ": " << n.str() << " range "
+          << sm.getExpansionLineNumber(b) << ':'
+          << sm.getExpansionColumnNumber(b) << '-'
+          << sm.getExpansionLineNumber(e) << ':'
+          << sm.getExpansionColumnNumber(e);
     for (const std::string& kind : k.kinds) out() << ' ' << kind;
     out() << '\n';
   }
