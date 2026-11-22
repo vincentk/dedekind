@@ -85,5 +85,5 @@ Its free theorem holds of the code the compiler builds, given in addition the hy
 And for those in FJlt, the program as written is a term of the grammar of Figure~\ref{fig:fjlt-syntax}, whose image in System~F is the image of Table~\ref{tab:image}, with no derived form in between whose rewrite would have to be trusted.
 % STATUS: the second stage runs in CI on the four listings, its fixtures and
 % the category layer of the library; the other layers are to follow.
-On the library the second stage has run on one layer, \texttt{category}, where it admits 65 of 382 function templates and refuses none, after it found nine whose signatures promised less than their bodies or results used, each fixed (Appendix~\ref{app:lint:admit}).
+On the library the second stage runs on one layer, \texttt{category}, gated in continuous integration, where it admits a growing share of the function templates and refuses none: the definitions it refused, whose signatures promised less than their bodies or results used, have been fixed (Appendix~\ref{app:lint:admit}).
 Elsewhere, and for the definitions it leaves undecided, the first clause of this paper's promise rests on the deny-rules, the programmer and a reviewer.
