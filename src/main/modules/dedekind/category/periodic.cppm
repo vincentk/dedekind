@@ -2300,8 +2300,11 @@ struct bit_word<64> {
   using type = std::uint64_t;
 };
 /** @brief The low @c n bits of a machine word: the pattern, its padding
- *  zero. */
+ *  zero.  Not @c bool, which @c std::unsigned_integral admits and which has
+ *  no bits to mask (jlt-lint checks an integer parameter at the smallest
+ *  type its constraint admits, and @c ~bool{0} was refused there). */
 template <std::unsigned_integral B>
+  requires(!std::same_as<B, bool>)
 constexpr B low_bits(std::size_t n) {
   if (n >= static_cast<std::size_t>(std::numeric_limits<B>::digits)) {
     return static_cast<B>(~B{0});
