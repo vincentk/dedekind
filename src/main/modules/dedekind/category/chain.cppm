@@ -269,8 +269,15 @@ struct Until {
   constexpr bool operator==(const Until&) const = default;
 };
 /** @brief The guard.  @param end where the chain stops.  @param step the
- *  total step.  @return the partial step. */
+ *  total step.  @return the partial step.  The constraints are @c Until's,
+ *  stated: a result type's constraints are met by nothing the caller holds,
+ *  so they are not implied as an argument type's are (Rust's implied
+ *  bounds, RFC 2089), and jlt-lint refuses a template whose result asks
+ *  more than its constraints. */
 export template <IsArrow End, IsArrow Step>
+  requires std::same_as<Dom<End>, Dom<Step>> &&
+           std::same_as<Cod<Step>, Dom<Step>> &&
+           std::convertible_to<Cod<End>, bool>
 constexpr Until<End, Step> until(End end, Step step) {
   return {std::move(end), std::move(step)};
 }
