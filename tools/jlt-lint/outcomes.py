@@ -16,7 +16,7 @@ import jlt_lint  # noqa: E402
 def main():
     tool, fixture = sys.argv[1], pathlib.Path(sys.argv[2]).resolve()
     args = [tool, "--scope=jlt_listing", f"--archetypes={HERE / 'archetypes.hpp'}",
-            "--check=admit,admitted", str(fixture), "--", "-std=c++23", "-xc++",
+            "--check=admit,undecided,admitted", str(fixture), "--", "-std=c++23", "-xc++",
             *jlt_lint.RESOURCE_DIR, *sys.argv[3:]]
     out = subprocess.run(args, capture_output=True, text=True).stdout
     got = []

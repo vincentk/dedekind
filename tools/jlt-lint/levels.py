@@ -34,7 +34,7 @@ import admission  # noqa: E402
 LOCATION = re.compile(r"^(?P<path>\S+?):(?P<line>\d+):(?P<col>\d+)(?:: (?P<rest>.*))?$")
 # Reports, not deny-rules: rule2-constrained-templates is a proxy that only
 # reports (README), so it refuses nothing.
-NOT_DENY = {"axioms", "inventory", "definitions", "admitted", "rule2-constrained-templates"}
+NOT_DENY = {"axioms", "inventory", "definitions", "admitted", "undecided-by-type", "rule2-constrained-templates"}
 
 
 def classify(where, classes):
@@ -60,7 +60,10 @@ def classify(where, classes):
         admitted[(int(m["line"]), int(m["col"]))] = "admitted"
     for l in where.get("rule2-by-type", []):
         m = LOCATION.match(l)
-        admitted[(int(m["line"]), int(m["col"]))] = "undecided" if " undecided: " in (m["rest"] or "") else "not admitted"
+        admitted[(int(m["line"]), int(m["col"]))] = "not admitted"
+    for l in where.get("undecided-by-type", []):
+        m = LOCATION.match(l)
+        admitted[(int(m["line"]), int(m["col"]))] = "undecided"
     out = []
     for name, a, b, kinds in defs:
         cls = {k: classes.get(k, "open") for k in kinds}

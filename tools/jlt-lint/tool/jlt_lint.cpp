@@ -2529,7 +2529,7 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
 /// the admitted ones.  The outcomes are computed once per file.
 class Admission : public clang::ASTConsumer {
  public:
-  explicit Admission(bool successes) : successes(successes) {}
+  explicit Admission(Outcome::Kind view) : view(view) {}
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     const clang::SourceManager& sm = ctx.getSourceManager();
     // Shared by the two views of one file, never across files.
@@ -2568,17 +2568,17 @@ class Admission : public clang::ASTConsumer {
       }
     }
     for (const auto& [where, o] : cache) {
-      if (successes && o.kind == Outcome::Admitted)
-        out() << where << " admitted by type\n";
-      if (!successes && o.kind == Outcome::NotAdmitted)
+      if (o.kind != view) continue;
+      if (o.kind == Outcome::Admitted) out() << where << " admitted by type\n";
+      if (o.kind == Outcome::NotAdmitted)
         out() << where << " not admitted: " << o.why << '\n';
-      if (!successes && o.kind == Outcome::Undecided)
+      if (o.kind == Outcome::Undecided)
         out() << where << " undecided: " << o.why << '\n';
     }
   }
 
  private:
-  bool successes;
+  Outcome::Kind view;  // one rung of the ladder per check
 };
 
 /// The syntax kinds under one declaration, as the inventory names them.
@@ -2736,8 +2736,10 @@ std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
   if (name == "inventory") return std::make_unique<Inventory>();
   if (name == "undecided-resolution")
     return std::make_unique<UndecidedResolution>();
-  if (name == "admit") return std::make_unique<Admission>(false);
-  if (name == "admitted") return std::make_unique<Admission>(true);
+  if (name == "admit") return std::make_unique<Admission>(Outcome::NotAdmitted);
+  if (name == "undecided")
+    return std::make_unique<Admission>(Outcome::Undecided);
+  if (name == "admitted") return std::make_unique<Admission>(Outcome::Admitted);
   if (name == "definitions") return std::make_unique<Definitions>();
   llvm::errs() << "jlt-lint: unknown check " << name << '\n';
   return nullptr;
