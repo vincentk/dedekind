@@ -114,7 +114,7 @@ It parses that with the file's own compile command, so that the compiler instant
 An error in the template's body means that the body uses something its signature did not promise, or uses it at other types.
 
 \paragraph{On the library.}
-The second stage also runs on one layer of the library, \texttt{category}, in continuous integration, every outcome gated per file; the current counts are those gates, in the repository's \texttt{tools/jlt-lint/scope}, and the report of every build.
+The second stage also runs on one layer of the library, \texttt{category}, in continuous integration, every count pinned per file so that no count moves unseen; the current counts are those gates, in the repository's \texttt{tools/jlt-lint/scope}, and the report of every build.
 It admits a growing share of the layer's function templates and refuses none, since every definition it refused has been fixed.
 Those refusals were all of one kind: a helper or a factory whose constraints were weaker than what its body or its result type used.
 Three helpers of a periodic fold piped an arrow into a chain without stating that its domain is the counts; \cppinline{until}, \cppinline{unfold} and \cppinline{chain} returned class templates whose constraints their own did not imply; a reduction concatenated two arrows without stating that they compose; and a mask of low bits admitted \cppinline{bool}, which has none.
