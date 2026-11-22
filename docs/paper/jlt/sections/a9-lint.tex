@@ -29,12 +29,11 @@ Counted on commit \texttt{c5198b97e}.}
 \label{tab:lint}
 \end{table}
 
-Of the 717 findings of the deny-rules, two rows carry half.
-\texttt{definition}, the definition check by names, has 259 findings in 20 files, and \texttt{no-loops} has 121 in 27, loops that are still to become folds.
-\texttt{constrained-templates}, that every template is constrained, is reported everywhere, with 547 findings in 60 files, and counts apart.
+Two checks carry half of what the deny-rules find: \texttt{definition}, the definition check by names, and \texttt{no-loops}, loops that are still to become folds.
+\texttt{constrained-templates}, that every template is constrained, is reported everywhere and counts apart.
 
 A deny-rule can only say that a construct is outside Jlt, and a file it does not refuse is not thereby inside: the list of refusals is not complete.
-On that commit 61 of the 148 units, 17\,357 lines, are refused by no check, and 85 if \texttt{constrained-templates} is set aside.
+On that commit some two fifths of the units are refused by no check, and more than half if \texttt{constrained-templates} is set aside.
 To say that a file is inside needs admission as well: inside FJlt when every construct of its inventory is admitted as kernel and no deny-rule fires, inside Jlt when every construct is kernel or a listed derived form and no deny-rule fires.
 Both halves are needed, because some exclusions are conditions on admitted syntax: \cppinline{guessed_power} is a call to an overload set, kernel syntax, and only the deny-rule sees that its signature does not decide the overload.
 
@@ -57,7 +56,7 @@ Table~\ref{tab:admission} gives it.
 \label{tab:admission}
 \end{table}
 
-Catch2, the control, has a refused share six times the library's and an open share more than twice as large, among them kinds the library never writes (\cppinline{try}, \cppinline{new}, \cppinline{delete}, \cppinline{reinterpret_cast}), so the classes tell code written under the rules from code that was not; by unit the picture is harsher, 8 of the library's 146 units and 9 of Catch2's 106 having nothing refused or open.
+Catch2, the control, has a refused share several times the library's and an open share more than twice as large, among them kinds the library never writes (\cppinline{try}, \cppinline{new}, \cppinline{delete}, \cppinline{reinterpret_cast}), so the classes tell code written under the rules from code that was not; by unit the picture is harsher, only a few units of either having nothing refused or open.
 In the library, most of what is open is six kinds: string literals, most of them messages of assertions; casts written as \cppinline{size_t(x)} or with \cppinline{static_cast}; \cppinline{this}; enumerations; unary operators; and parameters of templates over values.
 
 \subsection{Admission by type}
@@ -114,7 +113,7 @@ It parses that with the file's own compile command, so that the compiler instant
 An error in the template's body means that the body uses something its signature did not promise, or uses it at other types.
 
 \paragraph{On the library.}
-The second stage also runs on one layer of the library, \texttt{category}, in continuous integration, every count pinned per file so that no count moves unseen; the current counts are those gates, in the repository's \texttt{tools/jlt-lint/scope}, and the report of every build.
+The second stage also runs on the library's base layer, the one every other imports, in continuous integration, every count pinned per file so that no count moves unseen; the current counts are those gates, in the repository's \texttt{tools/jlt-lint/scope}, and the report of every build.
 It admits a growing share of the layer's function templates and refuses none, since every definition it refused has been fixed.
 Those refusals were all of one kind: a helper or a factory whose constraints were weaker than what its body or its result type used.
 Three helpers of a periodic fold piped an arrow into a chain without stating that its domain is the counts; \cppinline{until}, \cppinline{unfold} and \cppinline{chain} returned class templates whose constraints their own did not imply; a reduction concatenated two arrows without stating that they compose; and a mask of low bits admitted \cppinline{bool}, which has none.
