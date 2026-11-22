@@ -2,6 +2,40 @@
 \section{Desugaring Jlt into Featherweight Jlt}
 \label{app:fjlt:closure}
 
+\subsection{The derived forms}
+\label{app:derived}
+
+Table~\ref{tab:derived} lists the derived forms of Section~\ref{sec:kernel:derived}: each with the kernel program it is read as, and the condition under which that reading keeps every value.
+The linter reads the same list, in its classification of syntax kinds (Appendix~\ref{app:lint}), so a definition is in FJlt exactly when it uses none of them.
+The list is open: a new derived form is a new row, and nothing said about the kernel changes.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.3\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.24\linewidth}@{}}
+\toprule
+derived form & read as & condition \\
+\midrule
+a constrained template parameter, \texttt{template <C T>} & \texttt{template <typename T> requires C<T>} & none \\
+an alias, \texttt{using S = T;} & \texttt{T} & none \\
+a braced \texttt{return \{a, b\};} & the record built from \texttt{a} and \texttt{b} & none \\
+two fields in one declaration & two declarations & none \\
+\texttt{static\_assert(e)} & the observation of the truth value \texttt{e} & none \\
+a range, as an array or a view & its length and the function that reads it; \texttt{ranges::fold\_left} over it, the kernel's iteration over that count & the range is finite and its size known before the first step \\
+a call of a member function, \texttt{s.size()} & a call with the object as its first argument & none \\
+a result required only \texttt{convertible\_to<T>}, \texttt{\{ op(a, b) \} -> convertible\_to<T>} & the call followed by the conversion, \texttt{T(op(a, b))}, after which the result has type \texttt{T} & the result is used at \texttt{T} and nowhere else, which a rule of the linter checks \\
+an implicit conversion between atoms, \texttt{true + true} & the conversion written out, \texttt{x != 0} or \texttt{b ? 1 : 0} & as for \texttt{convertible\_to} \\
+\bottomrule
+\end{tabularx}
+\caption{The derived forms, each with the kernel program it is read as and the condition for that reading to keep every value.
+An integer converted to a count, implicitly or written as a call, \texttt{size\_t(k)}, is not among them: it is the count's own arithmetic, in the kernel.}
+\label{tab:derived}
+\end{table}
+
+% The material below describes the larger kernel of an earlier draft and is
+% to be replaced by the table above and the kernel's grammar in full.
+\subsection{The larger kernel of an earlier draft}
+
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}

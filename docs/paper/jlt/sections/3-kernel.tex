@@ -151,10 +151,8 @@ a template on a call operator & an entry of a trait at a form that reads the tra
 \label{sec:kernel:derived}
 Jlt is this kernel and its derived forms: rewrites of a Jlt program into FJlt that may change types inside the program and leave every observable value unchanged, the value of a closed term at an atom, while compiling and while running.
 Time is not observed, so a program and its rewrite may differ in cost and in nothing else.
-Most of what the listings write beyond the grammar is \Cpp{} that the standard itself defines as something in the kernel: a constrained template parameter, an alias, an integer converted to a count, implicitly or written as a call, a braced \cppinline{return}, two fields in one declaration, and \cppinline{static_assert} as the observation of a truth value.
+Most of what the listings write beyond the grammar is \Cpp{} that the standard itself defines as something in the kernel, and Appendix~\ref{app:derived} lists every derived form with its rewrite and the condition under which the rewrite keeps every value.
 One derived form carries weight, and it is a change of representation more than an abbreviation: a range, as an array or a view, stands for its length and the function that reads it, and \cppinline{ranges::fold_left} over a range for the kernel's iteration over that count.
-A call of a member function, as \cppinline{s.size()} in Listing~\ref{lst:theorems}, is read as a call with the object as its first argument.
-A required call whose result is only \cppinline{convertible_to<T>} is read as the call followed by the conversion, \cppinline{T(op(a, b))}, after which the kernel sees a result of type \cppinline{T}; the rewrite keeps every value only where the result is used at \cppinline{T} and nowhere else, which a rule of the linter checks, and an implicit conversion between atoms is the same derived form.
 This paper does not prove that a derived form preserves values, and it claims them only as the listings use them.
 The list is open, and a new derived form touches nothing that is said about the kernel.
 % TODO(derived): the standard's clauses for the first group are to be cited;
