@@ -31,7 +31,7 @@ For Rule~1 it closes each channel a mutation could leak through at run time: par
 For Rule~3 it reports every loop statement, a loop admitted as sugar included, and the reviewer judges whether a reported loop shows its end.
 A finding is a breach or a gap in its reading of the standard's concepts, and its silence is not a proof.
 Review complements it: an agentic reviewer reads every pull request against the three rules.
-On the library behind the listings, 148 module units, each check is a gate on most files, an exact count, zero or not, so that no finding is added unseen, and a count on the rest; Table~\ref{tab:lint} in Appendix~\ref{app:lint} gives the counts, check by check.
+On the library behind the listings each check is a gate on most files, an exact count, zero or not, so that no finding is added unseen, and a count on the rest; Table~\ref{tab:lint} in Appendix~\ref{app:lint} gives the counts, check by check.
 On the listings it refuses exactly what the paper shows: \cppinline{guessed_power}, whose call to \cppinline{power} is decided by \cppinline{IsIdempotentMonoid}, which its constraints do not name; \cppinline{guessed_concat}, whose \cppinline{+} and \cppinline{=} on the element type no requirement names, and whose loop Rule~3 refuses; and it lists \cppinline{idempotent<Sum2>} with the other axioms.
 Each of these is a gate, so a listing that changed what the linter finds would fail the build.
 
