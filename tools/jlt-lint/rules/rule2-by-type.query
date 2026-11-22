@@ -1,0 +1,8 @@
+# Rule 2, by type (the linter's second stage, #1211): a constrained function
+# template that no deny-rule refuses is instantiated at archetypes built from
+# the shapes in its signature (archetypes.hpp, Appendix G.1 of the paper) and
+# type-checked there.  A finding is a definition NOT admitted (its body uses
+# something its signature does not promise, or at other types) or UNDECIDED
+# (a requirement no rule builds an archetype for, named in the finding).
+# The admitted ones are the rule `admitted`.
+tool admit

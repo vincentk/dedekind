@@ -32,6 +32,8 @@ rule1-const-member-functions  tools/jlt-lint/fixtures/members.cpp  jlt_listing  
 rule1-no-mutable-globals      tools/jlt-lint/fixtures/globals.cpp  jlt_listing  3
 rule1-no-escaping-reference-captures tools/jlt-lint/fixtures/captures.cpp  jlt_listing  3
 rule1-boxed-identity          tools/jlt-lint/fixtures/boxed.cpp  jlt_listing  5
+rule2-by-type                tools/jlt-lint/fixtures/rule2-by-type.cpp  jlt_listing  2
+admitted                     tools/jlt-lint/fixtures/rule2-by-type.cpp  jlt_listing  1
 
 # The paper's listings: gated.
 rule3-no-loops               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
@@ -66,6 +68,8 @@ rule1-no-escaping-reference-captures src/test/cpp/modules/dedekind/category/jlt_
 # definition 2) and its loop (Rule 3, no-loops 1); idempotent<Sum2> is on the
 # axioms' list.
 axioms                               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule2-by-type                        src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  1
+admitted                             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  6
 rule1-boxed-identity                 src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
 rule1-boxed-mutable-pointee          src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
 rule1-const-call-operator            src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
