@@ -161,6 +161,31 @@ struct input_range_of {
   sentinel end() const;
 };
 
+/// The integer types a template's constraints admit, at their extremes: the
+/// standard's integer types by rank, and the first and the last of them for
+/// which Fits<T>::value holds (void if none).  A template over an integer
+/// parameter is checked at both: the smallest, where the integer promotions
+/// bite (bool + bool is an int), and the largest, where nothing narrows.
+template <template <class> class Fits, class... Ts>
+struct first_fitting {
+  using type = void;
+};
+template <template <class> class Fits, class T, class... Ts>
+struct first_fitting<Fits, T, Ts...> {
+  using type = std::conditional_t<Fits<T>::value, T,
+                                  typename first_fitting<Fits, Ts...>::type>;
+};
+template <template <class> class Fits>
+using smallest_integer =
+    typename first_fitting<Fits, bool, signed char, unsigned char, short,
+                           unsigned short, int, unsigned int, long,
+                           unsigned long, long long, unsigned long long>::type;
+template <template <class> class Fits>
+using largest_integer =
+    typename first_fitting<Fits, unsigned long long, long long, unsigned long,
+                           long, unsigned int, int, unsigned short, short,
+                           unsigned char, signed char, bool>::type;
+
 namespace self_check {
 struct tag;
 using c = carrier<tag>;
@@ -182,6 +207,12 @@ static_assert(std::ranges::sized_range<sized_range_of<c>> &&
               std::same_as<std::ranges::range_value_t<sized_range_of<c>>, c>);
 static_assert(std::ranges::input_range<input_range_of<c>> &&
               !std::ranges::sized_range<input_range_of<c>>);
+template <class T>
+struct is_count
+    : std::bool_constant<std::unsigned_integral<T> && !std::same_as<T, bool>> {
+};
+static_assert(std::same_as<smallest_integer<is_count>, unsigned char> &&
+              std::same_as<largest_integer<is_count>, unsigned long long>);
 }  // namespace self_check
 
 }  // namespace jlt::archetype

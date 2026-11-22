@@ -142,4 +142,18 @@ constexpr carrier_t<E> kept(carrier_t<E> x) {
   return op_t<E>{}(r, x);
 }
 
+// 7. An integer parameter, checked at the smallest and the largest integer
+// type its constraint admits (here bool and unsigned long long).
+// Finding 11: not admitted, at bool the sum is an int, and braces do not
+// narrow it back; at the largest type it compiles.
+template <std::unsigned_integral N>
+constexpr N summed(N a, N b) {
+  return N{a + b};
+}
+// Admitted: the conversion written as a call, the kernel's (Cast:integer).
+template <std::unsigned_integral N>
+constexpr N cast_sum(N a, N b) {
+  return static_cast<N>(a + b);
+}
+
 }  // namespace jlt_listing

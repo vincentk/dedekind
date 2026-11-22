@@ -2286,8 +2286,10 @@ void findAtoms(const clang::Expr* e, const TermSubst& s, Facts& f,
                        ? classify(a.getAsType(), s)
                        : Term{});
   if (inStd(c)) {
-    if (c->getName() == "unsigned_integral" && args.size() == 1 &&
-        args[0].kind == Term::Parameter)
+    const llvm::StringRef n = c->getName();
+    if ((n == "unsigned_integral" || n == "signed_integral" ||
+         n == "integral") &&
+        args.size() == 1 && args[0].kind == Term::Parameter)
       f.atoms.insert(args[0].p);
     return;
   }
@@ -2513,7 +2515,7 @@ class MarkedUse : public clang::ASTConsumer {
       Selection& sel;
       explicit Find(Selection& s) : sel(s) {}
       bool VisitVarDecl(clang::VarDecl* v) {
-        if (v->getName() != "use" || !v->getInit()) return true;
+        if (!v->getName().starts_with("use") || !v->getInit()) return true;
         const auto* ns =
             llvm::dyn_cast<clang::NamespaceDecl>(v->getDeclContext());
         if (!ns || ns->getName() != "jlt_admit") return true;
@@ -2690,7 +2692,7 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
     const Param p{tp->getDepth(), tp->getIndex()};
     std::string a;
     if (f.atoms.count(p)) {
-      a = "::std::size_t";
+      a = "@ATOM@";  // the integer extremes, or the count (see below)
     } else if (f.unit.count(p)) {
       a = "::jlt::archetype::nullary<" + carrierName(p) + ">";
     } else if (auto it = f.carrierOf.find(p); it != f.carrierOf.end()) {
@@ -2748,6 +2750,10 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
     } else {
       why = "no archetype for template parameter " + tp->getName().str();
       return {};
+    }
+    if (a == "@ATOM@") {  // no alias: the uses substitute it
+      arch[p] = a;
+      continue;
     }
     const std::string name = "A" + std::to_string(arch.size());
     types += "using " + name + " = " + a + ";\n";
@@ -2877,7 +2883,31 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
   std::string text = "\n// jlt-lint: admission by type\n";
   text += "namespace " + ns + " {\n" + types + "}\n" + entries + aliases +
           "namespace " + ns + " {\n" + result + use + "}\n";
-  return text;
+  if (f.atoms.empty()) return text;
+  auto subst = [](std::string t, const std::string& by) {
+    for (std::size_t at; (at = t.find("@ATOM@")) != std::string::npos;)
+      t.replace(at, 6, by);
+    return t;
+  };
+  // An overloaded name has no address to probe with: the count alone.
+  if (overloaded(ft)) return subst(text, "::std::size_t");
+  // The integer parameters at the smallest and the largest of the standard's
+  // integer types the constraints admit, found by asking the constraints.
+  const std::string probe =
+      "namespace " + ns +
+      " {\ntemplate <class N>\nstruct fits {\n  static constexpr bool value "
+      "= requires { " +
+      subst(instance, "N") +
+      "; };\n};\nusing Lo = ::jlt::archetype::smallest_integer<fits>;\n"
+      "using Hi = ::jlt::archetype::largest_integer<fits>;\n}\n";
+  const std::string head =
+      subst(text.substr(0, text.rfind("namespace " + ns + " {\n" + result)),
+            ns + "::Hi");
+  std::string lo = subst(use, ns + "::Lo"), hi = subst(use, ns + "::Hi");
+  lo.replace(lo.find("use"), 3, "use_lo");
+  hi.replace(hi.find("use"), 3, "use_hi");
+  return head + probe + "namespace " + ns + " {\n" +
+         subst(result, ns + "::Hi") + lo + hi + "}\n";
 }
 
 /// The class template a type names, if it names a specialization of one, and
