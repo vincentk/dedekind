@@ -1978,6 +1978,7 @@ struct Facts {
   std::map<Param, std::pair<Param, Param>> arrow;       // F : C_A -> C_B
   std::map<Param, Param> carrierOf;                     // T same as C_E
   std::map<Param, std::optional<Param>> range;          // R, its elements
+  std::set<Param> sized;                                // R is a sized_range
   std::set<Param> comparable;                           // C_E has ==
   struct Law {
     const clang::VarTemplateDecl* decl;
@@ -2038,7 +2039,9 @@ void readRequiredCall(const clang::Expr* e,
   if (fn.kind == Term::Parameter && call->getNumArgs() == 1) {
     const Term x = localTerm(call->getArg(0));
     if (x.kind == Term::CarrierOf) {
-      f.arrow[fn.p] = {x.p, x.p};  // the codomain from the return type
+      // The codomain comes only from a result constraint; without one it
+      // stays unknown, and no archetype is built.
+      f.arrow[fn.p] = {x.p, Param{~0u, ~0u}};
       return;
     }
   }
@@ -2174,6 +2177,7 @@ void readConstraint(const clang::Expr* e, const TermSubst& s, Facts& f,
       if ((n == "sized_range" || n == "range" || n == "input_range") &&
           args.size() == 1 && args[0].kind == Term::Parameter) {
         f.range.try_emplace(args[0].p);
+        if (n == "sized_range") f.sized.insert(args[0].p);
         return;
       }
       if (n == "same_as" && args.size() == 2 &&
@@ -2215,14 +2219,30 @@ class Errors : public clang::DiagnosticConsumer {
  public:
   unsigned n = 0;
   std::string first;
+  bool inAppendix = false;      // the first error is the tool's, not the body's
+  bool marked = false;          // the use reached the marked template
+  unsigned appendixFrom = ~0u;  // the main file's offset where it begins
+  bool inBody = false;          // the first error is in the checked body
+  bool inMain = false;          // the first error is in the main file
+  unsigned bodyFrom = 0, bodyTo = 0;  // the checked body's offsets
   void HandleDiagnostic(clang::DiagnosticsEngine::Level l,
                         const clang::Diagnostic& d) override {
     clang::DiagnosticConsumer::HandleDiagnostic(l, d);
+    llvm::SmallString<160> s;
+    d.FormatDiagnostic(s);
+    if (llvm::StringRef(s).contains("jlt-admit-checked")) marked = true;
     if (l < clang::DiagnosticsEngine::Error) return;
     if (n++ == 0) {
-      llvm::SmallString<160> s;
-      d.FormatDiagnostic(s);
       first = s.str().str();
+      if (d.hasSourceManager() && d.getLocation().isValid()) {
+        const clang::SourceManager& sm = d.getSourceManager();
+        const clang::SourceLocation loc = sm.getExpansionLoc(d.getLocation());
+        inMain = sm.isInMainFile(loc);
+        const unsigned at = inMain ? sm.getFileOffset(loc) : 0;
+        inAppendix = (inMain && at >= appendixFrom) ||
+                     sm.getFilename(loc).ends_with("archetypes.hpp");
+        inBody = inMain && at >= bodyFrom && at <= bodyTo;
+      }
     }
   }
 };
@@ -2280,8 +2300,15 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
     } else if (auto it = f.range.find(p); it != f.range.end()) {
       const std::string elem =
           it->second ? carrierName(*it->second) : carrierName({~0u, p.second});
-      a = "::jlt::archetype::sized_range_of<" + elem + ">";
+      // A size only where the shape asks for one: an input_range has none.
+      a = std::string("::jlt::archetype::") +
+          (f.sized.count(p) ? "sized_range_of<" : "input_range_of<") + elem +
+          ">";
     } else if (auto it = f.arrow.find(p); it != f.arrow.end()) {
+      if (it->second.second == Param{~0u, ~0u}) {
+        why = "a required call without a result type";
+        return {};
+      }
       a = "::jlt::archetype::arrow<" + carrierName(it->second.first) + ", " +
           carrierName(it->second.second) + ">";
     } else {
@@ -2341,6 +2368,20 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   readConstraint(ft->getTemplateParameters()->getRequiresClause(), {}, f);
   readConstraint(fd->getTrailingRequiresClause().ConstraintExpr, {}, f);
   if (!f.undecided.empty()) return {Outcome::Undecided, f.undecided};
+  // Hole 3: at the archetypes an if constexpr takes one branch, and the other
+  // is never type-checked.
+  struct Constexprs : clang::RecursiveASTVisitor<Constexprs> {
+    bool found = false;
+    bool VisitIfStmt(clang::IfStmt* s) {
+      found |= s->isConstexpr();
+      return true;
+    }
+  } ifs;
+  ifs.TraverseStmt(fd->getBody());
+  if (ifs.found)
+    return {Outcome::Undecided,
+            "an if constexpr: the archetypes take one branch and leave the "
+            "other unchecked"};
   std::string why;
   const std::string appendix = appendixFor(ft, f, why);
   if (appendix.empty()) return {Outcome::Undecided, why};
@@ -2352,16 +2393,44 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   const std::string path = main->getName().str();
   if (dumpAppendix)
     llvm::errs() << "---- " << ft->getNameAsString() << appendix;
+  // Hole 4: the use names an overload set, so the template checked is marked,
+  // and a use that resolves to a sibling is seen by the marker's absence.
+  std::string original = sm.getBufferData(sm.getMainFileID()).str();
+  const std::string marker = "[[deprecated(\"jlt-admit-checked\")]] ";
+  const unsigned at =
+      sm.getFileOffset(sm.getExpansionLoc(fd->getInnerLocStart()));
+  original.insert(at, marker);
   // The tool keeps a reference to the text, so the text lives here.
-  const std::string text =
-      sm.getBufferData(sm.getMainFileID()).str() + appendix;
+  const std::string text = original + appendix;
   clang::tooling::ClangTool again(*compilations, {path});
   again.mapVirtualFile(path, text);
+  again.appendArgumentsAdjuster(clang::tooling::getInsertArgumentAdjuster(
+      {"-Wdeprecated-declarations", "-Wno-error=deprecated-declarations"},
+      clang::tooling::ArgumentInsertPosition::END));
   Errors errors;
+  errors.appendixFrom = static_cast<unsigned>(original.size());
+  // The checked body, in the marked text: after the marker.
+  errors.bodyFrom = static_cast<unsigned>(
+      sm.getFileOffset(sm.getExpansionLoc(fd->getBody()->getBeginLoc())) +
+      marker.size());
+  errors.bodyTo = static_cast<unsigned>(
+      sm.getFileOffset(sm.getExpansionLoc(fd->getBody()->getEndLoc())) +
+      marker.size());
   again.setDiagnosticConsumer(&errors);
   again.run(clang::tooling::newFrontendActionFactory<clang::SyntaxOnlyAction>()
                 .get());
+  // Which definition the use reached comes first: an error may belong to a
+  // sibling the compiler instantiated on the way.
+  if (!errors.marked)
+    return {Outcome::Undecided,
+            "the use resolved to another overload at the archetypes"};
   if (errors.n == 0) return {Outcome::Admitted, {}};
+  if (errors.inAppendix)
+    return {Outcome::Undecided,
+            "the appendix did not compile: " + errors.first};
+  if (errors.inMain && !errors.inBody)
+    return {Outcome::Undecided,
+            "an error in another definition: " + errors.first};
   return {Outcome::NotAdmitted, errors.first};
 }
 
@@ -2469,6 +2538,14 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
         kinds.insert("Cast:integer");
         return true;
       }
+    // An operator call on a class type by its spelling, as the built-in ones:
+    // s = s + x on a string is an assignment, ++it an increment.
+    if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(st)) {
+      const std::string sp = clang::getOperatorSpelling(o->getOperator());
+      const bool unary = o->getNumArgs() == 1 && sp != "()" && sp != "[]";
+      kinds.insert("Op:" + std::string(unary ? "u" : "") + sp);
+      return true;
+    }
     // An operator by its spelling: + is not =, ! is not ++.
     if (const auto* o = llvm::dyn_cast<clang::BinaryOperator>(st)) {
       kinds.insert("Op:" +

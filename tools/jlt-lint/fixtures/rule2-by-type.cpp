@@ -4,6 +4,7 @@
 // admitted: finding 1), and one under a disjunction no rule reads
 // (undecided: finding 2).  Standalone.
 #include <concepts>
+#include <ranges>
 
 namespace jlt_listing {
 
@@ -37,6 +38,49 @@ template <typename E>
   requires Mon<E> || (sizeof(E) == 1)
 constexpr int either(E) {  // finding 2: undecided, a disjunction
   return 0;
+}
+
+// Known archetype escapes, each of which must come out refused or undecided
+// (the practitioner's cold read of 2026-11-22).
+
+// 1. A required call with no result type: the result is not invented.
+template <typename F, typename E>
+concept Applies = Mon<E> && requires(F f, carrier_t<E> x) { f(x); };
+template <typename F, typename E>
+  requires Applies<F, E>
+constexpr carrier_t<E> applied(F f, carrier_t<E> x) {
+  return f(x);  // finding 3: undecided, a required call without a result type
+}
+
+// 2. An input range has no size, though the archetype of a sized one would.
+template <std::ranges::input_range R>
+constexpr auto counted(R r) {
+  return std::ranges::size(r);  // finding 4: not admitted, no size promised
+}
+
+// 3. An if constexpr: the archetypes take one branch only.
+template <typename E>
+  requires Mon<E>
+constexpr carrier_t<E> branching(carrier_t<E> x) {
+  if constexpr (std::integral<carrier_t<E>>)
+    return x + 1;  // never checked at an archetype
+  else
+    return x;
+}  // finding 5: undecided, an if constexpr
+
+// 4. The use names an overload set: at the archetypes of the looser one, the
+// tighter sibling is chosen, and the looser body would go unchecked.
+template <typename E>
+  requires Mon<E>
+constexpr carrier_t<E> pick(carrier_t<E> x) {
+  return x + x;  // finding 6: undecided, the use resolves to the sibling
+}
+template <typename E>
+  requires Mon<E> && std::copyable<carrier_t<E>>
+constexpr carrier_t<E> pick(carrier_t<E> x) {
+  // finding 7: undecided, the compiler instantiates the looser body on the
+  // way and its error is not this body's
+  return op_t<E>{}(x, x);
 }
 
 }  // namespace jlt_listing

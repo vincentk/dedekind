@@ -32,7 +32,7 @@ rule1-const-member-functions  tools/jlt-lint/fixtures/members.cpp  jlt_listing  
 rule1-no-mutable-globals      tools/jlt-lint/fixtures/globals.cpp  jlt_listing  3
 rule1-no-escaping-reference-captures tools/jlt-lint/fixtures/captures.cpp  jlt_listing  3
 rule1-boxed-identity          tools/jlt-lint/fixtures/boxed.cpp  jlt_listing  5
-rule2-by-type                tools/jlt-lint/fixtures/rule2-by-type.cpp  jlt_listing  2
+rule2-by-type                tools/jlt-lint/fixtures/rule2-by-type.cpp  jlt_listing  7
 admitted                     tools/jlt-lint/fixtures/rule2-by-type.cpp  jlt_listing  1
 
 # The paper's listings: gated.

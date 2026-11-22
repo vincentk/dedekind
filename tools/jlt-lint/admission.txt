@@ -109,6 +109,9 @@ Op:*= derived
 Op:/= derived
 Op:= derived
 Op:, open
+Op:() kernel
+Op:[] open
+Op:-> open
 Op:u! kernel
 Op:u- kernel
 Op:u~ kernel

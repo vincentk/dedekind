@@ -88,6 +88,26 @@ struct sized_range_of {
   std::size_t size() const;
 };
 
+/// A range with elements of type C and no size: the archetype of the
+/// standard's input_range and range, so a body that asks for a size it was
+/// not promised does not type-check.
+template <typename C>
+struct input_range_of {
+  struct iterator {
+    using iterator_concept = std::input_iterator_tag;
+    using value_type = C;
+    using difference_type = std::ptrdiff_t;
+    C operator*() const;
+    iterator& operator++();
+    void operator++(int);
+  };
+  struct sentinel {
+    friend bool operator==(const iterator&, const sentinel&);
+  };
+  iterator begin() const;
+  sentinel end() const;
+};
+
 namespace self_check {
 struct tag;
 using c = carrier<tag>;
@@ -100,6 +120,8 @@ static_assert(std::same_as<std::invoke_result_t<binary<c>, c, c>, c>);
 static_assert(std::ranges::sized_range<sized_range_of<c>> &&
               std::ranges::input_range<sized_range_of<c>> &&
               std::same_as<std::ranges::range_value_t<sized_range_of<c>>, c>);
+static_assert(std::ranges::input_range<input_range_of<c>> &&
+              !std::ranges::sized_range<input_range_of<c>>);
 }  // namespace self_check
 
 }  // namespace jlt::archetype
