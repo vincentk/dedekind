@@ -2434,7 +2434,6 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
         (targs.empty() ? "" : ", ") + arch[{tp->getDepth(), tp->getIndex()}];
   }
   std::string text = "\n// jlt-lint: admission by type\n";
-  if (!archetypes.empty()) text += "#include \"" + archetypes + "\"\n";
   text +=
       "namespace " + ns + " {\n" + types + "}\n" + entries + "namespace " + ns +
       " {\ninline constexpr auto* use = &::" + ft->getQualifiedNameAsString() +
@@ -2488,8 +2487,25 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   const unsigned at =
       sm.getFileOffset(sm.getExpansionLoc(fd->getInnerLocStart()));
   original.insert(at, marker);
+  // The archetypes' header: in a module unit, in its global module fragment
+  // (after `module;`), since nothing may be included in the module's purview;
+  // elsewhere, before the appendix.  Offsets after it move by its length.
+  std::string include;
+  if (!archetypes.empty()) include = "#include \"" + archetypes + "\"\n";
+  unsigned shift = 0;
+  std::string tail = appendix;
+  const size_t gmf = original.find("\nmodule;\n");
+  const bool atStart = original.rfind("module;\n", 0) == 0;
+  if (!include.empty() && (gmf != std::string::npos || atStart)) {
+    const size_t after = atStart ? std::string("module;\n").size()
+                                 : gmf + std::string("\nmodule;\n").size();
+    original.insert(after, include);
+    shift = static_cast<unsigned>(include.size());
+  } else {
+    tail = include + appendix;
+  }
   // The tool keeps a reference to the text, so the text lives here.
-  const std::string text = original + appendix;
+  const std::string text = original + tail;
   clang::tooling::ClangTool again(*compilations, {path});
   again.mapVirtualFile(path, text);
   again.appendArgumentsAdjuster(clang::tooling::getInsertArgumentAdjuster(
@@ -2500,10 +2516,10 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   // The checked body, in the marked text: after the marker.
   errors.bodyFrom = static_cast<unsigned>(
       sm.getFileOffset(sm.getExpansionLoc(fd->getBody()->getBeginLoc())) +
-      marker.size());
+      marker.size() + shift);
   errors.bodyTo = static_cast<unsigned>(
       sm.getFileOffset(sm.getExpansionLoc(fd->getBody()->getEndLoc())) +
-      marker.size());
+      marker.size() + shift);
   again.setDiagnosticConsumer(&errors);
   Selection sel;
   MarkedUseFactory factory(sel);
