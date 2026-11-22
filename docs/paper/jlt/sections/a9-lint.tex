@@ -63,14 +63,18 @@ In the library, most of what is open is six kinds: string literals, most of them
 
 \subsection{Admission by type}
 \label{app:lint:admit}
-% STATUS: the second stage runs on the paper's listings and its fixtures in
-% CI (rules rule2-by-type and admitted; levels.py for Table tab:levels); on
-% the library it has yet to run.
+% STATUS: the second stage runs in CI on the paper's listings, its fixtures
+% and the category layer of the library (rules rule2-by-type,
+% undecided-by-type and admitted, gated per file); on the other layers it has
+% yet to run.
 
 The second stage of Section~\ref{sec:check} admits a constrained template that no deny-rule refuses when its body type-checks at archetypes of the shapes in its signature.
 It gives every type parameter an archetype by reading the shapes that constrain it, by one rule for each kind of requirement a shape may have (Table~\ref{tab:archetype-rules}).
-The building blocks are a header that ships with the linter and depends on nothing in the library: a carrier that can only be copied, one that can also be compared, a unit, a binary operation, an arrow, and a range whose size is known before the first step.
+The building blocks are a header that ships with the linter and depends on nothing in the library: a carrier that can only be copied, and ones that can also be compared, default-constructed, or both; a unit, a binary operation, an arrow, and a range whose size is known before the first step; a result that can only be converted; and the smallest and largest integer types a constraint admits.
+The standard's foundational concepts follow the Palo Alto report~\cite[\S 3.3]{stroustrup2012concept}: copying is the kernel's, equality is a call, and a default value is partially formed, to be written before it is read~\cite[\S 1.5]{stepanov2009elements}, the derived form of local state (Table~\ref{tab:derived}).
 A shape with a requirement of any other kind leaves the templates written against it undecided, with that requirement named.
+A parameter whose type is a constrained class template brings that class's constraints with it, since whoever calls the template already holds a value of it; Rust's implied bounds propose the same reading~\cite{rust2017impliedbounds}.
+A result type brings nothing, since no argument guarantees it, and a template whose result asks more than its constraints is refused: a caller who meets them could not call it.
 
 \begin{table}[htbp]
 \centering
@@ -82,7 +86,12 @@ requirement in a shape & archetype \\
 a unit, \texttt{E\{\}()} & \texttt{E} is a unit that gives a fresh carrier \texttt{C\_E} \\
 an operation, \texttt{typename op\_t<E>} with \texttt{\{ op\_t<E>\{\}(a, b) \} -> same\_as<carrier\_t<E>>} & the entry of \texttt{op\_of} at \texttt{E} names a binary operation on \texttt{C\_E} \\
 a law, \texttt{unital<E>} or \texttt{homomorphism<H, A, B>} & the law declared \texttt{true} at the archetypes \\
-\texttt{copyable} or \texttt{equality\_comparable} on a carrier & a carrier that can be copied, or also compared \\
+\texttt{copyable}, \texttt{equality\_comparable}, \texttt{semiregular} or \texttt{regular} on a carrier or a parameter & a carrier that can be copied, and also compared, default-constructed, or both, as the concept asks \\
+the library's arrow, \texttt{typename F::Domain} with \texttt{\{ f(x) \} -> Presents<typename F::Codomain>} & a type with fresh carriers as its member types and that call, and no default value \\
+\texttt{same\_as} between member types and parameters, \texttt{same\_as<Cod<F>, Dom<G>>} & one carrier for each class of the equations \\
+a result \texttt{-> convertible\_to<T>} on an operation, an arrow or a member call & a result that converts to \texttt{T} from the fresh value only; passed straight to a call, the template is refused (Table~\ref{tab:derived}: copy-initialisation of a \texttt{T}) \\
+\texttt{integral}, \texttt{signed\_integral} or \texttt{unsigned\_integral} & checked at both the smallest and the largest standard integer type the constraints admit \\
+a parameter of type \texttt{Compose<F, G>}, a constrained class template & the class's constraints, as if the template had stated them; a result type's are not implied, and a template whose result asks more than its constraints is refused \\
 a call, \texttt{\{ f(x) \} -> same\_as<carrier\_t<B>>} with \texttt{x} of \texttt{carrier\_t<A>} & \texttt{F} is an arrow from \texttt{C\_A} to \texttt{C\_B} \\
 \texttt{sized\_range<R>} with \texttt{same\_as<range\_value\_t<R>, carrier\_t<E>>} & \texttt{R} is a range of \texttt{C\_E} whose size is known before the first step \\
 \texttt{same\_as<T, carrier\_t<E>>} & \texttt{T} is \texttt{C\_E} \\
@@ -98,6 +107,14 @@ For each template it appends to the file's text, in memory, an appendix of the a
 It parses that with the file's own compile command, so that the compiler instantiates and type-checks the body and emits nothing, and the archetypes' operations need no definitions.
 An error in the template's body means that the body uses something its signature did not promise, or uses it at other types.
 
+\paragraph{On the library.}
+The second stage runs on one layer of the library, \texttt{category}: 40 module units and 382 function templates, every outcome gated per file in continuous integration.
+It admits 65, refuses none, and leaves 317 undecided.
+On the way it refused nine, all of one kind: a helper or a factory whose constraints were weaker than what its body or its result type used.
+Three helpers of a periodic fold piped an arrow into a chain without stating that its domain is the counts; \cppinline{until}, \cppinline{unfold} and \cppinline{chain} returned class templates whose constraints their own did not imply; a reduction concatenated two arrows without stating that they compose; and a mask of low bits admitted \cppinline{bool}, which has none.
+Each was fixed by stating the constraint, twice by naming it once as a concept that the class and its factory share.
+The undecided are the generator's coverage, not findings: parameters of templates over values, required calls and type requirements of forms it does not read, disjunctions, and, by design, every body with an \cppinline{if constexpr}, of whose branches the archetypes check only one.
+
 \paragraph{The conjecture and its hypotheses.}
 \label{app:lint:conjecture}
 The conjecture of Section~\ref{sec:check} is that a definition admitted at its archetypes is well typed at every type that satisfies its shapes and keeps the rules itself, and resolves every choice its signature makes the same way.
@@ -108,7 +125,7 @@ The body does not depend on two carriers being different, which the archetypes m
 A choice the signature leaves to the caller, as \cppinline{named_power} leaves the case of \cppinline{power}, may resolve differently.
 And no limit of the implementation is reached.
 In $F^G$, where a name is looked up where the template is defined, the corresponding statement is a theorem~\cite{siek2005essential}; Järvi et al.\ show what that binding costs the dispatch \Cpp{} programmers rely on~\cite{jarvi2006specialization}.
-In \Cpp{} it is a conjecture, tested on the definitions of the listings and not yet on the library.
+In \Cpp{} it is a conjecture, tested on the definitions of the listings and on one layer of the library.
 The Palo Alto report asked the same of a concept design for the standard library: the overload a body uses must be the one resolved when its concept is checked, conversions included~\cite[\S 3.3]{stroustrup2012concept}.
 
 The linter reports every definition with one of three outcomes: refused, with the rule and the line; admitted; or undecided, with the requirement that stopped the check.
