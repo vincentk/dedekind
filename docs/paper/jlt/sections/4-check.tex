@@ -44,7 +44,10 @@ The few the standard's concepts need, such as \cppinline{sized_range}, are writt
 The template is instantiated at its archetypes and compiled, and if it type-checks there, its body uses only what its signature promises, at the promised types.
 Each definition then has one of three outcomes: refused, with a rule and a line as its witness; admitted, by the type check; or undecided, where neither stage settles it.
 The second stage is the check of definitions that the concepts proposed for \Cpp{0x} would have made, restricted to the fragment.
-ConceptGCC generated such archetypes from the concepts of that proposal~\cite{gregor2006concepts}, and the linter does it for the concepts of \Cpp{20}, inside the fragment.
+The idea is not new.
+Siek and Lumsdaine wrote archetypes by hand for the concepts of the standard library of their day, in Boost's Concept Check Library, and a programmer checked a template by instantiating it at them in a test of their own~\cite{siek2000concept}.
+ConceptGCC generated them from the concepts proposed for \Cpp{0x}~\cite{gregor2006concepts}.
+The linter generates them from the concepts of \Cpp{20}, inside the fragment, and gives every definition its outcome in every build.
 Inside it, the rules close most of the ways in which a real type differs from its archetype.
 An operation is a function object reached through a named type; \RuleTwo{} decides every choice of overload in the signature; a carrier is only copyable and a required call has a fixed result type; and an entry stands above every use that reads it (Section~\ref{sec:limits}).
 This paper's conjecture is that a definition admitted at its archetypes is well typed at every type that satisfies its shapes and keeps the rules itself, and resolves every choice its signature makes the same way; Appendix~\ref{app:lint:conjecture} states its hypotheses and the counterexamples they exclude, and it is tested on the definitions of the listings and not yet on the library.
