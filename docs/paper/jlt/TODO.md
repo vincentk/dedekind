@@ -251,6 +251,23 @@ Decided along the way (2026-11-22, user):
 - **Integer parameters, implemented:** integral, signed_integral and unsigned_integral parameters are checked at the smallest and the largest of the standard's integer types the constraints admit, found by asking the constraints (archetypes.hpp: smallest_integer, largest_integer); an overloaded name keeps the single check at size_t for now. Fixtures summed (refused: at bool the sum is an int, braces do not narrow) and cast_sum (admitted).
 - **Credit:** Boost's Concept Check Library and N3351 cited (introduction, Section 4, related work, Appendix G, archetypes.hpp); MP11 only as a contrast, in the prose pass.
 
+## From the cold reads of #1212 (2026-11-22; reports in research_notes/Jlt cold reads/2026-11-22 PR 1212/)
+
+Next PR (tool):
+- a deny-rule for type-level observation at a type variable (sizeof, alignof, typeid, comparisons of types, trait reads outside a shape); then the hypothesis can shrink to it;
+- negation: check at two archetypes per unnamed law the body reads (true, false), or refuse a body whose call needs a negated constraint its signature does not entail;
+- a test of "the same resolution": record the callee of every call in an admitted body at the archetypes and at the real types the test suite uses, and compare;
+- fixtures for every rule without one: the library's arrow (IsArrow, Presents, member types), same_as classes, plain and semiregular parameters, onlyAtoms, a dropped implied reading, the result-type misattribution, late conversion through == and ?:, a probe at a character type; .expected to check reasons, not only outcomes;
+- the ratchet (ratchet.py) and Tables 11 to 13 generated and checked in CI, the rules of the generator named in one registry (the "unnamed" rows of Table 13);
+- the README brought up to date with the paper (it still says Rule 2 does not refuse guessed_concat or guessed_power).
+
+Prose pass, beyond the items below:
+- Appendix B no longer describes Figure 2's kernel (value parameters, cata, guards; no rule for associated types, same_as or a simple requirement), and Appendices B to F carry some 15 dangling labels: the largest item;
+- Appendix F proves coherence, preservation and simulation relative to its assumptions: say "proved on paper relative to ...", and narrow adequacy to "FJlt's semantics is C++'s";
+- the conjecture's kernel version as two lemmas, K1 (type-checks at the archetypes ⇒ Δ;Γ ⊢ e : τ) and K2 (substitution, Jones 1994, closure of entailment); say what the test oracle is;
+- prior work to verify and cite: Swift's archetypes and requirement inference; Niebler N4381 (customisation points); N3580 (Concepts Lite); Genus (PLDI 2015); Haskell's DatatypeContexts as a counter-precedent;
+- the practitioner: a glossary (trait, shape, case, entry, head, carrier, atom, image against C++ terms); Table 3 stale (Power, True, Halving; "the three listings"); the mutable and const_cast channels of Rule 1; the definition check's blind spots into Section 7; "much of" the standard library; ill-formed NDR for an entry declared after a use; laws of a lambda's type via decltype; Rust's specialization as where Jlt and Rust part; the abstract against Contributions on "at run time"; the cost of the linter.
+
 ## Prose pass (after the tool PR; agreed 2026-11-21)
 
 Order agreed: merge #1209, then the tool PR, then this. Inputs: the two cold reads of 2026-11-21 evening (`research_notes/Jlt cold reads/`), the rule "terms of art once, with the citation, then plain words" (most of the cut from 28 to 22 pages).
