@@ -35,7 +35,21 @@ On the library behind the listings, 148 module units, each check is a gate on th
 On the listings it refuses exactly what the paper shows: \cppinline{guessed_power}, whose call to \cppinline{power} is decided by \cppinline{IsIdempotentMonoid}, which its constraints do not name; \cppinline{guessed_concat}, whose \cppinline{+} and \cppinline{=} on the element type no requirement names, and whose loop Rule~3 refuses; and it lists \cppinline{idempotent<Sum2>} with the other axioms.
 Each of these is a gate, so a listing that changed what the linter finds would fail the build.
 
-What the tool does not yet do is decide whether a program is Jlt.
-Every check in that table is a deny-rule, which refuses a construct outside Jlt.
-That needs a mode in which every construct is either in the kernel or a listed derived form and anything else is refused, and it needs the conditions on the order of declarations (Section~\ref{sec:limits}).
-Until then the first clause of this paper's promise, that a template means what its signature says, rests on the programmer and on a reviewer.
+\paragraph{Refused by name, admitted by type.}
+Every check in that table is a deny-rule: it refuses a construct outside Jlt, and a definition it does not refuse is not thereby inside.
+To admit a definition, the linter is being given a second stage, a type check.
+For a constrained template that no deny-rule refuses, it builds an \emph{archetype} of each shape in the template's signature, a type with exactly the calls and laws the shape promises and nothing more~\cite{siek2000concept}, as \cppinline{BareMonoid} in Listing~\ref{lst:motivation} is one written by hand.
+The archetypes are generated from the shapes, by one rule for each kind of requirement a shape may have (Figure~\ref{fig:fjlt-syntax}), so their number grows with the grammar of shapes and not with the number of concepts.
+The few the standard's concepts need, such as \cppinline{sized_range}, are written by hand and ship with the linter.
+The template is instantiated at its archetypes and compiled, and if it type-checks there, its body uses only what its signature promises, at the promised types.
+Each definition then has one of three outcomes: refused, with a rule and a line as its witness; admitted, by the type check; or undecided, where neither stage settles it.
+The second stage is the check of definitions that the concepts proposed for \Cpp{0x} would have made, restricted to the fragment.
+Inside it, the rules close the ways in which a real type differs from its archetype.
+An operation is a function object reached through a named type, so no lookup finds another candidate; \RuleTwo{} decides every choice of overload in the signature; a carrier is only copyable and a required call has a fixed result type, so no conversion makes another candidate viable; and an entry stands above every use that reads it (Section~\ref{sec:limits}).
+That a definition admitted at its archetypes is well typed at every type that models its shapes, and resolves the same way, is this paper's conjecture, which the linter tests and does not prove.
+% STATUS: the second stage is designed (docs/paper/jlt/TODO.md, "Admit by
+% type") and its helpers exist (tools/jlt-lint/archetypes.hpp); the spike on
+% the four listings is next.  Until it runs, the sentence below stands, and
+% Appendix G is to gain the three outcomes as a summary, by definition and by
+% line.
+Until the second stage runs, the first clause of this paper's promise, that a template means what its signature says, rests on the deny-rules, the programmer and a reviewer.
