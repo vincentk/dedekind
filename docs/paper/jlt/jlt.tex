@@ -68,8 +68,11 @@ It does not hold a generic function to its declared constraints: the body may us
 %
 % WHERE THE LIE STANDS.  The sentence is not yet true, and the work is to make
 % the untrue part smaller.  Update this list as it shrinks.
-%   - "a check that a tool performs": not built.  The linter checks Rule 2 by
-%     names only, and nothing decides whether a program is Jlt.
+%   - "a check that a tool performs": half built.  The linter refuses by
+%     name (Rule 2 now catches both guessed_ examples, #1210); admitting by
+%     type at generated archetypes is designed (Section 4, #1211) and not yet
+%     run.  When it runs, the abstract's evidence item b) can say "refuses by
+%     name and admits by type", and the next line of this list shrinks.
 %   - "a template means what its signature says": follows from that check, so
 %     it is on trust until the check exists.
 %   - "a declared law licenses a faster program": true of Listing 2 (the power).

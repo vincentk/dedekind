@@ -47,6 +47,7 @@ The second stage is the check of definitions that the concepts proposed for \Cpp
 Inside it, the rules close the ways in which a real type differs from its archetype.
 An operation is a function object reached through a named type, so no lookup finds another candidate; \RuleTwo{} decides every choice of overload in the signature; a carrier is only copyable and a required call has a fixed result type, so no conversion makes another candidate viable; and an entry stands above every use that reads it (Section~\ref{sec:limits}).
 That a definition admitted at its archetypes is well typed at every type that models its shapes, and resolves the same way, is this paper's conjecture, which the linter tests and does not prove.
+For a definition it admits, satisfying the constraints then suffices to use it: no type that models its shapes can make the body fail to compile, and a misuse is reported where the template is called, as a constraint not satisfied.
 % STATUS: the second stage is designed (docs/paper/jlt/TODO.md, "Admit by
 % type") and its helpers exist (tools/jlt-lint/archetypes.hpp); the spike on
 % the four listings is next.  Until it runs, the sentence below stands, and
