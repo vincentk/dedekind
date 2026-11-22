@@ -103,11 +103,11 @@ Op:>= kernel
 Op:<=> kernel
 Op:&& kernel
 Op:|| kernel
-Op:+= refused
-Op:-= refused
-Op:*= refused
-Op:/= refused
-Op:= refused
+Op:+= derived
+Op:-= derived
+Op:*= derived
+Op:/= derived
+Op:= derived
 Op:, open
 Op:u! kernel
 Op:u- kernel
@@ -115,16 +115,22 @@ Op:u~ kernel
 Op:u+ kernel
 Op:u& refused
 Op:u* refused
-Op:u++ refused
-Op:u-- refused
-Op:u++post refused
-Op:u--post refused
+Op:u++ derived
+Op:u-- derived
+Op:u++post derived
+Op:u--post derived
 
 # ---- the derived forms no syntax kind shows (definitions only)
 Derived:range derived
 Derived:view derived
 # a conversion between integer types written as a call (decided 2026-11-22)
 Cast:integer kernel
+# Decided 2026-11-22 (user), Appendix A's table: a lambda (not generic, or
+# constrained) is its closure class; a counted for and a range-for over a
+# sized range are a fold; an assignment and ++ on a local are the fold's
+# state (runST: the local never leaves the call; Rule 1's deny-rules close
+# every channel).  The deny-rule rule3-no-loops still refuses every loop until
+# the linter recognises the counted shape, and the deny-rules win.
 # Decided 2026-11-22, to be counted with the library run: an implicit
 # conversion between atoms (int to bool, bool promoted to int) and a result
 # required only convertible_to<T> are a derived form, the call followed by
@@ -145,7 +151,7 @@ Stmt:CXXThrowExpr refused
 Stmt:WhileStmt refused
 Stmt:BreakStmt refused
 Stmt:ContinueStmt refused
-Stmt:CompoundAssignOperator refused
+Stmt:CompoundAssignOperator derived
 Stmt:CStyleCastExpr refused
 Stmt:CXXNullPtrLiteralExpr refused
 Type:Pointer refused
@@ -160,9 +166,9 @@ Stmt:CXXReinterpretCastExpr refused
 Stmt:DoStmt refused
 
 # ---- open: to be decided
-Stmt:ForStmt open
-Stmt:CXXForRangeStmt open
-Stmt:LambdaExpr open
+Stmt:ForStmt derived
+Stmt:CXXForRangeStmt derived
+Stmt:LambdaExpr derived
 Stmt:SwitchStmt open
 Stmt:CaseStmt open
 Stmt:DefaultStmt open
