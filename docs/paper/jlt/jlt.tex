@@ -66,20 +66,13 @@ It does not hold a generic function to its declared constraints: the body may us
 %
 % WHERE THE LIE STANDS.  The sentence is not yet true, and the work is to make
 % the untrue part smaller.  Update this list as it shrinks.
-%   - "a check that a tool performs" and "some templates can then be
-%     classified as meaning what their signatures say": built and run.  Both
-%     stages run in CI, gated, on the listings and on the library's category
-%     layer (#1211, #1212); the other layers are to follow.  What the
-%     classification means rests on the conjecture of Section 4 (admitted at
-%     the archetypes, well typed and the same resolution at every model) and
-%     on the order of declarations, not yet checked.
-%   - "a declared law licenses a faster program": true of Listing 2 (the power).
-%     The selection of the faster case is by a declared law; the caller that
-%     names too little, guessed_power, is refused by name (#1210).
-%   - "the compiler carries laws through composition": true of Listing 3 (a
-%     homomorphism after a homomorphism), on three axioms.
-%   - Section 3.2, "the evidence is a test that compiles a listing beside its
-%     kernel form": no such test exists yet.
+%   - "some templates can then be classified as meaning what their
+%     signatures say": built, run and gated in CI on the listings and the
+%     library's category layer (#1211, #1212); what it means rests on the
+%     conjecture of Section 4, which the paper states as one.  Still untrue in
+%     part: the guarantee assumes that an entry stands above every use, and of
+%     the three conditions on the order of declarations the linter checks one
+%     in part (context-order, bare heads); the rest is a TODO of the linter.
 %   - Section 3.3, the three results about the target: stated from the agreed
 %     model, not yet checked against a written-out kernel.
 %   - "what was taken on trust comes out as a list": true for entries at one
