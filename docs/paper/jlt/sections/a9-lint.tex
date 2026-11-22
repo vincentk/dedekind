@@ -98,6 +98,18 @@ For each template it appends to the file's text, in memory, an appendix of the a
 It parses that with the file's own compile command, so that the compiler instantiates and type-checks the body and emits nothing, and the archetypes' operations need no definitions.
 An error in the template's body means that the body uses something its signature did not promise, or uses it at other types.
 
+\paragraph{The conjecture and its hypotheses.}
+\label{app:lint:conjecture}
+The conjecture of Section~\ref{sec:check} is that a definition admitted at its archetypes is well typed at every type that satisfies its shapes and keeps the rules itself, and resolves every choice its signature makes the same way.
+Five hypotheses exclude the counterexamples known to us.
+A type's operations take their arguments by value or by constant reference, as Rule~1 asks, so that no argument the archetype accepts is refused by the type.
+A call by name inside a shape is qualified, so that no lookup by the argument's namespace, which \Cpp{20} extends to calls with template arguments, finds another function at the type.
+The body does not depend on two carriers being different, which the archetypes make them.
+A choice the signature leaves to the caller, as \cppinline{named_power} leaves the case of \cppinline{power}, may resolve differently.
+And no limit of the implementation is reached.
+In $F^G$, where a name is looked up where the template is defined, the corresponding statement is a theorem~\cite{siek2005essential}; Järvi et al.\ show what that binding costs the dispatch \Cpp{} programmers rely on~\cite{jarvi2006specialization}.
+In \Cpp{} it is a conjecture, tested on the definitions of the listings and not yet on the library.
+
 The linter reports every definition with one of three outcomes: refused, with the rule and the line; admitted; or undecided, with the requirement that stopped the check.
 Beside them it reports what the program takes on trust: its axioms, its conditional laws, and the laws the compiler derives from them where the program uses them.
 That report is read as a matter of principle: an agentic reviewer reads it with every change against the three rules, and every pull request is reviewed again before it is merged.

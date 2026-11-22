@@ -8,7 +8,7 @@
 Table~\ref{tab:derived} lists the derived forms of Section~\ref{sec:kernel:derived}: each with the kernel program it is read as, and the condition under which that reading keeps every value.
 The linter reads the same list, in its classification of syntax kinds (Appendix~\ref{app:lint}), so a definition is in FJlt exactly when it uses none of them.
 The list is open: a new derived form is a new row, and nothing said about the kernel changes.
-Local mutable state is among them for the reason \texttt{runST} gives it in Haskell~\cite{launchbury1994lazy}: state that cannot leave a call cannot be observed from outside it, and the rules of Rule~1 close every channel it could leave by.
+Local mutable state is among them by the reasoning about local state of Pitts and Stark~\cite{pitts1998operational}: state that cannot leave a call cannot be observed from outside it, and the rules of Rule~1 close every channel it could leave by; \texttt{runST} in Haskell is the same idea, held there by its type~\cite{launchbury1994lazy}.
 Raw pointers are not among them.
 A pointer that is never null and never compared with a pointer into another object is an index into a range, its arithmetic the arithmetic of counts, but neither condition can be checked well, so the posture asks for a span over storage declared constant instead.
 
@@ -24,20 +24,21 @@ an alias, \texttt{using S = T;} & \texttt{T} & none \\
 a braced \texttt{return \{a, b\};} & the record built from \texttt{a} and \texttt{b} & none \\
 two fields in one declaration & two declarations & none \\
 \texttt{static\_assert(e)} & the observation of the truth value \texttt{e} & none \\
-a range, as an array or a view & its length and the function that reads it; \texttt{ranges::fold\_left} over it, the kernel's iteration over that count & the range is finite and its size known before the first step \\
+a range, as an array or a view & its length and the function that reads it; \texttt{ranges::fold\_left} over it, the kernel's iteration over that count & finite, its size known before the first step; a forward range; its functions arrows of Jlt \\
+a parameter by constant reference, \texttt{const T\&} & a parameter by value & none \\
 a call of a member function, \texttt{s.size()} & a call with the object as its first argument & none \\
-a result required only \texttt{convertible\_to<T>}, \texttt{\{ op(a, b) \} -> convertible\_to<T>} & the call followed by the conversion, \texttt{T(op(a, b))}, after which the result has type \texttt{T} & the result is used at \texttt{T} and nowhere else, which a rule of the linter checks \\
+a result required only \texttt{convertible\_to<T>}, \texttt{\{ op(a, b) \} -> convertible\_to<T>} & the call, its result copy-initialising a \texttt{T}, after which the result has type \texttt{T} & the result is used at \texttt{T} and nowhere else, which a rule of the linter checks; the implicit and the explicit conversion agree, a semantic requirement of \texttt{convertible\_to}, trusted \\
 an implicit conversion between atoms, \texttt{true + true} & the conversion written out, \texttt{x != 0} or \texttt{b ? 1 : 0} & as for \texttt{convertible\_to} \\
 a defaulted \texttt{operator==} of a record & the conjunction of its fields' equalities & none \\
 a constructor, a designated initialiser & a function returning the record; its fields in order & none \\
 a default argument & an overload with the argument supplied & none \\
-\texttt{if constexpr} on a law or a trait & the conditional \texttt{p ? A : B} & both branches have one type \\
-\texttt{if constexpr (C<T>)} on a shape & two overloads, under \texttt{C<T>} and \texttt{!C<T>} & \RuleTwo{} \\
-\texttt{if consteval \{ A \} else \{ B \}} & \texttt{A}, the branch constant evaluation takes & \texttt{B} computes the value of \texttt{A} on every input \\
-a lambda, not generic or constrained & its closure class: the captures copied into fields, a \texttt{const} call operator & captures by value; its body judged as any function's \\
-a counted \texttt{for}, a range-\texttt{for} over a sized range & \texttt{fold\_left} over \texttt{iota(0, n)}, or over the range, the loop's locals its state & the bound known before the first step; the counter and the bound not written in the body \\
-an assignment, \texttt{++} on a local & the state of the fold or the call it is in & the local never leaves the call, so no one can tell it from a value passed along \\
-\texttt{std::span<const T>} over storage declared constant & a range: its length and the function that reads it & the declaration, a law on the list of what is trusted \\
+\texttt{if constexpr} on a law or a trait & the conditional \texttt{p ? A : B} & both branches have one type and are well formed at every instantiation; \RuleTwo{} \\
+\texttt{if constexpr (C<T>)} on a shape & two overloads, under \texttt{C<T>} and \texttt{!C<T>} & the signature names the decision (\RuleTwo{}) \\
+\texttt{if consteval \{ A \} else \{ B \}} & \texttt{A}, the branch constant evaluation takes & \texttt{B} computes the value of \texttt{A} on every input, trusted and listed like a law \\
+a lambda, not generic or constrained & its closure class: the captures copied into fields, a \texttt{const} call operator & captures by value, not \texttt{mutable}, no \texttt{this}; its body judged as any function's \\
+a counted \texttt{for}, a range-\texttt{for} over a sized range & \texttt{fold\_left} over \texttt{iota(0, n)}, or over the range, the loop's locals its state & the bound known before the first step; the counter and the bound not written in the body; no \texttt{break}, \texttt{return} or \texttt{goto} inside \\
+an assignment, \texttt{++} on a local & the state of the fold or the call it is in & the local never leaves the call, so no one can tell it from a value passed along; it is written before it is read \\
+\texttt{std::span<const T>} over storage declared constant & a range: its length and the function that reads it & the storage has static storage duration and no \texttt{mutable} member; the declaration, a law on the list of what is trusted \\
 \bottomrule
 \end{tabularx}
 \caption{The derived forms, each with the kernel program it is read as and the condition for that reading to keep every value.
