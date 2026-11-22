@@ -17,7 +17,7 @@ E &::=& [\,] \mid f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{, }
 \]
 where the elided contexts are the remaining argument positions of pairs, optionals, boxes, projections, constructions, folds and the two branches of a case, each evaluated left to right.
 The context grammar picks one redex per non-value term, so the relation is deterministic; \Cpp{} leaves the order of arguments unspecified, and \RuleOne{} makes every order give the same value.
-A reference is an optimisation, not a meaning (\RuleOne{}; Table~\ref{tab:adequacy}), so a parameter written \cppinline{const τ&} is the parameter $\tau\; x$.
+A reference is an optimisation, not a meaning (\RuleOne{}; Table~\ref{tab:derived}), so a parameter written \cppinline{const τ&} is the parameter $\tau\; x$.
 
 
 \begin{figure}[htbp]

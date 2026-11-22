@@ -93,6 +93,15 @@ add_custom_target(lint
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/jlt_lint.py
             ${CMAKE_BINARY_DIR} ${_jlt_tool} --out ${_jlt_parts}
     COMMAND ${CMAKE_COMMAND} -E copy ${_jlt_parts}/all.txt ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
+    # The paper's table of the listings' levels is the linter's: regenerated
+    # and compared, so it cannot drift from the code.
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/levels.py
+            ${CMAKE_BINARY_DIR} ${_jlt_tool} paper_listings
+            src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp
+            --check ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/levels-table.tex
+    # The fixture's outcome for every template, not only their count.
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/outcomes.py
+            ${_jlt_tool} ${CMAKE_SOURCE_DIR}/tools/jlt-lint/fixtures/rule2-by-type.cpp
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     # Its NCPU workers share the pool with lint-<part>, never both at once.
     JOB_POOL jlt_lint

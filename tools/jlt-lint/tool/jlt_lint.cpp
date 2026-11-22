@@ -108,6 +108,7 @@
 #include "clang/Basic/SourceManager.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendAction.h"
+#include "clang/Frontend/FrontendActions.h"
 #include "clang/Frontend/MultiplexConsumer.h"
 #include "clang/Frontend/TextDiagnostic.h"
 #include "clang/Tooling/CommonOptionsParser.h"
@@ -1886,6 +1887,843 @@ class Inventory : public clang::ASTConsumer,
   std::map<std::string, unsigned> counts;
 };
 
+// ---------------------------------------------------------------------------
+// admit: the second stage, a type check at archetypes of the shapes
+// ---------------------------------------------------------------------------
+
+/// What a type in a constraint is, read off its structure: a template
+/// parameter, the carrier of one (decltype(E{}())), the element type of a
+/// range parameter (range_value_t<R>), a trait's associated type at one
+/// (typename op_of<E>::type), or something else.
+struct Term {
+  enum Kind {
+    Other,
+    Parameter,
+    CarrierOf,
+    RangeValueOf,
+    Associated
+  } kind = Other;
+  Param p{};
+  const clang::ClassTemplateDecl* trait = nullptr;  // for Associated
+};
+using TermSubst = std::map<Param, Term>;
+
+Term classify(clang::QualType t, const TermSubst& s, int depth = 0) {
+  Term none;
+  if (t.isNull() || depth > 16) return none;
+  t = t.getNonReferenceType().getUnqualifiedType();
+  if (const auto* st = t->getAs<clang::SubstTemplateTypeParmType>())
+    return classify(st->getReplacementType(), s, depth + 1);
+  if (const auto* p = t->getAs<clang::TemplateTypeParmType>()) {
+    const Param key{p->getDepth(), p->getIndex()};
+    if (auto it = s.find(key); it != s.end()) return it->second;
+    return Term{Term::Parameter, key, nullptr};
+  }
+  if (const auto* ts = t->getAs<clang::TemplateSpecializationType>()) {
+    const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl();
+    if (td && td->getName() == "range_value_t" && inStd(td) &&
+        ts->template_arguments().size() == 1 &&
+        ts->template_arguments()[0].getKind() ==
+            clang::TemplateArgument::Type) {
+      Term r = classify(ts->template_arguments()[0].getAsType(), s, depth + 1);
+      if (r.kind == Term::Parameter)
+        return Term{Term::RangeValueOf, r.p, nullptr};
+      return none;
+    }
+    if (ts->isTypeAlias()) return classify(ts->getAliasedType(), s, depth + 1);
+  }
+  if (const auto* dt = llvm::dyn_cast<clang::DecltypeType>(t.getTypePtr())) {
+    // decltype(E{}()): the type of a call of a value of E, its carrier.
+    const auto* call = llvm::dyn_cast<clang::CallExpr>(
+        dt->getUnderlyingExpr()->IgnoreParenImpCasts());
+    if (call && call->getNumArgs() == 0) {
+      const clang::Expr* callee = call->getCallee()->IgnoreParenImpCasts();
+      clang::QualType ct;
+      if (const auto* u =
+              llvm::dyn_cast<clang::CXXUnresolvedConstructExpr>(callee))
+        ct = u->getTypeAsWritten();
+      else if (const auto* o =
+                   llvm::dyn_cast<clang::CXXTemporaryObjectExpr>(callee))
+        ct = o->getType();
+      Term e = classify(ct, s, depth + 1);
+      if (e.kind == Term::Parameter) return Term{Term::CarrierOf, e.p, nullptr};
+    }
+    return none;
+  }
+  if (const auto* dn = t->getAs<clang::DependentNameType>()) {
+    // typename X<P>::type: the associated type a trait gives at P.
+    if (const clang::NestedNameSpecifier q = dn->getQualifier())
+      if (const clang::Type* qt = q.getAsType())
+        if (const auto* ts = qt->getAs<clang::TemplateSpecializationType>())
+          if (const auto* ct = llvm::dyn_cast_or_null<clang::ClassTemplateDecl>(
+                  ts->getTemplateName().getAsTemplateDecl()))
+            if (ts->template_arguments().size() == 1 &&
+                ts->template_arguments()[0].getKind() ==
+                    clang::TemplateArgument::Type) {
+              Term a = classify(ts->template_arguments()[0].getAsType(), s,
+                                depth + 1);
+              if (a.kind == Term::Parameter)
+                return Term{Term::Associated, a.p, ct};
+            }
+    return none;
+  }
+  return none;
+}
+
+/// What a template's constraints ask of its parameters, read through its
+/// shapes: the facts the archetypes are built from.
+struct Facts {
+  std::set<Param> unit;                                 // E{}()
+  std::map<Param, const clang::ClassTemplateDecl*> op;  // a binary op_of<E>
+  std::map<Param, std::pair<Param, Param>> arrow;       // F : C_A -> C_B
+  std::map<Param, Param> carrierOf;                     // T same as C_E
+  std::map<Param, std::optional<Param>> range;          // R, its elements
+  std::set<Param> sized;                                // R is a sized_range
+  std::set<Param> comparable;                           // C_E has ==
+  struct Law {
+    const clang::VarTemplateDecl* decl;
+    std::vector<Param> args;
+  };
+  std::vector<Law> laws;
+  // An operation is recorded only once its result is constrained to the
+  // carrier: until then it is unconfirmed (Copilot on #1211).
+  std::set<Param> opUnconfirmed;
+  std::optional<Param> lastOp;
+  std::string undecided;  // the first requirement no rule reads
+};
+
+void readConstraint(const clang::Expr* e, const TermSubst& s, Facts& f,
+                    int depth = 0);
+
+/// A requirement's expression: a unit, an operation, an arrow, or a call to a
+/// function of the program (nothing to build: its own constraints are checked
+/// when the appendix instantiates it).
+void readRequiredCall(const clang::Expr* e,
+                      const std::map<const clang::VarDecl*, Term>& locals,
+                      const TermSubst& s, Facts& f) {
+  const auto* call = llvm::dyn_cast<clang::CallExpr>(e->IgnoreParenImpCasts());
+  if (!call) {
+    f.undecided = "a requirement that is not a call";
+    return;
+  }
+  const clang::Expr* callee = call->getCallee()->IgnoreParenImpCasts();
+  auto localTerm = [&](const clang::Expr* a) -> Term {
+    if (const auto* d =
+            llvm::dyn_cast<clang::DeclRefExpr>(a->IgnoreParenImpCasts()))
+      if (const auto* v = llvm::dyn_cast<clang::VarDecl>(d->getDecl()))
+        if (auto it = locals.find(v); it != locals.end()) return it->second;
+    return Term{};
+  };
+  // E{}(): a unit.  op_t<E>{}(a, b): a binary operation on the carrier.
+  clang::QualType constructed;
+  if (const auto* u = llvm::dyn_cast<clang::CXXUnresolvedConstructExpr>(callee))
+    constructed = u->getTypeAsWritten();
+  else if (const auto* o =
+               llvm::dyn_cast<clang::CXXTemporaryObjectExpr>(callee))
+    constructed = o->getType();
+  if (!constructed.isNull()) {
+    const Term c = classify(constructed, s);
+    if (c.kind == Term::Parameter && call->getNumArgs() == 0) {
+      f.unit.insert(c.p);
+      return;
+    }
+    if (c.kind == Term::Associated && call->getNumArgs() == 2) {
+      const Term a = localTerm(call->getArg(0)), b = localTerm(call->getArg(1));
+      if (a.kind == Term::CarrierOf && b.kind == Term::CarrierOf &&
+          a.p == c.p && b.p == c.p) {
+        f.op[c.p] = c.trait;
+        f.opUnconfirmed.insert(c.p);
+        f.lastOp = c.p;
+        return;
+      }
+    }
+    f.undecided = "a call of a constructed value of another form";
+    return;
+  }
+  // f(x): an arrow between two carriers.
+  const Term fn = localTerm(callee);
+  if (fn.kind == Term::Parameter && call->getNumArgs() == 1) {
+    const Term x = localTerm(call->getArg(0));
+    if (x.kind == Term::CarrierOf) {
+      // The codomain comes only from a result constraint; without one it
+      // stays unknown, and no archetype is built.
+      f.arrow[fn.p] = {x.p, Param{~0u, ~0u}};
+      return;
+    }
+  }
+  // A call to a function of the program, by name.
+  if (llvm::isa<clang::UnresolvedLookupExpr>(callee)) return;
+  f.undecided = "a required call of another form";
+}
+
+void readRequires(const clang::RequiresExpr* r, const TermSubst& s, Facts& f) {
+  std::map<const clang::VarDecl*, Term> locals;
+  for (const clang::ParmVarDecl* p : r->getLocalParameters())
+    locals[p] = classify(p->getType(), s);
+  for (const clang::concepts::Requirement* req : r->getRequirements()) {
+    if (!f.undecided.empty()) return;
+    if (const auto* er =
+            llvm::dyn_cast<clang::concepts::ExprRequirement>(req)) {
+      if (er->isExprSubstitutionFailure()) {
+        f.undecided = "a requirement that cannot be read";
+        return;
+      }
+      f.lastOp.reset();
+      readRequiredCall(er->getExpr(), locals, s, f);
+      const auto& ret = er->getReturnTypeRequirement();
+      if (ret.isTypeConstraint()) {
+        // -> same_as<carrier_t<E>> on an operation: its result is the carrier.
+        if (f.lastOp)
+          if (const auto* rc = llvm::dyn_cast<clang::ConceptSpecializationExpr>(
+                  ret.getTypeConstraint()->getImmediatelyDeclaredConstraint()))
+            if (rc->getNamedConcept()->getName() == "same_as" &&
+                !rc->getTemplateArgsAsWritten()->arguments().empty()) {
+              const Term r = classify(rc->getTemplateArgsAsWritten()
+                                          ->arguments()
+                                          .back()
+                                          .getArgument()
+                                          .getAsType(),
+                                      s);
+              if (r.kind == Term::CarrierOf && r.p == *f.lastOp)
+                f.opUnconfirmed.erase(r.p);
+            }
+        // -> same_as<carrier_t<B>>: fixes an arrow's codomain.
+        const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(
+            ret.getTypeConstraint()->getImmediatelyDeclaredConstraint());
+        if (!cs || cs->getNamedConcept()->getName() != "same_as") {
+          f.undecided = "a result constraint other than same_as";
+          return;
+        }
+        const auto& args = cs->getTemplateArgsAsWritten()->arguments();
+        if (args.empty()) continue;
+        const Term to = classify(args.back().getArgument().getAsType(), s);
+        const auto* call = llvm::dyn_cast<clang::CallExpr>(
+            er->getExpr()->IgnoreParenImpCasts());
+        if (call && to.kind == Term::CarrierOf)
+          for (auto& [fp, ab] : f.arrow)
+            if (call->getNumArgs() == 1) {
+              if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(
+                      call->getCallee()->IgnoreParenImpCasts()))
+                if (const auto* v =
+                        llvm::dyn_cast<clang::VarDecl>(d->getDecl()))
+                  if (auto it = locals.find(v);
+                      it != locals.end() && it->second.p == fp)
+                    ab.second = to.p;
+            }
+      }
+    } else if (const auto* tr =
+                   llvm::dyn_cast<clang::concepts::TypeRequirement>(req)) {
+      if (tr->isSubstitutionFailure()) {
+        f.undecided = "a type requirement that cannot be read";
+        return;
+      }
+      // typename op_t<E>: read with the call that uses it.
+    } else if (const auto* nr =
+                   llvm::dyn_cast<clang::concepts::NestedRequirement>(req)) {
+      if (nr->hasInvalidConstraint()) {
+        f.undecided = "a nested requirement that cannot be read";
+        return;
+      }
+      readConstraint(nr->getConstraintExpr(), s, f);
+    }
+  }
+}
+
+/// A law: a variable template of the program read at parameters.
+bool readLaw(const clang::Expr* e, const TermSubst& s, Facts& f) {
+  const clang::VarTemplateDecl* vt = nullptr;
+  llvm::ArrayRef<clang::TemplateArgumentLoc> args;
+  if (const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(e)) {
+    for (const clang::NamedDecl* d : u->decls())
+      if ((vt = llvm::dyn_cast<clang::VarTemplateDecl>(d))) break;
+    args = u->template_arguments();
+  } else if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e)) {
+    if (const auto* spec =
+            llvm::dyn_cast<clang::VarTemplateSpecializationDecl>(d->getDecl()))
+      vt = spec->getSpecializedTemplate();
+    else if (const auto* v = llvm::dyn_cast<clang::VarDecl>(d->getDecl()))
+      vt = v->getDescribedVarTemplate();
+    args = d->template_arguments();
+  }
+  if (!vt || inStd(vt) || args.empty()) return false;
+  Facts::Law law{vt, {}};
+  for (const clang::TemplateArgumentLoc& a : args) {
+    if (a.getArgument().getKind() != clang::TemplateArgument::Type)
+      return false;
+    const Term t = classify(a.getArgument().getAsType(), s);
+    if (t.kind != Term::Parameter) return false;
+    law.args.push_back(t.p);
+  }
+  f.laws.push_back(law);
+  return true;
+}
+
+void readConstraint(const clang::Expr* e, const TermSubst& s, Facts& f,
+                    int depth) {
+  if (!e || !f.undecided.empty()) return;
+  if (depth > 32) {
+    f.undecided = "constraints nested too deep";
+    return;
+  }
+  e = e->IgnoreParenImpCasts();
+  if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {
+    if (b->getOpcode() != clang::BO_LAnd) {
+      f.undecided = "a disjunction in a constraint";
+      return;
+    }
+    readConstraint(b->getLHS(), s, f, depth + 1);
+    readConstraint(b->getRHS(), s, f, depth + 1);
+    return;
+  }
+  if (const auto* r = llvm::dyn_cast<clang::RequiresExpr>(e)) {
+    readRequires(r, s, f);
+    return;
+  }
+  if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e)) {
+    const clang::ConceptDecl* c = cs->getNamedConcept();
+    std::vector<Term> args;
+    for (const clang::TemplateArgument& a : cs->getTemplateArguments())
+      args.push_back(a.getKind() == clang::TemplateArgument::Type
+                         ? classify(a.getAsType(), s)
+                         : Term{});
+    if (inStd(c)) {
+      const llvm::StringRef n = c->getName();
+      if (n == "copyable" && args.size() == 1 &&
+          args[0].kind == Term::CarrierOf)
+        return;  // every carrier archetype copies
+      if (n == "equality_comparable" && args.size() == 1 &&
+          args[0].kind == Term::CarrierOf) {
+        f.comparable.insert(args[0].p);
+        return;
+      }
+      if ((n == "sized_range" || n == "range" || n == "input_range") &&
+          args.size() == 1 && args[0].kind == Term::Parameter) {
+        f.range.try_emplace(args[0].p);
+        if (n == "sized_range") f.sized.insert(args[0].p);
+        return;
+      }
+      if (n == "same_as" && args.size() == 2 &&
+          args[1].kind == Term::CarrierOf) {
+        if (args[0].kind == Term::Parameter) {
+          f.carrierOf[args[0].p] = args[1].p;
+          return;
+        }
+        if (args[0].kind == Term::RangeValueOf) {
+          f.range[args[0].p] = args[1].p;
+          return;
+        }
+      }
+      f.undecided = "the standard's " + n.str() + " at these arguments";
+      return;
+    }
+    // A shape of the program: its body, its parameters read as the arguments.
+    TermSubst inner;
+    const clang::TemplateParameterList* ps = c->getTemplateParameters();
+    for (unsigned k = 0; k < ps->size() && k < args.size(); ++k)
+      if (const auto* tp =
+              llvm::dyn_cast<clang::TemplateTypeParmDecl>(ps->getParam(k)))
+        inner[{tp->getDepth(), tp->getIndex()}] = args[k];
+    readConstraint(c->getConstraintExpr(), inner, f, depth + 1);
+    return;
+  }
+  if (readLaw(e, s, f)) return;
+  f.undecided = "a constraint of another form";
+}
+
+/// The outcome of the type check for one function template.
+struct Outcome {
+  enum Kind { Admitted, NotAdmitted, Undecided } kind;
+  std::string why;
+};
+
+/// Errors of the second parse.
+class Errors : public clang::DiagnosticConsumer {
+ public:
+  unsigned n = 0;
+  std::string first;
+  bool inAppendix = false;      // the first error is the tool's, not the body's
+  bool marked = false;          // the use reached the marked template
+  unsigned appendixFrom = ~0u;  // the main file's offset where it begins
+  bool inBody = false;          // the first error is in the checked body
+  bool inMain = false;          // the first error is in the main file
+  unsigned bodyFrom = 0, bodyTo = 0;  // the checked body's offsets
+  void HandleDiagnostic(clang::DiagnosticsEngine::Level l,
+                        const clang::Diagnostic& d) override {
+    clang::DiagnosticConsumer::HandleDiagnostic(l, d);
+    llvm::SmallString<160> s;
+    d.FormatDiagnostic(s);
+    if (llvm::StringRef(s).contains("jlt-admit-checked")) marked = true;
+    if (l < clang::DiagnosticsEngine::Error) return;
+    if (n++ == 0) {
+      first = s.str().str();
+      if (d.hasSourceManager() && d.getLocation().isValid()) {
+        const clang::SourceManager& sm = d.getSourceManager();
+        const clang::SourceLocation loc = sm.getExpansionLoc(d.getLocation());
+        inMain = sm.isInMainFile(loc);
+        const unsigned at = inMain ? sm.getFileOffset(loc) : 0;
+        inAppendix = (inMain && at >= appendixFrom) ||
+                     sm.getFilename(loc).ends_with("archetypes.hpp");
+        inBody = inMain && at >= bodyFrom && at <= bodyTo;
+      }
+    }
+  }
+};
+
+/// The second parse's own reading of which function the appendix's use
+/// names, from the syntax tree: whether it resolved at all, and whether the
+/// function carries the marker (a failed body suppresses the deprecation
+/// warning and leaves the use unresolved, so the warning cannot be relied on).
+struct Selection {
+  bool resolved = false;
+  bool marked = false;
+};
+class MarkedUse : public clang::ASTConsumer {
+ public:
+  explicit MarkedUse(Selection& sel) : sel(sel) {}
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    struct Find : clang::RecursiveASTVisitor<Find> {
+      Selection& sel;
+      explicit Find(Selection& s) : sel(s) {}
+      bool VisitVarDecl(clang::VarDecl* v) {
+        if (v->getName() != "use" || !v->getInit()) return true;
+        const auto* ns =
+            llvm::dyn_cast<clang::NamespaceDecl>(v->getDeclContext());
+        if (!ns || ns->getName() != "jlt_admit") return true;
+        const clang::Expr* e = v->getInit()->IgnoreParenImpCasts();
+        if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
+          e = u->getSubExpr()->IgnoreParenImpCasts();
+        const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e);
+        const auto* f =
+            d ? llvm::dyn_cast<clang::FunctionDecl>(d->getDecl()) : nullptr;
+        if (!f) return true;
+        sel.resolved = true;
+        for (const clang::FunctionDecl* g :
+             {f, static_cast<const clang::FunctionDecl*>(
+                     f->getTemplateInstantiationPattern())})
+          if (g)
+            if (const auto* a = g->getAttr<clang::DeprecatedAttr>())
+              if (a->getMessage() == "jlt-admit-checked") sel.marked = true;
+        return true;
+      }
+    } find(sel);
+    find.TraverseDecl(ctx.getTranslationUnitDecl());
+  }
+
+ private:
+  Selection& sel;
+};
+class MarkedUseAction : public clang::SyntaxOnlyAction {
+ public:
+  explicit MarkedUseAction(Selection& sel) : sel(sel) {}
+  std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
+      clang::CompilerInstance&, llvm::StringRef) override {
+    return std::make_unique<MarkedUse>(sel);
+  }
+
+ private:
+  Selection& sel;
+};
+struct MarkedUseFactory : clang::tooling::FrontendActionFactory {
+  Selection& sel;
+  explicit MarkedUseFactory(Selection& s) : sel(s) {}
+  std::unique_ptr<clang::FrontendAction> create() override {
+    return std::make_unique<MarkedUseAction>(sel);
+  }
+};
+
+llvm::cl::opt<std::string> archetypes(
+    "archetypes",
+    llvm::cl::desc("the archetype header that ships with the linter"),
+    llvm::cl::cat(category));
+
+const clang::tooling::CompilationDatabase* compilations = nullptr;
+llvm::cl::opt<bool> dumpAppendix(
+    "dump-appendix",
+    llvm::cl::desc("print each generated appendix to stderr (debugging)"),
+    llvm::cl::cat(category));
+
+std::string qualifiedNamespace(const clang::Decl* d) {
+  std::string q;
+  for (const clang::DeclContext* c = d->getDeclContext(); c; c = c->getParent())
+    if (const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(c))
+      q = ns->getName().str() + (q.empty() ? "" : "::" + q);
+  return q;
+}
+
+/// The appendix for one template: archetypes, the traits' entries at them,
+/// and a use that makes the compiler instantiate the body.  Empty, with
+/// `why` set, when some parameter has no archetype.
+std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
+                        std::string& why) {
+  const clang::TemplateParameterList* ps = ft->getTemplateParameters();
+  std::map<Param, std::string> carrier, arch;
+  std::string types, entries;
+  auto carrierName = [&](Param p) -> std::string {
+    if (auto it = carrier.find(p); it != carrier.end()) return it->second;
+    const std::string tag = "Tag" + std::to_string(carrier.size());
+    const std::string name = "C" + std::to_string(carrier.size());
+    types += "struct " + tag + ";\nusing " + name + " = ::jlt::archetype::" +
+             (f.comparable.count(p) ? "comparable_carrier" : "carrier") + "<" +
+             tag + ">;\n";
+    carrier[p] = name;
+    return name;
+  };
+  const std::string ns = "jlt_admit";
+  for (const clang::NamedDecl* d : *ps) {
+    const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(d);
+    if (!tp) {
+      why = "a template parameter that is not a type";
+      return {};
+    }
+    const Param p{tp->getDepth(), tp->getIndex()};
+    std::string a;
+    if (f.unit.count(p)) {
+      a = "::jlt::archetype::nullary<" + carrierName(p) + ">";
+    } else if (auto it = f.carrierOf.find(p); it != f.carrierOf.end()) {
+      a = carrierName(it->second);
+    } else if (auto it = f.range.find(p); it != f.range.end()) {
+      const std::string elem =
+          it->second ? carrierName(*it->second) : carrierName({~0u, p.second});
+      // A size only where the shape asks for one: an input_range has none.
+      a = std::string("::jlt::archetype::") +
+          (f.sized.count(p) ? "sized_range_of<" : "input_range_of<") + elem +
+          ">";
+    } else if (auto it = f.arrow.find(p); it != f.arrow.end()) {
+      if (it->second.second == Param{~0u, ~0u}) {
+        why = "a required call without a result type";
+        return {};
+      }
+      a = "::jlt::archetype::arrow<" + carrierName(it->second.first) + ", " +
+          carrierName(it->second.second) + ">";
+    } else {
+      why = "no archetype for template parameter " + tp->getName().str();
+      return {};
+    }
+    const std::string name = "A" + std::to_string(arch.size());
+    types += "using " + name + " = " + a + ";\n";
+    arch[p] = ns + "::" + name;
+  }
+  for (const auto& [p, trait] : f.op) {
+    if (!arch.count(p)) continue;
+    entries += "namespace " + qualifiedNamespace(trait) +
+               " {\ntemplate <>\nstruct " + trait->getName().str() + "<" +
+               arch[p] + "> {\n  using type = ::jlt::archetype::binary<" + ns +
+               "::" + carrier[p] + ">;\n};\n}\n";
+  }
+  std::set<std::string> seen;
+  for (const Facts::Law& law : f.laws) {
+    std::string args;
+    for (Param p : law.args) {
+      if (!arch.count(p)) {
+        why = "a law at a parameter without an archetype";
+        return {};
+      }
+      args += (args.empty() ? "" : ", ") + arch[p];
+    }
+    const std::string key =
+        law.decl->getQualifiedNameAsString() + "<" + args + ">";
+    if (!seen.insert(key).second) continue;
+    entries += "namespace " + qualifiedNamespace(law.decl) +
+               " {\ntemplate <>\nconstexpr bool " + law.decl->getName().str() +
+               "<" + args + "> = true;\n}\n";
+  }
+  std::string targs;
+  for (const clang::NamedDecl* d : *ps) {
+    const auto* tp = llvm::cast<clang::TemplateTypeParmDecl>(d);
+    targs +=
+        (targs.empty() ? "" : ", ") + arch[{tp->getDepth(), tp->getIndex()}];
+  }
+  std::string text = "\n// jlt-lint: admission by type\n";
+  if (!archetypes.empty()) text += "#include \"" + archetypes + "\"\n";
+  text +=
+      "namespace " + ns + " {\n" + types + "}\n" + entries + "namespace " + ns +
+      " {\ninline constexpr auto* use = &::" + ft->getQualifiedNameAsString() +
+      "<" + targs + ">;\n}\n";
+  return text;
+}
+
+Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
+  Facts f;
+  const clang::FunctionDecl* fd = ft->getTemplatedDecl();
+  for (const clang::NamedDecl* p : *ft->getTemplateParameters())
+    if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
+      if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
+        readConstraint(tc->getImmediatelyDeclaredConstraint(), {}, f);
+  readConstraint(ft->getTemplateParameters()->getRequiresClause(), {}, f);
+  readConstraint(fd->getTrailingRequiresClause().ConstraintExpr, {}, f);
+  if (!f.undecided.empty()) return {Outcome::Undecided, f.undecided};
+  if (!f.opUnconfirmed.empty())
+    return {Outcome::Undecided,
+            "a required operation whose result is not constrained to its "
+            "carrier"};
+  // Hole 3: at the archetypes an if constexpr takes one branch, and the other
+  // is never type-checked.
+  struct Constexprs : clang::RecursiveASTVisitor<Constexprs> {
+    bool found = false;
+    bool VisitIfStmt(clang::IfStmt* s) {
+      found |= s->isConstexpr();
+      return true;
+    }
+  } ifs;
+  ifs.TraverseStmt(fd->getBody());
+  if (ifs.found)
+    return {Outcome::Undecided,
+            "an if constexpr: the archetypes take one branch and leave the "
+            "other unchecked"};
+  std::string why;
+  const std::string appendix = appendixFor(ft, f, why);
+  if (appendix.empty()) return {Outcome::Undecided, why};
+  if (!compilations) return {Outcome::Undecided, "no compilation database"};
+  const clang::SourceManager& sm = ctx.getSourceManager();
+  const clang::OptionalFileEntryRef main =
+      sm.getFileEntryRefForID(sm.getMainFileID());
+  if (!main) return {Outcome::Undecided, "no main file"};
+  const std::string path = main->getName().str();
+  if (dumpAppendix)
+    llvm::errs() << "---- " << ft->getNameAsString() << appendix;
+  // Hole 4: the use names an overload set, so the template checked is marked,
+  // and a use that resolves to a sibling is seen by the marker's absence.
+  std::string original = sm.getBufferData(sm.getMainFileID()).str();
+  const std::string marker = "[[deprecated(\"jlt-admit-checked\")]] ";
+  const unsigned at =
+      sm.getFileOffset(sm.getExpansionLoc(fd->getInnerLocStart()));
+  original.insert(at, marker);
+  // The tool keeps a reference to the text, so the text lives here.
+  const std::string text = original + appendix;
+  clang::tooling::ClangTool again(*compilations, {path});
+  again.mapVirtualFile(path, text);
+  again.appendArgumentsAdjuster(clang::tooling::getInsertArgumentAdjuster(
+      {"-Wdeprecated-declarations", "-Wno-error=deprecated-declarations"},
+      clang::tooling::ArgumentInsertPosition::END));
+  Errors errors;
+  errors.appendixFrom = static_cast<unsigned>(original.size());
+  // The checked body, in the marked text: after the marker.
+  errors.bodyFrom = static_cast<unsigned>(
+      sm.getFileOffset(sm.getExpansionLoc(fd->getBody()->getBeginLoc())) +
+      marker.size());
+  errors.bodyTo = static_cast<unsigned>(
+      sm.getFileOffset(sm.getExpansionLoc(fd->getBody()->getEndLoc())) +
+      marker.size());
+  again.setDiagnosticConsumer(&errors);
+  Selection sel;
+  MarkedUseFactory factory(sel);
+  again.run(&factory);
+  // Which definition the use reached comes first.  A use that resolved to an
+  // unmarked function reached a sibling; a use that resolved to nothing failed
+  // with the body it instantiated, which the first error then locates.
+  if (sel.resolved && !sel.marked && !errors.marked)
+    return {Outcome::Undecided,
+            "the use resolved to another overload at the archetypes"};
+  if (errors.n == 0) return {Outcome::Admitted, {}};
+  if (errors.inAppendix)
+    return {Outcome::Undecided,
+            "the appendix did not compile: " + errors.first};
+  if (!errors.inBody)
+    return {Outcome::Undecided,
+            "an error outside the checked body: " + errors.first};
+  return {Outcome::NotAdmitted, errors.first};
+}
+
+/// The check, in two views of one computation: `admit` reports the
+/// definitions not admitted and the undecided ones (the findings), `admitted`
+/// the admitted ones.  The outcomes are computed once per file.
+class Admission : public clang::ASTConsumer {
+ public:
+  explicit Admission(Outcome::Kind view) : view(view) {}
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    const clang::SourceManager& sm = ctx.getSourceManager();
+    // Shared by the two views of one file, never across files.
+    static std::map<std::string, std::vector<std::pair<std::string, Outcome>>>
+        caches;
+    const clang::OptionalFileEntryRef mainFile =
+        sm.getFileEntryRefForID(sm.getMainFileID());
+    const std::string key = mainFile ? mainFile->getName().str() : "";
+    const bool computed = caches.count(key) > 0;
+    auto& cache = caches[key];
+    if (!computed) {
+      struct Finder : clang::RecursiveASTVisitor<Finder> {
+        std::vector<const clang::FunctionTemplateDecl*> found;
+        const clang::SourceManager* sm;
+        bool shouldVisitTemplateInstantiations() const { return false; }
+        bool VisitFunctionTemplateDecl(clang::FunctionTemplateDecl* ft) {
+          const clang::FunctionDecl* f = ft->getTemplatedDecl();
+          if (!f || !f->doesThisDeclarationHaveABody() || f->isDeleted() ||
+              llvm::isa<clang::CXXMethodDecl>(f) ||
+              !sm->isInMainFile(ft->getLocation()) || !inScope(ft) ||
+              !constrained(ft))
+            return true;
+          found.push_back(ft);
+          return true;
+        }
+      } finder;
+      finder.sm = &sm;
+      finder.TraverseDecl(ctx.getTranslationUnitDecl());
+      for (const clang::FunctionTemplateDecl* ft : finder.found) {
+        const clang::SourceLocation loc = sm.getExpansionLoc(ft->getLocation());
+        std::string where;
+        llvm::raw_string_ostream w(where);
+        w << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc) << ':'
+          << sm.getExpansionColumnNumber(loc) << ": " << ft->getNameAsString();
+        cache.push_back({w.str(), admit(ft, ctx)});
+      }
+    }
+    for (const auto& [where, o] : cache) {
+      if (o.kind != view) continue;
+      if (o.kind == Outcome::Admitted) out() << where << " admitted by type\n";
+      if (o.kind == Outcome::NotAdmitted)
+        out() << where << " not admitted: " << o.why << '\n';
+      if (o.kind == Outcome::Undecided)
+        out() << where << " undecided: " << o.why << '\n';
+    }
+  }
+
+ private:
+  Outcome::Kind view;  // one rung of the ladder per check
+};
+
+/// The syntax kinds under one declaration, as the inventory names them.
+class Kinds : public clang::RecursiveASTVisitor<Kinds> {
+ public:
+  std::set<std::string> kinds;
+  bool shouldVisitTemplateInstantiations() const { return false; }
+  bool shouldVisitImplicitCode() const { return false; }
+  bool TraverseDecl(clang::Decl* d) {
+    // The variable a variable template declares is the template, not a
+    // local variable: counted as the VarTemplate.
+    const auto* v = llvm::dyn_cast_or_null<clang::VarDecl>(d);
+    if (d && !d->isImplicit() && !(v && v->getDescribedVarTemplate()))
+      kinds.insert(std::string("Decl:") + d->getDeclKindName());
+    return clang::RecursiveASTVisitor<Kinds>::TraverseDecl(d);
+  }
+  // The one derived form no syntax kind shows: a range.  A parameter
+  // constrained by a standard range concept, or a standard view other than
+  // the counted iota the kernel iterates over.
+  bool VisitConceptSpecializationExpr(clang::ConceptSpecializationExpr* e) {
+    const clang::ConceptDecl* c = e->getNamedConcept();
+    if (c && inStd(c) && c->getName().ends_with("range"))
+      kinds.insert("Derived:range");
+    return true;
+  }
+  bool VisitTemplateTypeParmDecl(clang::TemplateTypeParmDecl* d) {
+    if (const clang::TypeConstraint* tc = d->getTypeConstraint())
+      if (const clang::TemplateDecl* c = tc->getNamedConcept())
+        if (inStd(c) && c->getName().ends_with("range"))
+          kinds.insert("Derived:range");
+    return true;
+  }
+  bool VisitDeclRefExpr(clang::DeclRefExpr* e) {
+    // The view objects themselves (views::transform), not their call
+    // operators, whose names are operator().
+    const clang::ValueDecl* d = e->getDecl();
+    if (d && llvm::isa<clang::VarDecl>(d) && inStd(d) &&
+        d->getQualifiedNameAsString().find("views::") != std::string::npos &&
+        d->getName() != "iota")
+      kinds.insert("Derived:view");
+    return true;
+  }
+  bool VisitStmt(clang::Stmt* st) {
+    if (const auto* t = llvm::dyn_cast<clang::CXXThisExpr>(st))
+      if (t->isImplicit()) return true;  // a member named without this->
+    // A conversion between integer types written as a call, size_t(k): the
+    // count's own modular arithmetic, decided kernel (2026-11-22); any other
+    // functional cast keeps its kind.
+    if (const auto* c = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(st))
+      if (c->getType()->isIntegerType() &&
+          c->getSubExpr()->IgnoreParenImpCasts()->getType()->isIntegerType()) {
+        kinds.insert("Cast:integer");
+        return true;
+      }
+    // An operator call on a class type by its spelling, as the built-in ones:
+    // s = s + x on a string is an assignment, ++it an increment.
+    if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(st)) {
+      const std::string sp = clang::getOperatorSpelling(o->getOperator());
+      const bool unary = o->getNumArgs() == 1 && sp != "()" && sp != "[]";
+      kinds.insert("Op:" + std::string(unary ? "u" : "") + sp);
+      return true;
+    }
+    // An operator by its spelling: + is not =, ! is not ++.
+    if (const auto* o = llvm::dyn_cast<clang::BinaryOperator>(st)) {
+      kinds.insert("Op:" +
+                   clang::BinaryOperator::getOpcodeStr(o->getOpcode()).str());
+      return true;
+    }
+    if (const auto* o = llvm::dyn_cast<clang::UnaryOperator>(st)) {
+      kinds.insert("Op:u" +
+                   clang::UnaryOperator::getOpcodeStr(o->getOpcode()).str() +
+                   (o->isPostfix() ? "post" : ""));
+      return true;
+    }
+    if (!llvm::isa<clang::ImplicitCastExpr, clang::MaterializeTemporaryExpr,
+                   clang::ExprWithCleanups, clang::CXXBindTemporaryExpr,
+                   clang::ConstantExpr, clang::CXXDefaultArgExpr,
+                   clang::CXXDefaultInitExpr, clang::OpaqueValueExpr,
+                   clang::SubstNonTypeTemplateParmExpr>(st))
+      kinds.insert(std::string("Stmt:") + st->getStmtClassName());
+    return true;
+  }
+  bool VisitTypeLoc(clang::TypeLoc tl) {
+    if (!tl.isNull())
+      kinds.insert(std::string("Type:") + tl.getType()->getTypeClassName());
+    return true;
+  }
+};
+
+/// Not a rule: every declaration directly in the scope namespace, with its
+/// lines and the syntax kinds it uses, one line each, so that a script can
+/// give each definition its level (kernel or derived forms, by admission.txt)
+/// and join it with the findings that fall in its lines.
+class Definitions : public clang::ASTConsumer {
+ public:
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    const clang::SourceManager& sm = ctx.getSourceManager();
+    clang::PrintingPolicy policy = ctx.getPrintingPolicy();
+    policy.SuppressScope = true;
+    std::function<void(const clang::DeclContext*)> walk =
+        [&](const clang::DeclContext* dc) {
+          for (clang::Decl* d : dc->decls()) {
+            const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(d);
+            if (ns && ns->getName() == scope &&
+                sm.isInMainFile(sm.getExpansionLoc(ns->getLocation()))) {
+              for (clang::Decl* m : ns->decls()) report(m, sm, policy);
+              continue;
+            }
+            if (const auto* c = llvm::dyn_cast<clang::DeclContext>(d))
+              if (llvm::isa<clang::NamespaceDecl, clang::LinkageSpecDecl,
+                            clang::ExportDecl>(d))
+                walk(c);
+          }
+        };
+    walk(ctx.getTranslationUnitDecl());
+  }
+
+ private:
+  void report(clang::Decl* d, const clang::SourceManager& sm,
+              const clang::PrintingPolicy& policy) {
+    if (d->isImplicit() ||
+        llvm::isa<clang::NamespaceDecl, clang::UsingDecl,
+                  clang::UsingDirectiveDecl, clang::StaticAssertDecl>(d))
+      return;
+    const auto* nd = llvm::dyn_cast<clang::NamedDecl>(d);
+    if (!nd) return;
+    std::string name;
+    llvm::raw_string_ostream n(name);
+    nd->getNameForDiagnostic(n, policy, false);
+    const clang::SourceLocation b = sm.getExpansionLoc(d->getBeginLoc()),
+                                e = sm.getExpansionLoc(d->getEndLoc());
+    if (!sm.isInMainFile(b)) return;
+    Kinds k;
+    k.TraverseDecl(d);
+    out() << sm.getFilename(b) << ':' << sm.getExpansionLineNumber(b) << ':'
+          << sm.getExpansionColumnNumber(b) << ": " << n.str() << " range "
+          << sm.getExpansionLineNumber(b) << ':'
+          << sm.getExpansionColumnNumber(b) << '-'
+          << sm.getExpansionLineNumber(e) << ':'
+          << sm.getExpansionColumnNumber(e);
+    for (const std::string& kind : k.kinds) out() << ' ' << kind;
+    out() << '\n';
+  }
+};
+
 /// One check by name, or null for an unknown name.
 std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
   if (name == "mutual-recursion") return std::make_unique<MutualRecursion>();
@@ -1898,6 +2736,11 @@ std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
   if (name == "inventory") return std::make_unique<Inventory>();
   if (name == "undecided-resolution")
     return std::make_unique<UndecidedResolution>();
+  if (name == "admit") return std::make_unique<Admission>(Outcome::NotAdmitted);
+  if (name == "undecided")
+    return std::make_unique<Admission>(Outcome::Undecided);
+  if (name == "admitted") return std::make_unique<Admission>(Outcome::Admitted);
+  if (name == "definitions") return std::make_unique<Definitions>();
   llvm::errs() << "jlt-lint: unknown check " << name << '\n';
   return nullptr;
 }
@@ -2155,6 +2998,7 @@ int main(int argc, const char** argv) {
     return 2;
   }
   if (!readQueryRules()) return 2;
+  compilations = &parser->getCompilations();
   clang::tooling::ClangTool tool(parser->getCompilations(),
                                  parser->getSourcePathList());
   return tool.run(clang::tooling::newFrontendActionFactory<Action>().get());

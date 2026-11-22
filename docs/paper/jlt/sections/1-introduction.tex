@@ -11,7 +11,8 @@ The standard's own words are that a type \emph{satisfies} a concept, which the c
 That split is between what the compiler decides and what it leaves to the programmer, and it does not coincide with the split of programming-language theory between static and dynamic semantics~\cite{pierce2002tapl}, whose static semantics, type checking, falls on the syntactic side here.}
 Rust, released in 2015, has the definition check: a generic body is checked against its declared bounds, and the message for a missing one names it~\cite{klabnik2023rust}.
 A \Cpp{} programmer is free to adopt a fragment of the language by policy, and this paper names one, of three rules.
-Inside it, \texttt{jlt-lint} recovers part of the definition check, by names rather than by types, refuses a body whose overload its signature leaves undecided, and lists every axiom a program declares, a property where \Cpp{0x} stated an equation (Section~\ref{sec:check}).
+The posture is meant as a route a team can take through \Cpp{23} without debating each case: opinionated, checked by a tool, and adoptable one file and one rule at a time.
+Inside it, \texttt{jlt-lint} recovers the definition check: it refuses by name a body that uses what its constraints do not name or whose overload its signature leaves undecided, it admits by type a body that type-checks at archetypes of its signature, and it lists every axiom a program declares, a property where \Cpp{0x} stated an equation (Section~\ref{sec:check}).
 
 What the programmer is missing is old.
 Functional programs can be reasoned about by equations.
@@ -21,7 +22,7 @@ A class of types with operations and laws lets generic code be written once agai
 A recursion that follows the structure of its data ends, so a program built from such recursions has a value~\cite{turner2004total}.
 Polymorphism and classes each give equations: a free theorem holds of every term of a type, and a law is declared of an instance.
 Substitution of equals turns either into a rewrite.
-For the declared laws the reasoning is complete: an equation follows from the laws by equational reasoning exactly when it holds in every model of them~\cite{birkhoff1935structure,burris1981universalalgebra}.
+For declared equations the reasoning is complete: an equation follows from them by equational reasoning exactly when it holds in every model of them, with several sorts as here~\cite{birkhoff1935structure,goguen1985completeness,burris1981universalalgebra}.
 A stronger class has fewer instances and more laws, so it licenses more rewrites.
 The theory is not new; that it can be used in \Cpp{23} as shipped is.
 
@@ -104,7 +105,7 @@ The bottom edge says that the two paths compute one value.}
 \textbf{FJlt}: a subset of \Cpp{} whose generic definitions have System~F types & value layer: what is computed & atoms: truth values, and counts modulo $2^{64}$; carriers: any type of values, known only by the operations a shape names; pairs and records; arrows; templates over types; the conditional; the iterator & its image is itself: prenex polymorphism over those atoms, with that iterator. A generic definition has a System~F type, and so its free theorem at every carrier \\[3pt]
  & resolution layer: what the compiler chooses & named type constructors; shapes, of laws and required calls, and their negation; traits with atomic results, laws among them; associated types; overloads & its image is records and separate definitions, and the selection is gone \\
 \midrule
-\textbf{Jlt}: what the programmer writes & derived forms: the domain of desugaring beyond FJlt & ranges, loops, folds over a range, the standard's shorthands & each has an FJlt program with the same observable values \\[3pt]
+\textbf{Jlt}: what the programmer writes & derived forms: the domain of desugaring beyond FJlt & ranges, counted loops, folds over a range, the standard's shorthands & each has an FJlt program with the same observable values \\[3pt]
  & the Juliet Posture: three rules & substitution, declared structure, bounded recursion & a heuristic and an outer bound: what the programmer remembers \\
 \bottomrule
 \end{tabularx}
@@ -113,7 +114,7 @@ The bottom edge says that the two paths compute one value.}
 \end{table}
 
 \paragraph{Contributions.}
-The paper contributes a route, not a piece of software: each step from \Cpp{23} to System~F is a known construction, and the contribution is that the steps connect.
+The paper contributes a chain of known constructions, not a piece of software: each step from \Cpp{23} to System~F is known, and the contribution is that the steps connect.
 \begin{enumerate}
 \item The posture: three rules on standard \Cpp{23}, drawn from four listings of functions the reader already knows, each rule with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:examples}).
 \item Featherweight Jlt, the kernel: a subset of \Cpp{23} as written, in a value layer and a resolution layer, whose image in System~F is dictionary passing, and the derived forms that reduce Jlt to it (Section~\ref{sec:kernel}).

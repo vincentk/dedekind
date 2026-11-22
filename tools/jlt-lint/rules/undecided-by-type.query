@@ -1,0 +1,7 @@
+# Not a rule: the definitions the second stage cannot decide, one line each
+# with its reason (no archetype for a requirement, a use that reached a
+# sibling, an error outside the checked body, an appendix that did not
+# compile).  Neither inside nor outside: the gap the generator's rules and
+# the posture's exercise shrink.  Counted and gated apart from refusals
+# (rule2-by-type) and certificates (admitted), so a move between rungs shows.
+tool undecided

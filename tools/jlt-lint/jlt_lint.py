@@ -133,7 +133,8 @@ def run(tool, build, path, namespace, rules):
     per rule, output), or None, None and the output on an error."""
     checks = [tool_check(r) for r in rules if tool_check(r) is not None]
     queries = [r for r in rules if tool_check(r) is None]
-    args = [str(tool), f"--scope={namespace}"]
+    args = [str(tool), f"--scope={namespace}",
+            f"--archetypes={HERE / 'archetypes.hpp'}"]
     if checks:
         args.append(f"--check={','.join(checks)}")
     if queries:

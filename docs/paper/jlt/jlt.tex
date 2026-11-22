@@ -68,10 +68,24 @@ It does not hold a generic function to its declared constraints: the body may us
 %
 % WHERE THE LIE STANDS.  The sentence is not yet true, and the work is to make
 % the untrue part smaller.  Update this list as it shrinks.
-%   - "a check that a tool performs": not built.  The linter checks Rule 2 by
-%     names only, and nothing decides whether a program is Jlt.
-%   - "a template means what its signature says": follows from that check, so
-%     it is on trust until the check exists.
+%   - "a check that a tool performs": built for the paper's listings (both
+%     stages run on them in CI, and the levels table is gated); on the
+%     library the second stage has yet to run.  Earlier: half built.  The linter refuses by
+%     name (Rule 2 now catches both guessed_ examples, #1210); admitting by
+%     type at generated archetypes is designed (Section 4, #1211) and not yet
+%     run.  The promise's first clause already says what it will give (the
+%     user's words of 2026-11-22, "some templates can then be classified as
+%     meaning what their signatures say"); it is true once the spike on the
+%     listings runs, gated in CI, the merge condition of #1211.  Then the
+%     evidence item b) says "refuses by name and admits by type".  What the
+%     classification rests on stays here: the
+%     conjecture of Section 4 (admitted at the archetypes, well typed and the
+%     same resolution at every model) and the order of declarations, not yet
+%     checked.
+%   - "some templates can then be classified as meaning what their signatures
+%     say": the classification is the linter's second stage, so it is not yet
+%     true; when it runs, what the classification means rests on the
+%     conjecture and on the order of declarations (above).
 %   - "a declared law licenses a faster program": true of Listing 2 (the power).
 %     The selection of the faster case is by a declared law; the caller that
 %     names too little shows what the check must refuse, and no check does.
@@ -83,7 +97,7 @@ It does not hold a generic function to its declared constraints: the body may us
 %     model, not yet checked against a written-out kernel.
 %   - "what was taken on trust comes out as a list": true for entries at one
 %     type.  Conditional laws and units named at a use are not listed.
-Under the rules of this paper and a check that a tool performs, a template means what its signature says, a declared law licenses a faster program, and the compiler carries laws through composition.
+Under the rules of this paper and a check that a tool performs, some templates can then be classified as meaning what their signatures say, a declared law licenses a faster program, and the compiler carries laws through composition.
 What was taken on trust comes out as a list.
 
 This paper characterises a fragment of \Cpp{23} as it ships, with no language modification or compiler extension, and no tool required: a fragment whose generic definitions have types of the prenex fragment of System~F and whose programs are ordinary \Cpp{23} programs.
@@ -91,6 +105,7 @@ The fragment is type-class-style code under three rules, called the Juliet Postu
 i) values are copyable data and functions are pure and evaluable at compile time;
 ii) generic code varies with a type only through that type's concepts and traits;
 iii) recursion is structural, over a type or over a value, in a number of steps bounded before the first step.
+The posture is meant as a route a team can take through \Cpp{23}, checked by a tool and adoptable one file and one rule at a time.
 Its kernel, Featherweight Jlt (FJlt), translates by dictionary passing, as Haskell's type classes do, into System~F extended with data types and iterators.
 The image is defined on every well-typed program, and from its target it inherits parametricity and type soundness and, under stated assumptions, termination; that a program and its image compute the same values is a hypothesis, stated and not proved.
 Jlt beyond the kernel is a set of derived forms, rewrites into the kernel that are not proved either.
@@ -104,7 +119,7 @@ The paper also exhibits a \Cpp{20} program in which a generic function's result 
 
 The evidence presented is
 a) the results the image inherits, cited from the literature,
-b) a linter that checks source code against the three rules,
+b) a linter that refuses by name what breaks the three rules and admits by type what it does not refuse,
 c) a library in a public repository whose modules the linter checks, all but twelve that only re-export, and
 d) listings checked by the repository's tests, at compile time and, all but one, at run time.
 The claim is one of existence: \Cpp{23} already contains an embedding of a fragment of System~F.

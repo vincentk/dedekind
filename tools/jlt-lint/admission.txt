@@ -57,16 +57,16 @@ Type:DependentName kernel
 Type:Decltype kernel
 
 # ---- derived forms
-Decl:TypeAlias derived
-Decl:TypeAliasTemplate derived
-Type:Typedef derived
-Type:Using derived
+Decl:TypeAlias kernel
+Decl:TypeAliasTemplate kernel
+Type:Typedef scaffolding
+Type:Using scaffolding
 Type:Auto derived
 Type:DeducedTemplateSpecialization derived
 Type:InjectedClassName derived
 Type:LValueReference derived
-Type:Paren derived
-Stmt:ParenExpr derived
+Type:Paren scaffolding
+Stmt:ParenExpr scaffolding
 Decl:Var derived
 Stmt:DeclStmt derived
 Stmt:IfStmt derived
@@ -81,6 +81,63 @@ Stmt:CXXFoldExpr derived
 Stmt:CXXRewrittenBinaryOperator derived
 Stmt:UserDefinedLiteral derived
 Decl:CXXDeductionGuide derived
+
+# ---- operators by spelling (definitions only; the file inventory still
+# counts Stmt:BinaryOperator and Stmt:UnaryOperator as a whole)
+Op:+ kernel
+Op:- kernel
+Op:* kernel
+Op:/ kernel
+Op:% kernel
+Op:& kernel
+Op:| kernel
+Op:^ kernel
+Op:<< kernel
+Op:>> kernel
+Op:== kernel
+Op:!= kernel
+Op:< kernel
+Op:> kernel
+Op:<= kernel
+Op:>= kernel
+Op:<=> kernel
+Op:&& kernel
+Op:|| kernel
+Op:+= derived
+Op:-= derived
+Op:*= derived
+Op:/= derived
+Op:= derived
+Op:, open
+Op:() kernel
+Op:[] open
+Op:-> open
+Op:u! kernel
+Op:u- kernel
+Op:u~ kernel
+Op:u+ kernel
+Op:u& refused
+Op:u* refused
+Op:u++ derived
+Op:u-- derived
+Op:u++post derived
+Op:u--post derived
+
+# ---- the derived forms no syntax kind shows (definitions only)
+Derived:range derived
+Derived:view derived
+# a conversion between integer types written as a call (decided 2026-11-22)
+Cast:integer kernel
+# Decided 2026-11-22 (user), Appendix A's table: a lambda (not generic, or
+# constrained) is its closure class; a counted for and a range-for over a
+# sized range are a fold; an assignment and ++ on a local are the fold's
+# state (runST: the local never leaves the call; Rule 1's deny-rules close
+# every channel).  The deny-rule rule3-no-loops still refuses every loop until
+# the linter recognises the counted shape, and the deny-rules win.
+# Decided 2026-11-22, to be counted with the library run: an implicit
+# conversion between atoms (int to bool, bool promoted to int) and a result
+# required only convertible_to<T> are a derived form, the call followed by
+# T(...), conditional on rule2-converted-result (the result used at T only).
 
 # ---- scaffolding
 Decl:Export scaffolding
@@ -97,7 +154,7 @@ Stmt:CXXThrowExpr refused
 Stmt:WhileStmt refused
 Stmt:BreakStmt refused
 Stmt:ContinueStmt refused
-Stmt:CompoundAssignOperator refused
+Stmt:CompoundAssignOperator derived
 Stmt:CStyleCastExpr refused
 Stmt:CXXNullPtrLiteralExpr refused
 Type:Pointer refused
@@ -112,9 +169,9 @@ Stmt:CXXReinterpretCastExpr refused
 Stmt:DoStmt refused
 
 # ---- open: to be decided
-Stmt:ForStmt open
-Stmt:CXXForRangeStmt open
-Stmt:LambdaExpr open
+Stmt:ForStmt derived
+Stmt:CXXForRangeStmt derived
+Stmt:LambdaExpr derived
 Stmt:SwitchStmt open
 Stmt:CaseStmt open
 Stmt:DefaultStmt open
@@ -122,8 +179,8 @@ Stmt:UnaryOperator open
 Stmt:CXXFunctionalCastExpr open
 Stmt:CXXStaticCastExpr open
 Stmt:CXXThisExpr open
-Stmt:CXXConstructExpr open
-Stmt:CXXMemberCallExpr open
+Stmt:CXXConstructExpr kernel
+Stmt:CXXMemberCallExpr derived
 Stmt:ArraySubscriptExpr open
 Stmt:StringLiteral open
 Stmt:FloatingLiteral open

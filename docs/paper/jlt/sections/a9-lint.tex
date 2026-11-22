@@ -60,3 +60,57 @@ Table~\ref{tab:admission} gives it.
 
 Catch2, the control, has a refused share six times the library's and an open share three times as large, among them kinds the library never writes (\cppinline{try}, \cppinline{new}, \cppinline{delete}, \cppinline{reinterpret_cast}), so the classes tell code written under the rules from code that was not; by unit the picture is harsher, 7 of the library's 146 units and 5 of Catch2's 106 having nothing refused or open.
 In the library, most of what is open is six kinds: string literals, most of them messages of assertions; casts written as \cppinline{size_t(x)}; \cppinline{this}; enumerations; unary operators; and parameters of templates over values.
+
+\subsection{Admission by type}
+\label{app:lint:admit}
+% STATUS: the second stage runs on the paper's listings and its fixtures in
+% CI (rules rule2-by-type and admitted; levels.py for Table tab:levels); on
+% the library it has yet to run.
+
+The second stage of Section~\ref{sec:check} admits a constrained template that no deny-rule refuses when its body type-checks at archetypes of the shapes in its signature.
+It gives every type parameter an archetype by reading the shapes that constrain it, by one rule for each kind of requirement a shape may have (Table~\ref{tab:archetype-rules}).
+The building blocks are a header that ships with the linter and depends on nothing in the library: a carrier that can only be copied, one that can also be compared, a unit, a binary operation, an arrow, and a range whose size is known before the first step.
+A shape with a requirement of any other kind leaves the templates written against it undecided, with that requirement named.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+requirement in a shape & archetype \\
+\midrule
+a unit, \texttt{E\{\}()} & \texttt{E} is a unit that gives a fresh carrier \texttt{C\_E} \\
+an operation, \texttt{typename op\_t<E>} with \texttt{\{ op\_t<E>\{\}(a, b) \} -> same\_as<carrier\_t<E>>} & the entry of \texttt{op\_of} at \texttt{E} names a binary operation on \texttt{C\_E} \\
+a law, \texttt{unital<E>} or \texttt{homomorphism<H, A, B>} & the law declared \texttt{true} at the archetypes \\
+\texttt{copyable} or \texttt{equality\_comparable} on a carrier & a carrier that can be copied, or also compared \\
+a call, \texttt{\{ f(x) \} -> same\_as<carrier\_t<B>>} with \texttt{x} of \texttt{carrier\_t<A>} & \texttt{F} is an arrow from \texttt{C\_A} to \texttt{C\_B} \\
+\texttt{sized\_range<R>} with \texttt{same\_as<range\_value\_t<R>, carrier\_t<E>>} & \texttt{R} is a range of \texttt{C\_E} whose size is known before the first step \\
+\texttt{same\_as<T, carrier\_t<E>>} & \texttt{T} is \texttt{C\_E} \\
+a call to a function of the program by name, \texttt{\{ power<E>(x, n) \}} & nothing to build: the call's own constraints are checked where the template is used \\
+\bottomrule
+\end{tabularx}
+\caption{The rules by which the linter builds archetypes, one for each kind of requirement in a shape.}
+\label{tab:archetype-rules}
+\end{table}
+
+The check runs in the linter's own process.
+For each template it appends to the file's text, in memory, an appendix of the archetypes, the entries of the shapes' traits at them, and one inline function that uses the template at them and is never called.
+It parses that with the file's own compile command, so that the compiler instantiates and type-checks the body and emits nothing, and the archetypes' operations need no definitions.
+An error in the template's body means that the body uses something its signature did not promise, or uses it at other types.
+
+\paragraph{The conjecture and its hypotheses.}
+\label{app:lint:conjecture}
+The conjecture of Section~\ref{sec:check} is that a definition admitted at its archetypes is well typed at every type that satisfies its shapes and keeps the rules itself, and resolves every choice its signature makes the same way.
+Five hypotheses exclude the counterexamples known to us.
+A type's operations take their arguments by value or by constant reference, as Rule~1 asks, so that no argument the archetype accepts is refused by the type.
+A call by name inside a shape is qualified, so that no lookup by the argument's namespace, which \Cpp{20} extends to calls with template arguments, finds another function at the type.
+The body does not depend on two carriers being different, which the archetypes make them.
+A choice the signature leaves to the caller, as \cppinline{named_power} leaves the case of \cppinline{power}, may resolve differently.
+And no limit of the implementation is reached.
+In $F^G$, where a name is looked up where the template is defined, the corresponding statement is a theorem~\cite{siek2005essential}; Järvi et al.\ show what that binding costs the dispatch \Cpp{} programmers rely on~\cite{jarvi2006specialization}.
+In \Cpp{} it is a conjecture, tested on the definitions of the listings and not yet on the library.
+
+The linter reports every definition with one of three outcomes: refused, with the rule and the line; admitted; or undecided, with the requirement that stopped the check.
+Beside them it reports what the program takes on trust as far as the ledger reaches today: its axioms, the entries of a law at one type; its conditional laws, and the laws the compiler derives from them, are yet to be listed.
+That report is read as a matter of principle: an agentic reviewer reads it with every change against the three rules, and every pull request is reviewed again before it is merged.
+A reviewer with little context but this report can audit a whole code base, during development and after it: what is refused is a list of witnesses, what is admitted needs no reading of its body against its signature, and what remains to be read is the undecided definitions and the list of what is trusted.
