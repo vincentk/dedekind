@@ -65,7 +65,25 @@ def part_of(path):
 
 
 def read_scope():
-    """Yield (rule, file, namespace, expected) with globs expanded."""
+    """Yield (rule, file, namespace, expected) with globs expanded.  A line
+    naming one file overrides a glob's line for the same rule, file and
+    namespace, so a gate can take its own count while the glob stays the
+    default for the rest (the ratchet edits one line per file)."""
+    chosen = {}
+    for rule, f, ns, expected, exact in _scope_lines():
+        key = (rule, f, ns)
+        if key in chosen and chosen[key][1] and not exact:
+            continue  # a file's own line beats a glob's
+        if key in chosen and chosen[key][1] and exact:
+            sys.exit(f"jlt-lint: scope: two lines name {rule} on {f} ({ns})")
+        chosen[key] = (expected, exact)
+    for (rule, f, ns), (expected, _) in chosen.items():
+        yield rule, f, ns, expected
+
+
+def _scope_lines():
+    """Yield (rule, file, namespace, expected, exact): exact when the line
+    names the file itself rather than a glob."""
     for n, line in enumerate((HERE / "scope").read_text().splitlines(), 1):
         line = line.split("#", 1)[0].split()
         if not line:
@@ -82,8 +100,9 @@ def read_scope():
             continue
         if not files:
             sys.exit(f"jlt-lint: scope:{n}: {pattern} names no file")
+        exact = not any(ch in pattern for ch in "*?[")
         for f in files:
-            yield rule, pathlib.Path(f).relative_to(ROOT).as_posix(), namespace, expected
+            yield rule, pathlib.Path(f).relative_to(ROOT).as_posix(), namespace, expected, exact
 
 
 def tool_check(rule):

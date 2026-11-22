@@ -36,7 +36,7 @@ rule1-boxed-identity          tools/jlt-lint/fixtures/boxed.cpp  jlt_listing  5
 # The paper's listings: gated.
 rule3-no-loops               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule3-no-self-recursion      src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
-rule3-bounded-fold           src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  7
+rule3-bounded-fold           src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  6
 rule3-no-mutual-recursion    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule2-definition             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule2-constrained-templates  src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
@@ -60,35 +60,37 @@ rule1-const-member-functions  src/test/cpp/modules/dedekind/category/jlt_listing
 rule1-no-mutable-globals      src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule1-no-escaping-reference-captures src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 
-# The four listings as printed in the paper (Section 2), every rule, reported
-# until CI has counted them; then each count becomes a gate.  guessed_concat
-# and guessed_power are expected findings, and idempotent<Sum2> an axiom.
+# The four listings as printed in the paper (Section 2), every rule gated:
+# exactly the findings the paper shows, guessed_power undecided (Rule 2,
+# decided-resolution 1), guessed_concat's '+' and '=' unnamed (Rule 2,
+# definition 2) and its loop (Rule 3, no-loops 1); idempotent<Sum2> is on the
+# axioms' list.
 axioms                               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule1-boxed-identity                 src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule1-boxed-mutable-pointee          src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule1-const-call-operator            src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule1-const-member-functions         src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule1-constexpr                      src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule1-forwarding-reference-params    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule1-lvalue-reference-params        src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule1-no-escaping-reference-captures src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule1-no-inheritance                 src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule1-no-mutable-globals             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule1-no-reference-returns           src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule1-no-static-locals               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule1-no-throw                       src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule1-no-volatile                    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule1-rvalue-reference-params        src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule2-constrained-templates          src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule2-context-order                  src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule2-converted-result               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule2-decided-resolution             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule2-definition                     src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule2-no-inline-requires             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule3-bounded-fold                   src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule3-no-loops                       src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule3-no-mutual-recursion            src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
-rule3-no-self-recursion              src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report
+rule1-boxed-identity                 src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule1-boxed-mutable-pointee          src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule1-const-call-operator            src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule1-const-member-functions         src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule1-constexpr                      src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule1-forwarding-reference-params    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule1-lvalue-reference-params        src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule1-no-escaping-reference-captures src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule1-no-inheritance                 src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule1-no-mutable-globals             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule1-no-reference-returns           src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule1-no-static-locals               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule1-no-throw                       src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule1-no-volatile                    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule1-rvalue-reference-params        src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule2-constrained-templates          src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule2-context-order                  src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule2-converted-result               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule2-decided-resolution             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  1
+rule2-definition                     src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  2
+rule2-no-inline-requires             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule3-bounded-fold                   src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule3-no-loops                       src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  1
+rule3-no-mutual-recursion            src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule3-no-self-recursion              src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
 
 # The paper's Listing 5, the tensor exhibit's panel (namespace listing5 of the
 # tensor test): gated at 0 under every rule the other listings are gated on,
@@ -126,12 +128,12 @@ rule3-no-loops               src/main/modules/dedekind/category/*.cppm  category
 rule3-no-self-recursion      src/main/modules/dedekind/category/*.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/action.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/adjunction.cppm  category  0
-rule3-bounded-fold           src/main/modules/dedekind/category/automaton.cppm  category  8
+rule3-bounded-fold           src/main/modules/dedekind/category/automaton.cppm  category  4
 rule3-bounded-fold           src/main/modules/dedekind/category/cartesian.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/cartesian_bicategory.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/category.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/chain.cppm  category  3
-rule3-bounded-fold           src/main/modules/dedekind/category/comprehension.cppm  category  10
+rule3-bounded-fold           src/main/modules/dedekind/category/comprehension.cppm  category  9
 rule3-bounded-fold           src/main/modules/dedekind/category/concrete.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/discrete.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/equivalence.cppm  category  0
@@ -148,17 +150,17 @@ rule3-bounded-fold           src/main/modules/dedekind/category/lattice.cppm  ca
 rule3-bounded-fold           src/main/modules/dedekind/category/lattice_term.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/limit.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/logic.cppm  category  0
-rule3-bounded-fold           src/main/modules/dedekind/category/mereology.cppm  category  1
+rule3-bounded-fold           src/main/modules/dedekind/category/mereology.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/monad.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/morphism.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/natural.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/nno.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/numeric.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/partial.cppm  category  0
-rule3-bounded-fold           src/main/modules/dedekind/category/periodic.cppm  category  35
+rule3-bounded-fold           src/main/modules/dedekind/category/periodic.cppm  category  16
 rule3-bounded-fold           src/main/modules/dedekind/category/posetal.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/pullback.cppm  category  0
-rule3-bounded-fold           src/main/modules/dedekind/category/runs.cppm  category  6
+rule3-bounded-fold           src/main/modules/dedekind/category/runs.cppm  category  4
 rule3-bounded-fold           src/main/modules/dedekind/category/small.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/species.cppm  category  0
 rule3-bounded-fold           src/main/modules/dedekind/category/thin.cppm  category  0
@@ -166,9 +168,16 @@ rule3-bounded-fold           src/main/modules/dedekind/category/topoi.cppm  cate
 rule3-bounded-fold           src/main/modules/dedekind/category/total.cppm  category  0
 rule3-no-mutual-recursion    src/main/modules/dedekind/category/*.cppm  category  0
 rule2-definition             src/main/modules/dedekind/category/*.cppm  category  0
+rule2-definition             src/main/modules/dedekind/category/comprehension.cppm  category  3
 rule2-constrained-templates  src/main/modules/dedekind/category/*.cppm  category  report
 rule2-no-inline-requires     src/main/modules/dedekind/category/*.cppm  category  0
 rule2-decided-resolution     src/main/modules/dedekind/category/*.cppm  category  0
+rule2-decided-resolution     src/main/modules/dedekind/category/topoi.cppm  category  8
+rule2-decided-resolution     src/main/modules/dedekind/category/pullback.cppm  category  1
+rule2-decided-resolution     src/main/modules/dedekind/category/morphism.cppm  category  1
+rule2-decided-resolution     src/main/modules/dedekind/category/limit.cppm  category  2
+rule2-decided-resolution     src/main/modules/dedekind/category/etcs.cppm  category  4
+rule2-decided-resolution     src/main/modules/dedekind/category/cartesian.cppm  category  2
 rule2-context-order          src/main/modules/dedekind/category/*.cppm  category  0
 rule2-converted-result       src/main/modules/dedekind/category/*.cppm  category  0
 rule1-no-inheritance         src/main/modules/dedekind/category/*.cppm  category  0
@@ -206,11 +215,11 @@ rule3-no-loops               src/main/modules/dedekind/relational/rows.cppm  rel
 rule3-no-self-recursion      src/main/modules/dedekind/relational/[!r]*.cppm  relational  0
 rule3-bounded-fold           src/main/modules/dedekind/relational/[!r]*.cppm  relational  0
 rule3-no-self-recursion      src/main/modules/dedekind/relational/rows.cppm  relational  0
-rule3-bounded-fold           src/main/modules/dedekind/relational/rows.cppm  relational  12
+rule3-bounded-fold           src/main/modules/dedekind/relational/rows.cppm  relational  6
 rule3-no-mutual-recursion    src/main/modules/dedekind/relational/[!r]*.cppm  relational  0
 rule3-no-mutual-recursion    src/main/modules/dedekind/relational/rows.cppm  relational  5
 rule2-definition             src/main/modules/dedekind/relational/[!r]*.cppm  relational  0
-rule2-definition             src/main/modules/dedekind/relational/rows.cppm  relational  0
+rule2-definition             src/main/modules/dedekind/relational/rows.cppm  relational  1
 rule2-constrained-templates  src/main/modules/dedekind/relational/[!r]*.cppm  relational  report
 rule2-constrained-templates  src/main/modules/dedekind/relational/rows.cppm  relational  report
 rule2-no-inline-requires     src/main/modules/dedekind/relational/[!r]*.cppm  relational  0
@@ -277,8 +286,9 @@ rule1-no-mutable-globals     src/main/modules/dedekind/sets/si*.cppm  sets  0
 rule1-no-escaping-reference-captures src/main/modules/dedekind/sets/[!s]*.cppm  sets  0
 rule1-no-escaping-reference-captures src/main/modules/dedekind/sets/si*.cppm  sets  0
 rule2-definition             src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
+rule2-definition             src/main/modules/dedekind/sets/recursion.cppm  sets  1
 rule2-definition             src/main/modules/dedekind/sets/si*.cppm  sets  0
-rule2-definition             src/main/modules/dedekind/sets/terms.cppm  sets  116
+rule2-definition             src/main/modules/dedekind/sets/terms.cppm  sets  118
 rule2-decided-resolution     src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
 rule2-decided-resolution     src/main/modules/dedekind/sets/si*.cppm  sets  0
 rule2-decided-resolution     src/main/modules/dedekind/sets/terms.cppm  sets  2
@@ -363,11 +373,11 @@ rule1-no-volatile            src/main/modules/dedekind/order/[!o]*.cppm  order  
 rule1-rvalue-reference-params src/main/modules/dedekind/order/[!o]*.cppm  order  0
 rule2-constrained-templates  src/main/modules/dedekind/order/[!o]*.cppm  order  report
 rule2-decided-resolution     src/main/modules/dedekind/order/[!hor]*.cppm  order  0
-rule2-decided-resolution     src/main/modules/dedekind/order/halfspace.cppm  order  1
+rule2-decided-resolution     src/main/modules/dedekind/order/halfspace.cppm  order  6
 rule2-decided-resolution     src/main/modules/dedekind/order/runs.cppm  order  0
 rule2-definition             src/main/modules/dedekind/order/[!hor]*.cppm  order  0
 rule2-definition             src/main/modules/dedekind/order/halfspace.cppm  order  0
-rule2-definition             src/main/modules/dedekind/order/runs.cppm  order  2
+rule2-definition             src/main/modules/dedekind/order/runs.cppm  order  3
 rule2-no-inline-requires     src/main/modules/dedekind/order/[!o]*.cppm  order  0
 rule3-no-loops               src/main/modules/dedekind/order/[!hor]*.cppm  order  0
 rule3-no-loops               src/main/modules/dedekind/order/halfspace.cppm  order  0
@@ -375,7 +385,7 @@ rule3-no-loops               src/main/modules/dedekind/order/runs.cppm  order  6
 rule3-no-mutual-recursion    src/main/modules/dedekind/order/[!o]*.cppm  order  0
 rule3-no-self-recursion      src/main/modules/dedekind/order/[!o]*.cppm  order  0
 rule3-bounded-fold           src/main/modules/dedekind/order/completeness.cppm  order  0
-rule3-bounded-fold           src/main/modules/dedekind/order/halfspace.cppm  order  3
+rule3-bounded-fold           src/main/modules/dedekind/order/halfspace.cppm  order  0
 rule3-bounded-fold           src/main/modules/dedekind/order/inclusion.cppm  order  0
 rule3-bounded-fold           src/main/modules/dedekind/order/lattice.cppm  order  0
 rule3-bounded-fold           src/main/modules/dedekind/order/poset.cppm  order  0
@@ -598,7 +608,7 @@ rule2-definition                     src/main/modules/dedekind/sequences/fold.cp
 rule2-definition                     src/main/modules/dedekind/sequences/limits.cppm  sequences  0
 rule2-definition                     src/main/modules/dedekind/sequences/net.cppm  sequences  0
 rule2-definition                     src/main/modules/dedekind/sequences/path.cppm  sequences  5
-rule2-definition                     src/main/modules/dedekind/sequences/pst.cppm  sequences  0
+rule2-definition             src/main/modules/dedekind/sequences/pst.cppm  sequences  2
 rule2-definition                     src/main/modules/dedekind/sequences/ranges.cppm  sequences  1
 rule2-definition                     src/main/modules/dedekind/sequences/relprod.cppm  sequences  0
 rule2-definition                     src/main/modules/dedekind/sequences/tail_equivalence.cppm  sequences  0
@@ -749,6 +759,7 @@ rule2-constrained-templates          src/main/modules/dedekind/numbers/na*.cppm 
 rule2-no-inline-requires             src/main/modules/dedekind/numbers/[!n]*.cppm  numbers  0
 rule2-no-inline-requires             src/main/modules/dedekind/numbers/na*.cppm  numbers  0
 rule2-decided-resolution             src/main/modules/dedekind/numbers/[!n]*.cppm  numbers  0
+rule2-decided-resolution     src/main/modules/dedekind/numbers/symbolic.cppm  numbers  2
 rule2-decided-resolution             src/main/modules/dedekind/numbers/na*.cppm  numbers  0
 rule1-no-inheritance                 src/main/modules/dedekind/numbers/[!n]*.cppm  numbers  report
 rule1-no-inheritance                 src/main/modules/dedekind/numbers/na*.cppm  numbers  report
