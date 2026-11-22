@@ -71,16 +71,19 @@ It does not hold a generic function to its declared constraints: the body may us
 %   - "a check that a tool performs": half built.  The linter refuses by
 %     name (Rule 2 now catches both guessed_ examples, #1210); admitting by
 %     type at generated archetypes is designed (Section 4, #1211) and not yet
-%     run.  When it runs (the spike on the listings, gated in CI; the merge
-%     condition of #1211), the promise's first clause becomes, in the user's
-%     words of 2026-11-22: "some templates can then be classified as meaning
-%     what their signatures say"; the evidence item b) says "refuses by name
-%     and admits by type".  What the classification rests on stays here: the
+%     run.  The promise's first clause already says what it will give (the
+%     user's words of 2026-11-22, "some templates can then be classified as
+%     meaning what their signatures say"); it is true once the spike on the
+%     listings runs, gated in CI, the merge condition of #1211.  Then the
+%     evidence item b) says "refuses by name and admits by type".  What the
+%     classification rests on stays here: the
 %     conjecture of Section 4 (admitted at the archetypes, well typed and the
 %     same resolution at every model) and the order of declarations, not yet
 %     checked.
-%   - "a template means what its signature says": follows from that check, so
-%     it is on trust until the check exists.
+%   - "some templates can then be classified as meaning what their signatures
+%     say": the classification is the linter's second stage, so it is not yet
+%     true; when it runs, what the classification means rests on the
+%     conjecture and on the order of declarations (above).
 %   - "a declared law licenses a faster program": true of Listing 2 (the power).
 %     The selection of the faster case is by a declared law; the caller that
 %     names too little shows what the check must refuse, and no check does.
@@ -92,7 +95,7 @@ It does not hold a generic function to its declared constraints: the body may us
 %     model, not yet checked against a written-out kernel.
 %   - "what was taken on trust comes out as a list": true for entries at one
 %     type.  Conditional laws and units named at a use are not listed.
-Under the rules of this paper and a check that a tool performs, a template means what its signature says, a declared law licenses a faster program, and the compiler carries laws through composition.
+Under the rules of this paper and a check that a tool performs, some templates can then be classified as meaning what their signatures say, a declared law licenses a faster program, and the compiler carries laws through composition.
 What was taken on trust comes out as a list.
 
 This paper characterises a fragment of \Cpp{23} as it ships, with no language modification or compiler extension, and no tool required: a fragment whose generic definitions have types of the prenex fragment of System~F and whose programs are ordinary \Cpp{23} programs.
