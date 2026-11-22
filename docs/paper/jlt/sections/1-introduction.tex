@@ -11,6 +11,7 @@ The standard's own words are that a type \emph{satisfies} a concept, which the c
 That split is between what the compiler decides and what it leaves to the programmer, and it does not coincide with the split of programming-language theory between static and dynamic semantics~\cite{pierce2002tapl}, whose static semantics, type checking, falls on the syntactic side here.}
 Rust, released in 2015, has the definition check: a generic body is checked against its declared bounds, and the message for a missing one names it~\cite{klabnik2023rust}.
 A \Cpp{} programmer is free to adopt a fragment of the language by policy, and this paper names one, of three rules.
+The posture is meant as a route a team can take through \Cpp{23} without debating each case: opinionated, checked by a tool, and adoptable one file and one rule at a time.
 Inside it, \texttt{jlt-lint} recovers the definition check: it refuses by name a body that uses what its constraints do not name or whose overload its signature leaves undecided, it admits by type a body that type-checks at archetypes of its signature, and it lists every axiom a program declares, a property where \Cpp{0x} stated an equation (Section~\ref{sec:check}).
 
 What the programmer is missing is old.
@@ -113,7 +114,7 @@ The bottom edge says that the two paths compute one value.}
 \end{table}
 
 \paragraph{Contributions.}
-The paper contributes a route, not a piece of software: each step from \Cpp{23} to System~F is a known construction, and the contribution is that the steps connect.
+The paper contributes a chain of known constructions, not a piece of software: each step from \Cpp{23} to System~F is known, and the contribution is that the steps connect.
 \begin{enumerate}
 \item The posture: three rules on standard \Cpp{23}, drawn from four listings of functions the reader already knows, each rule with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:examples}).
 \item Featherweight Jlt, the kernel: a subset of \Cpp{23} as written, in a value layer and a resolution layer, whose image in System~F is dictionary passing, and the derived forms that reduce Jlt to it (Section~\ref{sec:kernel}).
