@@ -105,9 +105,10 @@ struct walk_bound;
 /** @concept IsListCoalgebra
  *  @brief A coalgebra of the list functor @f$S \to 1 + A \times S@f$: called
  *  on a state, nothing, or an element and the next state.  Named once, so
- *  that the view and both @c unfold state what the view asks: a result
- *  type's constraints are not implied as an argument type's are (Rust's
- *  implied bounds, RFC 2089), and jlt-lint refused @c unfold while they
+ *  that the view and both @c unfold state what the view asks: C++ checks a
+ *  result type's constraints where the function is called, so they belong
+ *  in its signature (Rust's implied bounds, RFC 2089, would imply them from
+ *  the return type as well), and jlt-lint refused @c unfold while they
  *  were left to @c unfold_view.  @tparam Coalg the coalgebra.  @tparam S the
  *  state. */
 export template <typename Coalg, typename S>
@@ -292,10 +293,10 @@ struct Until {
 };
 /** @brief The guard.  @param end where the chain stops.  @param step the
  *  total step.  @return the partial step.  The constraints are @c Until's,
- *  stated: a result type's constraints are met by nothing the caller holds,
- *  so they are not implied as an argument type's are (Rust's implied
- *  bounds, RFC 2089), and jlt-lint refuses a template whose result asks
- *  more than its constraints. */
+ *  stated: C++ checks a result type's constraints where the function is
+ *  called, and nothing the caller holds meets them (Rust's implied bounds,
+ *  RFC 2089, would imply them from the return type as well); jlt-lint
+ *  refuses a template whose result asks more than its constraints. */
 export template <IsArrow End, IsArrow Step>
   requires std::same_as<Dom<End>, Dom<Step>> &&
            std::same_as<Cod<Step>, Dom<Step>> &&
