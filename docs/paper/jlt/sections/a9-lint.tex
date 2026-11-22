@@ -109,6 +109,7 @@ A choice the signature leaves to the caller, as \cppinline{named_power} leaves t
 And no limit of the implementation is reached.
 In $F^G$, where a name is looked up where the template is defined, the corresponding statement is a theorem~\cite{siek2005essential}; Järvi et al.\ show what that binding costs the dispatch \Cpp{} programmers rely on~\cite{jarvi2006specialization}.
 In \Cpp{} it is a conjecture, tested on the definitions of the listings and not yet on the library.
+The Palo Alto report asked the same of a concept design for the standard library: the overload a body uses must be the one resolved when its concept is checked, conversions included~\cite[\S 3.3]{stroustrup2012concept}.
 
 The linter reports every definition with one of three outcomes: refused, with the rule and the line; admitted; or undecided, with the requirement that stopped the check.
 Beside them it reports what the program takes on trust as far as the ledger reaches today: its axioms, the entries of a law at one type; its conditional laws, and the laws the compiler derives from them, are yet to be listed.

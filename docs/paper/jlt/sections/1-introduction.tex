@@ -4,6 +4,7 @@
 
 A programmer who knows that string concatenation is associative, with the empty string as its unit, has no way to tell a \Cpp{} compiler so.
 Odersky and Wadler had described the cause in 1997: ``\Cpp{} templates are implemented by macro expansion, such that all type checking is performed only on the function instances, not on the template itself''~\cite[\S 1]{odersky1997pizza}.
+Siek and Lumsdaine's Concept Check Library for Boost answered in 2000 with archetypes written by hand, types with only what a concept requires, at which a programmer instantiates a template to check its body~\cite{siek2000concept}.
 The designers of \Cpp{} named the same problem in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
 The language then meant to give them a way: concepts, as proposed for \Cpp{0x}, checked a template's definition against its constraints and let a concept state axioms~\cite{gregor2006concepts,dosreis2006specifying,bagge2009axioms}.
 The proposal was withdrawn in 2009~\cite{stroustrup2009remove}, and the concepts of \Cpp{20} check only a template's uses~\cite{stroustrup2020thriving}, so a template's body may use operations its constraints do not name, and a law has nowhere to be written but the documentation.

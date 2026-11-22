@@ -26,6 +26,7 @@ A pipeline of \Cpp{} ranges builds none: a range already is the stream, so inlin
 \paragraph{Concepts, and the calculus next door.}
 The nearest neighbour of FJlt is Siek and Lumsdaine's $F^G$~\cite{siek2005essential,siek2004formalization}: System~F with concepts and models, translated into System~F by dictionary passing, with the translation proved sound in Isabelle.
 It grew from the same work as the concepts then proposed for \Cpp{0x}~\cite{gregor2006concepts,dosreis2006specifying}, which checked template bodies and were removed~\cite{stroustrup2009remove}, leaving the gap Rule~2 names.
+Siek and Lumsdaine's earlier archetypes, written by hand for Boost~\cite{siek2000concept}, are what the linter's second stage generates (Section~\ref{sec:check}).
 $F^G$'s models are nominal and can be declared for whole families of types, which is what the library behind this paper's listings needs after its shapes, where FJlt's entries, declared after a shape's first use, are not found (Section~\ref{sec:limits}).
 FJlt is the smaller calculus, and the price of being a subset of a shipped language.
 Of the generic-programming features Garcia et al.~\cite{garcia2007extended} compare across eight languages, two that \Cpp{} then had no explicit support for, multi-type concepts and retroactive modelling, are what Listings~\ref{lst:motivation} and~\ref{lst:theorems} exercise: a law declared of a type after the fact, and \cppinline{homomorphism} over three types.
