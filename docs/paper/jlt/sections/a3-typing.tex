@@ -209,7 +209,8 @@ A dispatch like that of \cppinline{guessed_power} in Listing~\ref{lst:declare}, 
 An associated type is a trait whose result is a type (Section~\ref{sec:kernel:fjlt}): a \texttt{struct} template $g$ whose default names no type and whose entries each name one, read as $g\texttt{<}\overline{\tau}\texttt{>::type}$.
 \cppinline{op_of} in Listing~\ref{lst:motivation} is one, with an entry for each monoid, and the standard's \cppinline{range_value_t} is another.
 The kernel is given a third, \cppinline{cod}, the codomain of an arrow: the result type of its call, by \textsc{Eq-Cod}.
-Its one entry reads the type of the call operator, which the grammar cannot write, and it is a function because an arrow of the kernel has exactly one call, never a template (Figure~\ref{fig:fjlt-syntax}).
+Its one entry reads the type of the call operator, which the grammar cannot write, and it is a function because an arrow of the kernel has exactly one call, never a template (Figure~\ref{fig:fjlt-syntax}); like \Cpp{}, it names a type only where that call's constraints hold, since the address of a call whose constraints fail is ill formed~\cite[\texttt{expr.prim.id.general}]{cpp23standard}.
+Below, a read resolved at concrete types by \textsc{Eq-Assoc} includes one resolved by \textsc{Eq-Cod}, and ``the type its entry names'' includes \textsc{Eq-Cod}'s $\rho$; a read of a read, as \cppinline{cod<op_of<All>::type>::type}, resolves from the inside out, by congruence and then \textsc{Eq-Cod}.
 \Cpp{} in general has no such function, since a function object may have several calls or a template of them, and a shape cannot bind a type that it is not given: the restriction is what makes the carrier of \cppinline{IsMagma} a read, \cppinline{cod_t<op_t<E>>}, and not a second declaration.
 A relation, as an order from two values of a carrier to a truth value, has \cppinline{bool} as its codomain, so its carrier is read elsewhere: from a shape that already has it, as an order on the carrier of a monoid, or, for a relation standing alone, from the type of its call's parameters, a function of the arrow for the same reason, which the listings do not need.
 Figure~\ref{fig:fjlt-assoc} gives its rules.
@@ -231,7 +232,7 @@ An entry is a definition, not a claim: it names a type, and there is nothing for
 \\[26pt]
 \textsc{(Eq-Assoc)} & \dfrac{\begin{array}{c} g\texttt{<}\overline{\tau}\texttt{>} \text{ resolves, at concrete } \overline{\tau} \text{, to the entry } \texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q} \\ \texttt{struct } g\texttt{<}\overline{\sigma}\texttt{> \{ using type = } \rho\texttt{; \};} \quad \overline{\tau} = \overline{\sigma}[\overline{\rho'}/\overline{\beta}] \quad \varnothing \Vdash \overline{Q}[\overline{\rho'}/\overline{\beta}] \end{array}}{\Delta \vdash g\texttt{<}\overline{\tau}\texttt{>::type} \equiv \rho[\overline{\rho'}/\overline{\beta}]}
 \\[22pt]
-\textsc{(Eq-Cod)} & \dfrac{O\texttt{<}\overline{\tau}\texttt{>} \text{ has the call } \texttt{constexpr } \rho \texttt{ operator()(}\overline{\sigma\; x}\texttt{) const} \text{, at concrete } \overline{\tau}}{\Delta \vdash \texttt{cod<}O\texttt{<}\overline{\tau}\texttt{>>::type} \equiv \rho}
+\textsc{(Eq-Cod)} & \dfrac{T\texttt{<}\overline{\tau}\texttt{>} \text{ has the call } \overline{Q} \Rightarrow \overline{\sigma} \to \rho\,{}^{\ddagger} \text{, at concrete } \overline{\tau} \quad \varnothing \Vdash \overline{Q}[\overline{\tau}/\overline{\alpha}]}{\Delta \vdash \texttt{cod<}T\texttt{<}\overline{\tau}\texttt{>>::type} \equiv \rho[\overline{\tau}/\overline{\alpha}]}
 \\[14pt]
 \textsc{(Eq-Same)} & \dfrac{\texttt{same\_as<}\tau\texttt{, }\sigma\texttt{>} \in \Delta}{\Delta \vdash \tau \equiv \sigma}
 \\[12pt]
@@ -241,6 +242,7 @@ An entry is a definition, not a claim: it names a type, and there is nothing for
 \caption{Associated types and the equality of types, $\Delta \vdash \tau \equiv \sigma$.
 $^{\diamond}$~The conditions of \textsc{D-Entry} (Figure~\ref{fig:fjlt-declarations}), with $\tau$ in place of the initialiser: the default is declared before, the head is more specialised than the default's, $\tau$ reads associated types at type variables only at proper parts of $\overline{\sigma}$, two entries whose heads unify are ordered, and the entry stands above the first read it matches.
 $\overline{\beta}, \overline{Q} \vdash \tau$: $\tau$ is a type over the entry's own type variables.
+$^{\ddagger}$~The call of a declared type $O$, as \textsc{T-App} reads it, or the standard's or the supplied signature of a function object, as \textsc{T-Op} reads it: every arrow of Figure~\ref{fig:fjlt-syntax}.
 Omitted as textbook: that $\equiv$ is reflexive, symmetric, transitive and a congruence.}
 \label{fig:fjlt-assoc}
 \end{figure}
@@ -421,6 +423,7 @@ shape & the traits its requirements and its laws read; the associated types it n
 trait or associated type, read at some types & the context of every entry whose head matches, even one the read rejects; the entry it takes, or the default \\
 entry, generic function, named type & the shapes of its context; the declarations its body calls, the traits it reads and the associated types it names; the named types it constructs \\
 named type, also & the named types in its field, parameter and result types \\
+\texttt{cod}, read at an arrow & the arrow's named type, the shapes of its call's constraints and the reads in its call's result type \\
 \bottomrule
 \end{tabularx}
 \end{center}

@@ -33,12 +33,12 @@ A finding is a breach or a gap in its reading of the standard's concepts, and it
 Review complements it: an agentic reviewer reads every pull request against the three rules.
 On the library behind the listings each check is a gate on many files, an exact count, zero or not, so that no finding is added unseen, and a count on the rest; Table~\ref{tab:lint} in Appendix~\ref{app:lint} gives the counts, check by check.
 On the listings it refuses exactly what the paper shows: \cppinline{guessed_power}, whose call to \cppinline{power} is decided by \cppinline{IsIdempotentMonoid}, which its constraints do not name; \cppinline{guessed_concat}, whose \cppinline{+} and \cppinline{=} on the element type no requirement names, and whose loop Rule~3 refuses; and it lists \cppinline{idempotent<Sum2>} with the other axioms.
-Each of these is a gate, so a listing that changed what the linter finds would fail the build.
+Each refusal is a gate, so a listing that changed what the linter refuses would fail the build; the list of the listings' axioms is reported, not yet pinned.
 
 \paragraph{Refused by name, admitted by type.}
 Every check in that table but the list of axioms is a deny-rule: it refuses a construct outside Jlt, and a definition it does not refuse is not thereby inside.
 To admit a definition, the linter has a second stage, a type check.
-For a constrained template that no deny-rule refuses, it builds an \emph{archetype} of each shape in the template's signature, a type with exactly the calls and laws the shape promises and nothing more~\cite{siek2000concept}, as \cppinline{BareMonoid} in Listing~\ref{lst:motivation}, written by hand, nearly is: it also has equality and a default value.
+For every constrained template, whether or not a deny-rule refuses it, it builds an \emph{archetype} of each shape in the template's signature, a type with exactly the calls and laws the shape promises and nothing more~\cite{siek2000concept}, as \cppinline{BareMonoid} in Listing~\ref{lst:motivation}, written by hand, nearly is: it also has equality and a default value.
 The archetypes are generated from the shapes, by one rule for each kind of requirement a shape may have (Figure~\ref{fig:fjlt-syntax}), so their number grows with the grammar of shapes and not with the number of concepts.
 The few the standard's concepts need, such as \cppinline{sized_range}, are written by hand and ship with the linter.
 The template is instantiated at its archetypes and compiled, and if it type-checks there, its body uses only what its signature promises, at the promised types, under the hypotheses of Appendix~\ref{app:lint:conjecture}.
@@ -50,7 +50,7 @@ ConceptGCC generated them from the concepts proposed for \Cpp{0x}~\cite{gregor20
 The linter generates them from the concepts of \Cpp{20}, inside the fragment, and gives every definition its outcome in every build.
 Inside it, the rules close most of the ways in which a real type differs from its archetype.
 An operation is a function object reached through a named type; \RuleTwo{} decides every choice of overload in the signature; a carrier has only what its shapes ask, and a required call a fixed result type, or one only convertible to it and converted at once; and an entry stands above every use that reads it (Section~\ref{sec:limits}).
-This paper's conjecture is that a definition admitted at its archetypes is well typed at every type that satisfies its shapes and keeps the rules itself, and resolves every choice its signature makes the same way; Appendix~\ref{app:lint:conjecture} states its hypotheses and the counterexamples they exclude, and it is tested on the definitions of the listings and on one layer of the library.
+This paper's conjecture is that a definition admitted at its archetypes is well typed at every type that satisfies its shapes and keeps the rules itself, and resolves every choice its signature makes the same way; Appendix~\ref{app:lint:conjecture} states its hypotheses and the counterexamples they exclude, and it is tested on the definitions of the listings and on the library.
 For a definition it admits, satisfying the constraints then suffices to use it, under those hypotheses: no type that satisfies its shapes and keeps the rules can make the body fail to compile, and a misuse is reported where the template is called, as a constraint not satisfied.
 
 \paragraph{The listings, at their levels.}
@@ -82,10 +82,10 @@ The two rows for \texttt{power} are its general and its idempotent case.}
 For this code, that has three consequences, each conditional on the conjecture above.
 For every admitted definition, satisfying its constraints suffices to use it.
 Its free theorem holds of the code the compiler builds, given in addition that its body observes no type except through a shape (Appendix~\ref{app:lint:conjecture}), the hypothesis of adequacy and the compiler's lowering (Section~\ref{sec:translation}).
-And for those in FJlt, the program as written is a term of the grammar of Figure~\ref{fig:fjlt-syntax}, whose image in System~F is the image of Table~\ref{tab:image}, with no derived form in between whose rewrite would have to be trusted.
+And for those in FJlt, the program as written uses only kinds of syntax that the linter classes as kernel, a coarser test than being a term of the grammar of Figure~\ref{fig:fjlt-syntax}, whose image in System~F is the image of Table~\ref{tab:image}, with no derived form in between whose rewrite would have to be trusted.
 % STATUS: the second stage runs in CI on the four listings, its fixtures and
 % the category layer of the library; the other layers are to follow.
 The second stage also runs on the library.
-Every count is pinned per file in continuous integration and held by a ratchet: the share admitted can only grow, and a refusal cannot stay.
-It admits a minority of the library's function templates and refuses none, a count its gates hold: the definitions it refused, whose signatures promised less than their bodies or results used, have been fixed (Appendix~\ref{app:lint:admit}).
+Every count is pinned per file in continuous integration and held by a ratchet: no file's count of admitted definitions can fall, and no refusal can stay, without a reason written in the change.
+It admits 104 of the library's 748 function templates it reads, 14\,\%, leaves 644 undecided and refuses none, a count its gates hold: the definitions it refused, whose signatures promised less than their bodies or results used, have been fixed (Appendix~\ref{app:lint:admit}).
 Elsewhere, and for the definitions it leaves undecided, the first clause of this paper's promise rests on the deny-rules, the programmer and a reviewer.

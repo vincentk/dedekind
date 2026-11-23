@@ -13,7 +13,7 @@ Records are nested pairs.
 \paragraph{Type parameters of the image.}
 A declaration's image takes as type parameters the type variables $\overline{\alpha}$ that the unifier below keeps and, after them, one variable $\chi$ for each distinct associated type that its context reads at them once the unifier is applied (Appendices~\ref{app:fjlt:typing} and~\ref{app:fjlt:assoc}), and $\llbracket g\texttt{<}\overline{\tau}\texttt{>::type} \rrbracket = \chi$ there.
 This holds of every declaration with type variables: a generic function, the call function of a named type, and an entry of a trait, whose head and context may read associated types as a function's signature does (\textsc{E-Law-Ctx}, the semimodule entry).
-The parameters are named in a fixed order: the type variables as the template head lists them, then the reads in the order of their first occurrence in the declaration, its head, its constraints, the types of its parameters, fields and result, and then the derivation of its body, from left to right.
+The parameters are named in a fixed order: the type variables as the template head lists them, then the reads in the order of their first occurrence in the declaration, its head, its constraints, the types of its parameters, fields and result, and then the derivation of its body, from left to right, a read before the reads in its arguments, and a read reached only through an assumed shape at the place of the constraint that names the shape.
 % DECISION (2026-11-23, the theoretician's naming point): a read is named by the
 % arguments the declaration writes, not by its arguments with theta applied;
 % so no read is refused for mentioning itself after theta.
@@ -33,7 +33,7 @@ In Listing~\ref{lst:motivation}, $T$ and $\mathit{Op}$ in the image of \cppinlin
 An assumed \cppinline{same_as} is solved and not passed, on the source types and before any $\chi$ is given.
 A read $g\texttt{<}\overline{\tau}\texttt{>::type}$ at a type variable is taken as an uninterpreted function symbol $g$ applied to its arguments: it may be made equal to any type, as a variable may, and two reads of one $g$ whose arguments are made equal are thereby equal.
 The unifier $\theta$ of a declaration is a substitution of its type variables and of its reads that makes the two sides of each of its \cppinline{same_as} constraints one type and is closed under that congruence, and every other such substitution factors through it (Lemma~\ref{lem:factor}, below).
-It is computed by rounds: unify the constraints, treating each read as a variable; identify two reads of one $g$ whose arguments are equal under the result; replace a read whose arguments have become concrete by the type its entry names (\textsc{Eq-Assoc}); and unify again, until nothing changes.
+It is computed by rounds: unify the constraints, treating each read as a variable; identify two reads of one $g$ whose arguments are equal under the result; replace a read whose arguments have become concrete by the type its entry names (\textsc{Eq-Assoc}, \textsc{Eq-Cod}); and unify again, until nothing changes.
 Each round binds a variable or removes a read, and there are finitely many of both, so the rounds end.
 Of two variables or reads that $\theta$ identifies, it keeps the one that comes first in the order above, so the image's parameters are named by the declaration and not merely up to names.
 The image is then taken of the declaration with $\theta$ applied, with one $\chi$ for each distinct read that remains (Appendix~\ref{app:fjlt:typing}, \emph{Equal types}).
@@ -49,7 +49,7 @@ A declaration whose \cppinline{same_as} constraints have no unifier, as \cppinli
 
 \begin{lemma}[Factoring]
 \label{lem:factor}
-Let $\theta$ be the unifier of a declaration's \cppinline{same_as} constraints, and take types in an algebra in which the constructors are free, a read is a function of its arguments, and a read at concrete arguments is the type its entry names.
+Let $\theta$ be the unifier of a declaration's \cppinline{same_as} constraints, and take types in an algebra in which the constructors are free, a read is a function of its arguments, and a read at concrete arguments is the type its entry names (\textsc{Eq-Assoc}, \textsc{Eq-Cod}).
 If a substitution $\psi$ of the declaration's type variables makes the two sides of each of those constraints equal there, then $\psi = \theta;\psi'$, where $\psi'$ is $\psi$ on the type variables that $\theta$ keeps and, on each read that remains, the value of that read at $\psi$ of its arguments.
 \end{lemma}
 \begin{proof}
@@ -79,7 +79,7 @@ The caller's context holds it, by its closure under the reads its derivation rea
 \llbracket \alpha \rrbracket = \alpha \qquad \llbracket b \rrbracket = b \qquad \llbracket T \rrbracket = T \text{ for a carrier } T & \\
 \llbracket \texttt{std::pair<}\tau\texttt{, }\sigma\texttt{>} \rrbracket = \llbracket \tau \rrbracket \times \llbracket \sigma \rrbracket & \\
 \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket = (\overline{\llbracket \tau_y \rrbracket} \times (\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau_r \rrbracket))[\overline{\llbracket \tau' \rrbracket}/\overline{\alpha'}][\overline{\llbracket \rho \rrbracket}/\overline{\chi}] & \note{a function object: its fields and the type of its call function $O_{\mathrm{call}}$, translated under $\Delta_O$ and its unifier $\theta_O$, at the $\overline{\tau'}$ of $\overline{\tau}$ at the variables $\overline{\alpha'}$ that $\theta_O$ keeps and the images of $\Delta_O$'s reads $\overline{\rho}$ at $\overline{\tau}$ under the user's $\Delta$; $\overline{Q}$ the constraints other than \texttt{same\_as}} \\
-\llbracket g\texttt{<}\overline{\tau}\texttt{>::type} \rrbracket = \chi \text{ under a type variable}, \ \llbracket \rho \rrbracket \text{ at concrete } \overline{\tau} & \note{$\chi$ held by the context; $\rho$ the type the entry names (\textsc{Eq-Assoc})} \\
+\llbracket g\texttt{<}\overline{\tau}\texttt{>::type} \rrbracket = \chi \text{ under a type variable}, \ \llbracket \rho \rrbracket \text{ at concrete } \overline{\tau} & \note{$\chi$ held by the context; $\rho$ the type the entry names (\textsc{Eq-Assoc}, \textsc{Eq-Cod})} \\
 \end{array}
 \]
 \caption{The translation of types; a named type without a call operator is its fields alone.

@@ -143,7 +143,7 @@ A \emph{magma}, \cppinline{IsMagma}, is a binary operation on a carrier, an arro
 The element and its law come in one step, so a unital magma's carrier is never empty, and a homomorphism of it preserves the unit as well as the operation.
 A monoid is named by a type, \cppinline{Sum} or \cppinline{All}, whose call takes no arguments and gives the unit: the sum of nothing is $0$, and ``all'' of nothing holds.
 Its operation is declared once, as the entry of \cppinline{op_of} for that name, and its laws are keyed on that name.
-Its carrier is not declared but read off the operation, as its codomain, \cppinline{cod_t}: the result type of the arrow's call, which the kernel is given, since an arrow of the kernel has exactly one call (Figure~\ref{fig:fjlt-syntax}).
+Its carrier is not declared but read off the operation, as its codomain, \cppinline{cod_t}: the result type of the arrow's call, which the kernel is given, since an arrow of the kernel has exactly one call (Figure~\ref{fig:fjlt-syntax}), and where its constraints hold.
 The unit's type is checked to be that carrier.
 The triple of algebra is still there, written once where the monoid is declared and not at every use.
 The unit's value does not determine the monoid, since $0$ is the unit of both \cppinline{+} and \cppinline{max} on \cppinline{size_t}, so its type does: a name.

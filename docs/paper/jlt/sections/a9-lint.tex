@@ -66,7 +66,7 @@ In the library, most of what is open is six kinds: string literals, most of them
 % undecided-by-type and admitted, gated per file); on the other layers it has
 % yet to run.
 
-The second stage of Section~\ref{sec:check} admits a constrained template that no deny-rule refuses when its body type-checks at archetypes of the shapes in its signature.
+The second stage of Section~\ref{sec:check} admits a constrained template, whether or not a deny-rule refuses it, when its body type-checks at archetypes of the shapes in its signature.
 It gives every type parameter an archetype by reading the shapes that constrain it, by one rule for each kind of requirement a shape may have (Table~\ref{tab:archetype-rules}).
 The building blocks are a header that ships with the linter and depends on nothing in the library: a carrier that can only be copied, and ones that can also be compared, default-constructed, or both; a unit, a binary operation, an arrow, and a range whose size is known before the first step; a result that can only be converted; and the smallest and largest integer types a constraint admits.
 The standard's foundational concepts follow the Palo Alto report~\cite[\S 3.3]{stroustrup2012concept}: copying is the kernel's, equality is a call, and a default value is partially formed, to be written before it is read~\cite[\S 1.5]{stepanov2009elements}, the derived form of local state (Table~\ref{tab:derived}).
@@ -114,8 +114,8 @@ It parses that with the file's own compile command, so that the compiler instant
 An error in the template's body means that the body uses something its signature did not promise, or uses it at other types.
 
 \paragraph{On the library.}
-The second stage also runs on the library, in continuous integration, every count pinned per file and held by a ratchet, under which the share admitted can only grow and a refusal cannot stay; the current counts are those gates, in the repository's \texttt{tools/jlt-lint/scope}, and the report of every build.
-It admits a minority of the library's function templates and refuses none, a count its gates hold, since every definition it refused has been fixed.
+The second stage also runs on the library, in continuous integration, every count pinned per file and held by a ratchet, under which no file's count of admitted definitions can fall and no refusal can stay without a reason written in the change; the current counts are those gates, in the repository's \texttt{tools/jlt-lint/scope}, and the report of every build.
+It admits 104 of the library's 748 function templates it reads, leaves 644 undecided and refuses none, a count its gates hold, since every definition it refused has been fixed.
 Those refusals were all of one kind: a helper or a factory whose constraints were weaker than what its body or its result type used.
 Three helpers of a periodic fold piped an arrow into a chain without stating that its domain is the counts; \cppinline{until}, \cppinline{unfold} and \cppinline{chain} returned class templates whose constraints their own did not imply; and a reduction concatenated two arrows without stating that they compose.
 Each was fixed by stating the constraint, twice by naming it once as a concept that the class and its factory share.
@@ -135,7 +135,7 @@ An entry stands above every use that reads it, which the linter checks only in p
 And no limit of the implementation is reached.
 The linter excludes a negation and a late conversion itself: at an archetype every law it does not declare is false, so a body whose callee asks \cppinline{!C<E>} is left undecided, and a result only convertible to its type is admitted only where it initialises a declared one.
 In $F^G$, where a name is looked up where the template is defined, the corresponding statement is a theorem~\cite{siek2005essential}; Järvi et al.\ show what that binding costs the dispatch \Cpp{} programmers rely on~\cite{jarvi2006specialization}.
-In \Cpp{} it is a conjecture, tested on the definitions of the listings and on one layer of the library.
+In \Cpp{} it is a conjecture, tested on the definitions of the listings and on the library.
 The Palo Alto report asked the same of a concept design for the standard library: the overload a body uses must be the one resolved when its concept is checked, conversions included~\cite[\S 3.3]{stroustrup2012concept}.
 
 The linter reports every definition with one of three outcomes: refused, with the rule and the line; admitted; or undecided, with the requirement that stopped the check.
