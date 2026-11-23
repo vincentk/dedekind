@@ -27,15 +27,14 @@ using carrier_t = decltype(E{}());
 template <typename E>
 using op_t = typename op_of<E>::type;
 template <typename E>
-concept IsMagma =
-  requires { E{}(); typename op_t<E>; } &&
+concept IsPointedMagma =
   copyable<carrier_t<E>> &&
   requires(carrier_t<E> a, carrier_t<E> b) {
     { op_t<E>{}(a, b) }
       -> same_as<carrier_t<E>>; };
 template <typename E>
 concept IsUnitalMagma =
-  IsMagma<E> && unital<E>;
+  IsPointedMagma<E> && unital<E>;
 template <typename E>
 concept IsMonoid =
   IsUnitalMagma<E> && associative<E>;
@@ -119,11 +118,11 @@ concat<BareMonoid>(
 \end{minipage}
 \vspace{-7pt}
 \begin{sysf}
-Magma T       = { op : T → T → T }
-UnitalMagma T = { magma : Magma T, unital : Bool, unit : T }
-Monoid T      = { um : UnitalMagma T, assoc : Bool }
+PointedMagma T = { unit : T, op : T → T → T }
+UnitalMagma T  = { pm : PointedMagma T, unital : Bool }
+Monoid T       = { um : UnitalMagma T, assoc : Bool }
 concat = ΛE. ΛT. ΛOp. λq : Monoid T. λn. λf.
-  π₂ (iter n (λ(k, s). (k + 1, q.um.magma.op s (f k))) (0, q.um.unit))
+  π₂ (iter n (λ(k, s). (k + 1, q.um.pm.op s (f k))) (0, q.um.pm.unit))
 guessed_concat : no image
 \end{sysf}
 \caption{What a signature prevents. Left: a monoid as a shape; the two functions. Right: two monoids, the second the smallest; tests. Below: the images.}
@@ -138,7 +137,8 @@ guessed_concat : no image
 
 The left column is code as it would stand in a program, and the right column tests it.
 A monoid is built up as algebra builds it.
-A \emph{magma} is a carrier with an operation, a \emph{unital magma} has a unit as well, and a \emph{monoid} is a unital magma whose operation is associative.
+A \emph{pointed magma} is a carrier with a distinguished element and an operation, a \emph{unital magma} is a pointed magma whose distinguished element is a unit, and a \emph{monoid} is a unital magma whose operation is associative.
+The distinguished element names the carrier, so every carrier is non-empty, and a homomorphism of the shape preserves it as well as the operation.
 A monoid is named by a type, \cppinline{Sum} or \cppinline{All}, whose call takes no arguments and gives the unit: the sum of nothing is $0$, and ``all'' of nothing holds.
 Its carrier is the type the call returns, its operation is declared once, as the entry of \cppinline{op_of} for that name, and its laws are keyed on that name.
 The triple of algebra is still there, written once where the monoid is declared and not at every use.
@@ -267,10 +267,10 @@ static_assert(power<Max>(7uz, 10uz) == 7);
 \begin{sysf}
 power₀ = ΛE. ΛT. ΛOp. λq : Monoid T. λx. λn. concat E T Op q n (λk. x)
 power = ΛE. ΛT. ΛOp. λq : Monoid T. λx. λn.
-  π₁ (π₂ (iter (bits n) step (0, (q.um.unit, x))))
+  π₁ (π₂ (iter (bits n) step (0, (q.um.pm.unit, x))))
   where step (i, (p, b)) = (i + 1, (if bit i n then p · b else p, b · b))
 power_idem = ΛE. ΛT. ΛOp. λq : IdempotentMonoid T. λx. λn.
-  if n = 0 then q.m.um.unit else x
+  if n = 0 then q.m.um.pm.unit else x
 \end{sysf}
 \caption{What a law permits: the power of a monoid.
 Left: the power by repeated squaring, and a case of it that a law selects.

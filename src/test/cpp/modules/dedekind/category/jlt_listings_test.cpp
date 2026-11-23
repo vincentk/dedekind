@@ -2385,15 +2385,16 @@ template <typename E>
 using carrier_t = decltype(E{}());
 template <typename E>
 using op_t = typename op_of<E>::type;
+// A pointed magma: a carrier, the constant E{}() that names it, and an
+// operation.  E{}() and op_t<E> need no requirement of their own: the
+// compound requirement is ill formed without them.
 template <typename E>
-concept IsMagma = requires {
-  E{}();
-  typename op_t<E>;
-} && std::copyable<carrier_t<E>> && requires(carrier_t<E> a, carrier_t<E> b) {
-  { op_t<E>{}(a, b) } -> std::same_as<carrier_t<E>>;
-};
+concept IsPointedMagma =
+    std::copyable<carrier_t<E>> && requires(carrier_t<E> a, carrier_t<E> b) {
+      { op_t<E>{}(a, b) } -> std::same_as<carrier_t<E>>;
+    };
 template <typename E>
-concept IsUnitalMagma = IsMagma<E> && unital<E>;
+concept IsUnitalMagma = IsPointedMagma<E> && unital<E>;
 template <typename E>
 concept IsMonoid = IsUnitalMagma<E> && associative<E>;
 
