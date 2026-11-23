@@ -2506,7 +2506,8 @@ struct Squaring {
   constexpr std::pair<T, T> operator()(std::pair<T, T> s, size_t i) const
     requires IsMonoid<E>
   {
-    return {((n >> i) & 1) == 1 ? op_t<E>{}(s.first, s.second) : s.first,
+    return {(std::rotr(n, int(i)) & 1) == 1 ? op_t<E>{}(s.first, s.second)
+                                            : s.first,
             op_t<E>{}(s.second, s.second)};
   }
 };

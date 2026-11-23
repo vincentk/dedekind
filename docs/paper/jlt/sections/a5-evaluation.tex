@@ -59,13 +59,9 @@ An operator on values whose resolution picks a declared \texttt{operator}$\oplus
 The rules of Figure~\ref{fig:fjlt-eval-standard} are total, which is what Lemma~\ref{lem:progress} needs: \textsc{S-Prim} because the admitted operators are, and \textsc{S-Std} because the arrows supplied with a carrier are assumed to end (Section~\ref{sec:translation}; Assumption~\ref{ass:instance}).
 $\Sigma$ is the operators of the atoms that are defined at every argument, as Figure~\ref{fig:fjlt-syntax} admits them, and that totality is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operator defined on every input.
 On \cppinline{size_t} they are the comparisons, and addition, subtraction, multiplication and the bitwise operators, which wrap; division and remainder by a constant that is not zero; and the number of bits, \cppinline{size_t(bit_width(n))}, which Listing~\ref{lst:power}'s \cppinline{power} takes its count from (Definition~\ref{def:standard}), written as a call and typed and evaluated as a unary operator is.
-A shift is defined only by an amount below the width, so a shift by a constant below the width is such an operator and a shift by a variable is not.
-% TODO(kernel), found 2026-11-23 while aligning this paragraph with Figure
-% fig:fjlt-syntax's caption: Listing lst:power's Squaring shifts by the index,
-% (n >> i), a shift by a variable, which the caption read literally does not
-% admit; the index stays below bit_width(n) <= 64, so the shift is defined
-% there.  Either the caption admits it with that reason, or the listing tests
-% the bit another way.
+A shift is defined only by an amount below the width, so a shift by a constant below the width is such an operator and a shift by a variable is not; a rotation, \cppinline{rotr(n, i)}, is defined at every amount, and Listing~\ref{lst:power}'s \cppinline{Squaring} reads the bit \cppinline{i} of its count through it.
+% A range check by the iteration's bound (the index below bit_width(n), so a
+% shift by it total) is future work: a refinement of T-Iter's index.
 On \cppinline{bool} they are the logical operators.
 \texttt{==} at a carrier is the call its shape requires, an arrow supplied with the carrier, and steps by \textsc{S-Std}.
 A carrier is not in $\Sigma$: \cppinline{std::string} is a type the kernel never looks inside (Section~\ref{sec:kernel:fjlt}), and its values are reached only through the arrows supplied with it, \cppinline{std::plus} at strings and \cppinline{Size}, whose declarations are given to the kernel and which \textsc{S-Std} evaluates.

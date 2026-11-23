@@ -186,7 +186,7 @@ struct Squaring { size_t n;
   constexpr pair<T, T> operator()(
       pair<T, T> s, size_t i) const
     requires IsMonoid<E> {
-    return {((n >> i) & 1) == 1
+    return {(rotr(n, int(i)) & 1) == 1
                 ? op_t<E>{}(s.first, s.second)
                 : s.first,
             op_t<E>{}(s.second, s.second)}; } };
