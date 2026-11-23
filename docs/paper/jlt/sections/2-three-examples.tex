@@ -21,20 +21,23 @@ template <typename E>
 constexpr bool associative = false;
 template <typename E>
 constexpr bool unital = false;
+template <typename E> struct carrier_of {};
 template <typename E> struct op_of {};
 template <typename E>
-using carrier_t = decltype(E{}());
+using carrier_t = typename carrier_of<E>::type;
 template <typename E>
 using op_t = typename op_of<E>::type;
 template <typename E>
-concept IsPointedMagma =
+concept IsMagma =
   copyable<carrier_t<E>> &&
   requires(carrier_t<E> a, carrier_t<E> b) {
     { op_t<E>{}(a, b) }
       -> same_as<carrier_t<E>>; };
 template <typename E>
-concept IsUnitalMagma =
-  IsPointedMagma<E> && unital<E>;
+concept IsUnitalMagma = IsMagma<E> &&
+  requires { { E{}() }
+    -> same_as<carrier_t<E>>; } &&
+  unital<E>;
 template <typename E>
 concept IsMonoid =
   IsUnitalMagma<E> && associative<E>;
@@ -44,6 +47,8 @@ concept IsMonoid =
 \begin{cpp}
 struct All { constexpr bool
   operator()() const { return true; } };
+template <> struct carrier_of<All> {
+  using type = bool; };
 template <> struct op_of<All> {
   using type = logical_and<bool>; };
 template <> constexpr bool
@@ -58,6 +63,8 @@ struct BareOp { constexpr Bare
   operator()(Bare, Bare) const { return {}; } };
 struct BareMonoid { constexpr Bare
   operator()() const { return {}; } };
+template <> struct carrier_of<BareMonoid> {
+  using type = Bare; };
 template <> struct op_of<BareMonoid> {
   using type = BareOp; };
 template <> constexpr bool
@@ -118,11 +125,11 @@ concat<BareMonoid>(
 \end{minipage}
 \vspace{-7pt}
 \begin{sysf}
-PointedMagma T = { unit : T, op : T → T → T }
-UnitalMagma T  = { pm : PointedMagma T, unital : Bool }
+Magma T        = { op : T → T → T }
+UnitalMagma T  = { m : Magma T, unit : T, unital : Bool }
 Monoid T       = { um : UnitalMagma T, assoc : Bool }
 concat = ΛE. ΛT. ΛOp. λq : Monoid T. λn. λf.
-  π₂ (iter n (λ(k, s). (k + 1, q.um.pm.op s (f k))) (0, q.um.pm.unit))
+  π₂ (iter n (λ(k, s). (k + 1, q.um.m.op s (f k))) (0, q.um.unit))
 guessed_concat : no image
 \end{sysf}
 \caption{What a signature prevents. Left: a monoid as a shape; the two functions. Right: two monoids, the second the smallest; tests. Below: the images.}
@@ -137,10 +144,10 @@ guessed_concat : no image
 
 The left column is code as it would stand in a program, and the right column tests it.
 A monoid is built up as algebra builds it.
-A \emph{pointed magma} is a carrier with a distinguished element and an operation, a \emph{unital magma} is a pointed magma whose distinguished element is a unit, and a \emph{monoid} is a unital magma whose operation is associative.
-The distinguished element names the carrier, so every carrier is non-empty, and a homomorphism of the shape preserves it as well as the operation.
+A \emph{magma} is a carrier with an operation, both declared, a \emph{unital magma} is a magma with an element that is a unit, and a \emph{monoid} is a unital magma whose operation is associative.
+The element and its law come in one step, so a unital magma's carrier is never empty, and a homomorphism of it preserves the unit as well as the operation.
 A monoid is named by a type, \cppinline{Sum} or \cppinline{All}, whose call takes no arguments and gives the unit: the sum of nothing is $0$, and ``all'' of nothing holds.
-Its carrier is the type the call returns, its operation is declared once, as the entry of \cppinline{op_of} for that name, and its laws are keyed on that name.
+Its carrier and its operation are declared once each, as the entries of \cppinline{carrier_of} and \cppinline{op_of} for that name, and its laws are keyed on that name.
 The triple of algebra is still there, written once where the monoid is declared and not at every use.
 The unit's value does not determine the monoid, since $0$ is the unit of both \cppinline{+} and \cppinline{max} on \cppinline{size_t}, so its type does: a name.
 That the operation is associative, and that the unit is its unit, are axioms, as the concepts proposed for \Cpp{0x} could state them~\cite{gregor2006concepts,bagge2009axioms}: the programmer states them, as the top right panel does for the truth values under conjunction, and the compiler takes them at their word.
@@ -212,6 +219,8 @@ power<Concat>(""s, 1'000'000'000'000uz)
     == ""s);
 struct Xor { constexpr size_t
   operator()() const { return 0; } };
+template <> struct carrier_of<Xor> {
+  using type = size_t; };
 template <> struct op_of<Xor> {
   using type = bit_xor<size_t>; };
 template <> constexpr bool
@@ -252,6 +261,8 @@ struct Larger { constexpr size_t
     return a < b ? b : a; } };
 struct Max { constexpr size_t
   operator()() const { return 0; } };
+template <> struct carrier_of<Max> {
+  using type = size_t; };
 template <> struct op_of<Max> {
   using type = Larger; };
 template <> constexpr bool
@@ -267,10 +278,10 @@ static_assert(power<Max>(7uz, 10uz) == 7);
 \begin{sysf}
 power₀ = ΛE. ΛT. ΛOp. λq : Monoid T. λx. λn. concat E T Op q n (λk. x)
 power = ΛE. ΛT. ΛOp. λq : Monoid T. λx. λn.
-  π₁ (π₂ (iter (bits n) step (0, (q.um.pm.unit, x))))
+  π₁ (π₂ (iter (bits n) step (0, (q.um.unit, x))))
   where step (i, (p, b)) = (i + 1, (if bit i n then p · b else p, b · b))
 power_idem = ΛE. ΛT. ΛOp. λq : IdempotentMonoid T. λx. λn.
-  if n = 0 then q.m.um.pm.unit else x
+  if n = 0 then q.m.um.unit else x
 \end{sysf}
 \caption{What a law permits: the power of a monoid.
 Left: the power by repeated squaring, and a case of it that a law selects.
@@ -333,6 +344,8 @@ struct Plus2 { constexpr size_t
     return a + b; } };
 struct Sum2 { constexpr size_t
   operator()() const { return 0; } };
+template <> struct carrier_of<Sum2> {
+  using type = size_t; };
 template <> struct op_of<Sum2> {
   using type = Plus2; };
 template <> constexpr bool

@@ -93,7 +93,7 @@ abstraction & a template over types & every generic definition \\
 \midrule
 \multicolumn{3}{@{}l}{\textit{resolution layer}} \\
 named type & a \texttt{struct}, or a \texttt{struct} template over types & \texttt{All}, \texttt{Squaring}, \texttt{Via} \\
-shape & a \texttt{concept}: other shapes, laws and required calls, joined by \texttt{\&\&}; its negation & \texttt{IsPointedMagma}, \texttt{IsMonoid} \\
+shape & a \texttt{concept}: other shapes, laws and required calls, joined by \texttt{\&\&}; its negation & \texttt{IsMagma}, \texttt{IsMonoid} \\
 trait & a variable template with a default and entries; an entry at a form reads its own trait at proper parts & \texttt{associative}, \texttt{unital}, \texttt{homomorphism} \\
 case & function templates of one name under \texttt{requires} clauses, the most specific chosen & the two cases of \texttt{power} \\
 associated type & a \texttt{struct} template whose entries each name one type, read as \texttt{g<T>::type} & \texttt{op\_of}, \texttt{range\_value\_t} \\

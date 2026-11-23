@@ -125,7 +125,7 @@ An assumed \texttt{same\_as} has no record variable, being solved (above), and a
 Figure~\ref{fig:fjlt-dictionaries} builds the translation's one non-local ingredient, the \emph{dictionary} of an entailment: $\llbracket \Delta \Vdash Q \rrbracket$ is the record that witnesses $Q$, built by the same recursion as resolution.
 A shape has no context of its own, so the record type of a constraint is not a function of the shape alone.
 The requirements are substituted in the source, the constraint's types for the shape's type variables, and then translated under the context $\Delta$ of the declaration where the constraint is written or entailed, the user's $\Delta$.
-An associated type in a requirement, as \cppinline{carrier_t<E>} in \cppinline{IsPointedMagma}, is then that declaration's $\chi$ or, at concrete types, the type its entry names.
+An associated type in a requirement, as \cppinline{carrier_t<E>} in \cppinline{IsMagma}, is then that declaration's $\chi$ or, at concrete types, the type its entry names.
 So no operator on types such as $\mathit{Dict}_C$ is needed, which would take the target beyond System~F.
 $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$ is the type of $O_{\mathrm{call}}$ itself at $\overline{\tau}$: its fields, and its call function applied to the types $\overline{\tau'}$ at the variables that $O$'s own unifier $\theta_O$ keeps, to the images of the reads of $O$'s context at $\overline{\tau}$, and to the fields (Figure~\ref{fig:fjlt-types}).
 \textsc{T-Construct} asks that $\overline{\tau}$ solve the \cppinline{same_as} constraints of $O$'s call operator and that those reads resolve or be held by the user's $\Delta$ (Appendix~\ref{app:fjlt:construct}), so the type is defined, and by Lemma~\ref{lem:factor} and Lemma~\ref{lem:subst}~(i) at $O$'s context it is also the translation of the field types $\overline{\tau_y}$, the constraints $\overline{Q}$, the parameter types $\overline{\tau_x}$ and the result type $\tau_r$ of \textsc{D-Op}, substituted in the source.
@@ -228,18 +228,18 @@ Each is adopted rather than declared because it lands on a construct of the targ
 \label{app:fjlt:power}
 
 This subsection takes the general case of \cppinline{power} in Listing~\ref{lst:power} through the rules, and its second case as far as the choice between the two.
-The record types and their fields are named as in the image below Listing~\ref{lst:motivation}: $\mathit{Monoid}\;T$ is $\llbracket \texttt{IsMonoid<E>} \rrbracket$ under a context whose carrier is $T$, with the unit at $q.\mathit{um}.\mathit{pm}.\mathit{unit}$ and the operation at $q.\mathit{um}.\mathit{pm}.\mathit{op}$.
+The record types and their fields are named as in the image below Listing~\ref{lst:motivation}: $\mathit{Monoid}\;T$ is $\llbracket \texttt{IsMonoid<E>} \rrbracket$ under a context whose carrier is $T$, with the unit at $q.\mathit{um}.\mathit{unit}$ and the operation at $q.\mathit{um}.\mathit{m}.\mathit{op}$.
 The alias \cppinline{T} in \cppinline{Squaring} is a derived form (Table~\ref{tab:derived}), and \cppinline{carrier_t<E>} and \cppinline{op_t<E>} are read as associated types, as in the rest of this appendix.
 
 \paragraph{The step.}
-The context $\Delta_S$ of \cppinline{Squaring} holds \cppinline{E}, the reads \cppinline{carrier_t<E>}, from the call's parameter type, and \cppinline{op_t<E>}, through \cppinline{IsPointedMagma<E>}, and the constraint \cppinline{IsMonoid<E>}.
+The context $\Delta_S$ of \cppinline{Squaring} holds \cppinline{E}, the reads \cppinline{carrier_t<E>}, from the call's parameter type, and \cppinline{op_t<E>}, through \cppinline{IsMagma<E>}, and the constraint \cppinline{IsMonoid<E>}.
 It has no \cppinline{same_as}, so its unifier is the identity, and the image's type parameters are $E$, $T$ for \cppinline{carrier_t<E>} and $\mathit{Op}$ for \cppinline{op_t<E>}, in order of first occurrence.
-In the body, \cppinline{op_t<E>{}(s.first, s.second)} is the requirement \cppinline{{ op_t<E>{}(a, b) }} of the nested \cppinline{IsPointedMagma<E>}, typed at \cppinline{carrier_t<E>} by \textsc{T-Req-Assumed}, and its image is the field at that path applied to the two components.
+In the body, \cppinline{op_t<E>{}(s.first, s.second)} is the requirement \cppinline{{ op_t<E>{}(a, b) }} of the nested \cppinline{IsMagma<E>}, typed at \cppinline{carrier_t<E>} by \textsc{T-Req-Assumed}, and its image is the field at that path applied to the two components.
 By \textsc{D-Op} and Figure~\ref{fig:fjlt-translation},
 \[
 \begin{array}{@{}l@{}}
 \mathit{Squaring}_{\mathrm{call}} = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda n{:}\texttt{size\_t}.\,\lambda q{:}\mathit{Monoid}\;T.\,\lambda s{:}T \times T.\,\lambda i{:}\texttt{size\_t}. \\
-\qquad (\mathit{if}\,(\mathit{rotr}\,n\,i \mathbin{\&} 1 = 1)\,(q.\mathit{um}.\mathit{pm}.\mathit{op}\,(\pi_1 s)\,(\pi_2 s))\,(\pi_1 s),\; q.\mathit{um}.\mathit{pm}.\mathit{op}\,(\pi_2 s)\,(\pi_2 s)),
+\qquad (\mathit{if}\,(\mathit{rotr}\,n\,i \mathbin{\&} 1 = 1)\,(q.\mathit{um}.\mathit{m}.\mathit{op}\,(\pi_1 s)\,(\pi_2 s))\,(\pi_1 s),\; q.\mathit{um}.\mathit{m}.\mathit{op}\,(\pi_2 s)\,(\pi_2 s)),
 \end{array}
 \]
 the literal \cppinline{1} written \cppinline{1uz} in the kernel form (\emph{Operators}, Appendix~\ref{app:fjlt:typing}).
@@ -258,8 +258,8 @@ The derivation's steps, each with its image:
 \toprule
 term & typed by & image \\
 \midrule
-\texttt{E\{\}()} & \textsc{T-Req-Assumed} at \texttt{carrier\_t<E>}, then \textsc{T-Eq} by \textsc{Eq-Same} at \texttt{T} & $q.\mathit{um}.\mathit{pm}.\mathit{unit}$ \\
-\texttt{pair<T, T>\{E\{\}(), x\}} & the rule for pairs & $(q.\mathit{um}.\mathit{pm}.\mathit{unit}, x)$ \\
+\texttt{E\{\}()} & \textsc{T-Req-Assumed} at \texttt{carrier\_t<E>}, then \textsc{T-Eq} by \textsc{Eq-Same} at \texttt{T} & $q.\mathit{um}.\mathit{unit}$ \\
+\texttt{pair<T, T>\{E\{\}(), x\}} & the rule for pairs & $(q.\mathit{um}.\mathit{unit}, x)$ \\
 \texttt{Squaring<E>\{n\}} & \textsc{T-Construct}: $\Delta_P$ holds both reads at \texttt{E}, and the call has no \texttt{same\_as} & $(n, \mathit{Squaring}_{\mathrm{call}}\,E\,T\,\mathit{Op}\,n)$ \\
 its call on \texttt{s} and \texttt{i} & \textsc{T-App}: \texttt{IsMonoid<E>} by \textsc{E-Assume}; parameter and result types equal to \texttt{pair<T, T>} by \textsc{T-Eq} & $(\pi_2\,(n, \mathit{Squaring}_{\mathrm{call}}\,E\,T\,\mathit{Op}\,n))\,q\,s\,i$ \\
 the fold & \textsc{T-Iter}, its count \texttt{size\_t(bit\_width(n))}, one primitive & Figure~\ref{fig:fjlt-recursion} \\
@@ -271,12 +271,12 @@ Put together,
 \[
 \begin{array}{@{}l@{}}
 \mathit{power} = \Lambda E.\,\Lambda T.\,\Lambda \mathit{Op}.\,\lambda q{:}\mathit{Monoid}\;T.\,\lambda x{:}T.\,\lambda n{:}\texttt{size\_t}. \\
-\qquad \pi_1\,(\pi_2\,(\mathit{iter}\,[\texttt{size\_t} \times (T \times T)]\,(\mathit{toNat}\,(\mathit{bits}\,n - 0))\,\mathit{step}\,(0, (q.\mathit{um}.\mathit{pm}.\mathit{unit}, x)))) \\
+\qquad \pi_1\,(\pi_2\,(\mathit{iter}\,[\texttt{size\_t} \times (T \times T)]\,(\mathit{toNat}\,(\mathit{bits}\,n - 0))\,\mathit{step}\,(0, (q.\mathit{um}.\mathit{unit}, x)))) \\
 \qquad \text{where } \mathit{step} = \lambda p.\,(\pi_1 p + 1,\; (\lambda s.\,\lambda i.\,(\pi_2\,(n, \mathit{Squaring}_{\mathrm{call}}\,E\,T\,\mathit{Op}\,n))\,q\,s\,i)\,(\pi_2 p)\,(\pi_1 p)),
 \end{array}
 \]
 of type $\forall E.\,\forall T.\,\forall \mathit{Op}.\,\mathit{Monoid}\;T \to T \to \texttt{size\_t} \to T$.
-A projection, type applications and $\beta$-steps inside $\mathit{step}$, with the count written $\mathit{bits}\;n$, give the image below Listing~\ref{lst:power}, with $\mathit{bit}\;i\;n$ for the test of the bit and $\cdot$ for $q.\mathit{um}.\mathit{pm}.\mathit{op}$.
+A projection, type applications and $\beta$-steps inside $\mathit{step}$, with the count written $\mathit{bits}\;n$, give the image below Listing~\ref{lst:power}, with $\mathit{bit}\;i\;n$ for the test of the bit and $\cdot$ for $q.\mathit{um}.\mathit{m}.\mathit{op}$.
 
 \paragraph{The choice of case.}
 The kernel's call names every type argument (Figure~\ref{fig:fjlt-syntax}), so the test's \cppinline{power<All>(false, 5uz)} is \cppinline{power<All, bool>(false, 5uz)}.

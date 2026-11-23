@@ -2380,26 +2380,33 @@ constexpr bool associative = false;
 template <typename E>
 constexpr bool unital = false;
 template <typename E>
+struct carrier_of {};
+template <typename E>
 struct op_of {};
 template <typename E>
-using carrier_t = decltype(E{}());
+using carrier_t = typename carrier_of<E>::type;
 template <typename E>
 using op_t = typename op_of<E>::type;
-// A pointed magma: a carrier, the constant E{}() that names it, and an
-// operation.  E{}() and op_t<E> need no requirement of their own: the
-// compound requirement is ill formed without them.
+// A magma: a carrier and an operation on it, both declared.
 template <typename E>
-concept IsPointedMagma =
+concept IsMagma =
     std::copyable<carrier_t<E>> && requires(carrier_t<E> a, carrier_t<E> b) {
       { op_t<E>{}(a, b) } -> std::same_as<carrier_t<E>>;
     };
+// A unital magma: a magma with an element, E{}(), that is a unit.
 template <typename E>
-concept IsUnitalMagma = IsPointedMagma<E> && unital<E>;
+concept IsUnitalMagma = IsMagma<E> && requires {
+  { E{}() } -> std::same_as<carrier_t<E>>;
+} && unital<E>;
 template <typename E>
 concept IsMonoid = IsUnitalMagma<E> && associative<E>;
 
 struct All {
   constexpr bool operator()() const { return true; }
+};
+template <>
+struct carrier_of<All> {
+  using type = bool;
 };
 template <>
 struct op_of<All> {
@@ -2421,6 +2428,10 @@ struct BareMonoid {
   constexpr Bare operator()() const { return {}; }
 };
 template <>
+struct carrier_of<BareMonoid> {
+  using type = Bare;
+};
+template <>
 struct op_of<BareMonoid> {
   using type = BareOp;
 };
@@ -2434,6 +2445,10 @@ struct Sum {
   constexpr size_t operator()() const { return 0; }
 };
 template <>
+struct carrier_of<Sum> {
+  using type = size_t;
+};
+template <>
 struct op_of<Sum> {
   using type = std::plus<size_t>;
 };
@@ -2443,6 +2458,10 @@ template <>
 constexpr bool unital<Sum> = true;
 struct Product {
   constexpr size_t operator()() const { return 1; }
+};
+template <>
+struct carrier_of<Product> {
+  using type = size_t;
 };
 template <>
 struct op_of<Product> {
@@ -2456,6 +2475,10 @@ struct Concat {
   constexpr Str operator()() const { return {}; }
 };
 template <>
+struct carrier_of<Concat> {
+  using type = Str;
+};
+template <>
 struct op_of<Concat> {
   using type = std::plus<Str>;
 };
@@ -2465,6 +2488,10 @@ template <>
 constexpr bool unital<Concat> = true;
 struct Any {
   constexpr bool operator()() const { return false; }
+};
+template <>
+struct carrier_of<Any> {
+  using type = bool;
 };
 template <>
 struct op_of<Any> {
@@ -2546,6 +2573,10 @@ struct Xor {
   constexpr size_t operator()() const { return 0; }
 };
 template <>
+struct carrier_of<Xor> {
+  using type = size_t;
+};
+template <>
 struct op_of<Xor> {
   using type = std::bit_xor<size_t>;
 };
@@ -2561,6 +2592,10 @@ struct Larger {
 };
 struct Max {
   constexpr size_t operator()() const { return 0; }
+};
+template <>
+struct carrier_of<Max> {
+  using type = size_t;
 };
 template <>
 struct op_of<Max> {
@@ -2594,6 +2629,10 @@ struct Plus2 {
 };
 struct Sum2 {
   constexpr size_t operator()() const { return 0; }
+};
+template <>
+struct carrier_of<Sum2> {
+  using type = size_t;
 };
 template <>
 struct op_of<Sum2> {
