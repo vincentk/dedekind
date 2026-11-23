@@ -3,6 +3,7 @@
 // uses only the promised operation (admitted), one that uses + (not
 // admitted: finding 1), and one under a disjunction no rule reads
 // (undecided: finding 2).  Standalone.
+#include <algorithm>
 #include <bit>
 #include <concepts>
 #include <ranges>
@@ -193,6 +194,31 @@ template <typename E>
   requires Mon<E> && std::copyable<E>
 constexpr Owned listed(E) {
   return Owned{0};
+}
+
+// 9. From Copilot's round on #1212.
+// Finding 14: not admitted, the proxy kept in a local and moved into the
+// conversion later.
+template <typename E>
+  requires LooseMon<E>
+constexpr carrier_t<E> moved(carrier_t<E> x) {
+  auto r = op_t<E>{}(x, x);
+  return static_cast<carrier_t<E>>(std::move(r));
+}
+// Undecided: two integer parameters, which the probe would check only on the
+// diagonal (unsigned against unsigned long long is where std::min fails).
+template <std::unsigned_integral A, std::unsigned_integral B>
+constexpr A smaller(A a, B b) {
+  return std::min(a, b);
+}
+// Admitted: T and U are one carrier through the member type they equal.
+template <typename F>
+concept HasDomain = requires { typename F::Domain; };
+template <HasDomain F, std::semiregular T, std::semiregular U>
+  requires std::same_as<typename F::Domain, T> &&
+           std::same_as<typename F::Domain, U>
+constexpr T same_through(F, U u) {
+  return u;
 }
 
 }  // namespace jlt_listing

@@ -2619,6 +2619,14 @@ class MarkedUse : public clang::ASTConsumer {
             if (i && convertsProxy(i)) sel.lateConversion = true;
         return true;
       }
+      // A local of the proxy's type keeps it, and std::move lets it convert
+      // later: late (Copilot on #1212).
+      bool VisitVarDecl(clang::VarDecl* v) {
+        if (inChecked)
+          if (const auto* rd = v->getType()->getAsCXXRecordDecl())
+            if (rd->getName() == "converts_to") sel.lateConversion = true;
+        return true;
+      }
       bool VisitReturnStmt(clang::ReturnStmt* r) {
         if (inChecked && r->getRetValue())
           if (const auto* rd =
@@ -2732,7 +2740,7 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
     if (auto it = slot.find(r); it != slot.end()) return it->second;
     std::string t;
     for (const auto& [m, q] : paramOf)
-      if (find(m) == r && f.atoms.count(q)) t = "::std::size_t";
+      if (find(m) == r && f.atoms.count(q)) t = "@INTEGER-EQUATION@";
     if (t.empty())
       for (const auto& [m, q] : paramOf)
         if (find(m) == r && f.plain.count(q)) t = carrierName(q);
@@ -2802,7 +2810,11 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
                                     : r) +
           ">";
     } else if (f.plain.count(p)) {
-      a = carrierName(p);
+      // A parameter in a class of same_as equations takes the class's
+      // carrier, so that T and U equal through F::Domain are one type.
+      const std::string k =
+          "p" + std::to_string(p.first) + ":" + std::to_string(p.second) + ":";
+      a = parent.count(k) ? slotType(k) : carrierName(p);
     } else {
       why = "no archetype for template parameter " + tp->getName().str();
       return {};
@@ -2943,7 +2955,18 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
   std::string text = "\n// jlt-lint: admission by type\n";
   text += "namespace " + ns + " {\n" + types + "}\n" + entries + aliases +
           "namespace " + ns + " {\n" + result + use + "}\n";
+  // An equation between a member type and an integer parameter would pin
+  // the member while the probe varies the parameter (Copilot on #1212).
+  if (text.find("@INTEGER-EQUATION@") != std::string::npos) {
+    why = "an equation between a member type and an integer parameter";
+    return {};
+  }
   if (f.atoms.empty()) return text;
+  // Several integer parameters would be checked on the diagonal only.
+  if (f.atoms.size() > 1) {
+    why = "several integer parameters, checked so far one at a time only";
+    return {};
+  }
   auto subst = [](std::string t, const std::string& by) {
     for (std::size_t at; (at = t.find("@ATOM@")) != std::string::npos;)
       t.replace(at, 6, by);

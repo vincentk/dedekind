@@ -192,9 +192,10 @@ inline constexpr bool every_integer =
      Check<unsigned long long>::value);
 template <template <class> class Fits>
 using smallest_integer =
-    typename first_fitting<Fits, bool, signed char, unsigned char, short,
-                           unsigned short, int, unsigned int, long,
-                           unsigned long, long long, unsigned long long>::type;
+    typename first_fitting<Fits, bool, char, signed char, unsigned char,
+                           char8_t, short, unsigned short, char16_t, wchar_t,
+                           int, unsigned int, char32_t, long, unsigned long,
+                           long long, unsigned long long>::type;
 template <template <class> class Fits>
 using largest_integer =
     typename first_fitting<Fits, unsigned long long, long long, unsigned long,
@@ -227,7 +228,13 @@ template <class T>
 struct is_count
     : std::bool_constant<std::unsigned_integral<T> && !std::same_as<T, bool>> {
 };
-static_assert(std::same_as<smallest_integer<is_count>, unsigned char> &&
+template <class T>
+struct is_char16 : std::bool_constant<std::same_as<T, char16_t>> {};
+static_assert(std::same_as<smallest_integer<is_char16>, char16_t> &&
+              std::same_as<largest_integer<is_char16>, char16_t>);
+static_assert(std::same_as<smallest_integer<is_count>,
+                           std::conditional_t<std::is_unsigned_v<char>, char,
+                                              unsigned char>> &&
               std::same_as<largest_integer<is_count>, unsigned long long>);
 }  // namespace self_check
 
