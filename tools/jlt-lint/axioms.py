@@ -62,6 +62,18 @@ LAW_STRUCT = re.compile(
 )
 
 
+# A floating type is a total magma (the user, 2026-11-23): its operations
+# are total, and no law is declared of them, not even commutativity.
+FLOATING = re.compile(r"\b(?:float|double)\b")
+
+
+def at_floating_type(line):
+    """Whether a ledger line declares a law at a floating type: its head (the
+    law at its arguments, before any clause or value) names one."""
+    head = line.split(" requires ", 1)[0].split(" = ", 1)[0]
+    return bool(FLOATING.search(head))
+
+
 def norm(t):
     return " ".join(t.split())
 
@@ -133,10 +145,17 @@ def main(argv):
                 "template <typename F> associative<F, Then<F, F>> = true"]
         if got != sorted(want):
             sys.exit(f"axioms.py: selftest: laws read {got}, expected {sorted(want)}")
+        if not at_floating_type("x.cppm: associative<double, Plus>") or \
+                at_floating_type("x.cppm: template <typename T> f<T> requires std::floating_point<T> = false"):
+            sys.exit("axioms.py: selftest: the floating-type guard misreads")
         print("axioms.py: selftest passed")
         return
     current = HEADER + ledger()
     laws = LAWS_HEADER + ledger(laws_of)
+    floating = [l for l in current + laws if not l.startswith("#") and at_floating_type(l)]
+    if floating:
+        sys.exit("axioms.py: a law at a floating type: a floating type is a total magma, and "
+                 "no law is declared of its operations:\n  " + "\n  ".join(floating))
     if "--write" in argv:
         LEDGER.write_text("\n".join(current) + "\n", encoding="utf-8")
         LAWS.write_text("\n".join(laws) + "\n", encoding="utf-8")

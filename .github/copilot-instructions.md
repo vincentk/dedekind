@@ -26,6 +26,11 @@ declaration and say, in a comment on that line:
 
 A removed line needs no review unless the law is still read at that type.
 
+A floating type (`float`, `double`, `long double`) is a total magma: its
+operations are total and no law is declared of them, not even commutativity.
+`axioms.py` refuses such an entry; one written so that it escapes the check
+(through an alias, say) is a finding.
+
 `tools/jlt-lint/laws.txt` is the ledger of the conditional laws: every other
 entry of a law that can make it true, an entry at a form
 (`template <typename F, typename G> injective<Then<F, G>> = injective<F> &&
