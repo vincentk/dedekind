@@ -11,17 +11,40 @@ The naturals come with the iterator $\mathit{iter} : \forall\sigma.\,\mathbb{N} 
 Records are nested pairs.
 
 \paragraph{Type parameters of the image.}
-A declaration's image takes as type parameters its type variables $\overline{\alpha}$ and, after them, one variable $\chi$ for each associated type that its context reads at them (Appendix~\ref{app:fjlt:assoc}), and $\llbracket g\texttt{<}\overline{\tau}\texttt{>::type} \rrbracket = \chi$ there.
-A use at types $\overline{\sigma}$ supplies $\overline{\llbracket \sigma \rrbracket}$ for $\overline{\alpha}$ and, for each $\chi$, the image of its associated type at $\overline{\sigma}$: at concrete types the type its entry names (\textsc{Eq-Assoc}), and under a type variable the $\chi$ that the caller's context holds for it, which the caller's declaration names (Table~\ref{tab:excluded}).
+A declaration's image takes as type parameters the type variables $\overline{\alpha}$ that the unifier below keeps and, after them, one variable $\chi$ for each distinct associated type that its context reads at them once the unifier is applied (Appendices~\ref{app:fjlt:typing} and~\ref{app:fjlt:assoc}), and $\llbracket g\texttt{<}\overline{\tau}\texttt{>::type} \rrbracket = \chi$ there.
+The parameters are named in a fixed order: the type variables as the template head lists them, then the reads in the order of their first occurrence in the declaration, its head, its constraints, the types of its parameters, fields and result, and then the derivation of its body, from left to right.
 This is the translation of associated types for Haskell~\cite{chakravarty2005class,chakravarty2005synonyms} and for the concepts of \Cpp{0x}~\cite{siek2005essential}, and Table~\ref{tab:image}'s last row.
 In Listing~\ref{lst:motivation}, $T$ and $\mathit{Op}$ in the image of \cppinline{concat} are the variables for \cppinline{carrier_t<E>} and \cppinline{op_t<E>}, supplied at \cppinline{concat<Sum>} with \cppinline{size_t} and \cppinline{plus<size_t>}.
+
 % DECISION (the author's default, 2026-11-23): an assumed same_as is solved,
 % not passed.  Its image is no parameter; the most general unifier of the
 % declaration's same_as constraints is applied to its image.
-An assumed \cppinline{same_as} is solved and not passed: the image of a declaration is taken after the most general unifier of its \cppinline{same_as} constraints, over its type variables and its $\chi$, has been applied, so that two types the constraints make equal are one parameter (Appendix~\ref{app:fjlt:typing}, \emph{Equal types}).
-A declaration whose \cppinline{same_as} constraints have no unifier has no instance and is not translated.
-So $\Delta \vdash \tau \equiv \sigma$ implies $\llbracket \tau \rrbracket = \llbracket \sigma \rrbracket$, and \textsc{T-Eq} translates to nothing.
-\cppinline{concat}'s constraint \cppinline{same_as<range_value_t<R>, carrier_t<E>>} makes the type of the range's elements and the carrier one parameter, $T$.
+% DECISION (2026-11-23, the theoretician's repair of the gap at T-Eq): the
+% unifier is computed on the source types, a read as an uninterpreted function
+% symbol of its arguments, before any chi is given.  A read is congruent but
+% neither injective nor distinct from other types, since syntactic unification
+% with free symbols would refuse concat's same_as<range_value_t<R>,
+% carrier_t<E>>, two different heads.
+An assumed \cppinline{same_as} is solved and not passed, on the source types and before any $\chi$ is given.
+A read $g\texttt{<}\overline{\tau}\texttt{>::type}$ at a type variable is taken as an uninterpreted function symbol $g$ applied to its arguments: it may be made equal to any type, as a variable may, and two reads of one $g$ whose arguments are made equal are thereby equal.
+The unifier $\theta$ of a declaration is the most general substitution of its type variables and of its reads that makes the two sides of each of its \cppinline{same_as} constraints one type and is closed under that congruence.
+It is computed by rounds: unify the constraints, treating each read as a variable; identify two reads of one $g$ whose arguments are equal under the result; replace a read whose arguments have become concrete by the type its entry names (\textsc{Eq-Assoc}); and unify again, until nothing changes.
+Each round binds a variable or removes a read, and there are finitely many of both, so the rounds end.
+Of two variables or reads that $\theta$ identifies, it keeps the one that comes first in the order above, so the image's parameters are named by the declaration and not merely up to names.
+The image is then taken of the declaration with $\theta$ applied, with one $\chi$ for each distinct read that remains (Appendix~\ref{app:fjlt:typing}, \emph{Equal types}).
+
+So $\Delta \vdash \tau \equiv \sigma$ implies $\llbracket \tau \rrbracket = \llbracket \sigma \rrbracket$, by induction on the derivation of the equality.
+\textsc{Eq-Same} holds in the image because $\theta$ unifies the constraint, and \textsc{Eq-Assoc} because the image of a resolved read is the image of the type its entry names.
+Reflexivity, symmetry and transitivity hold because the image is a function of the type.
+Congruence holds at a constructor because the image of $T\texttt{<}\overline{\tau}\texttt{>}$ is built from its arguments' images, and at a read because two reads of one $g$ whose arguments have one image are one read under $\theta$, which is closed under the congruence, and have one $\chi$.
+\textsc{T-Eq} therefore translates to nothing.
+For example, under \cppinline{same_as<R1, R2>} a parameter of \cppinline{range_value_t<R1>} may be returned at \cppinline{range_value_t<R2>}: $\theta$ puts \cppinline{R1} for \cppinline{R2}, so the two reads are one read with one $\chi$, and the image $\lambda x{:}\chi.\,x$ has the type $\chi \to \chi$ that the source's typing says.
+\cppinline{concat}'s constraint \cppinline{same_as<range_value_t<R>, carrier_t<E>>} makes the type of the range's elements and the carrier one read, and one parameter, $T$.
+A declaration whose \cppinline{same_as} constraints have no unifier, as \cppinline{same_as<size_t, bool>} or \cppinline{same_as<T, std::pair<T, T>>}, has no instance; it is ill formed (Appendix~\ref{app:fjlt:typing}, \emph{Equal types}), $\llbracket \Delta \rrbracket$ is not defined for it, and it is not translated, which Theorem~\ref{thm:preservation} states as a hypothesis.
+
+A use at types $\overline{\sigma}$ entails the declaration's constraints there (\textsc{T-Call}), its \cppinline{same_as} constraints by \textsc{E-Same}, so $\overline{\sigma}$ is a solution of them, and $\theta$ being most general, the substitution $[\overline{\sigma}/\overline{\alpha}]$ factors through $\theta$: it is $\theta$ followed by a substitution $\varphi$ of the variables and the reads that $\theta$ keeps, up to $\equiv$ (by \textsc{E-Same} and \textsc{Eq-Assoc}).
+The use supplies $\varphi$'s images: $\llbracket \sigma_j \rrbracket$ for each type variable $\alpha_j$ that $\theta$ keeps and, for each $\chi$, the image of its read at $\overline{\sigma}$, at concrete types the type its entry names (\textsc{Eq-Assoc}), and under a type variable the $\chi$ that the caller's context holds for it.
+The caller's context holds it, by its closure under the reads its derivation reaches (Appendix~\ref{app:fjlt:typing}).
 
 \begin{figure}[htbp]
 \[
@@ -29,7 +52,7 @@ So $\Delta \vdash \tau \equiv \sigma$ implies $\llbracket \tau \rrbracket = \llb
 \multicolumn{2}{l}{\textit{types}} \\
 \llbracket \alpha \rrbracket = \alpha \qquad \llbracket b \rrbracket = b \qquad \llbracket T \rrbracket = T \text{ for a carrier } T & \\
 \llbracket \texttt{std::pair<}\tau\texttt{, }\sigma\texttt{>} \rrbracket = \llbracket \tau \rrbracket \times \llbracket \sigma \rrbracket & \\
-\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \overline{\llbracket \tau_y \rrbracket} \times (\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket) & \note{a function object: its fields and its call function, at $\overline{\tau}$} \\
+\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \overline{\llbracket \tau_y[\overline{\tau}/\overline{\alpha}] \rrbracket} \times (\overline{\llbracket Q[\overline{\tau}/\overline{\alpha}] \rrbracket} \to \overline{\llbracket \tau_x[\overline{\tau}/\overline{\alpha}] \rrbracket} \to \llbracket \tau_r[\overline{\tau}/\overline{\alpha}] \rrbracket) & \note{a function object: its fields and its call function, at $\overline{\tau}$, substituted in the source and translated under the user's $\Delta$} \\
 \llbracket g\texttt{<}\overline{\tau}\texttt{>::type} \rrbracket = \chi \text{ under a type variable}, \ \llbracket \rho \rrbracket \text{ at concrete } \overline{\tau} & \note{$\chi$ held by the context; $\rho$ the type the entry names (\textsc{Eq-Assoc})} \\
 \end{array}
 \]
@@ -41,7 +64,7 @@ So $\Delta \vdash \tau \equiv \sigma$ implies $\llbracket \tau \rrbracket = \llb
 \[
 \begin{array}{@{}l@{\quad}l@{}}
 \multicolumn{2}{l}{\textit{constraints, as record types}} \\
-\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \mathit{Dict}_C\,\overline{\llbracket \tau \rrbracket} = \{\,\overline{r_i : \llbracket A_i \rrbracket[\overline{\tau}/\overline{\alpha}]}\,\} & \note{one field per requirement} \\
+\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i : \llbracket A_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\} & \note{one field per requirement, substituted in the source and translated under the user's $\Delta$} \\
 \qquad \text{where } \texttt{concept } C \texttt{ = } \overline{A} & \\
 \llbracket Q \rrbracket \text{ for a nested shape } Q & \note{its record type} \\
 \llbracket \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = 1 \qquad \llbracket \texttt{same\_as<}\tau\texttt{, }\sigma\texttt{>} \rrbracket = 1 & \note{a negation and an equality carry no evidence} \\
@@ -72,6 +95,10 @@ An assumed \texttt{same\_as} has no record variable, being solved (above).}
 
 \paragraph{Constraints and dictionaries.}
 Figure~\ref{fig:fjlt-dictionaries} builds the translation's one non-local ingredient, the \emph{dictionary} of an entailment: $\llbracket \Delta \Vdash Q \rrbracket$ is the record that witnesses $Q$, built by the same recursion as resolution.
+A shape has no context of its own, so the record type of a constraint is not a function of the shape alone.
+The requirements are substituted in the source, the constraint's types for the shape's type variables, and then translated under the context $\Delta$ of the declaration where the constraint is written or entailed, the user's $\Delta$.
+An associated type in a requirement, as \cppinline{carrier_t<E>} in \cppinline{IsMagma}, is then that declaration's $\chi$ or, at concrete types, the type its entry names.
+So no operator on types such as $\mathit{Dict}_C$ is needed, which would take the target beyond System~F, and $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$ is formed the same way, from the field types $\overline{\tau_y}$, the context $\overline{Q}$, the parameter types $\overline{\tau_x}$ and the result type $\tau_r$ of \textsc{D-Op}: its second component is, by Lemma~\ref{lem:subst}~(i), the type of $O_{\mathrm{call}}$ applied to $\overline{\llbracket \tau \rrbracket}$, to the images of $O$'s associated types at $\overline{\tau}$, and to the fields.
 A dictionary projects along the path of nested fields, $q_Q.m.r$ for a requirement $r$ of the nested shape held in field $m$.
 A required call is checked at its declared type (\textsc{E-Op}), so the field holds the call itself and no conversion.
 
@@ -87,10 +114,10 @@ A required call is checked at its declared type (\textsc{E-Op}), so the field ho
 \qquad \mapsto\; f = \Lambda\overline{\alpha}.\,\Lambda\overline{\chi}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \note{$\overline{\chi}$ its associated types (above)} \\
 \texttt{struct } O \texttt{ \{ } \overline{y}\texttt{; ... operator()(}\overline{x}\texttt{) ... requires } \overline{Q}\texttt{ ... } e \texttt{ ... \};} & \note{a function object's call function} \\
 \qquad \mapsto\; O_{\mathrm{call}} = \Lambda\overline{\alpha}.\,\Lambda\overline{\chi}.\,\lambda\overline{y}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \\
-O \text{ standard, or supplied with a carrier} \;\mapsto\; O_{\mathrm{call}} = \Lambda\overline{\alpha}.\,\lambda().\,o_{\overline{\alpha}} & \note{such as \texttt{std::plus}: at its types, its function $o$, a constant of the target} \\
+O \text{ standard, or supplied with a carrier} \;\mapsto\; O_{\mathrm{call}} = \Lambda\overline{\alpha}.\,o_{\overline{\alpha}} & \note{such as \texttt{std::plus}: no field, constraint or associated type, so the construction below gives $((), o_{\overline{\llbracket \tau \rrbracket}})$; $o$ a constant of the target} \\
 \texttt{concept}, \text{ an associated type and its entries} \;\mapsto\; \text{nothing} & \note{resolved before the translation} \\[6pt]
 \multicolumn{2}{l}{\textit{terms}} \\
-\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_i\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \rho \rrbracket}\,\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket}\,\overline{\llbracket e \rrbracket} & \note{\textsc{T-Call}, $f_i$ the declaration it resolves to, $\overline{\rho}$ its associated types at $\overline{\sigma}$} \\
+\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_i\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \rho \rrbracket}\,\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket}\,\overline{\llbracket e \rrbracket} & \note{\textsc{T-Call}, $f_i$ the declaration it resolves to; $\overline{\sigma}$ at the type variables its unifier keeps, $\overline{\rho}$ the reads it keeps, at $\overline{\sigma}$ (above)} \\
 \llbracket f\texttt{<}\overline{\sigma}\texttt{>} \rrbracket = f_{\overline{\tau}}\,\overline{\llbracket \sigma' \rrbracket}\,\overline{\llbracket \Delta \Vdash Q[\overline{\sigma'}/\overline{\beta}] \rrbracket}\,\overline{r} & \note{\textsc{T-Trait}, resolved to the entry at $\overline{\tau}$ with $\overline{\sigma} = \overline{\tau}[\overline{\sigma'}/\overline{\beta}]$; $\overline{r}$ the images of the reads of $f$ at the parts, there} \\
 \llbracket f\texttt{<}\overline{\sigma}\texttt{>} \rrbracket = f_{\circ}\,\overline{\llbracket \sigma \rrbracket} & \note{the same, resolved to the default} \\
 \llbracket t \rrbracket = t & \note{in an entry's initialiser, the variable for its own trait at a part} \\
@@ -106,7 +133,7 @@ O \text{ standard, or supplied with a carrier} \;\mapsto\; O_{\mathrm{call}} = \
 \caption{The translation of declarations and terms; pairs are the target's own (Table~\ref{tab:conventions}).
 A declaration becomes a definition of the target, written $D \mapsto f = t$; a term translates to a term, $\llbracket e \rrbracket = t$.
 The right-hand column says which case a line is.
-$\alpha\texttt{\{\}}$ at a type variable (\textsc{T-Unit}) has no line: it stands only inside a required call, whose image is the field of the requirement.}
+$\alpha\texttt{\{\}}$ at a type variable has no line: it stands only inside a required call, whose image is the field of the requirement.}
 \label{fig:fjlt-translation}
 \end{figure}
 
@@ -135,8 +162,7 @@ A term with a run-time \cppinline{n} translates to a term with $n$ free, of type
 \qquad \text{where } \mathit{step} = \lambda p.\,(\pi_1 p + 1,\; (\lambda s.\,\lambda i.\,\llbracket f\texttt{(}s\texttt{, }i\texttt{)} \rrbracket)\,(\pi_2 p)\,(\pi_1 p)) & \note{the index counts up beside the state, and the step's call is translated as \textsc{T-Iter}'s premise types it} \\
 \end{array}
 \]
-\caption{The translation of iteration, \textsc{T-Iter}.
-In a program $c$ is \texttt{0uz}; the general constant is for the terms that evaluation reaches.}
+\caption{The translation of iteration: \textsc{T-Iter}, where $c$ is \texttt{0uz}, and \textsc{T-Iter-Run}, where $c$ is $c_k$ and $e_n$ is $c_n$ with $0 < k \le n$, for the terms that evaluation reaches.}
 \label{fig:fjlt-recursion}
 \end{figure}
 

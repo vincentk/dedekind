@@ -84,6 +84,6 @@ $c_k$ is the constant of \texttt{size\_t} whose value is $k$.}
 
 \paragraph{Data and iteration.}
 In Figure~\ref{fig:fjlt-eval}, \textsc{S-Fold} takes one step of an iteration: it calls the step on the state and the index and counts the index up, so an iteration over \cppinline{iota(0uz, n)} takes $n$ steps, the bound \RuleThree{} asks for.
-The value \texttt{views::iota(}$c_k$\texttt{, }$c_n$\texttt{)} with $k \le n$ is the range of the counts from $k$ up to $n$, not including $n$ (Definition~\ref{def:standard}); a program writes it only from \texttt{0uz}, and the other lower bounds are what evaluation reaches.
+The value \texttt{views::iota(}$c_k$\texttt{, }$c_n$\texttt{)} with $k \le n$ is the range of the counts from $k$ up to $n$, not including $n$ (Definition~\ref{def:standard}); a program writes it only from \texttt{0uz}, and the other lower bounds are what evaluation reaches, typed by \textsc{T-Iter-Run}, which keeps $k \le n$ (Appendix~\ref{app:fjlt:typing}).
 Its bound is evaluated first, so the count is fixed before the first step.
 The listings' other ranges, an array, a repetition and a transform, are derived forms (Table~\ref{tab:derived}), and are evaluated as the iteration over a count that they are read as.

@@ -12,6 +12,9 @@ Local mutable state is among them by the reasoning about local state of Pitts an
 Raw pointers are not among them.
 A pointer that is never null and never compared with a pointer into another object is an index into a range, its arithmetic the arithmetic of counts, but neither condition can be checked well, so the posture asks for a span over storage declared constant instead.
 
+% DECISION (2026-11-23, the practitioner's finding on the lambda row): the
+% condition is narrowed to where no constraint asks copyable or a default value
+% of a capturing closure; the struct reading would satisfy them, C++ does not.
 \begin{table}[htbp]
 \centering
 \small
@@ -25,7 +28,7 @@ a braced \texttt{return \{a, b\};} & the record built from \texttt{a} and \textt
 two fields in one declaration & two declarations & none \\
 \texttt{static\_assert(e)} & the observation of the truth value \texttt{e} & none \\
 a range, as an array or a view & its length and the function that reads it; \texttt{ranges::fold\_left} over it, the kernel's iteration over that count & finite, its size known before the first step; a forward range; its functions arrows of Jlt \\
-a parameter by constant reference, \texttt{const T\&} & a parameter by value & none \\
+a parameter by constant reference, \texttt{const T\&} & a parameter by value & none, since the kernel returns by value and compares no addresses, so nothing observes the reference; a defaulted member \texttt{operator==} must take one~\cite[\texttt{class.compare.default}]{cpp23standard}, which is harmless \\
 a call of a member function, \texttt{s.size()} & a call with the object as its first argument & none \\
 a result required only \texttt{convertible\_to<T>}, \texttt{\{ op(a, b) \} -> convertible\_to<T>} & the call, its result copy-initialising a \texttt{T}, after which the result has type \texttt{T} & the result is used at \texttt{T} and nowhere else, which a rule of the linter checks; the implicit and the explicit conversion agree, a semantic requirement of \texttt{convertible\_to}, trusted \\
 an implicit conversion of an arithmetic value to an atom, \texttt{n \& 1}, \texttt{return 0;} at \texttt{size\_t} & the conversion written out, \texttt{size\_t(e)} & it does not narrow~\cite[\texttt{dcl.init.list}]{cpp23standard}: converting back gives the original value, at every value or at the constant's; and no overload is chosen by it \\
@@ -35,7 +38,7 @@ a default argument & an overload with the argument supplied & none \\
 \texttt{if constexpr} on a law or a trait & the conditional \texttt{p ? A : B} & both branches have one type and are well formed at every instantiation; \RuleTwo{} \\
 \texttt{if constexpr (C<T>)} on a shape & two overloads, under \texttt{C<T>} and \texttt{!C<T>} & the signature names the decision (\RuleTwo{}) \\
 \texttt{if consteval \{ A \} else \{ B \}} & \texttt{A}, the branch constant evaluation takes & \texttt{B} computes the value of \texttt{A} on every input, trusted and listed like a law \\
-a lambda, not generic or constrained & its closure class: the captures copied into fields, a \texttt{const} call operator & captures by value, not \texttt{mutable}, no \texttt{this}; its body judged as any function's \\
+a lambda, not generic or constrained & its closure class: the captures copied into fields, a \texttt{const} call operator & captures by value, of copyable types, not \texttt{mutable}, no \texttt{this}; its body judged as any function's; a closure that captures is neither default-constructible nor assignable~\cite[\texttt{expr.prim.lambda.closure}]{cpp23standard}, so \texttt{copyable} fails at it where it holds at the class, and the reading holds only where no constraint asks either of the closure; each lambda has a type of its own, so two equal lambdas are two types \\
 a counted \texttt{for}, a range-\texttt{for} over a sized range & \texttt{fold\_left} over \texttt{iota(0uz, n)}, or over the range, the loop's locals its state & the bound known before the first step; the counter and the bound not assigned in the body; no \texttt{break}, \texttt{return} or \texttt{goto} inside \\
 an assignment, \texttt{++} on a local & the state of the fold or the call it is in & the local never leaves the call, so no one can tell it from a value passed along; it is written before it is read \\
 \texttt{std::span<const T>} over storage declared constant & a range: its length and the function that reads it & the storage has static storage duration and no \texttt{mutable} member; the declaration, a law on the list of what is trusted \\

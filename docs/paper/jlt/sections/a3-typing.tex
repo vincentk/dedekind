@@ -19,11 +19,18 @@ There are four judgments:
 \item $\Delta \Vdash Q$ says that the constraint $Q$ is \emph{entailed} in the context $\Delta$ (Figure~\ref{fig:fjlt-entailment}).
 \item $\Delta; \Gamma \vdash e : \tau$ types a term, $\Gamma$ holding the term variables with their types (Figure~\ref{fig:fjlt-typing}).
 \item $\Delta \vdash \tau \equiv \sigma$ says that two types are equal (Figure~\ref{fig:fjlt-assoc}).
-\item $\vdash D$ says a declaration is well formed (Figures~\ref{fig:fjlt-assoc} and~\ref{fig:fjlt-declarations}).
+\item $\vdash D$ says a declaration is well formed (Figures~\ref{fig:fjlt-assoc} and~\ref{fig:fjlt-declarations}); a shape has no such rule and is assumed well formed (\emph{The one value of a function object}, below).
 \end{enumerate}
-The context $\Delta$ of a declaration holds three things: its type variables; the associated types it reads at them, each $g\texttt{<}\overline{\tau}\texttt{>::type}$ with a type variable in $\overline{\tau}$ that its head, its constraints or the types of its parameters, fields and result name, or that the requirements of a shape it assumes name, transitively; and its constraints, as assumptions.
+The context $\Delta$ of a declaration holds three things: its type variables; the associated types it reads at them, each $g\texttt{<}\overline{\tau}\texttt{>::type}$ with a type variable in $\overline{\tau}$; and its constraints, as assumptions.
+The reads it holds are those that its head, its constraints or the types of its parameters, fields and result name, or that the requirements of a shape it assumes name, transitively.
+% DECISION: Delta is closed under the reads that the body's derivation reaches,
+% rather than refusing such a body (the theoretician's two options).  A call's
+% result type instantiated at the declaration's own type variables is ordinary
+% C++, and refusing it would refuse bodies the listings could write.
+It also holds every other read at its type variables that a type in the typing derivation of its body names, as the result type of a call instantiated at the declaration's type variables, and each read that such a call supplies to its callee's associated types (Appendix~\ref{app:fjlt:translation}).
+The calls of a body are to declarations above it, so this closure is taken in declaration order and is finite.
 $e[\overline{e}/\overline{a}]$ is $e$ with each $e_i$ in place of $a_i$, at once, and $\tau[\overline{\sigma}/\overline{\alpha}]$ the same for types; an overbar abbreviates a sequence, as in Figure~\ref{fig:fjlt-syntax}.
-A program $P = \overline{D}\; e$ (Figure~\ref{fig:fjlt-syntax}) is well formed when $\vdash D$ for each of its declarations, in order, and $\varnothing; \varnothing \vdash e : \tau$ for some $\tau$.
+A program $P = \overline{D}\; e$ (Figure~\ref{fig:fjlt-syntax}) is well formed when $\vdash D$ for each of its declarations other than a shape, in order, and $\varnothing; \varnothing \vdash e : \tau$ for some $\tau$.
 The compiler holds a program to most of this.
 Two things rest on the programmer's discipline instead, a generic body held to its constraints and a call at a type variable held to resolution (Section~\ref{sec:limits}), and the linter checks them in part (Section~\ref{sec:check}).
 
@@ -56,11 +63,20 @@ A required call is checked only at its declared type: \texttt{same\_as} is the k
 A shape with a law is then satisfied only at instances whose certificate holds.
 Laws are closed terms of type \cppinline{bool}, which keeps typing and evaluation from chasing each other.
 At a type variable a law is entailed only through an assumed shape that lists it, by \textsc{E-Law-Assumed}, as a call is through \textsc{T-Req-Assumed}.
-The side condition of \textsc{E-Shape} makes entailment syntax-directed: an assumed shape is its record variable and is never rebuilt field by field.
+The side condition of \textsc{E-Shape} makes entailment syntax-directed: a shape in $\Delta$ is its record variable and is never rebuilt field by field.
 Theorem~\ref{thm:coherence} needs exactly that.
+A shape nested in an assumed one, as \cppinline{IsMagma<E>} under an assumed \cppinline{IsMonoid<E>}, is not itself in $\Delta$, and \textsc{E-Shape} does rebuild it: its required calls by \textsc{E-Op}, whose premise \textsc{T-Req-Assumed} types, and its laws by \textsc{E-Law-Assumed}.
+That is harmless.
+Each field rebuilt is the field of the assumed record at the path to the nested shape, abstracted over the requirement's parameters, so the rebuilt record and the projection $q_Q.\pi$ agree field by field up to $\eta$, and entailment is still a function of $\Delta$ and the constraint.
 A negated constraint \cppinline{!C<T>} carries no evidence.
 \textsc{E-Not} holds at concrete types where $C$ does not, and the well-founded order of the declarations makes its negative premise decidable.
-The standard's shapes among the $C$ of Figure~\ref{fig:fjlt-syntax} are read as declared: \cppinline{copyable} holds at every type of the kernel, whose values are copyable data (\RuleOne{}), \cppinline{equality_comparable<T>} requires the call \cppinline{a == b} at \cppinline{T} with a result of type \cppinline{bool}, and \cppinline{same_as} is \textsc{E-Same}.
+The standard's shapes among the $C$ of Figure~\ref{fig:fjlt-syntax} are read as declared, \cppinline{copyable} and \cppinline{equality_comparable} more strictly than the standard states them.
+\cppinline{copyable} holds at every type of the kernel, whose values are copyable data (\RuleOne{}).
+The standard's \cppinline{equality_comparable<T>} asks that \cppinline{a == b} and \cppinline{a != b} be valid with results that are boolean-testable, and, as a semantic requirement, that \texttt{==} be equality~\cite[{\texttt{concept.equalitycomparable}}]{cpp23standard}.
+The kernel asks for the call \cppinline{a == b} at \cppinline{T} with a result of type \cppinline{bool}, which is stricter: a type that meets it meets the standard's syntactic requirements, \cppinline{a != b} by its rewrite as \cppinline{!(a == b)} (\emph{Operators}, below), and the semantic requirement is taken on trust, as a law is.
+\cppinline{same_as} is \textsc{E-Same}.
+\Cpp{} checks the result of a required expression by \cppinline{decltype((e))}~\cite[{\texttt{expr.prim.req.compound}}]{cpp23standard}, so \cppinline{same_as<T>} holds of a call that returns a \cppinline{T}, a prvalue, and fails of a variable, a field or a call returning \cppinline{const T&}, whose type there is a reference.
+\textsc{E-Op} and \textsc{T-Req-Assumed} read a required expression at its declared type, and agree with \Cpp{} where it is a prvalue, a call whose result type is not a reference, which every required call of the listings is; the kernel has no reference type to return, and its rules are stated for those.
 
 \paragraph{Equal types.}
 \textsc{E-Same} holds where the two types are the same, which at concrete types is the same type once every associated type in them is resolved (\textsc{Eq-Assoc}, below).
@@ -72,6 +88,9 @@ So \cppinline{concat} in Listing~\ref{lst:motivation} folds a range of \cppinlin
 % quantifies over one variable.  System F has no evidence of type equality to
 % pass; a coercion, as in System FC, would be the alternative.
 An assumed \cppinline{same_as} carries no evidence: the translation solves it, putting one type for the other, so that the image quantifies over one variable where the source names two (Appendix~\ref{app:fjlt:translation}).
+% DECISION: a declaration whose same_as constraints have no unifier is ill
+% formed in FJlt.  It has no instance; C++ would accept it and refuse each call.
+A declaration whose \cppinline{same_as} constraints have no solution, as \cppinline{same_as<size_t, bool>}, has no instance, and FJlt counts it ill formed: well-formedness asks of every declaration that the unifier of its \cppinline{same_as} constraints exist (Appendix~\ref{app:fjlt:translation}).
 
 \begin{figure}[htbp]
 \[
@@ -82,32 +101,38 @@ An assumed \cppinline{same_as} carries no evidence: the translation solves it, p
 \\[12pt]
 \textsc{(T-Call)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to } f_i : \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau \quad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \quad \Delta; \Gamma \vdash \overline{e : \tau_x[\overline{\sigma}/\overline{\alpha}]}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau[\overline{\sigma}/\overline{\alpha}]}
 \\[12pt]
-\textsc{(T-Trait)} & \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves, at concrete } \overline{\sigma} \text{, to an entry or the default of } f \quad b_f \text{ the atom of } f}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>} : b_f}
+\textsc{(T-Trait)} & \dfrac{\begin{array}{c} f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves, at concrete } \overline{\sigma} \text{, to the default of } f \text{, or to an entry at } \overline{\tau} \text{ with context } \overline{Q} \text{ and } \overline{\sigma} = \overline{\tau}[\overline{\sigma'}/\overline{\beta}] \\ \Delta \Vdash \overline{Q}[\overline{\sigma'}/\overline{\beta}] \quad \Delta; \Gamma \vdash f\texttt{<}\overline{\theta}\texttt{>} : b_f \text{ for each read at a part } \overline{\theta} \text{ that the entry makes} \quad b_f \text{ the atom of } f \end{array}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>} : b_f}
+\\[18pt]
+\textsc{(T-Iter)} & \dfrac{\Delta; \Gamma \vdash e_n : \texttt{size\_t} \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma, s : \sigma, i : \texttt{size\_t} \vdash f\texttt{(}s\texttt{, }i\texttt{)} : \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{ranges::fold\_left(views::iota(0uz, }e_n\texttt{), }a\texttt{, }f\texttt{)} : \sigma}
 \\[12pt]
-\textsc{(T-Unit)} & \dfrac{\tau \text{ a type variable, or an associated type read at one, in } \Delta \quad \tau\texttt{\{\}} \text{ the callee of a required call}^{\S}}{\Delta; \Gamma \vdash \tau\texttt{\{\}} : \tau}
-\\[12pt]
-\textsc{(T-Iter)} & \dfrac{\Delta; \Gamma \vdash e_n : \texttt{size\_t} \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma, s : \sigma, i : \texttt{size\_t} \vdash f\texttt{(}s\texttt{, }i\texttt{)} : \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{ranges::fold\_left(views::iota(}c\texttt{, }e_n\texttt{), }a\texttt{, }f\texttt{)} : \sigma}
+\textsc{(T-Iter-Run)} & \dfrac{0 < k \le n \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma, s : \sigma, i : \texttt{size\_t} \vdash f\texttt{(}s\texttt{, }i\texttt{)} : \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{ranges::fold\_left(views::iota(}c_k\texttt{, }c_n\texttt{), }a\texttt{, }f\texttt{)} : \sigma}
 \end{array}
 \]
-\caption{The rules for terms, $\Delta; \Gamma \vdash e : \tau$: calls, reads, the one value of a function object, and iteration.
+\caption{The rules for terms, $\Delta; \Gamma \vdash e : \tau$: calls, reads and iteration.
 $^{\ast}$~The standard's signature of the function object, at atoms, or the signature declared for an arrow supplied with a carrier (Section~\ref{sec:kernel:fjlt}).
-$^{\S}$~In the expression of a required call of a shape, $\texttt{\{ }\tau\texttt{\{\}(}\overline{e}\texttt{) \} -> same\_as<}\sigma\texttt{>}$, and nowhere else (Table~\ref{tab:excluded}).
-$^{\P}$~$s$ and $i$ fresh; in a program $c$ is \texttt{0uz}, and in a term that evaluation reaches it is a constant no larger than the value of $e_n$.
+$^{\P}$~$s$ and $i$ fresh.
+\textsc{T-Iter-Run} types the iterations that evaluation reaches and a program does not write, $c_k$ the constant of \texttt{size\_t} whose value is $k$ (Figure~\ref{fig:fjlt-eval}).
 Omitted as textbook~\cite[Chapters~8, 9 and~11]{pierce2002tapl}: \textsc{T-Var}, \textsc{T-Construct}, \textsc{T-Field}, and the rules for pairs, conditionals and the operators of the atoms.}
 \label{fig:fjlt-typing}
 \end{figure}
 
 \paragraph{The one value of a function object.}
 A function object without fields has one value, and at a type variable the kernel writes it $\alpha\texttt{\{\}}$, as \cppinline{E{}} and \cppinline{op_t<E>{}} in Listing~\ref{lst:motivation}.
-\textsc{T-Unit} types it only as the callee of a required call, in the requirement that declares the call: \cppinline{{ op_t<E>{}(a, b) } -> same_as<carrier_t<E>>} in \cppinline{IsMagma}.
-In a body, such a term stands only inside a call that matches the requirement, which \textsc{T-Req-Assumed} types as a whole, at the declared type.
-So a value of a type variable is never built on its own, and the call it makes is one the shape names.
+It stands only as the callee of a required call: in the requirement that declares the call, \cppinline{{ op_t<E>{}(a, b) } -> same_as<carrier_t<E>>} in \cppinline{IsMagma}, and in a body inside a call that matches the requirement, which \textsc{T-Req-Assumed} types as a whole, at the declared type.
+No rule types $\alpha\texttt{\{\}}$ on its own, so a value of a type variable is never built on its own, and the call it makes is one the shape names.
 At concrete types $\alpha\texttt{\{\}}$ is a construction of the declared type that stands for $\alpha$, typed by \textsc{T-Construct}, and its call is typed by \textsc{T-App} or \textsc{T-Op}.
+% DECISION: T-Unit removed (no complete derivation used it) and shapes assumed
+% well formed, rather than adding D-Shape with a rule for a call whose callee
+% is a value of a type variable: that rule would only restate the requirement.
+The requirement that declares the call is not typed by a rule either: there is no rule $\vdash D$ for a shape, and shapes are assumed well formed, the names they use declared above them (\emph{The order of declarations}, below), each law a term of type \cppinline{bool} at concrete types, and each required call typed, at concrete types, where \textsc{E-Shape} asks for it, by \textsc{E-Op}'s premise.
 
 \paragraph{Iteration.}
 \textsc{T-Iter} is the kernel's one recursion over a value, the fold of Equation~\eqref{eq:fold} over the counts below $e_n$.
 Its count is a value of \cppinline{size_t}, fixed before the first step, and its step is a call of $f$ on the state and the index, typed by whichever rule types that call: \textsc{T-App}, \textsc{T-Op}, or, at a type variable, \textsc{T-Req-Assumed}.
+A program writes an iteration from \texttt{0uz}; \textsc{T-Iter-Run} types the iterations that evaluation reaches from it, whose lower bound is a constant $c_k$ no larger than the bound $c_n$, so that $k \le n$ is a typing invariant, which Lemmas~\ref{lem:subject} and~\ref{lem:progress} use.
 In \cppinline{power} of Listing~\ref{lst:power} the count is the number of bits of $n$ and the step a value of \cppinline{Squaring<E>}.
+\cppinline{ranges::fold_left} asks more of its state and its step than \textsc{T-Iter}'s premises say: that the state's type be movable and assignable from the step's result, and that the step be copy constructible~\cite[{\texttt{alg.fold}}]{cpp23standard}.
+\textsc{T-Iter} leaves these out because \cppinline{copyable} holds at every type of the kernel (\emph{Entailment and laws}, above), which gives all three where the premises hold, the step's result being of the state's type.
 A range of any other kind, as an array, a repetition or a view of one, is a derived form, read as its length and the function that reads it (Table~\ref{tab:derived}).
 
 \paragraph{Parts.}
@@ -125,7 +150,9 @@ An atom, a type variable and a type of no arguments, such as \cppinline{All}, ha
 \paragraph{Overload resolution.}
 A call $f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)}$ of a generic function \emph{resolves} at concrete types to one declaration of $f$, by \Cpp{}'s overload resolution~\cite[{\texttt{over.match}}]{cpp23standard}.
 It considers the generic functions of that name whose head matches and whose context is entailed.
-It takes the most specific: more specialised by head~\cite[{\texttt{temp.func.order}}]{cpp23standard}, then more constrained by context~\cite[{\texttt{temp.constr.order}}]{cpp23standard}.
+It takes the best viable candidate~\cite[{\texttt{over.match.best}}]{cpp23standard}, ranked first by the implicit conversion sequences of the arguments.
+Where these do not decide, it takes the template more specialised by head~\cite[{\texttt{temp.func.order}}]{cpp23standard}, and only between two templates whose template parameter lists and function parameter types are equivalent the more constrained by context~\cite[{\texttt{temp.func.order}}, {\texttt{temp.constr.order}}]{cpp23standard}; constraints are no general tiebreak after the heads.
+In the kernel no argument converts, an implicit conversion being a derived form (Table~\ref{tab:derived}), so every candidate's conversion sequences are identities and the first ranking decides nothing; the two cases of \cppinline{power} in Listing~\ref{lst:power} have one head and are ordered by their constraints.
 At concrete types \Cpp{} makes resolution a function: a call with no unique most specific candidate is ambiguous~\cite[{\texttt{over.match.best}}]{cpp23standard}.
 
 \paragraph{Reading a trait.}
@@ -157,7 +184,8 @@ Figure~\ref{fig:fjlt-assoc} gives its rules.
 Where no entry matches, the default names no type and the read is ill formed, which is how \cppinline{IsMagma} fails at a type that has no entry of \cppinline{op_of}.
 \textsc{Eq-Assoc} makes the read equal to the type its entry names.
 At a type variable the read names a type that nothing resolves, and the kernel admits it only among the types of a declaration: in its head, its constraints, the types of its parameters, its fields and its result, and the requirements of the shapes it assumes (Table~\ref{tab:excluded}).
-$\Delta$ holds each such read, and there it is equal to itself and to what an assumed \cppinline{same_as} makes it, and to nothing else.
+$\Delta$ holds each such read, and there it is equal to itself and to what an assumed \cppinline{same_as} makes it, with what follows from that by congruence, and to nothing else.
+A read that a body does not write but that its derivation reaches, as the result type of a call instantiated at the declaration's type variables, is not refused, since it is not written, and $\Delta$ holds it too (the context, above).
 So a body may hold a value of \cppinline{op_t<E>} and call it as \cppinline{IsMagma} requires, and it cannot choose a case by it, since no rule resolves it there.
 An entry is a definition, not a claim: it names a type, and there is nothing for it to be false of.
 
@@ -323,6 +351,7 @@ More than one assumed requirement may match.
 The rules then take the leftmost shape of the \cppinline{requires} clause and, within it, the first matching requirement in declaration order, so both rules are functions of the body.
 Once instantiated, the candidates denote one operation, by Lemma~\ref{lem:resolve}.
 The step of an iteration is typed through its call, $f\texttt{(}s\texttt{, }i\texttt{)}$ in \textsc{T-Iter}, by \textsc{T-App}, \textsc{T-Op} or, at a type variable, \textsc{T-Req-Assumed}.
+\textsc{T-Call} and \textsc{T-Trait} have as premises the entailments of the context of the declaration chosen, whose records the image passes (Appendix~\ref{app:fjlt:translation}); the entailments that resolution checks of the candidates it rejects are not premises, since the image uses none of them, and they end by the well-founded relation below.
 
 \paragraph{The order of declarations.}
 \label{app:fjlt:order}
@@ -362,6 +391,7 @@ named type, also & the named types in its field, parameter and result types \\
 \end{center}
 The relation is on instantiations, not on bare declarations, and no single measure is given here: well-formedness asks for its well-foundedness outright.
 Resolution, entailment, \textsc{E-Not}'s negative premise and \textsc{E-Law}'s evaluation all recurse along it, so its being well founded makes the rules define one relation and resolution terminate.
+The mutual induction of Lemma~\ref{lem:dict} and Theorem~\ref{thm:preservation} is on it too, and then on the size of a derivation.
 \Cpp{} has a rule of its own for a satisfaction that depends on itself, which the condition makes unnecessary.
 
 Two syntactic conditions approximate it, one per kind of entry head, and the repository's linter checks the second; they do not imply it.
@@ -381,10 +411,11 @@ The rules above are the kernel's.
 Two more type Jlt programs before their derived forms are rewritten, and the linter's table of archetypes names them (Table~\ref{tab:archetype-rules}); no result of Appendix~\ref{app:fjlt:theorems} uses them.
 \[
 \begin{array}{@{}l@{\quad}l@{}}
-\textsc{(E-Range)} & \dfrac{R \text{ a range of Table~\ref{tab:derived}, finite, its size known before the first step} \quad \texttt{sized\_range<}R\texttt{>} \notin \Delta}{\Delta \Vdash \texttt{sized\_range<}R\texttt{>}}
+\textsc{(E-Range)} & \dfrac{R \text{ a range of Table~\ref{tab:derived}} \quad \texttt{ranges::size(r)} \text{ valid for } \texttt{r} \text{ of type } R \quad \texttt{sized\_range<}R\texttt{>} \notin \Delta}{\Delta \Vdash \texttt{sized\_range<}R\texttt{>}}
 \\[14pt]
 \textsc{(T-Conv)} & \dfrac{\Delta; \Gamma \vdash e : \tau' \quad \texttt{\{ }e\texttt{ \} -> convertible\_to<}\tau\texttt{>} \text{ required} \quad e \text{ used at } \tau \text{ only}}{\Delta; \Gamma \vdash e : \tau}
 \end{array}
 \]
 \textsc{E-Range} admits a range where Table~\ref{tab:derived} reads it as its length and the function that reads it, and \cppinline{ranges::fold_left} over it then rewrites to \textsc{T-Iter} over that length.
+Its premise is the standard's own, that \cppinline{ranges::size(r)} be valid~\cite[{\texttt{range.sized}}]{cpp23standard}: a range that is finite but has no size, as a filtered view, is not entailed \cppinline{sized_range}, though its length is known once it has been walked.
 \textsc{T-Conv} admits a result required only to convert where Table~\ref{tab:derived}'s row for \cppinline{convertible_to} rewrites it, the call copy-initialising a $\tau$, after which the result is of type $\tau$; a body that used the unconverted result, say to compare two of them at their own type, would use an operation the constraint did not name, which \Cpp{} accepts and the linter reports where it can see it.
