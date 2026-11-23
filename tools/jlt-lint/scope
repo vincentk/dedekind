@@ -1000,8 +1000,8 @@ admitted                     src/main/modules/dedekind/category/natural.cppm  ca
 undecided-by-type            src/main/modules/dedekind/category/nno.cppm  category  3
 admitted                     src/main/modules/dedekind/category/nno.cppm  category  2
 undecided-by-type            src/main/modules/dedekind/category/numeric.cppm  category  9
-undecided-by-type            src/main/modules/dedekind/category/periodic.cppm  category  75
-admitted                     src/main/modules/dedekind/category/periodic.cppm  category  27
+undecided-by-type            src/main/modules/dedekind/category/periodic.cppm  category  76
+admitted                     src/main/modules/dedekind/category/periodic.cppm  category  26
 undecided-by-type            src/main/modules/dedekind/category/posetal.cppm  category  4
 undecided-by-type            src/main/modules/dedekind/category/pullback.cppm  category  3
 undecided-by-type            src/main/modules/dedekind/category/runs.cppm  category  11
