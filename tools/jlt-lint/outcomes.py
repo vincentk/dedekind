@@ -21,18 +21,27 @@ def main():
     out = subprocess.run(args, capture_output=True, text=True).stdout
     got = []
     for l in out.splitlines():
-        m = re.match(r".*?:(\d+):\d+: (\S+) (admitted by type|not admitted|undecided)", l)
+        m = re.match(r".*?:(\d+):\d+: (\S+) (admitted by type|not admitted|undecided)(?:: (.*))?", l)
         if m:
-            got.append((int(m[1]), m[2], m[3].replace(" by type", "")))
-    got = [(n, k) for _, n, k in sorted(got)]
-    want = []
+            got.append((int(m[1]), m[2], m[3].replace(" by type", ""), m[4] or ""))
+    got.sort()
+    want, reasons = [], []
     for l in fixture.with_suffix(".expected").read_text().splitlines():
         if l.strip() and not l.startswith("#"):
-            name, kind = l.split(" ", 1)
-            want.append((name, kind))
-    if got != want:
-        sys.exit(f"outcomes.py: {fixture.name}\n  expected {want}\n  got      {got}")
-    print(f"outcomes.py: {fixture.name}: {len(got)} outcomes as expected")
+            # "name outcome" or "name outcome | words the reason must contain"
+            head, _, reason = l.partition(" | ")
+            name, kind = head.split(" ", 1)
+            want.append((name, kind.strip()))
+            reasons.append(reason.strip())
+    pairs = [(n, k) for _, n, k, _ in got]
+    if pairs != want:
+        sys.exit(f"outcomes.py: {fixture.name}\n  expected {want}\n  got      {pairs}")
+    wrong = [(n, r, why) for (_, n, _, why), r in zip(got, reasons) if r and r not in why]
+    if wrong:
+        sys.exit(f"outcomes.py: {fixture.name}: a right outcome for a wrong reason\n" +
+                 "\n".join(f"  {n}: wanted '{r}', got '{why}'" for n, r, why in wrong))
+    checked = sum(1 for r in reasons if r)
+    print(f"outcomes.py: {fixture.name}: {len(got)} outcomes as expected, {checked} with their reasons")
 
 
 if __name__ == "__main__":

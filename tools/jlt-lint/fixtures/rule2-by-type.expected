@@ -1,34 +1,36 @@
 # The outcome of every template in rule2-by-type.cpp, in source order: the
 # gate in scope counts findings, and a not-admitted that turned undecided
-# would keep the count (it did once); outcomes.py compares these.
+# would keep the count (it did once); outcomes.py compares these.  After
+# " | ", words the reason must contain: a right outcome for a wrong reason
+# fails too.
 twice admitted
-doubled not admitted
-either undecided
-applied undecided
+doubled not admitted | invalid operands
+either undecided | a disjunction
+applied undecided | without a result type
 counted not admitted
-branching undecided
-pick undecided
+branching undecided | if constexpr
+pick undecided | resolved to another overload
 pick admitted
 swapped admitted
-commuted not admitted
+commuted not admitted | the result type Commuted asks more
 thrice admitted
-nested not admitted
+nested not admitted | convertible_to<T> used other than
 kept not admitted
-summed not admitted
+summed not admitted | narrowed
 cast_sum admitted
-boxed not admitted
-zeros not admitted
-listed undecided
+boxed not admitted | convertible_to<T> used other than
+zeros not admitted | countr_zero
+listed undecided | resolved to another overload
 listed admitted
-moved not admitted
-smaller undecided
+moved not admitted | convertible_to<T> used other than
+smaller undecided | several integer parameters
 same_through admitted
-twice_strict undecided
-via_strict undecided
+twice_strict undecided | UnaryOperator
+via_strict undecided | negated constraint
 fresh admitted
-fresh_copyable not admitted
-branched not admitted
-compared not admitted
+fresh_copyable not admitted | deleted constructor
+branched not admitted | convertible_to<T> used other than
+compared not admitted | convertible_to<T> used other than
 applied_once admitted
 wide admitted
 either_value admitted
