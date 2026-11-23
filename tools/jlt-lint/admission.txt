@@ -57,8 +57,11 @@ Type:DependentName kernel
 Type:Decltype kernel
 
 # ---- derived forms
-Decl:TypeAlias kernel
-Decl:TypeAliasTemplate kernel
+# an alias, its declaration and a use of an alias template of the program
+# (Table 7: the standard defines it as the type it stands for, [temp.alias])
+Decl:TypeAlias derived
+Decl:TypeAliasTemplate derived
+Type:AliasTemplateSpecialization derived
 Type:Typedef scaffolding
 Type:Using scaffolding
 Type:Auto derived

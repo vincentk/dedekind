@@ -408,6 +408,21 @@ bool inStd(const clang::Decl* d) {
   return false;
 }
 
+/// The kind of a written type, as admission.txt classes it.  A use of an alias
+/// template of the program, op_t<E>, is a kind of its own: Table 7's alias,
+/// a derived form the standard defines as the type it stands for
+/// ([temp.alias]).  The standard's own, range_value_t, is a read the kernel
+/// is given, and stays a template specialization.
+std::string typeKind(clang::TypeLoc tl) {
+  if (const auto* ts =
+          llvm::dyn_cast<clang::TemplateSpecializationType>(tl.getTypePtr()))
+    if (ts->isTypeAlias())
+      if (const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl();
+          td && !inStd(td))
+        return "Type:AliasTemplateSpecialization";
+  return std::string("Type:") + tl.getType()->getTypeClassName();
+}
+
 /// The vocabulary a template's constraints grant: every name a requirement
 /// mentions, the constraints followed through their concepts, plus the
 /// standard permissions.  `opaque` when a constraint could not be read.
@@ -2021,7 +2036,7 @@ class Inventory : public clang::ASTConsumer,
   }
   bool VisitTypeLoc(clang::TypeLoc tl) {
     if (inside && !tl.isNull())
-      ++counts[std::string("Type:") + tl.getType()->getTypeClassName()];
+      ++counts[typeKind(tl)];
     return true;
   }
 
@@ -3553,7 +3568,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   }
   bool VisitTypeLoc(clang::TypeLoc tl) {
     if (!tl.isNull())
-      kinds.insert(std::string("Type:") + tl.getType()->getTypeClassName());
+      kinds.insert(typeKind(tl));
     return true;
   }
 };

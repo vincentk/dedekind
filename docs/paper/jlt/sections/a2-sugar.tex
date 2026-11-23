@@ -23,7 +23,7 @@ A pointer that is never null and never compared with a pointer into another obje
 derived form & read as & condition \\
 \midrule
 a constrained template parameter, \texttt{template <C T>} & \texttt{template <typename T> requires C<T>} & none \\
-an alias, \texttt{using S = T;} & \texttt{T} & none \\
+an alias, \texttt{using S = T;}, and a use of an alias template, \texttt{op\_t<E>} & \texttt{T}, and the type it stands for, \texttt{op\_of<E>::type} & none: the standard defines it as that type~\cite[\texttt{temp.alias}]{cpp23standard} \\
 a braced \texttt{return \{a, b\};} & the record built from \texttt{a} and \texttt{b} & none \\
 two fields in one declaration & two declarations & none \\
 \texttt{static\_assert(e)} & the observation of the truth value \texttt{e} & none \\
