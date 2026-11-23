@@ -137,8 +137,8 @@ Cast:integer kernel
 # constrained) is its closure class; a counted for and a range-for over a
 # sized range are a fold; an assignment and ++ on a local are the fold's
 # state (runST: the local never leaves the call; Rule 1's deny-rules close
-# every channel).  The deny-rule rule3-no-loops still refuses every loop until
-# the linter recognises the counted shape, and the deny-rules win.
+# every channel).  The deny-rule rule3-no-loops recognises the counted shape
+# and refuses the rest.
 # Decided 2026-11-22, to be counted with the library run: an implicit
 # conversion between atoms (int to bool, bool promoted to int) and a result
 # required only convertible_to<T> are a derived form, the call followed by
