@@ -17,13 +17,13 @@ The repository of this paper has such a tool, a linter built on Clang's own libr
 It reads a source file as the compiler does and applies a set of rules to a named part of it.
 A rule either refuses the file or reports what it found.
 For the first rule it checks, among others, that functions are \cppinline{constexpr}, that call operators are \cppinline{const}, that nothing is thrown and that no mutable state is global.
-For the second it checks that a template is constrained and that a generic body calls on its type parameters only what its constraints name, by the names of the calls.
+For the second it checks that a template is constrained, that a generic body calls on its type parameters only what its constraints name, by the names of the calls, and that the body observes no type except through a shape.
 For the third it checks that there is no loop without a stated end and no function that calls itself.
 
 It also prints a list.
 Every entry of a trait at one type whose value is \cppinline{true} is an axiom, and the tool lists them with their places, for a file or for a whole library.
-A conditional law, an entry at a form, is taken on trust in the same way and is not yet on the list.
-The build compares that list with one that is kept under version control, so an axiom cannot be added without the change being seen.
+A conditional law, an entry at a form or one whose value is computed, is taken on trust in the same way and is on a second list; only the laws the compiler derives from them at a use are on none.
+The build compares both lists with ones kept under version control, so a law cannot be added without the change being seen.
 
 \paragraph{The linter is a check, not a proof.}
 The repository's linter, run in continuous integration on the compiler's own front end and documented there, checks Rule~3 for every instantiated body, Rule~1's syntactic part, and Rule~2 at the level of names: a body may use, on a value of parameter type, only what a declared constraint names.
@@ -85,7 +85,7 @@ Its free theorem holds of the code the compiler builds, given in addition that i
 And for those in FJlt, the program as written is a term of the grammar of Figure~\ref{fig:fjlt-syntax}, whose image in System~F is the image of Table~\ref{tab:image}, with no derived form in between whose rewrite would have to be trusted.
 % STATUS: the second stage runs in CI on the four listings, its fixtures and
 % the category layer of the library; the other layers are to follow.
-The second stage also runs on the library's base layer, the one every other layer imports.
-Every count there is pinned per file in continuous integration, so that no file's counts move unseen.
-It admits a minority of the layer's function templates and refuses none, a count its gates hold: the definitions it refused, whose signatures promised less than their bodies or results used, have been fixed (Appendix~\ref{app:lint:admit}).
+The second stage also runs on the library.
+Every count is pinned per file in continuous integration and held by a ratchet: the share admitted can only grow, and a refusal cannot stay.
+It admits a minority of the library's function templates and refuses none, a count its gates hold: the definitions it refused, whose signatures promised less than their bodies or results used, have been fixed (Appendix~\ref{app:lint:admit}).
 Elsewhere, and for the definitions it leaves undecided, the first clause of this paper's promise rests on the deny-rules, the programmer and a reviewer.

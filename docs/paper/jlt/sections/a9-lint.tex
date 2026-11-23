@@ -114,8 +114,8 @@ It parses that with the file's own compile command, so that the compiler instant
 An error in the template's body means that the body uses something its signature did not promise, or uses it at other types.
 
 \paragraph{On the library.}
-The second stage also runs on the library's base layer, the one every other imports, in continuous integration, every count pinned per file so that no file's counts move unseen; the current counts are those gates, in the repository's \texttt{tools/jlt-lint/scope}, and the report of every build.
-It admits a minority of the layer's function templates and refuses none, a count its gates hold, since every definition it refused has been fixed.
+The second stage also runs on the library, in continuous integration, every count pinned per file and held by a ratchet, under which the share admitted can only grow and a refusal cannot stay; the current counts are those gates, in the repository's \texttt{tools/jlt-lint/scope}, and the report of every build.
+It admits a minority of the library's function templates and refuses none, a count its gates hold, since every definition it refused has been fixed.
 Those refusals were all of one kind: a helper or a factory whose constraints were weaker than what its body or its result type used.
 Three helpers of a periodic fold piped an arrow into a chain without stating that its domain is the counts; \cppinline{until}, \cppinline{unfold} and \cppinline{chain} returned class templates whose constraints their own did not imply; and a reduction concatenated two arrows without stating that they compose.
 Each was fixed by stating the constraint, twice by naming it once as a concept that the class and its factory share.
@@ -139,6 +139,6 @@ In \Cpp{} it is a conjecture, tested on the definitions of the listings and on o
 The Palo Alto report asked the same of a concept design for the standard library: the overload a body uses must be the one resolved when its concept is checked, conversions included~\cite[\S 3.3]{stroustrup2012concept}.
 
 The linter reports every definition with one of three outcomes: refused, with the rule and the line; admitted; or undecided, with the requirement that stopped the check.
-Beside them it reports what the program takes on trust as far as the ledger reaches today: its axioms, the entries of a law at one type; its conditional laws, and the laws the compiler derives from them, are yet to be listed.
-That report is read as a matter of principle: an agentic reviewer reads it with every change against the three rules, and every pull request is reviewed again before it is merged.
+Beside them it reports what the program takes on trust, in two ledgers under version control: its axioms, the entries of a law at one type, and its conditional laws, the entries at a form or computed; the laws the compiler derives from them at a use are yet to be listed.
+That report is read as a matter of principle: an agentic reviewer reads it with every change against the three rules, as the repository's review instructions ask, judging each added law true, needed and stated once, and every pull request is reviewed again before it is merged.
 A reviewer with little context but this report can audit a whole code base, during development and after it: what is refused is a list of witnesses, what is admitted needs no reading of its body against its signature, and what remains to be read is the undecided definitions and the list of what is trusted.

@@ -75,8 +75,9 @@ It does not hold a generic function to its declared constraints: the body may us
 %     in part (context-order, bare heads); the rest is a TODO of the linter.
 %   - Section 3.3, the three results about the target: stated from the agreed
 %     model, not yet checked against a written-out kernel.
-%   - "what was taken on trust comes out as a list": true for entries at one
-%     type.  Conditional laws and units named at a use are not listed.
+%   - "what was taken on trust comes out as a list": true for axioms and
+%     conditional laws (axioms.txt, laws.txt, #1213).  The laws the compiler
+%     derives from them at a use, and units named at a use, are not listed.
 Under the rules of this paper and a check that a tool performs, some templates can then be classified as meaning what their signatures say, a declared law licenses a faster program, and the compiler carries laws through composition.
 What was taken on trust comes out as a list.
 
