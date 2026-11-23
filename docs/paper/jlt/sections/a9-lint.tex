@@ -85,9 +85,9 @@ requirement & rules & archetype \\
 \midrule
 \multicolumn{3}{@{}l}{\emph{Kernel: the requirements $A$ of a shape (Figure~\ref{fig:fjlt-syntax})}} \\
 $Q$: \texttt{copyable<T>}, \texttt{equality\_comparable<T>} & \textsc{E-Assume}; \texttt{==} by \textsc{T-Req-Assumed} / --- & \texttt{carrier}, \texttt{comparable\_carrier} \\
-$Q$: \texttt{same\_as<T, U>} & --- / --- & unnamed \\
+$Q$: \texttt{same\_as<T, U>} & solved / \textsc{E-Same} & unnamed \\
 $e$: \texttt{unital<E>} & \textsc{E-Law-Assumed} / \textsc{E-Law} & unnamed \\
-call: \texttt{E\{\}()} & --- / --- & \texttt{nullary<C>} \\
+call: \texttt{E\{\}()} & \textsc{T-Unit}, \textsc{T-Req-Assumed} / \textsc{E-Op} & \texttt{nullary<C>} \\
 call: \texttt{op\_t<E>\{\}(a, b)} & \textsc{T-Req-Assumed} / \textsc{E-Op} & \texttt{binary<C>} \\
 call: \texttt{f(x)} & \textsc{T-Req-Assumed} / \textsc{E-Op} & \texttt{arrow<A, B>} \\
 call: \texttt{f<T>(x)} & \textsc{T-Req-Assumed} / \textsc{E-Op}, \textsc{T-Call} & none \\
@@ -104,7 +104,7 @@ a parameter \texttt{const Compose<F, G>\&} & RFC~2089 & unnamed \\
 \end{tabularx}
 \caption{The rules by which the linter builds archetypes, one for each kind of requirement in a shape, in two groups: the kernel's requirements, and those of Jlt.
 For a requirement of the kernel the middle column names the rule of Appendices~\ref{app:fjlt:typing} and~\ref{app:fjlt:translation} by which a generic body reaches it at its type variables, and the rule by which it is entailed at the archetypes; for one of Jlt it names the row of Table~\ref{tab:derived} or the source it follows.
-An archetype is named as in the linter's header, \texttt{tools/jlt-lint/archetypes.hpp}, namespace \texttt{jlt::archetype}; ``unnamed'' marks a rule of the generator that builds no named type, and --- a requirement for which Appendix~\ref{app:fjlt:typing} has no rule yet.}
+An archetype is named as in the linter's header, \texttt{tools/jlt-lint/archetypes.hpp}, namespace \texttt{jlt::archetype}; ``unnamed'' marks a rule of the generator that builds no named type, and --- a requirement that Appendix~\ref{app:fjlt:typing} leaves to Jlt.}
 \label{tab:archetype-rules}
 \end{table}
 

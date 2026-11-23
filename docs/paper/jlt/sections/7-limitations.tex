@@ -26,8 +26,6 @@ All three can be checked by a tool that sees each declaration with its place, as
 % and across files by location (an entry in the file or module of its trait or
 % of a type in its head).  See tools/jlt-lint/README.md.
 Such a check would be conservative, refusing some programs that keep the conditions, and across files it would ask that an entry stand in the file or module of its trait or of a type in its head.
-Nor does it check the guard of Appendix~\ref{app:fjlt:typing}, that the head of a range or the content of an optional is read only in the branch its guard selects and on the variable the guard tests.
-\Cpp{} does not check it either: outside constant evaluation, reading the head of an empty range or the content of an empty optional is undefined behaviour.
 Nor does anything check that a program's declarations are well founded: the linter checks one of two syntactic conditions that approximate it (Appendix~\ref{app:fjlt:order}).
 The repository lists these unchecked conditions beside the linter's rules.
 
