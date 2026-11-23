@@ -1009,7 +1009,7 @@ rule2-by-type                src/main/modules/dedekind/topology/[!t]*.cppm  topo
 undecided-by-type            src/main/modules/dedekind/topology/[!t]*.cppm  topology  0
 admitted                     src/main/modules/dedekind/topology/[!t]*.cppm  topology  0
 rule2-by-type                src/main/modules/dedekind/sequences/convergence.cppm  sequences  0
-admitted                     src/main/modules/dedekind/sequences/convergence.cppm  sequences  10
+admitted                     src/main/modules/dedekind/sequences/convergence.cppm  sequences  9
 rule2-by-type                src/main/modules/dedekind/sequences/curve.cppm  sequences  0
 undecided-by-type            src/main/modules/dedekind/sequences/curve.cppm  sequences  0
 admitted                     src/main/modules/dedekind/sequences/curve.cppm  sequences  0
@@ -1143,7 +1143,7 @@ undecided-by-type            src/main/modules/dedekind/category/involution.cppm 
 undecided-by-type            src/main/modules/dedekind/category/iso.cppm  category  1
 undecided-by-type            src/main/modules/dedekind/category/kleisli.cppm  category  8
 undecided-by-type            src/main/modules/dedekind/category/lattice.cppm  category  13
-undecided-by-type            src/main/modules/dedekind/category/limit.cppm  category  3
+undecided-by-type            src/main/modules/dedekind/category/limit.cppm  category  4
 undecided-by-type            src/main/modules/dedekind/category/logic.cppm  category  5
 undecided-by-type            src/main/modules/dedekind/category/mereology.cppm  category  11
 undecided-by-type            src/main/modules/dedekind/category/morphism.cppm  category  14
@@ -1192,7 +1192,7 @@ undecided-by-type            src/main/modules/dedekind/relational/dyadic.cppm  r
 undecided-by-type            src/main/modules/dedekind/relational/graph.cppm  relational  10
 undecided-by-type            src/main/modules/dedekind/relational/rows.cppm  relational  2
 undecided-by-type            src/main/modules/dedekind/relational/tables.cppm  relational  6
-undecided-by-type            src/main/modules/dedekind/sequences/convergence.cppm  sequences  1
+undecided-by-type            src/main/modules/dedekind/sequences/convergence.cppm  sequences  2
 undecided-by-type            src/main/modules/dedekind/sequences/limits.cppm  sequences  1
 undecided-by-type            src/main/modules/dedekind/sequences/path.cppm  sequences  15
 undecided-by-type            src/main/modules/dedekind/sequences/pst.cppm  sequences  2
@@ -1210,7 +1210,7 @@ undecided-by-type            src/main/modules/dedekind/sets/recursion.cppm  sets
 undecided-by-type            src/main/modules/dedekind/sets/singleton.cppm  sets  14
 undecided-by-type            src/main/modules/dedekind/sets/terms.cppm  sets  20
 undecided-by-type            src/main/modules/dedekind/topology/neighborhood.cppm  topology  5
-admitted                     src/main/modules/dedekind/category/limit.cppm  category  1
+admitted                     src/main/modules/dedekind/category/limit.cppm  category  0
 admitted                     src/main/modules/dedekind/analysis/hamilton.cppm  analysis  4
 admitted                     src/main/modules/dedekind/geometry/affine.cppm  geometry  1
 admitted                     src/main/modules/dedekind/geometry/linear_map.cppm  geometry  1
