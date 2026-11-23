@@ -2661,6 +2661,31 @@ static_assert(free_theorem<Concat, Sum>(Size{}, std::array{"ab"s, ""s, "c"s}) &&
               free_theorem<Concat, Any>(NonEmpty{}, std::array{""s, "ab"s}));
 }  // namespace paper_listings
 
+// The printed listings, called again outside constant evaluation (the
+// paper's Contributions): the same functions the static_asserts above
+// evaluate at compile time, on values the test holds in plain locals.
+TEST_CASE("Jlt paper: the printed listings at run time", "[jlt][listings]") {
+  using namespace paper_listings;
+  std::size_t two = 2, ten = 10, five = 5, three = 3, seven = 7;
+  // Listing 1: one fold, three monoids.
+  CHECK(concat<Sum>(std::array{1uz, two, three}) == 6);
+  CHECK(concat<Concat>(std::array{"ab"s, "c"s}) == "abc"s);
+  CHECK(concat<All>(std::array{true, false}) == false);
+  // Listing 2: the power, by squaring, and its idempotent case.
+  CHECK(power<Sum>(two, ten) == 20);
+  CHECK(power<Product>(two, ten) == 1024);
+  CHECK(power<Concat>("ab"s, three) == "ababab"s);
+  CHECK(power<Xor>(five, three) == 5);
+  CHECK(power<Max>(seven, ten) == 7);
+  // Listing 3: the guess and the named case.
+  CHECK(guessed_power<Sum>(two, ten) == 20);
+  CHECK(guessed_power<Sum2>(two, ten) == 2);
+  CHECK(named_power<Sum>(two, ten) == 20);
+  // Listing 4: the free theorem.
+  CHECK(free_theorem<Concat, Sum>(Size{}, std::array{"ab"s, ""s, "c"s}));
+  CHECK(free_theorem<Concat, Any>(NonEmpty{}, std::array{""s, "ab"s}));
+}
+
 TEST_CASE("Spelling probe: a law as a function and as a table",
           "[category][jlt][spelling][probe]") {
   using namespace spelling_probe;
