@@ -97,7 +97,7 @@ call: \texttt{f<T>(x)} & \textsc{T-Req-Assumed} / \textsc{E-Op}, \textsc{T-Call}
 \texttt{-> convertible\_to<T>} & \texttt{convertible\_to}; \textsc{T-Conv} & \texttt{converts\_to<T>} \\
 \texttt{movable<T>}, \texttt{destructible<T>} & Rule~1: copyable data & \texttt{carrier} \\
 \texttt{semiregular<T>}, \texttt{regular<T>} & local state; N3351 & \texttt{semiregular\_carrier}, \texttt{regular\_carrier} \\
-\texttt{integral<N>} & atoms $b$ & \texttt{every\_integer} \\
+\texttt{integral<N>}, \texttt{floating\_point<N>} & atoms $b$ & \texttt{every\_arithmetic} \\
 \texttt{F::Domain}, \texttt{Presents<F::Codomain>} & member call; as \texttt{convertible\_to} & unnamed, its result \texttt{converts\_to} \\
 a parameter \texttt{const Compose<F, G>\&} & RFC~2089 & unnamed \\
 \bottomrule

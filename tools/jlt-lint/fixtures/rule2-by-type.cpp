@@ -298,4 +298,16 @@ constexpr carrier_t<E> either_value(const Either<E>& e) {
   return e.v;
 }
 
+// 12. A floating-point parameter, checked at float, double and long double.
+template <std::floating_point F>
+constexpr F halved(F x) {
+  return x / 2;
+}
+// Finding 18: not admitted, std::bit_cast<int> compiles at float, not at
+// double: the types beyond the first one admitted are checked too.
+template <std::floating_point F>
+constexpr int as_int(F x) {
+  return std::bit_cast<int>(x);
+}
+
 }  // namespace jlt_listing

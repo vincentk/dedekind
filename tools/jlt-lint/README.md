@@ -144,7 +144,7 @@ with the reason.
   `regular_carrier`), `nullary<C>`, `binary<C, R>`, `arrow<A, B>`,
   `sized_range_of<C>`, `input_range_of<C>`, `converts_to<T>` (a result only
   `convertible_to<T>`, converted from the fresh value only), and the integer
-  probes (`every_integer`, `smallest_integer`, `largest_integer`).  Its
+  probes (`every_arithmetic`, `smallest_integer`, `largest_integer`).  Its
   `static_assert`s are its self-check.
 - The generator's rules, one per kind of requirement, are the paper's Table 13
   (Appendix G.1), in `tool/jlt_lint.cpp` (`readConstraint`, `readRequires`,

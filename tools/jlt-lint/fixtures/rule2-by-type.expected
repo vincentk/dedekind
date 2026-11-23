@@ -34,3 +34,5 @@ compared not admitted | convertible_to<T> used other than
 applied_once admitted
 wide admitted
 either_value admitted
+halved admitted
+as_int not admitted | bit_cast

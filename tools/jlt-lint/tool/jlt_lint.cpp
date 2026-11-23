@@ -2439,7 +2439,7 @@ void findAtoms(const clang::Expr* e, const TermSubst& s, Facts& f,
   if (inStd(c)) {
     const llvm::StringRef n = c->getName();
     if ((n == "unsigned_integral" || n == "signed_integral" ||
-         n == "integral") &&
+         n == "integral" || n == "floating_point") &&
         args.size() == 1 && args[0].kind == Term::Parameter)
       f.atoms.insert(args[0].p);
     return;
@@ -3177,7 +3177,7 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
       "constexpr (fits<N>::value) (void)" +
       subst(instance, "N") +
       ";\n    return true;\n  }();\n};\ninline constexpr bool use_all = "
-      "::jlt::archetype::every_integer<checked>;\n}\n";
+      "::jlt::archetype::every_arithmetic<checked>;\n}\n";
   const std::string head =
       subst(text.substr(0, text.rfind("namespace " + ns + " {\n" + result)),
             ns + "::Hi");
