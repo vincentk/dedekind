@@ -283,7 +283,7 @@ Right: tests. Below: the images, $\cdot$ the monoid's operation.}
 The power of $x$ is $x$ combined with itself $n$ times: the concatenation of a repetition, which the first line of the test says in \Cpp{}.
 Computed that way it takes $n$ steps.
 \cppinline{power} takes as many steps as $n$ has bits, by squaring: the method known for multiplication as that of the Russian peasant~\cite[\S 4.6.3]{knuth1997art2}.
-Its state is a pair, the product so far and the current square; at step $i$ the square is multiplied in where bit $i$ of $n$ is set, and then squared.
+Its state is a pair, the product so far and the current square; at step $i$ the square is multiplied in where bit $i$ of $n$ is set, read by a rotation since a shift by a variable is not an operator defined at every argument (Figure~\ref{fig:fjlt-syntax}), and then squared.
 The two agree because the operation is associative, which the shape in the signature states.
 It is one function with a meaning at each monoid: a multiple under \cppinline{+}, a power under \cppinline{*}, a repetition at strings, and under exclusive or, whose unit is $0$, the parity of the count: $x$ combined with itself an odd number of times is $x$, and an even number of times is $0$.
 The images below the panels differ in one place, the count of the iterator, $n$ in the definition and the bits of $n$ in \cppinline{power}.

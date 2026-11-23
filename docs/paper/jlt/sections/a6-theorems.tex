@@ -52,7 +52,7 @@ Equational deduction is sound and complete for many-sorted algebras whose carrie
 The primitives' translations compute the standard's functions on constants: a $\delta$-step lands on the constant the standard, or the declaration, assigns.
 \cppinline{ranges::fold_left} over \cppinline{views::iota} is a primitive with the evaluation rule of Figure~\ref{fig:fjlt-eval}, as the standard specifies \cppinline{ranges::fold_left}, a fold from the left~\cite[{\texttt{alg.fold}}]{cpp23standard}.
 \cppinline{views::iota(i, j)} is the range of the values from $i$ up to $j$, not including $j$~\cite[{\texttt{range.iota}}]{cpp23standard}.
-\cppinline{std::bit_width(n)} is the number of bits needed to write $n$, zero at zero~\cite[{\texttt{bit.pow.two}}]{cpp23standard}.
+\cppinline{std::bit_width(n)} is the number of bits needed to write $n$, zero at zero~\cite[{\texttt{bit.pow.two}}]{cpp23standard}, and \cppinline{std::rotr(n, s)} is $n$ rotated right by $s$ modulo the width, at every $s$~\cite[{\texttt{bit.rot}}]{cpp23standard}.
 \end{definition}
 
 \begin{assumption}[The instance]

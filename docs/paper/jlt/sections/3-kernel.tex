@@ -85,9 +85,9 @@ construct & written in \Cpp{} as & in the listings \\
 \multicolumn{3}{@{}l}{\textit{value layer}} \\
 atom & \texttt{bool}, \texttt{size\_t}: a truth value, a count modulo $2^{64}$ & \texttt{true}, the count \texttt{n} \\
 carrier & any type of values, known only by the calls a shape names & \texttt{string}, \texttt{Bare}, the \texttt{T} of a template \\
-pair, record & \texttt{std::pair}, or a \texttt{struct} of fields & \texttt{Power}, the state of a fold \\
-arrow & a \texttt{struct} with a \texttt{constexpr}, \texttt{const} call operator, or one of the standard's function objects & \texttt{True}, \texttt{Size}, \texttt{Halving}, \texttt{std::plus} \\
-choice & the conditional \texttt{?:} on a truth value & in \texttt{Halving} \\
+pair, record & \texttt{std::pair}, or a \texttt{struct} of fields & the state of \texttt{Squaring}'s fold \\
+arrow & a \texttt{struct} with a \texttt{constexpr}, \texttt{const} call operator, or one of the standard's function objects & \texttt{Size}, \texttt{Squaring}, \texttt{Xor}, \texttt{std::plus} \\
+choice & the conditional \texttt{?:} on a truth value & in \texttt{Squaring} \\
 iteration & the standard's fold over the counts below a bound & the fold of \texttt{power} \\
 abstraction & a template over types & every generic definition \\
 \midrule

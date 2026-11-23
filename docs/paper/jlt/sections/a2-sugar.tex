@@ -28,7 +28,7 @@ a range, as an array or a view & its length and the function that reads it; \tex
 a parameter by constant reference, \texttt{const T\&} & a parameter by value & none \\
 a call of a member function, \texttt{s.size()} & a call with the object as its first argument & none \\
 a result required only \texttt{convertible\_to<T>}, \texttt{\{ op(a, b) \} -> convertible\_to<T>} & the call, its result copy-initialising a \texttt{T}, after which the result has type \texttt{T} & the result is used at \texttt{T} and nowhere else, which a rule of the linter checks; the implicit and the explicit conversion agree, a semantic requirement of \texttt{convertible\_to}, trusted \\
-an implicit conversion between atoms, \texttt{true + true} & the conversion written out, \texttt{x != 0uz} or \texttt{b ? 1uz : 0uz} & as for \texttt{convertible\_to} \\
+an implicit conversion of an arithmetic value to an atom, \texttt{n \& 1}, \texttt{return 0;} at \texttt{size\_t} & the conversion written out, \texttt{size\_t(e)} & it does not narrow~\cite[\texttt{dcl.init.list}]{cpp23standard}: converting back gives the original value, at every value or at the constant's; and no overload is chosen by it \\
 a defaulted \texttt{operator==} of a record & the conjunction of its fields' equalities & none \\
 a constructor, a designated initialiser & a function returning the record; its fields in order & none \\
 a default argument & an overload with the argument supplied & none \\
@@ -42,7 +42,9 @@ an assignment, \texttt{++} on a local & the state of the fold or the call it is 
 \bottomrule
 \end{tabularx}
 \caption{The derived forms, each with the kernel program it is read as and the condition for that reading to keep every value.
-The number of bits of a count, written \texttt{size\_t(bit\_width(n))}, is not among them: it is the one primitive of the kernel written as a conversion, an operator of \texttt{size\_t} (Figure~\ref{fig:fjlt-syntax}), and the kernel has no other conversion.
+The number of bits of a count, \texttt{size\_t(bit\_width(n))}, and its rotation, \texttt{rotr(n, int(i))}, are not among them: each is one primitive of the kernel, an operator of \texttt{size\_t} (Figure~\ref{fig:fjlt-syntax}), written with the conversion that \texttt{<bit>}'s counts of type \texttt{int} force~\cite[\texttt{bit.pow.two}, \texttt{bit.rot}]{cpp23standard}.
+The row for implicit conversions is one rule, not a table of them: it reads a conversion that does not narrow as a coercion inserted by elaboration, the textbook treatment of implicit conversions~\cite{reynolds1980conversions,breazutannen1991inheritance}, whose obligation is coherence, that the meaning does not depend on where the coercions go.
+Such a conversion is a split monomorphism, the conversion back its retraction, so equality and order carry over along it; arithmetic does not, since the two types wrap at different widths, and \Cpp{} fixes where the conversions go instead, by the usual arithmetic conversions~\cite[\texttt{expr.arith.conv}]{cpp23standard}.
 A floating type is a carrier, its operations total, and no law of them is declared, not even commutativity; the ledger of laws refuses one (Appendix~\ref{app:lint}).}
 \label{tab:derived}
 \end{table}
