@@ -2,7 +2,7 @@
 \section{Coherence, preservation and simulation}
 \label{app:fjlt:theorems}
 
-This appendix argues the three results that Section~\ref{sec:translation} states about the target, and the coherence of the translation that it asks for, relative to the rules of Figures~\ref{fig:fjlt-entailment} to~\ref{fig:fjlt-eval} and to the assumptions below.
+This appendix shows, on paper, the three results that Section~\ref{sec:translation} states about the target, and the coherence of the translation that it asks for, relative to the rules of Figures~\ref{fig:fjlt-entailment} to~\ref{fig:fjlt-eval} and to the assumptions below.
 The plan is short: the translation into System~F is a function (coherence) and preserves types; evaluation agrees across it (simulation); the rest are corollaries.
 Each result uses only those before it, except that the lemma on dictionaries and type preservation are proved together, by mutual induction.
 Throughout, $\Sigma$ is the signature of the operators of the atoms, total as Figure~\ref{fig:fjlt-syntax} admits them, and the carriers with the arrows supplied with them are further constant types and constants of the target (Section~\ref{sec:kernel:fjlt}); $\llbracket \cdot \rrbracket$ is the translation of Appendix~\ref{app:fjlt:translation}.
@@ -19,10 +19,10 @@ It is defined where $\theta$ exists, which well-formedness asks (Appendix~\ref{a
 \subsection{Definitions and assumptions}
 Where the ground is firm, the definitions fix the target calculus and the meaning the \Cpp{} standard gives, and the lettered theorems are the literature's.
 The assumptions are where the ground may be soft: what Jlt brings of its own, and where the literature leaves a gap for this paper to bridge.
-The arguments are relative to both, and three cases of type preservation are open: an entry of a trait whose context reads an associated type, which the image of the entry does not yet abstract; a constructed value whose call operator is constrained by \texttt{same\_as} or reads an associated type without an entry, which \textsc{T-Construct} does not yet check; and the arity of \texttt{same\_as} in the image, a dictionary in some rules and none in others.
-% TODO(E): close the three cases (cold read of 2026-11-23, research_notes), add the
-% factoring lemma for the unifier, write T-Construct out, and a worked
-% derivation of power; then "proves" in the main text and the abstract.
+The arguments are relative to both.
+% The three open cases of the cold read of 2026-11-23 (an entry's associated
+% types, T-Construct, the arity of same_as) are closed in Appendices B and C,
+% with the factoring lemma (lem:factor) and the worked translation of power.
 
 \begin{definition}[The target; System~F of Girard~\cite{girard1972interpretation} and Reynolds~\cite{reynolds1974towards}, extended]
 \label{def:target}
@@ -124,7 +124,7 @@ rule & applies to & builds \\
 \textsc{E-Op} & a requirement & its field function \\
 \textsc{E-Law}, \textsc{E-Law-Assumed} & a law, evaluated or assumed & $\mathit{true}$, either way \\
 \textsc{E-Not} & a negation at concrete types, not assumed & $()$ \\
-\textsc{E-Same} & an equality of types, not assumed & $()$ \\
+\textsc{E-Same} & an equality of types, not assumed & nothing: no record has a field for it \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -140,7 +140,8 @@ rule & applies to \\
 \midrule
 \textsc{T-Req-Assumed} & a call matching an assumed requirement, tried first: the leftmost assumed shape and its first matching requirement in declaration order, nested shapes included \\
 \textsc{T-Call} & any other call to a generic function: the declaration resolution selects \\
-\textsc{T-Trait} & a read of a trait at concrete types: the entry or the default it resolves to \\
+\textsc{T-Trait} & a read of a trait at concrete types: the entry or the default it resolves to, at the types that match and its associated types there \\
+\textsc{T-Construct} & a construction of a declared type: one rule, at the types the construction names \\
 \textsc{T-Op}, \textsc{T-App} & a call of a function object: \textsc{T-Op} for a standard one or one supplied with a carrier, \textsc{T-App} for a declared one \\
 \textsc{T-Iter}, \textsc{T-Iter-Run} & an iteration: \textsc{T-Iter} from \texttt{0uz}, \textsc{T-Iter-Run} from a constant above it, so never both \\
 \textsc{T-Eq} & a change of type between equal types, whose images are one type (Appendix~\ref{app:fjlt:translation}), so it adds nothing to the image \\
@@ -150,9 +151,9 @@ rule & applies to \\
 So a call has one derivation even where several generic functions of one name have entailed contexts, up to uses of \textsc{T-Eq}, which do not change the image.
 
 One more source of choice adds none.
-An associated type read at a type variable is the variable $\chi$ that $\Delta$ holds for it, one for each distinct read once the unifier is applied, and the \texttt{same\_as} constraints of $\Delta$ are solved by their most general unifier, which is unique up to the names of the variables it keeps.
+An associated type read at a type variable is the variable $\chi$ that $\Delta$ holds for it, one for each distinct read once the unifier is applied, and the \texttt{same\_as} constraints of $\Delta$ are solved by their unifier, through which every solution factors (Lemma~\ref{lem:factor}), so that it is unique up to the names of the variables it keeps.
 The names are fixed by the convention of Appendix~\ref{app:fjlt:translation}: the parameters in the order of first occurrence in the declaration, and of two that the unifier identifies the first kept, so the image's parameters, and their order, are a function of the declaration.
-At a use, each kept type variable is supplied by the call's type at it, and each $\chi$ by the resolved associated type, a function of the types.
+At a use, a call, a construction or a read of a trait's entry alike, each kept type variable is supplied by the use's type at it, and each $\chi$ by the resolved associated type, a function of the types.
 
 Hence a dictionary $\llbracket \Delta \Vdash Q \rrbracket$ depends only on $\Delta$ and $Q$, while a term has exactly one derivation up to \textsc{T-Eq}.
 The translation of dictionaries and terms is therefore a function of the program.
@@ -165,8 +166,9 @@ The translation of dictionaries and terms is therefore a function of the program
 \end{lemma}
 
 \begin{proof}
-(i) First, $[\overline{\sigma}/\overline{\alpha}]$ factors through $\theta$: $\overline{\sigma}$ solve the \texttt{same\_as} constraints by \textsc{E-Same}, and $\theta$ is their most general solution, so up to $\equiv$ the substitution is $\theta$ followed by the $\sigma$ of the variables $\theta$ keeps and the reads at them (Appendix~\ref{app:fjlt:translation}); a variable $\theta$ removes is replaced by what $\theta$ makes it, whose image is over the kept ones, and types equal under $\equiv$ have one image there.
+(i) First, $[\overline{\sigma}/\overline{\alpha}]$ factors through $\theta$: $\overline{\sigma}$ solve the \texttt{same\_as} constraints by \textsc{E-Same}, in one of the two algebras of Lemma~\ref{lem:factor}, so by that lemma, up to $\equiv$ the substitution is $\theta$ followed by the $\sigma$ of the variables $\theta$ keeps and the reads at them (Appendix~\ref{app:fjlt:translation}); a variable $\theta$ removes is replaced by what $\theta$ makes it, whose image is over the kept ones, and types equal under $\equiv$ have one image there.
 Then by induction on $\tau$: each row of Figure~\ref{fig:fjlt-types} builds a type's image from its parts' images, and a kept $\alpha$ translates to itself.
+At a named type $O\texttt{<}\overline{\tau'}\texttt{>}$ the image is the type of $O_{\mathrm{call}}$ at the arguments $\theta_O$ keeps and at the reads of $O$'s context at $\overline{\tau'}$, which $\Delta$ holds (Appendix~\ref{app:fjlt:typing}); the positions $\theta_O$ keeps do not depend on the arguments, so the substitution passes into the arguments, smaller types, and into the reads, the case below.
 $\tau$'s reads at type variables are in $\Delta$, which is closed under the reads its derivation reaches (Appendix~\ref{app:fjlt:typing}), so each has its $\chi$.
 An associated type read at $\overline{\alpha}$ translates to its $\chi$, and after the substitution to the image of the same associated type at $\overline{\theta}[\overline{\sigma}/\overline{\alpha}]$, which is $\llbracket \rho \rrbracket$; so the two sides agree only because $\chi$ is substituted by $\llbracket \rho \rrbracket$ together with $\overline{\alpha}$, and the statement says so.
 A use supplies exactly these $\overline{\llbracket \rho \rrbracket}$ for the $\overline{\chi}$ of its declaration (Appendix~\ref{app:fjlt:translation}).
@@ -178,10 +180,10 @@ A use supplies exactly these $\overline{\llbracket \rho \rrbracket}$ for the $\o
 If $\Delta \Vdash Q$ in a well-formed program $P$, then $\Gamma_P; \llbracket \Delta \rrbracket; \varnothing \vdash \llbracket \Delta \Vdash Q \rrbracket : \llbracket Q \rrbracket$, with $\Gamma_P$ as in Theorem~\ref{thm:preservation}.
 \end{lemma}
 \noindent\emph{Sketch.}\ Only \textsc{E-Op}'s field needs work: its body is a translated expression, which Theorem~\ref{thm:preservation} types.
-Theorem~\ref{thm:preservation} in turn needs this lemma at a call and at a read, for the dictionaries passed (\textsc{T-Call}, \textsc{T-Trait}).
+Theorem~\ref{thm:preservation} in turn needs this lemma at a call, at a call of a function object and at a read, for the dictionaries passed (\textsc{T-Call}, \textsc{T-App}, \textsc{T-Trait}).
 So the two are one induction, on the relation \emph{depends on} of Appendix~\ref{app:fjlt:typing} (\emph{Well-founded declarations}), which well-formedness requires to be well founded, and then on the size of the derivation.
 Declaration order would not do: an entry may be declared after a shape whose dictionary reaches it.
-Each uses the other only on a declaration, at its types, that the present one depends on, or on a smaller derivation: the entailments whose records a call or a read passes are premises of \textsc{T-Call} and \textsc{T-Trait}, so subderivations.
+Each uses the other only on a declaration, at its types, that the present one depends on, or on a smaller derivation: the entailments whose records a call or a read passes are premises of \textsc{T-Call}, \textsc{T-App} and \textsc{T-Trait}, so subderivations.
 
 \begin{proof}
 By induction on the entailment derivation, mutually with Theorem~\ref{thm:preservation}, the induction being on \emph{depends on} and then on the size of the derivation, one row per rule of Figure~\ref{fig:fjlt-entailment}; ${}^{\textsc{ih}}$ marks the induction hypothesis, and the row with work follows the table.
@@ -194,7 +196,8 @@ rule & dictionary & its type, because \\
 \textsc{E-Assume} & the variable $q_Q$ & $\llbracket \Delta \rrbracket$ types it at $\llbracket Q \rrbracket$ \\
 \textsc{E-Shape} & $\{\,\overline{r_i = \llbracket \Delta \Vdash A_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\}$ & each field $\llbracket A_i[\overline{\tau}/\overline{\alpha}] \rrbracket$${}^{\textsc{ih}}$, under $\Delta$, which is how $\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket$ is defined (Figure~\ref{fig:fjlt-records}) \\
 \textsc{E-Law}, \textsc{E-Law-Assumed} & $\mathit{true}$ & $\mathit{Bool}$ \\
-\textsc{E-Not}, \textsc{E-Same} & $()$ & $1$ \\
+\textsc{E-Not} & $()$ & $1$ \\
+\textsc{E-Same} & none & no record type to have: a \texttt{same\_as} is no field and no parameter (Figure~\ref{fig:fjlt-records}) \\
 \textsc{E-Op} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & below \\
 \bottomrule
 \end{tabularx}
@@ -226,13 +229,13 @@ rule & its image has its type, because & relies on \\
 \multicolumn{3}{@{}l}{\textit{declarations, Figures~\ref{fig:fjlt-assoc} and~\ref{fig:fjlt-declarations}}} \\
 \textsc{D-Generic} & below & \textsc{T-Req-Assumed} \\
 \textsc{D-Op} & as \textsc{D-Generic}, the fields among the variables & \textsc{D-Generic} \\
-\textsc{D-Trait}, \textsc{D-Entry} & as \textsc{D-Generic} with no term variables: the initialiser is typed${}^{\textsc{ih}}$ under its type variables, an entry's also under its record variables and one variable for its own trait at each part it reads, so the abstraction has the stated type &\textsc{D-Generic} \\
+\textsc{D-Trait}, \textsc{D-Entry} & as \textsc{D-Generic} with no term variables: the initialiser is typed${}^{\textsc{ih}}$ under its type variables, an entry's under those its unifier keeps, the variables $\overline{\chi}$ of the associated types its head and context read, its record variables and one variable for its own trait at each part it reads, so the abstraction has the stated type &\textsc{D-Generic} \\
 \textsc{D-Assoc}, \textsc{D-Assoc-Entry} & nothing to type: they have no image, and are read through \textsc{Eq-Assoc} and the $\chi$ of a context &  \\
 \multicolumn{3}{@{}l}{\textit{terms, Figures~\ref{fig:fjlt-typing} to~\ref{fig:fjlt-declarations}}} \\
 \textsc{T-Var} & $\llbracket \Gamma \rrbracket$ types $x$ &  \\
 \textsc{T-Field} & the field's type${}^{\textsc{ih}}$ &  \\
 \textsc{T-Req-Assumed} & $q_Q.r$'s field type in $\llbracket \Delta \rrbracket$, the arguments theirs${}^{\textsc{ih}}$ &  \\
-\textsc{T-Trait} & the entry's image at the types that match, with its dictionaries, from the rule's entailment premises${}^{\dagger}$, and the images of its reads at the parts, from its typing premises${}^{\textsc{ih}}$, or the default's image, either of type $b_f$, the entry having the trait's atom (\textsc{D-Entry}) & \textsc{D-Trait}, \textsc{D-Entry} \\
+\textsc{T-Trait} & the entry's image at the kept types that match and at its associated types resolved there, its record parameters then of the types of the rule's dictionaries${}^{\ddagger}$, which have them by the rule's entailment premises${}^{\dagger}$, and the images of its reads at the parts, from its typing premises${}^{\textsc{ih}}$, or the default's image, either of type $b_f$, the entry having the trait's atom (\textsc{D-Entry}) & \textsc{D-Trait}, \textsc{D-Entry} \\
 \textsc{T-Eq} & the image is the premise's, and $\Delta \vdash \tau \equiv \sigma$ gives $\llbracket \tau \rrbracket = \llbracket \sigma \rrbracket$, by induction on the equality's derivation (Appendix~\ref{app:fjlt:translation}): \textsc{Eq-Same} by the unifier, taken on the source types; \textsc{Eq-Assoc} because the image of a resolved associated type is that of the type its entry names; congruence at a read because reads with arguments of one image share their $\chi$ &  \\
 \textsc{T-Construct} & below & \textsc{D-Op} \\
 \textsc{T-Op}, \textsc{T-App} & below & \textsc{T-Construct} \\
@@ -243,12 +246,14 @@ rule & its image has its type, because & relies on \\
 \endgroup
 \case{\textsc{D-Generic}}the body is typed${}^{\textsc{ih}}$ under $\overline{\alpha}$, the variables $\overline{\chi}$ of its associated types, the record variables $\overline{q : \llbracket Q \rrbracket}$ and $\overline{x : \llbracket \tau_x \rrbracket}$, so the abstraction has the stated type, $\tau$ the written result type.
 Its calls on constrained types are \textsc{T-Req-Assumed}; the declaration order makes the induction well founded, as no body calls its own function, directly or through another.
-\case{\textsc{T-Construct}}the fields have their types${}^{\textsc{ih}}$, and $O_{\mathrm{call}}$ at the object's types and fields the call function's, its body typed as a generic function's${}^{\textsc{ih}}$, a standard one's by its constant's type in the target (Definition~\ref{def:target}); so the pair has type $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$.
-\case{\textsc{T-Op} and \textsc{T-App}}$\pi_2\,\llbracket e \rrbracket$ has the call function's type${}^{\textsc{ih}}$, at the object's types; the dictionaries $\overline{\llbracket \Delta \Vdash Q[\overline{\tau}/\overline{\alpha}] \rrbracket}$ have the parameter types${}^{\dagger}$, and the arguments theirs${}^{\textsc{ih}}$.
+\case{\textsc{T-Construct}}$O_{\mathrm{call}}$ has the type $\forall\overline{\alpha'}.\,\forall\overline{\chi}.\,\overline{\llbracket \tau_y \rrbracket} \to \overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau_r \rrbracket$ under $\Delta_O$, its body typed as a generic function's${}^{\textsc{ih}}$, and a standard one's is its constant's type in the target (Definition~\ref{def:target}).
+The rule's premise $\Delta \vdash O\texttt{<}\overline{\tau}\texttt{>}$ defines the types $\overline{\tau'}$ at the kept $\overline{\alpha'}$ and the images $\overline{\llbracket \rho \rrbracket}$ of the reads, so $O_{\mathrm{call}}\,\overline{\llbracket \tau' \rrbracket}\,\overline{\llbracket \rho \rrbracket}$ has that type with them substituted (Theorem~\ref{cit:subst}), and applied to the fields it has the second component of $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$, by its definition (Figure~\ref{fig:fjlt-types}).
+The fields are typed at $\tau_y[\overline{\tau}/\overline{\alpha}]$${}^{\textsc{ih}}$, whose image is $\llbracket \tau_y \rrbracket$ so substituted${}^{\ddagger}$, the premise's \texttt{same\_as} constraints being the hypothesis of Lemma~\ref{lem:subst}~(i) at $\Delta_O$; so the pair has type $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$.
+\case{\textsc{T-Op} and \textsc{T-App}}$\pi_2\,\llbracket e \rrbracket$ has the call function's type${}^{\textsc{ih}}$, at the object's types, the second component of $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$; the dictionaries $\overline{\llbracket \Delta \Vdash Q[\overline{\tau}/\overline{\alpha}] \rrbracket}$, for the constraints other than \texttt{same\_as}, have the parameter types${}^{\dagger}$ and the arguments theirs${}^{\textsc{ih}}$, both by Lemma~\ref{lem:subst}~(i) at $\Delta_O$, whose \texttt{same\_as} hypothesis \textsc{T-App}'s entailment premise gives by \textsc{E-Same}.
 \case{\textsc{T-Call}}$f = \Lambda\overline{\alpha}.\,\Lambda\overline{\chi}.\,\lambda\overline{q}.\,\lambda\overline{x}.\,\llbracket e_f \rrbracket : \forall\overline{\alpha}.\,\forall\overline{\chi}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$${}^{\textsc{ih}}$.
 Here $\overline{\alpha}$ are the type variables that $f$'s unifier keeps.
 At their $\overline{\llbracket \sigma \rrbracket}$ and the associated types' images $\overline{\llbracket \rho \rrbracket}$ this is the same type with $\overline{\sigma}$ for all of $f$'s type variables${}^{\ddagger}$, which is where Lemma~\ref{lem:subst}~(i) needs $\overline{\chi}$ substituted with $\overline{\alpha}$, and needs the call's types to satisfy $f$'s \texttt{same\_as} constraints, as \textsc{T-Call}'s entailment premise says by \textsc{E-Same}.
-The records have the parameter types${}^{\dagger}$, and the arguments theirs${}^{\textsc{ih}}$.
+The records, one for each constraint other than \texttt{same\_as}, have the parameter types${}^{\dagger}$, and the arguments theirs${}^{\textsc{ih}}$.
 \case{\textsc{T-Iter}}$\mathit{iter}$ is at $\texttt{size\_t} \times \llbracket \sigma \rrbracket$, with the count $\mathit{toNat}\,(\llbracket e_n \rrbracket - c) : \mathbb{N}$, since $\llbracket e_n \rrbracket : \texttt{size\_t}$${}^{\textsc{ih}}$.
 The step has the pair type: $\pi_1 p + 1 : \texttt{size\_t}$, and $\lambda s.\,\lambda i.\,\llbracket f\texttt{(}s\texttt{, }i\texttt{)} \rrbracket : \llbracket \sigma \rrbracket \to \texttt{size\_t} \to \llbracket \sigma \rrbracket$ by the induction hypothesis on the premise, its dictionaries theirs${}^{\dagger}$.
 The start $(c, \llbracket a \rrbracket)$ has the pair type${}^{\textsc{ih}}$, so $\pi_2$ of the result has type $\llbracket \sigma \rrbracket$.
@@ -276,8 +281,8 @@ The field is built by \textsc{E-Op} as $\lambda\overline{a}.\,\llbracket e_r[\ov
 
 \begin{lemma}[Dictionaries commute with substitution]
 \label{lem:subst-dict}
-Let $\overline{\sigma}$ be concrete types at which $\Delta$'s constraints are entailed, its \texttt{same\_as} constraints among them, so that $[\overline{\sigma}/\overline{\alpha}]$ factors through the unifier of $\Delta$ (Appendix~\ref{app:fjlt:translation}), and let $\overline{\alpha}$ below be the type variables it keeps.
-(i) If $\Delta \Vdash Q$ and $\varnothing \Vdash Q[\overline{\sigma}/\overline{\alpha}]$, then $\llbracket \Delta \Vdash Q \rrbracket[\overline{\llbracket \sigma \rrbracket}/\overline{\alpha}][\overline{\llbracket \rho \rrbracket}/\overline{\chi}][\overline{d}/\overline{q}] \longrightarrow^{*} \llbracket \varnothing \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket$, where $\overline{\rho}$ are $\Delta$'s associated types resolved at $\overline{\sigma}$, as in Lemma~\ref{lem:subst}~(i), and $\overline{d}$ the dictionaries of $\Delta$'s constraints at $\overline{\sigma}$.
+Let $\overline{\sigma}$ be concrete types at which $\Delta$'s constraints are entailed, its \texttt{same\_as} constraints among them, so that $[\overline{\sigma}/\overline{\alpha}]$ factors through the unifier of $\Delta$ (Lemma~\ref{lem:factor}), and let $\overline{\alpha}$ below be the type variables it keeps.
+(i) If $\Delta \Vdash Q$ and $\varnothing \Vdash Q[\overline{\sigma}/\overline{\alpha}]$, then $\llbracket \Delta \Vdash Q \rrbracket[\overline{\llbracket \sigma \rrbracket}/\overline{\alpha}][\overline{\llbracket \rho \rrbracket}/\overline{\chi}][\overline{d}/\overline{q}] \longrightarrow^{*} \llbracket \varnothing \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket$, where $\overline{\rho}$ are $\Delta$'s associated types resolved at $\overline{\sigma}$, as in Lemma~\ref{lem:subst}~(i), and $\overline{d}$ the dictionaries of $\Delta$'s constraints other than \texttt{same\_as} at $\overline{\sigma}$.
 (ii) For a term $e$ typed under $\Delta$, $\llbracket e \rrbracket[\overline{\llbracket \sigma \rrbracket}/\overline{\alpha}][\overline{\llbracket \rho \rrbracket}/\overline{\chi}][\overline{d}/\overline{q}] \longrightarrow^{*} \llbracket e[\overline{\sigma}/\overline{\alpha}] \rrbracket$, the right side typed at the concrete types.
 \end{lemma}
 \noindent\emph{Sketch.}\ A generic body's dictionary variables are replaced by the records built at the concrete types, its associated types by the types their entries name, and each \textsc{T-Req-Assumed} site then reduces to the resolved call by Lemma~\ref{lem:resolve}.
@@ -297,11 +302,12 @@ rule & what the substitution changes & reduces to the concrete side, because \\
 \textsc{E-Assume} & $q_Q$ becomes $d$ & $d$ is the dictionary built at $\overline{\sigma}$ \\
 \textsc{E-Shape} & the record, field by field & each field${}^{\textsc{ih}}$ \\
 \textsc{E-Op} & the field & below \\
-\textsc{E-Law}, \textsc{E-Law-Assumed}, \textsc{E-Not}, \textsc{E-Same} & nothing & the same closed term on both sides \\
+\textsc{E-Law}, \textsc{E-Law-Assumed}, \textsc{E-Not} & nothing & the same closed term on both sides \\
+\textsc{E-Same} & nothing & no dictionary on either side \\
 \multicolumn{3}{@{}l}{\textit{(ii), terms}} \\
 \textsc{T-Req-Assumed} & $q_Q.r\,\ldots$ becomes $d.r\,\ldots$ & it reduces to the resolved instance's translation${}^{\dagger}$ \\
-\textsc{T-Call}, \textsc{T-Op}, \textsc{T-App} & their types, each $\chi$ among them, and their dictionaries & the types by Lemma~\ref{lem:subst}~(i), the dictionaries by (i) \\
-\textsc{T-Trait} & nothing: a read in a typed term is at concrete types & the same closed term on both sides \\
+\textsc{T-Call}, \textsc{T-Op}, \textsc{T-App}, \textsc{T-Construct} & their types, each $\chi$ among them, and their dictionaries & the types by Lemma~\ref{lem:subst}~(i), the dictionaries by (i) \\
+\textsc{T-Trait} & nothing: a read in a typed term is at concrete types, and so are the entry's associated types it supplies & the same closed term on both sides \\
 \textsc{T-Eq} & nothing & the image is the premise's, and the two types have one image before the substitution and after it, by Lemma~\ref{lem:subst}~(i), the substitution factoring through the unifier \\
 every other rule & its subterms & structural${}^{\textsc{ih}}$ \\
 \end{longtable}
@@ -404,7 +410,7 @@ source step & target steps & landing, because \\
 \endhead
 \bottomrule
 \endlastfoot
-\textsc{S-Trait} & unfolding, then type application and $\beta$-reduction & the entry's image at the types that match, its dictionaries and the images of its reads at the parts, reduces by type application and $\beta$-reduction to $\llbracket e[\overline{\sigma'}/\overline{\beta}] \rrbracket$, the variables for the parts replaced by exactly the images of those reads, and the dictionaries by Lemma~\ref{lem:subst-dict}; the default's by the unfolding of its name and its type applications \\
+\textsc{S-Trait} & unfolding, then type application and $\beta$-reduction & the entry's image at the types that match and its associated types there, its dictionaries and the images of its reads at the parts, reduces by type application and $\beta$-reduction to $\llbracket e[\overline{\sigma'}/\overline{\beta}] \rrbracket$, the variables for the parts replaced by exactly the images of those reads, and the dictionaries by Lemma~\ref{lem:subst-dict}; the default's by the unfolding of its name and its type applications \\
 \textsc{S-Call} & several & below \\
 \textsc{S-Op} & several & below \\
 \textsc{S-Std}, \textsc{S-Prim} & a projection where there is one, then a $\delta$-step & the value the standard or the declaration assigns, by Definition~\ref{def:standard} \\
@@ -415,7 +421,8 @@ source step & target steps & landing, because \\
 \addtocounter{table}{-1}
 \endgroup
 \case{\textsc{S-Call}}$f\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \rho \rrbracket}\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by type application and $\beta$-reduction to $\llbracket e_f \rrbracket$ with $\overline{\llbracket \sigma \rrbracket}$ for $\overline{\alpha}$, the type variables $f$'s unifier keeps, $\overline{\llbracket \rho \rrbracket}$ for $\overline{\chi}$, $\overline{d}$ for $\overline{q}$ and $\overline{\llbracket v \rrbracket}$ for $\overline{x}$; by Lemma~\ref{lem:subst-dict}~(ii), with $\overline{d}$ the records \textsc{E-Shape} built for the closed call, the result reduces further to $\llbracket e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \rrbracket$, the term the source stepped to, whose requirement uses are typed by \textsc{T-Call}, \textsc{T-App} or \textsc{T-Op}, and whose reads and associated types are at concrete types.
-\case{\textsc{S-Op}}$(\pi_2\,(\overline{\llbracket v_y \rrbracket}, O_{\mathrm{call}}\,\overline{\llbracket \tau \rrbracket}\,\overline{\llbracket \rho \rrbracket}\,\overline{\llbracket v_y \rrbracket}))\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by projection, type application and $\beta$-reduction to $\llbracket e_O \rrbracket$ with types, fields, dictionaries and arguments substituted, which is $\llbracket e' \rrbracket$ by the same argument as for a generic call.
+Lemma~\ref{lem:subst-dict} is stated for the translation of a term, and here $t \sqsupseteq e$ may hold arguments in which counts are already numerals; the lemma applies all the same, since such a $t$ differs from the translation only in those counts, a count holds no type variable, associated type or record variable, and so the substitution and the reductions of the lemma leave the counts as they are and the result is $\sqsupseteq$ the source's reduct.
+\case{\textsc{S-Op}}$(\pi_2\,(\overline{\llbracket v_y \rrbracket}, O_{\mathrm{call}}\,\overline{\llbracket \tau' \rrbracket}\,\overline{\llbracket \rho \rrbracket}\,\overline{\llbracket v_y \rrbracket}))\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by projection, type application and $\beta$-reduction to $\llbracket e_O \rrbracket$ with types, fields, dictionaries and arguments substituted, which is $\llbracket e' \rrbracket$ by the same argument as for a generic call.
 \case{\textsc{S-Fold}}with $n - k = m + 1$, and the count already its numeral, which takes $\delta$-steps first where it is not (Assumption~\ref{ass:ranges}):
 \[ \begin{array}{@{}l@{}}
 \mathit{iter}\,(m{+}1)\,\mathit{step}\,(c_k, \llbracket v_a \rrbracket) \longrightarrow \mathit{iter}\,m\,\mathit{step}\,(\mathit{step}\,(c_k, \llbracket v_a \rrbracket)) \\

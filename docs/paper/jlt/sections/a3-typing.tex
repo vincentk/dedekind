@@ -29,6 +29,7 @@ The reads it holds are those that its head, its constraints or the types of its 
 % C++, and refusing it would refuse bodies the listings could write.
 It also holds every other read at its type variables that a type in the typing derivation of its body names, as the result type of a call instantiated at the declaration's type variables, and each read that such a call supplies to its callee's associated types (Appendix~\ref{app:fjlt:translation}).
 The calls of a body are to declarations above it, so this closure is taken in declaration order and is finite.
+For each named type $O\texttt{<}\overline{\tau}\texttt{>}$ among the types above, $\Delta$ also holds the reads of $O$'s own context at $\overline{\tau}$ that are still at a type variable, so that the image of $O\texttt{<}\overline{\tau}\texttt{>}$ is defined (\emph{Constructions}, below); $O$ stands above its uses, so this closure is finite too.
 $e[\overline{e}/\overline{a}]$ is $e$ with each $e_i$ in place of $a_i$, at once, and $\tau[\overline{\sigma}/\overline{\alpha}]$ the same for types; an overbar abbreviates a sequence, as in Figure~\ref{fig:fjlt-syntax}.
 A program $P = \overline{D}\; e$ (Figure~\ref{fig:fjlt-syntax}) is well formed when $\vdash D$ for each of its declarations other than a shape, in order, and $\varnothing; \varnothing \vdash e : \tau$ for some $\tau$.
 The compiler holds a program to most of this.
@@ -68,6 +69,10 @@ Theorem~\ref{thm:coherence} needs exactly that.
 A shape nested in an assumed one, as \cppinline{IsMagma<E>} under an assumed \cppinline{IsMonoid<E>}, is not itself in $\Delta$, and \textsc{E-Shape} does rebuild it: its required calls by \textsc{E-Op}, whose premise \textsc{T-Req-Assumed} types, and its laws by \textsc{E-Law-Assumed}.
 That is harmless.
 Each field rebuilt is the field of the assumed record at the path to the nested shape, abstracted over the requirement's parameters, so the rebuilt record and the projection $q_Q.\pi$ agree field by field up to $\eta$, and entailment is still a function of $\Delta$ and the constraint.
+A negation or a \cppinline{same_as} nested in an assumed shape is not rebuilt at a type variable: \textsc{E-Not} asks for concrete types, and \textsc{E-Same} for an equality that only a \cppinline{same_as} of $\Delta$ itself gives, so a nested shape that holds one is not derivable there, and a call that asks for it at a type variable is refused, though every instance of it would be accepted.
+That is incompleteness, not unsoundness: some entailments that hold at every instance are missing at a type variable, and none is derived that fails at one.
+% DECISION: the sentence, not a rule E-Not-Assumed (a nested negation projected
+% from the assumed record, with evidence ()); no listing needs the rule.
 A negated constraint \cppinline{!C<T>} carries no evidence.
 \textsc{E-Not} holds at concrete types where $C$ does not, and the well-founded order of the declarations makes its negative premise decidable.
 The standard's shapes among the $C$ of Figure~\ref{fig:fjlt-syntax} are read as declared, \cppinline{copyable} and \cppinline{equality_comparable} more strictly than the standard states them.
@@ -95,6 +100,8 @@ A declaration whose \cppinline{same_as} constraints have no solution, as \cppinl
 \begin{figure}[htbp]
 \[
 \begin{array}{@{}l@{\quad}l@{}}
+\textsc{(T-Construct)} & \dfrac{\begin{array}{c} \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau_y\; y}\texttt{;}\ M \texttt{ \};} \\ \Delta \vdash O\texttt{<}\overline{\tau}\texttt{>}^{\S} \quad \Delta; \Gamma \vdash \overline{e_y : \tau_y[\overline{\tau}/\overline{\alpha}]} \end{array}}{\Delta; \Gamma \vdash O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e_y}\texttt{\}} : O\texttt{<}\overline{\tau}\texttt{>}}
+\\[18pt]
 \textsc{(T-Op)} & \dfrac{O\texttt{<}\overline{\tau}\texttt{>} : \overline{\sigma} \to \sigma^{\ast} \quad \Delta; \Gamma \vdash \overline{e : \sigma}}{\Delta; \Gamma \vdash O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{e}\texttt{)} : \sigma}
 \\[12pt]
 \textsc{(T-App)} & \dfrac{\begin{array}{c} O\text{'s call operator is } \overline{Q} \Rightarrow \overline{\tau_x} \to \tau_r \\ \Delta; \Gamma \vdash e : O\texttt{<}\overline{\tau}\texttt{>} \quad \Delta \Vdash \overline{Q}[\overline{\tau}/\overline{\alpha}] \quad \Delta; \Gamma \vdash \overline{e' : \tau_x[\overline{\tau}/\overline{\alpha}]} \end{array}}{\Delta; \Gamma \vdash e\texttt{(}\overline{e'}\texttt{)} : \tau_r[\overline{\tau}/\overline{\alpha}]}
@@ -108,11 +115,13 @@ A declaration whose \cppinline{same_as} constraints have no solution, as \cppinl
 \textsc{(T-Iter-Run)} & \dfrac{0 < k \le n \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma, s : \sigma, i : \texttt{size\_t} \vdash f\texttt{(}s\texttt{, }i\texttt{)} : \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{ranges::fold\_left(views::iota(}c_k\texttt{, }c_n\texttt{), }a\texttt{, }f\texttt{)} : \sigma}
 \end{array}
 \]
-\caption{The rules for terms, $\Delta; \Gamma \vdash e : \tau$: calls, reads and iteration.
+\caption{The rules for terms, $\Delta; \Gamma \vdash e : \tau$: constructions, calls, reads and iteration.
+$^{\S}$~The named type is well formed at $\overline{\tau}$: its reads resolve there or $\Delta$ holds them, and $\Delta$ entails its call operator's \texttt{same\_as} constraints there (\emph{Constructions}, below).
+A standard function object, or one supplied with a carrier, has no field and no read, and is constructed as $O\texttt{<}\overline{\tau}\texttt{>\{\}}$.
 $^{\ast}$~The standard's signature of the function object, at atoms, or the signature declared for an arrow supplied with a carrier (Section~\ref{sec:kernel:fjlt}).
 $^{\P}$~$s$ and $i$ fresh.
 \textsc{T-Iter-Run} types the iterations that evaluation reaches and a program does not write, $c_k$ the constant of \texttt{size\_t} whose value is $k$ (Figure~\ref{fig:fjlt-eval}).
-Omitted as textbook~\cite[Chapters~8, 9 and~11]{pierce2002tapl}: \textsc{T-Var}, \textsc{T-Construct}, \textsc{T-Field}, and the rules for pairs, conditionals and the operators of the atoms.}
+Omitted as textbook~\cite[Chapters~8, 9 and~11]{pierce2002tapl}: \textsc{T-Var}, \textsc{T-Field}, and the rules for pairs, conditionals and the operators of the atoms.}
 \label{fig:fjlt-typing}
 \end{figure}
 
@@ -125,6 +134,26 @@ At concrete types $\alpha\texttt{\{\}}$ is a construction of the declared type t
 % well formed, rather than adding D-Shape with a rule for a call whose callee
 % is a value of a type variable: that rule would only restate the requirement.
 The requirement that declares the call is not typed by a rule either: there is no rule $\vdash D$ for a shape, and shapes are assumed well formed, the names they use declared above them (\emph{The order of declarations}, below), each law a term of type \cppinline{bool} at concrete types, and each required call typed, at concrete types, where \textsc{E-Shape} asks for it, by \textsc{E-Op}'s premise.
+
+\paragraph{Constructions.}
+\label{app:fjlt:construct}
+\textsc{T-Construct} types a value of a declared type built from values for its fields, as \cppinline{Squaring<E>{n}} in Listing~\ref{lst:power}.
+The context $\Delta_O$ of a named type $O$ is that of a declaration (above): its type variables $\overline{\alpha}$, the reads that its fields and its call operator's parameters, result and constraints name, and its call operator's constraints.
+$\Delta \vdash O\texttt{<}\overline{\tau}\texttt{>}$, read $O\texttt{<}\overline{\tau}\texttt{>}$ is well formed under $\Delta$, holds when two things hold of $\Delta_O$ at $\overline{\tau}$.
+Each read of $\Delta_O$, with $\overline{\tau}$ for $\overline{\alpha}$, resolves where it is concrete (\textsc{Eq-Assoc}) and is held by $\Delta$ where it is not.
+And $\Delta \Vdash \texttt{same\_as<}\tau_1\texttt{, }\tau_2\texttt{>}[\overline{\tau}/\overline{\alpha}]$ for each \cppinline{same_as} constraint among the call operator's constraints, so that $\overline{\tau}$ solves them and the image of $O\texttt{<}\overline{\tau}\texttt{>}$, the type of $O$'s call function at $\overline{\tau}$, is defined (Appendix~\ref{app:fjlt:translation}).
+Well-formedness asks the same of every type $O\texttt{<}\overline{\tau}\texttt{>}$ that a declaration's types name, under the declaration's $\Delta$.
+The call's other constraints are asked where it is called, by \textsc{T-App}, whose dictionaries the image passes there.
+% DECISION (2026-11-23, the theoretician's case (b)): a construction asks the
+% call operator's same_as constraints and the reads of O's context at its
+% types, which C++ asks only at the call; the alternative, an image of
+% O<tau> that depends on whether the call is callable, does not commute with
+% substitution (Lemma lem:subst).
+This is stricter than \Cpp{} in two places.
+For \cppinline{template <typename A, typename B> struct O { B operator()(A x) const requires same_as<A, B> { return x; } };}, \Cpp{} accepts \cppinline{O<bool, size_t>{}} and refuses only its call.
+FJlt refuses the construction: once \cppinline{same_as<A, B>} is solved, $O$'s call function has the type $\forall A.\,A \to A$, and no instance of it has the type $\texttt{bool} \to \texttt{size\_t}$ that the call at $O\texttt{<bool, size\_t>}$ would have.
+And \Cpp{} instantiates a member function's constraints only where it is called, though the declarations of the members, their parameter and result types among them, come with the class~\cite[{\texttt{temp.inst}}]{cpp23standard}, so a read that only the constraints name, as \cppinline{op_t<E>} through \cppinline{IsMonoid<E>} in \cppinline{Squaring}, fails in \Cpp{} only at the call and in FJlt already at the construction.
+The listings construct no type at which either difference shows.
 
 \paragraph{Iteration.}
 \textsc{T-Iter} is the kernel's one recursion over a value, the fold of Equation~\eqref{eq:fold} over the counts below $e_n$.

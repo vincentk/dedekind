@@ -88,7 +88,7 @@ ii) generic code varies with a type only through that type's concepts and traits
 iii) recursion is structural, over a type or over a value, in a number of steps bounded before the first step.
 The posture is meant as a route a team can take through \Cpp{23}, checked by a tool and adoptable one file and one rule at a time.
 Its kernel, Featherweight Jlt (FJlt), translates by dictionary passing, as Haskell's type classes do, into System~F extended with data types and iterators.
-The image is defined on every well-typed program, from its target it inherits parametricity and, under stated assumptions, termination, and an appendix argues type soundness and that FJlt's own evaluation and the image compute the same values, with three cases open; that \Cpp{} evaluates a kernel program as FJlt does is a hypothesis.
+The image is defined on every well-typed program, from its target it inherits parametricity and, under stated assumptions, termination, and an appendix shows type soundness and that FJlt's own evaluation and the image compute the same values, on paper, with the textbook cases omitted; that \Cpp{} evaluates a kernel program as FJlt does is a hypothesis.
 Jlt beyond the kernel is a set of derived forms, rewrites into the kernel that are not proved either.
 
 A law about a program is an axiom, a conditional law or a derived law.
