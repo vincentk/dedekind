@@ -81,6 +81,14 @@ jobs:
           echo '```'
         } >> "$GITHUB_STEP_SUMMARY"
 
+    # The ratchet: against main, a gate of the linter may move one way only
+    # (admitted up; refusals, undecided definitions and findings down), or
+    # be named with its reason in tools/jlt-lint/ratchet.allow.
+    - name: Ratchet the linter's gates
+      run: |
+        git fetch --no-tags --depth=1 origin main
+        python3 tools/jlt-lint/ratchet.py FETCH_HEAD
+
     # The toolchain, named once: every later step reads CXX, CC and
     # CLANG_FORMAT, whichever image it runs on.  Clang's CMake packages, for
     # the linter's binary, CMake finds next to the compiler.

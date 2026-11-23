@@ -1,0 +1,2 @@
+# Gates allowed to move the wrong way in this pull request, each with its
+# reason: <rule> <file> <reason>.  Read by ratchet.py; emptied once merged.
