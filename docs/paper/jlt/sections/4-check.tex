@@ -31,23 +31,26 @@ For Rule~1 it closes each channel a mutation could leak through at run time: par
 For Rule~3 it reports every loop statement, a loop admitted as sugar included, and the reviewer judges whether a reported loop shows its end.
 A finding is a breach or a gap in its reading of the standard's concepts, and its silence is not a proof.
 Review complements it: an agentic reviewer reads every pull request against the three rules.
-On the library behind the listings, 148 module units, each check is a gate on the files it finds clean and a count on the rest; Table~\ref{tab:lint} in Appendix~\ref{app:lint} gives the counts, check by check.
+On the library behind the listings each check is a gate on many files, an exact count, zero or not, so that no finding is added unseen, and a count on the rest; Table~\ref{tab:lint} in Appendix~\ref{app:lint} gives the counts, check by check.
 On the listings it refuses exactly what the paper shows: \cppinline{guessed_power}, whose call to \cppinline{power} is decided by \cppinline{IsIdempotentMonoid}, which its constraints do not name; \cppinline{guessed_concat}, whose \cppinline{+} and \cppinline{=} on the element type no requirement names, and whose loop Rule~3 refuses; and it lists \cppinline{idempotent<Sum2>} with the other axioms.
 Each of these is a gate, so a listing that changed what the linter finds would fail the build.
 
 \paragraph{Refused by name, admitted by type.}
-Every check in that table is a deny-rule: it refuses a construct outside Jlt, and a definition it does not refuse is not thereby inside.
+Every check in that table but the list of axioms is a deny-rule: it refuses a construct outside Jlt, and a definition it does not refuse is not thereby inside.
 To admit a definition, the linter has a second stage, a type check.
 For a constrained template that no deny-rule refuses, it builds an \emph{archetype} of each shape in the template's signature, a type with exactly the calls and laws the shape promises and nothing more~\cite{siek2000concept}, as \cppinline{BareMonoid} in Listing~\ref{lst:motivation}, written by hand, nearly is: it also has equality and a default value.
 The archetypes are generated from the shapes, by one rule for each kind of requirement a shape may have (Figure~\ref{fig:fjlt-syntax}), so their number grows with the grammar of shapes and not with the number of concepts.
 The few the standard's concepts need, such as \cppinline{sized_range}, are written by hand and ship with the linter.
-The template is instantiated at its archetypes and compiled, and if it type-checks there, its body uses only what its signature promises, at the promised types.
+The template is instantiated at its archetypes and compiled, and if it type-checks there, its body uses only what its signature promises, at the promised types, under the hypotheses of Appendix~\ref{app:lint:conjecture}.
 Each definition then has one of three outcomes: refused, with a rule and a line as its witness; admitted, by the type check; or undecided, where neither stage settles it.
-The second stage is the check of definitions that the concepts proposed for \Cpp{0x} would have made, restricted to the fragment.
-ConceptGCC generated such archetypes from the concepts of that proposal~\cite{gregor2006concepts}, and the linter does it for the concepts of \Cpp{20}, inside the fragment.
+The second stage approximates the check of definitions that the concepts proposed for \Cpp{0x} made, restricted to the fragment: those bound a name where the template is defined, and here a hypothesis does.
+The idea is not new.
+Siek and Lumsdaine wrote archetypes by hand for the concepts of the standard library of their day, in Boost's Concept Check Library, and a programmer checked a template by instantiating it at them in a test of their own~\cite{siek2000concept}.
+ConceptGCC generated them from the concepts proposed for \Cpp{0x}~\cite{gregor2006concepts}.
+The linter generates them from the concepts of \Cpp{20}, inside the fragment, and gives every definition its outcome in every build.
 Inside it, the rules close most of the ways in which a real type differs from its archetype.
-An operation is a function object reached through a named type; \RuleTwo{} decides every choice of overload in the signature; a carrier is only copyable and a required call has a fixed result type; and an entry stands above every use that reads it (Section~\ref{sec:limits}).
-This paper's conjecture is that a definition admitted at its archetypes is well typed at every type that satisfies its shapes and keeps the rules itself, and resolves every choice its signature makes the same way; Appendix~\ref{app:lint:conjecture} states its hypotheses and the counterexamples they exclude, and it is tested on the definitions of the listings and not yet on the library.
+An operation is a function object reached through a named type; \RuleTwo{} decides every choice of overload in the signature; a carrier has only what its shapes ask, and a required call a fixed result type, or one only convertible to it and converted at once; and an entry stands above every use that reads it (Section~\ref{sec:limits}).
+This paper's conjecture is that a definition admitted at its archetypes is well typed at every type that satisfies its shapes and keeps the rules itself, and resolves every choice its signature makes the same way; Appendix~\ref{app:lint:conjecture} states its hypotheses and the counterexamples they exclude, and it is tested on the definitions of the listings and on one layer of the library.
 For a definition it admits, satisfying the constraints then suffices to use it, under those hypotheses: no type that satisfies its shapes and keeps the rules can make the body fail to compile, and a misuse is reported where the template is called, as a constraint not satisfied.
 
 \paragraph{The listings, at their levels.}
@@ -78,9 +81,11 @@ The two rows for \texttt{power} are its general and its idempotent case.}
 
 For this code, that has three consequences, each conditional on the conjecture above.
 For every admitted definition, satisfying its constraints suffices to use it.
-Its free theorem holds of the code the compiler builds, given in addition the hypothesis of adequacy and the compiler's lowering (Section~\ref{sec:translation}).
+Its free theorem holds of the code the compiler builds, given in addition that its body observes no type except through a shape (Appendix~\ref{app:lint:conjecture}), the hypothesis of adequacy and the compiler's lowering (Section~\ref{sec:translation}).
 And for those in FJlt, the program as written is a term of the grammar of Figure~\ref{fig:fjlt-syntax}, whose image in System~F is the image of Table~\ref{tab:image}, with no derived form in between whose rewrite would have to be trusted.
-% STATUS: the second stage runs on the four listings and on its fixtures, in
-% CI; on the library it has yet to run, and Appendix G is to gain its
-% outcomes there.
-On the library the second stage has yet to run, and there the first clause of this paper's promise rests on the deny-rules, the programmer and a reviewer.
+% STATUS: the second stage runs in CI on the four listings, its fixtures and
+% the category layer of the library; the other layers are to follow.
+The second stage also runs on the library's base layer, the one every other layer imports.
+Every count there is pinned per file in continuous integration, so that no file's counts move unseen.
+It admits a minority of the layer's function templates and refuses none, a count its gates hold: the definitions it refused, whose signatures promised less than their bodies or results used, have been fixed (Appendix~\ref{app:lint:admit}).
+Elsewhere, and for the definitions it leaves undecided, the first clause of this paper's promise rests on the deny-rules, the programmer and a reviewer.

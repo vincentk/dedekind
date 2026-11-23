@@ -472,6 +472,7 @@ constexpr auto path_concat(const P& p, const Q& q) {
  *  reference instance.
  *  @{ */
 export template <IsArrow F, IsArrow G, IsArrow RF, IsArrow RG>
+  requires std::same_as<Cod<RF>, Dom<RG>>  // the reduced legs compose
 constexpr auto reduce_β(const Compose<F, G>&, const RF& rf, const RG& rg) {
   // The two normal paths concatenated, associated to the right, two adjacent
   // atoms a law rewrites rewritten.

@@ -1901,10 +1901,12 @@ struct Term {
     Parameter,
     CarrierOf,
     RangeValueOf,
-    Associated
+    Associated,
+    Member  // a member type of a parameter, typename F::Domain
   } kind = Other;
   Param p{};
   const clang::ClassTemplateDecl* trait = nullptr;  // for Associated
+  std::string member;                               // for Member
 };
 using TermSubst = std::map<Param, Term>;
 
@@ -1932,6 +1934,11 @@ Term classify(clang::QualType t, const TermSubst& s, int depth = 0) {
     }
     if (ts->isTypeAlias()) return classify(ts->getAliasedType(), s, depth + 1);
   }
+  // The standard library's remove_cvref_t and its kin, when the library
+  // spells them with the compiler's built-in (libc++: __remove_cvref): at an
+  // archetype, the type itself.
+  if (const auto* ut = t->getAs<clang::UnaryTransformType>())
+    return classify(ut->getBaseType(), s, depth + 1);
   if (const auto* dt = llvm::dyn_cast<clang::DecltypeType>(t.getTypePtr())) {
     // decltype(E{}()): the type of a call of a value of E, its carrier.
     const auto* call = llvm::dyn_cast<clang::CallExpr>(
@@ -1951,20 +1958,42 @@ Term classify(clang::QualType t, const TermSubst& s, int depth = 0) {
     return none;
   }
   if (const auto* dn = t->getAs<clang::DependentNameType>()) {
-    // typename X<P>::type: the associated type a trait gives at P.
-    if (const clang::NestedNameSpecifier q = dn->getQualifier())
-      if (const clang::Type* qt = q.getAsType())
-        if (const auto* ts = qt->getAs<clang::TemplateSpecializationType>())
-          if (const auto* ct = llvm::dyn_cast_or_null<clang::ClassTemplateDecl>(
-                  ts->getTemplateName().getAsTemplateDecl()))
-            if (ts->template_arguments().size() == 1 &&
-                ts->template_arguments()[0].getKind() ==
-                    clang::TemplateArgument::Type) {
-              Term a = classify(ts->template_arguments()[0].getAsType(), s,
-                                depth + 1);
-              if (a.kind == Term::Parameter)
-                return Term{Term::Associated, a.p, ct};
-            }
+    const clang::NestedNameSpecifier q = dn->getQualifier();
+    const clang::Type* qt = q ? q.getAsType() : nullptr;
+    if (!qt) return none;
+    const std::string name =
+        dn->getIdentifier() ? dn->getIdentifier()->getName().str() : "";
+    if (const auto* ts = qt->getAs<clang::TemplateSpecializationType>())
+      if (const auto* ct = llvm::dyn_cast_or_null<clang::ClassTemplateDecl>(
+              ts->getTemplateName().getAsTemplateDecl()))
+        if (ts->template_arguments().size() == 1 &&
+            ts->template_arguments()[0].getKind() ==
+                clang::TemplateArgument::Type) {
+          const clang::QualType arg = ts->template_arguments()[0].getAsType();
+          const llvm::StringRef tn = ct->getName();
+          // The standard's identity-like traits: at an archetype,
+          // remove_cvref<F>::type is F.
+          if (inStd(ct) && name == "type" &&
+              (tn == "remove_cvref" || tn == "remove_cv" ||
+               tn == "remove_reference" || tn == "type_identity" ||
+               tn == "decay"))
+            return classify(arg, s, depth + 1);
+          // The library's representative of an object: an archetype carrier
+          // presents only itself, so archetype<C>::type is C.
+          if (!inStd(ct) && tn == "archetype" && name == "type")
+            return classify(arg, s, depth + 1);
+          // typename X<P>::type: the associated type a trait gives at P.
+          // Another member of a trait, SpeciesTraits<T>::Domain, is nothing
+          // the archetypes provide.
+          if (name != "type") return none;
+          Term a = classify(arg, s, depth + 1);
+          if (a.kind == Term::Parameter) return Term{Term::Associated, a.p, ct};
+          return none;
+        }
+    // typename F::Domain: a member type of a parameter.
+    const Term owner = classify(clang::QualType(qt, 0), s, depth + 1);
+    if (owner.kind == Term::Parameter && !name.empty())
+      return Term{Term::Member, owner.p, nullptr, name};
     return none;
   }
   return none;
@@ -1980,6 +2009,20 @@ struct Facts {
   std::map<Param, std::optional<Param>> range;          // R, its elements
   std::set<Param> sized;                                // R is a sized_range
   std::set<Param> comparable;                           // C_E has ==
+  std::set<Param> defaulted;  // C_E or T has a default value (semiregular)
+  // T is a carrier itself: a parameter only the standard's foundational
+  // concepts constrain (copyable, equality_comparable, semiregular, regular).
+  std::set<Param> plain;
+  // same_as between member types of parameters and parameters: equations,
+  // one carrier per class (Cod<F> == Dom<G> in Compose).
+  std::vector<std::pair<Term, Term>> sames;
+  // Results a shape asks only to be convertible (-> convertible_to<T>): the
+  // archetype returns converts_to<T>, so the body converts them at once.
+  std::set<Param> opConverts, arrowConverts, memberConverts;
+  // F has member types (typename F::Domain), and a const call from one of
+  // them to another: the library's arrow (IsArrow).
+  std::map<Param, std::set<std::string>> members;
+  std::map<Param, std::pair<std::string, std::string>> memberCall;
   struct Law {
     const clang::VarTemplateDecl* decl;
     std::vector<Param> args;
@@ -1989,7 +2032,17 @@ struct Facts {
   // carrier: until then it is unconfirmed (Copilot on #1211).
   std::set<Param> opUnconfirmed;
   std::optional<Param> lastOp;
-  std::string undecided;  // the first requirement no rule reads
+  std::string undecided;          // the first requirement no rule reads
+  std::vector<std::string> path;  // the shapes followed to reach it
+  // Parameters a shape constrains to the count atom (std::unsigned_integral):
+  // their archetype is a count, std::size_t, and a constraint on them alone is
+  // left to the compiler at that type.
+  std::set<Param> atoms;
+  std::string where() const {
+    std::string w;
+    for (const std::string& c : path) w += (w.empty() ? " (in " : " > ") + c;
+    return w.empty() ? w : w + ")";
+  }
 };
 
 void readConstraint(const clang::Expr* e, const TermSubst& s, Facts& f,
@@ -2040,10 +2093,16 @@ void readRequiredCall(const clang::Expr* e,
     f.undecided = "a call of a constructed value of another form";
     return;
   }
-  // f(x): an arrow between two carriers.
+  // f(x): an arrow between two carriers, or, with x of one of f's member
+  // types, the library's arrow.
   const Term fn = localTerm(callee);
   if (fn.kind == Term::Parameter && call->getNumArgs() == 1) {
     const Term x = localTerm(call->getArg(0));
+    if (x.kind == Term::Member && x.p == fn.p) {
+      f.members[fn.p].insert(x.member);
+      f.memberCall[fn.p] = {x.member, ""};  // the result from the constraint
+      return;
+    }
     if (x.kind == Term::CarrierOf) {
       // The codomain comes only from a result constraint; without one it
       // stays unknown, and no archetype is built.
@@ -2053,7 +2112,8 @@ void readRequiredCall(const clang::Expr* e,
   }
   // A call to a function of the program, by name.
   if (llvm::isa<clang::UnresolvedLookupExpr>(callee)) return;
-  f.undecided = "a required call of another form";
+  f.undecided = std::string("a required call of another form: ") +
+                callee->getStmtClassName();
 }
 
 void readRequires(const clang::RequiresExpr* r, const TermSubst& s, Facts& f) {
@@ -2076,7 +2136,8 @@ void readRequires(const clang::RequiresExpr* r, const TermSubst& s, Facts& f) {
         if (f.lastOp)
           if (const auto* rc = llvm::dyn_cast<clang::ConceptSpecializationExpr>(
                   ret.getTypeConstraint()->getImmediatelyDeclaredConstraint()))
-            if (rc->getNamedConcept()->getName() == "same_as" &&
+            if ((rc->getNamedConcept()->getName() == "same_as" ||
+                 rc->getNamedConcept()->getName() == "convertible_to") &&
                 !rc->getTemplateArgsAsWritten()->arguments().empty()) {
               const Term r = classify(rc->getTemplateArgsAsWritten()
                                           ->arguments()
@@ -2084,14 +2145,49 @@ void readRequires(const clang::RequiresExpr* r, const TermSubst& s, Facts& f) {
                                           .getArgument()
                                           .getAsType(),
                                       s);
-              if (r.kind == Term::CarrierOf && r.p == *f.lastOp)
+              if (r.kind == Term::CarrierOf && r.p == *f.lastOp) {
                 f.opUnconfirmed.erase(r.p);
+                if (rc->getNamedConcept()->getName() == "convertible_to")
+                  f.opConverts.insert(r.p);
+              }
             }
         // -> same_as<carrier_t<B>>: fixes an arrow's codomain.
         const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(
             ret.getTypeConstraint()->getImmediatelyDeclaredConstraint());
-        if (!cs || cs->getNamedConcept()->getName() != "same_as") {
-          f.undecided = "a result constraint other than same_as";
+        // The library's arrow: f(x) -> Presents<F::Codomain> or same_as: the
+        // archetype returns exactly the codomain's carrier, which meets each
+        // of them by its plain branch; convertible_to: a converts_to of it.
+        if (cs && !cs->getTemplateArgsAsWritten()->arguments().empty()) {
+          const llvm::StringRef rn = cs->getNamedConcept()->getName();
+          const Term to = classify(cs->getTemplateArgsAsWritten()
+                                       ->arguments()
+                                       .back()
+                                       .getArgument()
+                                       .getAsType(),
+                                   s);
+          const auto* mc = llvm::dyn_cast<clang::CallExpr>(
+              er->getExpr()->IgnoreParenImpCasts());
+          if (mc && to.kind == Term::Member &&
+              (rn == "same_as" || rn == "convertible_to" || rn == "Presents"))
+            if (auto it = f.memberCall.find(to.p);
+                it != f.memberCall.end() && it->second.second.empty()) {
+              it->second.second = to.member;
+              f.members[to.p].insert(to.member);
+              // Presents is convertible_to or a presentation the object
+              // names; at a fresh carrier only the conversion, at once.
+              if (rn == "convertible_to" || rn == "Presents")
+                f.memberConverts.insert(to.p);
+              continue;
+            }
+        }
+        const bool converts =
+            cs && cs->getNamedConcept()->getName() == "convertible_to";
+        if (!cs ||
+            (cs->getNamedConcept()->getName() != "same_as" && !converts)) {
+          f.undecided =
+              "a result constraint other than same_as or convertible_to: " +
+              (cs ? cs->getNamedConcept()->getName().str() : std::string("?")) +
+              f.where();
           return;
         }
         const auto& args = cs->getTemplateArgsAsWritten()->arguments();
@@ -2107,8 +2203,10 @@ void readRequires(const clang::RequiresExpr* r, const TermSubst& s, Facts& f) {
                 if (const auto* v =
                         llvm::dyn_cast<clang::VarDecl>(d->getDecl()))
                   if (auto it = locals.find(v);
-                      it != locals.end() && it->second.p == fp)
+                      it != locals.end() && it->second.p == fp) {
                     ab.second = to.p;
+                    if (converts) f.arrowConverts.insert(fp);
+                  }
             }
       }
     } else if (const auto* tr =
@@ -2117,7 +2215,18 @@ void readRequires(const clang::RequiresExpr* r, const TermSubst& s, Facts& f) {
         f.undecided = "a type requirement that cannot be read";
         return;
       }
-      // typename op_t<E>: read with the call that uses it.
+      // typename op_t<E>: read with the call that uses it; typename
+      // F::Domain: a member type F must have.
+      // Any other type a shape asks to exist, SpeciesTraits<T>::Domain, is
+      // nothing the archetypes provide, so the check stops there.
+      const Term m = classify(tr->getType()->getType(), s);
+      if (m.kind == Term::Member) {
+        f.members[m.p].insert(m.member);
+      } else if (m.kind != Term::Associated) {
+        f.undecided = "a type requirement of another form: " +
+                      tr->getType()->getType().getAsString() + f.where();
+        return;
+      }
     } else if (const auto* nr =
                    llvm::dyn_cast<clang::concepts::NestedRequirement>(req)) {
       if (nr->hasInvalidConstraint()) {
@@ -2158,9 +2267,77 @@ bool readLaw(const clang::Expr* e, const TermSubst& s, Facts& f) {
   return true;
 }
 
+/// The parameters the shapes constrain to the count atom, followed through
+/// conjunctions and shapes of the program.
+void findAtoms(const clang::Expr* e, const TermSubst& s, Facts& f,
+               int depth = 0) {
+  if (!e || depth > 32) return;
+  e = e->IgnoreParenImpCasts();
+  if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {
+    if (b->getOpcode() == clang::BO_LAnd) {
+      findAtoms(b->getLHS(), s, f, depth + 1);
+      findAtoms(b->getRHS(), s, f, depth + 1);
+    }
+    return;
+  }
+  const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e);
+  if (!cs) return;
+  const clang::ConceptDecl* c = cs->getNamedConcept();
+  std::vector<Term> args;
+  for (const clang::TemplateArgument& a : cs->getTemplateArguments())
+    args.push_back(a.getKind() == clang::TemplateArgument::Type
+                       ? classify(a.getAsType(), s)
+                       : Term{});
+  if (inStd(c)) {
+    const llvm::StringRef n = c->getName();
+    if ((n == "unsigned_integral" || n == "signed_integral" ||
+         n == "integral") &&
+        args.size() == 1 && args[0].kind == Term::Parameter)
+      f.atoms.insert(args[0].p);
+    return;
+  }
+  TermSubst inner;
+  const clang::TemplateParameterList* ps = c->getTemplateParameters();
+  for (unsigned k = 0; k < ps->size() && k < args.size(); ++k)
+    if (const auto* tp =
+            llvm::dyn_cast<clang::TemplateTypeParmDecl>(ps->getParam(k)))
+      inner[{tp->getDepth(), tp->getIndex()}] = args[k];
+  findAtoms(c->getConstraintExpr(), inner, f, depth + 1);
+}
+
+/// Whether an expression of a constraint mentions only atom parameters (and
+/// no other parameter): then the compiler decides it at the atom's archetype.
+bool onlyAtoms(const clang::Expr* e, const TermSubst& s, const Facts& f) {
+  struct Params : clang::RecursiveASTVisitor<Params> {
+    const TermSubst& s;
+    const Facts& f;
+    bool atom = false, other = false;
+    Params(const TermSubst& s, const Facts& f) : s(s), f(f) {}
+    void see(clang::QualType t) {
+      const Term r = classify(t, s);
+      if (r.kind == Term::Parameter)
+        (f.atoms.count(r.p) ? atom : other) = true;
+      else if (!t.isNull() && t->isDependentType())
+        other = true;
+    }
+    bool VisitTypeLoc(clang::TypeLoc tl) {
+      if (tl.getType()->getAs<clang::TemplateTypeParmType>()) see(tl.getType());
+      return true;
+    }
+    bool VisitConceptSpecializationExpr(clang::ConceptSpecializationExpr* c) {
+      for (const clang::TemplateArgument& a : c->getTemplateArguments())
+        if (a.getKind() == clang::TemplateArgument::Type) see(a.getAsType());
+      return true;
+    }
+  } v(s, f);
+  v.TraverseStmt(const_cast<clang::Expr*>(e));
+  return v.atom && !v.other;
+}
+
 void readConstraint(const clang::Expr* e, const TermSubst& s, Facts& f,
                     int depth) {
   if (!e || !f.undecided.empty()) return;
+  if (!f.atoms.empty() && onlyAtoms(e, s, f)) return;  // the compiler decides
   if (depth > 32) {
     f.undecided = "constraints nested too deep";
     return;
@@ -2188,18 +2365,43 @@ void readConstraint(const clang::Expr* e, const TermSubst& s, Facts& f,
                          : Term{});
     if (inStd(c)) {
       const llvm::StringRef n = c->getName();
-      if (n == "copyable" && args.size() == 1 &&
-          args[0].kind == Term::CarrierOf)
-        return;  // every carrier archetype copies
-      if (n == "equality_comparable" && args.size() == 1 &&
-          args[0].kind == Term::CarrierOf) {
-        f.comparable.insert(args[0].p);
-        return;
+      // The foundational concepts (the Palo Alto report, N3351, 3.3): what
+      // the carrier gets, and nothing more.  Copying is the kernel's, every
+      // carrier copies; equality is a call (Jlt); a default value is
+      // partially formed (Elements of Programming, 1.5), local state written
+      // before it is read (Jlt).
+      if (args.size() == 1 && (args[0].kind == Term::Parameter ||
+                               args[0].kind == Term::CarrierOf)) {
+        const Param q = args[0].p;
+        const bool par = args[0].kind == Term::Parameter;
+        const bool copies = n == "copyable" || n == "copy_constructible" ||
+                            n == "movable" || n == "move_constructible" ||
+                            n == "destructible";
+        const bool eq = n == "equality_comparable" || n == "regular";
+        const bool def = n == "semiregular" || n == "regular" ||
+                         n == "default_initializable";
+        if (copies || eq || def) {
+          if (par) f.plain.insert(q);
+          if (eq) f.comparable.insert(q);
+          if (def) f.defaulted.insert(q);
+          return;
+        }
       }
       if ((n == "sized_range" || n == "range" || n == "input_range") &&
           args.size() == 1 && args[0].kind == Term::Parameter) {
         f.range.try_emplace(args[0].p);
         if (n == "sized_range") f.sized.insert(args[0].p);
+        return;
+      }
+      // An equation between member types, or a member type and a parameter:
+      // the two are one carrier.
+      if (n == "same_as" && args.size() == 2 &&
+          (args[0].kind == Term::Member || args[1].kind == Term::Member) &&
+          (args[0].kind == Term::Member || args[0].kind == Term::Parameter) &&
+          (args[1].kind == Term::Member || args[1].kind == Term::Parameter)) {
+        for (const Term& t : args)
+          if (t.kind == Term::Member) f.members[t.p].insert(t.member);
+        f.sames.emplace_back(args[0], args[1]);
         return;
       }
       if (n == "same_as" && args.size() == 2 &&
@@ -2213,7 +2415,8 @@ void readConstraint(const clang::Expr* e, const TermSubst& s, Facts& f,
           return;
         }
       }
-      f.undecided = "the standard's " + n.str() + " at these arguments";
+      f.undecided =
+          "the standard's " + n.str() + " at these arguments" + f.where();
       return;
     }
     // A shape of the program: its body, its parameters read as the arguments.
@@ -2223,11 +2426,21 @@ void readConstraint(const clang::Expr* e, const TermSubst& s, Facts& f,
       if (const auto* tp =
               llvm::dyn_cast<clang::TemplateTypeParmDecl>(ps->getParam(k)))
         inner[{tp->getDepth(), tp->getIndex()}] = args[k];
+    f.path.push_back(c->getName().str());
     readConstraint(c->getConstraintExpr(), inner, f, depth + 1);
+    if (f.undecided.empty()) f.path.pop_back();
     return;
   }
   if (readLaw(e, s, f)) return;
-  f.undecided = "a constraint of another form";
+  std::string what = e->getStmtClassName();
+  if (const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(e))
+    what += " " + u->getName().getAsString();
+  else if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e))
+    what += " " + d->getDecl()->getNameAsString();
+  else if (const auto* c = llvm::dyn_cast<clang::CallExpr>(e))
+    if (const clang::FunctionDecl* fd = c->getDirectCallee())
+      what += " " + fd->getNameAsString();
+  f.undecided = "a constraint of another form: " + what + f.where();
 }
 
 /// The outcome of the type check for one function template.
@@ -2276,7 +2489,27 @@ class Errors : public clang::DiagnosticConsumer {
 struct Selection {
   bool resolved = false;
   bool marked = false;
+  // A result a shape promises only convertible_to<T> passed straight to a
+  // call: converted to whatever parameter type resolution picks there, which
+  // a real type's overloads may pick differently.  Table 7's derived form is
+  // copy-initialisation of a T, so the result goes into a declared T or a
+  // return at T, and nowhere else.
+  bool lateConversion = false;
 };
+
+/// Whether an expression is the conversion of a converts_to archetype.
+bool convertsProxy(const clang::Expr* e) {
+  e = e->IgnoreParenImpCasts();
+  if (const auto* m = llvm::dyn_cast<clang::MaterializeTemporaryExpr>(e))
+    e = m->getSubExpr()->IgnoreParenImpCasts();
+  if (const auto* b = llvm::dyn_cast<clang::CXXBindTemporaryExpr>(e))
+    e = b->getSubExpr()->IgnoreParenImpCasts();
+  const auto* mc = llvm::dyn_cast<clang::CXXMemberCallExpr>(e);
+  if (!mc) return false;
+  const auto* conv =
+      llvm::dyn_cast_or_null<clang::CXXConversionDecl>(mc->getMethodDecl());
+  return conv && conv->getParent()->getName() == "converts_to";
+}
 class MarkedUse : public clang::ASTConsumer {
  public:
   explicit MarkedUse(Selection& sel) : sel(sel) {}
@@ -2285,16 +2518,30 @@ class MarkedUse : public clang::ASTConsumer {
       Selection& sel;
       explicit Find(Selection& s) : sel(s) {}
       bool VisitVarDecl(clang::VarDecl* v) {
-        if (v->getName() != "use" || !v->getInit()) return true;
+        if (!v->getName().starts_with("use") || !v->getInit()) return true;
         const auto* ns =
             llvm::dyn_cast<clang::NamespaceDecl>(v->getDeclContext());
         if (!ns || ns->getName() != "jlt_admit") return true;
         const clang::Expr* e = v->getInit()->IgnoreParenImpCasts();
-        if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
-          e = u->getSubExpr()->IgnoreParenImpCasts();
-        const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e);
-        const auto* f =
-            d ? llvm::dyn_cast<clang::FunctionDecl>(d->getDecl()) : nullptr;
+        const clang::FunctionDecl* f = nullptr;
+        if (const auto* l = llvm::dyn_cast<clang::LambdaExpr>(e)) {
+          // The call form: the first call in the lambda's body, wherever
+          // cleanups and temporaries put it.
+          struct First : clang::RecursiveASTVisitor<First> {
+            const clang::FunctionDecl* f = nullptr;
+            bool VisitCallExpr(clang::CallExpr* c) {
+              if (!f) f = c->getDirectCallee();
+              return !f;
+            }
+          } first;
+          first.TraverseStmt(const_cast<clang::Stmt*>(l->getBody()));
+          f = first.f;
+        } else {
+          if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
+            e = u->getSubExpr()->IgnoreParenImpCasts();
+          if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e))
+            f = llvm::dyn_cast<clang::FunctionDecl>(d->getDecl());
+        }
         if (!f) return true;
         sel.resolved = true;
         for (const clang::FunctionDecl* g :
@@ -2307,6 +2554,89 @@ class MarkedUse : public clang::ASTConsumer {
       }
     } find(sel);
     find.TraverseDecl(ctx.getTranslationUnitDecl());
+    // The instantiated body of the checked template: a converts_to result
+    // as a call's argument.
+    struct Late : clang::RecursiveASTVisitor<Late> {
+      Selection& sel;
+      explicit Late(Selection& s) : sel(s) {}
+      bool shouldVisitTemplateInstantiations() const { return true; }
+      bool inChecked = false;
+      bool TraverseFunctionDecl(clang::FunctionDecl* f) {
+        const clang::FunctionDecl* pat = f->getTemplateInstantiationPattern();
+        const bool checked =
+            pat && pat->getAttr<clang::DeprecatedAttr>() &&
+            pat->getAttr<clang::DeprecatedAttr>()->getMessage() ==
+                "jlt-admit-checked";
+        const bool was = inChecked;
+        inChecked = inChecked || checked;
+        clang::RecursiveASTVisitor<Late>::TraverseFunctionDecl(f);
+        inChecked = was;
+        return true;
+      }
+      // A conversion of the proxy is admitted only where a declared T is
+      // initialised or a T is returned (Table 7: copy-initialisation of a
+      // T); an argument, an operand, a branch of ?: or a constructor's
+      // argument is late.  A proxy returned unconverted is late too.
+      clang::ASTContext* ctx = nullptr;
+      bool VisitCXXMemberCallExpr(clang::CXXMemberCallExpr* m) {
+        if (!inChecked || !convertsProxy(m)) return true;
+        clang::DynTypedNode n = clang::DynTypedNode::create(*m);
+        for (int depth = 0; depth < 16; ++depth) {
+          auto ps = ctx->getParents(n);
+          if (ps.empty()) {  // under a list's semantic form: not a T
+            sel.lateConversion = true;
+            return true;
+          }
+          n = ps[0];
+          if (const auto* x = n.get<clang::Expr>()) {
+            if (llvm::isa<clang::ImplicitCastExpr, clang::ParenExpr,
+                          clang::MaterializeTemporaryExpr,
+                          clang::CXXBindTemporaryExpr, clang::ExprWithCleanups>(
+                    x))
+              continue;
+            if (llvm::isa<clang::CXXFunctionalCastExpr,
+                          clang::CXXStaticCastExpr>(x))
+              return true;  // the conversion written out
+            sel.lateConversion = true;
+            return true;
+          }
+          if (n.get<clang::VarDecl>() || n.get<clang::ReturnStmt>())
+            return true;
+          sel.lateConversion = true;
+          return true;
+        }
+        return true;
+      }
+      // A brace list's conversions live in its semantic form, which the
+      // traversal does not visit: an element that converts the proxy is
+      // late (an aggregate's field, not a declared T).
+      bool VisitInitListExpr(clang::InitListExpr* l) {
+        if (!inChecked) return true;
+        const clang::InitListExpr* sem =
+            l->isSemanticForm() ? l : l->getSemanticForm();
+        if (sem)
+          for (const clang::Expr* i : sem->inits())
+            if (i && convertsProxy(i)) sel.lateConversion = true;
+        return true;
+      }
+      // A local of the proxy's type keeps it, and std::move lets it convert
+      // later: late (Copilot on #1212).
+      bool VisitVarDecl(clang::VarDecl* v) {
+        if (inChecked)
+          if (const auto* rd = v->getType()->getAsCXXRecordDecl())
+            if (rd->getName() == "converts_to") sel.lateConversion = true;
+        return true;
+      }
+      bool VisitReturnStmt(clang::ReturnStmt* r) {
+        if (inChecked && r->getRetValue())
+          if (const auto* rd =
+                  r->getRetValue()->getType()->getAsCXXRecordDecl())
+            if (rd->getName() == "converts_to") sel.lateConversion = true;
+        return true;
+      }
+    } late(sel);
+    late.ctx = &ctx;
+    late.TraverseDecl(ctx.getTranslationUnitDecl());
   }
 
  private:
@@ -2350,6 +2680,21 @@ std::string qualifiedNamespace(const clang::Decl* d) {
   return q;
 }
 
+const clang::ClassTemplateDecl* classTemplateOf(
+    clang::QualType t, llvm::ArrayRef<clang::TemplateArgument>& args);
+
+/// Whether another function or function template in the same scope has the
+/// template's name, so that its address needs a target type.
+bool overloaded(const clang::FunctionTemplateDecl* ft) {
+  const clang::DeclContext* dc = ft->getDeclContext()->getRedeclContext();
+  for (const clang::NamedDecl* d : dc->lookup(ft->getDeclName()))
+    if (d->getCanonicalDecl() != ft->getCanonicalDecl() &&
+        (llvm::isa<clang::FunctionDecl>(d) ||
+         llvm::isa<clang::FunctionTemplateDecl>(d)))
+      return true;
+  return false;
+}
+
 /// The appendix for one template: archetypes, the traits' entries at them,
 /// and a use that makes the compiler instantiate the body.  Empty, with
 /// `why` set, when some parameter has no archetype.
@@ -2362,13 +2707,46 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
     if (auto it = carrier.find(p); it != carrier.end()) return it->second;
     const std::string tag = "Tag" + std::to_string(carrier.size());
     const std::string name = "C" + std::to_string(carrier.size());
+    const bool eq = f.comparable.count(p), def = f.defaulted.count(p);
     types += "struct " + tag + ";\nusing " + name + " = ::jlt::archetype::" +
-             (f.comparable.count(p) ? "comparable_carrier" : "carrier") + "<" +
-             tag + ">;\n";
+             (def ? (eq ? "regular_carrier" : "semiregular_carrier")
+                  : (eq ? "comparable_carrier" : "carrier")) +
+             "<" + tag + ">;\n";
     carrier[p] = name;
     return name;
   };
   const std::string ns = "jlt_admit";
+  // The equations of same_as, joined into classes: a class with a count atom
+  // is the count, one with a plain parameter is its carrier, any other a
+  // fresh carrier of its own.
+  std::map<std::string, std::string> parent;
+  std::map<std::string, Param> paramOf;
+  auto key = [&](const Term& t) {
+    std::string k = (t.kind == Term::Member ? "m" : "p") +
+                    std::to_string(t.p.first) + ":" +
+                    std::to_string(t.p.second) + ":" + t.member;
+    parent.try_emplace(k, k);
+    if (t.kind == Term::Parameter) paramOf[k] = t.p;
+    return k;
+  };
+  std::function<std::string(const std::string&)> find =
+      [&](const std::string& k) {
+        return parent[k] == k ? k : parent[k] = find(parent[k]);
+      };
+  for (const auto& [x, y] : f.sames) parent[find(key(x))] = find(key(y));
+  std::map<std::string, std::string> slot;
+  auto slotType = [&](const std::string& k) -> std::string {
+    const std::string r = find(k);
+    if (auto it = slot.find(r); it != slot.end()) return it->second;
+    std::string t;
+    for (const auto& [m, q] : paramOf)
+      if (find(m) == r && f.atoms.count(q)) t = "@INTEGER-EQUATION@";
+    if (t.empty())
+      for (const auto& [m, q] : paramOf)
+        if (find(m) == r && f.plain.count(q)) t = carrierName(q);
+    if (t.empty()) t = carrierName({~3u, static_cast<unsigned>(slot.size())});
+    return slot[r] = t;
+  };
   for (const clang::NamedDecl* d : *ps) {
     const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(d);
     if (!tp) {
@@ -2377,7 +2755,9 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
     }
     const Param p{tp->getDepth(), tp->getIndex()};
     std::string a;
-    if (f.unit.count(p)) {
+    if (f.atoms.count(p)) {
+      a = "@ATOM@";  // the integer extremes, or the count (see below)
+    } else if (f.unit.count(p)) {
       a = "::jlt::archetype::nullary<" + carrierName(p) + ">";
     } else if (auto it = f.carrierOf.find(p); it != f.carrierOf.end()) {
       a = carrierName(it->second);
@@ -2388,16 +2768,60 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
       a = std::string("::jlt::archetype::") +
           (f.sized.count(p) ? "sized_range_of<" : "input_range_of<") + elem +
           ">";
+    } else if (auto it = f.members.find(p); it != f.members.end()) {
+      // The library's arrow: a struct with the member types, each a fresh
+      // carrier, and the const call from one to another.
+      const std::string name = "S" + std::to_string(arch.size());
+      std::string body;
+      std::map<std::string, std::string> mc;
+      for (const std::string& m : it->second) {
+        const std::string k = "m" + std::to_string(p.first) + ":" +
+                              std::to_string(p.second) + ":" + m;
+        mc[m] = parent.count(k)
+                    ? slotType(k)
+                    : carrierName({~2u, static_cast<unsigned>(carrier.size())});
+        body += "  using " + m + " = " + mc[m] + ";\n";
+      }
+      if (auto c = f.memberCall.find(p); c != f.memberCall.end()) {
+        if (c->second.second.empty()) {
+          why = "a required call on a member type without a result type";
+          return {};
+        }
+        const std::string r = mc[c->second.second];
+        body += "  " +
+                (f.memberConverts.count(p)
+                     ? "::jlt::archetype::converts_to<" + r + ">"
+                     : r) +
+                " operator()(const " + mc[c->second.first] + "&) const;\n";
+      }
+      // No default value unless a shape asks for one: an empty struct would
+      // otherwise have one, more than IsArrow promises.
+      if (!f.defaulted.count(p)) body += "  " + name + "() = delete;\n";
+      types += "struct " + name + " {\n" + body + "};\n";
+      a = name;
     } else if (auto it = f.arrow.find(p); it != f.arrow.end()) {
       if (it->second.second == Param{~0u, ~0u}) {
         why = "a required call without a result type";
         return {};
       }
+      const std::string r = carrierName(it->second.second);
       a = "::jlt::archetype::arrow<" + carrierName(it->second.first) + ", " +
-          carrierName(it->second.second) + ">";
+          (f.arrowConverts.count(p) ? "::jlt::archetype::converts_to<" + r + ">"
+                                    : r) +
+          ">";
+    } else if (f.plain.count(p)) {
+      // A parameter in a class of same_as equations takes the class's
+      // carrier, so that T and U equal through F::Domain are one type.
+      const std::string k =
+          "p" + std::to_string(p.first) + ":" + std::to_string(p.second) + ":";
+      a = parent.count(k) ? slotType(k) : carrierName(p);
     } else {
       why = "no archetype for template parameter " + tp->getName().str();
       return {};
+    }
+    if (a == "@ATOM@") {  // no alias: the uses substitute it
+      arch[p] = a;
+      continue;
     }
     const std::string name = "A" + std::to_string(arch.size());
     types += "using " + name + " = " + a + ";\n";
@@ -2408,12 +2832,20 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
     entries += "namespace " + qualifiedNamespace(trait) +
                " {\ntemplate <>\nstruct " + trait->getName().str() + "<" +
                arch[p] + "> {\n  using type = ::jlt::archetype::binary<" + ns +
-               "::" + carrier[p] + ">;\n};\n}\n";
+               "::" + carrier[p] +
+               (f.opConverts.count(p) ? ", ::jlt::archetype::converts_to<" +
+                                            ns + "::" + carrier[p] + ">"
+                                      : std::string()) +
+               ">;\n};\n}\n";
   }
   std::set<std::string> seen;
   for (const Facts::Law& law : f.laws) {
     std::string args;
     for (Param p : law.args) {
+      if (f.atoms.count(p)) {  // its entry would need every integer type
+        why = "a law at an integer parameter";
+        return {};
+      }
       if (!arch.count(p)) {
         why = "a law at a parameter without an archetype";
         return {};
@@ -2433,13 +2865,196 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
     targs +=
         (targs.empty() ? "" : ", ") + arch[{tp->getDepth(), tp->getIndex()}];
   }
+  const std::string instance =
+      "&::" + ft->getQualifiedNameAsString() + "<" + targs + ">";
+  std::string use = "inline constexpr auto* use = " + instance + ";\n";
+  // An overloaded name has no address without a target type: restate the
+  // parameter types as written, each as an alias template over the
+  // template's own parameter names, in the template's namespace, so that the
+  // names in them resolve as at the definition.
+  std::string aliases, result, tparams;
+  bool named = true;
+  for (const clang::NamedDecl* d : *ps) {
+    const auto* tp = llvm::cast<clang::TemplateTypeParmDecl>(d);
+    named = named && !tp->getName().empty() && !tp->isParameterPack();
+    tparams += (tparams.empty() ? "class " : ", class ") + tp->getName().str();
+  }
+  const clang::FunctionDecl* fd = ft->getTemplatedDecl();
+  const clang::ASTContext& ctx = ft->getASTContext();
+  const clang::SourceManager& sm = ctx.getSourceManager();
+  const std::string offset =
+      std::to_string(sm.getFileOffset(sm.getExpansionLoc(ft->getLocation())));
+  const std::string scope = qualifiedNamespace(ft);
+  // A result type that is a class template's specialization is restated
+  // first, at the archetypes, so that a result asking more than the
+  // constraints fails there, naming its class template (see admit).
+  // A friend defined in its class names its types in the class's scope,
+  // which the appendix, at namespace scope, cannot restate.
+  const bool inClass = ft->getLexicalDeclContext()->isRecord();
+  llvm::ArrayRef<clang::TemplateArgument> resultArgs;
+  if (named && !inClass && classTemplateOf(fd->getReturnType(), resultArgs)) {
+    const std::string t =
+        clang::Lexer::getSourceText(clang::CharSourceRange::getTokenRange(
+                                        fd->getReturnTypeSourceRange()),
+                                    sm, ctx.getLangOpts())
+            .str();
+    if (!t.empty() && t.find("auto") == std::string::npos) {
+      aliases += "template <" + tparams + ">\nusing jlt_admit_result_" +
+                 offset + " = " + t + ";\n";
+      result = "using result = ::" + (scope.empty() ? "" : scope + "::") +
+               "jlt_admit_result_" + offset + "<" + targs + ">;\n";
+    }
+  }
+  if (overloaded(ft)) {
+    if (inClass) {
+      why = "an overloaded friend defined in its class";
+      return {};
+    }
+    if (!named) {
+      why = "an overloaded name whose template parameters are unnamed";
+      return {};
+    }
+    const std::string prefix = "jlt_admit_param_" + offset;
+    std::string lambda, call;
+    for (unsigned i = 0; i < fd->getNumParams(); ++i) {
+      const clang::ParmVarDecl* pv = fd->getParamDecl(i);
+      const clang::TypeSourceInfo* ti = pv->getTypeSourceInfo();
+      const std::string t =
+          ti ? clang::Lexer::getSourceText(
+                   clang::CharSourceRange::getTokenRange(
+                       pv->getBeginLoc(), ti->getTypeLoc().getEndLoc()),
+                   sm, ctx.getLangOpts())
+                   .str()
+             : std::string();
+      if (t.empty() || t.find("auto") != std::string::npos) {
+        why =
+            "an overloaded name whose parameter types the appendix cannot "
+            "restate";
+        return {};
+      }
+      const std::string a = prefix + "_" + std::to_string(i);
+      aliases += "template <" + tparams + ">\nusing " + a + " = " + t + ";\n";
+      const std::string pt =
+          "::" + (scope.empty() ? "" : scope + "::") + a + "<" + targs + ">";
+      const std::string arg = "a" + std::to_string(i);
+      lambda += (i ? ", " : "") + pt + " " + arg;
+      call += (i ? ", " : "") + ("static_cast<" + pt + "&&>(" + arg + ")");
+    }
+    if (fd->isVariadic()) {
+      why = "an overloaded name with a C variadic parameter";
+      return {};
+    }
+    // The use is a call, resolved as at a call site: an address would need
+    // the result type as well, and a deduced one cannot select from an
+    // overload set (the target is then a non-deduced context).
+    use = "inline constexpr auto use = [](" + lambda + ") { (void)" +
+          instance.substr(1) + "(" + call + "); };\n";
+  }
+  if (!aliases.empty())
+    aliases = "namespace " + scope + " {\n" + aliases + "}\n";
   std::string text = "\n// jlt-lint: admission by type\n";
-  if (!archetypes.empty()) text += "#include \"" + archetypes + "\"\n";
-  text +=
-      "namespace " + ns + " {\n" + types + "}\n" + entries + "namespace " + ns +
-      " {\ninline constexpr auto* use = &::" + ft->getQualifiedNameAsString() +
-      "<" + targs + ">;\n}\n";
-  return text;
+  text += "namespace " + ns + " {\n" + types + "}\n" + entries + aliases +
+          "namespace " + ns + " {\n" + result + use + "}\n";
+  // An equation between a member type and an integer parameter would pin
+  // the member while the probe varies the parameter (Copilot on #1212).
+  if (text.find("@INTEGER-EQUATION@") != std::string::npos) {
+    why = "an equation between a member type and an integer parameter";
+    return {};
+  }
+  if (f.atoms.empty()) return text;
+  // Several integer parameters would be checked on the diagonal only.
+  if (f.atoms.size() > 1) {
+    why = "several integer parameters, checked so far one at a time only";
+    return {};
+  }
+  auto subst = [](std::string t, const std::string& by) {
+    for (std::size_t at; (at = t.find("@ATOM@")) != std::string::npos;)
+      t.replace(at, 6, by);
+    return t;
+  };
+  // An overloaded name has no address to probe with: the count alone.
+  if (overloaded(ft)) return subst(text, "::std::size_t");
+  // The integer parameters at the smallest and the largest of the standard's
+  // integer types the constraints admit, found by asking the constraints.
+  const std::string probe =
+      "namespace " + ns +
+      " {\ntemplate <class N>\nstruct fits {\n  static constexpr bool value "
+      "= requires { " +
+      subst(instance, "N") +
+      "; };\n};\nusing Lo = ::jlt::archetype::smallest_integer<fits>;\n"
+      "using Hi = ::jlt::archetype::largest_integer<fits>;\ntemplate <class "
+      "N>\nstruct checked {\n  static constexpr bool value = [] {\n    if "
+      "constexpr (fits<N>::value) (void)" +
+      subst(instance, "N") +
+      ";\n    return true;\n  }();\n};\ninline constexpr bool use_all = "
+      "::jlt::archetype::every_integer<checked>;\n}\n";
+  const std::string head =
+      subst(text.substr(0, text.rfind("namespace " + ns + " {\n" + result)),
+            ns + "::Hi");
+  std::string lo = subst(use, ns + "::Lo"), hi = subst(use, ns + "::Hi");
+  lo.replace(lo.find("use"), 3, "use_lo");
+  hi.replace(hi.find("use"), 3, "use_hi");
+  return head + probe + "namespace " + ns + " {\n" +
+         subst(result, ns + "::Hi") + lo + hi + "}\n";
+}
+
+/// The class template a type names, if it names a specialization of one, and
+/// its arguments: `const Compose<F, G>&` gives Compose and F, G.
+const clang::ClassTemplateDecl* classTemplateOf(
+    clang::QualType t, llvm::ArrayRef<clang::TemplateArgument>& args) {
+  t = t.getNonReferenceType().getUnqualifiedType();
+  const auto* ts = t->getAs<clang::TemplateSpecializationType>();
+  if (!ts) return nullptr;
+  args = ts->template_arguments();
+  return llvm::dyn_cast_or_null<clang::ClassTemplateDecl>(
+      ts->getTemplateName().getAsTemplateDecl());
+}
+
+/// Implied constraints: a parameter whose type is a specialization of a
+/// constrained class template, `component(const Compose<F, G>&)`, holds a
+/// value of it, so whoever calls the template has already met the class's
+/// constraints, here Cod<F> == Dom<G>; they are read as if the template had
+/// stated them.  Rust's RFC 2089, implied bounds (accepted, not
+/// stabilised), proposes the same reading: bounds a function's argument
+/// types need are assumed in its body, not repeated in its signature, and
+/// those of its return type too.  Here only the parameter types: C++ checks
+/// a result type's constraints where the template is called, no argument
+/// meets them, and a template whose result asks more than its constraints
+/// is refused (see admit).  A class
+/// template whose arguments are not all types is skipped, and the use then
+/// shows whether its constraints hold at the archetypes.
+void readImplied(const clang::FunctionDecl* fd, Facts& f) {
+  for (const clang::ParmVarDecl* pv : fd->parameters()) {
+    llvm::ArrayRef<clang::TemplateArgument> args;
+    const clang::ClassTemplateDecl* ct = classTemplateOf(pv->getType(), args);
+    if (!ct) continue;
+    const clang::TemplateParameterList* cps = ct->getTemplateParameters();
+    if (args.size() != cps->size()) continue;
+    TermSubst sub;
+    bool types = true;
+    for (unsigned i = 0; i < cps->size() && types; ++i) {
+      const auto* tp =
+          llvm::dyn_cast<clang::TemplateTypeParmDecl>(cps->getParam(i));
+      types = tp && !tp->isParameterPack() &&
+              args[i].getKind() == clang::TemplateArgument::Type;
+      if (types)
+        sub[{tp->getDepth(), tp->getIndex()}] =
+            classify(args[i].getAsType(), {});
+    }
+    if (!types) continue;
+    // Read into a copy: an implied constraint only adds what can be read,
+    // and one that cannot is left to the use, which shows whether it holds.
+    Facts g = f;
+    for (const clang::NamedDecl* p : *cps)
+      if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
+        if (const clang::TypeConstraint* tc = tp->getTypeConstraint()) {
+          findAtoms(tc->getImmediatelyDeclaredConstraint(), sub, g);
+          readConstraint(tc->getImmediatelyDeclaredConstraint(), sub, g);
+        }
+    findAtoms(cps->getRequiresClause(), sub, g);
+    readConstraint(cps->getRequiresClause(), sub, g);
+    if (g.undecided.empty()) f = std::move(g);
+  }
 }
 
 Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
@@ -2448,9 +3063,16 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   for (const clang::NamedDecl* p : *ft->getTemplateParameters())
     if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
       if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
+        findAtoms(tc->getImmediatelyDeclaredConstraint(), {}, f);
+  findAtoms(ft->getTemplateParameters()->getRequiresClause(), {}, f);
+  findAtoms(fd->getTrailingRequiresClause().ConstraintExpr, {}, f);
+  for (const clang::NamedDecl* p : *ft->getTemplateParameters())
+    if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
+      if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
         readConstraint(tc->getImmediatelyDeclaredConstraint(), {}, f);
   readConstraint(ft->getTemplateParameters()->getRequiresClause(), {}, f);
   readConstraint(fd->getTrailingRequiresClause().ConstraintExpr, {}, f);
+  readImplied(fd, f);
   if (!f.undecided.empty()) return {Outcome::Undecided, f.undecided};
   if (!f.opUnconfirmed.empty())
     return {Outcome::Undecided,
@@ -2488,22 +3110,42 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   const unsigned at =
       sm.getFileOffset(sm.getExpansionLoc(fd->getInnerLocStart()));
   original.insert(at, marker);
+  // The archetypes' header: in a module unit, in its global module fragment
+  // (after `module;`), since nothing may be included in the module's purview;
+  // elsewhere, before the appendix.  Offsets after it move by its length.
+  std::string include;
+  if (!archetypes.empty()) include = "#include \"" + archetypes + "\"\n";
+  unsigned shift = 0;
+  std::string tail = appendix;
+  const size_t gmf = original.find("\nmodule;\n");
+  const bool atStart = original.rfind("module;\n", 0) == 0;
+  if (!include.empty() && (gmf != std::string::npos || atStart)) {
+    const size_t after = atStart ? std::string("module;\n").size()
+                                 : gmf + std::string("\nmodule;\n").size();
+    original.insert(after, include);
+    shift = static_cast<unsigned>(include.size());
+  } else {
+    tail = include + appendix;
+  }
   // The tool keeps a reference to the text, so the text lives here.
-  const std::string text = original + appendix;
+  const std::string text = original + tail;
   clang::tooling::ClangTool again(*compilations, {path});
   again.mapVirtualFile(path, text);
   again.appendArgumentsAdjuster(clang::tooling::getInsertArgumentAdjuster(
-      {"-Wdeprecated-declarations", "-Wno-error=deprecated-declarations"},
+      // Warnings stay warnings: an error is what the type check refuses, not
+      // what the project's -Werror promotes (a bitwise not of a bool is
+      // legal C++).
+      {"-Wdeprecated-declarations", "-Wno-error"},
       clang::tooling::ArgumentInsertPosition::END));
   Errors errors;
   errors.appendixFrom = static_cast<unsigned>(original.size());
   // The checked body, in the marked text: after the marker.
   errors.bodyFrom = static_cast<unsigned>(
       sm.getFileOffset(sm.getExpansionLoc(fd->getBody()->getBeginLoc())) +
-      marker.size());
+      marker.size() + shift);
   errors.bodyTo = static_cast<unsigned>(
       sm.getFileOffset(sm.getExpansionLoc(fd->getBody()->getEndLoc())) +
-      marker.size());
+      marker.size() + shift);
   again.setDiagnosticConsumer(&errors);
   Selection sel;
   MarkedUseFactory factory(sel);
@@ -2514,7 +3156,32 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   if (sel.resolved && !sel.marked && !errors.marked)
     return {Outcome::Undecided,
             "the use resolved to another overload at the archetypes"};
+  if (errors.n == 0 && sel.lateConversion)
+    return {Outcome::NotAdmitted,
+            "a result promised only convertible_to<T> used other than to "
+            "initialise a declared T or to return one"};
   if (errors.n == 0) return {Outcome::Admitted, {}};
+  // The result type asks more than the constraints: the archetypes satisfy
+  // every stated constraint, and the result's class template refuses them,
+  // so a caller who meets the signature cannot call the template.
+  llvm::ArrayRef<clang::TemplateArgument> resultArgs;
+  bool paramShares = false;  // a parameter of the result's class template
+  if (const clang::ClassTemplateDecl* rt =
+          classTemplateOf(fd->getReturnType(), resultArgs))
+    for (const clang::ParmVarDecl* pv : fd->parameters()) {
+      llvm::ArrayRef<clang::TemplateArgument> pa;
+      if (const auto* pt = classTemplateOf(pv->getType(), pa))
+        paramShares |= pt->getCanonicalDecl() == rt->getCanonicalDecl();
+    }
+  if (const clang::ClassTemplateDecl* rt =
+          classTemplateOf(fd->getReturnType(), resultArgs);
+      rt && !paramShares && errors.inAppendix &&
+      errors.first.rfind("constraints not satisfied for class template '" +
+                             rt->getName().str() + "'",
+                         0) == 0)
+    return {Outcome::NotAdmitted,
+            "the result type " + rt->getName().str() +
+                " asks more than the constraints: " + errors.first};
   if (errors.inAppendix)
     return {Outcome::Undecided,
             "the appendix did not compile: " + errors.first};
