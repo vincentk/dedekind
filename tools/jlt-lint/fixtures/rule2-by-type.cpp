@@ -310,4 +310,22 @@ constexpr int as_int(F x) {
   return std::bit_cast<int>(x);
 }
 
+// 13. A callee's negation of a structural concept, which no law decides: an
+// archetype meets it or not by its own shape.  Admitted.
+template <typename T>
+concept Nullary = requires(const T& t) { t(); };
+template <typename E>
+  requires Mon<E> && (!Nullary<carrier_t<E>>)
+constexpr carrier_t<E> twice_plain(carrier_t<E> x) {
+  return op_t<E>{}(x, x);
+}
+
+// Admitted: the callee's negation is structural, decided by the carrier's
+// shape, not a law an archetype would default to false.
+template <typename E>
+  requires Mon<E>
+constexpr carrier_t<E> via_plain(carrier_t<E> x) {
+  return twice_plain<E>(x);
+}
+
 }  // namespace jlt_listing

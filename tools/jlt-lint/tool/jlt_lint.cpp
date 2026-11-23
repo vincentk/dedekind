@@ -2650,21 +2650,40 @@ struct Selection {
   bool negatedCallee = false;
 };
 
+/// Whether an expression reads a law of the program (a variable template
+/// outside std), directly or through the program's concepts it names.
+bool readsLaw(const clang::Expr* e, int depth = 0) {
+  if (!e || depth > 16) return false;
+  e = e->IgnoreParenImpCasts();
+  if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e))
+    if (const auto* v =
+            llvm::dyn_cast<clang::VarTemplateSpecializationDecl>(d->getDecl()))
+      if (!inStd(v->getSpecializedTemplate())) return true;
+  if (const auto* ul = llvm::dyn_cast<clang::UnresolvedLookupExpr>(e))
+    for (const clang::NamedDecl* d : ul->decls())
+      if (llvm::isa<clang::VarTemplateDecl>(d) && !inStd(d)) return true;
+  if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e))
+    if (!inStd(cs->getNamedConcept()) &&
+        readsLaw(cs->getNamedConcept()->getConstraintExpr(), depth + 1))
+      return true;
+  for (const clang::Stmt* c : e->children())
+    if (const auto* ce = llvm::dyn_cast_or_null<clang::Expr>(c))
+      if (readsLaw(ce, depth + 1)) return true;
+  return false;
+}
+
 /// Whether a constraint expression contains a negation, followed through the
 /// concepts it names (depth-limited).
 bool containsNegation(const clang::Expr* e, int depth = 0) {
   if (!e || depth > 16) return false;
   e = e->IgnoreParenImpCasts();
-  // A negation of the program's own law or concept: an archetype does not
-  // declare it, so it reads false there by default.  A negation of a
-  // standard concept (!std::same_as<N, bool>) the type decides itself.
+  // A negation that reads a law of the program, directly or through the
+  // concepts it names: an archetype does not declare the law, so it reads
+  // false there by default.  A negation of a structural concept
+  // (!IsArrow<F>, !std::same_as<N, bool>) the type decides itself.
   if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
-    if (u->getOpcode() == clang::UO_LNot) {
-      const clang::Expr* x = u->getSubExpr()->IgnoreParenImpCasts();
-      if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(x))
-        if (inStd(cs->getNamedConcept())) return false;
-      return true;
-    }
+    if (u->getOpcode() == clang::UO_LNot)
+      return readsLaw(u->getSubExpr()->IgnoreParenImpCasts());
   if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e))
     if (!inStd(cs->getNamedConcept()) &&
         containsNegation(cs->getNamedConcept()->getConstraintExpr(), depth + 1))
