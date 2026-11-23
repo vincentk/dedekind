@@ -124,16 +124,16 @@ The undecided are the generator's coverage, not findings: parameters of template
 \paragraph{The conjecture and its hypotheses.}
 \label{app:lint:conjecture}
 The conjecture of Section~\ref{sec:check} is that a definition admitted at its archetypes is well typed at every type that satisfies its shapes and keeps the rules itself, and resolves every choice its signature makes the same way.
-Nine hypotheses exclude the counterexamples known to us.
+Eight hypotheses exclude the counterexamples known to us, and the linter itself excludes two more.
 A value is copyable data and a type's operations take their arguments by value or by constant reference, as Rule~1 asks, so that no argument the archetype accepts is refused by the type, and a shape that asks only \cppinline{movable} or \cppinline{destructible} is met by a copyable carrier.
 A call by name inside a shape is qualified, so that no lookup by the argument's namespace, which \Cpp{20} extends to calls with template arguments, finds another function at the type.
 The body does not depend on two carriers being different, or a carrier being different from an atom, which the archetypes make them.
 A choice the signature leaves to the caller, as \cppinline{named_power} leaves the case of \cppinline{power}, may resolve differently.
-The body observes no type except through a shape: no \cppinline{sizeof}, \cppinline{alignof}, comparison of types or trait read at a type variable, at which the archetypes would answer for themselves.
-A negated constraint the body relies on is entailed by its signature: at an archetype every law it does not declare is false, so a call that needs \cppinline{!C<E>} passes there and fails at a model of \cppinline{C}.
+The body observes no type except through a shape: a trait of the program read at a type variable outside a shape would be answered by the archetypes for themselves, and the standard's observations, \cppinline{sizeof}, \cppinline{alignof}, \cppinline{typeid}, its type traits and its concepts used as values, a deny-rule refuses.
 An object is one value type: one presented by many types, as a family of expressions presents a set, need not convert to its codomain, which the archetypes do.
 An entry stands above every use that reads it, which the linter checks only in part (Section~\ref{sec:limits}).
 And no limit of the implementation is reached.
+The linter excludes a negation and a late conversion itself: at an archetype every law it does not declare is false, so a body whose callee asks \cppinline{!C<E>} is left undecided, and a result only convertible to its type is admitted only where it initialises a declared one.
 In $F^G$, where a name is looked up where the template is defined, the corresponding statement is a theorem~\cite{siek2005essential}; Järvi et al.\ show what that binding costs the dispatch \Cpp{} programmers rely on~\cite{jarvi2006specialization}.
 In \Cpp{} it is a conjecture, tested on the definitions of the listings and on one layer of the library.
 The Palo Alto report asked the same of a concept design for the standard library: the overload a body uses must be the one resolved when its concept is checked, conversions included~\cite[\S 3.3]{stroustrup2012concept}.
