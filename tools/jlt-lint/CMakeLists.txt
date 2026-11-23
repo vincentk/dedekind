@@ -103,7 +103,10 @@ add_custom_target(lint
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/outcomes.py
             ${_jlt_tool} ${CMAKE_SOURCE_DIR}/tools/jlt-lint/fixtures/rule2-by-type.cpp
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    # Its NCPU workers share the pool with lint-<part>, never both at once.
-    JOB_POOL jlt_lint
+    # In Ninja's console pool, which also runs one job at a time: its output
+    # streams as it comes, so the driver's progress shows which files finished
+    # even in a job that is cancelled or times out (a pool of its own would
+    # buffer it to the end).
+    USES_TERMINAL
     VERBATIM)
 add_dependencies(lint jlt-lint-tool ${_jlt_all_built})
