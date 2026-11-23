@@ -1033,13 +1033,18 @@ class TypeObservation : public clang::ASTConsumer,
   clang::ASTContext* ctx = nullptr;
   bool judging = false;
   int inCondition = 0;
+  clang::SourceRange body;  // the judged function's body: constraints and
+                            // noexcept specifications are not judged here
   template <typename F>
   bool within(clang::FunctionDecl* f, F go) {
     const bool was = judging;
+    const clang::SourceRange outer = body;
     judging = f->isTemplated() && f->doesThisDeclarationHaveABody() &&
               judged(f, ctx->getSourceManager());
+    if (judging) body = f->getBody()->getSourceRange();
     const bool r = go();
     judging = was;
+    body = outer;
     return r;
   }
   static bool isTraitName(llvm::StringRef n) {
@@ -1059,6 +1064,9 @@ class TypeObservation : public clang::ASTConsumer,
   void report(clang::SourceLocation at, const std::string& what) {
     if (!judging || inCondition) return;
     const clang::SourceManager& sm = ctx->getSourceManager();
+    if (sm.isBeforeInTranslationUnit(at, body.getBegin()) ||
+        sm.isBeforeInTranslationUnit(body.getEnd(), at))
+      return;
     const clang::SourceLocation loc = sm.getExpansionLoc(at);
     out() << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc) << ':'
           << sm.getExpansionColumnNumber(loc) << ": " << what

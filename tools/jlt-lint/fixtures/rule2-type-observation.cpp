@@ -40,5 +40,14 @@ constexpr int fixed(T) {
   return sizeof(int);  // not dependent
 }
 constexpr int plain(int x) { return sizeof(x); }  // not a template
+template <typename T>
+struct Holder {
+  T value;
+  constexpr T get() const noexcept(std::is_nothrow_copy_constructible_v<T>)
+    requires std::copyable<T>  // a constraint and a noexcept, not the body
+  {
+    return value;
+  }
+};
 
 }  // namespace jlt_listing
