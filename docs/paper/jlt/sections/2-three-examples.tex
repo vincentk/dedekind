@@ -139,7 +139,7 @@ guessed_concat : no image
 
 The left column is code as it would stand in a program, and the right column tests it.
 A monoid is built up as algebra builds it.
-A \emph{magma} is a binary operator on a carrier, an arrow from two values of the carrier to one, a \emph{unital magma} is a magma with an element that is a unit, and a \emph{monoid} is a unital magma whose operation is associative.
+A \emph{magma}, \cppinline{IsMagma}, is a binary operation on a carrier, an arrow from two values of the carrier to one of it, a \emph{unital magma} is a magma with an element that is a unit, and a \emph{monoid} is a unital magma whose operation is associative.
 The element and its law come in one step, so a unital magma's carrier is never empty, and a homomorphism of it preserves the unit as well as the operation.
 A monoid is named by a type, \cppinline{Sum} or \cppinline{All}, whose call takes no arguments and gives the unit: the sum of nothing is $0$, and ``all'' of nothing holds.
 Its operation is declared once, as the entry of \cppinline{op_of} for that name, and its laws are keyed on that name.

@@ -2369,19 +2369,11 @@ static_assert(concat2<Zero>(std::array{1uz, 2uz, 3uz}) == 6 &&
 // The four listings of the paper's Section 2, as printed, with std::
 // qualifiers that the paper drops and the declarations the paper omits.  A
 // monoid is named by its unit, and every law is keyed on that name.
-namespace paper_listings {
-using std::size_t;
-using namespace std::string_literals;
-using Str = std::string;
-
-// ---- Listing 1: what a signature prevents
-template <typename E>
-constexpr bool associative = false;
-template <typename E>
-constexpr bool unital = false;
-// The codomain of an arrow, given to the kernel: the result type of its one
-// call operator (Figure 2's M is at most one, never a template), read off its
-// type.  Its entry is outside the grammar, as bit_width's is.
+// What the kernel is given beside the listings, as the standard gives
+// bit_width: the codomain of an arrow, the result type of its one call
+// operator (Figure 2's M is at most one, never a template), read off its type.
+// Its entries are outside the grammar, so they stand outside the listings.
+namespace jlt_given {
 template <typename M>
 struct cod_of_call {};
 template <typename F, typename R, typename... A>
@@ -2397,8 +2389,20 @@ struct cod {};
 template <typename F>
   requires requires { &F::operator(); }
 struct cod<F> : cod_of_call<decltype(&F::operator())> {};
+}  // namespace jlt_given
+
+namespace paper_listings {
+using std::size_t;
+using namespace std::string_literals;
+using Str = std::string;
+
+// ---- Listing 1: what a signature prevents
+template <typename E>
+constexpr bool associative = false;
+template <typename E>
+constexpr bool unital = false;
 template <typename F>
-using cod_t = typename cod<F>::type;
+using cod_t = typename jlt_given::cod<F>::type;
 template <typename E>
 struct op_of {};
 template <typename E>
@@ -2406,8 +2410,8 @@ using op_t = typename op_of<E>::type;
 // The carrier of E: the codomain of its operation, read off it.
 template <typename E>
 using carrier_t = cod_t<op_t<E>>;
-// A magma is a binary operator on a carrier: an arrow from two values of the
-// carrier, its codomain, to one.  The operation is declared once.
+// A magma is a binary operation on a carrier: an arrow from two values of the
+// carrier, its codomain, to one of it.  The operation is declared once.
 template <typename E>
 concept IsMagma =
     std::copyable<carrier_t<E>> && requires(carrier_t<E> a, carrier_t<E> b) {
