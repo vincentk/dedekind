@@ -16,6 +16,7 @@ rule2-no-inline-requires     tools/jlt-lint/fixtures/rule2-inline-requires.cpp  
 rule2-decided-resolution     tools/jlt-lint/fixtures/rule2-decided-resolution.cpp  jlt_listing  9
 rule2-context-order          tools/jlt-lint/fixtures/rule2-context-order.cpp  jlt_listing  2
 rule2-converted-result       tools/jlt-lint/fixtures/rule2-converted-result.cpp  jlt_listing  15
+rule2-no-type-observation    tools/jlt-lint/fixtures/rule2-type-observation.cpp  jlt_listing  5
 rule1-no-inheritance         tools/jlt-lint/fixtures/rule1-inheritance.cpp  jlt_listing  3
 inventory                    tools/jlt-lint/fixtures/inventory.cpp  jlt_listing  7
 rule1-constexpr              tools/jlt-lint/fixtures/rule1.cpp        jlt_listing  3
@@ -93,6 +94,7 @@ rule2-converted-result               src/test/cpp/modules/dedekind/category/jlt_
 rule2-decided-resolution             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  1
 rule2-definition                     src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  2
 rule2-no-inline-requires             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
+rule2-no-type-observation            src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
 rule3-bounded-fold                   src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
 rule3-no-loops                       src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  1
 rule3-no-mutual-recursion            src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  0
@@ -1112,3 +1114,40 @@ admitted                     src/main/modules/dedekind/analysis/[!a]*.cppm  anal
 rule2-by-type                src/main/modules/dedekind/optimization/[!o]*.cppm  optimization  report
 undecided-by-type            src/main/modules/dedekind/optimization/[!o]*.cppm  optimization  report
 admitted                     src/main/modules/dedekind/optimization/[!o]*.cppm  optimization  report
+
+# Rule 2's type observation on every library layer (python excepted):
+# reported first, pinned per file once CI has counted (pin.py).
+rule2-no-type-observation    src/main/modules/dedekind/category/*.cppm  category  report
+rule2-no-type-observation    src/main/modules/dedekind/relational/[!r]*.cppm  relational  report
+rule2-no-type-observation    src/main/modules/dedekind/relational/rows.cppm  relational  report
+rule2-no-type-observation    src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
+rule2-no-type-observation    src/main/modules/dedekind/sets/si*.cppm  sets  report
+rule2-no-type-observation    src/main/modules/dedekind/order/[!hor]*.cppm  order  report
+rule2-no-type-observation    src/main/modules/dedekind/order/halfspace.cppm  order  report
+rule2-no-type-observation    src/main/modules/dedekind/order/runs.cppm  order  report
+rule2-no-type-observation    src/main/modules/dedekind/ieee/*.cppm  ieee  report
+rule2-no-type-observation    src/main/modules/dedekind/algebra/[!afhq]*.cppm  algebra  report
+rule2-no-type-observation    src/main/modules/dedekind/algebra/fi*.cppm  algebra  report
+rule2-no-type-observation    src/main/modules/dedekind/algebra/free.cppm  category  report
+rule2-no-type-observation    src/main/modules/dedekind/algebra/quotient.cppm  category  report
+rule2-no-type-observation    src/main/modules/dedekind/algebra/halfspace_transport.cppm  order  report
+rule2-no-type-observation    src/main/modules/dedekind/topology/[!t]*.cppm  topology  report
+rule2-no-type-observation    src/main/modules/dedekind/sequences/convergence.cppm  sequences  report
+rule2-no-type-observation    src/main/modules/dedekind/sequences/curve.cppm  sequences  report
+rule2-no-type-observation    src/main/modules/dedekind/sequences/finite.cppm  sequences  report
+rule2-no-type-observation    src/main/modules/dedekind/sequences/fold.cppm  sequences  report
+rule2-no-type-observation    src/main/modules/dedekind/sequences/limits.cppm  sequences  report
+rule2-no-type-observation    src/main/modules/dedekind/sequences/net.cppm  sequences  report
+rule2-no-type-observation    src/main/modules/dedekind/sequences/path.cppm  sequences  report
+rule2-no-type-observation    src/main/modules/dedekind/sequences/pst.cppm  sequences  report
+rule2-no-type-observation    src/main/modules/dedekind/sequences/ranges.cppm  sequences  report
+rule2-no-type-observation    src/main/modules/dedekind/sequences/relprod.cppm  sequences  report
+rule2-no-type-observation    src/main/modules/dedekind/sequences/tail_equivalence.cppm  sequences  report
+rule2-no-type-observation    src/main/modules/dedekind/sequences/samples.cppm  sequences  report
+rule2-no-type-observation    src/main/modules/dedekind/numbers/[!n]*.cppm  numbers  report
+rule2-no-type-observation    src/main/modules/dedekind/numbers/na*.cppm  numbers  report
+rule2-no-type-observation    src/main/modules/dedekind/morphologies/[!m]*.cppm  morphologies  report
+rule2-no-type-observation    src/main/modules/dedekind/geometry/[!g]*.cppm  geometry  report
+rule2-no-type-observation    src/main/modules/dedekind/linear_algebra/[!l]*.cppm  linear_algebra  report
+rule2-no-type-observation    src/main/modules/dedekind/analysis/[!a]*.cppm  analysis  report
+rule2-no-type-observation    src/main/modules/dedekind/optimization/[!o]*.cppm  optimization  report

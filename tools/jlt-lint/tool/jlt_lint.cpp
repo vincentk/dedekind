@@ -37,6 +37,11 @@
 //                     body did not declare, which Rule 2 does not count
 //                     (#1068); the fix is a named shape, which the definition
 //                     check then reads.
+//   type-observation  Rule 2: in a function template's body, sizeof,
+//                     alignof, typeid, a standard type trait or a standard
+//                     concept used as a value at a dependent type, outside an
+//                     if constexpr's condition: an observation of a type no
+//                     shape names, which an archetype answers for itself.
 //   undecided-resolution
 //                     Rule 2, GHC's rule for overlapping instances: in a
 //                     function template, a call at a value of parameter type
@@ -924,6 +929,141 @@ class InlineRequires : public clang::ASTConsumer,
 
  private:
   clang::ASTContext* ctx = nullptr;
+};
+
+// ---------------------------------------------------------------------------
+// type-observation: a body varies with a type only through its shapes
+// ---------------------------------------------------------------------------
+
+/// In a function template's body, an expression that observes a dependent
+/// type other than through a shape: sizeof, alignof, typeid, the standard's
+/// type traits (std::is_integral_v<T>, std::is_same<T, U>::value, the
+/// compiler's __is_same), or a standard concept used as a value.  An archetype
+/// answers such an observation for itself, so the second stage would admit a
+/// body that is not parametric (the cold reads of #1212).  The condition of an
+/// if constexpr is not judged here: Table 7 reads it as a derived form, and
+/// the second stage leaves such a body undecided.
+class TypeObservation : public clang::ASTConsumer,
+                        public clang::RecursiveASTVisitor<TypeObservation> {
+ public:
+  void HandleTranslationUnit(clang::ASTContext& c) override {
+    ctx = &c;
+    TraverseDecl(c.getTranslationUnitDecl());
+  }
+  bool shouldVisitTemplateInstantiations() const { return false; }
+  bool TraverseFunctionDecl(clang::FunctionDecl* f) {
+    return within(f, [&] {
+      return clang::RecursiveASTVisitor<TypeObservation>::TraverseFunctionDecl(
+          f);
+    });
+  }
+  bool TraverseCXXMethodDecl(clang::CXXMethodDecl* f) {
+    return within(f, [&] {
+      return clang::RecursiveASTVisitor<TypeObservation>::TraverseCXXMethodDecl(
+          f);
+    });
+  }
+  bool TraverseIfStmt(clang::IfStmt* s) {
+    if (!s->isConstexpr())
+      return clang::RecursiveASTVisitor<TypeObservation>::TraverseIfStmt(s);
+    if (s->getInit()) TraverseStmt(s->getInit());
+    ++inCondition;
+    TraverseStmt(s->getCond());
+    --inCondition;
+    TraverseStmt(s->getThen());
+    if (s->getElse()) TraverseStmt(s->getElse());
+    return true;
+  }
+  bool VisitUnaryExprOrTypeTraitExpr(clang::UnaryExprOrTypeTraitExpr* e) {
+    const clang::QualType t = e->isArgumentType()
+                                  ? e->getArgumentType()
+                                  : e->getArgumentExpr()->getType();
+    if (!t.isNull() && t->isDependentType())
+      report(e->getBeginLoc(), "sizeof or alignof of a dependent type");
+    return true;
+  }
+  bool VisitCXXTypeidExpr(clang::CXXTypeidExpr* e) {
+    if (e->isTypeDependent() || e->isValueDependent())
+      report(e->getBeginLoc(), "typeid of a dependent type");
+    return true;
+  }
+  bool VisitTypeTraitExpr(clang::TypeTraitExpr* e) {
+    if (e->isValueDependent())
+      report(e->getBeginLoc(),
+             "a type trait of the compiler at a dependent type");
+    return true;
+  }
+  bool VisitConceptSpecializationExpr(clang::ConceptSpecializationExpr* e) {
+    if (inStd(e->getNamedConcept()) && e->isValueDependent())
+      report(e->getBeginLoc(), "a standard concept used as a value: " +
+                                   e->getNamedConcept()->getName().str());
+    return true;
+  }
+  bool VisitDeclRefExpr(clang::DeclRefExpr* e) {
+    if (const auto* v =
+            llvm::dyn_cast<clang::VarTemplateSpecializationDecl>(e->getDecl()))
+      trait(v->getSpecializedTemplate(), e->isValueDependent(),
+            e->getBeginLoc());
+    return true;
+  }
+  bool VisitUnresolvedLookupExpr(clang::UnresolvedLookupExpr* e) {
+    for (const clang::NamedDecl* d : e->decls())
+      if (const auto* vt = llvm::dyn_cast<clang::VarTemplateDecl>(d)) {
+        trait(vt, true, e->getBeginLoc());
+        break;
+      }
+    return true;
+  }
+  bool VisitDependentScopeDeclRefExpr(clang::DependentScopeDeclRefExpr* e) {
+    // std::is_same<T, U>::value
+    if (e->getDeclName().getAsString() != "value") return true;
+    const clang::Type* q = e->getQualifier().getAsType();
+    if (const auto* ts =
+            q ? q->getAs<clang::TemplateSpecializationType>() : nullptr)
+      if (const clang::TemplateDecl* td =
+              ts->getTemplateName().getAsTemplateDecl())
+        if (inStd(td) && isTraitName(td->getName()))
+          report(e->getBeginLoc(),
+                 "a standard type trait at a dependent type: " +
+                     td->getName().str());
+    return true;
+  }
+
+ private:
+  clang::ASTContext* ctx = nullptr;
+  bool judging = false;
+  int inCondition = 0;
+  template <typename F>
+  bool within(clang::FunctionDecl* f, F go) {
+    const bool was = judging;
+    judging = f->isTemplated() && f->doesThisDeclarationHaveABody() &&
+              judged(f, ctx->getSourceManager());
+    const bool r = go();
+    judging = was;
+    return r;
+  }
+  static bool isTraitName(llvm::StringRef n) {
+    return n.starts_with("is_") || n.starts_with("has_") || n == "rank" ||
+           n == "extent" || n == "alignment_of" || n == "tuple_size" ||
+           n == "variant_size";
+  }
+  void trait(const clang::VarTemplateDecl* vt, bool dependent,
+             clang::SourceLocation at) {
+    if (!vt || !dependent || !inStd(vt)) return;
+    llvm::StringRef n = vt->getName();
+    if (n.ends_with("_v")) n = n.drop_back(2);
+    if (isTraitName(n))
+      report(at, "a standard type trait at a dependent type: " +
+                     vt->getName().str());
+  }
+  void report(clang::SourceLocation at, const std::string& what) {
+    if (!judging || inCondition) return;
+    const clang::SourceManager& sm = ctx->getSourceManager();
+    const clang::SourceLocation loc = sm.getExpansionLoc(at);
+    out() << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc) << ':'
+          << sm.getExpansionColumnNumber(loc) << ": " << what
+          << ", not through a shape\n";
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -3396,6 +3536,7 @@ std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
   if (name == "mutual-recursion") return std::make_unique<MutualRecursion>();
   if (name == "definition") return std::make_unique<Definition>();
   if (name == "inline-requires") return std::make_unique<InlineRequires>();
+  if (name == "type-observation") return std::make_unique<TypeObservation>();
   if (name == "inheritance") return std::make_unique<Inheritance>();
   if (name == "bounded-fold") return std::make_unique<BoundedFold>();
   if (name == "context-order") return std::make_unique<ContextOrder>();
