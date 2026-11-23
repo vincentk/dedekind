@@ -25,3 +25,10 @@ smaller undecided
 same_through admitted
 twice_strict undecided
 via_strict undecided
+fresh admitted
+fresh_copyable not admitted
+branched not admitted
+compared not admitted
+applied_once admitted
+wide admitted
+either_value admitted

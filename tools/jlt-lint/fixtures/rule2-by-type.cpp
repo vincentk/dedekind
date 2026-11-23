@@ -237,4 +237,65 @@ constexpr carrier_t<E> via_strict(carrier_t<E> x) {
   return twice_strict<E>(x);  // undecided: the callee's negation
 }
 
+// 11. One fixture per generator rule that had none (the code reader on
+// #1212).
+// A plain parameter, semiregular: a default value is promised.
+template <std::semiregular T>
+constexpr T fresh(T x) {
+  T t{};
+  t = x;
+  return t;
+}
+// Finding 15: not admitted, copyable promises no default value.
+template <std::copyable T>
+constexpr T fresh_copyable(T) {
+  return T{};
+}
+// Finding 16: not admitted, the proxy in a branch of ?: is not a declared T.
+template <typename E>
+  requires LooseMon<E>
+constexpr carrier_t<E> branched(carrier_t<E> x) {
+  return sizeof(int) > 1 ? op_t<E>{}(x, x) : x;
+}
+// Finding 17: not admitted, the proxy compared, not converted into a T.
+template <typename E>
+concept LooseEqMon = LooseMon<E> && std::equality_comparable<carrier_t<E>>;
+template <typename E>
+  requires LooseEqMon<E>
+constexpr bool compared(carrier_t<E> x) {
+  return op_t<E>{}(x, x) == x;
+}
+// An arrow by its member types, its result only convertible to its codomain:
+// admitted where the result initialises a declared codomain.
+template <typename F>
+concept MemberArrow = requires(const F& f, const typename F::Domain& x) {
+  typename F::Domain;
+  typename F::Codomain;
+  { f(x) } -> std::convertible_to<typename F::Codomain>;
+};
+template <MemberArrow F>
+constexpr typename F::Codomain applied_once(const F& f, typename F::Domain x) {
+  const typename F::Codomain y = f(x);
+  return y;
+}
+// A constraint on the integer parameter alone is left to the compiler at
+// each integer type: admitted.
+template <std::unsigned_integral N>
+  requires(sizeof(N) >= 4)
+constexpr N wide(N n) {
+  return static_cast<N>(n + n);
+}
+// A class whose constraint the reader cannot read (a disjunction): its
+// implied reading is dropped, and the use shows that it holds.  Admitted.
+template <typename E>
+  requires Mon<E> || (sizeof(E) == 1)
+struct Either {
+  carrier_t<E> v;
+};
+template <typename E>
+  requires Mon<E>
+constexpr carrier_t<E> either_value(const Either<E>& e) {
+  return e.v;
+}
+
 }  // namespace jlt_listing
