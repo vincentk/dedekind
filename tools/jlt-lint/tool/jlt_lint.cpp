@@ -2635,7 +2635,29 @@ struct Selection {
   // copy-initialisation of a T, so the result goes into a declared T or a
   // return at T, and nowhere else.
   bool lateConversion = false;
+  // A callee of the checked body whose constraints contain a negation,
+  // !C<...>: at an archetype every law it does not declare is false, so the
+  // negation holds there by default and fails at a model of C (the
+  // theoretician's counterexample on #1212).
+  bool negatedCallee = false;
 };
+
+/// Whether a constraint expression contains a negation, followed through the
+/// concepts it names (depth-limited).
+bool containsNegation(const clang::Expr* e, int depth = 0) {
+  if (!e || depth > 16) return false;
+  e = e->IgnoreParenImpCasts();
+  if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
+    if (u->getOpcode() == clang::UO_LNot) return true;
+  if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e))
+    if (!inStd(cs->getNamedConcept()) &&
+        containsNegation(cs->getNamedConcept()->getConstraintExpr(), depth + 1))
+      return true;
+  for (const clang::Stmt* c : e->children())
+    if (const auto* ce = llvm::dyn_cast_or_null<clang::Expr>(c))
+      if (containsNegation(ce, depth + 1)) return true;
+  return false;
+}
 
 /// Whether an expression is the conversion of a converts_to archetype.
 bool convertsProxy(const clang::Expr* e) {
@@ -2750,6 +2772,18 @@ class MarkedUse : public clang::ASTConsumer {
       // A brace list's conversions live in its semantic form, which the
       // traversal does not visit: an element that converts the proxy is
       // late (an aggregate's field, not a declared T).
+      bool VisitCallExpr(clang::CallExpr* c) {
+        if (!inChecked) return true;
+        const clang::FunctionDecl* callee = c->getDirectCallee();
+        const clang::FunctionTemplateDecl* t =
+            callee ? callee->getPrimaryTemplate() : nullptr;
+        if (!t) return true;
+        llvm::SmallVector<clang::AssociatedConstraint, 4> ac;
+        t->getAssociatedConstraints(ac);
+        for (const clang::AssociatedConstraint& a : ac)
+          if (containsNegation(a.ConstraintExpr)) sel.negatedCallee = true;
+        return true;
+      }
       bool VisitInitListExpr(clang::InitListExpr* l) {
         if (!inChecked) return true;
         const clang::InitListExpr* sem =
@@ -3296,6 +3330,10 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   if (sel.resolved && !sel.marked && !errors.marked)
     return {Outcome::Undecided,
             "the use resolved to another overload at the archetypes"};
+  if (errors.n == 0 && sel.negatedCallee)
+    return {Outcome::Undecided,
+            "a callee asks a negated constraint, which every archetype meets "
+            "by default"};
   if (errors.n == 0 && sel.lateConversion)
     return {Outcome::NotAdmitted,
             "a result promised only convertible_to<T> used other than to "

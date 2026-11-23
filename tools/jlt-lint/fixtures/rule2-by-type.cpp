@@ -221,4 +221,20 @@ constexpr T same_through(F, U u) {
   return u;
 }
 
+// 10. A negation in a callee (the theoretician's counterexample on #1212):
+// at an archetype every undeclared law is false, so !idem<E> holds there by
+// default and fails at an idempotent monoid.
+template <typename E>
+constexpr bool idem = false;
+template <typename E>
+  requires Mon<E> && (!idem<E>)
+constexpr carrier_t<E> twice_strict(carrier_t<E> x) {
+  return op_t<E>{}(x, x);  // undecided: a negated constraint, not read
+}
+template <typename E>
+  requires Mon<E>
+constexpr carrier_t<E> via_strict(carrier_t<E> x) {
+  return twice_strict<E>(x);  // undecided: the callee's negation
+}
+
 }  // namespace jlt_listing
