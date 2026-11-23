@@ -2647,8 +2647,16 @@ struct Selection {
 bool containsNegation(const clang::Expr* e, int depth = 0) {
   if (!e || depth > 16) return false;
   e = e->IgnoreParenImpCasts();
+  // A negation of the program's own law or concept: an archetype does not
+  // declare it, so it reads false there by default.  A negation of a
+  // standard concept (!std::same_as<N, bool>) the type decides itself.
   if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
-    if (u->getOpcode() == clang::UO_LNot) return true;
+    if (u->getOpcode() == clang::UO_LNot) {
+      const clang::Expr* x = u->getSubExpr()->IgnoreParenImpCasts();
+      if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(x))
+        if (inStd(cs->getNamedConcept())) return false;
+      return true;
+    }
   if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e))
     if (!inStd(cs->getNamedConcept()) &&
         containsNegation(cs->getNamedConcept()->getConstraintExpr(), depth + 1))
