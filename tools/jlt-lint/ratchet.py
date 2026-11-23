@@ -36,9 +36,13 @@ def allowed():
         return set()
     out = set()
     for line in path.read_text().splitlines():
-        line = line.split("#", 1)[0].split(None, 2)
-        if len(line) >= 2:
-            out.add((line[0], line[1]))
+        fields = line.split("#", 1)[0].split(None, 2)
+        if not fields:
+            continue
+        if len(fields) < 3 or not fields[2].strip():
+            sys.exit(f"ratchet.py: ratchet.allow: an entry without a reason: {line.strip()}\n"
+                     "  every entry is <rule> <file> <reason>")
+        out.add((fields[0], fields[1]))
     return out
 
 
@@ -49,7 +53,16 @@ def main():
                           capture_output=True, text=True, cwd=jlt_lint.ROOT)
     if base.returncode != 0:
         sys.exit(f"ratchet.py: no scope at {sys.argv[1]}: {base.stderr.strip()}")
-    before, after, allow = gates(base.stdout), gates(None), allowed()
+    # The baseline's globs are expanded against this checkout, so a file the
+    # baseline did not have would get a gate it never had: keep only the
+    # baseline's own files (Copilot on #1213).
+    tree = subprocess.run(["git", "ls-tree", "-r", "--name-only", sys.argv[1]],
+                          capture_output=True, text=True, cwd=jlt_lint.ROOT)
+    if tree.returncode != 0:
+        sys.exit(f"ratchet.py: no tree at {sys.argv[1]}: {tree.stderr.strip()}")
+    files = set(tree.stdout.splitlines())
+    before = {k: v for k, v in gates(base.stdout).items() if k[1] in files}
+    after, allow = gates(None), allowed()
     worse = []
     for key, now in sorted(after.items()):
         was = before.get(key)

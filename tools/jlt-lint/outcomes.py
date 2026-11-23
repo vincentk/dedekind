@@ -5,6 +5,7 @@ the outcomes the fixture expects (FILE.expected beside it, in source order).
 """
 import pathlib
 import re
+import json
 import subprocess
 import sys
 
@@ -15,10 +16,16 @@ import jlt_lint  # noqa: E402
 
 def main():
     tool, fixture = sys.argv[1], pathlib.Path(sys.argv[2]).resolve()
+    # The tool sits in <build>/jlt-lint/; the build's compiler gives the
+    # resource directory, as for the fixtures the driver lints.
+    db = pathlib.Path(tool).resolve().parent.parent / "compile_commands.json"
+    if db.exists():
+        jlt_lint.set_resource_dir(json.loads(db.read_text()))
     args = [tool, "--scope=jlt_listing", f"--archetypes={HERE / 'archetypes.hpp'}",
             "--check=admit,undecided,admitted", str(fixture), "--", "-std=c++23", "-xc++",
             *jlt_lint.RESOURCE_DIR, *sys.argv[3:]]
-    out = subprocess.run(args, capture_output=True, text=True).stdout
+    run = subprocess.run(args, capture_output=True, text=True)
+    out = run.stdout
     got = []
     for l in out.splitlines():
         m = re.match(r".*?:(\d+):\d+: (\S+) (admitted by type|not admitted|undecided)(?:: (.*))?", l)
@@ -35,7 +42,11 @@ def main():
             reasons.append(reason.strip())
     pairs = [(n, k) for _, n, k, _ in got]
     if pairs != want:
-        sys.exit(f"outcomes.py: {fixture.name}\n  expected {want}\n  got      {pairs}")
+        diff = [f"  {n}: {k}" + (f" ({why})" if why else "")
+                for _, n, k, why in got if (n, k) not in want]
+        sys.exit(f"outcomes.py: {fixture.name}\n  expected {want}\n  got      {pairs}\n"
+                 "the outcomes not expected, with the tool's reasons:\n" + "\n".join(diff) +
+                 "\nthe tool's errors, first lines:\n" + "\n".join(run.stderr.splitlines()[:15]))
     wrong = [(n, r, why) for (_, n, _, why), r in zip(got, reasons) if r and r not in why]
     if wrong:
         sys.exit(f"outcomes.py: {fixture.name}: a right outcome for a wrong reason\n" +

@@ -188,6 +188,17 @@ def run(tool, build, path, namespace, rules):
     return counts, where, out
 
 
+def set_resource_dir(entries):
+    """The compiler's own headers, as the build's compiler finds them: a tool
+    linked against another LLVM (Homebrew's, on macOS) does not find them by
+    itself, and a standalone file then fails to parse."""
+    compiler = (entries[0].get("arguments") or shlex.split(entries[0]["command"]))[0] if entries else None
+    if compiler:
+        r = subprocess.run([compiler, "-print-resource-dir"], capture_output=True, text=True)
+        if r.returncode == 0 and r.stdout.strip():
+            RESOURCE_DIR[:] = [f"-resource-dir={r.stdout.strip()}"]
+
+
 def one_entry_per_file(build, part):
     """A compilation database with one entry per file, in a directory of its
     own: a module partition has one per set of flags it is built with (CMake 4
@@ -202,11 +213,7 @@ def one_entry_per_file(build, part):
         old = kept.get(e["file"])
         if old is None or (old[0] and not synth):
             kept[e["file"]] = (synth, e)
-    compiler = (entries[0].get("arguments") or shlex.split(entries[0]["command"]))[0] if entries else None
-    if compiler:
-        r = subprocess.run([compiler, "-print-resource-dir"], capture_output=True, text=True)
-        if r.returncode == 0 and r.stdout.strip():
-            RESOURCE_DIR[:] = [f"-resource-dir={r.stdout.strip()}"]
+    set_resource_dir(entries)
     db = build / "jlt-lint-db" / part  # a directory per part: parts run at once
     db.mkdir(parents=True, exist_ok=True)
     (db / "compile_commands.json").write_text(json.dumps([e for _, e in kept.values()], indent=1))
