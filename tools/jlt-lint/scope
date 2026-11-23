@@ -65,8 +65,8 @@ rule1-no-mutable-globals      src/test/cpp/modules/dedekind/category/jlt_listing
 rule1-no-escaping-reference-captures src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 
 # The four listings as printed in the paper (Section 2), every rule gated:
-# exactly the findings the paper shows, guessed_power undecided (Rule 2,
-# decided-resolution 1), guessed_concat's '+' and '=' unnamed (Rule 2,
+# exactly the findings the paper shows, guessed_power refused by name (Rule 2,
+# decided-resolution 1) though admitted by type, guessed_concat's '+' and '=' unnamed (Rule 2,
 # definition 2) and its loop (Rule 3, no-loops 1); idempotent<Sum2> is on the
 # axioms' list.
 axioms                               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  paper_listings  report

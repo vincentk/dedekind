@@ -185,10 +185,12 @@ rule here yet, and a reader holds them:
 - **Reads of a trait.**  At a type with a type variable a trait is read only in
   an entry's initialiser, at the parts of the entry's own head, or inside a
   shape.
-- **The unproved claims beyond entries at one type.**  The rule `axioms` and
-  the ledger list an entry at one type whose value is `true`.  They do not list
-  an axiom for a family of types (an entry whose head has a parameter and whose
-  value is `true`), a lemma (an entry at a form), or a unit named at a use.
+- **The unproved claims the ledgers miss.**  `axioms.txt` lists an entry at
+  one type whose value is `true`, `laws.txt` every other entry that can make a
+  law true (an entry at a form, a family, a computed value); both read two
+  spellings from the text (`axioms.py`).  They miss a law declared another way
+  (a static member variable template in a class, a table a trait forwards
+  to), the laws the compiler derives at a use, and a unit named at a use.
 - **Well-founded declarations.**  Nothing checks that the instantiations a
   program can ask for are well founded.  The linter checks one of the two
   syntactic conditions that approximate it; they do not imply it.
@@ -204,8 +206,10 @@ rule here yet, and a reader holds them:
 
 1. Gates per file in CI, deny-rules and the second stage on every layer of the
    library but the Python bindings, the listings and the fixtures (done).
-2. The ratchet: `pin.py` pins reported counts today; a check that a gate may
-   only move one way (admitted up, refused and undecided down) is next.
+2. The ratchet (done): `pin.py` pins reported counts, and `ratchet.py`, a step
+   of CI, fails a gate that moves the wrong way against main (admitted down;
+   refused, undecided or a deny-rule's findings up), turns back into a report,
+   or disappears, unless `ratchet.allow` names it with a reason.
 3. More rules, as the histogram of undecided reasons and the paper's TODO ask.
 4. A clang-tidy plugin when a rule needs code a matcher cannot express;
    `scope` stays the switchboard.

@@ -48,6 +48,31 @@ without changing `axioms.txt`, is a finding: the ledger is held by CI
 (`tools/jlt-lint/axioms.py --check`, which holds `laws.txt` too), and the
 two must move together.
 
+A law the ledgers cannot see is a finding too: they read two spellings, an
+explicit specialisation of a variable template or of a struct deriving from
+`std::true_type`; a law declared another way (a static member variable
+template in a class, a table a trait forwards to) escapes them.
+
+## The three rules
+
+The linter checks parts of the rules; read the rest in every changed body.
+
+- **Rule 1, values and pure functions.**  Functions are `constexpr`; call
+  operators are `const`; nothing is thrown; no state outlives a call (no
+  `mutable` member, no `const_cast`, no global or static that changes, no
+  reference that escapes).  A body that mutates a local is fine if the local
+  never leaves the call.
+- **Rule 2, declared dependencies.**  A generic body uses on a value of
+  parameter type only what its constraints name, and observes no type except
+  through a constraint (`sizeof`, `std::is_*_v` and the like at a type
+  parameter are findings).  Where a law selects between two cases of a
+  function (`if constexpr` on a law, or two overloads told apart by one), the
+  two cases must compute the same value wherever both apply: say whether they
+  do.  Where `if consteval` has two branches, they must compute the same value.
+- **Rule 3, bounded recursion.**  No function calls itself; every loop and
+  fold has an end stated before it starts.  For every loop the linter reports,
+  say whether its end is shown.
+
 ## The linter's gates
 
 `tools/jlt-lint/scope` pins counts per file.  A changed number there is a

@@ -6,7 +6,7 @@ gate, for every (rule, file, namespace) both name:
 - `admitted` counts certificates: it may grow, not shrink;
 - every other gated rule counts findings (refusals, undecided definitions, the
   deny-rules' findings): it may shrink, not grow;
-- a gate may not become `report` again.
+- a gate may not become `report` again, nor disappear while its file stays.
 
 A gate that moves the wrong way fails, unless tools/jlt-lint/ratchet.allow
 names it with a reason, one line `<rule> <file> <reason>`, so that the reason
@@ -70,6 +70,15 @@ def main():
             continue
         if (rule, f) not in allow:
             worse.append(f"  {rule} {f}: {why}")
+    # A gate main has and this scope no longer has, for a file that is still
+    # there: its rule stopped running on the file, the most quiet way to
+    # loosen (a deleted line, a renamed glob or namespace).
+    for key, was in sorted(before.items()):
+        rule, f, _ = key
+        if key in after or f.startswith("tools/jlt-lint/fixtures/"):
+            continue
+        if was != "report" and (rule, f) not in allow:
+            worse.append(f"  {rule} {f}: the gate {was} is gone")
     if worse:
         sys.exit("ratchet.py: gates moved the wrong way; fix them, or name each in "
                  "tools/jlt-lint/ratchet.allow with a reason:\n" + "\n".join(worse))
