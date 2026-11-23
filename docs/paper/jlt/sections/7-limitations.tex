@@ -44,7 +44,7 @@ Jlt works best where a program is a composition of arrows over products and sums
 The type of such a term is its structure, so a \cppinline{concept} can read it and a specialisation can be chosen by it: a pairing into a \cppinline{std::pair} is recognised as a pairing.
 Composition is also what lets laws be derived: a law passes from a term's parts to the term by one conditional law for each way of composing them (Table~\ref{tab:law-propagation}).
 Two common idioms of \Cpp{} fit less well.
-By the standard a lambda's type is a unique, unnamed class type~\cite[{\texttt{expr.prim.lambda.closure}}]{cpp23standard}, so no law can be declared of it and no fold reads inside it.
+By the standard a lambda's type is a unique, unnamed class type~\cite[{\texttt{expr.prim.lambda.closure}}]{cpp23standard}, so a law can be declared of it only through \cppinline{decltype} of one closure, its type differs from every other lambda's, and no fold reads inside it.
 The limit is the language's, not a compiler's.
 Jlt admits it as sugar for a function object (Appendix~\ref{app:fjlt:closure}), not as a pattern to build on.
 What dispatch by a \cppinline{concept} needs is that a function's domain and codomain be known from its type.

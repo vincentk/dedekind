@@ -1,8 +1,8 @@
 % !TEX root = ../jlt.tex
-\section{Proofs of coherence, preservation and simulation}
+\section{Coherence, preservation and simulation}
 \label{app:fjlt:theorems}
 
-This appendix proves the three results that Section~\ref{sec:translation} states about the target, and the coherence of the translation that it asks for, relative to the rules of Figures~\ref{fig:fjlt-entailment} to~\ref{fig:fjlt-eval} and to the assumptions below.
+This appendix argues the three results that Section~\ref{sec:translation} states about the target, and the coherence of the translation that it asks for, relative to the rules of Figures~\ref{fig:fjlt-entailment} to~\ref{fig:fjlt-eval} and to the assumptions below.
 The plan is short: the translation into System~F is a function (coherence) and preserves types; evaluation agrees across it (simulation); the rest are corollaries.
 Each result uses only those before it, except that the lemma on dictionaries and type preservation are proved together, by mutual induction.
 Throughout, $\Sigma$ is the signature of the operators of the atoms, total as Figure~\ref{fig:fjlt-syntax} admits them, and the carriers with the arrows supplied with them are further constant types and constants of the target (Section~\ref{sec:kernel:fjlt}); $\llbracket \cdot \rrbracket$ is the translation of Appendix~\ref{app:fjlt:translation}.
@@ -19,7 +19,10 @@ It is defined where $\theta$ exists, which well-formedness asks (Appendix~\ref{a
 \subsection{Definitions and assumptions}
 Where the ground is firm, the definitions fix the target calculus and the meaning the \Cpp{} standard gives, and the lettered theorems are the literature's.
 The assumptions are where the ground may be soft: what Jlt brings of its own, and where the literature leaves a gap for this paper to bridge.
-The proofs are proofs relative to both.
+The arguments are relative to both, and three cases of type preservation are open: an entry of a trait whose context reads an associated type, which the image of the entry does not yet abstract; a constructed value whose call operator is constrained by \texttt{same\_as} or reads an associated type without an entry, which \textsc{T-Construct} does not yet check; and the arity of \texttt{same\_as} in the image, a dictionary in some rules and none in others.
+% TODO(E): close the three cases (cold read of 2026-11-23, research_notes), add the
+% factoring lemma for the unifier, write T-Construct out, and a worked
+% derivation of power; then "proves" in the main text and the abstract.
 
 \begin{definition}[The target; System~F of Girard~\cite{girard1972interpretation} and Reynolds~\cite{reynolds1974towards}, extended]
 \label{def:target}
