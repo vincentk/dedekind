@@ -56,6 +56,9 @@ UNDO_FOR_CHECK = ["--extra-arg=-UDEDEKIND_RUNTIME_COVERAGE_BRIDGES"]
 # them: a tool resolves them relative to its own binary, which on macOS with
 # Homebrew's LLVM is not next to them.  Set by main() from the database.
 RESOURCE_DIR = []
+# The longest one file may take, all its rules over one parse and the second
+# stage's compiles (JLT_LINT_FILE_TIMEOUT seconds, default twenty minutes).
+FILE_TIMEOUT = int(os.environ.get("JLT_LINT_FILE_TIMEOUT") or 1200)
 LAYER = re.compile(r"^src/(?:main|test/cpp)/modules/dedekind/([^/]+)/")
 
 
@@ -151,7 +154,12 @@ def run(tool, build, path, namespace, rules):
     else:
         args += ["-p", str(build), *UNDO_FOR_CHECK,
                  *(f"--extra-arg={a}" for a in RESOURCE_DIR), str(ROOT / path)]
-    p = subprocess.run(args, capture_output=True, text=True)
+    try:
+        p = subprocess.run(args, capture_output=True, text=True, timeout=FILE_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        # A file that takes longer has a problem to fix: it fails by name
+        # instead of holding the whole lint until the job's own limit.
+        return None, None, f"jlt-lint: {path}: timed out after {FILE_TIMEOUT} s\n"
     out = p.stdout + p.stderr
     if p.returncode != 0:
         return None, None, exit_status(p) + out
@@ -246,6 +254,10 @@ def lint_part(build, tool, part):
         result = run(tool, build, f, ns, [r for r, _ in entries])
         m = re.search(r"jlt-lint-cost: templates (\d+) compiles (\d+) seconds ([\d.]+)", result[2] or "")
         costs.append((time.monotonic() - started, f, *(m.groups() if m else ("-", "-", "-"))))
+        # Progress as it happens, so a cancelled or timed-out job still shows
+        # which files finished, and which did not.
+        print(f"jlt-lint: done {costs[-1][0]:7.1f} s  {f}"
+              + ("" if result[0] is not None else "  (failed)"), file=sys.stderr, flush=True)
         return result
 
     workers = int(os.environ.get("NCPU") or os.cpu_count() or 1)
