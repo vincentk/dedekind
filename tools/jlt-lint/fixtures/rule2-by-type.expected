@@ -37,4 +37,5 @@ either_value admitted
 halved admitted
 as_int not admitted | bit_cast
 twice_plain undecided | UnaryOperator
-via_plain admitted
+via_plain undecided | negated constraint
+via_member undecided | negated constraint

@@ -2714,11 +2714,19 @@ bool containsNegation(const clang::Expr* e, int depth = 0) {
   e = e->IgnoreParenImpCasts();
   // A negation that reads a law of the program, directly or through the
   // concepts it names: an archetype does not declare the law, so it reads
-  // false there by default.  A negation of a structural concept
-  // (!IsArrow<F>, !std::same_as<N, bool>) the type decides itself.
+  // false there by default.  A negation of a structural concept of the
+  // program, !Nullary<carrier_t<E>>, is as unsafe: an archetype has only what
+  // a shape promises, so it meets the negation where a model with more does
+  // not (Copilot on #1213).  Only a negation of the standard's concepts
+  // (!std::same_as<N, bool>) is left to the type, at the atoms the check
+  // enumerates.
   if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
-    if (u->getOpcode() == clang::UO_LNot)
-      return readsLaw(u->getSubExpr()->IgnoreParenImpCasts());
+    if (u->getOpcode() == clang::UO_LNot) {
+      const clang::Expr* s = u->getSubExpr()->IgnoreParenImpCasts();
+      if (const auto* n = llvm::dyn_cast<clang::ConceptSpecializationExpr>(s))
+        if (!inStd(n->getNamedConcept())) return true;
+      return readsLaw(s);
+    }
   if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e))
     if (!inStd(cs->getNamedConcept()) &&
         containsNegation(cs->getNamedConcept()->getConstraintExpr(), depth + 1))
@@ -2845,11 +2853,21 @@ class MarkedUse : public clang::ASTConsumer {
       bool VisitCallExpr(clang::CallExpr* c) {
         if (!inChecked) return true;
         const clang::FunctionDecl* callee = c->getDirectCallee();
-        const clang::FunctionTemplateDecl* t =
-            callee ? callee->getPrimaryTemplate() : nullptr;
-        if (!t) return true;
+        if (!callee) return true;
         llvm::SmallVector<clang::AssociatedConstraint, 4> ac;
-        t->getAssociatedConstraints(ac);
+        if (const clang::FunctionTemplateDecl* t = callee->getPrimaryTemplate())
+          t->getAssociatedConstraints(ac);
+        // A constrained member that is not a template, the call operator of
+        // a class template under requires !idem<E>: its constraint is its
+        // own trailing clause, as declared in the template (Copilot on
+        // #1213).
+        const clang::FunctionDecl* member = callee;
+        if (const clang::FunctionDecl* from =
+                callee->getInstantiatedFromMemberFunction())
+          member = from;
+        if (const clang::Expr* rc =
+                member->getTrailingRequiresClause().ConstraintExpr)
+          ac.push_back(clang::AssociatedConstraint(rc));
         for (const clang::AssociatedConstraint& a : ac)
           if (containsNegation(a.ConstraintExpr)) sel.negatedCallee = true;
         return true;

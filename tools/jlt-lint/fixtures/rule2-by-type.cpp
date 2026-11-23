@@ -310,8 +310,10 @@ constexpr int as_int(F x) {
   return std::bit_cast<int>(x);
 }
 
-// 13. A callee's negation of a structural concept, which no law decides: an
-// archetype meets it or not by its own shape.  Admitted.
+// 13. A callee's negation of a structural concept of the program: an
+// archetype has only what Mon promises, so its carrier is not Nullary, but a
+// model's carrier may be (a function object), and there the call fails
+// (Copilot on #1213).  Undecided.
 template <typename T>
 concept Nullary = requires(const T& t) { t(); };
 template <typename E>
@@ -320,12 +322,28 @@ constexpr carrier_t<E> twice_plain(carrier_t<E> x) {
   return op_t<E>{}(x, x);
 }
 
-// Admitted: the callee's negation is structural, decided by the carrier's
-// shape, not a law an archetype would default to false.
+// Undecided: the callee's negation holds at the archetype and not at every
+// model.
 template <typename E>
   requires Mon<E>
 constexpr carrier_t<E> via_plain(carrier_t<E> x) {
   return twice_plain<E>(x);
+}
+
+// 14. A negation on a constrained call operator of a class template, a
+// member that is no template of its own (Copilot on #1213).  Undecided.
+template <typename E>
+struct Strict {
+  constexpr carrier_t<E> operator()(carrier_t<E> x) const
+    requires(!idem<E>)
+  {
+    return op_t<E>{}(x, x);
+  }
+};
+template <typename E>
+  requires Mon<E>
+constexpr carrier_t<E> via_member(carrier_t<E> x) {
+  return Strict<E>{}(x);
 }
 
 }  // namespace jlt_listing
