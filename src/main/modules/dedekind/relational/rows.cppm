@@ -157,6 +157,7 @@ struct AppendLeaf {
 /** @brief The leaves of these carriers, one each.  @param sorts the
  *  carriers. */
 template <std::ranges::input_range Sorts>
+  requires std::same_as<std::ranges::range_value_t<Sorts>, std::size_t>
 constexpr std::vector<Factor> leaves(const Sorts& sorts) {
   return std::ranges::fold_left(sorts, std::vector<Factor>{}, AppendLeaf{});
 }
