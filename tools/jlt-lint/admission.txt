@@ -60,6 +60,8 @@ Type:Decltype kernel
 # an alias, its declaration and a use of an alias template of the program
 # (Table 7: the standard defines it as the type it stands for, [temp.alias])
 Decl:TypeAlias derived
+# the member using type = T; of a struct: Figure 2's entry of an associated type
+Decl:AssociatedTypeEntry kernel
 Decl:TypeAliasTemplate derived
 Type:AliasTemplateSpecialization derived
 Type:Typedef scaffolding

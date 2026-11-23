@@ -408,6 +408,16 @@ bool inStd(const clang::Decl* d) {
   return false;
 }
 
+/// The kind of a declaration, as admission.txt classes it.  The member
+/// `using type = T;` of a struct is Figure 2's entry of an associated type,
+/// a form of the kernel, and not Table 7's alias.
+std::string declKind(const clang::Decl* d) {
+  if (const auto* a = llvm::dyn_cast<clang::TypeAliasDecl>(d))
+    if (a->getName() == "type" && llvm::isa<clang::CXXRecordDecl>(a->getDeclContext()))
+      return "Decl:AssociatedTypeEntry";
+  return std::string("Decl:") + d->getDeclKindName();
+}
+
 /// The kind of a written type, as admission.txt classes it.  A use of an alias
 /// template of the program, op_t<E>, is a kind of its own: Table 7's alias,
 /// a derived form the standard defines as the type it stands for
@@ -2017,7 +2027,7 @@ class Inventory : public clang::ASTConsumer,
         (inScope(d) || isScopeNamespace(d)))
       inside = true;
     if (inside && !isScopeNamespace(d) && !d->isImplicit())
-      ++counts[std::string("Decl:") + d->getDeclKindName()];
+      ++counts[declKind(d)];
     const bool ok = clang::RecursiveASTVisitor<Inventory>::TraverseDecl(d);
     inside = was;
     return ok;
@@ -3497,7 +3507,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     // local variable: counted as the VarTemplate.
     const auto* v = llvm::dyn_cast_or_null<clang::VarDecl>(d);
     if (d && !d->isImplicit() && !(v && v->getDescribedVarTemplate()))
-      kinds.insert(std::string("Decl:") + d->getDeclKindName());
+      kinds.insert(declKind(d));
     return clang::RecursiveASTVisitor<Kinds>::TraverseDecl(d);
   }
   // The one derived form no syntax kind shows: a range.  A parameter

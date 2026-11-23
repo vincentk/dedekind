@@ -58,7 +58,8 @@ Table~\ref{tab:levels} gives every definition of the four listings its level, as
 A definition is in FJlt when it uses the kernel alone, in Jlt when it also uses a derived form, and refused when either stage refuses it.
 The level records how a definition is written, not a grade: every derived form rewrites into the kernel, and Table~\ref{tab:derived} says what each rewrite rests on.
 Every function template but \cppinline{guessed_concat} is admitted by type.
-Both cases of \cppinline{power} and \cppinline{named_power} use the kernel alone, as do seventy-three of the other definitions, the shapes, the laws, their entries and the types; \cppinline{concat} and \cppinline{free_theorem} take a range, a derived form, and three types use a member call or a reference parameter.
+Both cases of \cppinline{power} and \cppinline{named_power} use the kernel and one derived form, an alias such as \cppinline{op_t<E>}, which rests on nothing (Table~\ref{tab:derived}), and so do eleven of the other definitions, the aliases themselves and the shapes and types that write one.
+Sixty-two use the kernel alone: the laws, their entries and the types; \cppinline{concat} and \cppinline{free_theorem} take a range as well, and three types use a member call or a reference parameter.
 The two refused are the two this paper planted.
 \cppinline{guessed_concat} is refused by name, for an addition and an assignment its constraint does not name and for its loop, and it is not admitted by type, since \cppinline{s{}} makes a value no shape promises.
 \cppinline{guessed_power} is admitted by type, since its types are right, and refused by name, since its choice of case depends on a law its signature does not name.
