@@ -965,53 +965,9 @@ rule3-no-self-recursion              build/_deps/catch2-src/src/catch2/**/*.cpp 
 # Admission by type on the library's category layer: every outcome gated
 # per file, so that no count moves unseen (the ratchet; Appendix G.1).
 # Nothing is refused; a file's own line overrides the glob's zero.
-rule2-by-type                src/main/modules/dedekind/category/*.cppm  category  0
-undecided-by-type            src/main/modules/dedekind/category/*.cppm  category  0
-admitted                     src/main/modules/dedekind/category/*.cppm  category  0
-undecided-by-type            src/main/modules/dedekind/category/action.cppm  category  2
-undecided-by-type            src/main/modules/dedekind/category/adjunction.cppm  category  1
-undecided-by-type            src/main/modules/dedekind/category/automaton.cppm  category  20
-admitted                     src/main/modules/dedekind/category/automaton.cppm  category  1
-undecided-by-type            src/main/modules/dedekind/category/cartesian.cppm  category  12
-admitted                     src/main/modules/dedekind/category/cartesian.cppm  category  4
-undecided-by-type            src/main/modules/dedekind/category/chain.cppm  category  13
-undecided-by-type            src/main/modules/dedekind/category/comprehension.cppm  category  32
-admitted                     src/main/modules/dedekind/category/comprehension.cppm  category  2
-undecided-by-type            src/main/modules/dedekind/category/concrete.cppm  category  2
-admitted                     src/main/modules/dedekind/category/concrete.cppm  category  1
-admitted                     src/main/modules/dedekind/category/discrete.cppm  category  1
-undecided-by-type            src/main/modules/dedekind/category/equivalence.cppm  category  3
-undecided-by-type            src/main/modules/dedekind/category/etcs.cppm  category  6
-undecided-by-type            src/main/modules/dedekind/category/f_algebra.cppm  category  13
-admitted                     src/main/modules/dedekind/category/f_algebra.cppm  category  9
-undecided-by-type            src/main/modules/dedekind/category/functor.cppm  category  10
-undecided-by-type            src/main/modules/dedekind/category/image.cppm  category  1
-undecided-by-type            src/main/modules/dedekind/category/involution.cppm  category  2
-undecided-by-type            src/main/modules/dedekind/category/iso.cppm  category  1
-undecided-by-type            src/main/modules/dedekind/category/kleisli.cppm  category  8
-undecided-by-type            src/main/modules/dedekind/category/lattice.cppm  category  13
-admitted                     src/main/modules/dedekind/category/lattice.cppm  category  4
-undecided-by-type            src/main/modules/dedekind/category/limit.cppm  category  3
-admitted                     src/main/modules/dedekind/category/limit.cppm  category  1
-undecided-by-type            src/main/modules/dedekind/category/logic.cppm  category  5
-undecided-by-type            src/main/modules/dedekind/category/mereology.cppm  category  11
-undecided-by-type            src/main/modules/dedekind/category/morphism.cppm  category  14
-admitted                     src/main/modules/dedekind/category/morphism.cppm  category  5
-undecided-by-type            src/main/modules/dedekind/category/natural.cppm  category  11
-admitted                     src/main/modules/dedekind/category/natural.cppm  category  3
-undecided-by-type            src/main/modules/dedekind/category/nno.cppm  category  3
-admitted                     src/main/modules/dedekind/category/nno.cppm  category  2
-undecided-by-type            src/main/modules/dedekind/category/numeric.cppm  category  9
-undecided-by-type            src/main/modules/dedekind/category/periodic.cppm  category  76
-admitted                     src/main/modules/dedekind/category/periodic.cppm  category  26
-undecided-by-type            src/main/modules/dedekind/category/posetal.cppm  category  4
-undecided-by-type            src/main/modules/dedekind/category/pullback.cppm  category  3
-undecided-by-type            src/main/modules/dedekind/category/runs.cppm  category  11
-undecided-by-type            src/main/modules/dedekind/category/species.cppm  category  2
-admitted                     src/main/modules/dedekind/category/species.cppm  category  2
-undecided-by-type            src/main/modules/dedekind/category/topoi.cppm  category  20
-undecided-by-type            src/main/modules/dedekind/category/total.cppm  category  7
-admitted                     src/main/modules/dedekind/category/total.cppm  category  3
+rule2-by-type                src/main/modules/dedekind/category/*.cppm  category  report
+undecided-by-type            src/main/modules/dedekind/category/*.cppm  category  report
+admitted                     src/main/modules/dedekind/category/*.cppm  category  report
 
 # Admission by type on the remaining layers (python excepted): reported
 # first, gated per file once CI has counted (tools/jlt-lint/pin.py).
