@@ -48,7 +48,7 @@ e &::=& x \;\mid\; c \;\mid\; f\texttt{<}\overline{\tau}\texttt{>} \;\mid\; f\te
 Terminals are in monospace and an overbar is a sequence, possibly empty.
 An empty \texttt{requires} clause, an empty list of a \texttt{requires} expression with its parentheses, and an empty \texttt{template} head are left out, except that an entry with no type variables keeps \texttt{template <>}.
 The requirements $\overline{A}$ of a shape and the constraints $\overline{Q}$ of a clause are joined by \texttt{\&\&}, and a negated constraint is written in parentheses.
-$\alpha$ are type variables, $g$ names of associated types, $C$ names of shapes, the standard's \texttt{copyable}, \texttt{equality\_comparable} and \texttt{same\_as} among them, $f$ names of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
+$\alpha$ are type variables, $g$ names of associated types, \texttt{cod} among them, the codomain of an arrow, given to the kernel, $C$ names of shapes, the standard's \texttt{copyable}, \texttt{equality\_comparable} and \texttt{same\_as} among them, $f$ names of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
 A parameter that is not used may go unnamed.
 $T$ is a declared type $O$, \texttt{std::pair}, a carrier, or an arrow supplied with a carrier, as the standard's \texttt{std::plus} is.
 $c$ is a constant of an atom, or a value of a carrier that its type provides.
@@ -96,7 +96,7 @@ named type & a \texttt{struct}, or a \texttt{struct} template over types & \text
 shape & a \texttt{concept}: other shapes, laws and required calls, joined by \texttt{\&\&}; its negation & \texttt{IsMagma}, \texttt{IsMonoid} \\
 trait & a variable template with a default and entries; an entry at a form reads its own trait at proper parts & \texttt{associative}, \texttt{unital}, \texttt{homomorphism} \\
 case & function templates of one name under \texttt{requires} clauses, the most specific chosen & the two cases of \texttt{power} \\
-associated type & a \texttt{struct} template whose entries each name one type, read as \texttt{g<T>::type} & \texttt{op\_of}, \texttt{range\_value\_t} \\
+associated type & a \texttt{struct} template whose entries each name one type, read as \texttt{g<T>::type} & \texttt{op\_of}, \texttt{cod}, \texttt{range\_value\_t} \\
 \bottomrule
 \end{tabularx}
 \caption{The kernel, FJlt.

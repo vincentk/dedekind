@@ -208,9 +208,12 @@ A dispatch like that of \cppinline{guessed_power} in Listing~\ref{lst:declare}, 
 \label{app:fjlt:assoc}
 An associated type is a trait whose result is a type (Section~\ref{sec:kernel:fjlt}): a \texttt{struct} template $g$ whose default names no type and whose entries each name one, read as $g\texttt{<}\overline{\tau}\texttt{>::type}$.
 \cppinline{op_of} in Listing~\ref{lst:motivation} is one, with an entry for each monoid, and the standard's \cppinline{range_value_t} is another.
+The kernel is given a third, \cppinline{cod}, the codomain of an arrow: the result type of its call, by \textsc{Eq-Cod}.
+Its one entry reads the type of the call operator, which the grammar cannot write, and it is a function because an arrow of the kernel has exactly one call, never a template (Figure~\ref{fig:fjlt-syntax}).
+\Cpp{} in general has no such function, since a function object may have several calls or a template of them, and a shape cannot bind a type that it is not given: the restriction is what makes the carrier of \cppinline{IsMagma} a read, \cppinline{cod_t<op_t<E>>}, and not a second declaration.
 Figure~\ref{fig:fjlt-assoc} gives its rules.
 \textsc{D-Assoc} declares the default and \textsc{D-Assoc-Entry} an entry, under the conditions of \textsc{D-Entry}, so that at concrete types a read resolves as a read of a trait does, to one entry, and is a function of its types.
-Where no entry matches, the default names no type and the read is ill formed, which is how \cppinline{IsMagma} fails at a type that has no entry of \cppinline{op_of}.
+Where no entry matches, the default names no type and the read is ill formed, which is how \cppinline{IsMagma} fails at a type that has no entry of \cppinline{op_of}, and at one whose operation has no single call, as the standard's \cppinline{plus<>}, whose call is a template.
 \textsc{Eq-Assoc} makes the read equal to the type its entry names.
 At a type variable the read names a type that nothing resolves, and the kernel admits it only among the types of a declaration: in its head, its constraints, the types of its parameters, its fields and its result, and the requirements of the shapes it assumes (Table~\ref{tab:excluded}).
 $\Delta$ holds each such read, and there it is equal to itself and to what an assumed \cppinline{same_as} makes it, with what follows from that by congruence, and to nothing else.
@@ -227,6 +230,8 @@ An entry is a definition, not a claim: it names a type, and there is nothing for
 \\[26pt]
 \textsc{(Eq-Assoc)} & \dfrac{\begin{array}{c} g\texttt{<}\overline{\tau}\texttt{>} \text{ resolves, at concrete } \overline{\tau} \text{, to the entry } \texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q} \\ \texttt{struct } g\texttt{<}\overline{\sigma}\texttt{> \{ using type = } \rho\texttt{; \};} \quad \overline{\tau} = \overline{\sigma}[\overline{\rho'}/\overline{\beta}] \quad \varnothing \Vdash \overline{Q}[\overline{\rho'}/\overline{\beta}] \end{array}}{\Delta \vdash g\texttt{<}\overline{\tau}\texttt{>::type} \equiv \rho[\overline{\rho'}/\overline{\beta}]}
 \\[22pt]
+\textsc{(Eq-Cod)} & \dfrac{O\texttt{<}\overline{\tau}\texttt{>} \text{ has the call } \texttt{constexpr } \rho \texttt{ operator()(}\overline{\sigma\; x}\texttt{) const} \text{, at concrete } \overline{\tau}}{\Delta \vdash \texttt{cod<}O\texttt{<}\overline{\tau}\texttt{>>::type} \equiv \rho}
+\\[14pt]
 \textsc{(Eq-Same)} & \dfrac{\texttt{same\_as<}\tau\texttt{, }\sigma\texttt{>} \in \Delta}{\Delta \vdash \tau \equiv \sigma}
 \\[12pt]
 \textsc{(T-Eq)} & \dfrac{\Delta; \Gamma \vdash e : \tau \quad \Delta \vdash \tau \equiv \sigma}{\Delta; \Gamma \vdash e : \sigma}

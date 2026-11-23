@@ -21,12 +21,11 @@ template <typename E>
 constexpr bool associative = false;
 template <typename E>
 constexpr bool unital = false;
-template <typename E> struct carrier_of {};
 template <typename E> struct op_of {};
 template <typename E>
-using carrier_t = typename carrier_of<E>::type;
-template <typename E>
 using op_t = typename op_of<E>::type;
+template <typename E>
+using carrier_t = cod_t<op_t<E>>;
 template <typename E>
 concept IsMagma =
   copyable<carrier_t<E>> &&
@@ -47,8 +46,6 @@ concept IsMonoid =
 \begin{cpp}
 struct All { constexpr bool
   operator()() const { return true; } };
-template <> struct carrier_of<All> {
-  using type = bool; };
 template <> struct op_of<All> {
   using type = logical_and<bool>; };
 template <> constexpr bool
@@ -63,8 +60,6 @@ struct BareOp { constexpr Bare
   operator()(Bare, Bare) const { return {}; } };
 struct BareMonoid { constexpr Bare
   operator()() const { return {}; } };
-template <> struct carrier_of<BareMonoid> {
-  using type = Bare; };
 template <> struct op_of<BareMonoid> {
   using type = BareOp; };
 template <> constexpr bool
@@ -144,10 +139,12 @@ guessed_concat : no image
 
 The left column is code as it would stand in a program, and the right column tests it.
 A monoid is built up as algebra builds it.
-A \emph{magma} is a carrier with an operation, both declared, a \emph{unital magma} is a magma with an element that is a unit, and a \emph{monoid} is a unital magma whose operation is associative.
+A \emph{magma} is a binary operator on a carrier, an arrow from two values of the carrier to one, a \emph{unital magma} is a magma with an element that is a unit, and a \emph{monoid} is a unital magma whose operation is associative.
 The element and its law come in one step, so a unital magma's carrier is never empty, and a homomorphism of it preserves the unit as well as the operation.
 A monoid is named by a type, \cppinline{Sum} or \cppinline{All}, whose call takes no arguments and gives the unit: the sum of nothing is $0$, and ``all'' of nothing holds.
-Its carrier and its operation are declared once each, as the entries of \cppinline{carrier_of} and \cppinline{op_of} for that name, and its laws are keyed on that name.
+Its operation is declared once, as the entry of \cppinline{op_of} for that name, and its laws are keyed on that name.
+Its carrier is not declared but read off the operation, as its codomain, \cppinline{cod_t}: the result type of the arrow's call, which the kernel is given, since an arrow of the kernel has exactly one call (Figure~\ref{fig:fjlt-syntax}).
+The unit's type is checked to be that carrier.
 The triple of algebra is still there, written once where the monoid is declared and not at every use.
 The unit's value does not determine the monoid, since $0$ is the unit of both \cppinline{+} and \cppinline{max} on \cppinline{size_t}, so its type does: a name.
 That the operation is associative, and that the unit is its unit, are axioms, as the concepts proposed for \Cpp{0x} could state them~\cite{gregor2006concepts,bagge2009axioms}: the programmer states them, as the top right panel does for the truth values under conjunction, and the compiler takes them at their word.
@@ -219,8 +216,6 @@ power<Concat>(""s, 1'000'000'000'000uz)
     == ""s);
 struct Xor { constexpr size_t
   operator()() const { return 0; } };
-template <> struct carrier_of<Xor> {
-  using type = size_t; };
 template <> struct op_of<Xor> {
   using type = bit_xor<size_t>; };
 template <> constexpr bool
@@ -261,8 +256,6 @@ struct Larger { constexpr size_t
     return a < b ? b : a; } };
 struct Max { constexpr size_t
   operator()() const { return 0; } };
-template <> struct carrier_of<Max> {
-  using type = size_t; };
 template <> struct op_of<Max> {
   using type = Larger; };
 template <> constexpr bool
@@ -344,8 +337,6 @@ struct Plus2 { constexpr size_t
     return a + b; } };
 struct Sum2 { constexpr size_t
   operator()() const { return 0; } };
-template <> struct carrier_of<Sum2> {
-  using type = size_t; };
 template <> struct op_of<Sum2> {
   using type = Plus2; };
 template <> constexpr bool

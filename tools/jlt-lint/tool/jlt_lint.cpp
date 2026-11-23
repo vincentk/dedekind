@@ -2040,7 +2040,8 @@ class Inventory : public clang::ASTConsumer,
 // ---------------------------------------------------------------------------
 
 /// What a type in a constraint is, read off its structure: a template
-/// parameter, the carrier of one (decltype(E{}())), the element type of a
+/// parameter, the carrier of one (decltype(E{}()), or the codomain of its
+/// operation, cod<op_of<E>::type>::type), the element type of a
 /// range parameter (range_value_t<R>), a trait's associated type at one
 /// (typename op_of<E>::type), or something else.
 struct Term {
@@ -2135,6 +2136,15 @@ Term classify(clang::QualType t, const TermSubst& s, int depth = 0) {
           // the archetypes provide.
           if (name != "type") return none;
           Term a = classify(arg, s, depth + 1);
+          // cod<F>::type, the codomain of an arrow, given to the kernel (the
+          // result type of its one call): at a magma's operation,
+          // cod<op_of<E>::type>::type, the carrier of E.  A magma is a
+          // binary operator on a carrier, and the archetype's operation,
+          // binary<C>, has C as its codomain.
+          if (!inStd(ct) && tn == "cod")
+            return a.kind == Term::Associated
+                       ? Term{Term::CarrierOf, a.p, nullptr}
+                       : none;
           if (a.kind == Term::Parameter) return Term{Term::Associated, a.p, ct};
           return none;
         }
