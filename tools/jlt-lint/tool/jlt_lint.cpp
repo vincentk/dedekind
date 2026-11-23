@@ -2689,6 +2689,23 @@ struct Selection {
 
 /// Whether an expression reads a law of the program (a variable template
 /// outside std), directly or through the program's concepts it names.
+/// One answer per concept for each walker, so that a hierarchy whose concepts
+/// share parts (a lattice over two semilattices over one magma) is walked once
+/// per concept, not once per path to it: unremembered, the walk is
+/// exponential in the hierarchy's depth, and it runs at every call a checked
+/// body makes.  A concept met again while its own answer is being computed
+/// (a cycle) answers false there, as the depth limit did.
+template <typename Walk>
+bool perConcept(std::map<const clang::ConceptDecl*, int>& memo,
+                const clang::ConceptDecl* c, Walk walk) {
+  auto [it, fresh] = memo.try_emplace(c, -1);  // -1: being computed
+  if (!fresh) return it->second == 1;
+  const bool r = walk(c->getConstraintExpr());
+  memo[c] = r ? 1 : 0;
+  return r;
+}
+std::map<const clang::ConceptDecl*, int> lawMemo, negationMemo;
+
 bool readsLaw(const clang::Expr* e, int depth = 0) {
   if (!e || depth > 16) return false;
   e = e->IgnoreParenImpCasts();
@@ -2701,7 +2718,8 @@ bool readsLaw(const clang::Expr* e, int depth = 0) {
       if (llvm::isa<clang::VarTemplateDecl>(d) && !inStd(d)) return true;
   if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e))
     if (!inStd(cs->getNamedConcept()) &&
-        readsLaw(cs->getNamedConcept()->getConstraintExpr(), depth + 1))
+        perConcept(lawMemo, cs->getNamedConcept(),
+                   [](const clang::Expr* b) { return readsLaw(b); }))
       return true;
   for (const clang::Stmt* c : e->children())
     if (const auto* ce = llvm::dyn_cast_or_null<clang::Expr>(c))
@@ -2731,7 +2749,8 @@ bool containsNegation(const clang::Expr* e, int depth = 0) {
     }
   if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e))
     if (!inStd(cs->getNamedConcept()) &&
-        containsNegation(cs->getNamedConcept()->getConstraintExpr(), depth + 1))
+        perConcept(negationMemo, cs->getNamedConcept(),
+                   [](const clang::Expr* b) { return containsNegation(b); }))
       return true;
   for (const clang::Stmt* c : e->children())
     if (const auto* ce = llvm::dyn_cast_or_null<clang::Expr>(c))
