@@ -44,6 +44,7 @@ import shlex
 import signal
 import subprocess
 import sys
+import time
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
@@ -234,16 +235,32 @@ def lint_part(build, tool, part):
     for rule, f, ns, expected in lines:
         groups[(f, ns)].append((rule, expected))
 
+    costs = []
+
     def lint(group):
         """One file, all its rules over one parse: (counts, locations,
-        output) per rule, counts None on an error."""
+        output) per rule, counts None on an error.  Its wall time and the
+        second stage's cost, as the tool reports it, go to the timing table."""
         (f, ns), entries = group
-        return run(tool, build, f, ns, [r for r, _ in entries])
+        started = time.monotonic()
+        result = run(tool, build, f, ns, [r for r, _ in entries])
+        m = re.search(r"jlt-lint-cost: templates (\d+) compiles (\d+) seconds ([\d.]+)", result[2] or "")
+        costs.append((time.monotonic() - started, f, *(m.groups() if m else ("-", "-", "-"))))
+        return result
 
     workers = int(os.environ.get("NCPU") or os.cpu_count() or 1)
     ordered = sorted(groups.items())
+    started = time.monotonic()
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
         results = list(pool.map(lint, ordered))
+    # Where the time goes: the slowest files, and the second stage's share.
+    total = sum(c[0] for c in costs)
+    compiled = sum(int(c[3]) for c in costs if c[3] != "-")
+    print(f"jlt-lint: timing, {len(costs)} files on {workers} workers: {time.monotonic() - started:.0f} s wall, "
+          f"{total:.0f} s summed, {compiled} second-stage compiles", file=sys.stderr)
+    for secs, f, k, n, s in sorted(costs, reverse=True)[:20]:
+        print(f"jlt-lint: timing {secs:7.1f} s  {f}  (second stage: {k} templates, {n} compiles, {s} s)",
+              file=sys.stderr)
     return [block(f, ns, entries, *result)
             for ((f, ns), entries), result in zip(ordered, results)]
 

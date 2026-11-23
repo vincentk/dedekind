@@ -88,6 +88,7 @@
 //                     finding.  An empty base (`: std::true_type`,
 //                     `: is_x<Y>`) is a registration spelled by inheritance,
 //                     read as the fact it states.
+#include <chrono>
 #include <algorithm>
 #include <functional>
 #include <map>
@@ -118,6 +119,7 @@
 #include "clang/Frontend/TextDiagnostic.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
+#include "llvm/Support/Format.h"
 #include "llvm/ADT/APSInt.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -3319,6 +3321,13 @@ void readImplied(const clang::FunctionDecl* fd, Facts& f) {
   }
 }
 
+/// The second stage's cost in one file, printed on stderr for the driver's
+/// timing table: the templates it judged, the compiles it ran, their time.
+struct SecondStageCost {
+  unsigned templates = 0, compiles = 0;
+  double seconds = 0;
+} secondStageCost;
+
 Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   Facts f;
   const clang::FunctionDecl* fd = ft->getTemplatedDecl();
@@ -3411,7 +3420,12 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   again.setDiagnosticConsumer(&errors);
   Selection sel;
   MarkedUseFactory factory(sel);
+  const auto started = std::chrono::steady_clock::now();
   again.run(&factory);
+  ++secondStageCost.compiles;
+  secondStageCost.seconds += std::chrono::duration<double>(
+                                 std::chrono::steady_clock::now() - started)
+                                 .count();
   // Which definition the use reached comes first.  A use that resolved to an
   // unmarked function reached a sibling; a use that resolved to nothing failed
   // with the body it instantiated, which the first error then locates.
@@ -3498,7 +3512,11 @@ class Admission : public clang::ASTConsumer {
         w << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc) << ':'
           << sm.getExpansionColumnNumber(loc) << ": " << ft->getNameAsString();
         cache.push_back({w.str(), admit(ft, ctx)});
+        ++secondStageCost.templates;
       }
+      llvm::errs() << "jlt-lint-cost: templates " << secondStageCost.templates
+                   << " compiles " << secondStageCost.compiles << " seconds "
+                   << llvm::format("%.1f", secondStageCost.seconds) << "\n";
     }
     for (const auto& [where, o] : cache) {
       if (o.kind != view) continue;
