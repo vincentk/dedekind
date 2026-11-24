@@ -9,7 +9,7 @@ Table~\ref{tab:derived} lists the derived forms of Section~\ref{sec:kernel:deriv
 The linter reads the same list, in its classification of syntax kinds (Appendix~\ref{app:lint}), so a definition is in FJlt exactly when it uses none of them.
 The list is open: a new derived form is a new row, and nothing said about the kernel changes.
 Local mutable state is among them, read by state passing: an assignment to a local is the next state of the fold or the call it is in, and an assignment to an element of a local array is the update of the whole array~\cite[3.1.1]{cytron1991ssa}.
-This is the textbook semantics of a language of local variables and arrays~\cite[chapters 2 and 4]{reynolds1998theories}, and SSA read as functional programs~\cite{appel1998ssa} is the same reading.
+This is the textbook semantics of a language of local variables and arrays~\cite[chapters 2 and 4]{reynolds1998theories}, and SSA read as functional programs~\cite{appel1998ssa} is the same reading, which Appendix~\ref{app:fjlt:ssa} gives the compiler's lowering of the kernel.
 It needs one condition: at every point, each piece of storage is reached through one name only, since a write through one name would otherwise change what another reads.
 Names may exchange their values, as \cppinline{swap} does; they may never share storage.
 Jlt meets the condition by construction where its rules hold: a reference to a local exists only within one expression, as the element \cppinline{r[i]} that an assignment writes or an expression reads, and Rule~1 closes every channel by which state could leave the call; the linter checks every use of a mutable local against this list (\texttt{rule1-local-state}, Appendix~\ref{app:lint}).
@@ -17,7 +17,7 @@ Haskell's \texttt{runST} holds the same by a type~\cite{launchbury1994lazy}, pro
 The reading makes a function pure; it does not make it correct.
 An algorithm that overwrites an entry before it reads it computes a wrong value, and its reading computes the same wrong value: that the values are the intended ones is the algorithm's own claim, tested, as everywhere in this paper, by \cppinline{static_assert}.
 Raw pointers are not among them.
-A pointer that is never null and never compared with a pointer into another object is an index into a range, its arithmetic the arithmetic of counts, but neither condition can be checked well, so the posture asks for a span over storage declared constant instead.
+A pointer that is never null and never compared with a pointer into another object is an index into a range, its arithmetic the arithmetic of counts, but neither condition can be checked well, so the posture asks for a \cppinline{std::span} over storage declared constant instead~\cite[\texttt{views.span}]{cpp23standard}.
 
 % DECISION (2026-11-23, the practitioner's finding on the lambda row): the
 % condition is narrowed to where no constraint asks copyable or a default value
