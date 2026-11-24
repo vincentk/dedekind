@@ -9,6 +9,18 @@ axioms                       tools/jlt-lint/fixtures/axioms.cpp  jlt_listing  3
 rule3-no-loops               tools/jlt-lint/fixtures/rule3-loops.cpp  jlt_listing  15
 rule3-no-self-recursion      tools/jlt-lint/fixtures/rule3-recursion.cpp  jlt_listing  14
 rule3-no-mutual-recursion    tools/jlt-lint/fixtures/rule3-mutual.cpp  jlt_listing  9
+# Local state in place (local-state.cpp): Fibonacci and an LU solve with
+# their loops, which the loop rule passes, and five near-misses of the
+# aliasing conditions, which no rule catches yet.  Pinned at today's verdicts;
+# the aliasing whitelist will refuse the five (a reference local, an index not
+# provably in range, two writes in one expression, a reference capture that
+# writes, swap of a value with itself).
+rule3-no-loops               tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
+rule3-no-self-recursion      tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
+rule3-no-mutual-recursion    tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
+rule1-lvalue-reference-params tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
+rule1-no-reference-returns   tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
+rule1-no-escaping-reference-captures tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
 rule3-bounded-fold           tools/jlt-lint/fixtures/rule3-bounded-fold.cpp  jlt_listing  10
 rule2-definition             tools/jlt-lint/fixtures/rule2-definition.cpp  jlt_listing  17
 rule2-constrained-templates  tools/jlt-lint/fixtures/rule2-constraints.cpp  jlt_listing  2
