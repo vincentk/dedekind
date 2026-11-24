@@ -188,7 +188,8 @@ constexpr std::size_t value_initialised() {  // sound
 }
 
 // Not refused: an element of a member array, its index in the member's range;
-// a range-for's loop variable in a template, written by the loop.
+// a range-for's loop variable in a template, written by the loop (the loop
+// rule refuses that loop, a range of template type; rule1-local-state does not).
 struct Rows {
   std::array<std::size_t, 2> top, bottom;
 };
