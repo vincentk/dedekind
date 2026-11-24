@@ -3964,8 +3964,22 @@ class Queries : public clang::ASTConsumer {
                                  collected.back().back().get());
       }
     }
+    // Only what the file itself declares: the traversal, and with it the
+    // parent map that hasAncestor builds, would otherwise cover every
+    // declaration the file imports or includes, the standard library's and
+    // the imported modules' included.  A template's instantiations hang under
+    // its own declaration and stay in scope.  The previous scope is restored
+    // for the checks that follow on the same context.
+    const std::vector<clang::Decl*> previous = ctx.getTraversalScope();
+    std::vector<clang::Decl*> own;
+    const clang::SourceManager& sm = ctx.getSourceManager();
+    for (clang::Decl* d : ctx.getTranslationUnitDecl()->noload_decls())
+      if (sm.isWrittenInMainFile(sm.getExpansionLoc(d->getLocation())))
+        own.push_back(d);
+    ctx.setTraversalScope(own);
     const auto started = std::chrono::steady_clock::now();
     finder.matchAST(ctx);
+    ctx.setTraversalScope(previous);
     reportPhase("matchers", std::chrono::duration<double>(
                                 std::chrono::steady_clock::now() - started)
                                 .count());
