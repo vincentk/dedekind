@@ -172,7 +172,7 @@ class MutualRecursion : public clang::ASTConsumer {
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     clang::CallGraph graph;
-    graph.addToCallGraph(ctx.getTranslationUnitDecl());
+    for (clang::Decl* d : ctx.getTraversalScope()) graph.addToCallGraph(d);
     const clang::SourceManager& sm = ctx.getSourceManager();
 
     std::map<const clang::CallGraphNode*, int> index, low;
@@ -215,11 +215,19 @@ class MutualRecursion : public clang::ASTConsumer {
       if (entry.second && !index.count(entry.second.get()))
         visit(entry.second.get());
 
+    // In source order, not in the order of the set's pointers, which depends
+    // on where the declarations happen to be allocated (scan.py saw the two
+    // scans differ by order alone).
+    std::vector<std::tuple<std::string, unsigned, unsigned>> lines;
     for (const clang::FunctionDecl* f : findings) {
       const clang::SourceLocation loc = sm.getExpansionLoc(f->getLocation());
-      out() << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc)
-            << ':' << sm.getExpansionColumnNumber(loc) << '\n';
+      lines.emplace_back(sm.getFilename(loc).str(),
+                         sm.getExpansionLineNumber(loc),
+                         sm.getExpansionColumnNumber(loc));
     }
+    std::sort(lines.begin(), lines.end());
+    for (const auto& [file, line, column] : lines)
+      out() << file << ':' << line << ':' << column << '\n';
   }
 };
 
@@ -800,7 +808,7 @@ class Definition : public clang::ASTConsumer {
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     const clang::SourceManager& sm = ctx.getSourceManager();
     Finder finder{sm, *this};
-    finder.TraverseDecl(ctx.getTranslationUnitDecl());
+    finder.TraverseAST(ctx);
   }
 
   struct Finder : clang::RecursiveASTVisitor<Finder> {
@@ -939,7 +947,7 @@ class InlineRequires : public clang::ASTConsumer,
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     this->ctx = &ctx;
-    TraverseDecl(ctx.getTranslationUnitDecl());
+    TraverseAST(ctx);
   }
   bool shouldVisitTemplateInstantiations() const { return false; }
   bool VisitIfStmt(clang::IfStmt* s) {
@@ -976,7 +984,7 @@ class TypeObservation : public clang::ASTConsumer,
  public:
   void HandleTranslationUnit(clang::ASTContext& c) override {
     ctx = &c;
-    TraverseDecl(c.getTranslationUnitDecl());
+    TraverseAST(c);
   }
   bool shouldVisitTemplateInstantiations() const { return false; }
   bool TraverseFunctionDecl(clang::FunctionDecl* f) {
@@ -1269,7 +1277,7 @@ class BoundedFold : public clang::ASTConsumer,
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     this->ctx = &ctx;
-    TraverseDecl(ctx.getTranslationUnitDecl());
+    TraverseAST(ctx);
   }
   bool shouldVisitTemplateInstantiations() const { return false; }
   bool VisitDeclRefExpr(clang::DeclRefExpr* e) {
@@ -1415,7 +1423,7 @@ class ConvertedResult : public clang::ASTConsumer,
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     sm = &ctx.getSourceManager();
-    TraverseDecl(ctx.getTranslationUnitDecl());
+    TraverseAST(ctx);
   }
   bool shouldVisitTemplateInstantiations() const { return false; }
   bool TraverseLambdaExpr(clang::LambdaExpr*) { return true; }
@@ -1597,7 +1605,7 @@ class ContextOrder : public clang::ASTConsumer,
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     sm = &ctx.getSourceManager();
-    TraverseDecl(ctx.getTranslationUnitDecl());
+    TraverseAST(ctx);
     for (const clang::FunctionTemplateDecl* ft : instances) {
       const clang::FunctionDecl* f = ft->getTemplatedDecl();
       const auto primary = primaries.find(f->getNameAsString());
@@ -1679,7 +1687,7 @@ class Inheritance : public clang::ASTConsumer,
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     sm = &ctx.getSourceManager();
-    TraverseDecl(ctx.getTranslationUnitDecl());
+    TraverseAST(ctx);
   }
   bool shouldVisitTemplateInstantiations() const { return false; }
   bool VisitCXXRecordDecl(clang::CXXRecordDecl* r) {
@@ -1836,7 +1844,7 @@ class UndecidedResolution : public clang::ASTConsumer {
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     sm = &ctx.getSourceManager();
     Finder finder{*this};
-    finder.TraverseDecl(ctx.getTranslationUnitDecl());
+    finder.TraverseAST(ctx);
   }
 
   struct Calls : clang::RecursiveASTVisitor<Calls> {
@@ -2017,7 +2025,7 @@ class Inventory : public clang::ASTConsumer,
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     sm = &ctx.getSourceManager();
-    TraverseDecl(ctx.getTranslationUnitDecl());
+    TraverseAST(ctx);
     for (const auto& [kind, n] : counts) out() << kind << ' ' << n << '\n';
   }
   bool shouldVisitTemplateInstantiations() const { return false; }
@@ -3540,7 +3548,7 @@ class Admission : public clang::ASTConsumer {
         }
       } finder;
       finder.sm = &sm;
-      finder.TraverseDecl(ctx.getTranslationUnitDecl());
+      finder.TraverseAST(ctx);
       for (const clang::FunctionTemplateDecl* ft : finder.found) {
         const clang::SourceLocation loc = sm.getExpansionLoc(ft->getLocation());
         std::string where;
@@ -3665,14 +3673,18 @@ class Definitions : public clang::ASTConsumer {
     const clang::SourceManager& sm = ctx.getSourceManager();
     clang::PrintingPolicy policy = ctx.getPrintingPolicy();
     policy.SuppressScope = true;
+    std::function<void(clang::Decl*)> visit;
     std::function<void(const clang::DeclContext*)> walk =
         [&](const clang::DeclContext* dc) {
-          for (clang::Decl* d : dc->decls()) {
+          for (clang::Decl* d : dc->decls()) visit(d);
+        };
+    visit = [&](clang::Decl* d) {
+          {
             const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(d);
             if (ns && ns->getName() == scope &&
                 sm.isInMainFile(sm.getExpansionLoc(ns->getLocation()))) {
               for (clang::Decl* m : ns->decls()) report(m, sm, policy);
-              continue;
+              return;
             }
             if (const auto* c = llvm::dyn_cast<clang::DeclContext>(d))
               if (llvm::isa<clang::NamespaceDecl, clang::LinkageSpecDecl,
@@ -3680,7 +3692,12 @@ class Definitions : public clang::ASTConsumer {
                 walk(c);
           }
         };
-    walk(ctx.getTranslationUnitDecl());
+    // The traversal scope: the whole unit, or the file's own declarations.
+    for (clang::Decl* d : ctx.getTraversalScope())
+      if (const auto* tu = llvm::dyn_cast<clang::TranslationUnitDecl>(d))
+        walk(tu);
+      else
+        visit(d);
   }
 
  private:
@@ -3984,9 +4001,9 @@ class Queries : public clang::ASTConsumer {
     // parent map that hasAncestor builds, would otherwise cover every
     // declaration the file imports or includes, the standard library's and
     // the imported modules' included.  A template's instantiations hang under
-    // its own declaration and stay in scope.  The previous scope is restored
-    // for the checks that follow on the same context.
-    const std::vector<clang::Decl*> previous = ctx.getTraversalScope();
+    // its own declaration and stay in scope.  The scope stays set for the
+    // checks that follow on the same context, which walk it (TraverseAST)
+    // and build their parent maps over it, as the matchers do.
     if (scanMode == Scan::Shallow) {
       std::vector<clang::Decl*> own;
       const clang::SourceManager& sm = ctx.getSourceManager();
@@ -3997,7 +4014,6 @@ class Queries : public clang::ASTConsumer {
     }
     const auto started = std::chrono::steady_clock::now();
     finder.matchAST(ctx);
-    ctx.setTraversalScope(previous);
     reportPhase("matchers", std::chrono::duration<double>(
                                 std::chrono::steady_clock::now() - started)
                                 .count());

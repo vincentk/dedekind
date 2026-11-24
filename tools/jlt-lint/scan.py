@@ -27,15 +27,22 @@ def main():
     db = pathlib.Path(tool).resolve().parent.parent / "compile_commands.json"
     if db.exists():
         jlt_lint.set_resource_dir(json.loads(db.read_text()))
-    queries = [q for q in sorted((HERE / "rules").glob("*.query"))
-               if not any(l.startswith("tool ") for l in q.read_text().splitlines())]
+    queries, checks = [], []
+    for q in sorted((HERE / "rules").glob("*.query")):
+        tools = [l.split()[1] for l in q.read_text().splitlines() if l.startswith("tool ")]
+        (checks.extend if tools else lambda _: queries.append(q))(tools)
+    # The second stage compiles the file again per template, whatever the
+    # scan; its own walk finds the same templates either way.  Left out, for
+    # time.
+    checks = [c for c in checks if c not in ("admit", "undecided", "admitted")]
     differ = []
     fixtures = sorted((HERE / "fixtures").glob("*.cpp"))
     for fixture in fixtures:
         out = {}
         for mode in ("shallow", "deep"):
             args = [tool, "--scope=jlt_listing", f"--scan={mode}",
-                    f"--query={','.join(str(q) for q in queries)}", str(fixture),
+                    f"--query={','.join(str(q) for q in queries)}",
+                    f"--check={','.join(checks)}", str(fixture),
                     "--", "-std=c++23", "-xc++", *jlt_lint.RESOURCE_DIR, *sys.argv[2:]]
             out[mode] = subprocess.run(args, capture_output=True, text=True).stdout
         if out["shallow"] != out["deep"]:
@@ -45,7 +52,7 @@ def main():
                  ": a rule depends on what lies outside the file; see README, "
                  "Choices the linter makes")
     print(f"scan.py: shallow and deep scans agree on {len(fixtures)} fixtures, "
-          f"{len(queries)} rule files")
+          f"{len(queries)} rule files and {len(checks)} checks")
 
 
 if __name__ == "__main__":
