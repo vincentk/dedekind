@@ -256,10 +256,19 @@ def lint_part(build, tool, part):
         costs.append((time.monotonic() - started, f, *(m.groups() if m else ("-", "-", "-"))))
         phases[f] = {name: float(secs) for name, secs in
                      re.findall(r"jlt-lint-phase: (.+?) ([\d.]+)$", result[2] or "", re.M)}
-        # Progress as it happens, so a cancelled or timed-out job still shows
-        # which files finished, and which did not.
+        # Progress as it happens, with the file's own phases, so a cancelled
+        # or timed-out job still shows which files finished, which did not,
+        # and where the finished ones spent their time.
+        top = sorted(((n, s) for n, s in phases[f].items() if not n.startswith("matcher ")),
+                     key=lambda kv: -kv[1])[:4]
+        rules = sorted(((n[8:], s) for n, s in phases[f].items() if n.startswith("matcher ")),
+                       key=lambda kv: -kv[1])[:2]
         print(f"jlt-lint: done {costs[-1][0]:7.1f} s  {f}"
-              + ("" if result[0] is not None else "  (failed)"), file=sys.stderr, flush=True)
+              + ("" if result[0] is not None else "  (failed)")
+              + ("  [" + ", ".join(f"{n} {s:.1f}" for n, s in top)
+                 + ("; slowest rules: " + ", ".join(f"{n} {s:.1f}" for n, s in rules) if rules else "")
+                 + "]" if top else ""),
+              file=sys.stderr, flush=True)
         return result
 
     workers = int(os.environ.get("NCPU") or os.cpu_count() or 1)
