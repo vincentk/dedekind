@@ -171,8 +171,12 @@ bool judged(const clang::FunctionDecl* def, const clang::SourceManager& sm) {
 class MutualRecursion : public clang::ASTConsumer {
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    // The whole unit, whatever the scan: a cycle can pass through a template
+    // the file imports, whose instantiation calls back into the file and
+    // hangs under the template's own declaration, outside the file's (two
+    // library files lost all their findings under the shallow scan).
     clang::CallGraph graph;
-    for (clang::Decl* d : ctx.getTraversalScope()) graph.addToCallGraph(d);
+    graph.addToCallGraph(ctx.getTranslationUnitDecl());
     const clang::SourceManager& sm = ctx.getSourceManager();
 
     std::map<const clang::CallGraphNode*, int> index, low;

@@ -171,6 +171,8 @@ Each choice is named here, made by default, and can be undone to test it.
   the lint's time, and more on macOS, whose standard library declares more.
   `scan.py` tests the premise in every build: both scans on every fixture,
   identical findings required.  The library is scanned deep only on request.
+  One check is deep always: mutual recursion, whose cycles can pass through a
+  template the file imports.
 
 ## Stated in the paper, not yet checked
 
