@@ -58,6 +58,9 @@ UNDO_FOR_CHECK = ["--extra-arg=-UDEDEKIND_RUNTIME_COVERAGE_BRIDGES"]
 RESOURCE_DIR = []
 # How much of each file the matchers walk; set from --scan (see main).
 SCAN = "shallow"
+# Each file's definitions with their levels, "<file> <namespace>" to rows of
+# levels.classify; written beside the report (summary.py reads it).
+LEVELS = {}
 # The longest one file may take, all its rules over one parse and the second
 # stage's compiles (JLT_LINT_FILE_TIMEOUT seconds, default twenty minutes).
 FILE_TIMEOUT = int(os.environ.get("JLT_LINT_FILE_TIMEOUT") or 1200)
@@ -257,6 +260,14 @@ def lint_part(build, tool, part):
         (f, ns), entries = group
         started = time.monotonic()
         result = run(tool, build, f, ns, [r for r, _ in entries])
+        # Each definition's level, by levels.py's own classify, from the
+        # findings this parse already gave: the same computation as the
+        # paper's Table 6, for every file that runs the definitions check.
+        counts, where = result[0], result[1]
+        if isinstance(counts, dict) and where and "definitions" in where:
+            import admission
+            import levels
+            LEVELS[f"{f} {ns}"] = [list(r) for r in levels.classify(where, admission.admission())]
         m = re.search(r"jlt-lint-cost: templates (\d+) compiles (\d+) seconds ([\d.]+)", result[2] or "")
         costs.append((time.monotonic() - started, f, *(m.groups() if m else ("-", "-", "-"))))
         phases[f] = {name: float(secs) for name, secs in
@@ -323,6 +334,11 @@ def block(f, ns, entries, counts, where, out):
         if expected == "report":
             row["reported"] += 1
             row["findings"] += n
+            if n and rule == "definitions":
+                # Every declaration is one: the count here, the levels in
+                # <out>/<part>-levels.json (summary.py).
+                text.append(f"jlt-lint: report {rule} {f}: {n}")
+                continue
             if n:
                 text.append(f"jlt-lint: report {rule} {f}: {n}")
                 text += [f"  {pathlib.Path(loc).relative_to(ROOT) if loc.startswith(str(ROOT)) else loc}"
@@ -395,6 +411,7 @@ def main():
             name = a.part or "all"
             a.out.mkdir(parents=True, exist_ok=True)
             (a.out / f"{name}.json").write_text(json.dumps(blocks))
+            (a.out / f"{name}-levels.json").write_text(json.dumps(LEVELS))
             (a.out / f"{name}.txt").write_text(text)
     sys.stdout.write(text)
     return 1 if failures else 0

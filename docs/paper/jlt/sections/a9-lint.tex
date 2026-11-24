@@ -124,6 +124,15 @@ Three helpers of a periodic fold piped an arrow into a chain without stating tha
 Each was fixed by stating the constraint, twice by naming it once as a concept that the class and its factory share.
 The undecided are the generator's coverage, not findings: parameters of templates over values, required calls and type requirements of forms it does not read, disjunctions, and, by design, every body with an \cppinline{if constexpr}, of whose branches the archetypes check only one.
 
+\paragraph{The levels, at scale.}
+\label{app:lint:summary}
+Table~\ref{tab:summary} counts definitions, as Table~\ref{tab:levels} does for the listings, and by the same rule.
+A definition is a declaration directly in the namespace judged, as the check \texttt{definitions} reports it with its lines and the kinds of syntax it uses.
+It is refused when a deny-rule finds something in its lines, when it uses a kind that \texttt{tools/jlt-lint/admission.txt} refuses, or when the type check does not admit it; undecided when it uses a kind still open or the type check leaves it undecided; in Jlt when every kind is kernel, scaffolding or a derived form and some is a derived form; and in FJlt otherwise.
+The level is computed in the build's one run of the linter, for every file in scope, by the function that gives Table~\ref{tab:levels} its rows (\texttt{tools/jlt-lint/levels.py}), and summed for each body of code by \texttt{tools/jlt-lint/summary.py}.
+The listings are the namespace of Listings~\ref{lst:motivation} to~\ref{lst:theorems}; the library is its module units in scope; Catch2 is the sources it compiles, the \texttt{.cpp} files, since the linter judges what a file declares and Catch2's headers are not yet judged as files of their own.
+A kind is coarser than the grammar, so a level counts what a definition writes, not everything it means: the deny-rules and the type check supply the rest.
+
 \paragraph{The conjecture and its hypotheses.}
 \label{app:lint:conjecture}
 The conjecture of Section~\ref{sec:check} is that a definition admitted at its archetypes is well typed at every type that satisfies its shapes and keeps the rules itself, and resolves every choice its signature makes the same way.

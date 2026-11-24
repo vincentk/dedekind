@@ -107,6 +107,11 @@ add_custom_target(lint
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/table.py
             --report ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
             --check ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/lint-table.tex
+    # The paper's summary of the levels over the listings, the library and
+    # Catch2: compared, so that it cannot drift from the code.
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/summary.py
+            --levels ${_jlt_parts}/all-levels.json
+            --check ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/summary-table.tex
     # The shallow scan's premise, tested on the fixtures: both scans agree.
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scan.py ${_jlt_tool}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
