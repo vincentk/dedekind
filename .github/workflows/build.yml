@@ -44,9 +44,10 @@ jobs:
     # The latest Ubuntu LTS and the newest macOS, standard runners, named:
     # the -latest labels lag them.
     runs-on: ${{ inputs.runner || 'macos-26' }}
-    # A job that runs longer than an hour has a problem to fix, not a limit to
-    # raise: it fails with its log instead of running to GitHub's six hours.
-    timeout-minutes: 60
+    # The typical job time (about 27 minutes after #1214) times 1.3, rounded
+    # up to the ten: a job that runs longer has a problem to fix, not a limit
+    # to raise, and fails with its log.
+    timeout-minutes: 40
     permissions:
       contents: read
       pull-requests: write  # required by codecov-action to post PR coverage comments
