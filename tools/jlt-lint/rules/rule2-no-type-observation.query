@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes translatability by Table 7's rows; silence affirms nothing.
 # Rule 2: generic code varies with a type only through declared concepts and
 # traits.  In a function template's body, sizeof, alignof, typeid, a standard
 # type trait (std::is_integral_v<T>, std::is_same<T, U>::value, __is_same) or

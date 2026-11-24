@@ -1,3 +1,4 @@
+# grade: —, not a test: a list or a report.
 # Not a rule: a program's axioms, listed.  A law is a trait, written by cases,
 # and an axiom has one form among the cases: an entry at one type whose value
 # is the literal true (template <> constexpr bool f<...> = true;).  A trait's

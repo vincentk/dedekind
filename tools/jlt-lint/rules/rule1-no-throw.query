@@ -1,2 +1,3 @@
+# grade: Π, rejecting: a finding refutes translatability by Table 7's rows; silence affirms nothing.
 # Rule 1: functions are pure and total; no throw.
 match cxxThrowExpr(isExpansionInMainFile(), hasAncestor(scope))

@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes translatability by Table 7's rows; silence affirms nothing.
 # Rule 1: a function depends on its arguments alone, so no state outlives a
 # call.  A namespace-scope or static data member variable that is neither
 # const nor constexpr is such state: any function may write it, and every

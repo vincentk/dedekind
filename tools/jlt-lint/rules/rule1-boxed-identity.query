@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes translatability by Table 7's rows; silence affirms nothing.
 # Rule 1, the boxed value: a box is compared by what it holds, never by which
 # box it is.  get(), use_count(), owner_before() and == between two
 # shared_ptrs observe identity or sharing, so referential transparency breaks

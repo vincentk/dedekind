@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes translatability by Table 7's rows; silence affirms nothing.
 # Rule 2, the conversion discipline (#1143): the result of a requirement
 # { e } -> std::convertible_to<T> is used only at the declared T.  The dictionary
 # converts once, in the field; a body that takes the unconverted result as the

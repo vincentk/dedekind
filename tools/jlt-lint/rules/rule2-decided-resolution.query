@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes translatability by Table 7's rows; silence affirms nothing.
 # Rule 2, GHC's rule for overlapping instances: a call at a value of
 # parameter type to an overload set whose candidates are separated by a
 # concept resolves, at each instantiation, by whether that concept holds; if

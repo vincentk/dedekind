@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes translatability by Table 7's rows; silence affirms nothing.
 # Rule 3: a loop is a fold only when its end is stated before it starts
 # (Table 7, a counted for or a range-for over a sized range; Meyer and Ritchie
 # 1967, the LOOP language, whose count is fixed on entry and whose programs

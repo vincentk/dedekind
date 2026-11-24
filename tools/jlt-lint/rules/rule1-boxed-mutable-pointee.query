@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes translatability by Table 7's rows; silence affirms nothing.
 # Rule 1, the boxed value: std::shared_ptr is admitted as the representation
 # of a value (a heap cell for a recursive or shared structure) only when its
 # pointee is const, so nothing can change what every copy shares.  A

@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes translatability by Table 7's rows; silence affirms nothing.
 # Rule 1: no state outlives a call.  A lambda that captures by reference and
 # escapes its function carries a reference to a local or a parameter out of
 # the call.  A by-reference capture leaves a reference-typed field in the

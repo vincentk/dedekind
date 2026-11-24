@@ -33,6 +33,16 @@ def scope():
     return status
 
 
+def grade(rule):
+    """The rule's grade, from its own file: Π rejecting, Σ affirming, Δ both,
+    "—" not a test (README, Choices the linter makes)."""
+    for line in (ROOT / "tools/jlt-lint/rules" / f"{rule}.query").read_text().splitlines():
+        if line.startswith("# grade: "):
+            g = line.split()[2].rstrip(",")
+            return "$\\" + {"Π": "Pi", "Σ": "Sigma", "Δ": "Delta"}[g] + "$" if g in "ΠΣΔ" else "---"
+    sys.exit(f"table.py: {rule}.query states no grade")
+
+
 def findings(text):
     found = collections.defaultdict(dict)
     for rule, f, n in re.findall(r"jlt-lint: (?:gate|report) +(\S+) (" + re.escape(LIB) + r"\S+): (\d+)", text):
@@ -57,18 +67,18 @@ def main():
         ("Refused, outside Jlt: Rule 1, substitution", lambda r: r.startswith("rule1-")),
         ("Refused, outside Jlt: Rule 2, abstraction", lambda r: r.startswith("rule2-")),
         ("Refused, outside Jlt: Rule 3, descent", lambda r: r.startswith("rule3-")),
+        ("Affirmed: the second stage, admission by type", lambda r: r == "admitted"),
         ("Listed, taken on trust", lambda r: r == "axioms"),
     ]
     for i, (title, member) in enumerate(groups):
         if i:
             print("\\midrule")
-        print(f"\\multicolumn{{5}}{{@{{}}l}}{{\\emph{{{title}}}}} \\\\")
+        print(f"\\multicolumn{{6}}{{@{{}}l}}{{\\emph{{{title}}}}} \\\\")
         for rule in sorted(r for r in status if member(r)):
             gate = sum(1 for s in status[rule].values() if s == "gate")
             report = sum(1 for s in status[rule].values() if s == "report")
             hit = {f: n for f, n in found.get(rule, {}).items() if n > 0}
-            name = rule.split("-", 1)[1] if rule.startswith("rule") else rule
-            print(f"\\quad\\texttt{{{name}}} & {gate} & {report} & {len(hit)} & {sum(hit.values())} \\\\")
+            print(f"\\quad\\texttt{{{rule}}} & {grade(rule)} & {gate} & {report} & {len(hit)} & {sum(hit.values())} \\\\")
 
 
 if __name__ == "__main__":
