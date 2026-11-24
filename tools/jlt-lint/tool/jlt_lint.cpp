@@ -88,6 +88,7 @@
 //                     finding.  An empty base (`: std::true_type`,
 //                     `: is_x<Y>`) is a registration spelled by inheritance,
 //                     read as the fact it states.
+#include <cctype>
 #include <chrono>
 #include <algorithm>
 #include <functional>
@@ -3929,10 +3930,12 @@ std::optional<DynTypedMatcher> parseMatcher(
   return m;
 }
 
-/// Read the scope probe and the rule files into queryRules: in a file, each
-/// line `match <matcher>` is a matcher and the first `set traversal <kind>`
-/// the traversal; every other line is commentary, as it was when the driver
-/// gave clang-query those lines alone.
+/// Read the scope probe and the rule files into queryRules.  In a file, a
+/// command is `match <matcher>`, `let <name> <matcher>` (a name for the rest
+/// of the file, as in clang-query) or the first `set traversal <kind>`; a line
+/// that starts with a space or a tab continues the command above it, so that
+/// a matcher can be written over several lines; every other line is
+/// commentary.
 bool readQueryRules() {
   const std::string ns = scope;
   clang::ast_matchers::dynamic::Parser::NamedValueMap named;
@@ -3964,12 +3967,52 @@ bool readQueryRules() {
     }
     QueryRule rule{llvm::sys::path::stem(path).str(), defaultTraversal, {}};
     bool traversalNamed = false;
-    llvm::SmallVector<llvm::StringRef, 16> lines;
-    (*buffer)->getBuffer().split(lines, '\n');
-    for (unsigned n = 0; n < lines.size(); ++n) {
-      llvm::StringRef line = lines[n].rtrim("\r");
-      const std::string where = path + ":" + std::to_string(n + 1);
-      if (line.consume_front("set traversal ")) {
+    // The file's names: the scope, and its own lets, which no other file sees.
+    clang::ast_matchers::dynamic::Parser::NamedValueMap local = named;
+    llvm::SmallVector<llvm::StringRef, 16> raw;
+    (*buffer)->getBuffer().split(raw, '\n');
+    // Commands, each with the line it starts on: an indented line continues
+    // the command above it.
+    std::vector<std::pair<std::string, unsigned>> commands;
+    for (unsigned n = 0; n < raw.size(); ++n) {
+      llvm::StringRef line = raw[n].rtrim("\r");
+      const bool continues = !line.empty() && (line[0] == ' ' || line[0] == '\t');
+      if (continues && line.trim().starts_with("#")) continue;  // a comment
+      if (continues && !commands.empty() &&
+          !llvm::StringRef(commands.back().first).starts_with("#"))
+        commands.back().first += " " + line.trim().str();
+      else
+        commands.emplace_back(line.str(), n + 1);
+    }
+    for (const auto& [text, n] : commands) {
+      llvm::StringRef line = text;
+      const std::string where = path + ":" + std::to_string(n);
+      if (line.consume_front("let ")) {
+        line = line.ltrim();
+        const llvm::StringRef name = line.take_while(
+            [](char c) { return std::isalnum(static_cast<unsigned char>(c)) || c == '_'; });
+        if (name.empty() || name == "scope") {
+          llvm::errs() << "jlt-lint: " << where
+                       << ": let wants a new name (not scope)\n";
+          return false;
+        }
+        llvm::StringRef rest = line.drop_front(name.size()).ltrim();
+        clang::ast_matchers::dynamic::Diagnostics diag;
+        clang::ast_matchers::dynamic::VariantValue value;
+        if (!clang::ast_matchers::dynamic::Parser::parseExpression(
+                rest, nullptr, &local, &value, &diag)) {
+          llvm::errs() << "jlt-lint: " << where << ": " << diag.toStringFull()
+                       << '\n';
+          return false;
+        }
+        if (!rest.trim().empty()) {
+          llvm::errs() << "jlt-lint: " << where
+                       << ": text after the value of " << name << ": "
+                       << rest.trim() << '\n';
+          return false;
+        }
+        local[name.str()] = value;
+      } else if (line.consume_front("set traversal ")) {
         if (traversalNamed) continue;  // the first one counts
         traversalNamed = true;
         llvm::StringRef kind = line.trim();
@@ -3983,7 +4026,7 @@ bool readQueryRules() {
           return false;
         }
       } else if (line.consume_front("match ")) {
-        auto m = parseMatcher(line, named, where);
+        auto m = parseMatcher(line, local, where);
         if (!m) return false;
         rule.matchers.push_back(*m);
       }
