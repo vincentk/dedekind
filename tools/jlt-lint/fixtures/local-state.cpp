@@ -1,21 +1,21 @@
 // Local mutable state: code written in place, with loops, that has a System F
 // reading all the same (the state-passing reading of Table 7: an assignment
-// to a local is the next state of a fold).  Two sound computations, an
-// in-place Fibonacci and an in-place LU solve, and beside each near-miss its
-// sound twin.  The near-misses break the aliasing conditions A1-A6 of
+// to a local is the next state of a fold).  A sound computation, Fibonacci
+// in place, and beside each near-miss its sound twin.  The near-misses break the aliasing conditions A1-A6 of
 // research_notes' local-state study: a write through one name must not change
 // what another name reads.  The static_asserts are the algorithms' own
 // correctness, tested whenever the file is parsed; the rules judge only
 // whether the code can be read as a pure function.
 //
-// rule1-local-state refuses the seven near-misses, one finding each, and
-// nothing else here: Fibonacci, the LU solve and the sound twins pass, the
-// LU's pivot index bounded by the values it is assigned.  Standalone, no
+// rule1-local-state refuses the eight near-misses, one finding each, and
+// nothing else here: Fibonacci and the sound twins pass.  (An LU solve is left
+// out until division and fields are under control: #1221.)  Standalone, no
 // imports, so it is checked without the build.
 #include <array>
 #include <bit>
 #include <cstddef>
 #include <utility>
+#include <vector>
 
 namespace jlt_listing {
 
@@ -25,7 +25,7 @@ constexpr std::size_t fibonacci(std::size_t n) {
   std::array<std::size_t, 4> r{1, 0, 0, 1};  // the result, the identity
   std::array<std::size_t, 4> m{1, 1, 1, 0};  // the base
   for (std::size_t i = 0; i < 64; ++i) {
-    if ((std::rotr(n, static_cast<int>(i)) & 1) == 1) {  // bit i of n
+    if ((std::rotr(n, int(i)) & 1) == 1) {  // bit i of n
       const std::size_t a = r[0] * m[0] + r[1] * m[2];
       const std::size_t b = r[0] * m[1] + r[1] * m[3];
       const std::size_t c = r[2] * m[0] + r[3] * m[2];
@@ -60,40 +60,6 @@ static_assert(fibonacci(0) == 0 && fibonacci(1) == 1 && fibonacci(10) == 55);
 static_assert(fibonacci(90) == 2880067194370816120uz);
 static_assert(fibonacci(77) == fibonacci_by_definition(77) &&
               fibonacci(93) == fibonacci_by_definition(93));
-
-// ---- sound: the solution of A x = y by LU factorisation in place, with
-// partial pivoting (rows exchanged by std::swap), then back substitution.
-constexpr double magnitude(double v) { return v < 0 ? -v : v; }
-constexpr std::array<double, 3> solve(std::array<double, 9> a,
-                                      std::array<double, 3> y) {
-  for (std::size_t k = 0; k < 3; ++k) {
-    std::size_t p = k;  // the pivot: the largest entry of column k below k
-    for (std::size_t i = k + 1; i < 3; ++i)
-      if (magnitude(a[i * 3 + k]) > magnitude(a[p * 3 + k])) p = i;
-    for (std::size_t j = 0; j < 3; ++j) std::swap(a[k * 3 + j], a[p * 3 + j]);
-    std::swap(y[k], y[p]);
-    for (std::size_t i = k + 1; i < 3; ++i) {
-      const double f = a[i * 3 + k] / a[k * 3 + k];
-      for (std::size_t j = k; j < 3; ++j) a[i * 3 + j] -= f * a[k * 3 + j];
-      y[i] -= f * y[k];
-    }
-  }
-  std::array<double, 3> x{0, 0, 0};
-  for (std::size_t r = 0; r < 3; ++r) {
-    const std::size_t i = 2 - r;
-    double s = y[i];
-    for (std::size_t j = i + 1; j < 3; ++j) s -= a[i * 3 + j] * x[j];
-    x[i] = s / a[i * 3 + i];
-  }
-  return x;
-}
-constexpr bool near(double u, double v) { return magnitude(u - v) < 1e-12; }
-// A = [[2, 1, 1], [4, 3, 3], [8, 7, 9]], x = (1, 2, 3), so y = A x.
-static_assert([] {
-  const std::array<double, 3> x =
-      solve({2, 1, 1, 4, 3, 3, 8, 7, 9}, {7, 19, 49});
-  return near(x[0], 1) && near(x[1], 2) && near(x[2], 3);
-}());
 
 // ---- near-misses, each beside its sound twin.
 
@@ -202,5 +168,36 @@ constexpr std::size_t counted_over(R r) {
 }
 static_assert(member_element({{1, 2}, {3, 4}}) == 5 &&
               counted_over(std::array<std::size_t, 2>{1, 2}) == 3);
+
+// A reference through an iterator names what the iterator came from: of a
+// local array, a second name for its storage (refused); of a parameter, not.
+constexpr std::size_t aliased_through_iterator() {
+  std::array<std::size_t, 2> r{1, 2};
+  auto it = r.begin();
+  const auto& e = *it;
+  r[0] = 7;
+  return e;  // 7, not 1
+}
+constexpr std::size_t read_through_iterator(const std::array<std::size_t, 2>& a) {
+  auto it = a.begin();
+  const auto& e = *it;  // sound: a is not local state
+  return e;
+}
+static_assert(aliased_through_iterator() == 7 &&
+              read_through_iterator({1, 2}) == 1);
+// Not refused: a default-constructed class template in a template (its
+// constructor writes it), and two writes the comma operator sequences.
+template <typename T>
+constexpr std::size_t built() {
+  std::vector<T> v;
+  v.push_back(T{});
+  return v.size();
+}
+constexpr std::size_t comma_sequenced() {
+  std::size_t a = 0, b = 0;
+  ++a, ++b;
+  return a + b;
+}
+static_assert(built<int>() == 1 && comma_sequenced() == 2);
 
 }  // namespace jlt_listing

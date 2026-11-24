@@ -487,6 +487,16 @@ bool inStd(const clang::Decl* d) {
   return false;
 }
 
+/// The kind of a statement, as admission.txt classes it.  A conversion to an
+/// arithmetic type written as a call, size_t(e) or int(i), is the kernel's
+/// written conversion (Figure 2, Table 7), a kind of its own; T(x) to a class
+/// type, a construction, stays CXXFunctionalCastExpr.
+std::string stmtKind(const clang::Stmt* st) {
+  if (const auto* c = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(st))
+    if (c->getType()->isArithmeticType()) return "Stmt:ArithmeticConversion";
+  return std::string("Stmt:") + st->getStmtClassName();
+}
+
 /// The kind of a declaration, as admission.txt classes it.  The member
 /// `using type = T;` of a struct is Figure 2's entry of an associated type,
 /// a form of the kernel, and not Table 7's alias.
@@ -2120,7 +2130,7 @@ class Inventory : public clang::ASTConsumer,
                    clang::ConstantExpr, clang::CXXDefaultArgExpr,
                    clang::CXXDefaultInitExpr, clang::OpaqueValueExpr,
                    clang::SubstNonTypeTemplateParmExpr>(st))
-      ++counts[std::string("Stmt:") + st->getStmtClassName()];
+      ++counts[stmtKind(st)];
     return true;
   }
   bool VisitTypeLoc(clang::TypeLoc tl) {
@@ -3729,7 +3739,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
                    clang::ConstantExpr, clang::CXXDefaultArgExpr,
                    clang::CXXDefaultInitExpr, clang::OpaqueValueExpr,
                    clang::SubstNonTypeTemplateParmExpr>(st))
-      kinds.insert(std::string("Stmt:") + st->getStmtClassName());
+      kinds.insert(stmtKind(st));
     return true;
   }
   bool VisitTypeLoc(clang::TypeLoc tl) {
@@ -3865,8 +3875,29 @@ class LocalState : public clang::ASTConsumer {
       if (const auto* m = llvm::dyn_cast<clang::MemberExpr>(e)) { e = m->getBase(); continue; }
       if (const auto* a = llvm::dyn_cast<clang::ArraySubscriptExpr>(e)) { e = a->getBase(); continue; }
       if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(e))
-        if (o->getOperator() == clang::OO_Subscript || o->getOperator() == clang::OO_Arrow ||
-            o->getOperator() == clang::OO_Star) { e = o->getArg(0); continue; }
+        if (o->getOperator() == clang::OO_Subscript) { e = o->getArg(0); continue; }
+      // *it and it-> reach what the iterator points at, not the iterator's own
+      // storage: follow the iterator to where it came from, its initialiser
+      // (r.begin() reaches r, p.support().rbegin() reaches p), and stop where
+      // that is not known.
+      const clang::Expr* through = nullptr;  // the iterator or pointer dereferenced
+      if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(e))
+        if (o->getOperator() == clang::OO_Star || o->getOperator() == clang::OO_Arrow)
+          through = o->getArg(0);
+      if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
+        if (u->getOpcode() == clang::UO_Deref) through = u->getSubExpr();  // a pointer
+      if (through) {
+          const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(through->IgnoreParenImpCasts());
+          const auto* it = d ? llvm::dyn_cast<clang::VarDecl>(d->getDecl()) : nullptr;
+          if (!it || !it->getInit()) return nullptr;
+          e = it->getInit();
+          continue;
+        }
+      if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(e)) {
+        // a.begin(), a.data(), p.support(): what the call is on.
+        e = m->getImplicitObjectArgument();
+        continue;
+      }
       if (const auto* m = llvm::dyn_cast<clang::MaterializeTemporaryExpr>(e)) { e = m->getSubExpr(); continue; }
       return nullptr;
     }
@@ -4026,7 +4057,18 @@ class LocalState : public clang::ASTConsumer {
         if (mutableLocal(v) && !llvm::isa<clang::ParmVarDecl>(v) && !loop) {
           const auto* c = llvm::dyn_cast_or_null<clang::CXXConstructExpr>(
               v->getInit() ? v->getInit()->IgnoreImplicit() : nullptr);
-          if (!v->getInit() ||
+          // Inside a template a default construction is recorded only at
+          // instantiation: a class template other than std::array is
+          // initialised by its constructor; a bare type parameter may be a
+          // scalar, so it stays refused.
+          const clang::QualType t = v->getType();
+          const auto* spec = t->getAs<clang::TemplateSpecializationType>();
+          const auto* td = spec ? spec->getTemplateName().getAsTemplateDecl() : nullptr;
+          const bool classTemplate =
+              t->isDependentType() && td &&
+              llvm::isa<clang::ClassTemplateDecl>(td) &&
+              !(td->getName() == "array" && inStd(td));
+          if ((!v->getInit() && !classTemplate) ||
               (c && c->getConstructor()->isDefaultConstructor() &&
                c->getConstructor()->isTrivial()))
             (*report)(v->getLocation());
@@ -4084,6 +4126,10 @@ class LocalState : public clang::ASTConsumer {
             if (llvm::isa<clang::ExprWithCleanups, clang::ParenExpr,
                           clang::ImplicitCastExpr>(e))
               continue;
+            // The comma operator sequences its operands, left before right:
+            // ++i, ++it writes in order.
+            if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e))
+              if (b->getOpcode() == clang::BO_Comma) continue;
             (*report)(s->getBeginLoc());  // inside another expression
             return true;
           }

@@ -115,7 +115,10 @@ Op:/= derived
 Op:= derived
 Op:, open
 Op:() kernel
-Op:[] open
+# operator[]: an operator like any other, a member operator call (Table 7);
+# the reference it returns is how a write or an alias reaches local state, and
+# rule1-local-state refuses every such use it does not show to be safe.
+Op:[] derived
 Op:-> open
 Op:u! kernel
 Op:u- kernel
@@ -182,6 +185,9 @@ Stmt:CaseStmt open
 Stmt:DefaultStmt open
 Stmt:UnaryOperator open
 Stmt:CXXFunctionalCastExpr open
+# a conversion to an arithmetic type written as a call, size_t(e), int(i):
+# the kernel's written conversion (Figure 2, Table 7)
+Stmt:ArithmeticConversion kernel
 Stmt:CXXStaticCastExpr open
 Stmt:CXXThisExpr open
 Stmt:CXXConstructExpr kernel
