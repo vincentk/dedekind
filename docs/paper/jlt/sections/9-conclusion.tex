@@ -4,12 +4,12 @@
 
 Three rules on standard \Cpp{23} were stated, drawn from four listings: a signature that prevents a bug, a law that permits a faster program, a dependency that a signature must declare, and laws the compiler derives at a composite.
 A program that keeps them has an image in System~F by dictionary passing, the translation that gives Haskell's type classes their meaning, and the image is parametric, sound and terminating.
-That the image computes what \Cpp{} computes is the paper's hypothesis of adequacy, stated and not proved (Section~\ref{sec:translation}).
+That \Cpp{} evaluates a kernel program as FJlt does is the paper's hypothesis of adequacy, stated and not proved; that FJlt's evaluation and the image agree is shown on paper (Section~\ref{sec:translation}).
 
 The compiler holds no rule in full: Rule~2, and Rules~1 and~3 outside compile-time evaluation, are held by the author, a linter and an agentic reviewer (Table~\ref{tab:posture}, Section~\ref{sec:limits}).
 
 Four things follow as work not done here.
-Completing the linter's second stage, the check of definitions by type at archetypes generated from their shapes, and testing its conjecture on code not written under the rules.
+Widening the linter's second stage, which admits 102 of the library's 748 function templates today, and testing its conjecture on code not written under the rules.
 Certifying that a run-time shortcut agrees with the fold it replaces, which a branch on the binding time leaves to a law or a reader: the third homomorphism theorem characterises when a fold can be split~\cite{gibbons1996third}, and a shape could declare it.
 A mechanisation of the proofs, the aspirational end, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}.
 And laws that are computed with rather than only declared, which needs terms and their composition.

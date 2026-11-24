@@ -93,11 +93,15 @@ READABLE = {
     "view": "a view",
     "CXXMemberCallExpr": "a member call",
     "LValueReference": "a reference parameter",
+    "TypeAlias": "an alias",
+    "TypeAliasTemplate": "an alias",
+    "AliasTemplateSpecialization": "an alias",
 }
 
 
 def readable(why):
-    return ", ".join(READABLE.get(w.strip(), w.strip()) for w in why.split(",")) if why else ""
+    words = [READABLE.get(w.strip(), w.strip()) for w in why.split(",")] if why else []
+    return ", ".join(dict.fromkeys(words))
 
 
 def latex(rows):

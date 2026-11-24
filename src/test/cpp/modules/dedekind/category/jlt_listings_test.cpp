@@ -2369,6 +2369,28 @@ static_assert(concat2<Zero>(std::array{1uz, 2uz, 3uz}) == 6 &&
 // The four listings of the paper's Section 2, as printed, with std::
 // qualifiers that the paper drops and the declarations the paper omits.  A
 // monoid is named by its unit, and every law is keyed on that name.
+// What the kernel is given beside the listings, as the standard gives
+// bit_width: the codomain of an arrow, the result type of its one call
+// operator (Figure 2's M is at most one, never a template), read off its type.
+// Its entries are outside the grammar, so they stand outside the listings.
+namespace jlt_given {
+template <typename M>
+struct cod_of_call {};
+template <typename F, typename R, typename... A>
+struct cod_of_call<R (F::*)(A...) const> {
+  using type = R;
+};
+template <typename F, typename R, typename... A>
+struct cod_of_call<R (F::*)(A...) const noexcept> {
+  using type = R;
+};
+template <typename F>
+struct cod {};
+template <typename F>
+  requires requires { &F::operator(); }
+struct cod<F> : cod_of_call<decltype(&F::operator())> {};
+}  // namespace jlt_given
+
 namespace paper_listings {
 using std::size_t;
 using namespace std::string_literals;
@@ -2379,21 +2401,27 @@ template <typename E>
 constexpr bool associative = false;
 template <typename E>
 constexpr bool unital = false;
+template <typename F>
+using cod_t = typename jlt_given::cod<F>::type;
 template <typename E>
 struct op_of {};
 template <typename E>
-using carrier_t = decltype(E{}());
-template <typename E>
 using op_t = typename op_of<E>::type;
+// The carrier of E: the codomain of its operation, read off it.
 template <typename E>
-concept IsMagma = requires {
-  E{}();
-  typename op_t<E>;
-} && std::copyable<carrier_t<E>> && requires(carrier_t<E> a, carrier_t<E> b) {
-  { op_t<E>{}(a, b) } -> std::same_as<carrier_t<E>>;
-};
+using carrier_t = cod_t<op_t<E>>;
+// A magma is a binary operation on a carrier: an arrow from two values of the
+// carrier, its codomain, to one of it.  The operation is declared once.
 template <typename E>
-concept IsUnitalMagma = IsMagma<E> && unital<E>;
+concept IsMagma =
+    std::copyable<carrier_t<E>> && requires(carrier_t<E> a, carrier_t<E> b) {
+      { op_t<E>{}(a, b) } -> std::same_as<carrier_t<E>>;
+    };
+// A unital magma: a magma with an element, E{}(), of its carrier, a unit.
+template <typename E>
+concept IsUnitalMagma = IsMagma<E> && requires {
+  { E{}() } -> std::same_as<carrier_t<E>>;
+} && unital<E>;
 template <typename E>
 concept IsMonoid = IsUnitalMagma<E> && associative<E>;
 
@@ -2506,7 +2534,8 @@ struct Squaring {
   constexpr std::pair<T, T> operator()(std::pair<T, T> s, size_t i) const
     requires IsMonoid<E>
   {
-    return {((n >> i) & 1) == 1 ? op_t<E>{}(s.first, s.second) : s.first,
+    return {(std::rotr(n, int(i)) & 1) == 1 ? op_t<E>{}(s.first, s.second)
+                                            : s.first,
             op_t<E>{}(s.second, s.second)};
   }
 };
@@ -2659,6 +2688,31 @@ static_assert(free_theorem<Concat, Sum>(Size{}, std::array{"ab"s, ""s, "c"s}) &&
               free_theorem<Concat, All>(IsEmpty{}, std::array{"ab"s, ""s}) &&
               free_theorem<Concat, Any>(NonEmpty{}, std::array{""s, "ab"s}));
 }  // namespace paper_listings
+
+// The printed listings, called again outside constant evaluation (the
+// paper's Contributions): the same functions the static_asserts above
+// evaluate at compile time, on values the test holds in plain locals.
+TEST_CASE("Jlt paper: the printed listings at run time", "[jlt][listings]") {
+  using namespace paper_listings;
+  std::size_t two = 2, ten = 10, five = 5, three = 3, seven = 7;
+  // Listing 1: one fold, three monoids.
+  CHECK(concat<Sum>(std::array{1uz, two, three}) == 6);
+  CHECK(concat<Concat>(std::array{"ab"s, "c"s}) == "abc"s);
+  CHECK(concat<All>(std::array{true, false}) == false);
+  // Listing 2: the power, by squaring, and its idempotent case.
+  CHECK(power<Sum>(two, ten) == 20);
+  CHECK(power<Product>(two, ten) == 1024);
+  CHECK(power<Concat>("ab"s, three) == "ababab"s);
+  CHECK(power<Xor>(five, three) == 5);
+  CHECK(power<Max>(seven, ten) == 7);
+  // Listing 3: the guess and the named case.
+  CHECK(guessed_power<Sum>(two, ten) == 20);
+  CHECK(guessed_power<Sum2>(two, ten) == 2);
+  CHECK(named_power<Sum>(two, ten) == 20);
+  // Listing 4: the free theorem.
+  CHECK(free_theorem<Concat, Sum>(Size{}, std::array{"ab"s, ""s, "c"s}));
+  CHECK(free_theorem<Concat, Any>(NonEmpty{}, std::array{""s, "ab"s}));
+}
 
 TEST_CASE("Spelling probe: a law as a function and as a table",
           "[category][jlt][spelling][probe]") {

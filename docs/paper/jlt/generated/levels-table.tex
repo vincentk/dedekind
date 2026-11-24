@@ -1,9 +1,9 @@
 \texttt{guessed\_concat} & not admitted & refused (an operation its constraints do not name, a loop) \\
-\texttt{concat} & admitted & Jlt (a range) \\
-\texttt{power} & admitted & FJlt \\
-\texttt{power} & admitted & FJlt \\
+\texttt{concat} & admitted & Jlt (a range, an alias) \\
+\texttt{power} & admitted & Jlt (an alias) \\
+\texttt{power} & admitted & Jlt (an alias) \\
 \texttt{guessed\_power} & admitted & refused (a choice its signature does not decide) \\
-\texttt{named\_power} & admitted & FJlt \\
-\texttt{free\_theorem} & admitted & Jlt (a range, a view) \\
-other definitions (70) & --- & FJlt \\
-other definitions (3): \texttt{Bare}, \texttt{Size}, \texttt{IsEmpty} & --- & Jlt \\
+\texttt{named\_power} & admitted & Jlt (an alias) \\
+\texttt{free\_theorem} & admitted & Jlt (a range, a view, an alias) \\
+other definitions (62) & --- & FJlt \\
+other definitions (14): \texttt{Str}, \texttt{cod\_t}, \texttt{op\_t}, \texttt{carrier\_t}, \texttt{IsMagma}, \texttt{IsUnitalMagma}, \texttt{Bare}, \texttt{Squaring}, \texttt{HasPower}, \texttt{Maps}, \texttt{Size}, \texttt{IsEmpty}, \texttt{Via}, \texttt{NonEmpty} & --- & Jlt \\

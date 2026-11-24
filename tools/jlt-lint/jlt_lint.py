@@ -64,13 +64,13 @@ def part_of(path):
     return m.group(1) if m else "fixtures"
 
 
-def read_scope():
+def read_scope(text=None, strict=True):
     """Yield (rule, file, namespace, expected) with globs expanded.  A line
     naming one file overrides a glob's line for the same rule, file and
     namespace, so a gate can take its own count while the glob stays the
     default for the rest (the ratchet edits one line per file)."""
     chosen = {}
-    for rule, f, ns, expected, exact in _scope_lines():
+    for rule, f, ns, expected, exact in _scope_lines(text, strict):
         key = (rule, f, ns)
         if key in chosen and chosen[key][1] and not exact:
             continue  # a file's own line beats a glob's
@@ -81,10 +81,14 @@ def read_scope():
         yield rule, f, ns, expected
 
 
-def _scope_lines():
+def _scope_lines(text=None, strict=True):
     """Yield (rule, file, namespace, expected, exact): exact when the line
-    names the file itself rather than a glob."""
-    for n, line in enumerate((HERE / "scope").read_text().splitlines(), 1):
+    names the file itself rather than a glob.  `text` is a scope's text (the
+    checked-in file by default); not `strict`, a line that names no file is
+    skipped (another commit's scope, read against this tree)."""
+    if text is None:
+        text = (HERE / "scope").read_text()
+    for n, line in enumerate(text.splitlines(), 1):
         line = line.split("#", 1)[0].split()
         if not line:
             continue
@@ -97,6 +101,8 @@ def _scope_lines():
             # may be absent in another build or a layer-only run: nothing to
             # report.  A gate that names no file is still an error.
             print(f"jlt-lint: scope:{n}: {pattern} names no file, reported line skipped", file=sys.stderr)
+            continue
+        if not files and not strict:
             continue
         if not files:
             sys.exit(f"jlt-lint: scope:{n}: {pattern} names no file")
@@ -182,6 +188,17 @@ def run(tool, build, path, namespace, rules):
     return counts, where, out
 
 
+def set_resource_dir(entries):
+    """The compiler's own headers, as the build's compiler finds them: a tool
+    linked against another LLVM (Homebrew's, on macOS) does not find them by
+    itself, and a standalone file then fails to parse."""
+    compiler = (entries[0].get("arguments") or shlex.split(entries[0]["command"]))[0] if entries else None
+    if compiler:
+        r = subprocess.run([compiler, "-print-resource-dir"], capture_output=True, text=True)
+        if r.returncode == 0 and r.stdout.strip():
+            RESOURCE_DIR[:] = [f"-resource-dir={r.stdout.strip()}"]
+
+
 def one_entry_per_file(build, part):
     """A compilation database with one entry per file, in a directory of its
     own: a module partition has one per set of flags it is built with (CMake 4
@@ -196,11 +213,7 @@ def one_entry_per_file(build, part):
         old = kept.get(e["file"])
         if old is None or (old[0] and not synth):
             kept[e["file"]] = (synth, e)
-    compiler = (entries[0].get("arguments") or shlex.split(entries[0]["command"]))[0] if entries else None
-    if compiler:
-        r = subprocess.run([compiler, "-print-resource-dir"], capture_output=True, text=True)
-        if r.returncode == 0 and r.stdout.strip():
-            RESOURCE_DIR[:] = [f"-resource-dir={r.stdout.strip()}"]
+    set_resource_dir(entries)
     db = build / "jlt-lint-db" / part  # a directory per part: parts run at once
     db.mkdir(parents=True, exist_ok=True)
     (db / "compile_commands.json").write_text(json.dumps([e for _, e in kept.values()], indent=1))

@@ -66,7 +66,7 @@ In the library, most of what is open is six kinds: string literals, most of them
 % undecided-by-type and admitted, gated per file); on the other layers it has
 % yet to run.
 
-The second stage of Section~\ref{sec:check} admits a constrained template that no deny-rule refuses when its body type-checks at archetypes of the shapes in its signature.
+The second stage of Section~\ref{sec:check} admits a constrained template, whether or not a deny-rule refuses it, when its body type-checks at archetypes of the shapes in its signature.
 It gives every type parameter an archetype by reading the shapes that constrain it, by one rule for each kind of requirement a shape may have (Table~\ref{tab:archetype-rules}).
 The building blocks are a header that ships with the linter and depends on nothing in the library: a carrier that can only be copied, and ones that can also be compared, default-constructed, or both; a unit, a binary operation, an arrow, and a range whose size is known before the first step; a result that can only be converted; and the smallest and largest integer types a constraint admits.
 The standard's foundational concepts follow the Palo Alto report~\cite[\S 3.3]{stroustrup2012concept}: copying is the kernel's, equality is a call, and a default value is partially formed, to be written before it is read~\cite[\S 1.5]{stepanov2009elements}, the derived form of local state (Table~\ref{tab:derived}).
@@ -85,9 +85,9 @@ requirement & rules & archetype \\
 \midrule
 \multicolumn{3}{@{}l}{\emph{Kernel: the requirements $A$ of a shape (Figure~\ref{fig:fjlt-syntax})}} \\
 $Q$: \texttt{copyable<T>}, \texttt{equality\_comparable<T>} & \textsc{E-Assume}; \texttt{==} by \textsc{T-Req-Assumed} / --- & \texttt{carrier}, \texttt{comparable\_carrier} \\
-$Q$: \texttt{same\_as<T, U>} & --- / --- & unnamed \\
+$Q$: \texttt{same\_as<T, U>} & solved / \textsc{E-Same} & unnamed \\
 $e$: \texttt{unital<E>} & \textsc{E-Law-Assumed} / \textsc{E-Law} & unnamed \\
-call: \texttt{E\{\}()} & --- / --- & \texttt{nullary<C>} \\
+call: \texttt{E\{\}()} & \textsc{T-Req-Assumed} / \textsc{E-Op} & \texttt{nullary<C>} \\
 call: \texttt{op\_t<E>\{\}(a, b)} & \textsc{T-Req-Assumed} / \textsc{E-Op} & \texttt{binary<C>} \\
 call: \texttt{f(x)} & \textsc{T-Req-Assumed} / \textsc{E-Op} & \texttt{arrow<A, B>} \\
 call: \texttt{f<T>(x)} & \textsc{T-Req-Assumed} / \textsc{E-Op}, \textsc{T-Call} & none \\
@@ -97,14 +97,14 @@ call: \texttt{f<T>(x)} & \textsc{T-Req-Assumed} / \textsc{E-Op}, \textsc{T-Call}
 \texttt{-> convertible\_to<T>} & \texttt{convertible\_to}; \textsc{T-Conv} & \texttt{converts\_to<T>} \\
 \texttt{movable<T>}, \texttt{destructible<T>} & Rule~1: copyable data & \texttt{carrier} \\
 \texttt{semiregular<T>}, \texttt{regular<T>} & local state; N3351 & \texttt{semiregular\_carrier}, \texttt{regular\_carrier} \\
-\texttt{integral<N>} & atoms $b$ & \texttt{every\_integer} \\
+\texttt{integral<N>}, \texttt{floating\_point<N>} & atoms $b$ & \texttt{every\_arithmetic} \\
 \texttt{F::Domain}, \texttt{Presents<F::Codomain>} & member call; as \texttt{convertible\_to} & unnamed, its result \texttt{converts\_to} \\
 a parameter \texttt{const Compose<F, G>\&} & RFC~2089 & unnamed \\
 \bottomrule
 \end{tabularx}
 \caption{The rules by which the linter builds archetypes, one for each kind of requirement in a shape, in two groups: the kernel's requirements, and those of Jlt.
 For a requirement of the kernel the middle column names the rule of Appendices~\ref{app:fjlt:typing} and~\ref{app:fjlt:translation} by which a generic body reaches it at its type variables, and the rule by which it is entailed at the archetypes; for one of Jlt it names the row of Table~\ref{tab:derived} or the source it follows.
-An archetype is named as in the linter's header, \texttt{tools/jlt-lint/archetypes.hpp}, namespace \texttt{jlt::archetype}; ``unnamed'' marks a rule of the generator that builds no named type, and --- a requirement for which Appendix~\ref{app:fjlt:typing} has no rule yet.}
+An archetype is named as in the linter's header, \texttt{tools/jlt-lint/archetypes.hpp}, namespace \texttt{jlt::archetype}; ``unnamed'' marks a rule of the generator that builds no named type, and --- a requirement that Appendix~\ref{app:fjlt:typing} leaves to Jlt.}
 \label{tab:archetype-rules}
 \end{table}
 
@@ -114,8 +114,8 @@ It parses that with the file's own compile command, so that the compiler instant
 An error in the template's body means that the body uses something its signature did not promise, or uses it at other types.
 
 \paragraph{On the library.}
-The second stage also runs on the library's base layer, the one every other imports, in continuous integration, every count pinned per file so that no file's counts move unseen; the current counts are those gates, in the repository's \texttt{tools/jlt-lint/scope}, and the report of every build.
-It admits a minority of the layer's function templates and refuses none, a count its gates hold, since every definition it refused has been fixed.
+The second stage also runs on the library, in continuous integration, every count pinned per file and held by a ratchet, under which no file's count of admitted definitions can fall and no refusal can stay without a reason written in the change; the current counts are those gates, in the repository's \texttt{tools/jlt-lint/scope}, and the report of every build.
+It admits 102 of the library's 748 function templates it reads, leaves 646 undecided and refuses none, a count its gates hold, since every definition it refused has been fixed.
 Those refusals were all of one kind: a helper or a factory whose constraints were weaker than what its body or its result type used.
 Three helpers of a periodic fold piped an arrow into a chain without stating that its domain is the counts; \cppinline{until}, \cppinline{unfold} and \cppinline{chain} returned class templates whose constraints their own did not imply; and a reduction concatenated two arrows without stating that they compose.
 Each was fixed by stating the constraint, twice by naming it once as a concept that the class and its factory share.
@@ -124,21 +124,21 @@ The undecided are the generator's coverage, not findings: parameters of template
 \paragraph{The conjecture and its hypotheses.}
 \label{app:lint:conjecture}
 The conjecture of Section~\ref{sec:check} is that a definition admitted at its archetypes is well typed at every type that satisfies its shapes and keeps the rules itself, and resolves every choice its signature makes the same way.
-Nine hypotheses exclude the counterexamples known to us.
+Eight hypotheses exclude the counterexamples known to us, and the linter itself excludes two more.
 A value is copyable data and a type's operations take their arguments by value or by constant reference, as Rule~1 asks, so that no argument the archetype accepts is refused by the type, and a shape that asks only \cppinline{movable} or \cppinline{destructible} is met by a copyable carrier.
 A call by name inside a shape is qualified, so that no lookup by the argument's namespace, which \Cpp{20} extends to calls with template arguments, finds another function at the type.
 The body does not depend on two carriers being different, or a carrier being different from an atom, which the archetypes make them.
 A choice the signature leaves to the caller, as \cppinline{named_power} leaves the case of \cppinline{power}, may resolve differently.
-The body observes no type except through a shape: no \cppinline{sizeof}, \cppinline{alignof}, comparison of types or trait read at a type variable, at which the archetypes would answer for themselves.
-A negated constraint the body relies on is entailed by its signature: at an archetype every law it does not declare is false, so a call that needs \cppinline{!C<E>} passes there and fails at a model of \cppinline{C}.
+The body observes no type except through a shape: a trait of the program read at a type variable outside a shape would be answered by the archetypes for themselves, and the standard's observations, \cppinline{sizeof}, \cppinline{alignof}, \cppinline{typeid}, its type traits and its concepts used as values, a deny-rule refuses.
 An object is one value type: one presented by many types, as a family of expressions presents a set, need not convert to its codomain, which the archetypes do.
 An entry stands above every use that reads it, which the linter checks only in part (Section~\ref{sec:limits}).
 And no limit of the implementation is reached.
+The linter excludes a negation and a late conversion itself: at an archetype every law it does not declare is false, so a body whose callee asks \cppinline{!C<E>} is left undecided, and a result only convertible to its type is admitted only where it initialises a declared one.
 In $F^G$, where a name is looked up where the template is defined, the corresponding statement is a theorem~\cite{siek2005essential}; Järvi et al.\ show what that binding costs the dispatch \Cpp{} programmers rely on~\cite{jarvi2006specialization}.
-In \Cpp{} it is a conjecture, tested on the definitions of the listings and on one layer of the library.
+In \Cpp{} it is a conjecture, tested on the definitions of the listings and on the library.
 The Palo Alto report asked the same of a concept design for the standard library: the overload a body uses must be the one resolved when its concept is checked, conversions included~\cite[\S 3.3]{stroustrup2012concept}.
 
 The linter reports every definition with one of three outcomes: refused, with the rule and the line; admitted; or undecided, with the requirement that stopped the check.
-Beside them it reports what the program takes on trust as far as the ledger reaches today: its axioms, the entries of a law at one type; its conditional laws, and the laws the compiler derives from them, are yet to be listed.
-That report is read as a matter of principle: an agentic reviewer reads it with every change against the three rules, and every pull request is reviewed again before it is merged.
+Beside them it reports what the program takes on trust, in two ledgers under version control: its axioms, the entries of a law at one type, and its conditional laws, the entries at a form or computed; the laws the compiler derives from them at a use are yet to be listed.
+That report is read as a matter of principle: an agentic reviewer reads it with every change against the three rules, as the repository's review instructions ask, judging each added law true, needed and stated once, and every pull request is reviewed again before it is merged.
 A reviewer with little context but this report can audit a whole code base, during development and after it: what is refused is a list of witnesses, what is admitted needs no reading of its body against its signature, and what remains to be read is the undecided definitions and the list of what is trusted.

@@ -13,7 +13,7 @@ That split is between what the compiler decides and what it leaves to the progra
 Rust, released in 2015, has the definition check: a generic body is checked against its declared bounds, and the message for a missing one names it~\cite{klabnik2023rust}.
 A \Cpp{} programmer is free to adopt a fragment of the language by policy, and this paper names one, of three rules.
 The posture is meant as a route a team can take through \Cpp{23} without debating each case: opinionated, checked by a tool, and adoptable one file and one rule at a time.
-Inside it, \texttt{jlt-lint} recovers the definition check: it refuses by name a body that uses what its constraints do not name or whose overload its signature leaves undecided, it admits by type a body that type-checks at archetypes of its signature, and it lists every axiom a program declares, a property where \Cpp{0x} stated an equation (Section~\ref{sec:check}).
+Inside it, \texttt{jlt-lint} recovers the definition check: it refuses by name a body that uses what its constraints do not name or whose overload its signature leaves undecided, it admits by type a body that type-checks at archetypes of its signature, and it lists every axiom and conditional law a program declares in the two spellings it reads, a property where \Cpp{0x} stated an equation (Section~\ref{sec:check}).
 
 What the programmer is missing is old.
 Functional programs can be reasoned about by equations.
@@ -60,7 +60,7 @@ Every ingredient is in the ISO standard~\cite{cpp23standard} and implemented by 
 The compiler holds some of the rules and the programmer the rest, and a linter helps but is not required (Table~\ref{tab:posture}).
 The inner boundary is drawn by a translation.
 The \emph{kernel}, Featherweight Jlt (FJlt), is the part of Jlt on which a translation $\llbracket\cdot\rrbracket$ is defined into System~F~\cite{girard1972interpretation,reynolds1974towards}, extended with data types and iterators (Appendix~\ref{app:fjlt:translation}).
-From its target the kernel inherits termination, parametricity and type soundness.
+From its target the kernel inherits termination and parametricity, and its type soundness is shown on paper, with the textbook cases omitted (Section~\ref{sec:translation}).
 Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, which this paper names and characterises without proof (Appendix~\ref{app:fjlt:closure}).
 The arrangement is the Haskell Report's: a kernel and the translations into it~\cite{marlow2010haskell}.
 
@@ -139,6 +139,6 @@ Those who learn or teach, among them researchers who arrive from Python, get a f
 The sections follow the arrows of Figure~\ref{fig:arrows}.
 Section~\ref{sec:examples} carves Jlt out of \Cpp{23} by the three rules.
 Section~\ref{sec:kernel} draws FJlt inside Jlt, names the derived forms between the two, and gives the translation $\llbracket\cdot\rrbracket$ into System~F and what the image inherits.
-The dashed arrow back and the bottom edge, that the two paths compute one value, are the paper's hypothesis of adequacy, stated and not proved.
+The dashed arrow back, that a derived form means what it rewrites to, is a hypothesis about the derived forms, and the bottom edge, that the two paths compute one value, is the paper's hypothesis of adequacy, stated and not proved.
 Section~\ref{sec:check} is the linter, Section~\ref{sec:binding} the right-hand path on the listings, and Section~\ref{sec:discussion} the limits, the related work and the conclusion.
 

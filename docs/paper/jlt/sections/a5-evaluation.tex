@@ -3,19 +3,19 @@
 \label{app:fjlt:evaluation}
 
 This is FJlt's own evaluation, the calculus's stand-in for \texttt{clang++} and $\mathit{run}$ in Figure~\ref{fig:arrows}.
-It is the relation Section~\ref{sec:guarantees}'s simulation theorem (Theorem~\ref{thm:simulation}) is about: it agrees with $\mathit{eval}$ across $\llbracket\cdot\rrbracket$, as Appendix~\ref{app:fjlt:theorems} proves.
-It is \Cpp{}'s constant evaluation restricted to the grammar, extended by \textsc{S-Unbox} at run time, and Figures~\ref{fig:fjlt-eval-calls} to~\ref{fig:fjlt-eval} give the rules; $e \Downarrow v$ abbreviates $e \longrightarrow^{*} v$.
+It is the relation that the simulation theorem of Appendix~\ref{app:fjlt:theorems} (Theorem~\ref{thm:simulation}) is about: it agrees with $\mathit{eval}$ across $\llbracket\cdot\rrbracket$.
+It is \Cpp{}'s constant evaluation restricted to the grammar, and Figures~\ref{fig:fjlt-eval-calls} to~\ref{fig:fjlt-eval} give the rules; $e \Downarrow v$ abbreviates $e \longrightarrow^{*} v$.
 
-Evaluation is small-step and call-by-value on closed terms, $e \longrightarrow e'$, with values and evaluation contexts, the standard library's types as Table~\ref{tab:conventions} adopts them,
+Evaluation is small-step and call-by-value on closed terms, $e \longrightarrow e'$, with values and evaluation contexts,
 \[
 \begin{array}{rcl}
-v &::=& c \mid f \mid O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}} \mid \texttt{std::pair\{}v\texttt{, }v\texttt{\}} \mid \iota_1\,v \mid \iota_2\,v \mid \texttt{std::optional\{}v\texttt{\}} \mid \texttt{std::nullopt} \mid c_R\texttt{(}\overline{v}\texttt{)} \\
-  &\mid& \texttt{std::make\_shared<const }\tau\texttt{>(}v\texttt{)} \\
-E &::=& [\,] \mid f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid E\texttt{(}\overline{e}\texttt{)} \mid v\texttt{(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid \ominus E \mid E \oplus e \mid v \oplus E \mid \tau\texttt{(}E\texttt{)} \mid E \texttt{ ? } e \texttt{ : } e \\
-  &\mid& \iota_i\,E \mid \texttt{case(}E\texttt{, }e\texttt{, }e\texttt{)} \mid \texttt{case(}v\texttt{, }E\texttt{, }e\texttt{)} \mid \texttt{case(}v\texttt{, }v\texttt{, }E\texttt{)} \mid c_R\texttt{(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid \ldots
+v &::=& c \mid O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}} \mid \texttt{std::pair\{}v\texttt{, }v\texttt{\}} \mid \texttt{views::iota(}c\texttt{, }c\texttt{)} \\
+E &::=& [\,] \mid f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid E\texttt{(}\overline{e}\texttt{)} \mid v\texttt{(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid \ominus E \mid E \oplus e \mid v \oplus E \mid E \texttt{ ? } e \texttt{ : } e \\
+  &\mid& \tau\texttt{\{}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{\}} \mid E\texttt{.}y \mid \texttt{fold\_left(iota(}c\texttt{, }E\texttt{), }e\texttt{, }e\texttt{)} \mid \texttt{fold\_left(}v\texttt{, }E\texttt{, }e\texttt{)} \mid \texttt{fold\_left(}v\texttt{, }v\texttt{, }E\texttt{)}
 \end{array}
 \]
-where the elided contexts are the remaining argument positions of pairs, optionals, boxes, projections, constructions, folds and the two branches of a case, each evaluated left to right.
+with the pair's two positions among the constructions $\tau\texttt{\{}\ldots\texttt{\}}$, each evaluated left to right.
+A value of a function object, as \cppinline{std::plus<size_t>{}} or \cppinline{Squaring<Sum>{n}}, is a construction of its type; a closed term holds no type variable, so $\alpha\texttt{\{\}}$ is such a construction once the types are substituted.
 The context grammar picks one redex per non-value term, so the relation is deterministic; \Cpp{} leaves the order of arguments unspecified, and \RuleOne{} makes every order give the same value.
 A reference is an optimisation, not a meaning (\RuleOne{}; Table~\ref{tab:derived}), so a parameter written \cppinline{const τ&} is the parameter $\tau\; x$.
 
@@ -25,38 +25,30 @@ A reference is an optimisation, not a meaning (\RuleOne{}; Table~\ref{tab:derive
 \begin{array}{ll}
 \textsc{(S-Call)} & f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)} \longrightarrow e[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \\
  & \qquad \text{where } f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to parameters } \overline{x} \text{ and body } e \\[5pt]
-\textsc{(S-Const)} & x \longrightarrow e \quad \text{for a constant declared } \texttt{constexpr } \rho\; x \texttt{ = } e\texttt{;} \\[5pt]
 \textsc{(S-Trait)} & f\texttt{<}\overline{\sigma}\texttt{>} \longrightarrow e[\overline{\sigma'}/\overline{\beta}] \\
  & \qquad \text{where the read resolves to an entry or the default, with initialiser } e \text{ at } \overline{\beta} := \overline{\sigma'} \\[5pt]
-\textsc{(S-Op)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)} \longrightarrow e[\overline{\tau}/\overline{\alpha}][\overline{\sigma}/\overline{\beta}][\overline{v_y}/\overline{y}][\overline{v}/\overline{x}] \\
- & \qquad \text{for a declared function object with body } e\text{, } \overline{\sigma} \text{ deduced} \\
+\textsc{(S-Op)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)} \longrightarrow e[\overline{\tau}/\overline{\alpha}][\overline{v_y}/\overline{y}][\overline{v}/\overline{x}] \\
+ & \qquad \text{for a declared function object with body } e \\
 \end{array}
 \]
-\caption{The rules of evaluation for calls and constants, $e \longrightarrow e'$, on closed terms.}
+\caption{The rules of evaluation for calls and reads, $e \longrightarrow e'$, on closed terms.}
 \label{fig:fjlt-eval-calls}
 \end{figure}
 
 \paragraph{Calls.}
 In Figure~\ref{fig:fjlt-eval-calls}, \textsc{S-Call} substitutes the explicit type arguments first, resolution having chosen the body.
 \textsc{S-Trait} unfolds a read to the initialiser of the declaration it resolves to, an entry or the default, at the types that match.
-A read in a closed term is at concrete types, since \textsc{S-Call} has substituted them.
-A case that calls its own function (\textsc{D-Rec}) needs no rule of its own: \textsc{S-Call} unfolds it, and the calls in the unfolded body are at concrete types, each a redex in turn.
-With the types, \textsc{S-Call}, \textsc{S-Trait} and \textsc{S-Op} put the atoms of the call or the read for the value parameters (Appendix~\ref{app:fjlt:value}), in the body's types and in its terms.
-A closed term's types therefore hold atoms and no parameter, and nothing in a type is ever evaluated.
-Where the atom is a constant's name, the term that takes its place steps by \textsc{S-Const} like any other use of the name.
+A read in a closed term is at concrete types, since \textsc{S-Call} has substituted them, and so is every associated type in it, which is the type its entry names.
+\textsc{S-Op} has no types of its own to substitute beyond the object's: a call operator has no template (Table~\ref{tab:excluded}).
 An operator on values whose resolution picks a declared \texttt{operator}$\oplus$ is that call, and steps by \textsc{S-Call}.
-A constant's name is, like a function's, a name of the program and not a variable, so a closed term may hold it; \textsc{S-Const} unfolds it, and since evaluation is deterministic every use gives the one value \Cpp{} computes once.
 
 \begin{figure}[htbp]
 \[
 \begin{array}{ll}
-\textsc{(S-Std)} & O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{c}\texttt{)} \longrightarrow c \\
- & \qquad \text{for a standard function object, } c \text{ the value the standard assigns} \\[5pt]
+\textsc{(S-Std)} & O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{v}\texttt{)} \longrightarrow v' \\
+ & \qquad \text{for a standard function object or an arrow supplied with a carrier, } v' \text{ the value the standard or its declaration assigns} \\[5pt]
 \textsc{(S-Prim)} & \ominus c \longrightarrow c' \qquad c_1 \oplus c_2 \longrightarrow c \\
- & \qquad \text{where resolution picks a primitive of } \Sigma\text{, total by its choice} \\[5pt]
-\textsc{(S-Conv)} & \tau\texttt{(}c\texttt{)} \longrightarrow c' \\
- & \qquad \text{between distinct carriers, by the standard or a declaration} \\
- & \tau\texttt{(}v\texttt{)} \longrightarrow v \quad \text{at } v\text{'s own type, any value} \\
+ & \qquad \text{where resolution picks a primitive of } \Sigma\text{, total by its choice} \\
 \end{array}
 \]
 \caption{The rules of evaluation for the values the standard or a declaration assigns.}
@@ -64,46 +56,34 @@ A constant's name is, like a function's, a name of the program and not a variabl
 \end{figure}
 
 \paragraph{Totality.}
-The rules of Figure~\ref{fig:fjlt-eval-standard} are total, which is what Lemma~\ref{lem:progress} needs: \textsc{S-Prim} and \textsc{S-Std} because the admitted operators are, \textsc{S-Conv} by the condition on conversions (Appendix~\ref{app:fjlt:closure}).
-That totality, the condition of Section~\ref{sec:jlt-to-fjlt}, is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operator defined on every input, and it keeps \cppinline{int}'s overflow and division out.
-On unsigned carriers the operators are the comparisons, and addition, subtraction, multiplication and the bitwise operators, which wrap.
-Division, remainder and the shifts are admitted by a literal the carrier can take, a nonzero divisor or a shift below the width; by a variable they are partial and not admitted.
+The rules of Figure~\ref{fig:fjlt-eval-standard} are total, which is what Lemma~\ref{lem:progress} needs: \textsc{S-Prim} because the admitted operators are, and \textsc{S-Std} because the arrows supplied with a carrier are assumed to end (Section~\ref{sec:translation}; Assumption~\ref{ass:instance}).
+$\Sigma$ is the operators of the atoms that are defined at every argument, as Figure~\ref{fig:fjlt-syntax} admits them, and that totality is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operator defined on every input.
+On \cppinline{size_t} they are the comparisons, and addition, subtraction, multiplication and the bitwise operators, which wrap; division and remainder by a constant that is not zero; and the number of bits, \cppinline{size_t(bit_width(n))}, which Listing~\ref{lst:power}'s \cppinline{power} takes its count from (Definition~\ref{def:standard}), written as a call and typed and evaluated as a unary operator is.
+A shift is defined only by an amount below the width, so a shift by a constant below the width is such an operator and a shift by a variable is not; a rotation, \cppinline{rotr(n, int(i))}, is defined at every amount~\cite[\texttt{bit.rot}]{cpp23standard}, and Listing~\ref{lst:power}'s \cppinline{Squaring} reads the bit \cppinline{i} of its count through it, one primitive as \cppinline{size_t(bit_width(n))} is.
+The shift it replaces was defined at every index the fold produces, which stays below the width; the rotation is what the kernel's reading of totality, at every argument, admits, not a repair.
+% A range check by the iteration's bound (the index below bit_width(n), so a
+% shift by it total) is future work: a refinement of T-Iter's index.
 On \cppinline{bool} they are the logical operators.
-One primitive of $\Sigma$ is written as a call and not as an operator: \cppinline{std::bit_width} at \cppinline{size_t}, total, which Listing~\ref{lst:laws}'s \cppinline{power} takes its bound from (Definition~\ref{def:standard}); it is typed and evaluated as a unary operator is.
-$\Sigma$ is not a list; the listings also use \cppinline{std::string} with concatenation and the comparisons, allocation failure aside, and finite enumerations such as a three-valued truth type.
+\texttt{==} at a carrier is the call its shape requires, an arrow supplied with the carrier, and steps by \textsc{S-Std}.
+A carrier is not in $\Sigma$: \cppinline{std::string} is a type the kernel never looks inside (Section~\ref{sec:kernel:fjlt}), and its values are reached only through the arrows supplied with it, \cppinline{std::plus} at strings and \cppinline{Size}, whose declarations are given to the kernel and which \textsc{S-Std} evaluates.
 
 \begin{figure}[htbp]
 \[
 \begin{array}{ll}
 \textsc{(S-If)} & \texttt{true ? } e_1 \texttt{ : } e_2 \longrightarrow e_1 \qquad \texttt{false ? } e_1 \texttt{ : } e_2 \longrightarrow e_2 \\[5pt]
-\textsc{(S-Case)} & \texttt{case(}\iota_1\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_f\texttt{(}v\texttt{)} \qquad \texttt{case(}\iota_2\,v\texttt{, }v_f\texttt{, }v_g\texttt{)} \longrightarrow v_g\texttt{(}v\texttt{)} \\[5pt]
-\textsc{(S-Guard)} & \texttt{ranges::size(}v_r\texttt{) == 0 ? } a \texttt{ : } b \longrightarrow a \quad \text{if } |v_r| = 0 \\
- & \texttt{ranges::size(}v_r\texttt{) == 0 ? } a \texttt{ : } b \longrightarrow b[v_h / \texttt{*ranges::begin(}v_r\texttt{)}] \quad \text{if } |v_r| > 0 \text{ and } \mathit{head}\,v_r \Downarrow v_h \\
- & v_s \texttt{ ? } b \texttt{ : } a \longrightarrow a \ \text{ if } v_s \text{ is empty}, \qquad \longrightarrow b[v / \texttt{*}v_s] \ \text{ if } v_s \text{ holds } v \\[5pt]
 \textsc{(S-Proj)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}.}y_i \longrightarrow v_i \quad \text{a field, \texttt{std::pair}'s \texttt{first} and \texttt{second} among them} \\[5pt]
-\textsc{(S-Unbox)} & \texttt{*make\_shared<const }\tau\texttt{>(}v\texttt{)} \longrightarrow v \\[5pt]
-\textsc{(S-Fold)} & \texttt{fold\_left(}v_r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow \texttt{fold\_left(}\mathit{next}\,v_r\texttt{, }v_f\texttt{(}v_a\texttt{, }\mathit{head}\,v_r\texttt{), }v_f\texttt{)} \quad \text{if } |v_r| > 0 \\
- & \texttt{fold\_left(}v_r\texttt{, }v_a\texttt{, }v_f\texttt{)} \longrightarrow v_a \quad \text{if } |v_r| = 0 \\[5pt]
-\textsc{(S-Size)} & \texttt{ranges::size(}v_r\texttt{)} \longrightarrow c \quad \text{the constant of \texttt{size\_t} for } |v_r| \\[5pt]
-\textsc{(S-Cata)} & \texttt{cata(}v_{\mathit{alg}}\texttt{, }n\texttt{)} \longrightarrow v_{\mathit{alg}}\texttt{(}n\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_1\texttt{), }\ldots\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_k\texttt{))} \\
- & \qquad \text{for a node } n \text{ with legs } l_1 \ldots l_k \\[5pt]
+\textsc{(S-Fold)} & \texttt{fold\_left(iota(}c_k\texttt{, }c_n\texttt{), }v_a\texttt{, }v_f\texttt{)} \longrightarrow \texttt{fold\_left(iota(}c_{k+1}\texttt{, }c_n\texttt{), }v_f\texttt{(}v_a\texttt{, }c_k\texttt{), }v_f\texttt{)} \quad \text{if } k < n \\
+ & \texttt{fold\_left(iota(}c_k\texttt{, }c_n\texttt{), }v_a\texttt{, }v_f\texttt{)} \longrightarrow v_a \quad \text{if } k = n \\[5pt]
 \textsc{(S-Ctx)} & E[e] \longrightarrow E[e'] \quad \text{if } e \longrightarrow e' \\
 \end{array}
 \]
-\caption{The rules of evaluation for data and recursion, and the rule that steps inside a context.}
+\caption{The rules of evaluation for data and iteration, and the rule that steps inside a context.
+$c_k$ is the constant of \texttt{size\_t} whose value is $k$.}
 \label{fig:fjlt-eval}
 \end{figure}
 
-\paragraph{Data and recursion.}
-In Figure~\ref{fig:fjlt-eval}, \textsc{S-Fold} consumes the head of the range, so a fold takes as many steps as the range has elements, the bound \RuleThree{} asks for.
-\textsc{S-Size} gives that bound as a value.
-\textsc{S-Guard} takes a conditional under a guard in one step, to the branch the guard selects: the two cases of Equation~\eqref{eq:fold}.
-The head of a range may be a term still to be evaluated, as the head of a \texttt{transform} is its arrow applied, so the rule evaluates it first, in its premise, and puts the value in for the dereference.
-A dereference therefore never stands in a term on its own, and none is ever stuck.
-A guard is not evaluated as a condition first: the context $E \texttt{ ? } e \texttt{ : } e$ is for a conditional that is not a guard, and \textsc{S-Guard} is the only rule for one that is, so the choice of redex stays unique.
-A range value is an instance's constructor on values, $c_R\texttt{(}\overline{v}\texttt{)}$, as \cppinline{views::iota(0uz, 10uz)} is, and a range's arguments are evaluated first.
-\textsc{S-Case} is the case on a sum of two summands, a variant, each branch a function of its summand, which \Cpp{} writes \cppinline{std::visit} and the listings do not use.
-For it alone the rules keep a shorthand that is not \Cpp{}: $\iota_i\,v$ for a variant that holds $v$ at its $i$-th alternative, and \texttt{case(}$s$\texttt{, }$f$\texttt{, }$g$\texttt{)} for \cppinline{std::visit} with the two branches.
-\textsc{S-Cata} unfolds one node, passing the node itself beside its legs' folds; a leaf has no legs and the algebra is applied to it alone.
-\textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, and constant evaluation does not share its heap with run time (Table~\ref{tab:binding}).
-A law, a constant's initialiser or a \cppinline{static_assert} premise is therefore a constant expression whose value keeps no allocation alive, \cppinline{make_shared} excluded, the condition under which every FJlt program is a Jlt program.
+\paragraph{Data and iteration.}
+In Figure~\ref{fig:fjlt-eval}, \textsc{S-Fold} takes one step of an iteration: it calls the step on the state and the index and counts the index up, so an iteration over \cppinline{iota(0uz, n)} takes $n$ steps, the bound \RuleThree{} asks for.
+The value \texttt{views::iota(}$c_k$\texttt{, }$c_n$\texttt{)} with $k \le n$ is the range of the counts from $k$ up to $n$, not including $n$ (Definition~\ref{def:standard}); a program writes it only from \texttt{0uz}, and the other lower bounds are what evaluation reaches, typed by \textsc{T-Iter-Run}, which keeps $k \le n$ (Appendix~\ref{app:fjlt:typing}).
+Its bound is evaluated first, so the count is fixed before the first step.
+The listings' other ranges, an array, a repetition and a transform, are derived forms (Table~\ref{tab:derived}), and are evaluated as the iteration over a count that they are read as.

@@ -175,13 +175,14 @@ struct first_fitting<Fits, T, Ts...> {
   using type = std::conditional_t<Fits<T>::value, T,
                                   typename first_fitting<Fits, Ts...>::type>;
 };
-/// Every one of the standard's integer types, the character types included,
-/// passed to Check<T>::value: the template is checked at each type its
-/// constraints admit, since the types between the extremes can differ too
+/// Every one of the standard's arithmetic types, the integer types (the
+/// character types included) and the floating-point ones, passed to
+/// Check<T>::value: the template is checked at each type its constraints
+/// admit, since the types between the extremes can differ too
 /// (std::countr_zero at char16_t; an overload at bool and one at unsigned
 /// long long, ambiguous at unsigned).
 template <template <class> class Check>
-inline constexpr bool every_integer =
+inline constexpr bool every_arithmetic =
     (Check<bool>::value && Check<char>::value && Check<signed char>::value &&
      Check<unsigned char>::value && Check<wchar_t>::value &&
      Check<char8_t>::value && Check<char16_t>::value &&
@@ -189,19 +190,22 @@ inline constexpr bool every_integer =
      Check<unsigned short>::value && Check<int>::value &&
      Check<unsigned int>::value && Check<long>::value &&
      Check<unsigned long>::value && Check<long long>::value &&
-     Check<unsigned long long>::value);
+     Check<unsigned long long>::value && Check<float>::value &&
+     Check<double>::value && Check<long double>::value);
 template <template <class> class Fits>
 using smallest_integer =
     typename first_fitting<Fits, bool, char, signed char, unsigned char,
                            char8_t, short, unsigned short, char16_t, wchar_t,
                            int, unsigned int, char32_t, long, unsigned long,
-                           long long, unsigned long long>::type;
+                           long long, unsigned long long, float, double,
+                           long double>::type;
 template <template <class> class Fits>
 using largest_integer =
-    typename first_fitting<Fits, unsigned long long, long long, unsigned long,
-                           long, char32_t, unsigned int, int, wchar_t, char16_t,
-                           unsigned short, short, char8_t, unsigned char,
-                           signed char, char, bool>::type;
+    typename first_fitting<Fits, long double, double, float, unsigned long long,
+                           long long, unsigned long, long, char32_t,
+                           unsigned int, int, wchar_t, char16_t, unsigned short,
+                           short, char8_t, unsigned char, signed char, char,
+                           bool>::type;
 
 namespace self_check {
 struct tag;

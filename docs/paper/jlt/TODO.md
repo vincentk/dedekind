@@ -259,7 +259,8 @@ Next PR (tool):
 - a test of "the same resolution": record the callee of every call in an admitted body at the archetypes and at the real types the test suite uses, and compare;
 - fixtures for every rule without one: the library's arrow (IsArrow, Presents, member types), same_as classes, plain and semiregular parameters, onlyAtoms, a dropped implied reading, the result-type misattribution, late conversion through == and ?:, a probe at a character type; .expected to check reasons, not only outcomes;
 - the ratchet (ratchet.py) and Tables 11 to 13 generated and checked in CI, the rules of the generator named in one registry (the "unnamed" rows of Table 13);
-- the README brought up to date with the paper (it still says Rule 2 does not refuse guessed_concat or guessed_power).
+- the README brought up to date with the paper (done on #1213);
+- Copilot's three conservative cases on #1212, each undecided today: an equation between a member type and an integer parameter (generate the member archetypes per integer probe; sum_below), several integer parameters (probe the admitted combinations, not the diagonal), a class of same_as equations whose members ask different capabilities (merge them into the class's carrier).
 
 Prose pass, beyond the items below:
 - Appendix B no longer describes Figure 2's kernel (value parameters, cata, guards; no rule for associated types, same_as or a simple requirement), and Appendices B to F carry some 15 dangling labels: the largest item;

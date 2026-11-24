@@ -37,6 +37,11 @@
 //                     body did not declare, which Rule 2 does not count
 //                     (#1068); the fix is a named shape, which the definition
 //                     check then reads.
+//   type-observation  Rule 2: in a function template's body, sizeof,
+//                     alignof, typeid, a standard type trait or a standard
+//                     concept used as a value at a dependent type, outside an
+//                     if constexpr's condition: an observation of a type no
+//                     shape names, which an archetype answers for itself.
 //   undecided-resolution
 //                     Rule 2, GHC's rule for overlapping instances: in a
 //                     function template, a call at a value of parameter type
@@ -401,6 +406,31 @@ bool inStd(const clang::Decl* d) {
     if (const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(c))
       if (ns->isStdNamespace()) return true;
   return false;
+}
+
+/// The kind of a declaration, as admission.txt classes it.  The member
+/// `using type = T;` of a struct is Figure 2's entry of an associated type,
+/// a form of the kernel, and not Table 7's alias.
+std::string declKind(const clang::Decl* d) {
+  if (const auto* a = llvm::dyn_cast<clang::TypeAliasDecl>(d))
+    if (a->getName() == "type" && llvm::isa<clang::CXXRecordDecl>(a->getDeclContext()))
+      return "Decl:AssociatedTypeEntry";
+  return std::string("Decl:") + d->getDeclKindName();
+}
+
+/// The kind of a written type, as admission.txt classes it.  A use of an alias
+/// template of the program, op_t<E>, is a kind of its own: Table 7's alias,
+/// a derived form the standard defines as the type it stands for
+/// ([temp.alias]).  The standard's own, range_value_t, is a read the kernel
+/// is given, and stays a template specialization.
+std::string typeKind(clang::TypeLoc tl) {
+  if (const auto* ts =
+          llvm::dyn_cast<clang::TemplateSpecializationType>(tl.getTypePtr()))
+    if (ts->isTypeAlias())
+      if (const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl();
+          td && !inStd(td))
+        return "Type:AliasTemplateSpecialization";
+  return std::string("Type:") + tl.getType()->getTypeClassName();
 }
 
 /// The vocabulary a template's constraints grant: every name a requirement
@@ -924,6 +954,149 @@ class InlineRequires : public clang::ASTConsumer,
 
  private:
   clang::ASTContext* ctx = nullptr;
+};
+
+// ---------------------------------------------------------------------------
+// type-observation: a body varies with a type only through its shapes
+// ---------------------------------------------------------------------------
+
+/// In a function template's body, an expression that observes a dependent
+/// type other than through a shape: sizeof, alignof, typeid, the standard's
+/// type traits (std::is_integral_v<T>, std::is_same<T, U>::value, the
+/// compiler's __is_same), or a standard concept used as a value.  An archetype
+/// answers such an observation for itself, so the second stage would admit a
+/// body that is not parametric (the cold reads of #1212).  The condition of an
+/// if constexpr is not judged here: Table 7 reads it as a derived form, and
+/// the second stage leaves such a body undecided.
+class TypeObservation : public clang::ASTConsumer,
+                        public clang::RecursiveASTVisitor<TypeObservation> {
+ public:
+  void HandleTranslationUnit(clang::ASTContext& c) override {
+    ctx = &c;
+    TraverseDecl(c.getTranslationUnitDecl());
+  }
+  bool shouldVisitTemplateInstantiations() const { return false; }
+  bool TraverseFunctionDecl(clang::FunctionDecl* f) {
+    return within(f, [&] {
+      return clang::RecursiveASTVisitor<TypeObservation>::TraverseFunctionDecl(
+          f);
+    });
+  }
+  bool TraverseCXXMethodDecl(clang::CXXMethodDecl* f) {
+    return within(f, [&] {
+      return clang::RecursiveASTVisitor<TypeObservation>::TraverseCXXMethodDecl(
+          f);
+    });
+  }
+  bool TraverseIfStmt(clang::IfStmt* s) {
+    if (!s->isConstexpr())
+      return clang::RecursiveASTVisitor<TypeObservation>::TraverseIfStmt(s);
+    if (s->getInit()) TraverseStmt(s->getInit());
+    ++inCondition;
+    TraverseStmt(s->getCond());
+    --inCondition;
+    TraverseStmt(s->getThen());
+    if (s->getElse()) TraverseStmt(s->getElse());
+    return true;
+  }
+  bool VisitUnaryExprOrTypeTraitExpr(clang::UnaryExprOrTypeTraitExpr* e) {
+    const clang::QualType t = e->isArgumentType()
+                                  ? e->getArgumentType()
+                                  : e->getArgumentExpr()->getType();
+    if (!t.isNull() && t->isDependentType())
+      report(e->getBeginLoc(), "sizeof or alignof of a dependent type");
+    return true;
+  }
+  bool VisitCXXTypeidExpr(clang::CXXTypeidExpr* e) {
+    if (e->isTypeDependent() || e->isValueDependent())
+      report(e->getBeginLoc(), "typeid of a dependent type");
+    return true;
+  }
+  bool VisitTypeTraitExpr(clang::TypeTraitExpr* e) {
+    if (e->isValueDependent())
+      report(e->getBeginLoc(),
+             "a type trait of the compiler at a dependent type");
+    return true;
+  }
+  bool VisitConceptSpecializationExpr(clang::ConceptSpecializationExpr* e) {
+    if (inStd(e->getNamedConcept()) && e->isValueDependent())
+      report(e->getBeginLoc(), "a standard concept used as a value: " +
+                                   e->getNamedConcept()->getName().str());
+    return true;
+  }
+  bool VisitDeclRefExpr(clang::DeclRefExpr* e) {
+    if (const auto* v =
+            llvm::dyn_cast<clang::VarTemplateSpecializationDecl>(e->getDecl()))
+      trait(v->getSpecializedTemplate(), e->isValueDependent(),
+            e->getBeginLoc());
+    return true;
+  }
+  bool VisitUnresolvedLookupExpr(clang::UnresolvedLookupExpr* e) {
+    for (const clang::NamedDecl* d : e->decls())
+      if (const auto* vt = llvm::dyn_cast<clang::VarTemplateDecl>(d)) {
+        trait(vt, true, e->getBeginLoc());
+        break;
+      }
+    return true;
+  }
+  bool VisitDependentScopeDeclRefExpr(clang::DependentScopeDeclRefExpr* e) {
+    // std::is_same<T, U>::value
+    if (e->getDeclName().getAsString() != "value") return true;
+    const clang::Type* q = e->getQualifier().getAsType();
+    if (const auto* ts =
+            q ? q->getAs<clang::TemplateSpecializationType>() : nullptr)
+      if (const clang::TemplateDecl* td =
+              ts->getTemplateName().getAsTemplateDecl())
+        if (inStd(td) && isTraitName(td->getName()))
+          report(e->getBeginLoc(),
+                 "a standard type trait at a dependent type: " +
+                     td->getName().str());
+    return true;
+  }
+
+ private:
+  clang::ASTContext* ctx = nullptr;
+  bool judging = false;
+  int inCondition = 0;
+  clang::SourceRange body;  // the judged function's body: constraints and
+                            // noexcept specifications are not judged here
+  template <typename F>
+  bool within(clang::FunctionDecl* f, F go) {
+    const bool was = judging;
+    const clang::SourceRange outer = body;
+    judging = f->isTemplated() && f->doesThisDeclarationHaveABody() &&
+              judged(f, ctx->getSourceManager());
+    if (judging) body = f->getBody()->getSourceRange();
+    const bool r = go();
+    judging = was;
+    body = outer;
+    return r;
+  }
+  static bool isTraitName(llvm::StringRef n) {
+    return n.starts_with("is_") || n.starts_with("has_") || n == "rank" ||
+           n == "extent" || n == "alignment_of" || n == "tuple_size" ||
+           n == "variant_size";
+  }
+  void trait(const clang::VarTemplateDecl* vt, bool dependent,
+             clang::SourceLocation at) {
+    if (!vt || !dependent || !inStd(vt)) return;
+    llvm::StringRef n = vt->getName();
+    if (n.ends_with("_v")) n = n.drop_back(2);
+    if (isTraitName(n))
+      report(at, "a standard type trait at a dependent type: " +
+                     vt->getName().str());
+  }
+  void report(clang::SourceLocation at, const std::string& what) {
+    if (!judging || inCondition) return;
+    const clang::SourceManager& sm = ctx->getSourceManager();
+    if (sm.isBeforeInTranslationUnit(at, body.getBegin()) ||
+        sm.isBeforeInTranslationUnit(body.getEnd(), at))
+      return;
+    const clang::SourceLocation loc = sm.getExpansionLoc(at);
+    out() << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc) << ':'
+          << sm.getExpansionColumnNumber(loc) << ": " << what
+          << ", not through a shape\n";
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -1854,7 +2027,7 @@ class Inventory : public clang::ASTConsumer,
         (inScope(d) || isScopeNamespace(d)))
       inside = true;
     if (inside && !isScopeNamespace(d) && !d->isImplicit())
-      ++counts[std::string("Decl:") + d->getDeclKindName()];
+      ++counts[declKind(d)];
     const bool ok = clang::RecursiveASTVisitor<Inventory>::TraverseDecl(d);
     inside = was;
     return ok;
@@ -1873,7 +2046,7 @@ class Inventory : public clang::ASTConsumer,
   }
   bool VisitTypeLoc(clang::TypeLoc tl) {
     if (inside && !tl.isNull())
-      ++counts[std::string("Type:") + tl.getType()->getTypeClassName()];
+      ++counts[typeKind(tl)];
     return true;
   }
 
@@ -1892,7 +2065,8 @@ class Inventory : public clang::ASTConsumer,
 // ---------------------------------------------------------------------------
 
 /// What a type in a constraint is, read off its structure: a template
-/// parameter, the carrier of one (decltype(E{}())), the element type of a
+/// parameter, the carrier of one (decltype(E{}()), or the codomain of its
+/// operation, cod<op_of<E>::type>::type), the element type of a
 /// range parameter (range_value_t<R>), a trait's associated type at one
 /// (typename op_of<E>::type), or something else.
 struct Term {
@@ -1987,6 +2161,15 @@ Term classify(clang::QualType t, const TermSubst& s, int depth = 0) {
           // the archetypes provide.
           if (name != "type") return none;
           Term a = classify(arg, s, depth + 1);
+          // cod<F>::type, the codomain of an arrow, given to the kernel (the
+          // result type of its one call): at a magma's operation,
+          // cod<op_of<E>::type>::type, the carrier of E.  A magma is a
+          // binary operator on a carrier, and the archetype's operation,
+          // binary<C>, has C as its codomain.
+          if (!inStd(ct) && tn == "cod")
+            return a.kind == Term::Associated
+                       ? Term{Term::CarrierOf, a.p, nullptr}
+                       : none;
           if (a.kind == Term::Parameter) return Term{Term::Associated, a.p, ct};
           return none;
         }
@@ -2291,7 +2474,7 @@ void findAtoms(const clang::Expr* e, const TermSubst& s, Facts& f,
   if (inStd(c)) {
     const llvm::StringRef n = c->getName();
     if ((n == "unsigned_integral" || n == "signed_integral" ||
-         n == "integral") &&
+         n == "integral" || n == "floating_point") &&
         args.size() == 1 && args[0].kind == Term::Parameter)
       f.atoms.insert(args[0].p);
     return;
@@ -2495,7 +2678,64 @@ struct Selection {
   // copy-initialisation of a T, so the result goes into a declared T or a
   // return at T, and nowhere else.
   bool lateConversion = false;
+  // A callee of the checked body whose constraints contain a negation,
+  // !C<...>: at an archetype every law it does not declare is false, so the
+  // negation holds there by default and fails at a model of C (the
+  // theoretician's counterexample on #1212).
+  bool negatedCallee = false;
 };
+
+/// Whether an expression reads a law of the program (a variable template
+/// outside std), directly or through the program's concepts it names.
+bool readsLaw(const clang::Expr* e, int depth = 0) {
+  if (!e || depth > 16) return false;
+  e = e->IgnoreParenImpCasts();
+  if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e))
+    if (const auto* v =
+            llvm::dyn_cast<clang::VarTemplateSpecializationDecl>(d->getDecl()))
+      if (!inStd(v->getSpecializedTemplate())) return true;
+  if (const auto* ul = llvm::dyn_cast<clang::UnresolvedLookupExpr>(e))
+    for (const clang::NamedDecl* d : ul->decls())
+      if (llvm::isa<clang::VarTemplateDecl>(d) && !inStd(d)) return true;
+  if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e))
+    if (!inStd(cs->getNamedConcept()) &&
+        readsLaw(cs->getNamedConcept()->getConstraintExpr(), depth + 1))
+      return true;
+  for (const clang::Stmt* c : e->children())
+    if (const auto* ce = llvm::dyn_cast_or_null<clang::Expr>(c))
+      if (readsLaw(ce, depth + 1)) return true;
+  return false;
+}
+
+/// Whether a constraint expression contains a negation, followed through the
+/// concepts it names (depth-limited).
+bool containsNegation(const clang::Expr* e, int depth = 0) {
+  if (!e || depth > 16) return false;
+  e = e->IgnoreParenImpCasts();
+  // A negation that reads a law of the program, directly or through the
+  // concepts it names: an archetype does not declare the law, so it reads
+  // false there by default.  A negation of a structural concept of the
+  // program, !Nullary<carrier_t<E>>, is as unsafe: an archetype has only what
+  // a shape promises, so it meets the negation where a model with more does
+  // not (Copilot on #1213).  Only a negation of the standard's concepts
+  // (!std::same_as<N, bool>) is left to the type, at the atoms the check
+  // enumerates.
+  if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
+    if (u->getOpcode() == clang::UO_LNot) {
+      const clang::Expr* s = u->getSubExpr()->IgnoreParenImpCasts();
+      if (const auto* n = llvm::dyn_cast<clang::ConceptSpecializationExpr>(s))
+        if (!inStd(n->getNamedConcept())) return true;
+      return readsLaw(s);
+    }
+  if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e))
+    if (!inStd(cs->getNamedConcept()) &&
+        containsNegation(cs->getNamedConcept()->getConstraintExpr(), depth + 1))
+      return true;
+  for (const clang::Stmt* c : e->children())
+    if (const auto* ce = llvm::dyn_cast_or_null<clang::Expr>(c))
+      if (containsNegation(ce, depth + 1)) return true;
+  return false;
+}
 
 /// Whether an expression is the conversion of a converts_to archetype.
 bool convertsProxy(const clang::Expr* e) {
@@ -2610,6 +2850,28 @@ class MarkedUse : public clang::ASTConsumer {
       // A brace list's conversions live in its semantic form, which the
       // traversal does not visit: an element that converts the proxy is
       // late (an aggregate's field, not a declared T).
+      bool VisitCallExpr(clang::CallExpr* c) {
+        if (!inChecked) return true;
+        const clang::FunctionDecl* callee = c->getDirectCallee();
+        if (!callee) return true;
+        llvm::SmallVector<clang::AssociatedConstraint, 4> ac;
+        if (const clang::FunctionTemplateDecl* t = callee->getPrimaryTemplate())
+          t->getAssociatedConstraints(ac);
+        // A constrained member that is not a template, the call operator of
+        // a class template under requires !idem<E>: its constraint is its
+        // own trailing clause, as declared in the template (Copilot on
+        // #1213).
+        const clang::FunctionDecl* member = callee;
+        if (const clang::FunctionDecl* from =
+                callee->getInstantiatedFromMemberFunction())
+          member = from;
+        if (const clang::Expr* rc =
+                member->getTrailingRequiresClause().ConstraintExpr)
+          ac.push_back(clang::AssociatedConstraint(rc));
+        for (const clang::AssociatedConstraint& a : ac)
+          if (containsNegation(a.ConstraintExpr)) sel.negatedCallee = true;
+        return true;
+      }
       bool VisitInitListExpr(clang::InitListExpr* l) {
         if (!inChecked) return true;
         const clang::InitListExpr* sem =
@@ -2987,7 +3249,7 @@ std::string appendixFor(const clang::FunctionTemplateDecl* ft, const Facts& f,
       "constexpr (fits<N>::value) (void)" +
       subst(instance, "N") +
       ";\n    return true;\n  }();\n};\ninline constexpr bool use_all = "
-      "::jlt::archetype::every_integer<checked>;\n}\n";
+      "::jlt::archetype::every_arithmetic<checked>;\n}\n";
   const std::string head =
       subst(text.substr(0, text.rfind("namespace " + ns + " {\n" + result)),
             ns + "::Hi");
@@ -3156,6 +3418,10 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   if (sel.resolved && !sel.marked && !errors.marked)
     return {Outcome::Undecided,
             "the use resolved to another overload at the archetypes"};
+  if (errors.n == 0 && sel.negatedCallee)
+    return {Outcome::Undecided,
+            "a callee asks a negated constraint, which every archetype meets "
+            "by default"};
   if (errors.n == 0 && sel.lateConversion)
     return {Outcome::NotAdmitted,
             "a result promised only convertible_to<T> used other than to "
@@ -3259,7 +3525,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     // local variable: counted as the VarTemplate.
     const auto* v = llvm::dyn_cast_or_null<clang::VarDecl>(d);
     if (d && !d->isImplicit() && !(v && v->getDescribedVarTemplate()))
-      kinds.insert(std::string("Decl:") + d->getDeclKindName());
+      kinds.insert(declKind(d));
     return clang::RecursiveASTVisitor<Kinds>::TraverseDecl(d);
   }
   // The one derived form no syntax kind shows: a range.  A parameter
@@ -3330,7 +3596,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   }
   bool VisitTypeLoc(clang::TypeLoc tl) {
     if (!tl.isNull())
-      kinds.insert(std::string("Type:") + tl.getType()->getTypeClassName());
+      kinds.insert(typeKind(tl));
     return true;
   }
 };
@@ -3396,6 +3662,7 @@ std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
   if (name == "mutual-recursion") return std::make_unique<MutualRecursion>();
   if (name == "definition") return std::make_unique<Definition>();
   if (name == "inline-requires") return std::make_unique<InlineRequires>();
+  if (name == "type-observation") return std::make_unique<TypeObservation>();
   if (name == "inheritance") return std::make_unique<Inheritance>();
   if (name == "bounded-fold") return std::make_unique<BoundedFold>();
   if (name == "context-order") return std::make_unique<ContextOrder>();

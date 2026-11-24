@@ -23,19 +23,20 @@ template <typename E>
 constexpr bool unital = false;
 template <typename E> struct op_of {};
 template <typename E>
-using carrier_t = decltype(E{}());
-template <typename E>
 using op_t = typename op_of<E>::type;
 template <typename E>
+using carrier_t = cod_t<op_t<E>>;
+template <typename E>
 concept IsMagma =
-  requires { E{}(); typename op_t<E>; } &&
   copyable<carrier_t<E>> &&
   requires(carrier_t<E> a, carrier_t<E> b) {
     { op_t<E>{}(a, b) }
       -> same_as<carrier_t<E>>; };
 template <typename E>
-concept IsUnitalMagma =
-  IsMagma<E> && unital<E>;
+concept IsUnitalMagma = IsMagma<E> &&
+  requires { { E{}() }
+    -> same_as<carrier_t<E>>; } &&
+  unital<E>;
 template <typename E>
 concept IsMonoid =
   IsUnitalMagma<E> && associative<E>;
@@ -119,11 +120,11 @@ concat<BareMonoid>(
 \end{minipage}
 \vspace{-7pt}
 \begin{sysf}
-Magma T       = { op : T → T → T }
-UnitalMagma T = { magma : Magma T, unital : Bool, unit : T }
-Monoid T      = { um : UnitalMagma T, assoc : Bool }
+Magma T        = { op : T → T → T }
+UnitalMagma T  = { m : Magma T, unit : T, unital : Bool }
+Monoid T       = { um : UnitalMagma T, assoc : Bool }
 concat = ΛE. ΛT. ΛOp. λq : Monoid T. λn. λf.
-  π₂ (iter n (λ(k, s). (k + 1, q.um.magma.op s (f k))) (0, q.um.unit))
+  π₂ (iter n (λ(k, s). (k + 1, q.um.m.op s (f k))) (0, q.um.unit))
 guessed_concat : no image
 \end{sysf}
 \caption{What a signature prevents. Left: a monoid as a shape; the two functions. Right: two monoids, the second the smallest; tests. Below: the images.}
@@ -138,9 +139,12 @@ guessed_concat : no image
 
 The left column is code as it would stand in a program, and the right column tests it.
 A monoid is built up as algebra builds it.
-A \emph{magma} is a carrier with an operation, a \emph{unital magma} has a unit as well, and a \emph{monoid} is a unital magma whose operation is associative.
+A \emph{magma}, \cppinline{IsMagma}, is a binary operation on a carrier, an arrow from two values of the carrier to one of it, a \emph{unital magma} is a magma with an element that is a unit, and a \emph{monoid} is a unital magma whose operation is associative.
+The element and its law come in one step, so a unital magma's carrier is never empty, and a homomorphism of it preserves the unit as well as the operation.
 A monoid is named by a type, \cppinline{Sum} or \cppinline{All}, whose call takes no arguments and gives the unit: the sum of nothing is $0$, and ``all'' of nothing holds.
-Its carrier is the type the call returns, its operation is declared once, as the entry of \cppinline{op_of} for that name, and its laws are keyed on that name.
+Its operation is declared once, as the entry of \cppinline{op_of} for that name, and its laws are keyed on that name.
+Its carrier is not declared but read off the operation, as its codomain, \cppinline{cod_t}: the result type of the arrow's call, which the kernel is given, since an arrow of the kernel has exactly one call (Figure~\ref{fig:fjlt-syntax}), and where its constraints hold.
+The unit's type is checked to be that carrier.
 The triple of algebra is still there, written once where the monoid is declared and not at every use.
 The unit's value does not determine the monoid, since $0$ is the unit of both \cppinline{+} and \cppinline{max} on \cppinline{size_t}, so its type does: a name.
 That the operation is associative, and that the unit is its unit, are axioms, as the concepts proposed for \Cpp{0x} could state them~\cite{gregor2006concepts,bagge2009axioms}: the programmer states them, as the top right panel does for the truth values under conjunction, and the compiler takes them at their word.
@@ -186,7 +190,7 @@ struct Squaring { size_t n;
   constexpr pair<T, T> operator()(
       pair<T, T> s, size_t i) const
     requires IsMonoid<E> {
-    return {((n >> i) & 1) == 1
+    return {(rotr(n, int(i)) & 1) == 1
                 ? op_t<E>{}(s.first, s.second)
                 : s.first,
             op_t<E>{}(s.second, s.second)}; } };
@@ -283,7 +287,7 @@ Right: tests. Below: the images, $\cdot$ the monoid's operation.}
 The power of $x$ is $x$ combined with itself $n$ times: the concatenation of a repetition, which the first line of the test says in \Cpp{}.
 Computed that way it takes $n$ steps.
 \cppinline{power} takes as many steps as $n$ has bits, by squaring: the method known for multiplication as that of the Russian peasant~\cite[\S 4.6.3]{knuth1997art2}.
-Its state is a pair, the product so far and the current square; at step $i$ the square is multiplied in where bit $i$ of $n$ is set, and then squared.
+Its state is a pair, the product so far and the current square; at step $i$ the square is multiplied in where bit $i$ of $n$ is set, read by a rotation since a shift by a variable is not an operator defined at every argument (Figure~\ref{fig:fjlt-syntax}), and then squared.
 The two agree because the operation is associative, which the shape in the signature states.
 It is one function with a meaning at each monoid: a multiple under \cppinline{+}, a power under \cppinline{*}, a repetition at strings, and under exclusive or, whose unit is $0$, the parity of the count: $x$ combined with itself an odd number of times is $x$, and an even number of times is $0$.
 The images below the panels differ in one place, the count of the iterator, $n$ in the definition and the bits of $n$ in \cppinline{power}.
@@ -385,7 +389,7 @@ Both listings rest on laws declared one type at a time.
 A law can also be stated once for a construction, from the same law at its parts, and the compiler then derives it at every combination of parts that has it:
 \begin{itemize}
 \item an \emph{axiom} is a law at one type, declared and not proved;
-\item a \emph{conditional law} is a law at a construction, from laws at its parts, declared once and not proved either;
+\item a \emph{conditional law} is a law at a construction, from laws at its parts, declared once and not proved either (Appendix~\ref{app:fjlt:axioms} lists both for the four listings);
 \item a \emph{derived law} is a law at a particular construction that the compiler concludes from the two, and that nobody wrote.
 \end{itemize}
 With one conditional law for composition, a few axioms about homomorphisms give the law at every chain of them, of any length, none of it written out.

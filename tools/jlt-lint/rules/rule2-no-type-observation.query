@@ -1,0 +1,9 @@
+# Rule 2: generic code varies with a type only through declared concepts and
+# traits.  In a function template's body, sizeof, alignof, typeid, a standard
+# type trait (std::is_integral_v<T>, std::is_same<T, U>::value, __is_same) or
+# a standard concept used as a value, at a dependent type, observes the type
+# outside any shape: an archetype answers it for itself, so the second stage
+# would admit a body that is not parametric (the cold reads of #1212).  The
+# condition of an if constexpr is not judged here (Table 7's derived form; the
+# second stage leaves such a body undecided).  Hence the tool.
+tool type-observation

@@ -93,11 +93,16 @@ Each rule is one file under `rules/`, named for the rule of the paper it checks.
 | `rule2-constrained-templates` | a function template with an unconstrained type parameter and no `requires` clause: a **proxy** for Rule 2, reported only (a parameter the body never uses needs no constraint) |
 | `rule2-definition` | the tool's `definition` check, Rule 2 at the level of names: an operation on a value of parameter type that no *declared* constraint names (the type constraints, the `requires` clauses, the enclosing class templates', followed through the library's concepts; standard concepts and traits from a hand-made list; a concept's written arguments count). Not vocabulary of the value: standard functions, non-template functions, the library's constrained templates, `constexpr` templates returning `bool` (traits in function spelling), the control operators. An inline `requires` or concept test in the body is **not** a constraint. A constraint that applies a concept to a standard function object (`IsMonoid<T, std::plus<T>>`) grants that object's operator (`+`), since the standard defines the call by it; a default argument (`typename Op = std::plus<T>`) grants nothing. Inside `if constexpr` on concepts applied to types, the branch's concepts grant their operations in the then-branch (the instance chain); a `requires` expression or a concept on `decltype(op(x))` there grants nothing. A conversion into a parameter type, `T(n)`, `T{n}` or `static_cast<T>(n)` from a value of another type, is an operation of `T` like any other: `constructible_from` or `convertible_to` names it, as do the integral concepts and a requirement that writes it; default construction and copies are what `semiregular` grants. Silent where it cannot read a constraint |
 | `rule2-no-inline-requires` | the tool's `inline-requires` check: an `if`, constexpr or not, whose condition contains a requires-expression, a constraint tested in the body instead of declared (#1068); the fix is a named shape |
+| `rule2-no-type-observation` | the tool's `type-observation` check: in a function template's body, `sizeof`, `alignof`, `typeid`, a standard type trait (`std::is_integral_v<T>`, `std::is_same<T, U>::value`, `__is_same`) or a standard concept used as a value, at a dependent type: an observation of a type no shape names, which an archetype would answer for itself.  The condition of an `if constexpr` is not judged (Table 7's derived form; the second stage leaves such a body undecided) |
 | `rule2-decided-resolution` | the tool's `undecided-resolution` check, GHC's rule: a call at a value of parameter type to an overload set (candidates of viable arity) whose constraints differ in an atom, a concept on the argument the call passes with its polarity, that the enclosing constraints neither guarantee nor refute (conjunctions read through the library's concepts with arguments substituted; a disjunction guarantees nothing). Not seen: trait reads through class and variable templates (specialisations differ by pattern), candidates that differ by head alone, calls through a helper. Gated at zero on the listings and on `category` |
 | `rule2-context-order` | the tool's `context-order` check, the well-formedness of resolution: an instance with a context whose head has no proper part (a bare type parameter, a concrete type) names in its context only shapes declared before the trait's primary; otherwise resolving the trait entails a shape whose requirement calls the trait, a satisfaction that depends on itself, which the compiler reads as unsatisfied and does not report. A structured head descends by its parts and is not judged |
 | `rule2-converted-result` | the tool's `converted-result` check, the conversion discipline (#1143): the result of `{ e } -> std::convertible_to<T>` is used only at `T`. A finding where it is an operand of a further operation, has a member read, or is held in an `auto`; a condition, `!`, `&&` and `\|\|` are at `bool`. A call's argument is not judged, its parameter being unknown in a template |
 | `inventory` | not a rule: the tool's `inventory` check prints, per file, every AST node kind used inside the scope (declarations, statements and expressions, type forms as written; instantiations and implicit code left out) with its count. Reported, never gated, on the listings, `category`, `sets` and `relational`, to diff by hand against the kernel's grammar (#1079); it has no fixture, since its output is a measurement rather than a finding |
 | `rule1-no-inheritance` | the tool's `inheritance` check: no subtyping. A class with a base that is not an empty class, or with a virtual function; an empty base (`: std::true_type`, `: is_x<Y>`) is a registration spelled by inheritance |
+| `rule2-by-type` | the tool's `admit` check, the second stage: a constrained function template no deny-rule refuses whose body does **not** type-check at archetypes of its shapes (see *Admission by type*); one finding per definition refused, its reason the compiler's or the generator's |
+| `undecided-by-type` | the tool's `undecided` check: a definition the second stage cannot judge, with the requirement that stopped it (a shape the generator does not read, an `if constexpr`, a use that resolved to another overload) |
+| `admitted` | the tool's `admitted` check: a definition that type-checks at its archetypes, a certificate, not a finding |
+| `definitions` | not a rule: the tool's `definitions` check prints every definition with the syntax kinds it uses, which `levels.py` joins with the outcomes into FJlt, Jlt or refused |
 
 Exempt throughout: deleted and defaulted functions, lambdas, and a static
 `operator()`.  The standard iterator protocol (a nested `iterator` or
@@ -120,6 +125,40 @@ undeduced; a lambda with a reference capture that escapes other than by a
 return (stored into a member or global), and a returned one that a non-std
 function calls at once (both need dataflow); a template never instantiated in the file being checked; a function
 naming itself inside a requires-expression (reported, though not recursion).
+
+## Admission by type (the second stage)
+
+The deny-rules refuse by name; a definition they do not refuse is not thereby
+inside Jlt.  The second stage admits by type.  For each constrained function
+template the generator reads the shapes of its signature, builds an
+*archetype* of each parameter (a type with exactly the calls and laws the
+shape promises), appends to the file's text, in memory, the archetypes, the
+traits' entries at them and a use of the template, and re-parses with the
+file's own compile command (`-Wno-error`: warnings stay warnings).  An error
+in the template's body refuses it; no error admits it; anything else, a
+requirement no rule reads or an error outside the body, leaves it undecided,
+with the reason.
+
+- `archetypes.hpp` ships with the linter and depends on nothing in dedekind:
+  carriers (`carrier`, `comparable_carrier`, `semiregular_carrier`,
+  `regular_carrier`), `nullary<C>`, `binary<C, R>`, `arrow<A, B>`,
+  `sized_range_of<C>`, `input_range_of<C>`, `converts_to<T>` (a result only
+  `convertible_to<T>`, converted from the fresh value only), and the integer
+  probes (`every_arithmetic`, `smallest_integer`, `largest_integer`).  Its
+  `static_assert`s are its self-check.
+- The generator's rules, one per kind of requirement, are the paper's Table 13
+  (Appendix G.1), in `tool/jlt_lint.cpp` (`readConstraint`, `readRequires`,
+  `readImplied`, `findAtoms`, `appendixFor`, `admit`).
+- What an admission means is the paper's conjecture and its hypotheses
+  (Appendix G.1): well typed at every type that satisfies the shapes and keeps
+  the rules, the same resolution, under hypotheses such as qualified calls by
+  name and a body that observes no type except through a shape.
+- `fixtures/rule2-by-type.cpp` with `rule2-by-type.expected`: one outcome per
+  template, in source order, checked by `outcomes.py` beside the count gates.
+- `levels.py` joins the outcomes with the `definitions` kinds into the paper's
+  Table 6 and fails if the printed table differs; `table.py` and
+  `admission.py` make Tables 11 and 12 from a build report; `pin.py` pins a
+  report's counts as gates (a glob at 0, a line per file with findings).
 
 ## Stated in the paper, not yet checked
 
@@ -146,24 +185,31 @@ rule here yet, and a reader holds them:
 - **Reads of a trait.**  At a type with a type variable a trait is read only in
   an entry's initialiser, at the parts of the entry's own head, or inside a
   shape.
-- **The unproved claims beyond entries at one type.**  The rule `axioms` and
-  the ledger list an entry at one type whose value is `true`.  They do not list
-  an axiom for a family of types (an entry whose head has a parameter and whose
-  value is `true`), a lemma (an entry at a form), or a unit named at a use.
+- **The unproved claims the ledgers miss.**  `axioms.txt` lists an entry at
+  one type whose value is `true`, `laws.txt` every other entry that can make a
+  law true (an entry at a form, a family, a computed value); both read two
+  spellings from the text (`axioms.py`).  They miss a law declared another way
+  (a static member variable template in a class, a table a trait forwards
+  to), the laws the compiler derives at a use, and a unit named at a use.
 - **Well-founded declarations.**  Nothing checks that the instantiations a
   program can ask for are well founded.  The linter checks one of the two
   syntactic conditions that approximate it; they do not imply it.
-- **The printed listings.**  The paper's four listings as printed
-  (`paper_listings` in `jlt_listings_test.cpp`) are under every rule, reported
-  and not gated: Rule 2 does not yet refuse `guessed_concat` or
-  `guessed_power`, and the gates wait for it.  The older probes in the same
-  file (`listing1_self_contained`, `listings_2_to_4`,
-  `listing4_self_contained`, `appendix_a_reading`) are under the `axioms`
-  report only.
+- **The second stage's own blind spots** (the conjecture's hypotheses,
+  Appendix G.1): a trait of the program read at a type variable outside a
+  shape (the standard's are `rule2-no-type-observation`); a negated constraint is false
+  at an archetype; several integer parameters, and an equation between a
+  member type and an integer parameter, are left undecided; a call by name
+  inside a shape is assumed qualified.  The fixes are in the paper's TODO,
+  "From the cold reads of #1212".
 
 ## Plan
 
-1. A trivial gate in CI, a step of the build per layer (this).
-2. More rules and more files, line by line in `scope`.
-3. A clang-tidy plugin when a rule needs code a matcher cannot express: a
-   the blind spots above; `scope` stays the switchboard.
+1. Gates per file in CI, deny-rules and the second stage on every layer of the
+   library but the Python bindings, the listings and the fixtures (done).
+2. The ratchet (done): `pin.py` pins reported counts, and `ratchet.py`, a step
+   of CI, fails a gate that moves the wrong way against main (admitted down;
+   refused, undecided or a deny-rule's findings up), turns back into a report,
+   or disappears, unless `ratchet.allow` names it with a reason.
+3. More rules, as the histogram of undecided reasons and the paper's TODO ask.
+4. A clang-tidy plugin when a rule needs code a matcher cannot express;
+   `scope` stays the switchboard.

@@ -75,24 +75,25 @@ It does not hold a generic function to its declared constraints: the body may us
 %     in part (context-order, bare heads); the rest is a TODO of the linter.
 %   - Section 3.3, the three results about the target: stated from the agreed
 %     model, not yet checked against a written-out kernel.
-%   - "what was taken on trust comes out as a list": true for entries at one
-%     type.  Conditional laws and units named at a use are not listed.
+%   - "what was taken on trust comes out as a list": true for axioms and
+%     conditional laws (axioms.txt, laws.txt, #1213).  The laws the compiler
+%     derives from them at a use, and units named at a use, are not listed.
 Under the rules of this paper and a check that a tool performs, some templates can then be classified as meaning what their signatures say, a declared law licenses a faster program, and the compiler carries laws through composition.
-What was taken on trust comes out as a list.
+What was taken on trust, in the spellings the tool reads, comes out as a list.
 
-This paper characterises a fragment of \Cpp{23} as it ships, with no language modification or compiler extension, and no tool required: a fragment whose generic definitions have types of the prenex fragment of System~F and whose programs are ordinary \Cpp{23} programs.
+This paper characterises a fragment of \Cpp{23} as it ships, with no language modification or compiler extension, and no tool required to compile it: a fragment whose generic definitions have types of the prenex fragment of System~F and whose programs are ordinary \Cpp{23} programs.
 The fragment is type-class-style code under three rules, called the Juliet Posture (Jlt):
 i) values are copyable data and functions are pure and evaluable at compile time;
 ii) generic code varies with a type only through that type's concepts and traits;
 iii) recursion is structural, over a type or over a value, in a number of steps bounded before the first step.
 The posture is meant as a route a team can take through \Cpp{23}, checked by a tool and adoptable one file and one rule at a time.
 Its kernel, Featherweight Jlt (FJlt), translates by dictionary passing, as Haskell's type classes do, into System~F extended with data types and iterators.
-The image is defined on every well-typed program, and from its target it inherits parametricity and type soundness and, under stated assumptions, termination; that a program and its image compute the same values is a hypothesis, stated and not proved.
+The image is defined on every well-typed program, from its target it inherits termination, under stated assumptions, and parametricity, through the simulation, and an appendix shows type soundness and that FJlt's own evaluation and the image compute the same values, on paper, with the textbook cases omitted; that \Cpp{} evaluates a kernel program as FJlt does is a hypothesis.
 Jlt beyond the kernel is a set of derived forms, rewrites into the kernel that are not proved either.
 
 A law about a program is an axiom, a conditional law or a derived law.
 The programmer declares the axioms and the conditional laws, the compiler takes them at face value, and it applies the conditional laws mechanically to derive the rest.
-What the programmer supplies is not proved, so it has to be listed and audited: a tool lists the declared axioms.
+What the programmer supplies is not proved, so it has to be listed and audited: a tool lists the declared axioms and conditional laws, in the spellings it reads.
 A law licenses an overload written for it, and overload resolution composes such overloads.
 From an axiom, through the laws derived from it, to faster code is specialisation, and one function is followed along it: the power of a monoid, which its signature permits to take as many steps as its count has bits.
 The paper also exhibits a \Cpp{20} program in which a generic function's result depends on a constraint it never declared, which dictionary passing, as in Haskell, rules out, and which Jlt's second rule forbids.
