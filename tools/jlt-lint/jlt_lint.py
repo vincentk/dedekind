@@ -56,6 +56,8 @@ UNDO_FOR_CHECK = ["--extra-arg=-UDEDEKIND_RUNTIME_COVERAGE_BRIDGES"]
 # them: a tool resolves them relative to its own binary, which on macOS with
 # Homebrew's LLVM is not next to them.  Set by main() from the database.
 RESOURCE_DIR = []
+# How much of each file the matchers walk; set from --scan (see main).
+SCAN = "shallow"
 # The longest one file may take, all its rules over one parse and the second
 # stage's compiles (JLT_LINT_FILE_TIMEOUT seconds, default twenty minutes).
 FILE_TIMEOUT = int(os.environ.get("JLT_LINT_FILE_TIMEOUT") or 1200)
@@ -144,7 +146,10 @@ def run(tool, build, path, namespace, rules):
     checks = [tool_check(r) for r in rules if tool_check(r) is not None]
     queries = [r for r in rules if tool_check(r) is None]
     args = [str(tool), f"--scope={namespace}",
-            f"--archetypes={HERE / 'archetypes.hpp'}"]
+            f"--archetypes={HERE / 'archetypes.hpp'}",
+            # How much the matchers walk: shallow by default, deep on request
+            # (README, "Choices the linter makes").
+            f"--scan={SCAN}"]
     if checks:
         args.append(f"--check={','.join(checks)}")
     if queries:
@@ -371,7 +376,16 @@ def main():
                       help="keep the findings in OUT/<part>.json and the report in OUT/<part>.txt")
     args.add_argument("--join", type=pathlib.Path, metavar="DIR",
                       help="the report of the whole scope from DIR's parts, into DIR/../report.txt")
+    args.add_argument("--scan", choices=["shallow", "deep"],
+                      default=os.environ.get("JLT_LINT_SCAN") or "shallow",
+                      help="how much of each file the matchers walk: shallow (default), the "
+                           "declarations written in the file, since every rule restricts itself "
+                           "to it; deep, everything it includes or imports, to test that choice "
+                           "(slow on the library; scan.py compares both on the fixtures). "
+                           "Default from JLT_LINT_SCAN.")
     a = args.parse_args()
+    global SCAN
+    SCAN = a.scan
     if a.join:
         text, failures = report(join(a.join))
         (a.join.parent / "report.txt").write_text(text)

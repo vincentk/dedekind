@@ -2951,6 +2951,22 @@ llvm::cl::opt<std::string> archetypes(
     llvm::cl::cat(category));
 
 const clang::tooling::CompilationDatabase* compilations = nullptr;
+/// How much of the translation unit the matchers walk (README, "Choices the
+/// linter makes"); each value explains itself in --help.
+enum class Scan { Shallow, Deep };
+llvm::cl::opt<Scan> scanMode(
+    "scan", llvm::cl::desc("how much of the translation unit the matchers walk"),
+    llvm::cl::values(
+        clEnumValN(Scan::Shallow, "shallow",
+                   "the declarations written in the file and the instantiations "
+                   "under them (default): every rule restricts itself to the "
+                   "main file, so nothing declared elsewhere can be a finding, "
+                   "and walking it only costs time"),
+        clEnumValN(Scan::Deep, "deep",
+                   "everything the file includes or imports, as before the "
+                   "choice: to test it (scan.py compares both on the fixtures)")),
+    llvm::cl::init(Scan::Shallow), llvm::cl::cat(category));
+
 llvm::cl::opt<bool> dumpAppendix(
     "dump-appendix",
     llvm::cl::desc("print each generated appendix to stderr (debugging)"),
@@ -3971,12 +3987,14 @@ class Queries : public clang::ASTConsumer {
     // its own declaration and stay in scope.  The previous scope is restored
     // for the checks that follow on the same context.
     const std::vector<clang::Decl*> previous = ctx.getTraversalScope();
-    std::vector<clang::Decl*> own;
-    const clang::SourceManager& sm = ctx.getSourceManager();
-    for (clang::Decl* d : ctx.getTranslationUnitDecl()->noload_decls())
-      if (sm.isWrittenInMainFile(sm.getExpansionLoc(d->getLocation())))
-        own.push_back(d);
-    ctx.setTraversalScope(own);
+    if (scanMode == Scan::Shallow) {
+      std::vector<clang::Decl*> own;
+      const clang::SourceManager& sm = ctx.getSourceManager();
+      for (clang::Decl* d : ctx.getTranslationUnitDecl()->noload_decls())
+        if (sm.isWrittenInMainFile(sm.getExpansionLoc(d->getLocation())))
+          own.push_back(d);
+      ctx.setTraversalScope(own);
+    }
     const auto started = std::chrono::steady_clock::now();
     finder.matchAST(ctx);
     ctx.setTraversalScope(previous);

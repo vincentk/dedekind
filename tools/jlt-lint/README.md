@@ -160,6 +160,18 @@ with the reason.
   `admission.py` make Tables 11 and 12 from a build report; `pin.py` pins a
   report's counts as gates (a glob at 0, a line per file with findings).
 
+## Choices the linter makes
+
+Each choice is named here, made by default, and can be undone to test it.
+
+- **Shallow scan** (`--scan`, in the tool and the driver; their `--help`
+  explains each value).  The matchers walk only the declarations written in
+  the file, not everything it includes or imports, on the premise that every
+  rule restricts itself to the main file.  Walking the rest had cost most of
+  the lint's time, and more on macOS, whose standard library declares more.
+  `scan.py` tests the premise in every build: both scans on every fixture,
+  identical findings required.  The library is scanned deep only on request.
+
 ## Stated in the paper, not yet checked
 
 The paper's Appendix B is the specification.  These of its conditions have no

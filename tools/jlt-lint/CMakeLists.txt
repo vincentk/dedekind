@@ -102,6 +102,8 @@ add_custom_target(lint
     # The fixture's outcome for every template, not only their count.
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/outcomes.py
             ${_jlt_tool} ${CMAKE_SOURCE_DIR}/tools/jlt-lint/fixtures/rule2-by-type.cpp
+    # The shallow scan's premise, tested on the fixtures: both scans agree.
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scan.py ${_jlt_tool}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     # In Ninja's console pool, which also runs one job at a time: its output
     # streams as it comes, so the driver's progress shows which files finished
