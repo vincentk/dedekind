@@ -187,4 +187,19 @@ constexpr std::size_t value_initialised() {  // sound
   return r[0];
 }
 
+// Not refused: an element of a member array, its index in the member's range;
+// a range-for's loop variable in a template, written by the loop.
+struct Rows {
+  std::array<std::size_t, 2> top, bottom;
+};
+constexpr std::size_t member_element(Rows a) { return a.top[0] + a.bottom[1]; }
+template <typename R>
+constexpr std::size_t counted_over(R r) {
+  std::size_t s = 0;
+  for (auto x : r) s += x;
+  return s;
+}
+static_assert(member_element({{1, 2}, {3, 4}}) == 5 &&
+              counted_over(std::array<std::size_t, 2>{1, 2}) == 3);
+
 }  // namespace jlt_listing

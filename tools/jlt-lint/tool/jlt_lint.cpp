@@ -4013,7 +4013,17 @@ class LocalState : public clang::ASTConsumer {
         // leaves scalar elements indeterminate (std::array<T, N> r;).  At
         // compile time C++ refuses to read such a value, at run time the read
         // is undefined: the two evaluations would part.
-        if (mutableLocal(v) && !llvm::isa<clang::ParmVarDecl>(v)) {
+        // A range-for's loop variable is written by its loop at every step
+        // (in a template over a dependent range Clang records no initialiser).
+        const auto* loop = [&]() -> const clang::CXXForRangeStmt* {
+          for (const auto& n : ctx->getParents(*v))
+            if (const auto* d = n.get<clang::DeclStmt>())
+              for (const auto& m : ctx->getParents(*d))
+                if (const auto* f = m.get<clang::CXXForRangeStmt>())
+                  if (f->getLoopVariable() == v) return f;
+          return nullptr;
+        }();
+        if (mutableLocal(v) && !llvm::isa<clang::ParmVarDecl>(v) && !loop) {
           const auto* c = llvm::dyn_cast_or_null<clang::CXXConstructExpr>(
               v->getInit() ? v->getInit()->IgnoreImplicit() : nullptr);
           if (!v->getInit() ||
@@ -4033,7 +4043,9 @@ class LocalState : public clang::ASTConsumer {
         if (o->getOperator() == clang::OO_Subscript && o->getNumArgs() == 2) {
           const clang::VarDecl* v = base(o->getArg(0));
           if (mutableLocal(v)) {
-            auto n = arraySize(v->getType());
+            // The size of the array indexed, a.top in a.top[0], not of the
+            // variable it starts from.
+            auto n = arraySize(o->getArg(0)->getType());
             std::set<const clang::VarDecl*> seen;
             auto i = interval(o->getArg(1), *vs, seen);
             if (!n || !i || i->first < 0 || i->second > static_cast<long long>(*n) - 1)
