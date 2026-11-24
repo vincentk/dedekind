@@ -102,6 +102,11 @@ add_custom_target(lint
     # The fixture's outcome for every template, not only their count.
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/outcomes.py
             ${_jlt_tool} ${CMAKE_SOURCE_DIR}/tools/jlt-lint/fixtures/rule2-by-type.cpp
+    # The paper's table of the checks on the library is the report's: compared,
+    # so that it cannot drift from the code.
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/table.py
+            --report ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
+            --check ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/lint-table.tex
     # The shallow scan's premise, tested on the fixtures: both scans agree.
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scan.py ${_jlt_tool}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

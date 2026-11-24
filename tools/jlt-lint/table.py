@@ -51,7 +51,28 @@ def findings(text):
 
 
 def main():
-    text = sys.stdin.read()
+    # --check FILE: print nothing, fail if FILE differs from the table this
+    # report gives, so that the paper's table cannot drift from the code.
+    check = sys.argv[sys.argv.index("--check") + 1] if "--check" in sys.argv else None
+    # --report FILE: the report from a file rather than standard input, for
+    # the build, whose commands do not redirect.
+    report = sys.argv[sys.argv.index("--report") + 1] if "--report" in sys.argv else None
+    text = pathlib.Path(report).read_text() if report else sys.stdin.read()
+    if check:
+        import contextlib
+        import io
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            table(text)
+        if pathlib.Path(check).read_text() != buffer.getvalue():
+            sys.exit(f"table.py: {check} differs from the table the report gives; "
+                     "regenerate it: python3 tools/jlt-lint/table.py < build/jlt-lint/report.txt")
+        print(f"table.py: {check} matches")
+        return
+    table(text)
+
+
+def table(text):
     status, found = scope(), findings(text)
     gated = {f for r in status.values() for f, s in r.items() if s == "gate"}
     seen = set(re.findall(r"jlt-lint: gate +\S+ (" + re.escape(LIB) + r"\S+): ", text))

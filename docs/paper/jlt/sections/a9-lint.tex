@@ -27,7 +27,8 @@ check & grade & gated & reported & with findings & findings \\
 \caption{The checks of \texttt{jlt-lint} on the library's module units in scope: the files on which each is a gate, an exact count, zero or not, that no change can move unseen; the files on which it is only reported; how many of all those have findings; and how many findings there are.
 Each check is the file \texttt{tools/jlt-lint/rules/<check>.query}, a pattern over Clang's syntax tree, or a check of the linter that the file names.
 Its grade says what its answer is worth, as a test of whether a definition can be read in System~F: $\Pi$, rejecting, a finding refutes it and silence affirms nothing; $\Sigma$, affirming, an admission affirms it and its absence refutes nothing; $\Delta$, both; --- not a test.
-Counted on commit \texttt{c5198b97e}.}
+For \texttt{admitted}, the last two columns count admissions.
+The table is regenerated from the report of every build and compared with the one printed here.}
 \label{tab:lint}
 \end{table}
 
@@ -35,7 +36,7 @@ Two checks carry half of what the deny-rules find: \texttt{rule2-definition}, th
 \texttt{rule2-constrained-templates}, that every template is constrained, is reported everywhere and counts apart.
 
 A deny-rule can only say that a construct is outside Jlt, and a file it does not refuse is not thereby inside: the list of refusals is not complete.
-On that commit some two fifths of the units are refused by no check, and more than half if \texttt{rule2-constrained-templates} is set aside.
+Today some two fifths of the units are refused by no check, and more than half if \texttt{rule2-constrained-templates} is set aside.
 To say that a file is inside needs admission as well: inside FJlt when every construct of its inventory is admitted as kernel and no deny-rule fires, inside Jlt when every construct is kernel or a listed derived form and no deny-rule fires.
 Both halves are needed, because some exclusions are conditions on admitted syntax: \cppinline{guessed_power} is a call to an overload set, kernel syntax, and only the deny-rule sees that its signature does not decide the overload.
 
