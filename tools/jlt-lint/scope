@@ -6,9 +6,9 @@
 
 # Negative controls.
 axioms                       tools/jlt-lint/fixtures/axioms.cpp  jlt_listing  3
-rule3-no-loops               tools/jlt-lint/fixtures/rule3-loops.cpp  jlt_listing  4
+rule3-no-loops               tools/jlt-lint/fixtures/rule3-loops.cpp  jlt_listing  15
 rule3-no-self-recursion      tools/jlt-lint/fixtures/rule3-recursion.cpp  jlt_listing  14
-rule3-no-mutual-recursion    tools/jlt-lint/fixtures/rule3-mutual.cpp  jlt_listing  5
+rule3-no-mutual-recursion    tools/jlt-lint/fixtures/rule3-mutual.cpp  jlt_listing  9
 rule3-bounded-fold           tools/jlt-lint/fixtures/rule3-bounded-fold.cpp  jlt_listing  10
 rule2-definition             tools/jlt-lint/fixtures/rule2-definition.cpp  jlt_listing  17
 rule2-constrained-templates  tools/jlt-lint/fixtures/rule2-constraints.cpp  jlt_listing  2
@@ -308,7 +308,7 @@ rule1-no-inheritance         src/main/modules/dedekind/sets/si*.cppm  sets  0
 rule1-no-inheritance         src/main/modules/dedekind/sets/terms.cppm  sets  1
 rule3-no-loops               src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
 rule3-no-loops               src/main/modules/dedekind/sets/si*.cppm  sets  0
-rule3-no-loops               src/main/modules/dedekind/sets/terms.cppm  sets  9
+rule3-no-loops               src/main/modules/dedekind/sets/terms.cppm  sets  8
 rule3-no-self-recursion      src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
 rule3-bounded-fold           src/main/modules/dedekind/sets/boundaries.cppm  sets  0
 rule3-bounded-fold           src/main/modules/dedekind/sets/cardinality.cppm  sets  0
@@ -581,13 +581,13 @@ rule1-const-member-functions         src/main/modules/dedekind/topology/[!t]*.cp
 rule1-no-mutable-globals             src/main/modules/dedekind/topology/[!t]*.cppm  topology  0
 rule1-no-escaping-reference-captures src/main/modules/dedekind/topology/[!t]*.cppm  topology  0
 inventory                            src/main/modules/dedekind/topology/[!t]*.cppm  topology  report
-rule3-no-loops                       src/main/modules/dedekind/sequences/convergence.cppm  sequences  5
+rule3-no-loops                       src/main/modules/dedekind/sequences/convergence.cppm  sequences  2
 rule3-no-loops                       src/main/modules/dedekind/sequences/curve.cppm  sequences  0
 rule3-no-loops                       src/main/modules/dedekind/sequences/finite.cppm  sequences  0
 rule3-no-loops                       src/main/modules/dedekind/sequences/fold.cppm  sequences  0
 rule3-no-loops                       src/main/modules/dedekind/sequences/limits.cppm  sequences  0
 rule3-no-loops                       src/main/modules/dedekind/sequences/net.cppm  sequences  0
-rule3-no-loops                       src/main/modules/dedekind/sequences/path.cppm  sequences  4
+rule3-no-loops                       src/main/modules/dedekind/sequences/path.cppm  sequences  3
 rule3-no-loops                       src/main/modules/dedekind/sequences/pst.cppm  sequences  1
 rule3-no-loops                       src/main/modules/dedekind/sequences/ranges.cppm  sequences  2
 rule3-no-loops                       src/main/modules/dedekind/sequences/relprod.cppm  sequences  0

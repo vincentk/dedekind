@@ -2,6 +2,8 @@
 // mutual-recursion check): functions on a call cycle of length >= 2 are
 // findings, one per function; a self-call (another rule's), a fold and plain
 // calls are not.  Standalone.
+#include <functional>
+
 namespace jlt_listing {
 
 constexpr bool is_odd(int n);
@@ -21,6 +23,38 @@ constexpr int self(int n) { return n == 0 ? 0 : self(n - 1); }  // not mutual
 
 constexpr int helper(int n) { return n + 1; }
 constexpr int caller(int n) { return helper(helper(n)); }  // fine: no cycle
+
+// mutual 6, 7: a cycle through a template of another file.  f calls
+// std::invoke, whose instantiation (under <functional>'s declaration, not this
+// file's) calls Again::operator(), which calls f: the evidence leaves the
+// file, so a call graph of this file's declarations alone misses the cycle.
+constexpr int through(int n);
+struct Again {
+  constexpr int operator()(int n) const { return through(n); }  // mutual 6
+};
+constexpr int through(int n) {  // mutual 7
+  return n == 0 ? 0 : std::invoke(Again{}, n - 1);
+}
+
+// mutual 8, 9: a cycle through a constructor's member initialiser (Copilot on
+// #1214): the constructor calls make, make constructs a Wrapped.
+constexpr int make(int n);
+struct Wrapped {
+  int v;
+  constexpr explicit Wrapped(int n) : v(n == 0 ? 0 : make(n - 1)) {}  // mutual 8
+};
+constexpr int make(int n) { return Wrapped(n).v; }  // mutual 9
+
+// Not mutual: a call in an operand that is not evaluated calls nothing.
+constexpr int measured();
+constexpr int sized() { return static_cast<int>(sizeof(measured())); }
+constexpr int measured() { return sized(); }
+constexpr int typed();
+constexpr int declared() {
+  decltype(typed()) x = 0;
+  return x;
+}
+constexpr int typed() { return declared(); }
 
 }  // namespace jlt_listing
 

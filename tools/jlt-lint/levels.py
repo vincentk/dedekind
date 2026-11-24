@@ -88,7 +88,7 @@ def classify(where, classes):
 READABLE = {
     "rule2-definition": "an operation its constraints do not name",
     "rule2-decided-resolution": "a choice its signature does not decide",
-    "rule3-no-loops": "a loop",
+    "rule3-no-loops": "a loop with no stated end",
     "range": "a range",
     "view": "a view",
     "CXXMemberCallExpr": "a member call",

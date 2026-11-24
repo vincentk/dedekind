@@ -86,7 +86,7 @@ Each rule is one file under `rules/`, named for the rule of the paper it checks.
 | `rule1-no-escaping-reference-captures` | a lambda that captures by reference and escapes: inside a `return`, not under a call into `std`, not called on the spot (an approximation) |
 | `rule1-boxed-mutable-pointee` | a `make_shared<T>` call or `shared_ptr<T>` member (in a template too) with `T` not `const` |
 | `rule1-boxed-identity` | `get()`, `use_count()`, `owner_before()`, or `==` between two `shared_ptr`s |
-| `rule3-no-loops` | a `for`, range-`for`, `while` or `do` |
+| `rule3-no-loops` | a loop whose end is not stated before it starts: a `while`, a `do`, a `for` that is not counted (Table 7), a range-`for` over anything but an array |
 | `rule3-no-self-recursion` | a function calling itself at the same instantiation: recursion on a value, which the kernel writes as a bounded fold, however visibly it descends; recursion over a type's structure (instantiation, as `cata` and a template on a smaller count) passes |
 | `rule3-no-mutual-recursion` | functions on a call cycle of length two or more (the tool's `mutual-recursion` check) |
 | `rule3-bounded-fold` | a standard fold (`std::ranges::fold_left`, `fold_right`, …) outside a function whose range parameter is `IsBoundedRange` (#1172; the tool's `bounded-fold` check) |
@@ -159,6 +159,17 @@ with the reason.
   Table 6 and fails if the printed table differs; `table.py` and
   `admission.py` make Tables 11 and 12 from a build report; `pin.py` pins a
   report's counts as gates (a glob at 0, a line per file with findings).
+
+## Choices the linter makes
+
+Each choice is named here, made by default, and can be undone to test it.
+
+- **Shallow scan** (`--scan`, in the tool and the driver; their `--help`
+  explains each value).  The rules walk the declarations written in the file,
+  and a rule whose evidence leaves the file follows it there, as mutual
+  recursion follows calls into the bodies they reach.  Walking everything the
+  file includes or imports had cost most of the lint's time.  `scan.py`
+  compares both scans on every fixture in every build.
 
 ## Stated in the paper, not yet checked
 

@@ -88,6 +88,7 @@
 //                     finding.  An empty base (`: std::true_type`,
 //                     `: is_x<Y>`) is a registration spelled by inheritance,
 //                     read as the fact it states.
+#include <chrono>
 #include <algorithm>
 #include <functional>
 #include <map>
@@ -118,6 +119,8 @@
 #include "clang/Frontend/TextDiagnostic.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
+#include "llvm/Support/Timer.h"
+#include "llvm/Support/Format.h"
 #include "llvm/ADT/APSInt.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -164,59 +167,134 @@ bool judged(const clang::FunctionDecl* def, const clang::SourceManager& sm) {
 }
 
 /// Strongly connected components of the call graph (Tarjan); each component
-/// of two or more judged functions is a cycle of mutual recursion.
+/// of two or more judged functions is a cycle of mutual recursion.  The graph
+/// is the part reachable from the file's own functions: a call into a function
+/// defined elsewhere (an instantiation of an imported template, which may call
+/// back into the file) is followed into its body, as far as the calls go.
+/// Every cycle through a function of the file is reachable from it, so the
+/// graph holds them all, whatever the traversal scope, and nothing else of
+/// the unit is walked.
 class MutualRecursion : public clang::ASTConsumer {
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
-    clang::CallGraph graph;
-    graph.addToCallGraph(ctx.getTranslationUnitDecl());
     const clang::SourceManager& sm = ctx.getSourceManager();
-
-    std::map<const clang::CallGraphNode*, int> index, low;
-    std::set<const clang::CallGraphNode*> onStack;
-    std::vector<const clang::CallGraphNode*> stack;
-    int next = 0;
-    std::set<const clang::FunctionDecl*> findings;
-
-    std::function<void(const clang::CallGraphNode*)> visit =
-        [&](const clang::CallGraphNode* v) {
-          index[v] = low[v] = next++;
-          stack.push_back(v);
-          onStack.insert(v);
-          for (const clang::CallGraphNode::CallRecord& rec : *v) {
-            const clang::CallGraphNode* w = rec.Callee;
-            if (!index.count(w)) {
-              visit(w);
-              low[v] = std::min(low[v], low[w]);
-            } else if (onStack.count(w)) {
-              low[v] = std::min(low[v], index[w]);
-            }
-          }
-          if (low[v] != index[v]) return;
-          std::vector<const clang::CallGraphNode*> component;
-          for (;;) {
-            const clang::CallGraphNode* w = stack.back();
-            stack.pop_back();
-            onStack.erase(w);
-            component.push_back(w);
-            if (w == v) break;
-          }
-          if (component.size() < 2) return;  // a self-call is another rule's
-          for (const clang::CallGraphNode* w : component)
-            if (const clang::FunctionDecl* def = definitionOf(
-                    llvm::dyn_cast_or_null<clang::FunctionDecl>(w->getDecl())))
-              if (judged(def, sm)) findings.insert(def);
-        };
-
-    for (const auto& entry : graph)
-      if (entry.second && !index.count(entry.second.get()))
-        visit(entry.second.get());
-
-    for (const clang::FunctionDecl* f : findings) {
-      const clang::SourceLocation loc = sm.getExpansionLoc(f->getLocation());
-      out() << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc)
-            << ':' << sm.getExpansionColumnNumber(loc) << '\n';
+    using F = const clang::FunctionDecl*;
+    // The file's own functions, with the instantiations of its templates.
+    struct Seeds : clang::RecursiveASTVisitor<Seeds> {
+      std::vector<F> found;
+      bool shouldVisitTemplateInstantiations() const { return true; }
+      bool shouldVisitImplicitCode() const { return true; }
+      bool VisitFunctionDecl(clang::FunctionDecl* f) {
+        if (f->doesThisDeclarationHaveABody() && !f->isDependentContext())
+          found.push_back(f);
+        return true;
+      }
+    } seeds;
+    for (clang::Decl* d : ctx.getTraversalScope()) seeds.TraverseDecl(d);
+    // The direct callees of one body: calls, member and operator calls,
+    // constructions.
+    struct Callees : clang::RecursiveASTVisitor<Callees> {
+      std::vector<F> found;
+      bool shouldVisitImplicitCode() const { return true; }
+      // An operand that is not evaluated calls nothing (Copilot on #1214).
+      bool TraverseUnaryExprOrTypeTraitExpr(clang::UnaryExprOrTypeTraitExpr*,
+                                            DataRecursionQueue* = nullptr) {
+        return true;
+      }
+      bool TraverseCXXNoexceptExpr(clang::CXXNoexceptExpr*,
+                                   DataRecursionQueue* = nullptr) {
+        return true;
+      }
+      bool TraverseRequiresExpr(clang::RequiresExpr*,
+                                DataRecursionQueue* = nullptr) {
+        return true;
+      }
+      bool TraverseCXXTypeidExpr(clang::CXXTypeidExpr* e,
+                                 DataRecursionQueue* q = nullptr) {
+        return !e->isPotentiallyEvaluated() ||
+               clang::RecursiveASTVisitor<Callees>::TraverseCXXTypeidExpr(e, q);
+      }
+      bool TraverseDecltypeTypeLoc(clang::DecltypeTypeLoc, bool) { return true; }
+      bool VisitCallExpr(clang::CallExpr* c) {
+        if (F f = c->getDirectCallee()) found.push_back(f);
+        return true;
+      }
+      bool VisitCXXConstructExpr(clang::CXXConstructExpr* c) {
+        if (F f = c->getConstructor()) found.push_back(f);
+        return true;
+      }
+    };
+    // The reachable graph, by canonical declaration, built breadth first.
+    std::map<F, std::vector<F>> edges;
+    std::vector<F> work;
+    for (F f : seeds.found) work.push_back(f->getCanonicalDecl());
+    while (!work.empty()) {
+      F f = work.back();
+      work.pop_back();
+      if (edges.count(f)) continue;
+      auto& out = edges[f];
+      F def = definitionOf(f);
+      if (!def || !def->hasBody() || def->isDependentContext()) continue;
+      Callees callees;
+      callees.TraverseStmt(def->getBody());
+      // A constructor's base, member and delegating initialisers call too
+      // (Copilot on #1214).
+      if (const auto* ctor = llvm::dyn_cast<clang::CXXConstructorDecl>(def))
+        for (const clang::CXXCtorInitializer* init : ctor->inits())
+          callees.TraverseStmt(init->getInit());
+      for (F g : callees.found) {
+        out.push_back(g->getCanonicalDecl());
+        if (!edges.count(g->getCanonicalDecl()))
+          work.push_back(g->getCanonicalDecl());
+      }
     }
+
+    std::map<F, int> index, low;
+    std::set<F> onStack;
+    std::vector<F> stack;
+    int next = 0;
+    std::set<F> findings;
+    std::function<void(F)> visit = [&](F v) {
+      index[v] = low[v] = next++;
+      stack.push_back(v);
+      onStack.insert(v);
+      for (F w : edges[v]) {
+        if (!index.count(w)) {
+          visit(w);
+          low[v] = std::min(low[v], low[w]);
+        } else if (onStack.count(w)) {
+          low[v] = std::min(low[v], index[w]);
+        }
+      }
+      if (low[v] != index[v]) return;
+      std::vector<F> component;
+      for (;;) {
+        F w = stack.back();
+        stack.pop_back();
+        onStack.erase(w);
+        component.push_back(w);
+        if (w == v) break;
+      }
+      if (component.size() < 2) return;  // a self-call is another rule's
+      for (F w : component)
+        if (F def = definitionOf(w))
+          if (judged(def, sm)) findings.insert(def);
+    };
+    for (const auto& [f, _] : edges)
+      if (!index.count(f)) visit(f);
+
+    // In source order, not in the order of the set's pointers, which depends
+    // on where the declarations happen to be allocated.
+    std::vector<std::tuple<std::string, unsigned, unsigned>> lines;
+    for (F f : findings) {
+      const clang::SourceLocation loc = sm.getExpansionLoc(f->getLocation());
+      lines.emplace_back(sm.getFilename(loc).str(),
+                         sm.getExpansionLineNumber(loc),
+                         sm.getExpansionColumnNumber(loc));
+    }
+    std::sort(lines.begin(), lines.end());
+    for (const auto& [file, line, column] : lines)
+      out() << file << ':' << line << ':' << column << '\n';
   }
 };
 
@@ -797,7 +875,7 @@ class Definition : public clang::ASTConsumer {
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     const clang::SourceManager& sm = ctx.getSourceManager();
     Finder finder{sm, *this};
-    finder.TraverseDecl(ctx.getTranslationUnitDecl());
+    finder.TraverseAST(ctx);
   }
 
   struct Finder : clang::RecursiveASTVisitor<Finder> {
@@ -936,7 +1014,7 @@ class InlineRequires : public clang::ASTConsumer,
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     this->ctx = &ctx;
-    TraverseDecl(ctx.getTranslationUnitDecl());
+    TraverseAST(ctx);
   }
   bool shouldVisitTemplateInstantiations() const { return false; }
   bool VisitIfStmt(clang::IfStmt* s) {
@@ -973,7 +1051,7 @@ class TypeObservation : public clang::ASTConsumer,
  public:
   void HandleTranslationUnit(clang::ASTContext& c) override {
     ctx = &c;
-    TraverseDecl(c.getTranslationUnitDecl());
+    TraverseAST(c);
   }
   bool shouldVisitTemplateInstantiations() const { return false; }
   bool TraverseFunctionDecl(clang::FunctionDecl* f) {
@@ -1266,7 +1344,7 @@ class BoundedFold : public clang::ASTConsumer,
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     this->ctx = &ctx;
-    TraverseDecl(ctx.getTranslationUnitDecl());
+    TraverseAST(ctx);
   }
   bool shouldVisitTemplateInstantiations() const { return false; }
   bool VisitDeclRefExpr(clang::DeclRefExpr* e) {
@@ -1412,7 +1490,7 @@ class ConvertedResult : public clang::ASTConsumer,
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     sm = &ctx.getSourceManager();
-    TraverseDecl(ctx.getTranslationUnitDecl());
+    TraverseAST(ctx);
   }
   bool shouldVisitTemplateInstantiations() const { return false; }
   bool TraverseLambdaExpr(clang::LambdaExpr*) { return true; }
@@ -1594,7 +1672,7 @@ class ContextOrder : public clang::ASTConsumer,
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     sm = &ctx.getSourceManager();
-    TraverseDecl(ctx.getTranslationUnitDecl());
+    TraverseAST(ctx);
     for (const clang::FunctionTemplateDecl* ft : instances) {
       const clang::FunctionDecl* f = ft->getTemplatedDecl();
       const auto primary = primaries.find(f->getNameAsString());
@@ -1676,7 +1754,7 @@ class Inheritance : public clang::ASTConsumer,
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     sm = &ctx.getSourceManager();
-    TraverseDecl(ctx.getTranslationUnitDecl());
+    TraverseAST(ctx);
   }
   bool shouldVisitTemplateInstantiations() const { return false; }
   bool VisitCXXRecordDecl(clang::CXXRecordDecl* r) {
@@ -1833,7 +1911,7 @@ class UndecidedResolution : public clang::ASTConsumer {
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     sm = &ctx.getSourceManager();
     Finder finder{*this};
-    finder.TraverseDecl(ctx.getTranslationUnitDecl());
+    finder.TraverseAST(ctx);
   }
 
   struct Calls : clang::RecursiveASTVisitor<Calls> {
@@ -2014,7 +2092,7 @@ class Inventory : public clang::ASTConsumer,
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
     sm = &ctx.getSourceManager();
-    TraverseDecl(ctx.getTranslationUnitDecl());
+    TraverseAST(ctx);
     for (const auto& [kind, n] : counts) out() << kind << ' ' << n << '\n';
   }
   bool shouldVisitTemplateInstantiations() const { return false; }
@@ -2687,6 +2765,30 @@ struct Selection {
 
 /// Whether an expression reads a law of the program (a variable template
 /// outside std), directly or through the program's concepts it names.
+/// One answer per concept for each walker, so that a hierarchy whose concepts
+/// share parts (a lattice over two semilattices over one magma) is walked once
+/// per concept, not once per path to it: unremembered, the walk is
+/// exponential in the hierarchy's depth, and it runs at every call a checked
+/// body makes.  A concept met again while its own answer is being computed
+/// (a cycle) answers false there, as the depth limit did.
+template <typename Walk>
+bool perConcept(std::map<const clang::ConceptDecl*, int>& memo,
+                const clang::ConceptDecl* c, Walk walk) {
+  auto [it, fresh] = memo.try_emplace(c, -1);  // -1: being computed
+  if (!fresh) return it->second == 1;
+  const bool r = walk(c->getConstraintExpr());
+  memo[c] = r ? 1 : 0;
+  return r;
+}
+std::map<const clang::ConceptDecl*, int> lawMemo, negationMemo;
+/// The memo is keyed by declarations of one AST: cleared for every new one
+/// (the first parse and each admission reparse), so that a concept of a later
+/// AST at a reused address cannot inherit an answer (Copilot on #1214).
+void forgetConcepts() {
+  lawMemo.clear();
+  negationMemo.clear();
+}
+
 bool readsLaw(const clang::Expr* e, int depth = 0) {
   if (!e || depth > 16) return false;
   e = e->IgnoreParenImpCasts();
@@ -2699,7 +2801,8 @@ bool readsLaw(const clang::Expr* e, int depth = 0) {
       if (llvm::isa<clang::VarTemplateDecl>(d) && !inStd(d)) return true;
   if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e))
     if (!inStd(cs->getNamedConcept()) &&
-        readsLaw(cs->getNamedConcept()->getConstraintExpr(), depth + 1))
+        perConcept(lawMemo, cs->getNamedConcept(),
+                   [](const clang::Expr* b) { return readsLaw(b); }))
       return true;
   for (const clang::Stmt* c : e->children())
     if (const auto* ce = llvm::dyn_cast_or_null<clang::Expr>(c))
@@ -2729,7 +2832,8 @@ bool containsNegation(const clang::Expr* e, int depth = 0) {
     }
   if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e))
     if (!inStd(cs->getNamedConcept()) &&
-        containsNegation(cs->getNamedConcept()->getConstraintExpr(), depth + 1))
+        perConcept(negationMemo, cs->getNamedConcept(),
+                   [](const clang::Expr* b) { return containsNegation(b); }))
       return true;
   for (const clang::Stmt* c : e->children())
     if (const auto* ce = llvm::dyn_cast_or_null<clang::Expr>(c))
@@ -2754,6 +2858,7 @@ class MarkedUse : public clang::ASTConsumer {
  public:
   explicit MarkedUse(Selection& sel) : sel(sel) {}
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    forgetConcepts();
     struct Find : clang::RecursiveASTVisitor<Find> {
       Selection& sel;
       explicit Find(Selection& s) : sel(s) {}
@@ -2929,6 +3034,21 @@ llvm::cl::opt<std::string> archetypes(
     llvm::cl::cat(category));
 
 const clang::tooling::CompilationDatabase* compilations = nullptr;
+/// How much of the translation unit the matchers walk (README, "Choices the
+/// linter makes"); each value explains itself in --help.
+enum class Scan { Shallow, Deep };
+llvm::cl::opt<Scan> scanMode(
+    "scan", llvm::cl::desc("how much of the translation unit the matchers walk"),
+    llvm::cl::values(
+        clEnumValN(Scan::Shallow, "shallow",
+                   "the declarations written in the file and the instantiations "
+                   "under them (default); a rule whose evidence leaves the file "
+                   "follows it there"),
+        clEnumValN(Scan::Deep, "deep",
+                   "everything the file includes or imports, as before the "
+                   "choice: to test it (scan.py compares both on the fixtures)")),
+    llvm::cl::init(Scan::Shallow), llvm::cl::cat(category));
+
 llvm::cl::opt<bool> dumpAppendix(
     "dump-appendix",
     llvm::cl::desc("print each generated appendix to stderr (debugging)"),
@@ -3319,6 +3439,13 @@ void readImplied(const clang::FunctionDecl* fd, Facts& f) {
   }
 }
 
+/// The second stage's cost in one file, printed on stderr for the driver's
+/// timing table: the templates it judged, the compiles it ran, their time.
+struct SecondStageCost {
+  unsigned templates = 0, compiles = 0;
+  double seconds = 0;
+} secondStageCost;
+
 Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   Facts f;
   const clang::FunctionDecl* fd = ft->getTemplatedDecl();
@@ -3411,7 +3538,12 @@ Outcome admit(const clang::FunctionTemplateDecl* ft, clang::ASTContext& ctx) {
   again.setDiagnosticConsumer(&errors);
   Selection sel;
   MarkedUseFactory factory(sel);
+  const auto started = std::chrono::steady_clock::now();
   again.run(&factory);
+  ++secondStageCost.compiles;
+  secondStageCost.seconds += std::chrono::duration<double>(
+                                 std::chrono::steady_clock::now() - started)
+                                 .count();
   // Which definition the use reached comes first.  A use that resolved to an
   // unmarked function reached a sibling; a use that resolved to nothing failed
   // with the body it instantiated, which the first error then locates.
@@ -3464,6 +3596,7 @@ class Admission : public clang::ASTConsumer {
  public:
   explicit Admission(Outcome::Kind view) : view(view) {}
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    forgetConcepts();
     const clang::SourceManager& sm = ctx.getSourceManager();
     // Shared by the two views of one file, never across files.
     static std::map<std::string, std::vector<std::pair<std::string, Outcome>>>
@@ -3490,7 +3623,7 @@ class Admission : public clang::ASTConsumer {
         }
       } finder;
       finder.sm = &sm;
-      finder.TraverseDecl(ctx.getTranslationUnitDecl());
+      finder.TraverseAST(ctx);
       for (const clang::FunctionTemplateDecl* ft : finder.found) {
         const clang::SourceLocation loc = sm.getExpansionLoc(ft->getLocation());
         std::string where;
@@ -3498,7 +3631,11 @@ class Admission : public clang::ASTConsumer {
         w << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc) << ':'
           << sm.getExpansionColumnNumber(loc) << ": " << ft->getNameAsString();
         cache.push_back({w.str(), admit(ft, ctx)});
+        ++secondStageCost.templates;
       }
+      llvm::errs() << "jlt-lint-cost: templates " << secondStageCost.templates
+                   << " compiles " << secondStageCost.compiles << " seconds "
+                   << llvm::format("%.1f", secondStageCost.seconds) << "\n";
     }
     for (const auto& [where, o] : cache) {
       if (o.kind != view) continue;
@@ -3611,14 +3748,18 @@ class Definitions : public clang::ASTConsumer {
     const clang::SourceManager& sm = ctx.getSourceManager();
     clang::PrintingPolicy policy = ctx.getPrintingPolicy();
     policy.SuppressScope = true;
+    std::function<void(clang::Decl*)> visit;
     std::function<void(const clang::DeclContext*)> walk =
         [&](const clang::DeclContext* dc) {
-          for (clang::Decl* d : dc->decls()) {
+          for (clang::Decl* d : dc->decls()) visit(d);
+        };
+    visit = [&](clang::Decl* d) {
+          {
             const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(d);
             if (ns && ns->getName() == scope &&
                 sm.isInMainFile(sm.getExpansionLoc(ns->getLocation()))) {
               for (clang::Decl* m : ns->decls()) report(m, sm, policy);
-              continue;
+              return;
             }
             if (const auto* c = llvm::dyn_cast<clang::DeclContext>(d))
               if (llvm::isa<clang::NamespaceDecl, clang::LinkageSpecDecl,
@@ -3626,7 +3767,12 @@ class Definitions : public clang::ASTConsumer {
                 walk(c);
           }
         };
-    walk(ctx.getTranslationUnitDecl());
+    // The traversal scope: the whole unit, or the file's own declarations.
+    for (clang::Decl* d : ctx.getTraversalScope())
+      if (const auto* tu = llvm::dyn_cast<clang::TranslationUnitDecl>(d))
+        walk(tu);
+      else
+        visit(d);
   }
 
  private:
@@ -3681,15 +3827,38 @@ std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
 
 /// A check whose findings go to its own section, after a "== <check>" line:
 /// several checks then read one parse, and the driver splits the output.
+/// Where one file's time goes, on stderr for the driver's timing table: the
+/// parse (preprocessing, parsing and semantic analysis, up to the first
+/// consumer), each rule's matcher and each check.
+std::chrono::steady_clock::time_point actionStarted;
+bool parseReported = false;
+void reportPhase(const std::string& name, double seconds) {
+  llvm::errs() << "jlt-lint-phase: " << name << ' '
+               << llvm::format("%.2f", seconds) << '\n';
+}
+void reportParse() {
+  if (parseReported) return;
+  parseReported = true;
+  reportPhase("parse", std::chrono::duration<double>(
+                           std::chrono::steady_clock::now() - actionStarted)
+                           .count());
+}
+
 class Section : public clang::ASTConsumer {
  public:
   Section(std::string n, std::unique_ptr<clang::ASTConsumer> c)
       : name(std::move(n)), inner(std::move(c)) {}
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    reportParse();
     std::string buffer;
     llvm::raw_string_ostream os(buffer);
     current = &os;
+    const auto started = std::chrono::steady_clock::now();
     inner->HandleTranslationUnit(ctx);
+    reportPhase("check " + name,
+                std::chrono::duration<double>(std::chrono::steady_clock::now() -
+                                              started)
+                    .count());
     current = &llvm::outs();
     os.flush();
     llvm::outs() << "== " << name << '\n' << buffer;
@@ -3863,7 +4032,10 @@ std::string rootLocation(const clang::ast_matchers::BoundNodes& nodes,
 /// matcher run alone.
 class Collect : public MatchFinder::MatchCallback {
  public:
-  explicit Collect(clang::TraversalKind tk) : traversal(tk) {}
+  Collect(clang::TraversalKind tk, std::string rule)
+      : traversal(tk), rule(std::move(rule)) {}
+  // The profile's key: matchers of one rule are summed under its name.
+  llvm::StringRef getID() const override { return rule; }
   void run(const MatchFinder::MatchResult& result) override {
     found.push_back(rootLocation(result.Nodes, *result.Context));
   }
@@ -3874,6 +4046,7 @@ class Collect : public MatchFinder::MatchCallback {
 
  private:
   clang::TraversalKind traversal;
+  std::string rule;
 };
 
 /// Every rule's matchers on one finder, one traversal of the AST; each
@@ -3882,18 +4055,45 @@ class Collect : public MatchFinder::MatchCallback {
 class Queries : public clang::ASTConsumer {
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
-    MatchFinder finder;
+    reportParse();
+    // The finder's own profile: the time each rule's matchers take.
+    llvm::StringMap<llvm::TimeRecord> records;
+    MatchFinder::MatchFinderOptions options;
+    options.CheckProfiling.emplace(records);
+    MatchFinder finder(std::move(options));
     std::vector<std::vector<std::unique_ptr<Collect>>> collected;
     for (const QueryRule& rule : queryRules) {
       collected.emplace_back();
       for (const DynTypedMatcher& m : rule.matchers) {
-        collected.back().push_back(std::make_unique<Collect>(rule.traversal));
+        collected.back().push_back(std::make_unique<Collect>(
+            rule.traversal, rule.name.empty() ? "scope" : rule.name));
         const std::optional<DynTypedMatcher> bound = m.tryBind("root");
         finder.addDynamicMatcher(bound ? *bound : m,
                                  collected.back().back().get());
       }
     }
+    // Only what the file itself declares: the traversal, and with it the
+    // parent map that hasAncestor builds, would otherwise cover every
+    // declaration the file imports or includes, the standard library's and
+    // the imported modules' included.  A template's instantiations hang under
+    // its own declaration and stay in scope.  The scope stays set for the
+    // checks that follow on the same context, which walk it (TraverseAST)
+    // and build their parent maps over it, as the matchers do.
+    if (scanMode == Scan::Shallow) {
+      std::vector<clang::Decl*> own;
+      const clang::SourceManager& sm = ctx.getSourceManager();
+      for (clang::Decl* d : ctx.getTranslationUnitDecl()->noload_decls())
+        if (sm.isWrittenInMainFile(sm.getExpansionLoc(d->getLocation())))
+          own.push_back(d);
+      ctx.setTraversalScope(own);
+    }
+    const auto started = std::chrono::steady_clock::now();
     finder.matchAST(ctx);
+    reportPhase("matchers", std::chrono::duration<double>(
+                                std::chrono::steady_clock::now() - started)
+                                .count());
+    for (const auto& r : records)
+      reportPhase("matcher " + r.getKey().str(), r.getValue().getWallTime());
     for (unsigned i = 0; i < queryRules.size(); ++i) {
       if (queryRules[i].name.empty())
         llvm::outs() << "== scope\n";
@@ -3907,6 +4107,10 @@ class Queries : public clang::ASTConsumer {
 
 class Action : public clang::ASTFrontendAction {
  public:
+  bool BeginSourceFileAction(clang::CompilerInstance&) override {
+    actionStarted = std::chrono::steady_clock::now();
+    return true;
+  }
   std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
       clang::CompilerInstance&, llvm::StringRef) override {
     llvm::SmallVector<llvm::StringRef, 8> names;

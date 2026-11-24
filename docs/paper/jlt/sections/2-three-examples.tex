@@ -589,6 +589,7 @@ g(t_1 \gg t_2) &= g(t_1) \otimes g(t_2) \qquad t_1, t_2 \triangleleft t_1 \gg t_
 where $x$ is a type with no parts, $d_x$ what is declared for it, $t_1 \gg t_2$ a composite, and $t' \triangleleft t$ says that $t'$ is a proper part of $t$.
 A proper part is smaller than its whole, so the compiler's search ends.
 The rule keeps out a loop with no stated end and a function that calls itself.
+It keeps a loop whose count is fixed before its first step: that is a fold written as a loop, and it ends if its body does~\cite{meyer1967loop}.
 
 The three rules are a heuristic: what a programmer keeps in mind.
 They do not define a language, and keeping them does not by itself put a program inside one.

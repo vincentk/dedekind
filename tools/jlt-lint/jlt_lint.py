@@ -44,6 +44,7 @@ import shlex
 import signal
 import subprocess
 import sys
+import time
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
@@ -55,6 +56,11 @@ UNDO_FOR_CHECK = ["--extra-arg=-UDEDEKIND_RUNTIME_COVERAGE_BRIDGES"]
 # them: a tool resolves them relative to its own binary, which on macOS with
 # Homebrew's LLVM is not next to them.  Set by main() from the database.
 RESOURCE_DIR = []
+# How much of each file the matchers walk; set from --scan (see main).
+SCAN = "shallow"
+# The longest one file may take, all its rules over one parse and the second
+# stage's compiles (JLT_LINT_FILE_TIMEOUT seconds, default twenty minutes).
+FILE_TIMEOUT = int(os.environ.get("JLT_LINT_FILE_TIMEOUT") or 1200)
 LAYER = re.compile(r"^src/(?:main|test/cpp)/modules/dedekind/([^/]+)/")
 
 
@@ -140,7 +146,10 @@ def run(tool, build, path, namespace, rules):
     checks = [tool_check(r) for r in rules if tool_check(r) is not None]
     queries = [r for r in rules if tool_check(r) is None]
     args = [str(tool), f"--scope={namespace}",
-            f"--archetypes={HERE / 'archetypes.hpp'}"]
+            f"--archetypes={HERE / 'archetypes.hpp'}",
+            # How much the matchers walk: shallow by default, deep on request
+            # (README, "Choices the linter makes").
+            f"--scan={SCAN}"]
     if checks:
         args.append(f"--check={','.join(checks)}")
     if queries:
@@ -150,7 +159,12 @@ def run(tool, build, path, namespace, rules):
     else:
         args += ["-p", str(build), *UNDO_FOR_CHECK,
                  *(f"--extra-arg={a}" for a in RESOURCE_DIR), str(ROOT / path)]
-    p = subprocess.run(args, capture_output=True, text=True)
+    try:
+        p = subprocess.run(args, capture_output=True, text=True, timeout=FILE_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        # A file that takes longer has a problem to fix: it fails by name
+        # instead of holding the whole lint until the job's own limit.
+        return None, None, f"jlt-lint: {path}: timed out after {FILE_TIMEOUT} s\n"
     out = p.stdout + p.stderr
     if p.returncode != 0:
         return None, None, exit_status(p) + out
@@ -234,16 +248,57 @@ def lint_part(build, tool, part):
     for rule, f, ns, expected in lines:
         groups[(f, ns)].append((rule, expected))
 
+    costs, phases = [], {}
+
     def lint(group):
         """One file, all its rules over one parse: (counts, locations,
-        output) per rule, counts None on an error."""
+        output) per rule, counts None on an error.  Its wall time and the
+        second stage's cost, as the tool reports it, go to the timing table."""
         (f, ns), entries = group
-        return run(tool, build, f, ns, [r for r, _ in entries])
+        started = time.monotonic()
+        result = run(tool, build, f, ns, [r for r, _ in entries])
+        m = re.search(r"jlt-lint-cost: templates (\d+) compiles (\d+) seconds ([\d.]+)", result[2] or "")
+        costs.append((time.monotonic() - started, f, *(m.groups() if m else ("-", "-", "-"))))
+        phases[f] = {name: float(secs) for name, secs in
+                     re.findall(r"jlt-lint-phase: (.+?) ([\d.]+)$", result[2] or "", re.M)}
+        # Progress as it happens, with the file's own phases, so a cancelled
+        # or timed-out job still shows which files finished, which did not,
+        # and where the finished ones spent their time.
+        top = sorted(((n, s) for n, s in phases[f].items() if not n.startswith("matcher ")),
+                     key=lambda kv: -kv[1])[:4]
+        rules = sorted(((n[8:], s) for n, s in phases[f].items() if n.startswith("matcher ")),
+                       key=lambda kv: -kv[1])[:2]
+        print(f"jlt-lint: done {costs[-1][0]:7.1f} s  {f}"
+              + ("" if result[0] is not None else "  (failed)")
+              + ("  [" + ", ".join(f"{n} {s:.1f}" for n, s in top)
+                 + ("; slowest rules: " + ", ".join(f"{n} {s:.1f}" for n, s in rules) if rules else "")
+                 + "]" if top else ""),
+              file=sys.stderr, flush=True)
+        return result
 
     workers = int(os.environ.get("NCPU") or os.cpu_count() or 1)
     ordered = sorted(groups.items())
+    started = time.monotonic()
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
         results = list(pool.map(lint, ordered))
+    # Where the time goes: the slowest files, and the second stage's share.
+    total = sum(c[0] for c in costs)
+    compiled = sum(int(c[3]) for c in costs if c[3] != "-")
+    print(f"jlt-lint: timing, {len(costs)} files on {workers} workers: {time.monotonic() - started:.0f} s wall, "
+          f"{total:.0f} s summed, {compiled} second-stage compiles", file=sys.stderr)
+    for secs, f, k, n, s in sorted(costs, reverse=True)[:20]:
+        print(f"jlt-lint: timing {secs:7.1f} s  {f}  (second stage: {k} templates, {n} compiles, {s} s)",
+              file=sys.stderr)
+    # Each phase summed over the files (the parse, every rule's matchers,
+    # every check), and the slowest files phase by phase.
+    summed = collections.Counter()
+    for per in phases.values():
+        summed.update(per)
+    for name, secs in summed.most_common(15):
+        print(f"jlt-lint: phase  {secs:8.1f} s summed  {name}", file=sys.stderr)
+    for secs, f, *_ in sorted(costs, reverse=True)[:5]:
+        top = sorted(phases.get(f, {}).items(), key=lambda kv: -kv[1])[:6]
+        print(f"jlt-lint: phases of {f}: " + ", ".join(f"{n} {s:.1f} s" for n, s in top), file=sys.stderr)
     return [block(f, ns, entries, *result)
             for ((f, ns), entries), result in zip(ordered, results)]
 
@@ -321,7 +376,15 @@ def main():
                       help="keep the findings in OUT/<part>.json and the report in OUT/<part>.txt")
     args.add_argument("--join", type=pathlib.Path, metavar="DIR",
                       help="the report of the whole scope from DIR's parts, into DIR/../report.txt")
+    args.add_argument("--scan", choices=["shallow", "deep"],
+                      default=os.environ.get("JLT_LINT_SCAN") or "shallow",
+                      help="how much of each file the rules walk: shallow (default), the "
+                           "declarations written in the file, a rule whose evidence leaves the "
+                           "file following it there; deep, everything the file includes or "
+                           "imports, to test that choice. Default from JLT_LINT_SCAN.")
     a = args.parse_args()
+    global SCAN
+    SCAN = a.scan
     if a.join:
         text, failures = report(join(a.join))
         (a.join.parent / "report.txt").write_text(text)

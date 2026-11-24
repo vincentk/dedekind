@@ -16,5 +16,5 @@
 # recursion; a self-reference inside a requires-expression is (clang-query
 # has no matcher for one) a known false positive.
 set traversal AsIs
-match callExpr(hasAncestor(functionDecl(hasBody(compoundStmt().bind("body")))), callee(functionDecl(hasBody(compoundStmt(equalsBoundNode("body"))))), unless(hasAncestor(unaryExprOrTypeTraitExpr())), unless(hasAncestor(cxxNoexceptExpr())), unless(hasAncestor(typeLoc(loc(decltypeType())))), isExpansionInMainFile(), hasAncestor(scope))
-match cxxConstructExpr(hasAncestor(cxxConstructorDecl(hasBody(compoundStmt().bind("body")))), hasDeclaration(cxxConstructorDecl(hasBody(compoundStmt(equalsBoundNode("body"))))), unless(hasAncestor(unaryExprOrTypeTraitExpr())), unless(hasAncestor(cxxNoexceptExpr())), unless(hasAncestor(typeLoc(loc(decltypeType())))), isExpansionInMainFile(), hasAncestor(scope))
+match callExpr(isExpansionInMainFile(), hasAncestor(functionDecl(hasBody(compoundStmt().bind("body")))), callee(functionDecl(hasBody(compoundStmt(equalsBoundNode("body"))))), unless(hasAncestor(unaryExprOrTypeTraitExpr())), unless(hasAncestor(cxxNoexceptExpr())), unless(hasAncestor(typeLoc(loc(decltypeType())))), hasAncestor(scope))
+match cxxConstructExpr(isExpansionInMainFile(), hasAncestor(cxxConstructorDecl(hasBody(compoundStmt().bind("body")))), hasDeclaration(cxxConstructorDecl(hasBody(compoundStmt(equalsBoundNode("body"))))), unless(hasAncestor(unaryExprOrTypeTraitExpr())), unless(hasAncestor(cxxNoexceptExpr())), unless(hasAncestor(typeLoc(loc(decltypeType())))), hasAncestor(scope))
