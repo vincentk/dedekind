@@ -3805,7 +3805,275 @@ class Definitions : public clang::ASTConsumer {
 };
 
 /// One check by name, or null for an unknown name.
+/// Local state that the state-passing reading of Table 7 covers: every
+/// mutable local of a judged function is reached through its own name only,
+/// so that a write through one name never changes what another reads, and
+/// the function is a fold of states (the paper's aliasing conditions; Cytron
+/// et al. 1991, 3.1.1, for an element's update as the whole array's).
+/// Refused, a finding each:
+///   - a reference local whose initialiser reaches a mutable local (a second
+///     name for its storage; a reference to a parameter, a constant or a
+///     temporary is no alias of local state);
+///   - an operator[] on a mutable local std::array whose index is not shown
+///     to lie in [0, N - 1]: an interval over literals, the counters of
+///     counted loops, const locals, and scalar locals over all the values
+///     they are assigned, with + - and *;
+///   - a write (an assignment, ++, --) that is not a statement of its own,
+///     the for increment aside: two writes in one expression, a write in a
+///     condition or an argument;
+///   - a lambda capturing a mutable local by reference;
+///   - swap of a variable of array type with itself (undefined for an array
+///     by the precondition of swap_ranges; two scalars, even one, are fine).
+class LocalState : public clang::ASTConsumer {
+ public:
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    const clang::SourceManager& sm = ctx.getSourceManager();
+    struct Fns : clang::RecursiveASTVisitor<Fns> {
+      const clang::SourceManager* sm;
+      std::vector<const clang::FunctionDecl*> found;
+      bool VisitFunctionDecl(clang::FunctionDecl* f) {
+        if (f->doesThisDeclarationHaveABody() && judged(f, *sm)) found.push_back(f);
+        return true;
+      }
+    } fns;
+    fns.sm = &sm;
+    fns.TraverseAST(ctx);
+    std::set<std::tuple<std::string, unsigned, unsigned>> lines;
+    auto report = [&](clang::SourceLocation l) {
+      l = sm.getExpansionLoc(l);
+      lines.emplace(sm.getFilename(l).str(), sm.getExpansionLineNumber(l),
+                    sm.getExpansionColumnNumber(l));
+    };
+    for (const clang::FunctionDecl* f : fns.found) check(f, ctx, report);
+    for (const auto& [file, line, column] : lines)
+      out() << file << ':' << line << ':' << column << '\n';
+  }
+
+ private:
+  static bool mutableLocal(const clang::VarDecl* v) {
+    return v && v->hasLocalStorage() && !v->getType()->isReferenceType() &&
+           !v->getType().isConstQualified();
+  }
+  /// The variable an lvalue reaches through members and elements, if any.
+  static const clang::VarDecl* base(const clang::Expr* e) {
+    for (int k = 0; e && k < 32; ++k) {
+      e = e->IgnoreParenImpCasts();
+      if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e))
+        return llvm::dyn_cast<clang::VarDecl>(d->getDecl());
+      if (const auto* m = llvm::dyn_cast<clang::MemberExpr>(e)) { e = m->getBase(); continue; }
+      if (const auto* a = llvm::dyn_cast<clang::ArraySubscriptExpr>(e)) { e = a->getBase(); continue; }
+      if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(e))
+        if (o->getOperator() == clang::OO_Subscript || o->getOperator() == clang::OO_Arrow ||
+            o->getOperator() == clang::OO_Star) { e = o->getArg(0); continue; }
+      if (const auto* m = llvm::dyn_cast<clang::MaterializeTemporaryExpr>(e)) { e = m->getSubExpr(); continue; }
+      return nullptr;
+    }
+    return nullptr;
+  }
+  /// The size N of a std::array type, if known.
+  static std::optional<std::uint64_t> arraySize(clang::QualType t) {
+    t = t.getNonReferenceType().getCanonicalType();
+    const auto* spec = llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
+        t->getAsCXXRecordDecl());
+    if (!spec || spec->getName() != "array" || !inStd(spec) ||
+        spec->getTemplateArgs().size() < 2 ||
+        spec->getTemplateArgs()[1].getKind() != clang::TemplateArgument::Integral)
+      return std::nullopt;
+    return spec->getTemplateArgs()[1].getAsIntegral().getZExtValue();
+  }
+  using Interval = std::pair<long long, long long>;
+  struct Values {
+    // Per scalar local: the expressions it is ever given (its initialiser,
+    // every plain assignment); a compound write makes it unbounded.
+    std::map<const clang::VarDecl*, std::vector<const clang::Expr*>> given;
+    std::set<const clang::VarDecl*> unbounded;
+    // Per counter of a counted for: its initialiser and its bound.
+    std::map<const clang::VarDecl*, std::pair<const clang::Expr*, const clang::Expr*>> counters;
+  };
+  static std::optional<Interval> interval(const clang::Expr* e, const Values& vs,
+                                          std::set<const clang::VarDecl*>& seen,
+                                          int depth = 0) {
+    if (!e || depth > 32) return std::nullopt;
+    e = e->IgnoreParenImpCasts();
+    if (const auto* i = llvm::dyn_cast<clang::IntegerLiteral>(e)) {
+      if (!i->getValue().isIntN(62)) return std::nullopt;
+      const long long v = static_cast<long long>(i->getValue().getZExtValue());
+      return Interval{v, v};
+    }
+    if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {
+      auto l = interval(b->getLHS(), vs, seen, depth + 1);
+      auto r = interval(b->getRHS(), vs, seen, depth + 1);
+      if (!l || !r) return std::nullopt;
+      const auto [a, c] = *l;
+      const auto [d, g] = *r;
+      constexpr long long cap = 1ll << 40;
+      if (std::max({std::llabs(a), std::llabs(c), std::llabs(d), std::llabs(g)}) > cap)
+        return std::nullopt;
+      switch (b->getOpcode()) {
+        case clang::BO_Add: return Interval{a + d, c + g};
+        case clang::BO_Sub: return Interval{a - g, c - d};
+        case clang::BO_Mul: {
+          const long long x[] = {a * d, a * g, c * d, c * g};
+          return Interval{*std::min_element(x, x + 4), *std::max_element(x, x + 4)};
+        }
+        default: return std::nullopt;
+      }
+    }
+    if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(e))
+      if (m->getMethodDecl() && m->getMethodDecl()->getName() == "size")
+        if (auto n = arraySize(m->getImplicitObjectArgument()->getType()))
+          return Interval{static_cast<long long>(*n), static_cast<long long>(*n)};
+    const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e);
+    const auto* v = d ? llvm::dyn_cast<clang::VarDecl>(d->getDecl()) : nullptr;
+    if (!v || !seen.insert(v).second) return std::nullopt;  // a cycle: unbounded
+    std::optional<Interval> r;
+    if (auto c = vs.counters.find(v); c != vs.counters.end()) {
+      auto lo = interval(c->second.first, vs, seen, depth + 1);
+      auto hi = interval(c->second.second, vs, seen, depth + 1);
+      if (lo && hi && hi->second - 1 >= lo->first) r = Interval{lo->first, hi->second - 1};
+    } else if (!vs.unbounded.count(v)) {
+      if (auto g = vs.given.find(v); g != vs.given.end() && !g->second.empty()) {
+        for (const clang::Expr* x : g->second) {
+          auto i = interval(x, vs, seen, depth + 1);
+          if (!i) { r.reset(); break; }
+          r = r ? Interval{std::min(r->first, i->first), std::max(r->second, i->second)} : *i;
+          if (x == g->second.back()) break;
+        }
+      }
+    }
+    seen.erase(v);
+    return r;
+  }
+  static bool isWrite(const clang::Stmt* s) {
+    if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(s)) return b->isAssignmentOp();
+    if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(s)) return u->isIncrementDecrementOp();
+    if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(s))
+      return o->isAssignmentOp() || o->getOperator() == clang::OO_PlusPlus ||
+             o->getOperator() == clang::OO_MinusMinus;
+    return false;
+  }
+  template <typename Report>
+  void check(const clang::FunctionDecl* f, clang::ASTContext& ctx, Report report) {
+    Values vs;
+    // The facts a first walk gathers: the values scalar locals are given,
+    // the counted loops' counters.
+    struct Gather : clang::RecursiveASTVisitor<Gather> {
+      Values* vs;
+      bool VisitVarDecl(clang::VarDecl* v) {
+        if (v->hasLocalStorage() && v->getType()->isIntegerType()) {
+          if (v->getInit()) vs->given[v].push_back(v->getInit());
+          else if (!llvm::isa<clang::ParmVarDecl>(v)) vs->unbounded.insert(v);
+          if (llvm::isa<clang::ParmVarDecl>(v)) vs->unbounded.insert(v);
+        }
+        return true;
+      }
+      bool VisitBinaryOperator(clang::BinaryOperator* b) {
+        if (!b->isAssignmentOp()) return true;
+        if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(b->getLHS()->IgnoreParenImpCasts()))
+          if (const auto* v = llvm::dyn_cast<clang::VarDecl>(d->getDecl())) {
+            if (b->getOpcode() == clang::BO_Assign) vs->given[v].push_back(b->getRHS());
+            else vs->unbounded.insert(v);
+          }
+        return true;
+      }
+      bool VisitUnaryOperator(clang::UnaryOperator* u) {
+        if (!u->isIncrementDecrementOp()) return true;
+        if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(u->getSubExpr()->IgnoreParenImpCasts()))
+          if (const auto* v = llvm::dyn_cast<clang::VarDecl>(d->getDecl())) vs->unbounded.insert(v);
+        return true;
+      }
+      bool VisitForStmt(clang::ForStmt* s) {
+        const auto* init = llvm::dyn_cast_or_null<clang::DeclStmt>(s->getInit());
+        const auto* cond = llvm::dyn_cast_or_null<clang::BinaryOperator>(s->getCond());
+        if (!init || !init->isSingleDecl() || !cond || cond->getOpcode() != clang::BO_LT)
+          return true;
+        const auto* v = llvm::dyn_cast<clang::VarDecl>(init->getSingleDecl());
+        const auto* lhs = llvm::dyn_cast<clang::DeclRefExpr>(cond->getLHS()->IgnoreParenImpCasts());
+        if (v && v->getInit() && lhs && lhs->getDecl() == v)
+          vs->counters[v] = {v->getInit(), cond->getRHS()};
+        return true;
+      }
+    } gather;
+    gather.vs = &vs;
+    gather.TraverseStmt(f->getBody());
+    // A counter takes its interval from its loop, not from its ++.
+    for (const auto& [v, _] : vs.counters) vs.unbounded.erase(v);
+
+    struct Judge : clang::RecursiveASTVisitor<Judge> {
+      clang::ASTContext* ctx;
+      Values* vs;
+      Report* report;
+      bool VisitVarDecl(clang::VarDecl* v) {
+        if (v->hasLocalStorage() && v->getType()->isReferenceType() && v->getInit())
+          if (mutableLocal(base(v->getInit()))) (*report)(v->getLocation());
+        return true;
+      }
+      bool VisitCXXForRangeStmt(clang::CXXForRangeStmt* s) {
+        const clang::VarDecl* x = s->getLoopVariable();
+        if (x && x->getType()->isReferenceType() && mutableLocal(base(s->getRangeInit())))
+          (*report)(x->getLocation());
+        return true;
+      }
+      bool VisitCXXOperatorCallExpr(clang::CXXOperatorCallExpr* o) {
+        if (o->getOperator() == clang::OO_Subscript && o->getNumArgs() == 2) {
+          const clang::VarDecl* v = base(o->getArg(0));
+          if (mutableLocal(v)) {
+            auto n = arraySize(v->getType());
+            std::set<const clang::VarDecl*> seen;
+            auto i = interval(o->getArg(1), *vs, seen);
+            if (!n || !i || i->first < 0 || i->second > static_cast<long long>(*n) - 1)
+              (*report)(o->getExprLoc());
+          }
+        }
+        return true;
+      }
+      bool VisitLambdaExpr(clang::LambdaExpr* l) {
+        for (const clang::LambdaCapture& c : l->captures())
+          if (c.capturesVariable() && c.getCaptureKind() == clang::LCK_ByRef)
+            if (const auto* v = llvm::dyn_cast<clang::VarDecl>(c.getCapturedVar()))
+              if (mutableLocal(v)) (*report)(l->getBeginLoc());
+        return true;
+      }
+      bool VisitCallExpr(clang::CallExpr* c) {
+        const clang::FunctionDecl* g = c->getDirectCallee();
+        if (g && g->getName() == "swap" && inStd(g) && c->getNumArgs() == 2) {
+          const auto* a = llvm::dyn_cast<clang::DeclRefExpr>(c->getArg(0)->IgnoreParenImpCasts());
+          const auto* b = llvm::dyn_cast<clang::DeclRefExpr>(c->getArg(1)->IgnoreParenImpCasts());
+          if (a && b && a->getDecl() == b->getDecl() &&
+              !a->getType()->isScalarType())
+            (*report)(c->getExprLoc());
+        }
+        return true;
+      }
+      bool VisitStmt(clang::Stmt* s) {
+        if (!isWrite(s)) return true;
+        // A statement of its own: the parent, wrappers aside, is a statement.
+        clang::DynTypedNode n = clang::DynTypedNode::create(*s);
+        for (int k = 0; k < 8; ++k) {
+          auto ps = ctx->getParents(n);
+          if (ps.empty()) return true;
+          n = ps[0];
+          if (const auto* e = n.get<clang::Expr>()) {
+            if (llvm::isa<clang::ExprWithCleanups, clang::ParenExpr,
+                          clang::ImplicitCastExpr>(e))
+              continue;
+            (*report)(s->getBeginLoc());  // inside another expression
+            return true;
+          }
+          return true;  // a statement: of its own, or a for's increment
+        }
+        return true;
+      }
+    } judge;
+    judge.ctx = &ctx;
+    judge.vs = &vs;
+    judge.report = &report;
+    judge.TraverseStmt(f->getBody());
+  }
+};
+
 std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
+  if (name == "local-state") return std::make_unique<LocalState>();
   if (name == "mutual-recursion") return std::make_unique<MutualRecursion>();
   if (name == "definition") return std::make_unique<Definition>();
   if (name == "inline-requires") return std::make_unique<InlineRequires>();

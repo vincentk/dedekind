@@ -8,9 +8,10 @@
 // correctness, tested whenever the file is parsed; the rules judge only
 // whether the code can be read as a pure function.
 //
-// Pinned at today's verdicts.  The linter does not yet check A1-A6: the
-// near-misses marked "should be refused" pass today, and the whitelist will
-// refuse them.  Standalone, no imports, so it is checked without the build.
+// rule1-local-state refuses the five near-misses, one finding each, and
+// nothing else here: Fibonacci, the LU solve and the sound twins pass, the
+// LU's pivot index bounded by the values it is assigned.  Standalone, no
+// imports, so it is checked without the build.
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -97,7 +98,7 @@ static_assert([] {
 // ---- near-misses, each beside its sound twin.
 
 // A1-A6, a local of reference type: a const name for a mutable object, so a
-// later write to r[0] changes it.  Should be refused.
+// later write to r[0] changes it.  Refused.
 constexpr std::size_t aliased_element() {
   std::array<std::size_t, 2> r{1, 2};
   const auto& x = r[0];
@@ -112,7 +113,7 @@ constexpr std::size_t copied_element() {  // sound
 }
 static_assert(aliased_element() == 7 && copied_element() == 1);
 
-// A5, an index not provably in range.  Should be refused.
+// A5, an index not provably in range.  Refused.
 constexpr std::size_t unbounded_index(std::size_t k) {
   std::array<std::size_t, 3> r{0, 0, 0};
   r[k] = 1;
@@ -124,7 +125,7 @@ constexpr std::size_t bounded_index() {  // sound
   return r[0];
 }
 
-// A4, two writes in one expression.  Should be refused.
+// A4, two writes in one expression.  Refused.
 constexpr std::size_t chained_writes() {
   std::array<std::size_t, 2> r{0, 0};
   r[0] = r[1] = 3;
@@ -137,8 +138,7 @@ constexpr std::size_t separate_writes() {  // sound
   return r[0] + r[1];
 }
 
-// A6, a lambda capturing the array by reference and writing it.  Should be
-// refused.
+// A6, a lambda capturing the array by reference and writing it.  Refused.
 constexpr std::size_t captured_by_reference() {
   std::array<std::size_t, 1> r{0};
   auto set = [&] { r[0] = 9; };
@@ -152,7 +152,7 @@ constexpr std::size_t captured_by_value() {  // sound
 }
 
 // swap of a value with itself: undefined for an array by the standard's
-// precondition on swap_ranges.  Should be refused.
+// precondition on swap_ranges.  Refused.
 constexpr double swapped_with_itself() {
   std::array<double, 2> v{1, 2};
   std::swap(v, v);

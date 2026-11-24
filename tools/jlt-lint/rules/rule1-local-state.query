@@ -1,0 +1,10 @@
+# grade: Π, rejecting: a finding refutes translatability by Table 7's rows; silence affirms nothing.
+# Rule 1: local state read as a pure function.  Every mutable local of a
+# judged function is reached through its own name only, at any moment, so
+# that the function is a fold of states (Table 7's rows for local state; an
+# element's update as the whole array's, Cytron et al. 1991, 3.1.1).  The tool
+# refuses a second name for a mutable local's storage, an index of a mutable
+# local std::array not shown to lie in range, a write that is not a statement
+# of its own, a lambda capturing a mutable local by reference, and swap of an
+# array with itself.
+tool local-state
