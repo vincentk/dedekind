@@ -27,7 +27,10 @@ The build compares both lists with ones kept under version control, so a law can
 
 \paragraph{The linter is a check, not a proof.}
 The repository's linter, run in continuous integration on the compiler's own front end and documented there, checks Rule~3 for every instantiated body, Rule~1's syntactic part, and Rule~2 at the level of names: a body may use, on a value of parameter type, only what a declared constraint names.
-For Rule~1 it closes each channel a mutation could leak through at run time: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference.
+Most of its rules are patterns over Clang's syntax tree, written in the matcher language of \texttt{clang-query} and kept one to a file in \texttt{tools/jlt-lint/rules/}; the rule that refuses \cppinline{throw} is the line
+\cppinline{match cxxThrowExpr(isExpansionInMainFile(), hasAncestor(scope))}.
+The rest, which follow calls or compile a definition again, are checks written in \Cpp{} against Clang's libraries.
+For Rule~1 it closes each channel a mutation could leak through at run time: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference; and inside the call it checks that each mutable local is reached through its own name only, so that local state reads as a fold of states (Appendix~\ref{app:derived}).
 For Rule~3 it refuses a loop whose end is not stated before it starts: a counted \texttt{for} and a range-\texttt{for} over an array pass, as the folds Table~\ref{tab:derived} rewrites them to, and every other loop is a finding, which a reviewer may judge to show its end all the same.
 A finding is a breach or a gap in its reading of the standard's concepts, and its silence is not a proof.
 Review complements it: an agentic reviewer reads every pull request against the three rules.
