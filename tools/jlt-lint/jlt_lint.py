@@ -243,7 +243,7 @@ def lint_part(build, tool, part):
     for rule, f, ns, expected in lines:
         groups[(f, ns)].append((rule, expected))
 
-    costs = []
+    costs, phases = [], {}
 
     def lint(group):
         """One file, all its rules over one parse: (counts, locations,
@@ -254,6 +254,8 @@ def lint_part(build, tool, part):
         result = run(tool, build, f, ns, [r for r, _ in entries])
         m = re.search(r"jlt-lint-cost: templates (\d+) compiles (\d+) seconds ([\d.]+)", result[2] or "")
         costs.append((time.monotonic() - started, f, *(m.groups() if m else ("-", "-", "-"))))
+        phases[f] = {name: float(secs) for name, secs in
+                     re.findall(r"jlt-lint-phase: (.+?) ([\d.]+)$", result[2] or "", re.M)}
         # Progress as it happens, so a cancelled or timed-out job still shows
         # which files finished, and which did not.
         print(f"jlt-lint: done {costs[-1][0]:7.1f} s  {f}"
@@ -273,6 +275,16 @@ def lint_part(build, tool, part):
     for secs, f, k, n, s in sorted(costs, reverse=True)[:20]:
         print(f"jlt-lint: timing {secs:7.1f} s  {f}  (second stage: {k} templates, {n} compiles, {s} s)",
               file=sys.stderr)
+    # Each phase summed over the files (the parse, every rule's matchers,
+    # every check), and the slowest files phase by phase.
+    summed = collections.Counter()
+    for per in phases.values():
+        summed.update(per)
+    for name, secs in summed.most_common(15):
+        print(f"jlt-lint: phase  {secs:8.1f} s summed  {name}", file=sys.stderr)
+    for secs, f, *_ in sorted(costs, reverse=True)[:5]:
+        top = sorted(phases.get(f, {}).items(), key=lambda kv: -kv[1])[:6]
+        print(f"jlt-lint: phases of {f}: " + ", ".join(f"{n} {s:.1f} s" for n, s in top), file=sys.stderr)
     return [block(f, ns, entries, *result)
             for ((f, ns), entries), result in zip(ordered, results)]
 

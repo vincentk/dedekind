@@ -119,6 +119,7 @@
 #include "clang/Frontend/TextDiagnostic.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
+#include "llvm/Support/Timer.h"
 #include "llvm/Support/Format.h"
 #include "llvm/ADT/APSInt.h"
 #include "llvm/Support/CommandLine.h"
@@ -3718,15 +3719,38 @@ std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
 
 /// A check whose findings go to its own section, after a "== <check>" line:
 /// several checks then read one parse, and the driver splits the output.
+/// Where one file's time goes, on stderr for the driver's timing table: the
+/// parse (preprocessing, parsing and semantic analysis, up to the first
+/// consumer), each rule's matcher and each check.
+std::chrono::steady_clock::time_point actionStarted;
+bool parseReported = false;
+void reportPhase(const std::string& name, double seconds) {
+  llvm::errs() << "jlt-lint-phase: " << name << ' '
+               << llvm::format("%.2f", seconds) << '\n';
+}
+void reportParse() {
+  if (parseReported) return;
+  parseReported = true;
+  reportPhase("parse", std::chrono::duration<double>(
+                           std::chrono::steady_clock::now() - actionStarted)
+                           .count());
+}
+
 class Section : public clang::ASTConsumer {
  public:
   Section(std::string n, std::unique_ptr<clang::ASTConsumer> c)
       : name(std::move(n)), inner(std::move(c)) {}
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    reportParse();
     std::string buffer;
     llvm::raw_string_ostream os(buffer);
     current = &os;
+    const auto started = std::chrono::steady_clock::now();
     inner->HandleTranslationUnit(ctx);
+    reportPhase("check " + name,
+                std::chrono::duration<double>(std::chrono::steady_clock::now() -
+                                              started)
+                    .count());
     current = &llvm::outs();
     os.flush();
     llvm::outs() << "== " << name << '\n' << buffer;
@@ -3900,7 +3924,10 @@ std::string rootLocation(const clang::ast_matchers::BoundNodes& nodes,
 /// matcher run alone.
 class Collect : public MatchFinder::MatchCallback {
  public:
-  explicit Collect(clang::TraversalKind tk) : traversal(tk) {}
+  Collect(clang::TraversalKind tk, std::string rule)
+      : traversal(tk), rule(std::move(rule)) {}
+  // The profile's key: matchers of one rule are summed under its name.
+  llvm::StringRef getID() const override { return rule; }
   void run(const MatchFinder::MatchResult& result) override {
     found.push_back(rootLocation(result.Nodes, *result.Context));
   }
@@ -3911,6 +3938,7 @@ class Collect : public MatchFinder::MatchCallback {
 
  private:
   clang::TraversalKind traversal;
+  std::string rule;
 };
 
 /// Every rule's matchers on one finder, one traversal of the AST; each
@@ -3919,18 +3947,30 @@ class Collect : public MatchFinder::MatchCallback {
 class Queries : public clang::ASTConsumer {
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
-    MatchFinder finder;
+    reportParse();
+    // The finder's own profile: the time each rule's matchers take.
+    llvm::StringMap<llvm::TimeRecord> records;
+    MatchFinder::MatchFinderOptions options;
+    options.CheckProfiling.emplace(records);
+    MatchFinder finder(std::move(options));
     std::vector<std::vector<std::unique_ptr<Collect>>> collected;
     for (const QueryRule& rule : queryRules) {
       collected.emplace_back();
       for (const DynTypedMatcher& m : rule.matchers) {
-        collected.back().push_back(std::make_unique<Collect>(rule.traversal));
+        collected.back().push_back(std::make_unique<Collect>(
+            rule.traversal, rule.name.empty() ? "scope" : rule.name));
         const std::optional<DynTypedMatcher> bound = m.tryBind("root");
         finder.addDynamicMatcher(bound ? *bound : m,
                                  collected.back().back().get());
       }
     }
+    const auto started = std::chrono::steady_clock::now();
     finder.matchAST(ctx);
+    reportPhase("matchers", std::chrono::duration<double>(
+                                std::chrono::steady_clock::now() - started)
+                                .count());
+    for (const auto& r : records)
+      reportPhase("matcher " + r.getKey().str(), r.getValue().getWallTime());
     for (unsigned i = 0; i < queryRules.size(); ++i) {
       if (queryRules[i].name.empty())
         llvm::outs() << "== scope\n";
@@ -3944,6 +3984,10 @@ class Queries : public clang::ASTConsumer {
 
 class Action : public clang::ASTFrontendAction {
  public:
+  bool BeginSourceFileAction(clang::CompilerInstance&) override {
+    actionStarted = std::chrono::steady_clock::now();
+    return true;
+  }
   std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
       clang::CompilerInstance&, llvm::StringRef) override {
     llvm::SmallVector<llvm::StringRef, 8> names;
