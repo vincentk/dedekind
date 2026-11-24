@@ -1,12 +1,11 @@
 """The choice of scan, tested: shallow and deep give the same findings.
 
-The matchers walk only the declarations written in the file (--scan=shallow,
-the default) on the ground that every rule restricts itself to the main file,
-so nothing declared elsewhere can be a finding.  This runs every rule file's
-matchers on every fixture in both modes and requires identical output, so a
-rule that came to depend on what lies outside the file would fail here, by
-name, in seconds, rather than silently in the library.  The fixtures are
-standalone, so the deep scan costs little on them.
+The rules walk the declarations written in the file (--scan=shallow, the
+default), and a rule whose evidence leaves the file follows it there.  This
+runs every rule file's matchers and every check but the second stage on every
+fixture in both modes and requires identical output.  rule3-mutual.cpp holds a
+cycle through std::invoke, so the comparison covers evidence outside the
+file.
 
     python3 tools/jlt-lint/scan.py <tool> [extra clang arguments]
 """

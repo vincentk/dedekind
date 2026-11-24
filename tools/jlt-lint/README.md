@@ -165,14 +165,11 @@ with the reason.
 Each choice is named here, made by default, and can be undone to test it.
 
 - **Shallow scan** (`--scan`, in the tool and the driver; their `--help`
-  explains each value).  The matchers walk only the declarations written in
-  the file, not everything it includes or imports, on the premise that every
-  rule restricts itself to the main file.  Walking the rest had cost most of
-  the lint's time, and more on macOS, whose standard library declares more.
-  `scan.py` tests the premise in every build: both scans on every fixture,
-  identical findings required.  The library is scanned deep only on request.
-  One check is deep always: mutual recursion, whose cycles can pass through a
-  template the file imports.
+  explains each value).  The rules walk the declarations written in the file,
+  and a rule whose evidence leaves the file follows it there, as mutual
+  recursion follows calls into the bodies they reach.  Walking everything the
+  file includes or imports had cost most of the lint's time.  `scan.py`
+  compares both scans on every fixture in every build.
 
 ## Stated in the paper, not yet checked
 

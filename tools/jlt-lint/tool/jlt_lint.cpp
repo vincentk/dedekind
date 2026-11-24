@@ -167,63 +167,102 @@ bool judged(const clang::FunctionDecl* def, const clang::SourceManager& sm) {
 }
 
 /// Strongly connected components of the call graph (Tarjan); each component
-/// of two or more judged functions is a cycle of mutual recursion.
+/// of two or more judged functions is a cycle of mutual recursion.  The graph
+/// is the part reachable from the file's own functions: a call into a function
+/// defined elsewhere (an instantiation of an imported template, which may call
+/// back into the file) is followed into its body, as far as the calls go.
+/// Every cycle through a function of the file is reachable from it, so the
+/// graph holds them all, whatever the traversal scope, and nothing else of
+/// the unit is walked.
 class MutualRecursion : public clang::ASTConsumer {
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
-    // The whole unit, whatever the scan: a cycle can pass through a template
-    // the file imports, whose instantiation calls back into the file and
-    // hangs under the template's own declaration, outside the file's (two
-    // library files lost all their findings under the shallow scan).
-    clang::CallGraph graph;
-    graph.addToCallGraph(ctx.getTranslationUnitDecl());
     const clang::SourceManager& sm = ctx.getSourceManager();
+    using F = const clang::FunctionDecl*;
+    // The file's own functions, with the instantiations of its templates.
+    struct Seeds : clang::RecursiveASTVisitor<Seeds> {
+      std::vector<F> found;
+      bool shouldVisitTemplateInstantiations() const { return true; }
+      bool shouldVisitImplicitCode() const { return true; }
+      bool VisitFunctionDecl(clang::FunctionDecl* f) {
+        if (f->doesThisDeclarationHaveABody() && !f->isDependentContext())
+          found.push_back(f);
+        return true;
+      }
+    } seeds;
+    for (clang::Decl* d : ctx.getTraversalScope()) seeds.TraverseDecl(d);
+    // The direct callees of one body: calls, member and operator calls,
+    // constructions.
+    struct Callees : clang::RecursiveASTVisitor<Callees> {
+      std::vector<F> found;
+      bool shouldVisitImplicitCode() const { return true; }
+      bool VisitCallExpr(clang::CallExpr* c) {
+        if (F f = c->getDirectCallee()) found.push_back(f);
+        return true;
+      }
+      bool VisitCXXConstructExpr(clang::CXXConstructExpr* c) {
+        if (F f = c->getConstructor()) found.push_back(f);
+        return true;
+      }
+    };
+    // The reachable graph, by canonical declaration, built breadth first.
+    std::map<F, std::vector<F>> edges;
+    std::vector<F> work;
+    for (F f : seeds.found) work.push_back(f->getCanonicalDecl());
+    while (!work.empty()) {
+      F f = work.back();
+      work.pop_back();
+      if (edges.count(f)) continue;
+      auto& out = edges[f];
+      F def = definitionOf(f);
+      if (!def || !def->hasBody() || def->isDependentContext()) continue;
+      Callees callees;
+      callees.TraverseStmt(def->getBody());
+      for (F g : callees.found) {
+        out.push_back(g->getCanonicalDecl());
+        if (!edges.count(g->getCanonicalDecl()))
+          work.push_back(g->getCanonicalDecl());
+      }
+    }
 
-    std::map<const clang::CallGraphNode*, int> index, low;
-    std::set<const clang::CallGraphNode*> onStack;
-    std::vector<const clang::CallGraphNode*> stack;
+    std::map<F, int> index, low;
+    std::set<F> onStack;
+    std::vector<F> stack;
     int next = 0;
-    std::set<const clang::FunctionDecl*> findings;
-
-    std::function<void(const clang::CallGraphNode*)> visit =
-        [&](const clang::CallGraphNode* v) {
-          index[v] = low[v] = next++;
-          stack.push_back(v);
-          onStack.insert(v);
-          for (const clang::CallGraphNode::CallRecord& rec : *v) {
-            const clang::CallGraphNode* w = rec.Callee;
-            if (!index.count(w)) {
-              visit(w);
-              low[v] = std::min(low[v], low[w]);
-            } else if (onStack.count(w)) {
-              low[v] = std::min(low[v], index[w]);
-            }
-          }
-          if (low[v] != index[v]) return;
-          std::vector<const clang::CallGraphNode*> component;
-          for (;;) {
-            const clang::CallGraphNode* w = stack.back();
-            stack.pop_back();
-            onStack.erase(w);
-            component.push_back(w);
-            if (w == v) break;
-          }
-          if (component.size() < 2) return;  // a self-call is another rule's
-          for (const clang::CallGraphNode* w : component)
-            if (const clang::FunctionDecl* def = definitionOf(
-                    llvm::dyn_cast_or_null<clang::FunctionDecl>(w->getDecl())))
-              if (judged(def, sm)) findings.insert(def);
-        };
-
-    for (const auto& entry : graph)
-      if (entry.second && !index.count(entry.second.get()))
-        visit(entry.second.get());
+    std::set<F> findings;
+    std::function<void(F)> visit = [&](F v) {
+      index[v] = low[v] = next++;
+      stack.push_back(v);
+      onStack.insert(v);
+      for (F w : edges[v]) {
+        if (!index.count(w)) {
+          visit(w);
+          low[v] = std::min(low[v], low[w]);
+        } else if (onStack.count(w)) {
+          low[v] = std::min(low[v], index[w]);
+        }
+      }
+      if (low[v] != index[v]) return;
+      std::vector<F> component;
+      for (;;) {
+        F w = stack.back();
+        stack.pop_back();
+        onStack.erase(w);
+        component.push_back(w);
+        if (w == v) break;
+      }
+      if (component.size() < 2) return;  // a self-call is another rule's
+      for (F w : component)
+        if (F def = definitionOf(w))
+          if (judged(def, sm)) findings.insert(def);
+    };
+    for (const auto& [f, _] : edges)
+      if (!index.count(f)) visit(f);
 
     // In source order, not in the order of the set's pointers, which depends
-    // on where the declarations happen to be allocated (scan.py saw the two
-    // scans differ by order alone).
+    // on where the declarations happen to be allocated.
     std::vector<std::tuple<std::string, unsigned, unsigned>> lines;
-    for (const clang::FunctionDecl* f : findings) {
+    for (F f : findings) {
       const clang::SourceLocation loc = sm.getExpansionLoc(f->getLocation());
       lines.emplace_back(sm.getFilename(loc).str(),
                          sm.getExpansionLineNumber(loc),
@@ -2971,9 +3010,8 @@ llvm::cl::opt<Scan> scanMode(
     llvm::cl::values(
         clEnumValN(Scan::Shallow, "shallow",
                    "the declarations written in the file and the instantiations "
-                   "under them (default): every rule restricts itself to the "
-                   "main file, so nothing declared elsewhere can be a finding, "
-                   "and walking it only costs time"),
+                   "under them (default); a rule whose evidence leaves the file "
+                   "follows it there"),
         clEnumValN(Scan::Deep, "deep",
                    "everything the file includes or imports, as before the "
                    "choice: to test it (scan.py compares both on the fixtures)")),

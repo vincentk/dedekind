@@ -378,11 +378,10 @@ def main():
                       help="the report of the whole scope from DIR's parts, into DIR/../report.txt")
     args.add_argument("--scan", choices=["shallow", "deep"],
                       default=os.environ.get("JLT_LINT_SCAN") or "shallow",
-                      help="how much of each file the matchers walk: shallow (default), the "
-                           "declarations written in the file, since every rule restricts itself "
-                           "to it; deep, everything it includes or imports, to test that choice "
-                           "(slow on the library; scan.py compares both on the fixtures). "
-                           "Default from JLT_LINT_SCAN.")
+                      help="how much of each file the rules walk: shallow (default), the "
+                           "declarations written in the file, a rule whose evidence leaves the "
+                           "file following it there; deep, everything the file includes or "
+                           "imports, to test that choice. Default from JLT_LINT_SCAN.")
     a = args.parse_args()
     global SCAN
     SCAN = a.scan
