@@ -14,8 +14,8 @@ It needs one condition: at every point, each piece of storage is reached through
 Names may exchange their values, as \cppinline{swap} does; they may never share storage.
 Jlt meets the condition by construction where its rules hold: a reference to a local exists only within one expression, as the element \cppinline{r[i]} that an assignment writes or an expression reads, and Rule~1 closes every channel by which state could leave the call; the linter checks every use of a mutable local against this list (\texttt{rule1-local-state}, Appendix~\ref{app:lint}).
 Haskell's \texttt{runST} holds the same by a type~\cite{launchbury1994lazy}, proved sound by a logical relation~\cite{timany2018logical}.
-The reading makes a function pure; it does not make it correct.
-An algorithm that overwrites an entry before it reads it computes a wrong value, and its reading computes the same wrong value: that the values are the intended ones is the algorithm's own claim, tested, as everywhere in this paper, by \cppinline{static_assert}.
+Read so, the function is pure: its value at every argument is the value of a term of System~F, the image under $\llbracket\cdot\rrbracket$ of the kernel program it is read as (Section~\ref{sec:translation}).
+Which function that is, is the program's own claim, tested here, as everywhere, by \cppinline{static_assert}.
 Raw pointers are not among them.
 A pointer that is never null and never compared with a pointer into another object is an index into a range, its arithmetic the arithmetic of counts, but neither condition can be checked well, so the posture asks for a \cppinline{std::span} over storage declared constant instead~\cite[\texttt{views.span}]{cpp23standard}.
 
