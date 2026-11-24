@@ -13,11 +13,12 @@ rule3-no-mutual-recursion    tools/jlt-lint/fixtures/rule3-mutual.cpp  jlt_listi
 # their loops, which the loop rule passes, and five near-misses of the
 # aliasing conditions, which rule1-local-state refuses (a reference local, an
 # index not provably in range, two writes in one expression, a reference
-# capture that writes, swap of an array with itself).
+# capture that writes, swap of an array with itself, a local with no
+# initialiser, an array default-constructed).
 rule3-no-loops               tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
 rule3-no-self-recursion      tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
 rule3-no-mutual-recursion    tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
-rule1-local-state            tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  5
+rule1-local-state            tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  7
 rule1-lvalue-reference-params tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
 rule1-no-reference-returns   tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
 rule1-no-escaping-reference-captures tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0

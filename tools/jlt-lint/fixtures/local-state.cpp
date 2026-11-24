@@ -8,7 +8,7 @@
 // correctness, tested whenever the file is parsed; the rules judge only
 // whether the code can be read as a pure function.
 //
-// rule1-local-state refuses the five near-misses, one finding each, and
+// rule1-local-state refuses the seven near-misses, one finding each, and
 // nothing else here: Fibonacci, the LU solve and the sound twins pass, the
 // LU's pivot index bounded by the values it is assigned.  Standalone, no
 // imports, so it is checked without the build.
@@ -162,6 +162,29 @@ constexpr double swapped_with_another() {  // sound
   std::array<double, 2> v{1, 2}, w{3, 4};
   std::swap(v, w);
   return v[0];
+}
+
+// Written before it is read: a local with no initialiser.  Refused.
+constexpr std::size_t uninitialised(bool b) {
+  std::size_t x;
+  if (b) x = 1;
+  return b ? x : 0;
+}
+constexpr std::size_t initialised(bool b) {  // sound
+  std::size_t x = 0;
+  if (b) x = 1;
+  return x;
+}
+// An array default-constructed, its elements indeterminate.  Refused.
+constexpr std::size_t indeterminate() {
+  std::array<std::size_t, 3> r;
+  r[0] = 1;
+  return r[0];
+}
+constexpr std::size_t value_initialised() {  // sound
+  std::array<std::size_t, 3> r{};
+  r[0] = 1;
+  return r[0];
 }
 
 }  // namespace jlt_listing

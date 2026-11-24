@@ -3823,7 +3823,9 @@ class Definitions : public clang::ASTConsumer {
 ///     condition or an argument;
 ///   - a lambda capturing a mutable local by reference;
 ///   - swap of a variable of array type with itself (undefined for an array
-///     by the precondition of swap_ranges; two scalars, even one, are fine).
+///     by the precondition of swap_ranges; two scalars, even one, are fine);
+///   - a mutable local with no initialiser that writes it, read before it is
+///     written perhaps (none, or a trivial default construction).
 class LocalState : public clang::ASTConsumer {
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
@@ -4006,6 +4008,19 @@ class LocalState : public clang::ASTConsumer {
       bool VisitVarDecl(clang::VarDecl* v) {
         if (v->hasLocalStorage() && v->getType()->isReferenceType() && v->getInit())
           if (mutableLocal(base(v->getInit()))) (*report)(v->getLocation());
+        // Written before it is read: a mutable local has an initialiser that
+        // writes it, not none and not a trivial default construction, which
+        // leaves scalar elements indeterminate (std::array<T, N> r;).  At
+        // compile time C++ refuses to read such a value, at run time the read
+        // is undefined: the two evaluations would part.
+        if (mutableLocal(v) && !llvm::isa<clang::ParmVarDecl>(v)) {
+          const auto* c = llvm::dyn_cast_or_null<clang::CXXConstructExpr>(
+              v->getInit() ? v->getInit()->IgnoreImplicit() : nullptr);
+          if (!v->getInit() ||
+              (c && c->getConstructor()->isDefaultConstructor() &&
+               c->getConstructor()->isTrivial()))
+            (*report)(v->getLocation());
+        }
         return true;
       }
       bool VisitCXXForRangeStmt(clang::CXXForRangeStmt* s) {
