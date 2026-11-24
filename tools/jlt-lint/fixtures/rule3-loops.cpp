@@ -146,6 +146,20 @@ constexpr std::size_t wide_bound(int k) {
   return s;
 }
 
+// In a template, judged as written, once, whatever its instantiations.
+template <typename T>
+constexpr T counted_in_template(T x) {
+  for (std::size_t i = 0; i < 4; ++i) x = x + x;  // sound
+  return x;
+}
+template <typename T>
+constexpr T halved_in_template(T x) {
+  while (x > 1) x = x / 2;  // finding 15, once, though instantiated twice
+  return x;
+}
+static_assert(counted_in_template(1) == 16 && counted_in_template(1uz) == 16uz);
+static_assert(halved_in_template(9) == 1 && halved_in_template(9uz) == 1uz);
+
 // A range with no size: its end is not known before the first step.
 struct Unsized {
   struct It {
