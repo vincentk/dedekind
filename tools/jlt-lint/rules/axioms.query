@@ -6,4 +6,4 @@
 # listed.  Reported with its locations, as Coq's Print Assumptions and Lean's
 # #print axioms list what a development rests on; gated only on the fixture,
 # which proves the matcher tells the forms apart.
-match varDecl(isExplicitTemplateSpecialization(), unless(has(templateTypeParmDecl())), unless(has(nonTypeTemplateParmDecl())), unless(has(templateTemplateParmDecl())), hasInitializer(ignoringParenImpCasts(cxxBoolLiteral(equals(true)))), isExpansionInMainFile(), hasAncestor(scope))
+match varDecl(isExpansionInMainFile(), isExplicitTemplateSpecialization(), unless(has(templateTypeParmDecl())), unless(has(nonTypeTemplateParmDecl())), unless(has(templateTemplateParmDecl())), hasInitializer(ignoringParenImpCasts(cxxBoolLiteral(equals(true)))), hasAncestor(scope))

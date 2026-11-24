@@ -5,4 +5,4 @@
 # one.  Exempt: the standard iterator protocol (a nested iterator or
 # sentinel, by exact name), which Rule 3's folds run on.  Blind spot: decltype(auto) in a
 # template pattern is undeduced and not seen.
-match functionDecl(returns(hasCanonicalType(referenceType())), unless(anyOf(isImplicit(), isDefaulted(), isDeleted(), cxxMethodDecl(ofClass(cxxRecordDecl(isLambda()))), cxxMethodDecl(ofClass(cxxRecordDecl(matchesName("::(const_)?iterator$|::sentinel$")))))), isExpansionInMainFile(), hasAncestor(scope))
+match functionDecl(isExpansionInMainFile(), returns(hasCanonicalType(referenceType())), unless(anyOf(isImplicit(), isDefaulted(), isDeleted(), cxxMethodDecl(ofClass(cxxRecordDecl(isLambda()))), cxxMethodDecl(ofClass(cxxRecordDecl(matchesName("::(const_)?iterator$|::sentinel$")))))), hasAncestor(scope))

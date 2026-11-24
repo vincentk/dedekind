@@ -7,4 +7,4 @@
 # expressions (of the parameter, the template, or the function) only with
 # implicit nodes, hence the traversal.  Exempt: deleted primaries, lambdas.
 set traversal AsIs
-match functionTemplateDecl(has(templateTypeParmDecl(unless(has(expr())))), unless(has(expr())), unless(has(functionDecl(has(expr())))), unless(has(functionDecl(isDeleted()))), unless(hasParent(cxxRecordDecl(isLambda()))), isExpansionInMainFile(), hasAncestor(scope))
+match functionTemplateDecl(isExpansionInMainFile(), has(templateTypeParmDecl(unless(has(expr())))), unless(has(expr())), unless(has(functionDecl(has(expr())))), unless(has(functionDecl(isDeleted()))), unless(hasParent(cxxRecordDecl(isLambda()))), hasAncestor(scope))

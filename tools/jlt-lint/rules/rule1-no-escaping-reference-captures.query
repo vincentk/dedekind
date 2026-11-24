@@ -9,4 +9,4 @@
 # stored into a member or global outside a return, and would flag a returned
 # lambda that a non-std function calls at once.
 set traversal AsIs
-match lambdaExpr(has(cxxRecordDecl(isLambda(), has(fieldDecl(hasType(referenceType()))))), hasAncestor(returnStmt()), unless(hasAncestor(callExpr(callee(functionDecl(matchesName("^::std::(visit|invoke|apply)$|^::std::ranges::__[a-z_]+(::__fn)?::operator\(\)$")))))), unless(hasAncestor(cxxOperatorCallExpr(hasOverloadedOperatorName("()"), hasArgument(0, ignoringImplicit(lambdaExpr()))))), unless(hasAncestor(callExpr(callee(expr(ignoringParenImpCasts(lambdaExpr())))))), isExpansionInMainFile(), hasAncestor(scope))
+match lambdaExpr(isExpansionInMainFile(), has(cxxRecordDecl(isLambda(), has(fieldDecl(hasType(referenceType()))))), hasAncestor(returnStmt()), unless(hasAncestor(callExpr(callee(functionDecl(matchesName("^::std::(visit|invoke|apply)$|^::std::ranges::__[a-z_]+(::__fn)?::operator\(\)$")))))), unless(hasAncestor(cxxOperatorCallExpr(hasOverloadedOperatorName("()"), hasArgument(0, ignoringImplicit(lambdaExpr()))))), unless(hasAncestor(callExpr(callee(expr(ignoringParenImpCasts(lambdaExpr())))))), hasAncestor(scope))
