@@ -200,4 +200,9 @@ constexpr std::size_t comma_sequenced() {
 }
 static_assert(built<int>() == 1 && comma_sequenced() == 2);
 
+// Not refused: an index that is a constant, an enumerator.
+enum Slot : std::size_t { first, second };
+constexpr std::size_t by_enumerator(std::array<std::size_t, 2> p) { return p[second]; }
+static_assert(by_enumerator({1, 2}) == 2);
+
 }  // namespace jlt_listing

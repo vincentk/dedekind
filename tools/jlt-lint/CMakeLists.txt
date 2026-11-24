@@ -87,6 +87,17 @@ add_jlt_lint_part(fixtures)
 # workers over every file, so no part waits for another part's last files.
 # (Part by part, in sequence, the lint took four times as long: each part's
 # pool idled on its tail, and a small layer used few of the cores.)
+# The paper's generated tables are compared on Linux, the platform CI decides
+# on; on macOS they are printed only, so that a difference between the two
+# standard libraries shows in the log without failing the build (one unit has
+# a definition more under libc++).
+if(APPLE)
+  set(_jlt_summary_check)
+  set(_jlt_table_check)
+else()
+  set(_jlt_summary_check --check ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/summary-table.tex)
+  set(_jlt_table_check --check ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/lint-table.tex)
+endif()
 add_custom_target(lint
     # The report is this run's or none: an earlier pass's report goes first.
     COMMAND ${CMAKE_COMMAND} -E rm -f ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
@@ -105,13 +116,11 @@ add_custom_target(lint
     # The paper's summary of the levels over the listings, the library and
     # Catch2: compared, so that it cannot drift from the code.
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/summary.py
-            --levels ${_jlt_parts}/all-levels.json
-            --check ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/summary-table.tex
+            --levels ${_jlt_parts}/all-levels.json ${_jlt_summary_check}
     # The paper's table of the checks on the library is the report's: compared,
     # so that it cannot drift from the code.
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/table.py
-            --report ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
-            --check ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/lint-table.tex
+            --report ${CMAKE_BINARY_DIR}/jlt-lint/report.txt ${_jlt_table_check}
     # The shallow scan's premise, tested on the fixtures: both scans agree.
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scan.py ${_jlt_tool}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

@@ -3769,7 +3769,20 @@ class Definitions : public clang::ASTConsumer {
             const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(d);
             if (ns && ns->getName() == scope &&
                 sm.isInMainFile(sm.getExpansionLoc(ns->getLocation()))) {
-              for (clang::Decl* m : ns->decls()) report(m, sm, policy);
+              // Its declarations, and those of the namespaces nested in it
+              // (detail and the like), as the second stage judges them.
+              std::function<void(const clang::DeclContext*)> members =
+                  [&](const clang::DeclContext* c) {
+                    for (clang::Decl* m : c->decls()) {
+                      if (llvm::isa<clang::NamespaceDecl, clang::ExportDecl,
+                                    clang::LinkageSpecDecl>(m) &&
+                          sm.isInMainFile(sm.getExpansionLoc(m->getLocation())))
+                        members(llvm::cast<clang::DeclContext>(m));
+                      else
+                        report(m, sm, policy);
+                    }
+                  };
+              members(ns);
               return;
             }
             if (const auto* c = llvm::dyn_cast<clang::DeclContext>(d))
@@ -3922,12 +3935,21 @@ class LocalState : public clang::ASTConsumer {
     std::set<const clang::VarDecl*> unbounded;
     // Per counter of a counted for: its initialiser and its bound.
     std::map<const clang::VarDecl*, std::pair<const clang::Expr*, const clang::Expr*>> counters;
+    const clang::ASTContext* ctx = nullptr;
   };
   static std::optional<Interval> interval(const clang::Expr* e, const Values& vs,
                                           std::set<const clang::VarDecl*>& seen,
                                           int depth = 0) {
     if (!e || depth > 32) return std::nullopt;
     e = e->IgnoreParenImpCasts();
+    // A constant expression has its value: a literal, an enumerator
+    // (p[ArrowLaw::Monotone]), a constexpr variable.
+    if (vs.ctx && !e->isValueDependent() && e->getType()->isIntegralOrEnumerationType())
+      if (auto v = e->getIntegerConstantExpr(*vs.ctx))
+        if (v->getSignificantBits() <= 62) {
+          const long long x = v->getExtValue();
+          return Interval{x, x};
+        }
     if (const auto* i = llvm::dyn_cast<clang::IntegerLiteral>(e)) {
       if (!i->getValue().isIntN(62)) return std::nullopt;
       const long long v = static_cast<long long>(i->getValue().getZExtValue());
@@ -3988,6 +4010,7 @@ class LocalState : public clang::ASTConsumer {
   template <typename Report>
   void check(const clang::FunctionDecl* f, clang::ASTContext& ctx, Report report) {
     Values vs;
+    vs.ctx = &ctx;
     // The facts a first walk gathers: the values scalar locals are given,
     // the counted loops' counters.
     struct Gather : clang::RecursiveASTVisitor<Gather> {
