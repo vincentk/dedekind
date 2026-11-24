@@ -108,6 +108,44 @@ constexpr std::size_t no_condition(std::size_t n) {
   }
 }
 
+// Holes Copilot found on #1214, each a finding.
+constexpr std::size_t aliased(std::size_t n) {
+  std::size_t s = 0;
+  for (std::size_t i = 0; i < n; ++i) {  // finding 10
+    std::size_t& alias = i;  // a second name for the counter
+    alias = 0;
+    s += 1;
+  }
+  return s;
+}
+constexpr std::size_t narrow() {
+  std::size_t s = 0;
+  for (unsigned char i = 0; i < 256; ++i) s += i;  // finding 11: i < 256 in int
+  return s;
+}
+constexpr std::size_t back(std::size_t n) {
+  for (std::size_t i = 0; i < n; ++i) --i;  // finding 12: the body is the write
+  return n;
+}
+constexpr std::size_t once_only(std::size_t n) {
+  for (std::size_t i = 0; i < n; ++i) break;  // finding 13: the body is the jump
+  return n;
+}
+constexpr std::size_t captured(std::size_t n) {
+  std::size_t s = 0;
+  for (std::size_t i = 0; i < n; ++i) {  // finding 14
+    auto reset = [&] { i = 0; };  // the counter, captured by reference
+    reset();
+    s += 1;
+  }
+  return s;
+}
+constexpr std::size_t wide_bound(int k) {
+  std::size_t s = 0;
+  for (std::size_t i = 0; i < 4; ++i) s += static_cast<std::size_t>(k);  // sound
+  return s;
+}
+
 // A range with no size: its end is not known before the first step.
 struct Unsized {
   struct It {

@@ -36,6 +36,26 @@ constexpr int through(int n) {  // mutual 7
   return n == 0 ? 0 : std::invoke(Again{}, n - 1);
 }
 
+// mutual 8, 9: a cycle through a constructor's member initialiser (Copilot on
+// #1214): the constructor calls make, make constructs a Wrapped.
+constexpr int make(int n);
+struct Wrapped {
+  int v;
+  constexpr explicit Wrapped(int n) : v(n == 0 ? 0 : make(n - 1)) {}  // mutual 8
+};
+constexpr int make(int n) { return Wrapped(n).v; }  // mutual 9
+
+// Not mutual: a call in an operand that is not evaluated calls nothing.
+constexpr int measured();
+constexpr int sized() { return static_cast<int>(sizeof(measured())); }
+constexpr int measured() { return sized(); }
+constexpr int typed();
+constexpr int declared() {
+  decltype(typed()) x = 0;
+  return x;
+}
+constexpr int typed() { return declared(); }
+
 }  // namespace jlt_listing
 
 inline int h_odd(int n);

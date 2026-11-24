@@ -43,7 +43,11 @@ def main():
                     f"--query={','.join(str(q) for q in queries)}",
                     f"--check={','.join(checks)}", str(fixture),
                     "--", "-std=c++23", "-xc++", *jlt_lint.RESOURCE_DIR, *sys.argv[2:]]
-            out[mode] = subprocess.run(args, capture_output=True, text=True).stdout
+            run = subprocess.run(args, capture_output=True, text=True)
+            if run.returncode != 0:
+                sys.exit(f"scan.py: {fixture.name}, --scan={mode}: the tool failed, exit "
+                         f"{run.returncode}\n" + run.stderr[:2000])
+            out[mode] = run.stdout
         if out["shallow"] != out["deep"]:
             differ.append(fixture.name)
     if differ:

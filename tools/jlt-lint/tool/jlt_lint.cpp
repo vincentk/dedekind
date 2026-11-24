@@ -196,6 +196,25 @@ class MutualRecursion : public clang::ASTConsumer {
     struct Callees : clang::RecursiveASTVisitor<Callees> {
       std::vector<F> found;
       bool shouldVisitImplicitCode() const { return true; }
+      // An operand that is not evaluated calls nothing (Copilot on #1214).
+      bool TraverseUnaryExprOrTypeTraitExpr(clang::UnaryExprOrTypeTraitExpr*,
+                                            DataRecursionQueue* = nullptr) {
+        return true;
+      }
+      bool TraverseCXXNoexceptExpr(clang::CXXNoexceptExpr*,
+                                   DataRecursionQueue* = nullptr) {
+        return true;
+      }
+      bool TraverseRequiresExpr(clang::RequiresExpr*,
+                                DataRecursionQueue* = nullptr) {
+        return true;
+      }
+      bool TraverseCXXTypeidExpr(clang::CXXTypeidExpr* e,
+                                 DataRecursionQueue* q = nullptr) {
+        return !e->isPotentiallyEvaluated() ||
+               clang::RecursiveASTVisitor<Callees>::TraverseCXXTypeidExpr(e, q);
+      }
+      bool TraverseDecltypeTypeLoc(clang::DecltypeTypeLoc, bool) { return true; }
       bool VisitCallExpr(clang::CallExpr* c) {
         if (F f = c->getDirectCallee()) found.push_back(f);
         return true;
@@ -218,6 +237,11 @@ class MutualRecursion : public clang::ASTConsumer {
       if (!def || !def->hasBody() || def->isDependentContext()) continue;
       Callees callees;
       callees.TraverseStmt(def->getBody());
+      // A constructor's base, member and delegating initialisers call too
+      // (Copilot on #1214).
+      if (const auto* ctor = llvm::dyn_cast<clang::CXXConstructorDecl>(def))
+        for (const clang::CXXCtorInitializer* init : ctor->inits())
+          callees.TraverseStmt(init->getInit());
       for (F g : callees.found) {
         out.push_back(g->getCanonicalDecl());
         if (!edges.count(g->getCanonicalDecl()))
@@ -2757,6 +2781,13 @@ bool perConcept(std::map<const clang::ConceptDecl*, int>& memo,
   return r;
 }
 std::map<const clang::ConceptDecl*, int> lawMemo, negationMemo;
+/// The memo is keyed by declarations of one AST: cleared for every new one
+/// (the first parse and each admission reparse), so that a concept of a later
+/// AST at a reused address cannot inherit an answer (Copilot on #1214).
+void forgetConcepts() {
+  lawMemo.clear();
+  negationMemo.clear();
+}
 
 bool readsLaw(const clang::Expr* e, int depth = 0) {
   if (!e || depth > 16) return false;
@@ -2827,6 +2858,7 @@ class MarkedUse : public clang::ASTConsumer {
  public:
   explicit MarkedUse(Selection& sel) : sel(sel) {}
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    forgetConcepts();
     struct Find : clang::RecursiveASTVisitor<Find> {
       Selection& sel;
       explicit Find(Selection& s) : sel(s) {}
@@ -3564,6 +3596,7 @@ class Admission : public clang::ASTConsumer {
  public:
   explicit Admission(Outcome::Kind view) : view(view) {}
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    forgetConcepts();
     const clang::SourceManager& sm = ctx.getSourceManager();
     // Shared by the two views of one file, never across files.
     static std::map<std::string, std::vector<std::pair<std::string, Outcome>>>
