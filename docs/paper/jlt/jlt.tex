@@ -82,6 +82,7 @@ Under the rules of this paper and a check that a tool performs, some templates c
 What was taken on trust, in the spellings the tool reads, comes out as a list.
 
 This paper characterises a fragment of \Cpp{23} as it ships, with no language modification or compiler extension, and no tool required to compile it: a fragment whose generic definitions have types of the prenex fragment of System~F and whose programs are ordinary \Cpp{23} programs.
+Jlt is the part of the \Cpp{} that can be evaluated at compile time in which every definition also has a meaning in System~F, and constant evaluation, which every compiler performs, is the reference that tests it.
 The fragment is type-class-style code under three rules, called the Juliet Posture (Jlt):
 i) values are copyable data and functions are pure and evaluable at compile time;
 ii) generic code varies with a type only through that type's concepts and traits;
@@ -100,7 +101,7 @@ The paper also exhibits a \Cpp{20} program in which a generic function's result 
 
 The evidence presented is
 a) the results the image inherits, cited from the literature,
-b) a linter that refuses by name what breaks the three rules and admits by type what it does not refuse,
+b) a linter that decides, definition by definition and with its reason, whether a definition is shown to be in Jlt: refused by name where it breaks a rule, admitted by type where its body type-checks at archetypes of its signature, undecided otherwise, on the library and on Catch2, a library not written under the rules, by the same rules,
 c) a library in a public repository whose modules the linter checks, all but twelve that only re-export, and
 d) listings checked by the repository's tests, at compile time and, all but one, at run time.
 The claim is one of existence: \Cpp{23} already contains an embedding of a fragment of System~F.
