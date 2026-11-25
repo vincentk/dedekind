@@ -478,6 +478,20 @@ constexpr std::size_t consumed_view() {
                                 std::plus<>{});
 }
 static_assert(consumed_view() == 9);
+// The view handed to a function of the program, in a template, as Listing 4's
+// free_theorem does: the function takes it by value and returns a value, so
+// passed_view has no finding of rule1-local-state (it is refused by Rule 2
+// alone).  first_element has one of its own: begin() on its parameter is a
+// member call that is not const.
+template <typename R>
+constexpr std::size_t first_element(R r) {
+  return *r.begin();
+}
+template <typename R>
+constexpr bool passed_view(R r) {  // sound
+  return first_element(std::views::transform(r, [](std::size_t x) { return x; })) == first_element(r);
+}
+static_assert(passed_view(std::array{1uz, 2uz}));
 static_assert(written_through_temporary() == 0 &&
               written_through_comma() == 1 && written_by_lambda() == 9 && half(4) == 2uz);
 

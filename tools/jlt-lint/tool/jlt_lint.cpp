@@ -4482,8 +4482,9 @@ class LocalState : public clang::ASTConsumer {
       }
       /// Whether the value of a call leaves the full expression it is in, as
       /// a view still referring to a local: returned, or kept in a variable,
-      /// through any further views.  A call of another kind on the way, a
-      /// fold that returns a value, consumes it there.
+      /// through further views of the standard only.  Anything else on the
+      /// way consumes it there: a fold, a function of the program (which
+      /// takes it by value, Rule 1), a comparison.
       bool escapes(const clang::Expr* call) const {
         clang::DynTypedNode n = clang::DynTypedNode::create(*call);
         for (int k = 0; k < 32; ++k) {
@@ -4493,20 +4494,25 @@ class LocalState : public clang::ASTConsumer {
           if (n.get<clang::ReturnStmt>() || n.get<clang::VarDecl>() || n.get<clang::DeclStmt>()) return true;
           const auto* e = n.get<clang::Expr>();
           if (!e) return false;
+          if (llvm::isa<clang::ImplicitCastExpr, clang::ParenExpr, clang::MaterializeTemporaryExpr,
+                        clang::CXXBindTemporaryExpr, clang::ExprWithCleanups, clang::CXXConstructExpr>(e))
+            continue;
           if (const auto* c = llvm::dyn_cast<clang::CallExpr>(e)) {
-            const auto ds = namedBy(c->getCallee());
-            const clang::NamedDecl* g = c->getDirectCallee();
-            const bool folds = (g && g->getIdentifier() && g->getName() == "fold_left") ||
-                               std::any_of(ds.begin(), ds.end(), [](const clang::NamedDecl* d) {
-                                 return d->getIdentifier() && d->getName() == "fold_left";
-                               });
-            if (folds) return false;
-            const clang::QualType t = c->getType();
-            if (!t->isDependentType()) {
-              const auto* r = t->getAsCXXRecordDecl();
-              if (!r || !inStd(r)) return false;  // a value, not a view
-            }
+            // A view of a view, views::take(v, 2) or v | views::take(2).
+            std::vector<const clang::NamedDecl*> ds = namedBy(c->getCallee());
+            if (const clang::NamedDecl* g = c->getDirectCallee()) ds.push_back(g);
+            if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(c);
+                o && o->getOperator() == clang::OO_Call && o->getNumArgs() > 0)
+              ds = namedBy(o->getArg(0));
+            const bool view = !ds.empty() && std::all_of(ds.begin(), ds.end(), [](const clang::NamedDecl* d) {
+              if (!inStd(d)) return false;
+              const std::string q = d->getQualifiedNameAsString();
+              return q.find("views::") != std::string::npos ||
+                     (d->getIdentifier() == nullptr && q.find("ranges") != std::string::npos);
+            });
+            if (view) continue;
           }
+          return false;
         }
         return false;
       }

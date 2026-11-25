@@ -69,3 +69,5 @@ half Jlt
 overwrite_const refused
 dangling_view refused
 consumed_view refused
+first_element refused
+passed_view refused
