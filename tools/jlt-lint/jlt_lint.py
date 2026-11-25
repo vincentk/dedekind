@@ -238,6 +238,10 @@ def header_entry(entries, header):
             continue
         else:
             out.append(a)
+    # The control from the standard library is libc++ wherever the build runs
+    # (stage_stdlib.py), so its headers are read against libc++.
+    if "/_deps/stdlib-ranges/" in str(header):
+        out = [a for a in out if not a.startswith("-stdlib=")] + ["-stdlib=libc++"]
     return {"directory": near["directory"], "file": header,
             "arguments": out + ["-xc++", "-fsyntax-only", header]}
 
