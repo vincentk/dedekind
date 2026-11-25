@@ -79,12 +79,13 @@ Where a definition is undecided, that it means what its signature says rests on 
 \small
 \begin{tabular}{@{}l rrrrr c@{}}
 \toprule
- & definitions & FJlt & Jlt & refused & undecided & function templates by type \\
+ & definitions & FJlt & Jlt & refused & undecided & function templates \\
+ & & \multicolumn{4}{c}{in per cent of the definitions} & by type \\
 \midrule
 \lintinput generated/summary-table.tex
 \bottomrule
 \end{tabular}
-\caption{The levels of Table~\ref{tab:levels}, summed: for each body of code its definitions in FJlt, in Jlt, refused and undecided, and of its function templates those the type check admits, does not admit, and leaves undecided.
+\caption{The levels of Table~\ref{tab:levels}, summed: for each body of code the number of its definitions, the share of them in FJlt, in Jlt, refused and undecided, in per cent, and of its function templates the number the type check admits, does not admit, and leaves undecided.
 The sources are \texttt{tools/jlt-lint/scope} and the report of the build.}
 \label{tab:summary}
 \end{table}

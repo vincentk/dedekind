@@ -5,9 +5,10 @@ each file's definitions with their level, by levels.py's classify, the same
 computation as Table 6) and sums them for each body of code: the listings,
 the library, and Catch2, a library not written under the rules, its headers
 and its sources apart.  Per body:
-the definitions, how many are in FJlt, in Jlt, refused and undecided, and of
-the function templates how many the type check admits, does not admit, or
-leaves undecided.
+the number of definitions, the share of them in FJlt, in Jlt, refused and
+undecided, in per cent so that the rows compare, and of the function
+templates how many the type check admits, does not admit, or leaves
+undecided.
 
     python3 tools/jlt-lint/summary.py --levels build/jlt-lint/parts/all-levels.json [--latex OUT] [--check OUT]
 
@@ -51,9 +52,22 @@ def rows(levels):
                     by_type[bt] += 1
         if not n:
             sys.exit(f"summary.py: no definitions for {name}: a whole, successful run is needed")
-        out.append(f"{name} & {n} & " + " & ".join(str(level[k]) for k in LEVELS) + " & "
-                   + " / ".join(str(by_type[k]) for k in BY_TYPE) + " \\\\")
+        out.append(row(name, n, level, by_type))
     return "\n".join(out) + "\n"
+
+
+def percent(k, n):
+    """A share in per cent, whole; a share that is not zero is not shown as 0."""
+    p = 100 * k / n
+    return "0" if k == 0 else "<1" if p < 0.5 else str(round(p))
+
+
+def row(name, n, level, by_type):
+    """One body of code: its number of definitions, each level as a share of
+    them in per cent, so that rows compare, and its function templates by the
+    type check's outcome, as counts."""
+    return (f"{name} & {n} & " + " & ".join(percent(level[k], n) for k in LEVELS) + " & "
+            + " / ".join(str(by_type[k]) for k in BY_TYPE) + " \\\\")
 
 
 def reasons(levels, top=8):
