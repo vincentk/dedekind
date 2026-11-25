@@ -35,7 +35,13 @@ Parametric polymorphism, type classes and structural recursion let a functional 
 \Cpp{23}, which runs much of machine learning and most embedded devices, has the material for them: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
 It does not hold a generic function to its declared constraints: the body may use any operation its type argument happens to have.
 
-% THE PROMISE (agreed 2026-11-20).  The sentence below is what the paper offers
+% THE ABSTRACT was redrafted on 2026-11-25 in the shape of the Featherweight
+% line of abstracts, one move a sentence, each statement once: lineage, the
+% reduction, kernel and sugar, what is established and how, utility (laws,
+% the linter, where it was run), what is new.  The promise below is no longer
+% its opening sentence; it is carried by the last two paragraphs.
+%
+% THE PROMISE (agreed 2026-11-20).  The sentence was what the paper offers
 % its reader, a C++ programmer who knows the theory and cannot use it at work.
 % If the paper strays from it, the sentence is false and must not stay.
 %
@@ -64,22 +70,22 @@ It does not hold a generic function to its declared constraints: the body may us
 % jlt-lint recovers part of the difference, inside the fragment).  Still to be
 % said once: concept maps are not recovered.
 %
-% WHERE THE SENTENCE IS NOT YET SHOWN (was: where the lie stands; reviewed
-% 2026-11-25).  The sentence below is true where it is proved, argued and
+% WHERE THE ABSTRACT IS NOT YET SHOWN (was: where the lie stands; reviewed
+% 2026-11-25).  The abstract below is true where it is proved, argued and
 % tested, or listed as trusted; the work is to make the rest smaller.  Update
 % this list as it shrinks.
-%   - "some templates can then be classified as meaning what their
-%     signatures say": built, run and gated in CI on the listings and on the
+%   - "classifies each definition ... as shown to be in Jlt", for a
+%     template that it means what its signature says: built, run and gated in CI on the listings and on the
 %     whole library (#1211 to #1214); what it means rests on the conjecture
 %     of Section 4, which the paper states as one.  Not yet shown: the
 %     guarantee assumes that an entry stands above every use, and of the
 %     three conditions on the order of declarations the linter checks one in
 %     part (context-order, bare heads); the rest is a TODO of the linter.
-%   - "what was taken on trust comes out as a list": true for axioms and
+%   - "it lists the laws the code takes on trust": true for axioms and
 %     conditional laws (axioms.txt, laws.txt, #1213).  The laws the compiler
 %     derives from them at a use, and units named at a use, are not listed.
-%   - "every definition also has a meaning in System F" (the next paragraph):
-%     true of the kernel, and of a derived form whose condition has a check.
+%   - "the rest of Jlt is sugar ... that desugars into the kernel": true of
+%     a derived form whose condition has a check.
 %     The audit of 2026-11-25 (#1219) found rows of the table of derived
 %     forms whose condition nothing enforced; four are now checked, and what
 %     has no row or no check yet is classed undecided by the linter, not Jlt:
@@ -87,34 +93,21 @@ It does not hold a generic function to its declared constraints: the body may us
 %     are to be written, each argued and tested, not proved.
 %   Gone from this list: the results about the target (Section 3) are now
 %   checked against a written-out kernel, Appendices B to E.
-Under the rules of this paper and a check that a tool performs, some templates can then be classified as meaning what their signatures say, a declared law licenses a faster program, and the compiler carries laws through composition.
-What was taken on trust, in the spellings the tool reads, comes out as a list.
+\Cpp{} is a mainstream language with zero-overhead abstraction but few guarantees about generic code; System~F offers those guarantees, and Haskell's type classes are the established way for overloading to reach it.
 
-This paper characterises a fragment of \Cpp{23} as it ships, with no language modification or compiler extension, and no tool required to compile it: a fragment whose generic definitions have types of the prenex fragment of System~F and whose programs are ordinary \Cpp{23} programs.
-Jlt is a part of the \Cpp{} that can be evaluated at compile time in which every definition also has a meaning in System~F, and constant evaluation, which every compiler performs, is the reference it is tested against.
-The fragment is type-class-style code under three rules, called the Juliet Posture (Jlt):
-i) values are copyable data and functions are pure and evaluable at compile time;
-ii) generic code varies with a type only through that type's concepts and traits;
-iii) recursion is structural, over a type or over a value, in a number of steps bounded before the first step.
-The posture is meant as a route a team can take through \Cpp{23}, checked by a tool and adoptable one file and one rule at a time.
-Its kernel, Featherweight Jlt (FJlt), translates by dictionary passing, as Haskell's type classes do, into System~F extended with data types and iterators.
-The image is defined on every well-typed program, from its target it inherits termination, under stated assumptions, and parametricity, through the simulation, and an appendix shows type soundness and that FJlt's own evaluation and the image compute the same values, on paper, with the textbook cases omitted; that \Cpp{} evaluates a kernel program as FJlt does is a hypothesis.
-Jlt beyond the kernel is a set of derived forms, rewrites into the kernel that are not proved either.
+We restrict \Cpp{23} to what can be evaluated at compile time under three rules: values are copyable data and functions are pure; generic code varies with a type only through that type's concepts and traits; and recursion is bounded before its first step.
+This drops input and output, state that outlives a call, and unbounded data and computation.
+What remains, the Juliet Posture or Jlt, is ordinary \Cpp{23} with templates, concepts and overloading, and needs no extension and no tool to compile.
 
-A law about a program is an axiom, a conditional law or a derived law.
-The programmer declares the axioms and the conditional laws, the compiler takes them at face value, and it applies the conditional laws mechanically to derive the rest.
-What the programmer supplies is not proved, so it has to be listed and audited: a tool lists the declared axioms and conditional laws, in the spellings it reads.
-A law licenses an overload written for it, and overload resolution composes such overloads.
-From an axiom, through the laws derived from it, to faster code is specialisation, and one function is followed along it: the power of a monoid, which its signature permits to take as many steps as its count has bits.
-The paper also exhibits a \Cpp{20} program in which a generic function's result depends on a constraint it never declared, which dictionary passing, as in Haskell, rules out, and which Jlt's second rule forbids.
+Its kernel, Featherweight Jlt (FJlt), translates into System~F by dictionary passing, and the rest of Jlt is sugar, such as local state and loops, that desugars into the kernel.
+The translation is defined on every well-typed kernel program and proved on paper to preserve types and values; the desugaring is argued and tested, not proved; and that \Cpp{} evaluates a kernel program as the calculus does is assumed, with constant evaluation, which every compiler performs, as the reference it is tested against.
 
-The evidence presented is
-a) the results the image inherits, cited from the literature,
-b) a linter that decides, definition by definition and with its reason, whether a definition is shown to be in Jlt: refused by name where it breaks a rule, admitted by type where its body type-checks at archetypes of its signature, undecided otherwise, on the library and on Catch2, a library not written under the rules, by the same rules,
-c) a library in a public repository whose modules the linter checks, all but twelve that only re-export, and
-d) listings checked by the repository's tests, at compile time and, all but one, at run time.
-The claim is one of existence: \Cpp{23} already contains an embedding of a fragment of System~F.
-The compiler enforces the rules where the standard requires a check, and the programmer keeps them elsewhere.
+Laws are stated as plain \Cpp{} traits, and a declared law licenses a faster program through specialisation and constant folding.
+We present a linter with an extensible rule book.
+It scans a \Cpp{} code base and classifies each definition, with its reason, as shown to be in Jlt, not shown to be, or undecided, and it lists the laws the code takes on trust.
+We apply it to the library whose development motivated Jlt and to Catch2, a well-known third-party library, and report the classifications.
+
+What is new is not the theory but where it applies: guarantees about generic code can be established in existing \Cpp{}, one file at a time, with an unmodified toolchain whose own constant evaluation is the reference, and without giving up zero-overhead abstraction.
 \end{abstract}
 
 % Section skeleton (#981).  Each section names what it must establish; prose
