@@ -64,10 +64,9 @@ In the library, most of what is open is six kinds: string literals, most of them
 
 \subsection{Admission by type}
 \label{app:lint:admit}
-% STATUS: the second stage runs in CI on the paper's listings, its fixtures
-% and the category layer of the library (rules rule2-by-type,
-% undecided-by-type and admitted, gated per file); on the other layers it has
-% yet to run.
+% STATUS (2026-11-25): the second stage runs in CI on the paper's listings,
+% its fixtures and the whole library (rules rule2-by-type, undecided-by-type
+% and admitted, gated per file).
 
 The second stage of Section~\ref{sec:check} admits a constrained template, whether or not a deny-rule refuses it, when its body type-checks at archetypes of the shapes in its signature.
 It gives every type parameter an archetype by reading the shapes that constrain it, by one rule for each kind of requirement a shape may have (Table~\ref{tab:archetype-rules}).
@@ -129,6 +128,7 @@ The undecided are the generator's coverage, not findings: parameters of template
 Table~\ref{tab:summary} counts definitions, as Table~\ref{tab:levels} does for the listings, and by the same rule.
 A definition is a declaration directly in the namespace judged, as the check \texttt{definitions} reports it with its lines and the kinds of syntax it uses.
 It is refused when a deny-rule finds something in its lines, when it uses a kind that \texttt{tools/jlt-lint/admission.txt} refuses, or when the type check does not admit it; undecided when it uses a kind still open or the type check leaves it undecided; in Jlt when every kind is kernel, scaffolding or a derived form and some is a derived form; and in FJlt otherwise.
+The table's last column counts definitions as well, each once, by the first outcome the type check gives within its lines, so its total, 742 for the library, is below the 748 function templates the type check reads there.
 The level is computed in the build's one run of the linter, for every file in scope, by the function that gives Table~\ref{tab:levels} its rows (\texttt{tools/jlt-lint/levels.py}), and summed for each body of code by \texttt{tools/jlt-lint/summary.py}.
 The listings are the namespace of Listings~\ref{lst:motivation} to~\ref{lst:theorems}; the library is its module units in scope; Catch2 is the sources it compiles, the \texttt{.cpp} files, since the linter judges what a file declares and Catch2's headers are not yet judged as files of their own.
 A kind is coarser than the grammar, so a level counts what a definition writes, not everything it means: the deny-rules and the type check supply the rest.

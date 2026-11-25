@@ -365,9 +365,6 @@ named_power = ΛE. ΛT. ΛOp. λq : HasPower T. λx. λn. q.power x n
 Left: the two callers. Right: a false axiom, planted, and their tests. Below: their images.}
 \label{lst:declare}
 \end{listing}
-% TODO(listings): code from the probe (namespace triple_probe).  The
-% refusal of guessed_power is a rule of Table tab:excluded and is to be
-% reported by the check of Section sec:check, which does not report it yet.
 
 \cppinline{guessed_power} asks for a monoid and calls \cppinline{power}.
 Which case of \cppinline{power} it gets is decided where it is used, at concrete types, by whether \cppinline{idempotent} holds there, a law its signature never named.
