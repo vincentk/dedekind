@@ -220,9 +220,13 @@ Derived:variant open
 Call:NotConstexpr refused
 # Integer division and remainder by a value, and a shift by a value: the
 # kernel has each by a constant only (not zero; below the width), where it is
-# defined at every argument.  Open until division has its row (#1221).
+# defined at every argument.  Open until division has its row (#1222).
+# A floating value converted to an integer, written out (size_t(x),
+# static_cast): undefined where the value does not fit ([conv.fpint]), so
+# partial as division is.
 Op:division-by-value open
 Op:shift-by-value open
+Op:float-to-integer open
 # A generic lambda is a template with no constraint; its row covers a lambda
 # that is not generic.
 Stmt:GenericLambda open

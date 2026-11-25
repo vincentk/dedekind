@@ -23,6 +23,8 @@ plain_lambda Jlt
 is_small FJlt
 two_types undecided
 unnamed_shape undecided
+truncated_float undecided
+truncated_static undecided
 Area FJlt
 area undecided
 Tagged FJlt

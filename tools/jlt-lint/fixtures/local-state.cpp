@@ -455,6 +455,29 @@ constexpr std::expected<std::size_t, bool> half(std::size_t n) {
   std::expected<std::size_t, bool> r = n / 2;
   return r;
 }
+// Copilot's cases on #1219.  An element written through a const span: the
+// span is const, its elements are its caller's.
+constexpr std::size_t overwrite_const(const std::span<std::size_t, 4> s) {
+  s[0] = 7;
+  return s[1];
+}
+// A view of a local returned: views::transform keeps a ref_view of an lvalue,
+// so the view outlives the array it reads.
+constexpr auto dangling_view() {
+  std::array<std::size_t, 3> r{1, 2, 3};
+  r[0] = 4;
+  return std::views::transform(r, [](std::size_t x) { return x; });
+}
+// Its twin: the view consumed by a fold inside the call.  rule1-local-state
+// is silent here; the definition is refused by Rule 3 alone, a fold whose
+// range no IsBoundedRange parameter bounds.
+constexpr std::size_t consumed_view() {
+  std::array<std::size_t, 3> r{1, 2, 3};
+  r[0] = 4;
+  return std::ranges::fold_left(std::views::transform(r, [](std::size_t x) { return x; }), 0uz,
+                                std::plus<>{});
+}
+static_assert(consumed_view() == 9);
 static_assert(written_through_temporary() == 0 &&
               written_through_comma() == 1 && written_by_lambda() == 9 && half(4) == 2uz);
 

@@ -69,7 +69,8 @@ And for those in FJlt, the program as written uses only kinds of syntax that the
 % fixtures and the whole library.
 \paragraph{At scale.}
 Table~\ref{tab:summary} sums the levels of Table~\ref{tab:levels} over four bodies of code: the listings, the library, and two libraries not written under the rules, the ranges library of the standard library~\cite{libcxx23} and Catch2~\cite{catch2v3}, a test library that the build compiles for the tests, its headers and its sources apart; the same rules give every level, and Appendix~\ref{app:lint:summary} says how.
-Every count is pinned per file and held by a ratchet, so that no admission can be lost and no refusal added without a reason written in the change; every build checks the whole library, on Linux and on macOS, within forty minutes, and compares this table with the one it computes.
+The findings of every rule on the listings and the library are pinned per file and held by a ratchet, so that none is added without a reason written in the change; the two controls are reported, not pinned.
+Every build checks the whole library, on Linux and on macOS, within forty minutes, and the build on Linux compares this table with the one it computes.
 Of the \JltCatchHeadersDefinitions{} definitions in Catch2's headers, \JltCatchHeadersShown{} are shown to be in Jlt as written, and of the \JltCatchSourcesDefinitions{} in its sources, \JltCatchSourcesShown{}.
 A refusal says how far a definition is from the rules, and not only that it does not show them: of the \JltCatchSourcesRefused{} definitions refused in the sources, \JltCatchSourcesNotConstexpr{} are not declared \cppinline{constexpr}, and \JltCatchSourcesNotConstexprAlone{} are refused for that alone.
 The ranges library is the opposite case, constrained throughout and written for constant evaluation: its refusals are nearly all Rule~1's, for forwarding references, member functions that are not \cppinline{const} and references returned.

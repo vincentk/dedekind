@@ -3834,6 +3834,13 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
           kinds.insert(divides ? "Op:division-by-value" : "Op:shift-by-value");
       }
     }
+    // A floating value converted to an integer, written out in any spelling
+    // (size_t(x), static_cast, a C cast): undefined where the value does not
+    // fit ([conv.fpint]), so partial, and open as division by a value is.
+    if (const auto* c = llvm::dyn_cast<clang::ExplicitCastExpr>(st))
+      if (c->getType()->isIntegralOrEnumerationType() && !c->isTypeDependent() &&
+          c->getSubExpr()->IgnoreParenImpCasts()->getType()->isRealFloatingType())
+        kinds.insert("Op:float-to-integer");
     // A conversion between integer types written as a call, size_t(k): the
     // count's own modular arithmetic, decided kernel (2026-11-22); any other
     // functional cast keeps its kind.
@@ -4458,6 +4465,51 @@ class LocalState : public clang::ASTConsumer {
           return {u->decls_begin(), u->decls_end()};
         return {};
       }
+      /// A reader whose result keeps a reference to a range given as an
+      /// lvalue: views::transform stores a ref_view of it.  iota and repeat
+      /// copy what they are given.
+      static bool borrows(const clang::NamedDecl* named) {
+        return named && named->getIdentifier() && inStd(named) && named->getName() == "transform" &&
+               named->getQualifiedNameAsString().find("views::") != std::string::npos;
+      }
+      static const clang::NamedDecl* readerNamed(const clang::CallExpr* c) {
+        const clang::NamedDecl* named = c->getDirectCallee();
+        if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(c))
+          if (o->getOperator() == clang::OO_Call && o->getNumArgs() > 0)
+            if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(o->getArg(0)->IgnoreParenImpCasts()))
+              named = llvm::dyn_cast<clang::VarDecl>(d->getDecl());
+        return named;
+      }
+      /// Whether the value of a call leaves the full expression it is in, as
+      /// a view still referring to a local: returned, or kept in a variable,
+      /// through any further views.  A call of another kind on the way, a
+      /// fold that returns a value, consumes it there.
+      bool escapes(const clang::Expr* call) const {
+        clang::DynTypedNode n = clang::DynTypedNode::create(*call);
+        for (int k = 0; k < 32; ++k) {
+          auto ps = ctx->getParents(n);
+          if (ps.empty()) return false;
+          n = ps[0];
+          if (n.get<clang::ReturnStmt>() || n.get<clang::VarDecl>() || n.get<clang::DeclStmt>()) return true;
+          const auto* e = n.get<clang::Expr>();
+          if (!e) return false;
+          if (const auto* c = llvm::dyn_cast<clang::CallExpr>(e)) {
+            const auto ds = namedBy(c->getCallee());
+            const clang::NamedDecl* g = c->getDirectCallee();
+            const bool folds = (g && g->getIdentifier() && g->getName() == "fold_left") ||
+                               std::any_of(ds.begin(), ds.end(), [](const clang::NamedDecl* d) {
+                                 return d->getIdentifier() && d->getName() == "fold_left";
+                               });
+            if (folds) return false;
+            const clang::QualType t = c->getType();
+            if (!t->isDependentType()) {
+              const auto* r = t->getAsCXXRecordDecl();
+              if (!r || !inStd(r)) return false;  // a value, not a view
+            }
+          }
+        }
+        return false;
+      }
       static bool reader(const clang::CallExpr* c) {
         const clang::NamedDecl* named = c->getDirectCallee();
         // A function object of the standard, views::iota(a, b): its name.
@@ -4595,10 +4647,10 @@ class LocalState : public clang::ASTConsumer {
               // standard, whose behaviour is known: the closed list decides.
               if (op == clang::OO_Call && o->getNumArgs() > 0)
                 if (const auto ds = namedBy(o->getArg(0)); !ds.empty() && inStd(ds[0]))
-                  return i > 0 && readerDecl(ds[0]);
+                  return i > 0 && readerDecl(ds[0]) && !(borrows(ds[0]) && escapes(o));
               return op != clang::OO_Amp;
             }
-            if (reader(o)) return true;
+            if (reader(o)) return !(borrows(readerNamed(o)) && escapes(o));
             int b;
             if (const auto* method = llvm::dyn_cast<clang::CXXMethodDecl>(g); method && !method->isStatic())
               b = i == 0 ? (method->isConst() ? (o->isGLValue() ? 2 : 1) : 0)
@@ -4634,7 +4686,8 @@ class LocalState : public clang::ASTConsumer {
               if (i < c->getNumArgs() && named("swap") && c->getNumArgs() == 2)
                 return disjoint(c, *ctx) && standsAlone(c);
               if (i < c->getNumArgs() && named("get")) { cur = e; continue; }
-              return i < c->getNumArgs() && std::all_of(ds.begin(), ds.end(), readerDecl);
+              return i < c->getNumArgs() && std::all_of(ds.begin(), ds.end(), readerDecl) &&
+                     !(std::any_of(ds.begin(), ds.end(), borrows) && escapes(c));
             }
             if (i == c->getNumArgs()) return false;  // called itself
             if (g && inStd(g) && g->getIdentifier()) {
@@ -4642,7 +4695,7 @@ class LocalState : public clang::ASTConsumer {
                 return disjoint(c, *ctx) && standsAlone(c);
               if (g->getName() == "get" && c->isGLValue()) { cur = e; continue; }  // c
             }
-            if (reader(c)) return true;
+            if (reader(c)) return !(borrows(readerNamed(c)) && escapes(c));
             const int b = binds(g, i, c);
             if (b == 2) { cur = e; continue; }
             return b == 1;
@@ -4875,8 +4928,28 @@ class LocalState : public clang::ASTConsumer {
         if (r && inStd(r) && (!size || *size == 0)) (*report)(m->getExprLoc());
         return true;
       }
+      /// The written operand of a write.
+      static const clang::Expr* lhs(const clang::Stmt* s) {
+        if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(s)) return b->getLHS();
+        if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(s)) return u->getSubExpr();
+        if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(s))
+          return o->getNumArgs() ? o->getArg(0) : nullptr;
+        return nullptr;
+      }
       bool VisitStmt(clang::Stmt* s) {
         if (!isWrite(s)) return true;
+        // A write through a variable that is not a mutable local, to an
+        // element or a field: through a span or a pointer held by value,
+        // const or not, it is its caller's storage (s[0] = 7 with s a
+        // const std::span).  A mutable local is judged by its uses above;
+        // a reference parameter by Rule 1's own rule.
+        if (const clang::Expr* w = lhs(s)) {
+          const clang::Expr* e = w->IgnoreParenImpCasts();
+          if (!llvm::isa<clang::DeclRefExpr>(e))
+            if (const clang::VarDecl* b = base(e))
+              if (!mutableLocal(b) && !b->getType()->isReferenceType() && !deepValue(b->getType()))
+                (*report)(s->getBeginLoc());
+        }
         // A statement of its own: the parent, wrappers aside, is a statement.
         clang::DynTypedNode n = clang::DynTypedNode::create(*s);
         for (int k = 0; k < 8; ++k) {

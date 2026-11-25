@@ -368,7 +368,10 @@ def block(f, ns, entries, counts, where, out):
         said = [l for l in lines if "error:" in l or "fatal" in l or "Assertion" in l][:20]
         text += lines[:10] + said + lines[-10:]
         # A file that only reports (a control, read as a header on its own
-        # with a neighbour's flags) is named and left out, not a failure.
+        # with a neighbour's flags) is named and left out, not a failure
+        # here: on Linux the summary table's comparison then fails, with
+        # this file's diagnostics above it, since the row no longer counts
+        # the whole control.
         if all(e == "report" for _, e in entries):
             text.append(f"jlt-lint: {f}: reported only, left out of the counts")
             return {"key": [f, ns], "text": text, "failures": 0, "rows": rows}

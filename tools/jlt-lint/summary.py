@@ -61,7 +61,7 @@ def rows(levels):
 def percent(k, n):
     """A share in per cent, whole; a share that is not zero is not shown as 0."""
     p = 100 * k / n
-    return "0" if k == 0 else "<1" if p < 0.5 else str(round(p))
+    return "0" if k == 0 else "<1" if p < 1 else str(round(p))
 
 
 def row(name, n, level, by_type):

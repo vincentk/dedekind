@@ -121,6 +121,12 @@ constexpr std::size_t unnamed_shape(T) {
   }
 }
 
+// A floating value converted to an integer, written out: undefined where the
+// value does not fit (Copilot on #1219), so open as division by a value is.
+constexpr std::size_t truncated_float(double x) { return std::size_t(x); }
+constexpr int truncated_static(double x) { return static_cast<int>(x); }
+static_assert(truncated_float(2.5) == 2 && truncated_static(2.5) == 2);
+
 // A sum as the standard's variant: undecided until its row exists.  Beside it
 // the record it is to be read as, a tag and a field for each alternative.
 struct Area {

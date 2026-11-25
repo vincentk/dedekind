@@ -66,3 +66,6 @@ written_by_lambda refused
 character_at refused
 first_of refused
 half Jlt
+overwrite_const refused
+dangling_view refused
+consumed_view refused
