@@ -49,11 +49,10 @@ Terminals are in monospace and an overbar is a sequence, possibly empty.
 An empty \texttt{requires} clause, an empty list of a \texttt{requires} expression with its parentheses, and an empty \texttt{template} head are left out, except that an entry with no type variables keeps \texttt{template <>}.
 The requirements $\overline{A}$ of a shape and the constraints $\overline{Q}$ of a clause are joined by \texttt{\&\&}, and a negated constraint is written in parentheses.
 $\alpha$ are type variables, $g$ names of associated types, \texttt{cod} among them, the codomain of an arrow, given to the kernel, $C$ names of shapes, the standard's \texttt{copyable}, \texttt{equality\_comparable} and \texttt{same\_as} among them, $f$ names of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
-A parameter that is not used may go unnamed.
 $T$ is a declared type $O$, \texttt{std::pair}, a carrier, or an arrow supplied with a carrier, as the standard's \texttt{std::plus} is.
 $c$ is a constant of an atom, or a value of a carrier that its type provides.
 $\tau\texttt{\{}\overline{e}\texttt{\}}$ is a value of a declared type from values for its fields, and at a type variable, with no fields, the one value of a function object.
-$\ominus$ and $\oplus$ are the operators of the atoms that are defined at every argument, with division and remainder by a constant that is not zero, the number of bits of a count and its rotation, \texttt{rotr}, which is defined at every amount, and \texttt{==} at a carrier whose shape asks for it.
+$\ominus$ and $\oplus$ are the operators of the atoms that are defined at every argument (Appendix~\ref{app:fjlt:evaluation}), and \texttt{==} at a carrier whose shape asks for it.
 In an iteration the first term is the count, the second the start, and the third the step, a function of the state and the index.}
 \label{fig:fjlt-syntax}
 \end{figure}
@@ -207,7 +206,7 @@ Appendix~\ref{app:fjlt:theorems} shows them for this kernel on paper, with the t
 \end{enumerate}
 The first two need nothing of \RuleTwo{}: the compiler checks every body once it is instantiated.
 Only the third does, since it is about a definition before it is instantiated, and \Cpp{} does not check a body against its declaration.
-Inside the fragment, the linter's second stage makes that check (Section~\ref{sec:check}): for a definition it admits, the third result holds of the code the compiler builds, conditional on the conjecture stated there, on a body that observes no type except through a shape, on the hypothesis of adequacy above, and on the compiler's lowering, which is trusted.
+Inside the fragment, the linter's second stage makes that check: for a definition it admits, the third result holds of the code the compiler builds, under the conditions Section~\ref{sec:check} states.
 The third is the one a programmer can use, and \cppinline{free_theorem} in Listing~\ref{lst:theorems} is its statement for \cppinline{concat}.
 It is also why the monoid of Listing~\ref{lst:motivation} asks for no equality on its carrier.
 A shape that required one would count it among its calls, and a function that respects equality is one-to-one, which the length of a string is not.
@@ -220,13 +219,9 @@ None of the three says that a declared law is true, and a law is read in two way
 
 What is specific to \Cpp{} concerns the selection.
 The image is a function of the program only if the compiler's choice of an entry or a case is.
-\Cpp{} makes it one at concrete types, by its rules for the most specialised candidate.
-That the choice be the same wherever it is asked, \Cpp{} requires and does not check.
-A generic body may select by a law that its declaration never named, as \cppinline{guessed_power} does in Listing~\ref{lst:declare}, and an entry declared below a use is not seen by that use.
+\Cpp{} makes it one at concrete types, by its rules for the most specialised candidate; that the choice be the same wherever it is asked, \Cpp{} requires and does not check.
 So the kernel asks two things that \Cpp{} does not check: that a generic body selects only by what its declaration names (\RuleTwo{}), and that an entry stands above every use that could read it (Appendix~\ref{app:fjlt:order}).
 Under those two a selection should have one answer in a program, so that the image is a function of it.
-That is the coherence of resolution~\cite{jones1994qualified}, stated here as a condition; Appendix~\ref{app:fjlt:theorems} argues that the image is a function of the program, given the conditions on well-formed programs it uses: the order of declarations (Appendix~\ref{app:fjlt:order}), declarations well founded under the relation by which one depends on another, of two entries or cases that overlap one the more specific, and a call at a type variable resolved only where every instantiation keeps its choice (Appendix~\ref{app:fjlt:typing}).
-An associated type is resolved the same way, at concrete types, and at a type variable it becomes one more type parameter whose value each use supplies, as associated types are translated for Haskell~\cite{chakravarty2005class,chakravarty2005synonyms} and for the concepts of \Cpp{0x}~\cite{siek2005essential}.
-\Cpp{} asks for the same when two cases must be ordered and the type appears among their parameters, as in Listing~\ref{lst:power}.
+That is the coherence of resolution~\cite{jones1994qualified}, stated here as a condition; Appendix~\ref{app:fjlt:theorems} argues that the image is a function of the program, given the conditions on well-formed programs it uses (Appendices~\ref{app:fjlt:order} and~\ref{app:fjlt:typing}).
 % TODO(related): functional dependencies (Jones, ESOP 2000) to be verified
 % and cited beside the associated types.
