@@ -1066,6 +1066,43 @@ rule1-local-state                    build/_deps/catch2-src/src/catch2/**/*.cpp 
 rule2-by-type                        build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
 rule2-no-type-observation            build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
 undecided-by-type                    build/_deps/catch2-src/src/catch2/**/*.cpp  Catch  report
+# Its headers, each judged as a file of its own with the flags of a source
+# file beside it: the interface and the templates, where the sources hold the
+# run-time machinery.  The summary reports the two apart.
+inventory                            build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+axioms                               build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-boxed-identity                 build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-boxed-mutable-pointee          build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-const-call-operator            build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-const-member-functions         build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-constexpr                      build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-forwarding-reference-params    build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-lvalue-reference-params        build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-no-escaping-reference-captures build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-no-inheritance                 build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-no-mutable-globals             build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-no-reference-returns           build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-no-static-locals               build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-no-throw                       build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+definitions                          build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-local-state                    build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-no-volatile                    build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-rvalue-reference-params        build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule2-constrained-templates          build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule2-context-order                  build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule2-converted-result               build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule2-decided-resolution             build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule2-definition                     build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule2-no-inline-requires             build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule3-bounded-fold                   build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule3-no-loops                       build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule3-no-mutual-recursion            build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule3-no-self-recursion              build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+admitted                             build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule1-local-state                    build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule2-by-type                        build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+rule2-no-type-observation            build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
+undecided-by-type                    build/_deps/catch2-src/src/catch2/**/*.hpp  Catch  report
 
 # Admission by type on the library's category layer: every outcome gated
 # per file, so that no count moves unseen (the ratchet; Appendix G.1).

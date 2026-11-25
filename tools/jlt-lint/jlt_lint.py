@@ -216,7 +216,33 @@ def set_resource_dir(entries):
             RESOURCE_DIR[:] = [f"-resource-dir={r.stdout.strip()}"]
 
 
-def one_entry_per_file(build, part):
+def header_entry(entries, header):
+    """A compilation database entry for a header judged as a file of its own
+    (a library's interface, which no translation unit of the build names):
+    the flags of the source file nearest to it in the tree, with the header in
+    the source's place, read as C++ and only parsed."""
+    def shared(e):
+        a, b = pathlib.Path(e["file"]).parts, pathlib.Path(header).parts
+        return next((i for i, (x, y) in enumerate(zip(a, b)) if x != y), min(len(a), len(b)))
+    near = max(entries, key=shared, default=None)
+    if near is None:
+        return None
+    args = near.get("arguments") or shlex.split(near["command"])
+    out, skip = [], False
+    for a in args:
+        if skip:
+            skip = False
+        elif a in ("-o", "-MF", "-MT", "-MQ"):
+            skip = True
+        elif a in ("-c", "-MD", "-MMD") or a == near["file"] or a.endswith("/" + pathlib.Path(near["file"]).name):
+            continue
+        else:
+            out.append(a)
+    return {"directory": near["directory"], "file": header,
+            "arguments": out + ["-xc++", "-fsyntax-only", header]}
+
+
+def one_entry_per_file(build, part, files=()):
     """A compilation database with one entry per file, in a directory of its
     own: a module partition has one per set of flags it is built with (CMake 4
     synthesises a BMI for every consumer with other flags, the Python
@@ -231,6 +257,13 @@ def one_entry_per_file(build, part):
         if old is None or (old[0] and not synth):
             kept[e["file"]] = (synth, e)
     set_resource_dir(entries)
+    # A header in scope that the build compiles only through its includers.
+    for f in files:
+        f = str(ROOT / f)
+        if f not in kept and f.endswith((".hpp", ".h")):
+            e = header_entry([e for _, e in kept.values()], f)
+            if e:
+                kept[f] = (False, e)
     db = build / "jlt-lint-db" / part  # a directory per part: parts run at once
     db.mkdir(parents=True, exist_ok=True)
     (db / "compile_commands.json").write_text(json.dumps([e for _, e in kept.values()], indent=1))
@@ -245,7 +278,7 @@ def lint_part(build, tool, part):
             not (build / "compile_commands.json").exists():
         sys.exit(f"jlt-lint: no {build}/compile_commands.json; build first")
     if (build / "compile_commands.json").exists():
-        build = one_entry_per_file(build, part or "all")
+        build = one_entry_per_file(build, part or "all", sorted({f for _, f, _, _ in lines}))
 
     groups = collections.defaultdict(list)
     for rule, f, ns, expected in lines:

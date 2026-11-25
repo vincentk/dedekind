@@ -3,7 +3,8 @@
 Reads the levels the driver wrote beside its report (<out>/all-levels.json:
 each file's definitions with their level, by levels.py's classify, the same
 computation as Table 6) and sums them for each body of code: the listings,
-the library, and Catch2, a library not written under the rules.  Per body:
+the library, and Catch2, a library not written under the rules, its headers
+and its sources apart.  Per body:
 the definitions, how many are in FJlt, in Jlt, refused and undecided, and of
 the function templates how many the type check admits, does not admit, or
 leaves undecided.
@@ -28,7 +29,8 @@ import sys
 BODIES = [
     ("listings", lambda key: key == "src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp paper_listings"),
     ("library", lambda key: key.startswith("src/main/modules/dedekind/")),
-    ("Catch2", lambda key: key.startswith("build/_deps/catch2-src/")),
+    ("Catch2, headers", lambda key: key.startswith("build/_deps/catch2-src/") and key.split()[0].endswith(".hpp")),
+    ("Catch2, sources", lambda key: key.startswith("build/_deps/catch2-src/") and key.split()[0].endswith(".cpp")),
 ]
 LEVELS = ["FJlt", "Jlt", "refused", "undecided"]
 BY_TYPE = ["admitted", "not admitted", "undecided"]
