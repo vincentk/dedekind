@@ -102,12 +102,14 @@ What remains, the Juliet Posture or Jlt, is ordinary \Cpp{23} with templates, co
 
 Jlt is a part of the \Cpp{} that can be evaluated at compile time in which every definition also has a meaning in System~F.
 Its kernel, Featherweight Jlt (FJlt), translates into System~F by dictionary passing, and the rest of Jlt is sugar, such as local state and loops, that desugars into the kernel.
-The translation is defined on every well-typed kernel program and proved on paper to preserve types and values; the desugaring is argued and tested, not proved; and that \Cpp{} evaluates a kernel program as the calculus does is assumed, with constant evaluation, which every compiler performs, as the reference it is tested against.
+The translation is defined on every well-typed kernel program and proved on paper to preserve types and values.
+The desugaring is argued and tested, not proved.
+That \Cpp{} evaluates a kernel program as the calculus does is assumed, with constant evaluation, which every compiler performs, as the reference it is tested against.
 
 Laws are stated as plain \Cpp{} traits, and a declared law licenses a faster program through specialisation and constant folding.
 We present a linter with an extensible rule book.
 It scans a \Cpp{} code base and classifies each definition, with its reason, as shown to be in Jlt, not shown to be, or undecided, and it lists the laws the code takes on trust.
-We apply it to the library whose development motivated Jlt and to Catch2, a well-known third-party library, and report the classifications.
+We apply it to the library whose development motivated Jlt and to Catch2, a well-known third-party library.
 
 \Cpp{23} already contains a language that reads as System~F, and staying inside it takes a linter, not a new compiler.
 \end{abstract}
