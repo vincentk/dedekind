@@ -2,7 +2,7 @@
 \section{The Kernel and Its Warrant}
 \label{sec:kernel}
 
-The four listings are written in a language, Jlt, that is defined in two steps (Table~\ref{tab:model}).
+The four listings are written in a language, Jlt, that is defined in two steps (Figure~\ref{fig:arrows}).
 A small kernel, Featherweight Jlt or FJlt, is a subset of \Cpp{} whose meaning is given by a translation into a calculus that is well understood.
 Jlt is that kernel with \emph{derived forms}, each a way of writing something the kernel can already say.
 The first step follows Featherweight Java~\cite{igarashi2001featherweight}: a kernel small enough to reason about, every program of which is a program of the full language.
@@ -149,11 +149,11 @@ Most of what the listings write beyond the grammar is \Cpp{} that the standard i
 Two derived forms carry weight.
 A range, as an array or a view, stands for its length and the function that reads it, and \cppinline{ranges::fold_left} over a range for the kernel's iteration over that count, a change of representation more than an abbreviation.
 Local mutable state is read by state passing: an assignment to a local, or to an element of a local array, is the next state of the fold it is in, so that code written in place with counted loops, such as a running sum or a Fibonacci number by repeated squaring of a matrix (\texttt{tools/jlt-lint/fixtures/local-state.cpp}), is read as a term of System~F, under the condition that each piece of storage is reached through one name at a time, which the linter checks (Appendix~\ref{app:derived}).
-This paper does not prove that a derived form preserves values, and it claims them only as the listings use them.
+That a derived form preserves values is argued and tested, not proved, the standard of evidence of the work on JavaScript~\cite{guha2010essence}: Table~\ref{tab:derived} gives each form its reading and the condition it rests on, and a test sets a form beside its kernel reading and lets constant evaluation compare the two, as Listing~\ref{lst:running-sum} does for local state.
 The list is open, and a new derived form touches nothing that is said about the kernel.
 % TODO(derived): the standard's clauses for the first group are to be cited;
-% the tests that compile a listing beside its kernel form are to be written,
-% the standard of evidence of the work on JavaScript~\cite{guha2010essence}.
+% a test beside its kernel form exists for local state and for a variant
+% (tools/jlt-lint/fixtures); the other rows are to get theirs.
 
 \subsection{The image}
 \label{sec:translation}
