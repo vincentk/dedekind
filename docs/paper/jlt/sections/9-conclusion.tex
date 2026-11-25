@@ -21,3 +21,6 @@ What crosses is state whose size is fixed at compile time, and the computations 
 Nothing was added to the language, the compiler or the library: what was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged, for the people who already write \Cpp{23}.
 The boundary is meant as a route rather than a wall: a team takes it one file and one rule at a time, the linter says at each step where the code stands, and what it cannot settle it names.
 
+The correspondence itself has been remarked before.
+Dos Reis and Stroustrup wrote that a type class and its instances ``correspond closely to \Cpp{}'s notion of template partial or full specialization'', which ``morally is what happens when the dictionaries, in the dictionary passing style translation [\ldots], are optimized away''~\cite[Section~6.2]{dosreis2006specifying}.
+This paper makes that correspondence precise for a fragment of the language as shipped, to the point where membership in the fragment is checked mechanically in continuous integration.
