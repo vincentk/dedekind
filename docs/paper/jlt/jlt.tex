@@ -84,7 +84,8 @@ It does not hold a generic function to its declared constraints: the body may us
 %   - "it lists the laws the code takes on trust": true for axioms and
 %     conditional laws (axioms.txt, laws.txt, #1213).  The laws the compiler
 %     derives from them at a use, and units named at a use, are not listed.
-%   - "the rest of Jlt is sugar ... that desugars into the kernel": true of
+%   - "every definition also has a meaning in System F", the rest of Jlt
+%     being sugar that desugars into the kernel: true of the kernel, and of
 %     a derived form whose condition has a check.
 %     The audit of 2026-11-25 (#1219) found rows of the table of derived
 %     forms whose condition nothing enforced; four are now checked, and what
@@ -99,6 +100,7 @@ We restrict \Cpp{23} to what can be evaluated at compile time under three rules:
 This drops input and output, state that outlives a call, and unbounded data and computation.
 What remains, the Juliet Posture or Jlt, is ordinary \Cpp{23} with templates, concepts and overloading, and needs no extension and no tool to compile.
 
+Jlt is a part of the \Cpp{} that can be evaluated at compile time in which every definition also has a meaning in System~F.
 Its kernel, Featherweight Jlt (FJlt), translates into System~F by dictionary passing, and the rest of Jlt is sugar, such as local state and loops, that desugars into the kernel.
 The translation is defined on every well-typed kernel program and proved on paper to preserve types and values; the desugaring is argued and tested, not proved; and that \Cpp{} evaluates a kernel program as the calculus does is assumed, with constant evaluation, which every compiler performs, as the reference it is tested against.
 
