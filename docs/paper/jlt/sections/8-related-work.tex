@@ -2,24 +2,23 @@
 \subsection{Related Work}
 \label{sec:related}
 
+The introduction tells the two lines of work this paper joins, and what follows are the neighbours of each.
+
+\subsubsection*{Neighbours of the idea: generic code with a meaning}
+
 \paragraph{Type classes.}
 Dictionary passing is Wadler and Blott's~\cite{wadler1989adhoc}.
 Table~\ref{tab:image} is that translation, and a shape is satisfied structurally, which has no counterpart in a nominal type-class system, a difference Bernardy et al.~\cite{bernardy2010generic} weigh in their comparison of concepts and type classes.
 Coherence, that a program has one meaning however its constraints are resolved, is where the designs diverge: Racordon et al.~\cite{racordon2025coherence} survey how Haskell, Swift, Rust and Scala keep or trade it, between unique instances and context-dependent resolution.
 FJlt takes the strict side by construction, since an instance is an entry of a trait and FJlt admits one per head.
 Jlt thus sits between Rust and standard \Cpp{}: it takes Rust's discipline of declared dependencies and coherent resolution~\cite{rustreference}, in \Cpp{23} as it ships, and keeps \Cpp{}'s dispatch on overloads where a function declares it (Section~\ref{sec:posture}).
-Instance resolution is the inference half of type classes, Hindley--Milner's~\cite{milner1978theory,damas1982principal} extended with predicates~\cite{jones1994qualified}; FJlt infers types only locally~\cite{pierce2000local}, a result type from its body, but it infers laws the same way.
 Rust and Swift also check a generic body against its bounds: a comparison on an unconstrained type parameter is a compile error in both, and Rust's message names the missing bound~\cite{klabnik2023rust,swift2026generics}.
 That is Rule~2 as a compiler check, the half \Cpp{20} dropped, and the posture, together with the linter of Section~\ref{sec:check}, is what recovering it by hand costs.
 
-\paragraph{Rewrite rules and fusion.}
-GHC lets a library declare equations the optimiser rewrites by~\cite{peytonjones2001rules}, wherever their pattern matches and unchecked.
-A law in Jlt is as unchecked, a certificate the compiler finds but does not prove (Section~\ref{sec:limits}); the difference is where it lives and what it does: a declared instance, so what a program assumes is in its types, licensing one overload that resolution chooses once.
 
-\paragraph{Concepts, and the calculus next door.}
+\paragraph{The calculus next door.}
 The nearest neighbour of FJlt is Siek and Lumsdaine's $F^G$~\cite{siek2005essential,siek2004formalization}: System~F with concepts and models, translated into System~F by dictionary passing, with the translation proved sound in Isabelle.
-It grew from the same work as the concepts then proposed for \Cpp{0x}~\cite{gregor2006concepts,dosreis2006specifying}, which checked template bodies and were removed~\cite{stroustrup2009remove}, leaving the gap Rule~2 names.
-Siek and Lumsdaine's earlier archetypes, written by hand for Boost~\cite{siek2000concept}, are what the linter's second stage generates (Section~\ref{sec:check}).
+The archetypes of the introduction, written by hand for Boost, are what the linter's second stage generates (Section~\ref{sec:check}).
 $F^G$'s models are nominal and can be declared for whole families of types, which is what the library behind this paper's listings needs after its shapes, where FJlt's entries, declared after a shape's first use, are not found (Section~\ref{sec:limits}).
 FJlt is the smaller calculus, and the price of being a subset of a shipped language.
 Of the generic-programming features Garcia et al.~\cite{garcia2007extended} compare across eight languages, two that \Cpp{} then had no explicit support for, multi-type concepts and retroactive modelling, are what Listings~\ref{lst:motivation} and~\ref{lst:theorems} exercise: a law declared of a type after the fact, and \cppinline{homomorphism} over three types.
@@ -28,21 +27,39 @@ Of the generic-programming features Garcia et al.~\cite{garcia2007extended} comp
 Featherweight Java~\cite{igarashi2001featherweight} set the pattern: a core calculus small enough to prove things about, with a syntax that is a subset of the host language's.
 Featherweight Go~\cite{griesemer2020featherweight} follows the pattern for structural subtyping and monomorphisation, and \emph{Generic Go to Go}~\cite{ellis2022generic} proves a dictionary-passing translation correct by a bisimulation.
 That is the genre of Section~\ref{sec:translation}, a translation by dictionary passing, with soundness, termination and parametricity inherited from the target rather than proved from scratch.
+Data types as their own folds is B\"ohm and Berarducci's reading~\cite{bohm1985automatic}, which the translation takes with iterators in place of Church encodings.
 Jlt is embedded in its host in Hudak's sense~\cite{hudak1996building}, in the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}: a term is generic code over a \cppinline{concept}, and an interpretation of it is a model of that \cppinline{concept}.
 
 \paragraph{Formal semantics of \Cpp{}.}
 CoreC++~\cite{wasserrab2006operational} gives an operational semantics and a machine-checked type safety proof for multiple inheritance; Ramananandro, Dos Reis and Leroy~\cite{ramananandro2011layout,ramananandro2012construction} mechanise object layout, construction and destruction in Coq.
 These formalise the part of \Cpp{} that Rule~1 excludes, objects with identity and lifetime, and templates were given a formal semantics separately~\cite{siek2006templates}, so FJlt is a fragment with its own grammar rather than a subset of a formalised \Cpp{}.
 
-\paragraph{What System~F supplies.}
-Strong normalisation is Girard's \cite{girard1989proofs}, with inductive types Matthes' \cite{matthes1999extensions}, and parametricity Reynolds' \cite{reynolds1983types}: the appendix uses both as black boxes, which is the point of translating into System~F; data types as their own folds is B\"ohm and Berarducci's reading \cite{bohm1985automatic}, which the translation takes with iterators in place of Church encodings.
 
-\paragraph{Functional programming in \Cpp{}, and the other direction.}
-Functional programming in \Cpp{} is practised and taught: in a book~\cite{cukic2018functional}, in a metaprogramming library~\cite{chagnon2016hana}, and in category theory with examples in \Cpp{}~\cite{milewski2019category}; none states a fragment or proves anything of it.
+
+\paragraph{Laws as rewrite rules.}
+GHC lets a library declare equations the optimiser rewrites by~\cite{peytonjones2001rules}, wherever their pattern matches and unchecked.
+A law in Jlt is as unchecked, a certificate the compiler finds but does not prove (Section~\ref{sec:limits}); the difference is where it lives and what it does: a declared instance, so what a program assumes is in its types, licensing one overload that resolution chooses once.
+
+\subsubsection*{Neighbours of the method: a sublanguage held by a tool}
+
+\paragraph{Subsets with a checker and a meaning.}
+SPARK is the oldest instance in wide use: a subset of Ada with a tool that verifies the programs written in it~\cite{hoang2015spark}.
+ADsafety is the nearest in how its evidence is layered: for a sublanguage of JavaScript that a linter defines, Politz et al.\ prove a type system sound, and of the step from the linter to the type system they state a claim and ``validate this claim by testing''~\cite{politz2011adsafety}.
+This paper's layers are the same three: a translation proved on paper, sugar that is argued and tested, and assumptions that are stated.
 The opposite route to the same end verifies a program in a proof assistant and extracts C from it, as Low* does from F*~\cite{protzenko2017verified}; Jlt keeps the programmer in \Cpp{} and puts the proof in the translation.
+Functional programming in \Cpp{} is practised and taught, in a book~\cite{cukic2018functional}, a metaprogramming library~\cite{chagnon2016hana} and category theory with examples in \Cpp{}~\cite{milewski2019category}, and none of these states a fragment or proves anything of it.
+
+\paragraph{An external checker, adopted a file at a time.}
+Python's type hints are the same arrangement at its largest.
+The language checks nothing, ``no type checking happens at runtime'', and ``a separate off-line type checker'' is run ``voluntarily''~\cite{pep484}; a code base adopts it a module at a time, and of the repositories that use type hints a small minority pass their checker~\cite{rakamnouykit2020python}.
+Jlt is that arrangement taken further in one respect: Python's checkers claim no soundness for what passes, and a definition shown to be in Jlt has a meaning by a translation.
 
 \paragraph{Coding standards and profiles.}
 The documents an audit of \Cpp{} works from are rule catalogues: MISRA \Cpp{}~\cite{misra2023cpp} and the SEI CERT standard~\cite{ballman2016cert} list hundreds of rules between them, each justified by the defects it prevents, with no statement of what a compliant program computes.
 Jlt is narrower, a pure computational core with no I/O, and so complements them rather than replacing them; where they meet they can differ, as MISRA forbids recursion except in constant evaluation and Rule~3 admits structural recursion on the strength of a termination argument.
 The nearest relatives are the safety profiles, now aimed at \Cpp{29}~\cite{sutter2025profiles,sutter2026london}, named sets of rules the compiler would enforce, and the criticism that a profile should come with the invariant it upholds~\cite{muller2025principled}: Jlt reads as a functional profile, held by review and a linter rather than wholly by the compiler, and its three rules state theirs.
 
+\subsubsection*{The nearest tool}
+Ding and Zhang synthesise the constraints of a \Cpp{} function template from its body, in Clang, with a small calculus and measurements on the standard library's algorithms and on a Boost library~\cite{ding2025constraint}.
+It runs the other way from this paper's linter: from a body to the constraints it needs, where the linter checks a body against the constraints it has.
+The two would compose: a code base of unconstrained templates could take its constraints from the one and have them checked by the other.
