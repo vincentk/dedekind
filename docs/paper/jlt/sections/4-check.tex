@@ -72,9 +72,10 @@ And for those in FJlt, the program as written uses only kinds of syntax that the
 % STATUS: the second stage runs in CI on the four listings, its fixtures and
 % the category layer of the library; the other layers are to follow.
 \paragraph{At scale.}
-Table~\ref{tab:summary} sums the levels of Table~\ref{tab:levels} over three bodies of code: the listings, the library, and Catch2, a test library not written under the rules that the build compiles for the tests; the same rules give every level, and Appendix~\ref{app:lint:summary} says how.
+Table~\ref{tab:summary} sums the levels of Table~\ref{tab:levels} over three bodies of code: the listings, the library, and Catch2, a test library not written under the rules that the build compiles for the tests, its headers and its sources apart; the same rules give every level, and Appendix~\ref{app:lint:summary} says how.
 Every count is pinned per file and held by a ratchet, so that no admission can be lost and no refusal added without a reason written in the change; every build checks the whole library, on Linux and on macOS, within forty minutes, and compares this table with the one it computes.
-A refusal says how far a definition is from the rules, and not only that it does not show them: of the \JltCatchSourcesRefused{} definitions refused in Catch2's sources, \JltCatchSourcesNotConstexpr{} are not declared \cppinline{constexpr}, and \JltCatchSourcesNotConstexprAlone{} are refused for that alone.
+Of the \JltCatchHeadersDefinitions{} definitions in Catch2's headers, \JltCatchHeadersShown{} are shown to be in Jlt as written, and of the \JltCatchSourcesDefinitions{} in its sources, \JltCatchSourcesShown{}.
+A refusal says how far a definition is from the rules, and not only that it does not show them: of the \JltCatchSourcesRefused{} definitions refused in the sources, \JltCatchSourcesNotConstexpr{} are not declared \cppinline{constexpr}, and \JltCatchSourcesNotConstexprAlone{} are refused for that alone.
 Where a definition is undecided, the first clause of this paper's promise rests on the deny-rules, the programmer and a reviewer.
 
 \begin{table}[tb]
