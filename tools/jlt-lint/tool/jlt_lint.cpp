@@ -3839,7 +3839,7 @@ class Definitions : public clang::ASTConsumer {
 /// write; the base of a field or an element; an argument bound to a copy or
 /// a const reference; an operand of std::swap, disjoint, in a statement of
 /// its own.  Any other use is a finding: a call that may write it, a
-/// mutating member call, its address, a call whose parameter is not known.
+/// mutating member call, its address.
 /// Refused besides, a finding each:
 ///   - a reference local whose initialiser reaches a mutable local (a second
 ///     name for its storage; a reference to a parameter, a constant or a
@@ -4304,8 +4304,9 @@ class LocalState : public clang::ASTConsumer {
       ///   e. an operand of std::swap, in a statement of its own, the two
       ///      evidently disjoint.
       /// Anything else is a finding: a non-const reference parameter, a
-      /// mutating member call, the address, a call whose parameter is not
-      /// known (a dependent call).
+      /// mutating member call, the address.  A dependent call, its callee
+      /// known only at instantiation, is read as binding by value, which
+      /// Rule 1 gives for a callee in Jlt.
       bool allowed(const clang::DeclRefExpr* d) {
         const auto* var = llvm::cast<clang::VarDecl>(d->getDecl());
         const clang::Expr* cur = d;
@@ -4367,13 +4368,15 @@ class LocalState : public clang::ASTConsumer {
               default: return false;
             }
           }
-          if (llvm::isa<clang::UnresolvedMemberExpr, clang::CXXUnresolvedConstructExpr>(e))
-            return false;
+          if (llvm::isa<clang::UnresolvedMemberExpr>(e)) return false;
+          // T(x) at a type not yet known: a constructor of a type in Jlt
+          // takes values (Rule 1, as for a dependent call below).
+          if (llvm::isa<clang::CXXUnresolvedConstructExpr>(e)) return true;
           if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(e)) {
             unsigned i = 0;
             while (i < o->getNumArgs() && o->getArg(i) != cur) ++i;
-            if (i == o->getNumArgs()) return false;  // called itself
             const auto op = o->getOperator();
+            if (i == o->getNumArgs()) return !o->getDirectCallee();  // dependent: below
             const bool write = o->isAssignmentOp() || op == clang::OO_PlusPlus ||
                                op == clang::OO_MinusMinus;
             if (i == 0 && write)  // b
@@ -4384,10 +4387,13 @@ class LocalState : public clang::ASTConsumer {
               continue;
             }
             const auto* g = o->getDirectCallee();
-            if (!g) {  // dependent: an operator reads its operands, a call is not known
-              if (op == clang::OO_Call || op == clang::OO_Amp) return false;
-              return true;
-            }
+            // Dependent, the callee known only at instantiation: a callee in
+            // Jlt cannot write its argument, since Rule 1 refuses a non-const
+            // reference parameter and a call operator that is not const
+            // (rule1-lvalue-reference-params, rule1-rvalue-reference-params,
+            // rule1-const-call-operator), and a template is judged for its
+            // instances in Jlt.
+            if (!g) return op != clang::OO_Amp;
             int b;
             if (const auto* method = llvm::dyn_cast<clang::CXXMethodDecl>(g); method && !method->isStatic())
               b = i == 0 ? (method->isConst() ? (o->isGLValue() ? 2 : 1) : 0)
@@ -4400,8 +4406,14 @@ class LocalState : public clang::ASTConsumer {
           if (const auto* c = llvm::dyn_cast<clang::CallExpr>(e)) {
             unsigned i = 0;
             while (i < c->getNumArgs() && c->getArg(i) != cur) ++i;
-            if (i == c->getNumArgs()) return false;  // called itself
             const clang::FunctionDecl* g = c->getDirectCallee();
+            // Dependent: as for a dependent operator call above.
+            if (!g && (c->getCallee()->isTypeDependent() ||
+                       std::any_of(c->arg_begin(), c->arg_end(), [](const clang::Expr* a) {
+                         return a->isTypeDependent();
+                       })))
+              return true;
+            if (i == c->getNumArgs()) return false;  // called itself
             if (g && inStd(g) && g->getIdentifier()) {
               if (g->getName() == "swap" && c->getNumArgs() == 2)  // e
                 return disjoint(c, *ctx) && standsAlone(c);
@@ -4415,6 +4427,8 @@ class LocalState : public clang::ASTConsumer {
             unsigned i = 0;
             while (i < c->getNumArgs() && c->getArg(i) != cur) ++i;
             if (i == c->getNumArgs()) return false;
+            // A copy, or the move of a returned local (return a;): a.
+            if (c->getConstructor()->isCopyOrMoveConstructor()) return true;
             return binds(c->getConstructor(), i, c) != 0;
           }
           if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {

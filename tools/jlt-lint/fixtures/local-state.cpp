@@ -1,7 +1,8 @@
 // Local mutable state: code written in place, with loops, that has a System F
 // reading all the same (the state-passing reading of Table 7: an assignment
-// to a local is the next state of a fold).  A sound computation, Fibonacci
-// in place, and beside each near-miss its sound twin.  The near-misses break the aliasing conditions A1-A6 of
+// to a local is the next state of a fold).  Two sound computations, a running
+// sum and Fibonacci, each in place, and beside each near-miss its sound twin.
+// The near-misses break the aliasing conditions A1-A6 of
 // research_notes' local-state study: a write through one name must not change
 // what another name reads.  The static_asserts are the algorithms' own
 // correctness, tested whenever the file is parsed; the rules judge only
@@ -68,6 +69,20 @@ static_assert(fibonacci(0) == 0 && fibonacci(1) == 1 && fibonacci(10) == 55);
 static_assert(fibonacci(90) == 2880067194370816120uz);
 static_assert(fibonacci(77) == fibonacci_by_definition(77) &&
               fibonacci(93) == fibonacci_by_definition(93));
+
+// ---- sound: a running sum in place, mod 2^32.  Step i reads a[i - 1], which
+// step i - 1 wrote: the state of the fold over the indices is the whole array.
+constexpr std::array<unsigned, 4> running_sum(std::array<unsigned, 4> a) {
+  for (std::size_t i = 1; i < 4; ++i) a[i] = a[i] + a[i - 1];
+  return a;
+}
+// The reference: the definition, element k the sum of the first k + 1.
+constexpr std::array<unsigned, 4> running_sum_by_definition(std::array<unsigned, 4> a) {
+  return {a[0], a[0] + a[1], a[0] + a[1] + a[2], a[0] + a[1] + a[2] + a[3]};
+}
+static_assert(running_sum({1, 2, 3, 4}) == std::array<unsigned, 4>{1, 3, 6, 10} &&
+              running_sum({4294967295u, 1, 0, 0}) == std::array<unsigned, 4>{4294967295u, 0, 0, 0} &&
+              running_sum({5, 6, 7, 8}) == running_sum_by_definition({5, 6, 7, 8}));
 
 // ---- near-misses, each beside its sound twin.
 
