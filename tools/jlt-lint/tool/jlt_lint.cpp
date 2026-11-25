@@ -3779,6 +3779,14 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       return false;
     return narrows(c->getSubExpr(), c->getType());
   }
+  /// Whether every value of the integer type from is a value of to.
+  bool fits(clang::QualType from, clang::QualType to) const {
+    const bool toBool = to->isBooleanType();
+    const unsigned wf = ctx->getIntWidth(from), wt = toBool ? 1 : ctx->getIntWidth(to);
+    const bool sf = from->isSignedIntegerOrEnumerationType(),
+               st = !toBool && to->isSignedIntegerType();
+    return sf == st ? wt >= wf : (!sf && st && wt > wf);
+  }
   /// The conversion of e to an integer type that cannot hold every value
   /// of e's own.
   bool narrows(const clang::Expr* e, clang::QualType to) const {
@@ -3805,9 +3813,26 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     if (const auto* t = llvm::dyn_cast<clang::CXXThisExpr>(st))
       if (t->isImplicit()) return true;  // a member named without this->
     // c += n converts the result back to c's type with no node of its own.
-    if (const auto* ca = llvm::dyn_cast<clang::CompoundAssignOperator>(st))
-      if (narrows(ca->getRHS()->IgnoreParenImpCasts(), ca->getLHS()->getType()))
+    // The value stored back is of the computation's type (c += 1 with c an
+    // unsigned char computes in int, and 256 becomes 0): narrowing where that
+    // type does not fit the destination's, whatever the right side is.  Two
+    // bools combined by &=, |=, ^= give a bool.
+    if (const auto* ca = llvm::dyn_cast<clang::CompoundAssignOperator>(st)) {
+      const clang::QualType to = ca->getLHS()->getType(), via = ca->getComputationResultType();
+      const bool bools = to->isBooleanType() &&
+                         ca->getRHS()->IgnoreParenImpCasts()->getType()->isBooleanType();
+      if (narrows(ca->getRHS()->IgnoreParenImpCasts(), to) ||
+          (ctx && !bools && !to->isDependentType() && !via.isNull() && !via->isDependentType() &&
+           via->isIntegerType() && to->isIntegerType() && !fits(via, to)))
         kinds.insert("Conversion:narrowing");
+    }
+    // value() of an optional or an expected throws where it holds no value:
+    // open until the sum has its eliminator (#1222).
+    if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(st))
+      if (const clang::CXXMethodDecl* g = m->getMethodDecl(); g && g->getIdentifier() && g->getName() == "value")
+        if (const clang::CXXRecordDecl* r = g->getParent(); r && inStd(r) && r->getIdentifier() &&
+            (r->getName() == "optional" || r->getName() == "expected"))
+          kinds.insert("Derived:sum-value");
     // A call from a judged definition to a function not declared constexpr:
     // since C++23 the keyword on the caller promises nothing about it, so
     // the callee is looked at (std::rand, std::getenv, a stream's <<).
@@ -4287,7 +4312,10 @@ class LocalState : public clang::ASTConsumer {
         case clang::BO_Add: return Interval{a + d, c + g};
         case clang::BO_Sub: return Interval{a - g, c - d};
         case clang::BO_Mul: {
-          const long long x[] = {a * d, a * g, c * d, c * g};
+          long long x[4];
+          if (__builtin_mul_overflow(a, d, &x[0]) || __builtin_mul_overflow(a, g, &x[1]) ||
+              __builtin_mul_overflow(c, d, &x[2]) || __builtin_mul_overflow(c, g, &x[3]))
+            return std::nullopt;  // not representable: not known
           return Interval{*std::min_element(x, x + 4), *std::max_element(x, x + 4)};
         }
         default: return std::nullopt;
@@ -4524,6 +4552,18 @@ class LocalState : public clang::ASTConsumer {
                      (d->getIdentifier() == nullptr && q.find("ranges") != std::string::npos);
             });
             if (view) continue;
+            // An operator other than a call or a pipe gives a new value (==, +).
+            if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(c);
+                o && o->getOperator() != clang::OO_Call && o->getOperator() != clang::OO_Pipe)
+              return false;
+            // A function of the program whose result is of class or
+            // dependent type may return the view it is given (keep(v));
+            // one that returns a scalar consumes it (first_element(v)).
+            const bool standard = std::any_of(ds.begin(), ds.end(), [](const clang::NamedDecl* d) {
+              return inStd(d);
+            });
+            const clang::QualType t = c->getType();
+            if (!standard && (t->isDependentType() || t->isRecordType())) continue;
           }
           return false;
         }

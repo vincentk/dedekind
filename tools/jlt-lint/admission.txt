@@ -216,6 +216,10 @@ Stmt:IfConstexpr open
 # (decided 2026-11-25; not in the kernel).  Open until the row is written
 # with its conditions and a tested pair.
 Derived:variant open
+# value() of a std::optional or a std::expected: it throws where no value is
+# held, which Rule 1 keeps out.  Open until the sum has its eliminator
+# (#1222), which decides the side before it reads it.
+Derived:sum-value open
 # A call to a function not declared constexpr: since C++23 the keyword on
 # the caller does not require it of the callee, so the linter looks.
 Call:NotConstexpr refused

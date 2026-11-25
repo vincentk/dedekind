@@ -9,6 +9,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdlib>
+#include <optional>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -28,6 +29,22 @@ constexpr unsigned char low_byte(std::size_t n) {  // refused: += converts back
   c += n;
   return c;
 }
+// The value stored back is computed in int: 255 + 1 is 256, which an unsigned
+// char holds as 0, though the right side, 1, fits (Copilot on #1219).
+constexpr unsigned char wrapped_byte() {  // refused: c += 1 converts int back
+  unsigned char c = 255;
+  c += 1;
+  return c;
+}
+static_assert(wrapped_byte() == 0);
+// value() of an optional throws where it is empty: open until the sum's
+// eliminator (#1222), engaged or not.
+constexpr std::size_t empty_value() {
+  const std::optional<std::size_t> o;
+  return o ? 1uz : 0uz;
+}
+constexpr std::size_t engaged_value(std::optional<std::size_t> o) { return o.value(); }
+static_assert(empty_value() == 0 && engaged_value(3uz) == 3);
 constexpr std::size_t truncated(double x) { return x; }  // refused: undefined out of range
 constexpr std::size_t widened(unsigned char c) { return c; }  // sound
 constexpr std::size_t constant_held() { return 1; }           // sound: 1 is a size_t

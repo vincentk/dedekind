@@ -4,6 +4,9 @@ compared FJlt
 narrowed_to_char refused
 written_out FJlt
 low_byte refused
+wrapped_byte refused
+empty_value Jlt
+engaged_value undecided
 truncated refused
 widened FJlt
 constant_held FJlt

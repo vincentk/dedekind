@@ -74,3 +74,6 @@ passed_view refused
 dangling_in_pair refused
 at_out_of_range refused
 at_in_range Jlt
+keep FJlt
+dangling_through_keep refused
+huge_product refused

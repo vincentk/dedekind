@@ -159,10 +159,11 @@ def main():
                 if l.strip() and not l.startswith("#")]
         got = [(name, level) for name, _, level, _, _, _ in rows]
         if want != got:
-            diff = [f"  {n}: {lv}, expected {dict(want).get(n, 'not listed')}"
-                    for n, lv in got if (n, lv) not in want]
-            diff += [f"  {n}: expected {lv}, not found" for n, lv in want
-                     if n not in dict(got)]
+            # Occurrence by occurrence, in order: a name may stand twice.
+            import difflib
+            diff = [f"  {l}" for l in difflib.unified_diff(
+                [" ".join(w) for w in want], [" ".join(g) for g in got],
+                "expected", "got", lineterm="", n=1)]
             sys.exit(f"levels.py: {a.file} differs from {a.expect}:\n" + "\n".join(diff))
         print(f"levels.py: {a.file}: {len(got)} levels as {a.expect.name} expects")
     text = latex(rows)

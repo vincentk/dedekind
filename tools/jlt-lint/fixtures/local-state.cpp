@@ -511,6 +511,26 @@ constexpr std::size_t at_in_range() {  // sound
   return r.at(1);
 }
 static_assert(at_in_range() == 2);
+// A function of the program that returns the view it is given: the view
+// still dangles (Copilot on #1219).
+template <typename R>
+constexpr R keep(R r) {
+  return r;
+}
+constexpr auto dangling_through_keep() {
+  std::array<std::size_t, 3> r{1, 2, 3};
+  r[0] = 4;
+  return keep(std::views::transform(r, [](std::size_t x) { return x; }));
+}
+// An index whose bounds multiply beyond a long long: not known, so not shown
+// in range (and the linter's own arithmetic stays defined).
+constexpr std::size_t huge_product() {
+  std::array<std::size_t, 2> a{1, 2};
+  std::size_t m = 1uz << 40;
+  std::size_t n = 1uz << 40;
+  a[0] = 3;
+  return a[m * n];
+}
 static_assert(written_through_temporary() == 0 &&
               written_through_comma() == 1 && written_by_lambda() == 9 && half(4) == 2uz);
 
