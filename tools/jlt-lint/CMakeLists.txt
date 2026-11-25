@@ -110,6 +110,16 @@ add_custom_target(lint
             ${CMAKE_BINARY_DIR} ${_jlt_tool} paper_listings
             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp
             --check ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/levels-table.tex
+    # The level of every definition of the fixtures for local state and for
+    # the conditions of the derived forms, definition by definition.
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/levels.py
+            ${CMAKE_BINARY_DIR} ${_jlt_tool} jlt_listing
+            tools/jlt-lint/fixtures/local-state.cpp
+            --expect ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/local-state.levels
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/levels.py
+            ${CMAKE_BINARY_DIR} ${_jlt_tool} jlt_listing
+            tools/jlt-lint/fixtures/derived-conditions.cpp
+            --expect ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/derived-conditions.levels
     # The fixture's outcome for every template, not only their count.
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/outcomes.py
             ${_jlt_tool} ${CMAKE_SOURCE_DIR}/tools/jlt-lint/fixtures/rule2-by-type.cpp

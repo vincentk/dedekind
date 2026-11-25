@@ -500,6 +500,13 @@ std::string stmtKind(const clang::Stmt* st) {
     if (c->getType()->isArithmeticType()) return "Stmt:ArithmeticConversion";
     if (c->isListInitialization() && c->getType()->isRecordType()) return "Stmt:BracedValue";
   }
+  // if consteval chooses by how the call is evaluated, and a generic lambda
+  // is a template with no constraint: kinds of their own, apart from the if
+  // statement and the lambda of Table 7.
+  if (const auto* i = llvm::dyn_cast<clang::IfStmt>(st))
+    if (i->isConsteval()) return "Stmt:IfConsteval";
+  if (const auto* l = llvm::dyn_cast<clang::LambdaExpr>(st))
+    if (l->isGenericLambda()) return "Stmt:GenericLambda";
   return std::string("Stmt:") + st->getStmtClassName();
 }
 
@@ -3708,6 +3715,72 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       kinds.insert("Derived:view");
     return true;
   }
+  // Where a return may stand for Table 7's reading of statements: at the end
+  // of the function, at the end of both branches of a last if, or at the end
+  // of a branch of an if that the statements after it follow as its other
+  // branch (a guard, if (c) return e; rest, which is if (c) return e; else
+  // { rest }).  Any other return, in a loop or in a branch that only
+  // sometimes returns, is Stmt:EarlyReturn.
+  std::set<const clang::Stmt*> tailReturns;
+  static bool alwaysReturns(const clang::Stmt* s) {
+    if (!s) return false;
+    if (llvm::isa<clang::ReturnStmt>(s)) return true;
+    if (const auto* c = llvm::dyn_cast<clang::CompoundStmt>(s))
+      return !c->body_empty() && alwaysReturns(c->body_back());
+    if (const auto* i = llvm::dyn_cast<clang::IfStmt>(s))
+      return i->getElse() && alwaysReturns(i->getThen()) && alwaysReturns(i->getElse());
+    return false;
+  }
+  void markTail(const clang::Stmt* s) {
+    if (!s) return;
+    if (llvm::isa<clang::ReturnStmt>(s)) tailReturns.insert(s);
+    if (const auto* c = llvm::dyn_cast<clang::CompoundStmt>(s)) {
+      for (const clang::Stmt* x : c->body())
+        if (const auto* i = llvm::dyn_cast<clang::IfStmt>(x))
+          for (const clang::Stmt* b : {i->getThen(), i->getElse()})
+            if (alwaysReturns(b)) markTail(b);  // a guard
+      if (!c->body_empty()) markTail(c->body_back());
+    }
+    if (const auto* i = llvm::dyn_cast<clang::IfStmt>(s)) {
+      markTail(i->getThen());
+      markTail(i->getElse());
+    }
+  }
+  bool VisitFunctionDecl(clang::FunctionDecl* f) {
+    if (f->doesThisDeclarationHaveABody()) markTail(f->getBody());
+    return true;
+  }
+  bool VisitLambdaExpr(clang::LambdaExpr* l) {
+    markTail(l->getBody());  // a lambda's returns are its own
+    return true;
+  }
+  /// A conversion between integer types that the destination cannot hold at
+  /// every value of the source ([dcl.init.list]); a constant that fits is
+  /// held.
+  const clang::ASTContext* ctx = nullptr;
+  bool narrows(const clang::ImplicitCastExpr* c) const {
+    if (!ctx || (c->getCastKind() != clang::CK_IntegralCast &&
+                 c->getCastKind() != clang::CK_IntegralToBoolean))
+      return false;
+    const clang::Expr* e = c->getSubExpr();
+    const clang::QualType from = e->getType(), to = c->getType();
+    if (from->isDependentType() || to->isDependentType() || e->isValueDependent() ||
+        !from->isIntegralOrEnumerationType() || !to->isIntegerType())
+      return false;
+    const bool toBool = to->isBooleanType();
+    const unsigned wf = ctx->getIntWidth(from), wt = toBool ? 1 : ctx->getIntWidth(to);
+    const bool sf = from->isSignedIntegerOrEnumerationType(),
+               st = !toBool && to->isSignedIntegerType();
+    // Every value of the source is a value of the destination.
+    if (sf == st ? wt >= wf : (!sf && st && wt > wf)) return false;
+    // A constant is held if its value is.
+    if (auto v = e->getIntegerConstantExpr(*ctx)) {
+      if (toBool) return !(*v == 0 || *v == 1);
+      const llvm::APSInt lo = llvm::APSInt::getMinValue(wt, !st), hi = llvm::APSInt::getMaxValue(wt, !st);
+      return llvm::APSInt::compareValues(*v, lo) < 0 || llvm::APSInt::compareValues(*v, hi) > 0;
+    }
+    return true;
+  }
   bool VisitStmt(clang::Stmt* st) {
     if (const auto* t = llvm::dyn_cast<clang::CXXThisExpr>(st))
       if (t->isImplicit()) return true;  // a member named without this->
@@ -3740,6 +3813,10 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
                    (o->isPostfix() ? "post" : ""));
       return true;
     }
+    if (const auto* r = llvm::dyn_cast<clang::ReturnStmt>(st))
+      if (!tailReturns.count(r)) kinds.insert("Stmt:EarlyReturn");
+    if (const auto* c = llvm::dyn_cast<clang::ImplicitCastExpr>(st))
+      if (narrows(c)) kinds.insert("Conversion:narrowing");
     if (!llvm::isa<clang::ImplicitCastExpr, clang::MaterializeTemporaryExpr,
                    clang::ExprWithCleanups, clang::CXXBindTemporaryExpr,
                    clang::ConstantExpr, clang::CXXDefaultArgExpr,
@@ -3821,6 +3898,7 @@ class Definitions : public clang::ASTConsumer {
                                 e = sm.getExpansionLoc(d->getEndLoc());
     if (!sm.isInMainFile(b)) return;
     Kinds k;
+    k.ctx = &d->getASTContext();
     k.TraverseDecl(d);
     out() << sm.getFilename(b) << ':' << sm.getExpansionLineNumber(b) << ':'
           << sm.getExpansionColumnNumber(b) << ": " << n.str() << " range "

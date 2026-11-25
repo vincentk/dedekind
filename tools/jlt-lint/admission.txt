@@ -192,6 +192,21 @@ Stmt:ArithmeticConversion kernel
 # (Figure 2's own form; in a template the same spelling is an unresolved
 # construction, kernel above).
 Stmt:BracedValue kernel
+# Conditions of Table 7's rows that the kinds show (the audit of 2026-11-25).
+# A return where the reading of statements has no place for it: in a loop, or
+# in a branch that only sometimes returns.  At the end of the function, of
+# both branches of a last if, or of a guard (if (c) return e; rest) it is the
+# kernel's return.
+Stmt:EarlyReturn refused
+# An implicit conversion between integer types that does not hold every
+# value ([dcl.init.list]): Table 7's row asks that it does not narrow.
+Conversion:narrowing refused
+# if consteval: its row trusts that both branches compute one value, and no
+# tool lists that trust yet.
+Stmt:IfConsteval open
+# A generic lambda is a template with no constraint; its row covers a lambda
+# that is not generic.
+Stmt:GenericLambda open
 Stmt:CXXStaticCastExpr open
 Stmt:CXXThisExpr open
 Stmt:CXXConstructExpr kernel

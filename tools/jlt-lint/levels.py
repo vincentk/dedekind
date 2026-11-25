@@ -16,10 +16,14 @@ A function template also carries the type check's outcome; anything else is
 not checked by type (a law's entry, a type, a concept: the archetypes are
 built from these, not checked against them).
 
-    python3 tools/jlt-lint/levels.py BUILD TOOL NAMESPACE FILE [--latex OUT] [--check OUT]
+    python3 tools/jlt-lint/levels.py BUILD TOOL NAMESPACE FILE [--latex OUT] [--check OUT] [--expect FILE]
 
 --latex writes the paper's table rows; --check regenerates them and fails if
 the committed file differs, so the paper's table cannot drift from the code.
+--expect compares every definition's level with FILE, lines `<name> <level>`
+(a name defined twice has its levels in order), and fails on a definition
+that differs, is missing or is not listed: a fixture's levels are then
+pinned definition by definition, not by a count.
 """
 import argparse
 import pathlib
@@ -133,6 +137,7 @@ def main():
     args.add_argument("file")
     args.add_argument("--latex", type=pathlib.Path)
     args.add_argument("--check", type=pathlib.Path)
+    args.add_argument("--expect", type=pathlib.Path)
     a = args.parse_args()
     rules = sorted(p.stem for p in (HERE / "rules").glob("*.query"))
     build = jlt_lint.one_entry_per_file(a.build, "levels") if (a.build / "compile_commands.json").exists() else a.build
@@ -142,6 +147,17 @@ def main():
     rows = classify(where, admission.admission())
     for name, line, level, why, by_type in rows:
         print(f"{line:5d}  {level:10s} {by_type or '':13s} {name}" + (f"  ({why})" if why else ""))
+    if a.expect:
+        want = [tuple(l.split()) for l in a.expect.read_text().splitlines()
+                if l.strip() and not l.startswith("#")]
+        got = [(name, level) for name, _, level, _, _ in rows]
+        if want != got:
+            diff = [f"  {n}: {lv}, expected {dict(want).get(n, 'not listed')}"
+                    for n, lv in got if (n, lv) not in want]
+            diff += [f"  {n}: expected {lv}, not found" for n, lv in want
+                     if n not in dict(got)]
+            sys.exit(f"levels.py: {a.file} differs from {a.expect}:\n" + "\n".join(diff))
+        print(f"levels.py: {a.file}: {len(got)} levels as {a.expect.name} expects")
     text = latex(rows)
     if a.latex:
         a.latex.write_text(text)
