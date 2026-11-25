@@ -68,7 +68,7 @@ And for those in FJlt, the program as written uses only kinds of syntax that the
 % STATUS (2026-11-25): the second stage runs in CI on the four listings, its
 % fixtures and the whole library.
 \paragraph{At scale.}
-Table~\ref{tab:summary} sums the levels of Table~\ref{tab:levels} over three bodies of code: the listings, the library, and Catch2, a test library not written under the rules that the build compiles for the tests, its headers and its sources apart; the same rules give every level, and Appendix~\ref{app:lint:summary} says how.
+Table~\ref{tab:summary} sums the levels of Table~\ref{tab:levels} over four bodies of code: the listings, the library, and two libraries not written under the rules, the ranges library of the standard library and Catch2, a test library that the build compiles for the tests, its headers and its sources apart; the same rules give every level, and Appendix~\ref{app:lint:summary} says how.
 Every count is pinned per file and held by a ratchet, so that no admission can be lost and no refusal added without a reason written in the change; every build checks the whole library, on Linux and on macOS, within forty minutes, and compares this table with the one it computes.
 Of the \JltCatchHeadersDefinitions{} definitions in Catch2's headers, \JltCatchHeadersShown{} are shown to be in Jlt as written, and of the \JltCatchSourcesDefinitions{} in its sources, \JltCatchSourcesShown{}.
 A refusal says how far a definition is from the rules, and not only that it does not show them: of the \JltCatchSourcesRefused{} definitions refused in the sources, \JltCatchSourcesNotConstexpr{} are not declared \cppinline{constexpr}, and \JltCatchSourcesNotConstexprAlone{} are refused for that alone.
@@ -79,13 +79,14 @@ Where a definition is undecided, that it means what its signature says rests on 
 \small
 \begin{tabular}{@{}l rrrrr c@{}}
 \toprule
- & definitions & FJlt & Jlt & refused & undecided & function templates \\
- & & \multicolumn{4}{c}{in per cent of the definitions} & by type \\
+ & definitions & FJlt & Jlt & refused & undecided & constrained templates \\
+ & & \multicolumn{4}{c}{in per cent of the definitions} & admitted / not / undecided \\
 \midrule
 \lintinput generated/summary-table.tex
 \bottomrule
 \end{tabular}
-\caption{The levels of Table~\ref{tab:levels}, summed: for each body of code the number of its definitions, the share of them in FJlt, in Jlt, refused and undecided, in per cent, and of its function templates the number the type check admits, does not admit, and leaves undecided.
+\caption{The levels of Table~\ref{tab:levels}, summed: for each body of code the number of its definitions, the share of them in FJlt, in Jlt, refused and undecided, in per cent, and of its function templates that a concept constrains, the number the type check admits, does not admit, and leaves undecided.
+The standard ranges are the ranges library of libstdc++~16, the standard library the build uses on Linux; Catch2, a \Cpp{14} library, constrains its templates by \texttt{enable\_if} where it constrains them, and none by a concept.
 The sources are \texttt{tools/jlt-lint/scope} and the report of the build.}
 \label{tab:summary}
 \end{table}

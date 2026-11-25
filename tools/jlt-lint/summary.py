@@ -3,8 +3,9 @@
 Reads the levels the driver wrote beside its report (<out>/all-levels.json:
 each file's definitions with their level, by levels.py's classify, the same
 computation as Table 6) and sums them for each body of code: the listings,
-the library, and Catch2, a library not written under the rules, its headers
-and its sources apart.  Per body:
+the library, and two libraries not written under the rules: the ranges
+library of the standard library in use, which constrains its templates by
+concepts, and Catch2, which does not, its headers and its sources apart.  Per body:
 the number of definitions, the share of them in FJlt, in Jlt, refused and
 undecided, in per cent so that the rows compare, and of the function
 templates how many the type check admits, does not admit, or leaves
@@ -31,6 +32,7 @@ import sys
 BODIES = [
     ("listings", lambda key: key == "src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp paper_listings"),
     ("library", lambda key: key.startswith("src/main/modules/dedekind/")),
+    ("standard ranges", lambda key: key.startswith("build/_deps/stdlib-ranges/")),
     ("Catch2, headers", lambda key: key.startswith("build/_deps/catch2-src/") and key.split()[0].endswith(".hpp")),
     ("Catch2, sources", lambda key: key.startswith("build/_deps/catch2-src/") and key.split()[0].endswith(".cpp")),
 ]

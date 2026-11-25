@@ -1409,3 +1409,42 @@ rule1-local-state            src/main/modules/dedekind/sets/expressions.cppm  se
 rule1-local-state            src/main/modules/dedekind/sets/extensional.cppm  sets  7
 rule1-local-state            src/main/modules/dedekind/sets/quantifier.cppm  sets  2
 rule1-local-state            src/main/modules/dedekind/sets/singleton.cppm  sets  3
+
+# A second control: the ranges library of the standard library the build
+# uses (libstdc++ on Linux, libc++ on macOS), which constrains its templates
+# by concepts and was not written under the posture.  tools/jlt-lint/
+# stage_stdlib.py copies its headers under the build before the lint; every
+# rule is reported, none gated, since the library changes with its package.
+inventory                            build/_deps/stdlib-ranges/**/*.h  ranges  report
+axioms                               build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-boxed-identity                 build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-boxed-mutable-pointee          build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-const-call-operator            build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-const-member-functions         build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-constexpr                      build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-forwarding-reference-params    build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-lvalue-reference-params        build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-no-escaping-reference-captures build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-no-inheritance                 build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-no-mutable-globals             build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-no-reference-returns           build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-no-static-locals               build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-no-throw                       build/_deps/stdlib-ranges/**/*.h  ranges  report
+definitions                          build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-local-state                    build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-no-volatile                    build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule1-rvalue-reference-params        build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule2-constrained-templates          build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule2-context-order                  build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule2-converted-result               build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule2-decided-resolution             build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule2-definition                     build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule2-no-inline-requires             build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule3-bounded-fold                   build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule3-no-loops                       build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule3-no-mutual-recursion            build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule3-no-self-recursion              build/_deps/stdlib-ranges/**/*.h  ranges  report
+admitted                             build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule2-by-type                        build/_deps/stdlib-ranges/**/*.h  ranges  report
+rule2-no-type-observation            build/_deps/stdlib-ranges/**/*.h  ranges  report
+undecided-by-type                    build/_deps/stdlib-ranges/**/*.h  ranges  report

@@ -102,6 +102,10 @@ endif()
 add_custom_target(lint
     # The report is this run's or none: an earlier pass's report goes first.
     COMMAND ${CMAKE_COMMAND} -E rm -f ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
+    # A second control beside Catch2: the ranges library of the standard
+    # library in use, staged where the scope can name its headers.
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/stage_stdlib.py
+            ${CMAKE_CXX_COMPILER} ${CMAKE_BINARY_DIR}/_deps/stdlib-ranges
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/jlt_lint.py
             ${CMAKE_BINARY_DIR} ${_jlt_tool} --out ${_jlt_parts}
     COMMAND ${CMAKE_COMMAND} -E copy ${_jlt_parts}/all.txt ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
