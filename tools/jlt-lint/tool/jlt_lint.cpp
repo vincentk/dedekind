@@ -4683,7 +4683,12 @@ class LocalState : public clang::ASTConsumer {
           }
           // A value built from it holds a copy, unless a field of it is a
           // reference: Ref{k}.x = 7 writes k.
-          if (const auto* il = llvm::dyn_cast<clang::InitListExpr>(e)) return deepValue(il->getType());
+          if (const auto* il = llvm::dyn_cast<clang::InitListExpr>(e)) {
+            // The list as written has no type of its own (return {a, b};
+            // R{x} at a type parameter): judged where it has one.
+            const clang::QualType t = il->getType();
+            return t.isNull() || t->isVoidType() || t->isDependentType() || deepValue(t);
+          }
           if (llvm::isa<clang::LambdaExpr, clang::CXXFoldExpr,
                         clang::PackExpansionExpr, clang::UnaryExprOrTypeTraitExpr,
                         clang::CXXNoexceptExpr, clang::CXXTypeidExpr,
