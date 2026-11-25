@@ -3,12 +3,13 @@
 // gives are pinned definition by definition in derived-conditions.levels
 // (levels.py --expect), so that a condition once checked stays checked.
 // The audit of 2026-11-25 found each of the broken ones classed Jlt or FJlt.
-// Two rows are still open, and their cases are pinned at the level they get
-// today, to be moved when their checks exist: if constexpr on a trait with
-// branches of two types, and on a shape the signature does not name.
+// if constexpr is undecided wherever it stands: its two rows have no check
+// yet, so neither its sound uses nor these two are classed.
 // Standalone, no imports, so it is checked without the build.
 #include <concepts>
 #include <cstddef>
+#include <utility>
+#include <variant>
 
 namespace jlt_listing {
 
@@ -74,8 +75,8 @@ constexpr std::size_t plain_lambda() {  // sound
   return id(1uz);
 }
 
-// Still open: if constexpr with branches of two types, and on a shape the
-// signature does not name.  Classed Jlt today.
+// if constexpr with branches of two types, and on a shape the signature does
+// not name: undecided, as every if constexpr is until its rows have checks.
 template <typename T>
 constexpr bool is_small = false;
 template <typename T>
@@ -94,5 +95,27 @@ constexpr std::size_t unnamed_shape(T) {
     return 2;
   }
 }
+
+// A sum as the standard's variant: undecided until its row exists.  Beside it
+// the record it is to be read as, a tag and a field for each alternative.
+struct Area {
+  constexpr std::size_t operator()(std::size_t side) const { return side * side; }
+  constexpr std::size_t operator()(std::pair<std::size_t, std::size_t> sides) const {
+    return sides.first * sides.second;
+  }
+};
+constexpr std::size_t area(std::variant<std::size_t, std::pair<std::size_t, std::size_t>> shape) {
+  return std::visit(Area{}, shape);
+}
+struct Tagged {
+  bool second;
+  std::size_t side;
+  std::pair<std::size_t, std::size_t> sides;
+};
+constexpr std::size_t area_as_read(Tagged shape) {  // sound
+  return shape.second ? Area{}(shape.sides) : Area{}(shape.side);
+}
+static_assert(area(3uz) == area_as_read({false, 3, {}}) &&
+              area(std::pair{2uz, 5uz}) == area_as_read({true, 0, {2, 5}}));
 
 }  // namespace jlt_listing

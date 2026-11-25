@@ -204,6 +204,15 @@ Conversion:narrowing refused
 # if consteval: its row trusts that both branches compute one value, and no
 # tool lists that trust yet.
 Stmt:IfConsteval open
+# if constexpr: its two rows ask that both branches have one type, or that
+# the test is a shape the signature names, and no check shows either yet; the
+# type check leaves a body with one undecided for the same reason.
+Stmt:IfConstexpr open
+# The standard's variant, a sum: to be a derived form, read as a record with
+# a tag and a field for each alternative, std::visit the choice on the tag
+# (decided 2026-11-25; not in the kernel).  Open until the row is written
+# with its conditions and a tested pair.
+Derived:variant open
 # A generic lambda is a template with no constraint; its row covers a lambda
 # that is not generic.
 Stmt:GenericLambda open

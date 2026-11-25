@@ -503,8 +503,12 @@ std::string stmtKind(const clang::Stmt* st) {
   // if consteval chooses by how the call is evaluated, and a generic lambda
   // is a template with no constraint: kinds of their own, apart from the if
   // statement and the lambda of Table 7.
-  if (const auto* i = llvm::dyn_cast<clang::IfStmt>(st))
+  if (const auto* i = llvm::dyn_cast<clang::IfStmt>(st)) {
     if (i->isConsteval()) return "Stmt:IfConsteval";
+    // if constexpr chooses by a type: Table 7 has two rows for it, and no
+    // check yet shows either row's condition.
+    if (i->isConstexpr()) return "Stmt:IfConstexpr";
+  }
   if (const auto* l = llvm::dyn_cast<clang::LambdaExpr>(st))
     if (l->isGenericLambda()) return "Stmt:GenericLambda";
   return std::string("Stmt:") + st->getStmtClassName();
@@ -3713,6 +3717,10 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
         d->getQualifiedNameAsString().find("views::") != std::string::npos &&
         d->getName() != "iota")
       kinds.insert("Derived:view");
+    // std::visit on a value whose variant type is not written (auto).
+    if (d && llvm::isa<clang::FunctionDecl>(d) && d->getIdentifier() && inStd(d) &&
+        (d->getName() == "visit" || d->getName() == "holds_alternative"))
+      kinds.insert("Derived:variant");
     return true;
   }
   // Where a return may stand for Table 7's reading of statements: at the end
@@ -3826,8 +3834,14 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     return true;
   }
   bool VisitTypeLoc(clang::TypeLoc tl) {
-    if (!tl.isNull())
+    if (!tl.isNull()) {
       kinds.insert(typeKind(tl));
+      // A sum written as the standard's variant: no syntax kind shows it.
+      if (const auto* ts = tl.getTypePtr()->getAs<clang::TemplateSpecializationType>())
+        if (const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl())
+          if (td->getIdentifier() && td->getName() == "variant" && inStd(td))
+            kinds.insert("Derived:variant");
+    }
     return true;
   }
 };
@@ -4365,7 +4379,10 @@ class LocalState : public clang::ASTConsumer {
       /// list): the kernel's iteration is written with the first two.
       static bool reader(const clang::CallExpr* c) {
         static const std::set<std::string> readers{
-            "fold_left", "iota", "transform", "make_pair", "make_tuple", "make_optional"};
+            "fold_left", "iota", "transform", "make_pair", "make_tuple", "make_optional",
+            // visit hands the alternative held to its visitor, which in Jlt
+            // takes it by value (Rule 1).
+            "visit"};
         const clang::NamedDecl* named = c->getDirectCallee();
         // A function object of the standard, views::iota(a, b): its name.
         if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(c))

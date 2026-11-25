@@ -123,6 +123,12 @@ add_custom_target(lint
     # The fixture's outcome for every template, not only their count.
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/outcomes.py
             ${_jlt_tool} ${CMAKE_SOURCE_DIR}/tools/jlt-lint/fixtures/rule2-by-type.cpp
+    # Both generated tables are printed first, so that one run's log has
+    # what both checks below would ask for.
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/summary.py
+            --levels ${_jlt_parts}/all-levels.json
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/table.py
+            --report ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
     # The paper's summary of the levels over the listings, the library and
     # Catch2: compared, so that it cannot drift from the code.
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/summary.py

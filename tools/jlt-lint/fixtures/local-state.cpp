@@ -224,7 +224,7 @@ constexpr std::size_t aliased_through_iterator() {
 }
 constexpr std::size_t read_through_iterator(const std::array<std::size_t, 2>& a) {
   auto it = a.begin();
-  const auto& e = *it;  // sound: a is not local state
+  const auto& e = *it;  // no finding of this rule: a is not local state (the kinds refuse *it)
   return e;
 }
 static_assert(aliased_through_iterator() == 7 &&
