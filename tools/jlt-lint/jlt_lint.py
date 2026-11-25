@@ -359,7 +359,15 @@ def block(f, ns, entries, counts, where, out):
         return {"key": [f, ns], "text": text, "failures": 0, "rows": rows}
     if counts is None or counts == "absent":
         text.append(f"jlt-lint: {f}: does not parse, a rule did not run, or the scope is absent")
-        text += out.splitlines()[:30]
+        lines = out.splitlines()
+        # What the compiler said, wherever it is in the output, and both ends.
+        said = [l for l in lines if "error:" in l or "fatal" in l or "Assertion" in l][:20]
+        text += lines[:10] + said + lines[-10:]
+        # A file that only reports (a control, read as a header on its own
+        # with a neighbour's flags) is named and left out, not a failure.
+        if all(e == "report" for _, e in entries):
+            text.append(f"jlt-lint: {f}: reported only, left out of the counts")
+            return {"key": [f, ns], "text": text, "failures": 0, "rows": rows}
         return {"key": [f, ns], "text": text, "failures": 1, "rows": rows}
     for rule, expected in entries:
         n = counts[rule]
