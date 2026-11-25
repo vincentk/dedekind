@@ -101,6 +101,7 @@
 #include <vector>
 
 #include "clang/AST/ASTConsumer.h"
+#include "clang/Basic/Builtins.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/ASTTypeTraits.h"
 #include "clang/AST/Decl.h"
@@ -3834,6 +3835,14 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
           kinds.insert(divides ? "Op:division-by-value" : "Op:shift-by-value");
       }
     }
+    // std::is_constant_evaluated() and its builtin: a value that differs
+    // between constant evaluation and run time, as if consteval chooses; open
+    // with it until the agreement of the two branches can be checked.
+    if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st))
+      if (const clang::FunctionDecl* g = c->getDirectCallee())
+        if (g->getBuiltinID() == clang::Builtin::BI__builtin_is_constant_evaluated ||
+            (g->getIdentifier() && g->getName() == "is_constant_evaluated" && inStd(g)))
+          kinds.insert("Stmt:IfConsteval");
     // A floating value converted to an integer, written out in any spelling
     // (size_t(x), static_cast, a C cast): undefined where the value does not
     // fit ([conv.fpint]), so partial, and open as division by a value is.
@@ -4495,7 +4504,8 @@ class LocalState : public clang::ASTConsumer {
           const auto* e = n.get<clang::Expr>();
           if (!e) return false;
           if (llvm::isa<clang::ImplicitCastExpr, clang::ParenExpr, clang::MaterializeTemporaryExpr,
-                        clang::CXXBindTemporaryExpr, clang::ExprWithCleanups, clang::CXXConstructExpr>(e))
+                        clang::CXXBindTemporaryExpr, clang::ExprWithCleanups, clang::CXXConstructExpr,
+                        clang::InitListExpr, clang::CXXFunctionalCastExpr>(e))
             continue;
           if (const auto* c = llvm::dyn_cast<clang::CallExpr>(e)) {
             // A view of a view, views::take(v, 2) or v | views::take(2).
@@ -4507,6 +4517,9 @@ class LocalState : public clang::ASTConsumer {
             const bool view = !ds.empty() && std::all_of(ds.begin(), ds.end(), [](const clang::NamedDecl* d) {
               if (!inStd(d)) return false;
               const std::string q = d->getQualifiedNameAsString();
+              const llvm::StringRef n = d->getIdentifier() ? d->getName() : "";
+              // A pair, tuple or optional made of the view keeps it.
+              if (n == "make_pair" || n == "make_tuple" || n == "make_optional") return true;
               return q.find("views::") != std::string::npos ||
                      (d->getIdentifier() == nullptr && q.find("ranges") != std::string::npos);
             });
@@ -4925,6 +4938,21 @@ class LocalState : public clang::ASTConsumer {
         const clang::CXXMethodDecl* method = m->getMethodDecl();
         if (!method || !method->getIdentifier()) return true;
         const llvm::StringRef n = method->getName();
+        // at(i) of a sequence of the standard: the index shown in range as
+        // for [], since out of range it throws, which Rule 1 keeps out.
+        if (n == "at" && m->getNumArgs() == 1) {
+          const clang::QualType t = m->getImplicitObjectArgument()->getType();
+          const clang::QualType o = t->isPointerType() ? t->getPointeeType() : t;
+          const auto* r = o.getNonReferenceType()->getAsCXXRecordDecl();
+          if (!r || !inStd(r)) return true;
+          std::optional<std::uint64_t> size = arraySize(o);
+          if (!size) size = spanSize(o);
+          std::set<const clang::VarDecl*> seen;
+          auto i = size ? interval(m->getArg(0), *vs, seen) : std::nullopt;
+          if (!size || !i || i->first < 0 || i->second > static_cast<long long>(*size) - 1)
+            (*report)(m->getExprLoc());
+          return true;
+        }
         if (n != "front" && n != "back") return true;
         const clang::QualType t = m->getImplicitObjectArgument()->getType();
         const clang::QualType o = t->isPointerType() ? t->getPointeeType() : t;

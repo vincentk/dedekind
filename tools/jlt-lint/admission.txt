@@ -203,8 +203,9 @@ Stmt:EarlyReturn refused
 # An implicit conversion between integer types that does not hold every
 # value ([dcl.init.list]): Table 7's row asks that it does not narrow.
 Conversion:narrowing refused
-# if consteval: its row trusts that both branches compute one value, and no
-# tool lists that trust yet.
+# if consteval, and std::is_constant_evaluated() wherever it is called: its
+# row trusts that both branches compute one value, and no tool lists that
+# trust yet.
 Stmt:IfConsteval open
 # if constexpr: its two rows ask that both branches have one type, or that
 # the test is a shape the signature names, and no check shows either yet; the

@@ -492,6 +492,25 @@ constexpr bool passed_view(R r) {  // sound
   return first_element(std::views::transform(r, [](std::size_t x) { return x; })) == first_element(r);
 }
 static_assert(passed_view(std::array{1uz, 2uz}));
+// The view kept in a pair that is returned: the pair holds the ref_view, which
+// dangles as the view alone does (Copilot on #1219).
+constexpr auto dangling_in_pair() {
+  std::array<std::size_t, 3> r{1, 2, 3};
+  r[0] = 4;
+  return std::make_pair(std::views::transform(r, [](std::size_t x) { return x; }), 0uz);
+}
+// at() out of range throws: refused as [] is; in range it is not.
+constexpr std::size_t at_out_of_range() {
+  std::array<std::size_t, 2> r{1, 2};
+  r[0] = 3;
+  return r.at(2);
+}
+constexpr std::size_t at_in_range() {  // sound
+  std::array<std::size_t, 2> r{1, 2};
+  r[0] = 3;
+  return r.at(1);
+}
+static_assert(at_in_range() == 2);
 static_assert(written_through_temporary() == 0 &&
               written_through_comma() == 1 && written_by_lambda() == 9 && half(4) == 2uz);
 

@@ -18,6 +18,7 @@ shifted undecided
 doubled FJlt
 bound undecided
 by_evaluation undecided
+by_observer undecided
 generic_lambda undecided
 plain_lambda Jlt
 is_small FJlt

@@ -9,6 +9,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdlib>
+#include <type_traits>
 #include <utility>
 #include <variant>
 
@@ -89,6 +90,8 @@ constexpr std::size_t by_evaluation() {
     return 2;
   }
 }
+// The same choice by the library's observer (Copilot on #1219).
+constexpr std::size_t by_observer() { return std::is_constant_evaluated() ? 1uz : 2uz; }
 
 // A lambda: not generic.
 constexpr std::size_t generic_lambda() {

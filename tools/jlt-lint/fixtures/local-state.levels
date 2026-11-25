@@ -71,3 +71,6 @@ dangling_view refused
 consumed_view refused
 first_element refused
 passed_view refused
+dangling_in_pair refused
+at_out_of_range refused
+at_in_range Jlt
