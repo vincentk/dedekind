@@ -27,7 +27,7 @@ On the listings it refuses exactly the two definitions this paper planted, \cppi
 Each refusal is a gate, so a listing that changed what the linter refuses would fail the build; the list of the listings' axioms is reported, not yet pinned.
 
 \paragraph{Refused by name, admitted by type.}
-Every check in that table but the list of axioms is a deny-rule: it refuses a construct outside Jlt, and a definition it does not refuse is not thereby inside.
+Every check of Table~\ref{tab:lint} but the list of axioms and the admission by type is a deny-rule: it refuses a construct outside Jlt, and a definition it does not refuse is not thereby inside.
 To admit a definition, the linter has a second stage, a type check.
 For every constrained template, whether or not a deny-rule refuses it, it builds an \emph{archetype} of each shape in the template's signature, a type with exactly the calls and laws the shape promises and nothing more~\cite{siek2000concept}, as \cppinline{BareMonoid} in Listing~\ref{lst:motivation}, written by hand, nearly is: it also has equality and a default value.
 The archetypes are generated from the shapes, by one rule for each kind of requirement a shape may have (Figure~\ref{fig:fjlt-syntax}), so their number grows with the grammar of shapes and not with the number of concepts.

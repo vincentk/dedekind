@@ -32,7 +32,7 @@ The table is regenerated from the report of every build and compared with the on
 \label{tab:lint}
 \end{table}
 
-Two checks carry half of what the deny-rules find: \texttt{rule2-definition}, the definition check by names, and \texttt{rule3-no-loops}, loops whose end is not stated before they start.
+Three checks carry most of what the deny-rules find: \texttt{rule2-constrained-templates}, which counts templates with a parameter left unconstrained, \texttt{rule2-definition}, the definition check by names, and \texttt{rule1-local-state}.
 \texttt{rule2-constrained-templates}, that every template is constrained, is reported everywhere and counts apart.
 
 A deny-rule can only say that a construct is outside Jlt, and a file it does not refuse is not thereby inside: the list of refusals is not complete.
@@ -130,7 +130,7 @@ A definition is a declaration directly in the namespace judged, as the check \te
 It is refused when a deny-rule finds something in its lines, when it uses a kind that \texttt{tools/jlt-lint/admission.txt} refuses, or when the type check does not admit it; undecided when it uses a kind still open or the type check leaves it undecided; in Jlt when every kind is kernel, scaffolding or a derived form and some is a derived form; and in FJlt otherwise.
 The table's last column counts definitions as well, each once, by the first outcome the type check gives within its lines, so its total, 742 for the library, is below the 748 function templates the type check reads there.
 The level is computed in the build's one run of the linter, for every file in scope, by the function that gives Table~\ref{tab:levels} its rows (\texttt{tools/jlt-lint/levels.py}), and summed for each body of code by \texttt{tools/jlt-lint/summary.py}.
-The listings are the namespace of Listings~\ref{lst:motivation} to~\ref{lst:theorems}; the library is its module units in scope; Catch2 is the sources it compiles, the \texttt{.cpp} files, since the linter judges what a file declares and Catch2's headers are not yet judged as files of their own.
+The listings are the namespace of Listings~\ref{lst:motivation} to~\ref{lst:theorems}; the library is its module units in scope; Catch2 is its sources, the \texttt{.cpp} files the build compiles, and its headers, each judged as a file of its own with the flags of a source file beside it, since the linter judges what a file declares; the table reports the two apart.
 A kind is coarser than the grammar, so a level counts what a definition writes, not everything it means: the deny-rules and the type check supply the rest.
 
 \paragraph{The conjecture and its hypotheses.}

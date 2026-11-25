@@ -41,7 +41,7 @@ It does not enforce the fragment's boundary, and the three rules of this paper d
 The rules are a cost paid once, in how a program is written.
 An optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume: the flag \texttt{-ffast-math} lets it assume them of floating point, where they do not hold, and its name says what a law is for.
 Under the discipline, a program declares such laws itself, of the types at which they hold.
-The programmer declares a law, and the compiler does not check it: a law declared falsely is the programmer's error, as the standard has it for a concept (Section~\ref{sec:posture}).
+The programmer declares a law, and the compiler does not check it: a law declared falsely is the programmer's error, as the standard has it for a concept (Section~\ref{sec:limits}).
 What the compiler does mechanically is compose: it derives laws of a construction from the laws of its parts, and it selects among the overloads that those laws license (Section~\ref{sec:examples:inference}).
 
 The fragment is the \emph{Juliet Posture}, or Jlt, and it has two boundaries.

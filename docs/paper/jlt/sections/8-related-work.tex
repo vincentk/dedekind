@@ -43,7 +43,7 @@ A law in Jlt is as unchecked, a certificate the compiler finds but does not prov
 \subsubsection*{Neighbours of the method: a sublanguage held by a tool}
 
 \paragraph{Subsets with a checker and a meaning.}
-SPARK is the oldest instance in wide use: a subset of Ada with a tool that verifies the programs written in it~\cite{hoang2015spark}.
+SPARK is a long-standing instance: a subset of Ada with a tool that verifies the programs written in it~\cite{hoang2015spark}.
 ADsafety is the nearest in how its evidence is layered: for a sublanguage of JavaScript that a linter defines, Politz et al.\ prove a type system sound, and of the step from the linter to the type system they state a claim and ``validate this claim by testing''~\cite{politz2011adsafety}.
 This paper's layers are the same three: a translation proved on paper, sugar that is argued and tested, and assumptions that are stated.
 The opposite route to the same end verifies a program in a proof assistant and extracts C from it, as Low* does from F*~\cite{protzenko2017verified}; Jlt keeps the programmer in \Cpp{} and puts the proof in the translation.
