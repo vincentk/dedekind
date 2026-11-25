@@ -10,7 +10,7 @@ A rule either refuses the file or reports what it found.
 Most rules are patterns over Clang's syntax tree, written in the matcher language of \texttt{clang-query} and kept one to a file in \texttt{tools/jlt-lint/rules/}; the rule that refuses \cppinline{throw} is the line
 \cppinline{match cxxThrowExpr(isExpansionInMainFile(), hasAncestor(scope))}.
 The rest, which follow calls or compile a definition again, are checks written in \Cpp{} against Clang's libraries.
-For the first rule it checks that functions are \cppinline{constexpr}, that call operators are \cppinline{const} and that nothing is thrown, and it closes each channel a mutation could leak through at run time: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference; inside the call it checks that each mutable local is reached through its own name only, so that local state reads as a fold of states (Appendix~\ref{app:derived}).
+For the first rule it checks that functions are \cppinline{constexpr}, that call operators are \cppinline{const} and that nothing is thrown, and it closes each channel a mutation could leak through at run time, with a check for each (Table~\ref{tab:lint}); inside the call it checks that each mutable local is reached through its own name only, so that local state reads as a fold of states (Appendix~\ref{app:derived}).
 For the second it checks that a template is constrained, that a generic body calls on its type parameters only what its constraints name, by the names of the calls, and that the body observes no type except through a shape.
 For the third it refuses a function that calls itself and a loop whose end is not stated before it starts: a counted \texttt{for} and a range-\texttt{for} over an array pass, as the folds Table~\ref{tab:derived} rewrites them to, and every other loop is a finding, which a reviewer may judge to show its end all the same.
 
@@ -35,10 +35,7 @@ The few the standard's concepts need, such as \cppinline{sized_range}, are writt
 The template is instantiated at its archetypes and compiled, and if it type-checks there, its body uses only what its signature promises, at the promised types, under the hypotheses of Appendix~\ref{app:lint:conjecture}.
 Each definition then has one of three outcomes: refused, with a rule and a line as its witness; admitted, by the type check; or undecided, where neither stage settles it.
 The second stage approximates the check of definitions that the concepts proposed for \Cpp{0x} made, restricted to the fragment: those bound a name where the template is defined, and here a hypothesis does.
-The idea is not new.
-Siek and Lumsdaine wrote archetypes by hand for the concepts of the standard library of their day, in Boost's Concept Check Library, and a programmer checked a template by instantiating it at them in a test of their own~\cite{siek2000concept}.
-ConceptGCC generated them from the concepts proposed for \Cpp{0x}~\cite{gregor2006concepts}.
-The linter generates them from the concepts of \Cpp{20}, inside the fragment, and gives every definition its outcome in every build.
+The archetypes are the Concept Check Library's (Section~\ref{sec:intro}), which ConceptGCC generated from the concepts proposed for \Cpp{0x}~\cite{gregor2006concepts}; the linter generates them from the concepts of \Cpp{20}, inside the fragment, and gives every definition its outcome in every build.
 Inside it, the rules close most of the ways in which a real type differs from its archetype.
 An operation is a function object reached through a named type; \RuleTwo{} decides every choice of overload in the signature; a carrier has only what its shapes ask, and a required call a fixed result type, or one only convertible to it and converted at once; and an entry stands above every use that reads it (Section~\ref{sec:limits}).
 This paper's conjecture is that a definition admitted at its archetypes is well typed at every type that satisfies its shapes and keeps the rules itself, and resolves every choice its signature makes the same way; Appendix~\ref{app:lint:conjecture} states its hypotheses and the counterexamples they exclude, and it is tested on the definitions of the listings and on the library.
@@ -65,9 +62,8 @@ The two rows for \texttt{power} are its general and its idempotent case.}
 \label{tab:levels}
 \end{table}
 
-For this code, that has three consequences, each conditional on the conjecture above.
-For every admitted definition, satisfying its constraints suffices to use it.
-Its free theorem holds of the code the compiler builds, given in addition that its body observes no type except through a shape (Appendix~\ref{app:lint:conjecture}), the hypothesis of adequacy and the compiler's lowering (Section~\ref{sec:translation}).
+For this code, two more things follow, each conditional on the conjecture above.
+An admitted definition's free theorem holds of the code the compiler builds, given in addition that its body observes no type except through a shape (Appendix~\ref{app:lint:conjecture}), the hypothesis of adequacy and the compiler's lowering (Section~\ref{sec:translation}).
 And for those in FJlt, the program as written uses only kinds of syntax that the linter classes as kernel, a coarser test than being a term of the grammar of Figure~\ref{fig:fjlt-syntax}, whose image in System~F is the image of Table~\ref{tab:image}, with no derived form in between whose rewrite would have to be trusted; for those in Jlt the same holds after the rewrites of Table~\ref{tab:derived}, and of these an alias rests on nothing.
 % STATUS (2026-11-25): the second stage runs in CI on the four listings, its
 % fixtures and the whole library.

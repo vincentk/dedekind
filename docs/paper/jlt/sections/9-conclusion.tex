@@ -14,6 +14,6 @@ A pattern lies beyond them: what is known when a program is built is computed th
 So the computations that specialise well may be those that run in small state over an unbounded input, one element at a time, by a step that is a function of Jlt: the streaming algorithms~\cite{alon1999space}.
 
 Nothing was added to the language, the compiler or the library: what was added is a boundary, meant as a route rather than a wall, which a team takes one file and one rule at a time.
-Dos Reis and Stroustrup remarked in 2006 that a type class and its instances ``correspond closely to \Cpp{}'s notion of template partial or full specialization'', which ``morally is what happens when the dictionaries, in the dictionary passing style translation [\ldots], are optimized away''~\cite[Section~6.2]{dosreis2006specifying}.
+Dos Reis and Stroustrup remarked in 2006 that template specialisation ``morally'' is what happens when the dictionaries are optimised away (Section~\ref{sec:intro}).
 That is a statement about the general case.
 This paper gives up the general case for a fragment of the language as shipped, and in return replaces ``morally'' by ``mechanically'': membership in the fragment is checked in continuous integration.
