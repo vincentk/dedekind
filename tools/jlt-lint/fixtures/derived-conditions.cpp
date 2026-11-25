@@ -45,6 +45,16 @@ constexpr std::size_t empty_value() {
 }
 constexpr std::size_t engaged_value(std::optional<std::size_t> o) { return o.value(); }
 static_assert(empty_value() == 0 && engaged_value(3uz) == 3);
+// A builtin that ends the program, or has no behaviour when reached: no value
+// at any argument (Copilot on #1219).
+constexpr std::size_t trapped(std::size_t n) {
+  if (n == 0) __builtin_trap();
+  return n;
+}
+constexpr std::size_t unreached(std::size_t n) {
+  if (n == 0) __builtin_unreachable();
+  return n;
+}
 constexpr std::size_t truncated(double x) { return x; }  // refused: undefined out of range
 constexpr std::size_t widened(unsigned char c) { return c; }  // sound
 constexpr std::size_t constant_held() { return 1; }           // sound: 1 is a size_t

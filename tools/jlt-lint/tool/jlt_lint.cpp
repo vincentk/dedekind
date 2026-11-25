@@ -3842,6 +3842,16 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     if (callee && !callee->isConstexpr() && !callee->getBuiltinID() && !callee->isImplicit() &&
         !clang::isLambdaCallOperator(callee) && !callee->isDeleted())
       kinds.insert("Call:NotConstexpr");
+    // A builtin is exempt, being the compiler's own, except those that end
+    // the program or have no defined behaviour when reached: they give no
+    // value at any argument (__builtin_trap, __builtin_unreachable).
+    if (callee && callee->getBuiltinID() && callee->getIdentifier()) {
+      static const std::set<std::string> ends{"__builtin_trap", "__builtin_debugtrap",
+                                              "__builtin_verbose_trap", "__builtin_unreachable",
+                                              "__builtin_abort", "abort", "__builtin_exit",
+                                              "exit", "_Exit", "quick_exit"};
+      if (ends.count(callee->getName().str())) kinds.insert("Call:NotConstexpr");
+    }
     // Integer division and remainder by a value, and a shift by a value:
     // the kernel has them by a constant only, where they are defined at
     // every argument (Figure 2, Appendix D).
