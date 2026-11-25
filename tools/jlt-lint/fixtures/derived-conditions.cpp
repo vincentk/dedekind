@@ -8,6 +8,7 @@
 // Standalone, no imports, so it is checked without the build.
 #include <concepts>
 #include <cstddef>
+#include <cstdlib>
 #include <utility>
 #include <variant>
 
@@ -21,6 +22,12 @@ constexpr std::size_t narrowed_to_char(std::size_t n) {
   return c;
 }
 constexpr int written_out(std::size_t i) { return int(i); }  // sound: the conversion is written
+constexpr unsigned char low_byte(std::size_t n) {  // refused: += converts back
+  unsigned char c = 0;
+  c += n;
+  return c;
+}
+constexpr std::size_t truncated(double x) { return x; }  // refused: undefined out of range
 constexpr std::size_t widened(unsigned char c) { return c; }  // sound
 constexpr std::size_t constant_held() { return 1; }           // sound: 1 is a size_t
 
@@ -56,6 +63,23 @@ constexpr std::size_t sometimes_returns(bool a, bool b) {  // refused
 }
 static_assert(guarded(true) == 7 && guarded(false) == 1 && guarded_in_else(true) == 2 &&
               guarded_in_else(false) == 9 && sometimes_returns(true, false) == 2);
+
+// A function is evaluable at compile time only if what it calls is: since
+// C++23 the keyword alone does not say so.
+constexpr std::size_t seeded() { return std::size_t(std::rand()); }  // refused
+// A declaration with no body is not a definition, and is not counted.
+constexpr std::size_t declared_elsewhere(std::size_t);
+struct Forward;
+// Division and a shift by a value are not defined at every argument.
+constexpr std::size_t quotient(std::size_t a, std::size_t b) { return a / b; }   // undecided
+constexpr std::size_t halved(std::size_t a) { return a / 2; }                    // sound
+constexpr std::size_t shifted(std::size_t a, std::size_t i) { return a << i; }   // undecided
+constexpr std::size_t doubled(std::size_t a) { return a << 1; }                  // sound
+// A structured binding has no row yet.
+constexpr std::size_t bound(std::pair<std::size_t, std::size_t> p) {  // undecided
+  auto [a, b] = p;
+  return a + b;
+}
 
 // if consteval: no tool lists the trust its row asks for.
 constexpr std::size_t by_evaluation() {

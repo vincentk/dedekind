@@ -17,7 +17,8 @@ that the paper's table cannot drift from the code.
 Every run also prints, for each body, the most frequent reasons of its
 refused and its undecided definitions (a definition with several reasons
 counts once for each), and after each reason, in parentheses, how many
-definitions have it as their only reason: what the rows' two last levels are
+definitions have it as their only reason, with no refused or open kind of
+syntax beside it: what the rows' two last levels are
 made of, and how much of each one reason alone accounts for.
 """
 import argparse
@@ -43,7 +44,7 @@ def rows(levels):
         for key, defs in levels.items():
             if not member(key):
                 continue
-            for _name, _line, lv, _why, bt in defs:
+            for _name, _line, lv, _why, bt, *_also in defs:
                 n += 1
                 level[lv] += 1
                 if bt:
@@ -64,12 +65,12 @@ def reasons(levels, top=8):
             for key, defs in levels.items():
                 if not member(key):
                     continue
-                for _name, _line, lv, why, _bt in defs:
+                for _name, _line, lv, why, _bt, *also in defs:
                     if lv == level:
                         n += 1
                         ws = [w.strip() for w in why.split(",") if w.strip()]
                         count.update(ws)
-                        if len(ws) == 1:
+                        if len(ws) == 1 and not (also and also[0]):
                             alone[ws[0]] += 1
             out.append(f"summary.py: {name}, {level} ({n}): "
                        + ", ".join(f"{w} {c} ({alone[w]} alone)" for w, c in count.most_common(top)))
@@ -91,14 +92,14 @@ def facts(levels):
         for key, defs in levels.items():
             if not members[body](key):
                 continue
-            for _name, _line, lv, why, _bt in defs:
+            for _name, _line, lv, why, _bt, *also in defs:
                 n += 1
                 shown += lv in ("FJlt", "Jlt")
                 if lv == "refused":
                     refused += 1
                     ws = [w.strip() for w in why.split(",") if w.strip()]
                     keyword += "rule1-constexpr" in ws
-                    alone += ws == ["rule1-constexpr"]
+                    alone += ws == ["rule1-constexpr"] and not (also and also[0])
         for name, value in (("Definitions", n), ("Shown", shown), ("Refused", refused),
                             ("NotConstexpr", keyword), ("NotConstexprAlone", alone)):
             out.append(f"\\newcommand{{\\Jlt{macro}{name}}}{{{value}}}")

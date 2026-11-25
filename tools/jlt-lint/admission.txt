@@ -75,8 +75,10 @@ Stmt:ParenExpr scaffolding
 Decl:Var derived
 Stmt:DeclStmt derived
 Stmt:IfStmt derived
-Decl:Decomposition derived
-Decl:Binding derived
+# A structured binding has no row in the table of derived forms, and
+# rule1-local-state does not yet read a binding as the local it names.
+Decl:Decomposition open
+Decl:Binding open
 Stmt:DesignatedInitExpr derived
 Stmt:ParenListExpr derived
 Type:PackExpansion derived
@@ -213,6 +215,14 @@ Stmt:IfConstexpr open
 # (decided 2026-11-25; not in the kernel).  Open until the row is written
 # with its conditions and a tested pair.
 Derived:variant open
+# A call to a function not declared constexpr: since C++23 the keyword on
+# the caller does not require it of the callee, so the linter looks.
+Call:NotConstexpr refused
+# Integer division and remainder by a value, and a shift by a value: the
+# kernel has each by a constant only (not zero; below the width), where it is
+# defined at every argument.  Open until division has its row (#1221).
+Op:division-by-value open
+Op:shift-by-value open
 # A generic lambda is a template with no constraint; its row covers a lambda
 # that is not generic.
 Stmt:GenericLambda open

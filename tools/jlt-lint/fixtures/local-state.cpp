@@ -10,7 +10,7 @@
 //
 // rule1-local-state checks every use of a mutable local against a list of
 // the positions Table 7's rows read (an allowlist): it refuses each near-miss
-// (some with a finding at more than one use, 38 in all) and nothing else
+// (some with a finding at more than one use, 55 in all) and nothing else
 // here: Fibonacci and the sound twins pass.  (An LU solve is left
 // out until division and fields are under control: #1221.)  Standalone, no
 // imports, so it is checked without the build.
@@ -18,10 +18,12 @@
 #include <array>
 #include <bit>
 #include <cstddef>
+#include <expected>
 #include <functional>
 #include <optional>
 #include <ranges>
 #include <span>
+#include <string_view>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -383,5 +385,77 @@ constexpr T unboxed() {  // C9: at T = size_t, v is indeterminate
 static_assert(aliased_through_tie() == 7 && aliased_through_ref() == 7 &&
               aliased_through_span() == 7 && aliased_through_view() == 5 &&
               swapped_elements() == 3 && optional_read() == 1);
+
+// The referees' cases of the second round on #1219, each refused, and two
+// that were false refusals.
+// (A writer of the standard that shares a name with a reader, std::ranges::iota
+// against views::iota, is told apart by its qualified name; it has no case
+// here because one of the two standard libraries the fixture is parsed with
+// does not have it yet.)
+// In a template, a call into the standard is judged as outside one: its
+// behaviour is known, whatever the argument's type.
+template <std::regular T>
+constexpr T aliased_through_tie_generic(T x) {
+  auto t = std::tie(x);
+  std::get<0>(t) = T{};
+  return x;
+}
+template <std::totally_ordered T>
+constexpr T smallest(std::array<T, 2> r) {
+  std::ranges::sort(r);
+  return r[0];
+}
+// A temporary with a reference field: a write of k that is not an assignment
+// to k.
+struct Ref {
+  std::size_t& x;
+};
+constexpr std::size_t written_through_temporary() {
+  std::array<std::size_t, 8> r{1, 2, 3};
+  std::size_t k = 0;
+  Ref{k}.x = 7;
+  return r[k];
+}
+// A write through a choice of two variables, and through a comma.
+constexpr std::size_t written_through_choice(bool c) {
+  std::array<std::size_t, 3> r{1, 2, 3};
+  std::size_t i = 0, j = 0;
+  (c ? i : j) = 9;
+  return r[i];
+}
+constexpr void bump(std::size_t& x) { ++x; }
+constexpr std::size_t written_through_comma() {
+  std::size_t x = 0;
+  bump((0, x));
+  return x;
+}
+// A parameter that is a view: an element written through it is its caller's.
+struct Overwrite {
+  constexpr std::size_t operator()(std::span<std::size_t, 4> s) const {
+    s[0] = 7;
+    return s[1];
+  }
+};
+// A lambda that writes its argument, which a dependent call would pass.
+template <typename F>
+constexpr std::size_t after(F f, std::size_t y) {
+  f(y);
+  return y;
+}
+constexpr std::size_t written_by_lambda() {
+  return after([](std::size_t& v) { v = 9; return 0uz; }, 1uz);
+}
+// An index and an end of a sequence whose type does not give its size.
+constexpr char character_at(std::string_view s, std::size_t i) { return s[i]; }
+constexpr std::size_t first_of(const std::vector<std::size_t>& v) { return v.front(); }
+// Not refused: a local of a value type of the standard that is not a
+// container of old, std::expected, C++23's answer where Rule 1 keeps
+// exceptions out.
+constexpr std::expected<std::size_t, bool> half(std::size_t n) {
+  std::expected<std::size_t, bool> r = n / 2;
+  return r;
+}
+static_assert(written_through_temporary() == 0 &&
+              written_through_comma() == 1 && written_by_lambda() == 9 && half(4) == 2uz);
 
 }  // namespace jlt_listing

@@ -53,3 +53,16 @@ emplaced_and_read refused
 optional_read Jlt
 box FJlt
 unboxed refused
+aliased_through_tie_generic refused
+smallest refused
+Ref Jlt
+written_through_temporary refused
+written_through_choice refused
+bump refused
+written_through_comma refused
+Overwrite refused
+after refused
+written_by_lambda refused
+character_at refused
+first_of refused
+half Jlt

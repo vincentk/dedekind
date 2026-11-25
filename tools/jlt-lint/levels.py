@@ -85,7 +85,12 @@ def classify(where, classes):
             level, why = "Jlt", ", ".join(k.split(":")[1] for k, c in cls.items() if c == "derived")
         else:
             level, why = "FJlt", ""
-        out.append((name, a[0], level, why, by_type))
+        # What else stands between the definition and the rules, beside the
+        # reason given: the kinds that are refused or open.  A definition
+        # refused by one rule "alone" has none.
+        said = {w.strip() for w in why.split(",")}
+        also = sorted(k for k, c in cls.items() if c in ("refused", "open") and k not in said)
+        out.append((name, a[0], level, why, by_type, also))
     return out
 
 
@@ -113,7 +118,7 @@ def latex(rows):
     by type and its level; every other definition (shapes, laws, types and
     their entries) summed by level, the names of those not in FJlt given."""
     lines, rest = [], {}
-    for name, _, level, why, by_type in rows:
+    for name, _, level, why, by_type, _also in rows:
         if by_type is not None:
             lines.append(f"\\texttt{{{name.replace('_', '\\_')}}} & {by_type} & {level}"
                          + (f" ({readable(why).replace('_', '\\_')})" if why else "") + " \\\\")
@@ -145,12 +150,12 @@ def main():
     if counts is None or counts == "absent":
         sys.exit(f"levels.py: the linter did not run on {a.file}:\n{out[:2000]}")
     rows = classify(where, admission.admission())
-    for name, line, level, why, by_type in rows:
+    for name, line, level, why, by_type, _also in rows:
         print(f"{line:5d}  {level:10s} {by_type or '':13s} {name}" + (f"  ({why})" if why else ""))
     if a.expect:
         want = [tuple(l.split()) for l in a.expect.read_text().splitlines()
                 if l.strip() and not l.startswith("#")]
-        got = [(name, level) for name, _, level, _, _ in rows]
+        got = [(name, level) for name, _, level, _, _, _ in rows]
         if want != got:
             diff = [f"  {n}: {lv}, expected {dict(want).get(n, 'not listed')}"
                     for n, lv in got if (n, lv) not in want]
@@ -163,7 +168,8 @@ def main():
         a.latex.write_text(text)
     if a.check:
         if a.check.read_text() != text:
-            sys.exit(f"levels.py: {a.check} differs from the levels the linter gives; regenerate it with --latex")
+            sys.exit(f"levels.py: {a.check} differs from the levels the linter gives; "
+                     f"regenerate it with --latex.  The rows:\n{text}")
         print(f"levels.py: {a.check} matches")
 
 
