@@ -15,7 +15,9 @@ that the paper's table cannot drift from the code.
 
 Every run also prints, for each body, the most frequent reasons of its
 refused and its undecided definitions (a definition with several reasons
-counts once for each): what the rows' two last levels are made of.
+counts once for each), and after each reason, in parentheses, how many
+definitions have it as their only reason: what the rows' two last levels are
+made of, and how much of each one reason alone accounts for.
 """
 import argparse
 import collections
@@ -56,16 +58,19 @@ def reasons(levels, top=8):
     out = []
     for name, member in BODIES:
         for level in ("refused", "undecided"):
-            count, n = collections.Counter(), 0
+            count, alone, n = collections.Counter(), collections.Counter(), 0
             for key, defs in levels.items():
                 if not member(key):
                     continue
                 for _name, _line, lv, why, _bt in defs:
                     if lv == level:
                         n += 1
-                        count.update(w.strip() for w in why.split(",") if w.strip())
+                        ws = [w.strip() for w in why.split(",") if w.strip()]
+                        count.update(ws)
+                        if len(ws) == 1:
+                            alone[ws[0]] += 1
             out.append(f"summary.py: {name}, {level} ({n}): "
-                       + ", ".join(f"{w} {c}" for w, c in count.most_common(top)))
+                       + ", ".join(f"{w} {c} ({alone[w]} alone)" for w, c in count.most_common(top)))
     return "\n".join(out) + "\n"
 
 
