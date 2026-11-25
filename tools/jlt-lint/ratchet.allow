@@ -1,6 +1,2 @@
 # Gates allowed to move the wrong way in this pull request, each with its
 # reason: <rule> <file> <reason>.  Read by ratchet.py; emptied once merged.
-admitted src/main/modules/dedekind/category/limit.cppm Copilot on #1213: a callee's negation of a program concept now leaves the call undecided (mediate_product calls arrow(); conservative: the negation is at a closure type, not an archetype)
-undecided-by-type src/main/modules/dedekind/category/limit.cppm Copilot on #1213: a callee's negation of a program concept now leaves the call undecided (mediate_product calls arrow(); conservative: the negation is at a closure type, not an archetype)
-admitted src/main/modules/dedekind/sequences/convergence.cppm Copilot on #1213: a callee's negation of a program concept now leaves the call undecided (converges_sequence_cauchy calls count_if; conservative: the negation is at a closure type, not an archetype)
-undecided-by-type src/main/modules/dedekind/sequences/convergence.cppm Copilot on #1213: a callee's negation of a program concept now leaves the call undecided (converges_sequence_cauchy calls count_if; conservative: the negation is at a closure type, not an archetype)
