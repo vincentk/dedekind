@@ -20,6 +20,7 @@ constexpr std::size_t narrowed_to_char(std::size_t n) {
   const unsigned char c = n;
   return c;
 }
+constexpr int written_out(std::size_t i) { return int(i); }  // sound: the conversion is written
 constexpr std::size_t widened(unsigned char c) { return c; }  // sound
 constexpr std::size_t constant_held() { return 1; }           // sound: 1 is a size_t
 

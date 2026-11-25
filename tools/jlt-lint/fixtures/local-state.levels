@@ -1,5 +1,5 @@
 # The level of every definition of local-state.cpp, in order (levels.py --expect).
-fibonacci refused
+fibonacci Jlt
 fibonacci_by_definition Jlt
 running_sum Jlt
 Sums FJlt

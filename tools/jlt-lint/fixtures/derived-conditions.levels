@@ -2,6 +2,7 @@
 narrowed_to_bool refused
 compared FJlt
 narrowed_to_char refused
+written_out FJlt
 widened FJlt
 constant_held FJlt
 guarded Jlt

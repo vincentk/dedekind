@@ -3767,8 +3767,11 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   /// held.
   const clang::ASTContext* ctx = nullptr;
   bool narrows(const clang::ImplicitCastExpr* c) const {
-    if (!ctx || (c->getCastKind() != clang::CK_IntegralCast &&
-                 c->getCastKind() != clang::CK_IntegralToBoolean))
+    // The conversion written out, int(i), has an implicit node inside it:
+    // that one is the explicit conversion's, not an implicit conversion.
+    if (!ctx || c->isPartOfExplicitCast() ||
+        (c->getCastKind() != clang::CK_IntegralCast &&
+         c->getCastKind() != clang::CK_IntegralToBoolean))
       return false;
     const clang::Expr* e = c->getSubExpr();
     const clang::QualType from = e->getType(), to = c->getType();
