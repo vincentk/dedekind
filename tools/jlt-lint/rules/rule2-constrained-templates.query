@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes that the definition shows the rule's condition, as written; silence affirms nothing.
 # Rule 2: a type varies behaviour only through its concepts and traits.  A
 # function template with a type parameter that has no type constraint, and
 # no requires clause on the template or the function, offers its body no

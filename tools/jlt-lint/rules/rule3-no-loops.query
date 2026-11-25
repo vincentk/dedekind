@@ -1,22 +1,60 @@
-# Rule 3: a loop is a fold only when its end is stated before it starts
-# (Table 7, a counted for or a range-for over a sized range; Meyer and Ritchie
-# 1967, the LOOP language, whose count is fixed on entry and whose programs
-# are the primitive recursive functions).  Refused, so a finding:
-#   - a while or a do;
-#   - a for that is not counted: one initialised integer counter in its init,
-#     the condition counter < bound, the increment ++counter, the bound an
-#     integer literal, a parameter, a const variable or std::array's size();
-#     in the body no break, return or goto, and no assignment, ++ or -- of
-#     the counter or the bound;
-#   - a range-for over anything but an array or a std::array (a sized range
-#     whose size is its type's), or with a break, return or goto inside.
-# A loop that passes is Table 7's derived form, fold_left over iota(0uz, n) or
-# over the range, its locals the state; a body that writes a local is that
-# state (Rule 1's deny-rules close every channel by which it could leave).
-# Conservative: a jump in a nested statement or a closure counts, a non-const
-# local bound and a sized range other than an array do not pass.
-# The counter's own type in the comparison is read off its implicit casts,
-# which only this traversal shows; a loop is judged as written, once, not in
-# each instantiation of its template.
+# grade: Π, rejecting: a finding refutes that the definition shows the rule's condition, as written; silence affirms nothing.
+# Rule 3: a loop is a fold only when its end is stated before it starts (Table
+# 7: a counted for, or a range-for over a sized range, read as fold_left over
+# iota(0uz, n) or over the range, its locals the state; Meyer and Ritchie
+# 1967, the LOOP language, whose count is fixed on entry).  Every other loop
+# is a finding: a while, a do, a for that is not counted, a range-for over
+# anything but an array.  Conservative: a jump in a nested statement or a
+# closure counts, a non-const local bound and a sized range other than an
+# array do not pass.  AsIs, because the counter's type in the comparison is
+# read off its implicit casts, which only this traversal shows; a loop is
+# judged once, as written, not in each instantiation of its template.
 set traversal AsIs
-match stmt(isExpansionInMainFile(), unless(isInTemplateInstantiation()), anyOf(whileStmt(), doStmt(), forStmt(unless(forStmt(hasLoopInit(declStmt(hasSingleDecl(varDecl(hasType(isInteger()), hasInitializer(anything())).bind("i")))), hasCondition(binaryOperator(hasOperatorName("<"), hasLHS(ignoringParens(implicitCastExpr(hasCastKind("CK_LValueToRValue"), hasSourceExpression(ignoringParens(declRefExpr(to(varDecl(equalsBoundNode("i"))))))))), hasRHS(ignoringParenImpCasts(anyOf(integerLiteral(), declRefExpr(to(varDecl(anyOf(parmVarDecl(), hasType(isConstQualified()))).bind("n"))), cxxMemberCallExpr(callee(cxxMethodDecl(hasName("size"), ofClass(hasName("::std::array")))))))))), hasIncrement(unaryOperator(hasOperatorName("++"), hasUnaryOperand(ignoringParenImpCasts(declRefExpr(to(varDecl(equalsBoundNode("i")))))))), hasBody(allOf(unless(stmt(anyOf(breakStmt(), returnStmt(), gotoStmt(), binaryOperator(isAssignmentOperator(), hasLHS(ignoringParenImpCasts(declRefExpr(to(varDecl(anyOf(equalsBoundNode("i"), equalsBoundNode("n")))))))), unaryOperator(hasAnyOperatorName("++", "--"), hasUnaryOperand(ignoringParenImpCasts(declRefExpr(to(varDecl(anyOf(equalsBoundNode("i"), equalsBoundNode("n")))))))), unaryOperator(hasOperatorName("&"), hasUnaryOperand(ignoringParenImpCasts(declRefExpr(to(varDecl(anyOf(equalsBoundNode("i"), equalsBoundNode("n")))))))), callExpr(forEachArgumentWithParam(ignoringParenImpCasts(declRefExpr(to(varDecl(anyOf(equalsBoundNode("i"), equalsBoundNode("n")))))), parmVarDecl(hasType(referenceType(unless(pointee(isConstQualified()))))))), lambdaExpr(hasAnyCapture(capturesVar(varDecl(anyOf(equalsBoundNode("i"), equalsBoundNode("n"))))))))), unless(hasDescendant(stmt(anyOf(breakStmt(), returnStmt(), gotoStmt(), binaryOperator(isAssignmentOperator(), hasLHS(ignoringParenImpCasts(declRefExpr(to(varDecl(anyOf(equalsBoundNode("i"), equalsBoundNode("n")))))))), unaryOperator(hasAnyOperatorName("++", "--"), hasUnaryOperand(ignoringParenImpCasts(declRefExpr(to(varDecl(anyOf(equalsBoundNode("i"), equalsBoundNode("n")))))))), unaryOperator(hasOperatorName("&"), hasUnaryOperand(ignoringParenImpCasts(declRefExpr(to(varDecl(anyOf(equalsBoundNode("i"), equalsBoundNode("n")))))))), callExpr(forEachArgumentWithParam(ignoringParenImpCasts(declRefExpr(to(varDecl(anyOf(equalsBoundNode("i"), equalsBoundNode("n")))))), parmVarDecl(hasType(referenceType(unless(pointee(isConstQualified()))))))), lambdaExpr(hasAnyCapture(capturesVar(varDecl(anyOf(equalsBoundNode("i"), equalsBoundNode("n")))))))))), unless(hasDescendant(varDecl(hasType(referenceType()), hasInitializer(ignoringParenImpCasts(declRefExpr(to(varDecl(anyOf(equalsBoundNode("i"), equalsBoundNode("n"))))))))))))))), cxxForRangeStmt(unless(cxxForRangeStmt(hasRangeInit(ignoringParenImpCasts(expr(hasType(hasUnqualifiedDesugaredType(anyOf(constantArrayType(), recordType(hasDeclaration(classTemplateSpecializationDecl(hasName("::std::array")))))))))), hasBody(allOf(unless(stmt(anyOf(breakStmt(), returnStmt(), gotoStmt()))), unless(hasDescendant(stmt(anyOf(breakStmt(), returnStmt(), gotoStmt())))))))))), hasAncestor(scope))
+
+# The counter: one integer variable, initialised in the loop's head.
+let counter varDecl(hasType(isInteger()), hasInitializer(anything())).bind("i")
+let theCounter declRefExpr(to(varDecl(equalsBoundNode("i"))))
+let counterOrBound declRefExpr(to(varDecl(anyOf(equalsBoundNode("i"), equalsBoundNode("n")))))
+
+# The bound, known at entry: a literal, a parameter, a const variable, or the
+# size of a std::array.
+let bound anyOf(integerLiteral(),
+    declRefExpr(to(varDecl(anyOf(parmVarDecl(), hasType(isConstQualified()))).bind("n"))),
+    cxxMemberCallExpr(callee(cxxMethodDecl(hasName("size"), ofClass(hasName("::std::array"))))))
+
+# counter < bound, compared in the counter's own type: the counter is read,
+# not converted, so the bound is representable and ++ reaches it.
+let condition binaryOperator(hasOperatorName("<"),
+    hasLHS(ignoringParens(implicitCastExpr(hasCastKind("CK_LValueToRValue"),
+        hasSourceExpression(ignoringParens(theCounter))))),
+    hasRHS(ignoringParenImpCasts(bound)))
+
+let increment unaryOperator(hasOperatorName("++"), hasUnaryOperand(ignoringParenImpCasts(theCounter)))
+
+# What the body may not do: jump out, or write the counter or the bound,
+# directly or through a second name (a reference, an address, a non-const
+# reference argument, a lambda's capture).
+let jump stmt(anyOf(breakStmt(), returnStmt(), gotoStmt()))
+let forbidden stmt(anyOf(breakStmt(), returnStmt(), gotoStmt(),
+    binaryOperator(isAssignmentOperator(), hasLHS(ignoringParenImpCasts(counterOrBound))),
+    unaryOperator(hasAnyOperatorName("++", "--"), hasUnaryOperand(ignoringParenImpCasts(counterOrBound))),
+    unaryOperator(hasOperatorName("&"), hasUnaryOperand(ignoringParenImpCasts(counterOrBound))),
+    callExpr(forEachArgumentWithParam(ignoringParenImpCasts(counterOrBound),
+        parmVarDecl(hasType(referenceType(unless(pointee(isConstQualified()))))))),
+    lambdaExpr(hasAnyCapture(capturesVar(varDecl(anyOf(equalsBoundNode("i"), equalsBoundNode("n"))))))))
+let alias varDecl(hasType(referenceType()), hasInitializer(ignoringParenImpCasts(counterOrBound)))
+
+let counted forStmt(hasLoopInit(declStmt(hasSingleDecl(counter))),
+    hasCondition(condition), hasIncrement(increment),
+    hasBody(allOf(unless(forbidden), unless(hasDescendant(forbidden)), unless(hasDescendant(alias)))))
+
+# A range-for over an array or a std::array, whose size is its type's.
+let sized cxxForRangeStmt(
+    hasRangeInit(ignoringParenImpCasts(expr(hasType(hasUnqualifiedDesugaredType(anyOf(
+        constantArrayType(),
+        recordType(hasDeclaration(classTemplateSpecializationDecl(hasName("::std::array")))))))))),
+    hasBody(allOf(unless(jump), unless(hasDescendant(jump)))))
+
+match stmt(isExpansionInMainFile(), unless(isInTemplateInstantiation()),
+    anyOf(whileStmt(), doStmt(), forStmt(unless(counted)), cxxForRangeStmt(unless(sized))),
+    hasAncestor(scope))

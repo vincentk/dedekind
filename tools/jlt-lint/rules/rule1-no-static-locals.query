@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes that the definition shows the rule's condition, as written; silence affirms nothing.
 # Rule 1: no state between calls.  A constexpr static local is a constant
 # and exempt.
 match varDecl(isExpansionInMainFile(), isStaticLocal(), unless(isConstexpr()), hasAncestor(scope))

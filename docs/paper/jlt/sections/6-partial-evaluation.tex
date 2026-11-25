@@ -7,10 +7,8 @@ By Rule~1 it is a \cppinline{constexpr} function of its arguments alone, so a st
 The standard requires the first wherever a constant is needed, as in a \cppinline{static_assert}~\cite[{\texttt{expr.const}}]{cpp23standard}: it is constant evaluation, not an optimisation.
 Every listing in this paper is evaluated this way, and the test behind the listings calls the same functions again at run time, on values it did not have at compile time.
 Both are partial evaluation~\cite{jones1993partial} at build time: the compiler evaluates what it can and leaves the processor the rest.
-The calculus has one evaluation for both, as the standard has one abstract machine for both.
-Constant evaluation follows the rules of the abstract machine~\cite[{\texttt{expr.const}}]{cpp23standard}, and a conforming implementation's behaviour at run time is that machine's~\cite[{\texttt{intro.abstract}}]{cpp23standard}.
-So moving a call from compile time to run time changes where it is evaluated, not what it evaluates to.
-The agreement is the standard's: the paper takes it as given and does not prove it.
+The calculus has one evaluation for both, as the standard has one abstract machine for both: constant evaluation follows its rules~\cite[{\texttt{expr.const}}]{cpp23standard}, and a conforming implementation's behaviour at run time is that machine's~\cite[{\texttt{intro.abstract}}]{cpp23standard}.
+So moving a call from compile time to run time changes where it is evaluated, not what it evaluates to, an agreement that is the standard's and that the paper takes as given.
 
 % TODO(binding): an exhibit for this section, from CI run 44790757233 on
 % 10ae8a6ce (Clang 23, -O2), showcase_16.  With the base fixed to the unit and
@@ -65,25 +63,18 @@ So the law is used up there, and what it decided remains: associativity licensed
 
 The optimiser then does more with each monoid.
 Jlt does not claim these rewrites, and it cannot promise them, but it hands the optimiser the form they need: a fold with its bound stated before the first step, an operation that is a function of its arguments, and no state beside the fold's own.
-For the sum over a range it finds a closed formula.
 At the sum, squaring is doubling, and the loop becomes a shift and an addition where a bit of $n$ is set: the method of the Russian peasant, without anyone having asked for it.
-At the unit, the square stays the unit, the optimiser finds that by computing it, and the loop and the count disappear.
 Under exclusive or the power is the parity of the count, and the optimiser reduces the loop to a test of the lowest bit of $n$.
-At the two idempotent monoids the case that the law selects is already one step, and what remains is a comparison of $n$ with $0$.
 A law derived at a composite is the constant \texttt{true}, since a trait is a \cppinline{constexpr} variable, whose initialiser must be a constant expression~\cite[{\texttt{dcl.constexpr}}]{cpp23standard}.
 In these cases the discipline costs nothing at run time, and there is a structural reason: a Jlt fold names in the source the parameter the compiler would otherwise have to recover from assignments, so the algebra is in plain sight.
 
-In the terms of partial evaluation~\cite{jones1993partial}, the types and the declared laws are the static input, the values are the dynamic one, and the loop is the residual program.
-The word specialisation then has one meaning twice: the compiler chooses the specialisation of each trait and the most specialised overload, and in doing so it specialises the program to its laws~\cite{veldhuizen1999partial}.
+In the terms of partial evaluation, the types and the declared laws are the static input, the values the dynamic one and the loop the residual program, and the compiler, in choosing the specialisation of each trait and the most specialised overload, specialises the program to its laws~\cite{veldhuizen1999partial}.
 
 The agreement between compile time and run time holds where both evaluations finish and neither meets undefined behaviour.
 The two part in three ways, for Clang~23 with its default limits.
-Constant evaluation is bounded in work, at about a million steps and 512 nested calls, past which a program does not compile.
+Constant evaluation is bounded in work, at about a million steps and 512 nested calls, past which a program does not compile, and the template instantiation depth bounds both binding times; Rule~3 keeps these limits predictable, because every fold's length is in the program: a count, which meets no depth limit, or the depth of a term, one instantiation or one call per nesting.
 It refuses undefined behaviour of the language, which at run time is met with no diagnostic and no guarantee.
 And the standard leaves it unspecified whether floating-point arithmetic gives one result in both~\cite[{\texttt{expr.const}}]{cpp23standard}.
 
-\Cpp{} passes no dictionaries but instantiates, so the translation models what a constrained call means, not what the compiler emits.
-Instantiation is partial evaluation~\cite{veldhuizen1999partial}, here of the dictionary-passing term at a static type.
-So the two agree on every closed term, and parametricity holds of every instantiation.
-Appendix~\ref{app:fjlt:ssa} argues this, trusting the compiler's lowering.
+\Cpp{} passes no dictionaries but instantiates, so the translation models what a constrained call means, not what the compiler emits: instantiation is partial evaluation of the dictionary-passing term at a static type, and Appendix~\ref{app:fjlt:ssa} argues, trusting the compiler's lowering, that the two agree on every closed term, so that parametricity holds of every instantiation.
 

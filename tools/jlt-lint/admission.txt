@@ -75,8 +75,10 @@ Stmt:ParenExpr scaffolding
 Decl:Var derived
 Stmt:DeclStmt derived
 Stmt:IfStmt derived
-Decl:Decomposition derived
-Decl:Binding derived
+# A structured binding has no row in the table of derived forms, and
+# rule1-local-state does not yet read a binding as the local it names.
+Decl:Decomposition open
+Decl:Binding open
 Stmt:DesignatedInitExpr derived
 Stmt:ParenListExpr derived
 Type:PackExpansion derived
@@ -115,7 +117,10 @@ Op:/= derived
 Op:= derived
 Op:, open
 Op:() kernel
-Op:[] open
+# operator[]: an operator like any other, a member operator call (Table 7);
+# the reference it returns is how a write or an alias reaches local state, and
+# rule1-local-state refuses every such use it does not show to be safe.
+Op:[] derived
 Op:-> open
 Op:u! kernel
 Op:u- kernel
@@ -182,6 +187,54 @@ Stmt:CaseStmt open
 Stmt:DefaultStmt open
 Stmt:UnaryOperator open
 Stmt:CXXFunctionalCastExpr open
+# a conversion to an arithmetic type written as a call, size_t(e), int(i):
+# the kernel's written conversion (Figure 2, Table 7)
+Stmt:ArithmeticConversion kernel
+# A value of a declared type from values for its fields, written with braces
+# (Figure 2's own form; in a template the same spelling is an unresolved
+# construction, kernel above).
+Stmt:BracedValue kernel
+# Conditions of Table 7's rows that the kinds show (the audit of 2026-11-25).
+# A return where the reading of statements has no place for it: in a loop, or
+# in a branch that only sometimes returns.  At the end of the function, of
+# both branches of a last if, or of a guard (if (c) return e; rest) it is the
+# kernel's return.
+Stmt:EarlyReturn refused
+# An implicit conversion between integer types that does not hold every
+# value ([dcl.init.list]): Table 7's row asks that it does not narrow.
+Conversion:narrowing refused
+# if consteval, and std::is_constant_evaluated() wherever it is called: its
+# row trusts that both branches compute one value, and no tool lists that
+# trust yet.
+Stmt:IfConsteval open
+# if constexpr: its two rows ask that both branches have one type, or that
+# the test is a shape the signature names, and no check shows either yet; the
+# type check leaves a body with one undecided for the same reason.
+Stmt:IfConstexpr open
+# The standard's variant, a sum: to be a derived form, read as a record with
+# a tag and a field for each alternative, std::visit the choice on the tag
+# (decided 2026-11-25; not in the kernel).  Open until the row is written
+# with its conditions and a tested pair.
+Derived:variant open
+# value() of a std::optional or a std::expected: it throws where no value is
+# held, which Rule 1 keeps out.  Open until the sum has its eliminator
+# (#1222), which decides the side before it reads it.
+Derived:sum-value open
+# A call to a function not declared constexpr: since C++23 the keyword on
+# the caller does not require it of the callee, so the linter looks.
+Call:NotConstexpr refused
+# Integer division and remainder by a value, and a shift by a value: the
+# kernel has each by a constant only (not zero; below the width), where it is
+# defined at every argument.  Open until division has its row (#1222).
+# A floating value converted to an integer, written out (size_t(x),
+# static_cast): undefined where the value does not fit ([conv.fpint]), so
+# partial as division is.
+Op:division-by-value open
+Op:shift-by-value open
+Op:float-to-integer open
+# A generic lambda is a template with no constraint; its row covers a lambda
+# that is not generic.
+Stmt:GenericLambda open
 Stmt:CXXStaticCastExpr open
 Stmt:CXXThisExpr open
 Stmt:CXXConstructExpr kernel

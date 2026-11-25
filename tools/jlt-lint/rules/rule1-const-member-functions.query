@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes that the definition shows the rule's condition, as written; silence affirms nothing.
 # Rule 1: values do not change.  Every member function is const (or
 # static): a non-const one changes its object.  Exempt: constructors,
 # destructors, defaulted and deleted members, lambdas, and the standard

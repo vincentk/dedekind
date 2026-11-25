@@ -58,6 +58,9 @@ UNDO_FOR_CHECK = ["--extra-arg=-UDEDEKIND_RUNTIME_COVERAGE_BRIDGES"]
 RESOURCE_DIR = []
 # How much of each file the matchers walk; set from --scan (see main).
 SCAN = "shallow"
+# Each file's definitions with their levels, "<file> <namespace>" to rows of
+# levels.classify; written beside the report (summary.py reads it).
+LEVELS = {}
 # The longest one file may take, all its rules over one parse and the second
 # stage's compiles (JLT_LINT_FILE_TIMEOUT seconds, default twenty minutes).
 FILE_TIMEOUT = int(os.environ.get("JLT_LINT_FILE_TIMEOUT") or 1200)
@@ -213,7 +216,37 @@ def set_resource_dir(entries):
             RESOURCE_DIR[:] = [f"-resource-dir={r.stdout.strip()}"]
 
 
-def one_entry_per_file(build, part):
+def header_entry(entries, header):
+    """A compilation database entry for a header judged as a file of its own
+    (a library's interface, which no translation unit of the build names):
+    the flags of the source file nearest to it in the tree, with the header in
+    the source's place, read as C++ and only parsed."""
+    def shared(e):
+        a, b = pathlib.Path(e["file"]).parts, pathlib.Path(header).parts
+        return next((i for i, (x, y) in enumerate(zip(a, b)) if x != y), min(len(a), len(b)))
+    near = max(entries, key=shared, default=None)
+    if near is None:
+        return None
+    args = near.get("arguments") or shlex.split(near["command"])
+    out, skip = [], False
+    for a in args:
+        if skip:
+            skip = False
+        elif a in ("-o", "-MF", "-MT", "-MQ"):
+            skip = True
+        elif a in ("-c", "-MD", "-MMD") or a == near["file"] or a.endswith("/" + pathlib.Path(near["file"]).name):
+            continue
+        else:
+            out.append(a)
+    # The control from the standard library is libc++ wherever the build runs
+    # (stage_stdlib.py), so its headers are read against libc++.
+    if "/_deps/stdlib-ranges/" in str(header):
+        out = [a for a in out if not a.startswith("-stdlib=")] + ["-stdlib=libc++"]
+    return {"directory": near["directory"], "file": header,
+            "arguments": out + ["-xc++", "-fsyntax-only", header]}
+
+
+def one_entry_per_file(build, part, files=()):
     """A compilation database with one entry per file, in a directory of its
     own: a module partition has one per set of flags it is built with (CMake 4
     synthesises a BMI for every consumer with other flags, the Python
@@ -228,6 +261,13 @@ def one_entry_per_file(build, part):
         if old is None or (old[0] and not synth):
             kept[e["file"]] = (synth, e)
     set_resource_dir(entries)
+    # A header in scope that the build compiles only through its includers.
+    for f in files:
+        f = str(ROOT / f)
+        if f not in kept and f.endswith((".hpp", ".h")):
+            e = header_entry([e for _, e in kept.values()], f)
+            if e:
+                kept[f] = (False, e)
     db = build / "jlt-lint-db" / part  # a directory per part: parts run at once
     db.mkdir(parents=True, exist_ok=True)
     (db / "compile_commands.json").write_text(json.dumps([e for _, e in kept.values()], indent=1))
@@ -242,7 +282,7 @@ def lint_part(build, tool, part):
             not (build / "compile_commands.json").exists():
         sys.exit(f"jlt-lint: no {build}/compile_commands.json; build first")
     if (build / "compile_commands.json").exists():
-        build = one_entry_per_file(build, part or "all")
+        build = one_entry_per_file(build, part or "all", sorted({f for _, f, _, _ in lines}))
 
     groups = collections.defaultdict(list)
     for rule, f, ns, expected in lines:
@@ -257,6 +297,14 @@ def lint_part(build, tool, part):
         (f, ns), entries = group
         started = time.monotonic()
         result = run(tool, build, f, ns, [r for r, _ in entries])
+        # Each definition's level, by levels.py's own classify, from the
+        # findings this parse already gave: the same computation as the
+        # paper's Table 6, for every file that runs the definitions check.
+        counts, where = result[0], result[1]
+        if isinstance(counts, dict) and where and "definitions" in where:
+            import admission
+            import levels
+            LEVELS[f"{f} {ns}"] = [list(r) for r in levels.classify(where, admission.admission())]
         m = re.search(r"jlt-lint-cost: templates (\d+) compiles (\d+) seconds ([\d.]+)", result[2] or "")
         costs.append((time.monotonic() - started, f, *(m.groups() if m else ("-", "-", "-"))))
         phases[f] = {name: float(secs) for name, secs in
@@ -315,7 +363,18 @@ def block(f, ns, entries, counts, where, out):
         return {"key": [f, ns], "text": text, "failures": 0, "rows": rows}
     if counts is None or counts == "absent":
         text.append(f"jlt-lint: {f}: does not parse, a rule did not run, or the scope is absent")
-        text += out.splitlines()[:30]
+        lines = out.splitlines()
+        # What the compiler said, wherever it is in the output, and both ends.
+        said = [l for l in lines if "error:" in l or "fatal" in l or "Assertion" in l][:20]
+        text += lines[:10] + said + lines[-10:]
+        # A file that only reports (a control, read as a header on its own
+        # with a neighbour's flags) is named and left out, not a failure
+        # here: on Linux the summary table's comparison then fails, with
+        # this file's diagnostics above it, since the row no longer counts
+        # the whole control.
+        if all(e == "report" for _, e in entries):
+            text.append(f"jlt-lint: {f}: reported only, left out of the counts")
+            return {"key": [f, ns], "text": text, "failures": 0, "rows": rows}
         return {"key": [f, ns], "text": text, "failures": 1, "rows": rows}
     for rule, expected in entries:
         n = counts[rule]
@@ -323,6 +382,11 @@ def block(f, ns, entries, counts, where, out):
         if expected == "report":
             row["reported"] += 1
             row["findings"] += n
+            if n and rule == "definitions":
+                # Every declaration is one: the count here, the levels in
+                # <out>/<part>-levels.json (summary.py).
+                text.append(f"jlt-lint: report {rule} {f}: {n}")
+                continue
             if n:
                 text.append(f"jlt-lint: report {rule} {f}: {n}")
                 text += [f"  {pathlib.Path(loc).relative_to(ROOT) if loc.startswith(str(ROOT)) else loc}"
@@ -395,6 +459,7 @@ def main():
             name = a.part or "all"
             a.out.mkdir(parents=True, exist_ok=True)
             (a.out / f"{name}.json").write_text(json.dumps(blocks))
+            (a.out / f"{name}-levels.json").write_text(json.dumps(LEVELS))
             (a.out / f"{name}.txt").write_text(text)
     sys.stdout.write(text)
     return 1 if failures else 0

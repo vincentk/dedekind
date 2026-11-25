@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes that the definition shows the rule's condition, as written; silence affirms nothing.
 # Rule 3: a fold is over a bounded range, a count known before the fold
 # starts (IsBoundedRange, :chain, #1172).  A standard fold is called only
 # inside a function whose range parameter is constrained by IsBoundedRange:

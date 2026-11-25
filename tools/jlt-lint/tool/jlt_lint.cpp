@@ -88,6 +88,8 @@
 //                     finding.  An empty base (`: std::true_type`,
 //                     `: is_x<Y>`) is a registration spelled by inheritance,
 //                     read as the fact it states.
+#include <climits>
+#include <cctype>
 #include <chrono>
 #include <algorithm>
 #include <functional>
@@ -99,6 +101,7 @@
 #include <vector>
 
 #include "clang/AST/ASTConsumer.h"
+#include "clang/Basic/Builtins.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/ASTTypeTraits.h"
 #include "clang/AST/Decl.h"
@@ -484,6 +487,32 @@ bool inStd(const clang::Decl* d) {
     if (const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(c))
       if (ns->isStdNamespace()) return true;
   return false;
+}
+
+/// The kind of a statement, as admission.txt classes it.  A conversion to an
+/// arithmetic type written as a call, size_t(e) or int(i), is the kernel's
+/// written conversion (Figure 2, Table 7), a kind of its own; a value of a
+/// class type from values for its fields, written with braces, Sums{a, b},
+/// is Figure 2's own form, as it already is in a template (an unresolved
+/// construction); T(x) to a class type, with parentheses, stays
+/// CXXFunctionalCastExpr.
+std::string stmtKind(const clang::Stmt* st) {
+  if (const auto* c = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(st)) {
+    if (c->getType()->isArithmeticType()) return "Stmt:ArithmeticConversion";
+    if (c->isListInitialization() && c->getType()->isRecordType()) return "Stmt:BracedValue";
+  }
+  // if consteval chooses by how the call is evaluated, and a generic lambda
+  // is a template with no constraint: kinds of their own, apart from the if
+  // statement and the lambda of Table 7.
+  if (const auto* i = llvm::dyn_cast<clang::IfStmt>(st)) {
+    if (i->isConsteval()) return "Stmt:IfConsteval";
+    // if constexpr chooses by a type: Table 7 has two rows for it, and no
+    // check yet shows either row's condition.
+    if (i->isConstexpr()) return "Stmt:IfConstexpr";
+  }
+  if (const auto* l = llvm::dyn_cast<clang::LambdaExpr>(st))
+    if (l->isGenericLambda()) return "Stmt:GenericLambda";
+  return std::string("Stmt:") + st->getStmtClassName();
 }
 
 /// The kind of a declaration, as admission.txt classes it.  The member
@@ -2119,7 +2148,7 @@ class Inventory : public clang::ASTConsumer,
                    clang::ConstantExpr, clang::CXXDefaultArgExpr,
                    clang::CXXDefaultInitExpr, clang::OpaqueValueExpr,
                    clang::SubstNonTypeTemplateParmExpr>(st))
-      ++counts[std::string("Stmt:") + st->getStmtClassName()];
+      ++counts[stmtKind(st)];
     return true;
   }
   bool VisitTypeLoc(clang::TypeLoc tl) {
@@ -3689,11 +3718,173 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
         d->getQualifiedNameAsString().find("views::") != std::string::npos &&
         d->getName() != "iota")
       kinds.insert("Derived:view");
+    // std::visit on a value whose variant type is not written (auto).
+    if (d && llvm::isa<clang::FunctionDecl>(d) && d->getIdentifier() && inStd(d) &&
+        (d->getName() == "visit" || d->getName() == "holds_alternative"))
+      kinds.insert("Derived:variant");
+    return true;
+  }
+  // Where a return may stand for Table 7's reading of statements: at the end
+  // of the function, at the end of both branches of a last if, or at the end
+  // of a branch of an if that the statements after it follow as its other
+  // branch (a guard, if (c) return e; rest, which is if (c) return e; else
+  // { rest }).  Any other return, in a loop or in a branch that only
+  // sometimes returns, is Stmt:EarlyReturn.
+  std::set<const clang::Stmt*> tailReturns;
+  static bool alwaysReturns(const clang::Stmt* s) {
+    if (!s) return false;
+    if (llvm::isa<clang::ReturnStmt>(s)) return true;
+    if (const auto* c = llvm::dyn_cast<clang::CompoundStmt>(s))
+      return !c->body_empty() && alwaysReturns(c->body_back());
+    if (const auto* i = llvm::dyn_cast<clang::IfStmt>(s))
+      return i->getElse() && alwaysReturns(i->getThen()) && alwaysReturns(i->getElse());
+    return false;
+  }
+  void markTail(const clang::Stmt* s) {
+    if (!s) return;
+    if (llvm::isa<clang::ReturnStmt>(s)) tailReturns.insert(s);
+    if (const auto* c = llvm::dyn_cast<clang::CompoundStmt>(s)) {
+      for (const clang::Stmt* x : c->body())
+        if (const auto* i = llvm::dyn_cast<clang::IfStmt>(x))
+          for (const clang::Stmt* b : {i->getThen(), i->getElse()})
+            if (alwaysReturns(b)) markTail(b);  // a guard
+      if (!c->body_empty()) markTail(c->body_back());
+    }
+    if (const auto* i = llvm::dyn_cast<clang::IfStmt>(s)) {
+      markTail(i->getThen());
+      markTail(i->getElse());
+    }
+  }
+  bool VisitFunctionDecl(clang::FunctionDecl* f) {
+    if (f->doesThisDeclarationHaveABody()) markTail(f->getBody());
+    return true;
+  }
+  bool VisitLambdaExpr(clang::LambdaExpr* l) {
+    markTail(l->getBody());  // a lambda's returns are its own
+    return true;
+  }
+  /// A conversion between integer types that the destination cannot hold at
+  /// every value of the source ([dcl.init.list]); a constant that fits is
+  /// held.
+  const clang::ASTContext* ctx = nullptr;
+  bool narrows(const clang::ImplicitCastExpr* c) const {
+    // The conversion written out, int(i), has an implicit node inside it:
+    // that one is the explicit conversion's, not an implicit conversion.
+    if (!ctx || c->isPartOfExplicitCast()) return false;
+    // A floating value to an integer: undefined out of range, so the one
+    // narrowing at which the two binding times can part.
+    if (c->getCastKind() == clang::CK_FloatingToIntegral) return true;
+    if (c->getCastKind() != clang::CK_IntegralCast &&
+        c->getCastKind() != clang::CK_IntegralToBoolean)
+      return false;
+    return narrows(c->getSubExpr(), c->getType());
+  }
+  /// Whether every value of the integer type from is a value of to.
+  bool fits(clang::QualType from, clang::QualType to) const {
+    const bool toBool = to->isBooleanType();
+    const unsigned wf = ctx->getIntWidth(from), wt = toBool ? 1 : ctx->getIntWidth(to);
+    const bool sf = from->isSignedIntegerOrEnumerationType(),
+               st = !toBool && to->isSignedIntegerType();
+    return sf == st ? wt >= wf : (!sf && st && wt > wf);
+  }
+  /// The conversion of e to an integer type that cannot hold every value
+  /// of e's own.
+  bool narrows(const clang::Expr* e, clang::QualType to) const {
+    if (!ctx) return false;
+    const clang::QualType from = e->getType();
+    if (from->isDependentType() || to->isDependentType() || e->isValueDependent() ||
+        !from->isIntegralOrEnumerationType() || !to->isIntegerType())
+      return false;
+    const bool toBool = to->isBooleanType();
+    const unsigned wf = ctx->getIntWidth(from), wt = toBool ? 1 : ctx->getIntWidth(to);
+    const bool sf = from->isSignedIntegerOrEnumerationType(),
+               st = !toBool && to->isSignedIntegerType();
+    // Every value of the source is a value of the destination.
+    if (sf == st ? wt >= wf : (!sf && st && wt > wf)) return false;
+    // A constant is held if its value is.
+    if (auto v = e->getIntegerConstantExpr(*ctx)) {
+      if (toBool) return !(*v == 0 || *v == 1);
+      const llvm::APSInt lo = llvm::APSInt::getMinValue(wt, !st), hi = llvm::APSInt::getMaxValue(wt, !st);
+      return llvm::APSInt::compareValues(*v, lo) < 0 || llvm::APSInt::compareValues(*v, hi) > 0;
+    }
     return true;
   }
   bool VisitStmt(clang::Stmt* st) {
     if (const auto* t = llvm::dyn_cast<clang::CXXThisExpr>(st))
       if (t->isImplicit()) return true;  // a member named without this->
+    // c += n converts the result back to c's type with no node of its own.
+    // The value stored back is of the computation's type (c += 1 with c an
+    // unsigned char computes in int, and 256 becomes 0): narrowing where that
+    // type does not fit the destination's, whatever the right side is.  Two
+    // bools combined by &=, |=, ^= give a bool.
+    if (const auto* ca = llvm::dyn_cast<clang::CompoundAssignOperator>(st)) {
+      const clang::QualType to = ca->getLHS()->getType(), via = ca->getComputationResultType();
+      const bool bools = to->isBooleanType() &&
+                         ca->getRHS()->IgnoreParenImpCasts()->getType()->isBooleanType();
+      if (narrows(ca->getRHS()->IgnoreParenImpCasts(), to) ||
+          (ctx && !bools && !to->isDependentType() && !via.isNull() && !via->isDependentType() &&
+           via->isIntegerType() && to->isIntegerType() && !fits(via, to)))
+        kinds.insert("Conversion:narrowing");
+    }
+    // value() of an optional or an expected throws where it holds no value:
+    // open until the sum has its eliminator (#1222).
+    if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(st))
+      if (const clang::CXXMethodDecl* g = m->getMethodDecl(); g && g->getIdentifier() && g->getName() == "value")
+        if (const clang::CXXRecordDecl* r = g->getParent(); r && inStd(r) && r->getIdentifier() &&
+            (r->getName() == "optional" || r->getName() == "expected"))
+          kinds.insert("Derived:sum-value");
+    // A call from a judged definition to a function not declared constexpr:
+    // since C++23 the keyword on the caller promises nothing about it, so
+    // the callee is looked at (std::rand, std::getenv, a stream's <<).
+    const clang::FunctionDecl* callee = nullptr;
+    if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st)) callee = c->getDirectCallee();
+    if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(st)) callee = c->getConstructor();
+    if (callee && !callee->isConstexpr() && !callee->getBuiltinID() && !callee->isImplicit() &&
+        !clang::isLambdaCallOperator(callee) && !callee->isDeleted())
+      kinds.insert("Call:NotConstexpr");
+    // A builtin is exempt, being the compiler's own, except those that end
+    // the program or have no defined behaviour when reached: they give no
+    // value at any argument (__builtin_trap, __builtin_unreachable).
+    if (callee && callee->getBuiltinID() && callee->getIdentifier()) {
+      static const std::set<std::string> ends{"__builtin_trap", "__builtin_debugtrap",
+                                              "__builtin_verbose_trap", "__builtin_unreachable",
+                                              "__builtin_abort", "abort", "__builtin_exit",
+                                              "exit", "_Exit", "quick_exit"};
+      if (ends.count(callee->getName().str())) kinds.insert("Call:NotConstexpr");
+    }
+    // Integer division and remainder by a value, and a shift by a value:
+    // the kernel has them by a constant only, where they are defined at
+    // every argument (Figure 2, Appendix D).
+    if (const auto* o = llvm::dyn_cast<clang::BinaryOperator>(st)) {
+      const auto op = o->getOpcode();
+      const bool divides = op == clang::BO_Div || op == clang::BO_Rem ||
+                           op == clang::BO_DivAssign || op == clang::BO_RemAssign;
+      const bool shifts = op == clang::BO_Shl || op == clang::BO_Shr ||
+                          op == clang::BO_ShlAssign || op == clang::BO_ShrAssign;
+      const clang::Expr* r = o->getRHS();
+      if ((divides || shifts) && ctx && !o->isTypeDependent() && !r->isValueDependent() &&
+          o->getLHS()->getType()->isIntegerType() && r->getType()->isIntegerType()) {
+        const auto v = r->getIntegerConstantExpr(*ctx);
+        const unsigned width = ctx->getIntWidth(o->getLHS()->IgnoreParenImpCasts()->getType());
+        if (!v || (divides && *v == 0) || (shifts && (v->isNegative() || *v >= width)))
+          kinds.insert(divides ? "Op:division-by-value" : "Op:shift-by-value");
+      }
+    }
+    // std::is_constant_evaluated() and its builtin: a value that differs
+    // between constant evaluation and run time, as if consteval chooses; open
+    // with it until the agreement of the two branches can be checked.
+    if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st))
+      if (const clang::FunctionDecl* g = c->getDirectCallee())
+        if (g->getBuiltinID() == clang::Builtin::BI__builtin_is_constant_evaluated ||
+            (g->getIdentifier() && g->getName() == "is_constant_evaluated" && inStd(g)))
+          kinds.insert("Stmt:IfConsteval");
+    // A floating value converted to an integer, written out in any spelling
+    // (size_t(x), static_cast, a C cast): undefined where the value does not
+    // fit ([conv.fpint]), so partial, and open as division by a value is.
+    if (const auto* c = llvm::dyn_cast<clang::ExplicitCastExpr>(st))
+      if (c->getType()->isIntegralOrEnumerationType() && !c->isTypeDependent() &&
+          c->getSubExpr()->IgnoreParenImpCasts()->getType()->isRealFloatingType())
+        kinds.insert("Op:float-to-integer");
     // A conversion between integer types written as a call, size_t(k): the
     // count's own modular arithmetic, decided kernel (2026-11-22); any other
     // functional cast keeps its kind.
@@ -3723,17 +3914,27 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
                    (o->isPostfix() ? "post" : ""));
       return true;
     }
+    if (const auto* r = llvm::dyn_cast<clang::ReturnStmt>(st))
+      if (!tailReturns.count(r)) kinds.insert("Stmt:EarlyReturn");
+    if (const auto* c = llvm::dyn_cast<clang::ImplicitCastExpr>(st))
+      if (narrows(c)) kinds.insert("Conversion:narrowing");
     if (!llvm::isa<clang::ImplicitCastExpr, clang::MaterializeTemporaryExpr,
                    clang::ExprWithCleanups, clang::CXXBindTemporaryExpr,
                    clang::ConstantExpr, clang::CXXDefaultArgExpr,
                    clang::CXXDefaultInitExpr, clang::OpaqueValueExpr,
                    clang::SubstNonTypeTemplateParmExpr>(st))
-      kinds.insert(std::string("Stmt:") + st->getStmtClassName());
+      kinds.insert(stmtKind(st));
     return true;
   }
   bool VisitTypeLoc(clang::TypeLoc tl) {
-    if (!tl.isNull())
+    if (!tl.isNull()) {
       kinds.insert(typeKind(tl));
+      // A sum written as the standard's variant: no syntax kind shows it.
+      if (const auto* ts = tl.getTypePtr()->getAs<clang::TemplateSpecializationType>())
+        if (const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl())
+          if (td->getIdentifier() && td->getName() == "variant" && inStd(td))
+            kinds.insert("Derived:variant");
+    }
     return true;
   }
 };
@@ -3758,7 +3959,20 @@ class Definitions : public clang::ASTConsumer {
             const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(d);
             if (ns && ns->getName() == scope &&
                 sm.isInMainFile(sm.getExpansionLoc(ns->getLocation()))) {
-              for (clang::Decl* m : ns->decls()) report(m, sm, policy);
+              // Its declarations, and those of the namespaces nested in it
+              // (detail and the like), as the second stage judges them.
+              std::function<void(const clang::DeclContext*)> members =
+                  [&](const clang::DeclContext* c) {
+                    for (clang::Decl* m : c->decls()) {
+                      if (llvm::isa<clang::NamespaceDecl, clang::ExportDecl,
+                                    clang::LinkageSpecDecl>(m) &&
+                          sm.isInMainFile(sm.getExpansionLoc(m->getLocation())))
+                        members(llvm::cast<clang::DeclContext>(m));
+                      else
+                        report(m, sm, policy);
+                    }
+                  };
+              members(ns);
               return;
             }
             if (const auto* c = llvm::dyn_cast<clang::DeclContext>(d))
@@ -3784,6 +3998,16 @@ class Definitions : public clang::ASTConsumer {
       return;
     const auto* nd = llvm::dyn_cast<clang::NamedDecl>(d);
     if (!nd) return;
+    // A declaration that defines nothing is not a definition: a prototype
+    // whose body is elsewhere, a forward declaration of a class.  A deleted
+    // or defaulted function says what it is, and is one.
+    const clang::Decl* inner = d;
+    if (const auto* t = llvm::dyn_cast<clang::TemplateDecl>(d))
+      if (t->getTemplatedDecl()) inner = t->getTemplatedDecl();
+    if (const auto* f = llvm::dyn_cast<clang::FunctionDecl>(inner))
+      if (!f->doesThisDeclarationHaveABody() && !f->isDeleted() && !f->isDefaulted()) return;
+    if (const auto* r = llvm::dyn_cast<clang::TagDecl>(inner))
+      if (!r->isThisDeclarationADefinition()) return;
     std::string name;
     llvm::raw_string_ostream n(name);
     nd->getNameForDiagnostic(n, policy, false);
@@ -3791,6 +4015,7 @@ class Definitions : public clang::ASTConsumer {
                                 e = sm.getExpansionLoc(d->getEndLoc());
     if (!sm.isInMainFile(b)) return;
     Kinds k;
+    k.ctx = &d->getASTContext();
     k.TraverseDecl(d);
     out() << sm.getFilename(b) << ':' << sm.getExpansionLineNumber(b) << ':'
           << sm.getExpansionColumnNumber(b) << ": " << n.str() << " range "
@@ -3804,7 +4029,1042 @@ class Definitions : public clang::ASTConsumer {
 };
 
 /// One check by name, or null for an unknown name.
+/// Local state that the state-passing reading of Table 7 covers: every
+/// mutable local of a judged function is reached through its own name only,
+/// so that a write through one name never changes what another reads, and
+/// the function is a fold of states (the paper's aliasing conditions; Cytron
+/// et al. 1991, 3.1.1, for an element's update as the whole array's).
+/// Every use of a mutable local is checked against the positions the rows
+/// read (an allowlist, Judge::allowed): read or copied; the left side of a
+/// write; the base of a field or an element; an argument bound to a copy or
+/// a const reference; an operand of std::swap, disjoint, in a statement of
+/// its own.  Any other use is a finding: a call that may write it, a
+/// mutating member call, its address.
+/// Refused besides, a finding each:
+///   - a reference local whose initialiser reaches a mutable local (a second
+///     name for its storage; a reference to a parameter, a constant or a
+///     temporary is no alias of local state), and a local of a type that is
+///     not a deep value type (a view, a pointer, a tuple of references)
+///     initialised from local state;
+///   - an operator[] on a mutable local std::array whose index is not shown
+///     to lie in [0, N - 1]: an interval over literals, the counters of
+///     counted loops, const locals, and scalar locals over all the values
+///     they are assigned, with + - and *;
+///   - a write (an assignment, ++, --) that is not a statement of its own,
+///     the for increment aside: two writes in one expression, a write in a
+///     condition or an argument;
+///   - a lambda capturing a mutable local by reference;
+///   - a mutable local with no initialiser that writes it, read before it is
+///     written perhaps (none, or a trivial default construction).
+class LocalState : public clang::ASTConsumer {
+ public:
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    const clang::SourceManager& sm = ctx.getSourceManager();
+    struct Fns : clang::RecursiveASTVisitor<Fns> {
+      const clang::SourceManager* sm;
+      std::vector<const clang::FunctionDecl*> found;
+      bool VisitFunctionDecl(clang::FunctionDecl* f) {
+        if (f->doesThisDeclarationHaveABody() && judged(f, *sm)) found.push_back(f);
+        return true;
+      }
+    } fns;
+    fns.sm = &sm;
+    fns.TraverseAST(ctx);
+    std::set<std::tuple<std::string, unsigned, unsigned>> lines;
+    auto report = [&](clang::SourceLocation l) {
+      l = sm.getExpansionLoc(l);
+      lines.emplace(sm.getFilename(l).str(), sm.getExpansionLineNumber(l),
+                    sm.getExpansionColumnNumber(l));
+    };
+    for (const clang::FunctionDecl* f : fns.found) check(f, ctx, report);
+    for (const auto& [file, line, column] : lines)
+      out() << file << ':' << line << ':' << column << '\n';
+  }
+
+ private:
+  static bool mutableLocal(const clang::VarDecl* v) {
+    return v && v->hasLocalStorage() && !v->getType()->isReferenceType() &&
+           !v->getType().isConstQualified();
+  }
+  /// The variable an lvalue reaches through members and elements, if any.
+  static const clang::VarDecl* base(const clang::Expr* e) {
+    for (int k = 0; e && k < 32; ++k) {
+      e = e->IgnoreParenImpCasts();
+      if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e))
+        return llvm::dyn_cast<clang::VarDecl>(d->getDecl());
+      if (const auto* m = llvm::dyn_cast<clang::MemberExpr>(e)) { e = m->getBase(); continue; }
+      if (const auto* a = llvm::dyn_cast<clang::ArraySubscriptExpr>(e)) { e = a->getBase(); continue; }
+      if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(e))
+        if (o->getOperator() == clang::OO_Subscript) { e = o->getArg(0); continue; }
+      // *it and it-> reach what the iterator points at, not the iterator's own
+      // storage: follow the iterator to where it came from, its initialiser
+      // (r.begin() reaches r, p.support().rbegin() reaches p), and stop where
+      // that is not known.
+      const clang::Expr* through = nullptr;  // the iterator or pointer dereferenced
+      if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(e))
+        if (o->getOperator() == clang::OO_Star || o->getOperator() == clang::OO_Arrow)
+          through = o->getArg(0);
+      if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
+        if (u->getOpcode() == clang::UO_Deref) through = u->getSubExpr();  // a pointer
+      if (through) {
+          const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(through->IgnoreParenImpCasts());
+          const auto* it = d ? llvm::dyn_cast<clang::VarDecl>(d->getDecl()) : nullptr;
+          if (!it || !it->getInit()) return nullptr;
+          e = it->getInit();
+          continue;
+        }
+      if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(e)) {
+        // a.begin(), a.data(), p.support(): what the call is on.
+        e = m->getImplicitObjectArgument();
+        continue;
+      }
+      if (const auto* m = llvm::dyn_cast<clang::MaterializeTemporaryExpr>(e)) { e = m->getSubExpr(); continue; }
+      return nullptr;
+    }
+    return nullptr;
+  }
+  /// Whether an expression mentions a mutable local anywhere.
+  static bool mentionsMutable(const clang::Expr* e) {
+    struct Find : clang::RecursiveASTVisitor<Find> {
+      bool found = false;
+      bool VisitDeclRefExpr(clang::DeclRefExpr* d) {
+        if (mutableLocal(llvm::dyn_cast<clang::VarDecl>(d->getDecl()))) found = true;
+        return !found;
+      }
+    } f;
+    f.TraverseStmt(const_cast<clang::Expr*>(e));
+    return f.found;
+  }
+  /// A second name for local state: where the source is traced, a mutable
+  /// local; where it is not, any initialiser that mentions one (a whitelist
+  /// admits only what it traces).
+  static bool aliasesLocalState(const clang::Expr* init) {
+    if (const clang::VarDecl* b = base(init)) return mutableLocal(b);
+    return mentionsMutable(init);
+  }
+  /// A standard sequence whose size its type does not give: an index of it
+  /// is never shown to lie in range.
+  static bool dynamicSequence(clang::QualType t) {
+    t = t.getNonReferenceType().getCanonicalType();
+    const auto* r = t->getAsCXXRecordDecl();
+    if (!r || !inStd(r)) return false;
+    const llvm::StringRef n = r->getName();
+    if (n == "vector" || n == "basic_string" || n == "deque") return true;
+    if (n == "span")
+      if (const auto* spec = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(r))
+        if (spec->getTemplateArgs().size() >= 2 &&
+            spec->getTemplateArgs()[1].getKind() == clang::TemplateArgument::Integral)
+          return spec->getTemplateArgs()[1].getAsIntegral().isAllOnes();  // dynamic_extent
+    return false;
+  }
+  /// A deep value type: a copy shares no storage with what it was copied
+  /// from.  Atoms, arrays, the standard's value types (array, pair, tuple,
+  /// optional, variant, vector, string, bitset) of deep value types, and
+  /// classes whose bases and fields are; no reference, no pointer, no view.
+  /// A type that depends on a template parameter is judged at its
+  /// archetypes, not here.
+  static bool deepValue(clang::QualType t, std::set<const clang::Type*>& seen) {
+    t = t.getCanonicalType().getUnqualifiedType();
+    if (t->isDependentType()) return true;
+    if (t->isReferenceType() || t->isAnyPointerType() || t->isMemberPointerType())
+      return false;
+    if (t->isArithmeticType() || t->isEnumeralType() || t->isNullPtrType()) return true;
+    if (const auto* a = llvm::dyn_cast<clang::ConstantArrayType>(t.getTypePtr()))
+      return deepValue(a->getElementType(), seen);
+    const auto* r = t->getAsCXXRecordDecl();
+    if (!r || !r->hasDefinition()) return false;
+    if (!seen.insert(t.getTypePtr()).second) return true;
+    if (inStd(r)) {
+      static const std::set<std::string> values{
+          "array", "pair", "tuple", "optional", "variant", "vector",
+          "basic_string", "bitset", "allocator", "char_traits", "monostate",
+          "expected", "unexpected", "map", "set", "multimap", "multiset",
+          "unordered_map", "unordered_set", "complex", "duration", "ratio",
+          "less", "greater", "equal_to", "hash"};
+      if (!values.count(r->getName().str())) return false;
+      const auto* spec = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(r);
+      if (!spec) return true;
+      std::function<bool(const clang::TemplateArgument&)> deep =
+          [&](const clang::TemplateArgument& a) {
+            if (a.getKind() == clang::TemplateArgument::Type) return deepValue(a.getAsType(), seen);
+            if (a.getKind() == clang::TemplateArgument::Pack)
+              return std::all_of(a.pack_begin(), a.pack_end(), deep);
+            return true;
+          };
+      const auto args = spec->getTemplateArgs().asArray();
+      return std::all_of(args.begin(), args.end(), deep);
+    }
+    for (const clang::CXXBaseSpecifier& b : r->bases())
+      if (!deepValue(b.getType(), seen)) return false;
+    for (const clang::FieldDecl* f : r->fields())
+      if (!deepValue(f->getType(), seen)) return false;
+    return true;
+  }
+  static bool deepValue(clang::QualType t) {
+    std::set<const clang::Type*> seen;
+    return deepValue(t, seen);
+  }
+  /// The path an argument of swap names: a variable, then fields and
+  /// constant indices ("?" for an index not constant); none if not a path.
+  static std::optional<std::pair<const clang::VarDecl*, std::vector<std::string>>>
+  path(const clang::Expr* e, const clang::ASTContext& ctx) {
+    std::vector<std::string> steps;
+    auto index = [&](const clang::Expr* i) -> std::string {
+      if (!i->isValueDependent() && i->getType()->isIntegralOrEnumerationType())
+        if (auto v = i->getIntegerConstantExpr(ctx)) return "#" + llvm::toString(*v, 10);
+      return "?";
+    };
+    for (int k = 0; e && k < 32; ++k) {
+      e = e->IgnoreParenImpCasts();
+      if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e)) {
+        const auto* v = llvm::dyn_cast<clang::VarDecl>(d->getDecl());
+        if (!v) return std::nullopt;
+        std::reverse(steps.begin(), steps.end());
+        return std::pair{v, steps};
+      }
+      if (const auto* m = llvm::dyn_cast<clang::MemberExpr>(e)) {
+        if (!llvm::isa<clang::FieldDecl>(m->getMemberDecl())) return std::nullopt;
+        steps.push_back("." + m->getMemberDecl()->getNameAsString());
+        e = m->getBase();
+        continue;
+      }
+      if (const auto* a = llvm::dyn_cast<clang::ArraySubscriptExpr>(e)) {
+        steps.push_back(index(a->getIdx()));
+        e = a->getBase();
+        continue;
+      }
+      if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(e))
+        if (o->getOperator() == clang::OO_Subscript && o->getNumArgs() == 2) {
+          steps.push_back(index(o->getArg(1)));
+          e = o->getArg(0);
+          continue;
+        }
+      return std::nullopt;
+    }
+    return std::nullopt;
+  }
+  /// The two operands of std::swap are evidently disjoint: different
+  /// variables, or paths that part at a field or a constant index before
+  /// either ends.  The same scalar twice is fine (swap of a value with
+  /// itself is the identity); the same array or record is not
+  /// (swap_ranges' precondition, [alg.swap]).
+  static bool disjoint(const clang::CallExpr* c, const clang::ASTContext& ctx) {
+    auto p = path(c->getArg(0), ctx), q = path(c->getArg(1), ctx);
+    if (!p || !q) return false;
+    if (p->first != q->first) return true;
+    const auto& a = p->second;
+    const auto& b = q->second;
+    for (std::size_t i = 0; i < std::min(a.size(), b.size()); ++i) {
+      if (a[i] == "?" || b[i] == "?") return false;
+      if (a[i] != b[i]) return true;
+    }
+    return a.size() == b.size() && c->getArg(0)->getType()->isScalarType();
+  }
+  /// The size of a std::span of static extent, if it is one.
+  static std::optional<std::uint64_t> spanSize(clang::QualType t) {
+    t = t.getNonReferenceType().getCanonicalType();
+    const auto* spec = llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(t->getAsCXXRecordDecl());
+    if (!spec || spec->getName() != "span" || !inStd(spec) || spec->getTemplateArgs().size() < 2 ||
+        spec->getTemplateArgs()[1].getKind() != clang::TemplateArgument::Integral ||
+        spec->getTemplateArgs()[1].getAsIntegral().isAllOnes())
+      return std::nullopt;
+    return spec->getTemplateArgs()[1].getAsIntegral().getZExtValue();
+  }
+  /// The size N of a std::array type, if known.
+  static std::optional<std::uint64_t> arraySize(clang::QualType t) {
+    t = t.getNonReferenceType().getCanonicalType();
+    const auto* spec = llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
+        t->getAsCXXRecordDecl());
+    if (!spec || spec->getName() != "array" || !inStd(spec) ||
+        spec->getTemplateArgs().size() < 2 ||
+        spec->getTemplateArgs()[1].getKind() != clang::TemplateArgument::Integral)
+      return std::nullopt;
+    return spec->getTemplateArgs()[1].getAsIntegral().getZExtValue();
+  }
+  using Interval = std::pair<long long, long long>;
+  struct Values {
+    // Per scalar local: the expressions it is ever given (its initialiser,
+    // every plain assignment); a compound write makes it unbounded.
+    std::map<const clang::VarDecl*, std::vector<const clang::Expr*>> given;
+    std::set<const clang::VarDecl*> unbounded;
+    // Per counter of a counted for: its initialiser and its bound.
+    std::map<const clang::VarDecl*, std::pair<const clang::Expr*, const clang::Expr*>> counters;
+    const clang::ASTContext* ctx = nullptr;
+  };
+  static std::optional<Interval> interval(const clang::Expr* e, const Values& vs,
+                                          std::set<const clang::VarDecl*>& seen,
+                                          int depth = 0) {
+    if (!e || depth > 32) return std::nullopt;
+    e = e->IgnoreParenImpCasts();
+    // A constant expression has its value: a literal, an enumerator
+    // (p[ArrowLaw::Monotone]), a constexpr variable.
+    if (vs.ctx && !e->isValueDependent() && e->getType()->isIntegralOrEnumerationType())
+      if (auto v = e->getIntegerConstantExpr(*vs.ctx))
+        if (v->getSignificantBits() <= 62) {
+          const long long x = v->getExtValue();
+          return Interval{x, x};
+        }
+    if (const auto* i = llvm::dyn_cast<clang::IntegerLiteral>(e)) {
+      if (!i->getValue().isIntN(62)) return std::nullopt;
+      const long long v = static_cast<long long>(i->getValue().getZExtValue());
+      return Interval{v, v};
+    }
+    if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {
+      auto l = interval(b->getLHS(), vs, seen, depth + 1);
+      auto r = interval(b->getRHS(), vs, seen, depth + 1);
+      if (!l || !r) return std::nullopt;
+      const auto [a, c] = *l;
+      const auto [d, g] = *r;
+      constexpr long long cap = 1ll << 40;
+      if (std::max({std::llabs(a), std::llabs(c), std::llabs(d), std::llabs(g)}) > cap)
+        return std::nullopt;
+      switch (b->getOpcode()) {
+        case clang::BO_Add: return Interval{a + d, c + g};
+        case clang::BO_Sub: return Interval{a - g, c - d};
+        case clang::BO_Mul: {
+          long long x[4];
+          if (__builtin_mul_overflow(a, d, &x[0]) || __builtin_mul_overflow(a, g, &x[1]) ||
+              __builtin_mul_overflow(c, d, &x[2]) || __builtin_mul_overflow(c, g, &x[3]))
+            return std::nullopt;  // not representable: not known
+          return Interval{*std::min_element(x, x + 4), *std::max_element(x, x + 4)};
+        }
+        default: return std::nullopt;
+      }
+    }
+    if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(e))
+      if (m->getMethodDecl() && m->getMethodDecl()->getName() == "size")
+        if (auto n = arraySize(m->getImplicitObjectArgument()->getType()))
+          return Interval{static_cast<long long>(*n), static_cast<long long>(*n)};
+    const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e);
+    const auto* v = d ? llvm::dyn_cast<clang::VarDecl>(d->getDecl()) : nullptr;
+    if (!v || !seen.insert(v).second) return std::nullopt;  // a cycle: unbounded
+    std::optional<Interval> r;
+    if (auto c = vs.counters.find(v); c != vs.counters.end()) {
+      auto lo = interval(c->second.first, vs, seen, depth + 1);
+      auto hi = interval(c->second.second, vs, seen, depth + 1);
+      if (lo && hi && hi->second - 1 >= lo->first) r = Interval{lo->first, hi->second - 1};
+    } else if (!vs.unbounded.count(v)) {
+      if (auto g = vs.given.find(v); g != vs.given.end() && !g->second.empty()) {
+        for (const clang::Expr* x : g->second) {
+          auto i = interval(x, vs, seen, depth + 1);
+          if (!i) { r.reset(); break; }
+          r = r ? Interval{std::min(r->first, i->first), std::max(r->second, i->second)} : *i;
+          if (x == g->second.back()) break;
+        }
+      }
+      // The values must fit the variable's type, or they wrap
+      // (signed char k = 200 holds -56).
+      if (r && vs.ctx && v->getType()->isIntegerType()) {
+        const unsigned w = vs.ctx->getIntWidth(v->getType());
+        const bool sgn = v->getType()->isSignedIntegerType();
+        const long long lo = sgn ? (w >= 63 ? LLONG_MIN : -(1ll << (w - 1))) : 0;
+        const long long hi = w >= 63 ? LLONG_MAX : (sgn ? (1ll << (w - 1)) - 1 : (1ll << w) - 1);
+        if (r->first < lo || r->second > hi) r.reset();
+      }
+    }
+    seen.erase(v);
+    return r;
+  }
+  static bool isWrite(const clang::Stmt* s) {
+    if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(s)) return b->isAssignmentOp();
+    if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(s)) return u->isIncrementDecrementOp();
+    if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(s))
+      return o->isAssignmentOp() || o->getOperator() == clang::OO_PlusPlus ||
+             o->getOperator() == clang::OO_MinusMinus;
+    return false;
+  }
+  template <typename Report>
+  void check(const clang::FunctionDecl* f, clang::ASTContext& ctx, Report report) {
+    Values vs;
+    vs.ctx = &ctx;
+    // The facts a first walk gathers: the values scalar locals are given,
+    // the counted loops' counters.
+    struct Gather : clang::RecursiveASTVisitor<Gather> {
+      Values* vs;
+      bool VisitVarDecl(clang::VarDecl* v) {
+        if (v->hasLocalStorage() && v->getType()->isIntegerType()) {
+          if (v->getInit()) vs->given[v].push_back(v->getInit());
+          else if (!llvm::isa<clang::ParmVarDecl>(v)) vs->unbounded.insert(v);
+          if (llvm::isa<clang::ParmVarDecl>(v)) vs->unbounded.insert(v);
+        }
+        return true;
+      }
+      bool VisitBinaryOperator(clang::BinaryOperator* b) {
+        if (!b->isAssignmentOp()) return true;
+        if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(b->getLHS()->IgnoreParenImpCasts()))
+          if (const auto* v = llvm::dyn_cast<clang::VarDecl>(d->getDecl())) {
+            if (b->getOpcode() == clang::BO_Assign) vs->given[v].push_back(b->getRHS());
+            else vs->unbounded.insert(v);
+          }
+        return true;
+      }
+      bool VisitUnaryOperator(clang::UnaryOperator* u) {
+        if (u->getOpcode() == clang::UO_AddrOf)
+          if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(u->getSubExpr()->IgnoreParenImpCasts()))
+            if (const auto* v = llvm::dyn_cast<clang::VarDecl>(d->getDecl())) vs->unbounded.insert(v);
+        if (!u->isIncrementDecrementOp()) return true;
+        if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(u->getSubExpr()->IgnoreParenImpCasts()))
+          if (const auto* v = llvm::dyn_cast<clang::VarDecl>(d->getDecl())) vs->unbounded.insert(v);
+        return true;
+      }
+      // Written another way, by a non-const reference argument (std::swap)
+      // or through its address: no interval.
+      bool VisitCallExpr(clang::CallExpr* c) {
+        const clang::FunctionDecl* g = c->getDirectCallee();
+        for (unsigned i = 0; i < c->getNumArgs(); ++i) {
+          const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(c->getArg(i)->IgnoreParenImpCasts());
+          const auto* v = d ? llvm::dyn_cast<clang::VarDecl>(d->getDecl()) : nullptr;
+          if (!v) continue;
+          const clang::ParmVarDecl* p = g && i < g->getNumParams() ? g->getParamDecl(i) : nullptr;
+          if (!p || (p->getType()->isReferenceType() &&
+                     !p->getType().getNonReferenceType().isConstQualified()))
+            vs->unbounded.insert(v);
+        }
+        return true;
+      }
+      bool VisitForStmt(clang::ForStmt* s) {
+        const auto* init = llvm::dyn_cast_or_null<clang::DeclStmt>(s->getInit());
+        const auto* cond = llvm::dyn_cast_or_null<clang::BinaryOperator>(s->getCond());
+        if (!init || !init->isSingleDecl() || !cond || cond->getOpcode() != clang::BO_LT)
+          return true;
+        const auto* v = llvm::dyn_cast<clang::VarDecl>(init->getSingleDecl());
+        const auto* lhs = llvm::dyn_cast<clang::DeclRefExpr>(cond->getLHS()->IgnoreParenImpCasts());
+        if (v && v->getInit() && lhs && lhs->getDecl() == v)
+          vs->counters[v] = {v->getInit(), cond->getRHS()};
+        return true;
+      }
+    } gather;
+    gather.vs = &vs;
+    gather.TraverseStmt(f->getBody());
+    // A counter takes its interval from its loop, not from its ++.
+    for (const auto& [v, _] : vs.counters) vs.unbounded.erase(v);
+
+    struct Judge : clang::RecursiveASTVisitor<Judge> {
+      clang::ASTContext* ctx;
+      Values* vs;
+      Report* report;
+      /// The node above e, wrappers aside.
+      const clang::DynTypedNode* above(const clang::Expr* e, clang::DynTypedNode& keep) {
+        auto ps = ctx->getParents(*e);
+        if (ps.empty()) return nullptr;
+        keep = ps[0];
+        return &keep;
+      }
+      /// A call or write that stands as a statement of its own.
+      bool standsAlone(const clang::Expr* s) {
+        clang::DynTypedNode n = clang::DynTypedNode::create(*s);
+        for (int k = 0; k < 8; ++k) {
+          auto ps = ctx->getParents(n);
+          if (ps.empty()) return false;
+          n = ps[0];
+          if (const auto* e = n.get<clang::Expr>()) {
+            if (llvm::isa<clang::ExprWithCleanups, clang::ParenExpr, clang::ImplicitCastExpr>(e))
+              continue;
+            if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e))
+              if (b->getOpcode() == clang::BO_Comma) continue;
+            return false;
+          }
+          return n.get<clang::Stmt>() != nullptr;
+        }
+        return false;
+      }
+      /// Inside an operand that is not evaluated (sizeof, decltype, noexcept,
+      /// a requires-expression): no use at all.
+      bool unevaluated(const clang::Expr* e) {
+        clang::DynTypedNode n = clang::DynTypedNode::create(*e);
+        for (int k = 0; k < 64; ++k) {
+          auto ps = ctx->getParents(n);
+          if (ps.empty()) return false;
+          n = ps[0];
+          if (n.get<clang::UnaryExprOrTypeTraitExpr>() || n.get<clang::CXXNoexceptExpr>() ||
+              n.get<clang::RequiresExpr>() || n.get<clang::CXXTypeidExpr>() ||
+              n.get<clang::TypeLoc>() || n.get<clang::Decl>())
+            return !n.get<clang::Decl>();
+        }
+        return false;
+      }
+      /// A function of the standard that only reads or copies what it is
+      /// given, though its signature takes a forwarding reference (a closed
+      /// list): the kernel's iteration is written with the first two.
+      /// By qualified name, since a bare name is not enough: views::iota
+      /// reads, std::ranges::iota and std::iota write their range, and
+      /// std::transform writes its output.
+      static bool readerDecl(const clang::NamedDecl* named) {
+        if (!named || !named->getIdentifier() || !inStd(named)) return false;
+        const std::string q = named->getQualifiedNameAsString();
+        const llvm::StringRef n = named->getName();
+        if (q.find("views::") != std::string::npos)
+          return n == "iota" || n == "repeat" || n == "transform";
+        const bool ranges = q.find("ranges::") != std::string::npos;
+        if (n == "fold_left") return ranges;
+        if (ranges) return false;
+        // visit hands the alternative held to its visitor, which in Jlt
+        // takes it by value (Rule 1).
+        return n == "make_pair" || n == "make_tuple" || n == "make_optional" || n == "visit";
+      }
+      /// The declarations a callee expression names, where it names any: a
+      /// function or function object, or the candidates of a lookup not yet
+      /// resolved (a call with a dependent argument).
+      static std::vector<const clang::NamedDecl*> namedBy(const clang::Expr* callee) {
+        callee = callee->IgnoreParenImpCasts();
+        if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(callee)) return {d->getDecl()};
+        if (const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(callee))
+          return {u->decls_begin(), u->decls_end()};
+        return {};
+      }
+      /// A reader whose result keeps a reference to a range given as an
+      /// lvalue: views::transform stores a ref_view of it.  iota and repeat
+      /// copy what they are given.
+      static bool borrows(const clang::NamedDecl* named) {
+        return named && named->getIdentifier() && inStd(named) && named->getName() == "transform" &&
+               named->getQualifiedNameAsString().find("views::") != std::string::npos;
+      }
+      static const clang::NamedDecl* readerNamed(const clang::CallExpr* c) {
+        const clang::NamedDecl* named = c->getDirectCallee();
+        if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(c))
+          if (o->getOperator() == clang::OO_Call && o->getNumArgs() > 0)
+            if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(o->getArg(0)->IgnoreParenImpCasts()))
+              named = llvm::dyn_cast<clang::VarDecl>(d->getDecl());
+        return named;
+      }
+      /// Whether the value of a call leaves the full expression it is in, as
+      /// a view still referring to a local: returned, or kept in a variable,
+      /// through further views of the standard only.  Anything else on the
+      /// way consumes it there: a fold, a function of the program (which
+      /// takes it by value, Rule 1), a comparison.
+      bool escapes(const clang::Expr* call) const {
+        clang::DynTypedNode n = clang::DynTypedNode::create(*call);
+        for (int k = 0; k < 32; ++k) {
+          auto ps = ctx->getParents(n);
+          if (ps.empty()) return false;
+          n = ps[0];
+          if (n.get<clang::ReturnStmt>() || n.get<clang::VarDecl>() || n.get<clang::DeclStmt>()) return true;
+          const auto* e = n.get<clang::Expr>();
+          if (!e) return false;
+          if (llvm::isa<clang::ImplicitCastExpr, clang::ParenExpr, clang::MaterializeTemporaryExpr,
+                        clang::CXXBindTemporaryExpr, clang::ExprWithCleanups, clang::CXXConstructExpr,
+                        clang::InitListExpr, clang::CXXFunctionalCastExpr>(e))
+            continue;
+          if (const auto* c = llvm::dyn_cast<clang::CallExpr>(e)) {
+            // A view of a view, views::take(v, 2) or v | views::take(2).
+            std::vector<const clang::NamedDecl*> ds = namedBy(c->getCallee());
+            if (const clang::NamedDecl* g = c->getDirectCallee()) ds.push_back(g);
+            if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(c);
+                o && o->getOperator() == clang::OO_Call && o->getNumArgs() > 0)
+              ds = namedBy(o->getArg(0));
+            const bool view = !ds.empty() && std::all_of(ds.begin(), ds.end(), [](const clang::NamedDecl* d) {
+              if (!inStd(d)) return false;
+              const std::string q = d->getQualifiedNameAsString();
+              const llvm::StringRef n = d->getIdentifier() ? d->getName() : "";
+              // A pair, tuple or optional made of the view keeps it.
+              if (n == "make_pair" || n == "make_tuple" || n == "make_optional") return true;
+              return q.find("views::") != std::string::npos ||
+                     (d->getIdentifier() == nullptr && q.find("ranges") != std::string::npos);
+            });
+            if (view) continue;
+            // An operator other than a call or a pipe gives a new value (==, +).
+            if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(c);
+                o && o->getOperator() != clang::OO_Call && o->getOperator() != clang::OO_Pipe)
+              return false;
+            // A function of the program whose result is of class or
+            // dependent type may return the view it is given (keep(v));
+            // one that returns a scalar consumes it (first_element(v)).
+            const bool standard = std::any_of(ds.begin(), ds.end(), [](const clang::NamedDecl* d) {
+              return inStd(d);
+            });
+            const clang::QualType t = c->getType();
+            if (!standard && (t->isDependentType() || t->isRecordType())) continue;
+          }
+          return false;
+        }
+        return false;
+      }
+      static bool reader(const clang::CallExpr* c) {
+        const clang::NamedDecl* named = c->getDirectCallee();
+        // A function object of the standard, views::iota(a, b): its name.
+        if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(c))
+          if (o->getOperator() == clang::OO_Call && o->getNumArgs() > 0)
+            if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(o->getArg(0)->IgnoreParenImpCasts()))
+              named = llvm::dyn_cast<clang::VarDecl>(d->getDecl());
+        return readerDecl(named);
+      }
+      /// How an argument binds: 0 a parameter that may write it (or one not
+      /// known), 1 a copy or a const reference, 2 a const reference the
+      /// call's result may be (std::max), to be followed.
+      static int binds(const clang::FunctionDecl* g, unsigned i, const clang::Expr* call) {
+        if (!g || i >= g->getNumParams()) return 0;
+        const clang::QualType p = g->getParamDecl(i)->getType();
+        if (!p->isReferenceType()) return 1;
+        if (p->isRValueReferenceType() || !p.getNonReferenceType().isConstQualified()) return 0;
+        return call->isGLValue() ? 2 : 1;
+      }
+      /// A write to v, an assignment on its left: the value written shares
+      /// no storage with local state, unless v is a deep value type.
+      /// And a write through it, to an element or a field, is a write to
+      /// the local's own storage only if it is a deep value type: an element
+      /// of a span parameter is its caller's.
+      bool writable(const clang::VarDecl* v, const clang::Expr* rhs, bool through) {
+        if (deepValue(v->getType())) return true;
+        return !through && (!rhs || !mentionsMutable(rhs));
+      }
+      /// Whether an occurrence of a mutable local stands where the rows of
+      /// Table 7 read it (an allowlist; the theoretician's positions a-e):
+      ///   a. read (an lvalue-to-rvalue conversion), or copied;
+      ///   b. the left side of an assignment, ++ or -- (that it is a
+      ///      statement of its own is judged by VisitStmt);
+      ///   c. the base of a field, an element ([], front, back, value, at,
+      ///      *, std::get) whose result is again judged by a-e;
+      ///   d. an argument bound to a by-value or const reference parameter,
+      ///      or the object of a const member call;
+      ///   e. an operand of std::swap, in a statement of its own, the two
+      ///      evidently disjoint.
+      /// Anything else is a finding: a non-const reference parameter, a
+      /// mutating member call, the address.  A dependent call, its callee
+      /// known only at instantiation, is read as binding by value, which
+      /// Rule 1 gives for a callee in Jlt.
+      bool allowed(const clang::DeclRefExpr* d) {
+        const auto* var = llvm::cast<clang::VarDecl>(d->getDecl());
+        const clang::Expr* cur = d;
+        bool chosen = false;  // reached through ?: or a comma: no single path to write
+        clang::DynTypedNode keep;
+        for (int k = 0; k < 32; ++k) {
+          const clang::DynTypedNode* p = above(cur, keep);
+          if (!p) return true;
+          const auto* e = p->get<clang::Expr>();
+          if (!e) return true;  // a statement (returned, tested, discarded) or a declaration
+          if (llvm::isa<clang::ParenExpr, clang::ConstantExpr, clang::ExprWithCleanups,
+                        clang::MaterializeTemporaryExpr, clang::CXXBindTemporaryExpr,
+                        clang::ParenListExpr>(e)) {
+            cur = e;
+            continue;
+          }
+          if (const auto* c = llvm::dyn_cast<clang::ImplicitCastExpr>(e)) {
+            switch (c->getCastKind()) {
+              case clang::CK_LValueToRValue: return true;  // a
+              case clang::CK_ArrayToPointerDecay: return false;
+              case clang::CK_NoOp:
+              case clang::CK_DerivedToBase:
+              case clang::CK_UncheckedDerivedToBase: cur = e; continue;
+              default: return true;
+            }
+          }
+          if (const auto* c = llvm::dyn_cast<clang::ExplicitCastExpr>(e)) {
+            if (c->isGLValue()) { cur = e; continue; }
+            return true;
+          }
+          if (const auto* m = llvm::dyn_cast<clang::MemberExpr>(e)) {
+            if (m->getBase() != cur) return true;
+            if (llvm::isa<clang::FieldDecl>(m->getMemberDecl())) { cur = e; continue; }  // c
+            const auto* method = llvm::dyn_cast<clang::CXXMethodDecl>(m->getMemberDecl());
+            clang::DynTypedNode up;
+            const clang::DynTypedNode* q = above(m, up);
+            const auto* call = q ? q->get<clang::CXXMemberCallExpr>() : nullptr;
+            if (!method || !call) return false;
+            static const std::set<std::string> accessors{"front", "back", "value", "at"};
+            if (method->isConst() || method->isStatic() ||
+                (method->getIdentifier() && accessors.count(method->getName().str()))) {
+              if (call->isGLValue()) { cur = call; continue; }  // c
+              return true;  // d
+            }
+            return false;
+          }
+          if (const auto* m = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(e)) {
+            clang::DynTypedNode up;
+            const clang::DynTypedNode* q = above(m, up);
+            const auto* call = q ? q->get<clang::CallExpr>() : nullptr;
+            // Called, and not an argument of the call (op(s.first, s.second)).
+            if (call && call->getCallee()->IgnoreParens() != m) call = nullptr;
+            if (!call) { cur = e; continue; }  // a field, presumably: c
+            // A method of a class template, looked up in its pattern and its
+            // partial specializations: const in every one (v.size() of a
+            // std::vector<T>), or an accessor, is a read; else not known.
+            switch (dependentMethod(m)) {
+              case 1: return true;
+              case 2:
+                if (call->isGLValue() || call->isTypeDependent()) { cur = call; continue; }
+                return true;
+              default: return false;
+            }
+          }
+          if (llvm::isa<clang::UnresolvedMemberExpr>(e)) return false;
+          // T(x) at a type not yet known: a constructor of a type in Jlt
+          // takes values (Rule 1, as for a dependent call below).
+          if (llvm::isa<clang::CXXUnresolvedConstructExpr>(e)) return true;
+          if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(e)) {
+            unsigned i = 0;
+            while (i < o->getNumArgs() && o->getArg(i) != cur) ++i;
+            const auto op = o->getOperator();
+            if (i == o->getNumArgs()) return !o->getDirectCallee();  // dependent: below
+            const bool write = o->isAssignmentOp() || op == clang::OO_PlusPlus ||
+                               op == clang::OO_MinusMinus;
+            if (i == 0 && write)  // b
+              return !chosen && writable(var, o->getNumArgs() > 1 ? o->getArg(1) : nullptr, cur != d);
+            if (i == 0 && (op == clang::OO_Subscript || op == clang::OO_Star ||
+                           op == clang::OO_Arrow)) {  // c
+              cur = e;
+              continue;
+            }
+            const auto* g = o->getDirectCallee();
+            // Dependent, the callee known only at instantiation: a callee in
+            // Jlt cannot write its argument, since Rule 1 refuses a non-const
+            // reference parameter and a call operator that is not const
+            // (rule1-lvalue-reference-params, rule1-rvalue-reference-params,
+            // rule1-const-call-operator), and a template is judged for its
+            // instances in Jlt.
+            if (!g) {
+              // ...unless what is called is a function object of the
+              // standard, whose behaviour is known: the closed list decides.
+              if (op == clang::OO_Call && o->getNumArgs() > 0)
+                if (const auto ds = namedBy(o->getArg(0)); !ds.empty() && inStd(ds[0]))
+                  return i > 0 && readerDecl(ds[0]) && !(borrows(ds[0]) && escapes(o));
+              return op != clang::OO_Amp;
+            }
+            if (reader(o)) return !(borrows(readerNamed(o)) && escapes(o));
+            int b;
+            if (const auto* method = llvm::dyn_cast<clang::CXXMethodDecl>(g); method && !method->isStatic())
+              b = i == 0 ? (method->isConst() ? (o->isGLValue() ? 2 : 1) : 0)
+                         : binds(g, i - 1, o);
+            else
+              b = binds(g, i, o);
+            if (b == 2) { cur = e; continue; }
+            return b == 1;
+          }
+          if (const auto* c = llvm::dyn_cast<clang::CallExpr>(e)) {
+            unsigned i = 0;
+            while (i < c->getNumArgs() && c->getArg(i) != cur) ++i;
+            const clang::FunctionDecl* g = c->getDirectCallee();
+            // Dependent: as for a dependent operator call above.
+            if (!g && (c->getCallee()->isTypeDependent() ||
+                       std::any_of(c->arg_begin(), c->arg_end(), [](const clang::Expr* a) {
+                         return a->isTypeDependent();
+                       }))) {
+              // A callee of the standard is not a callee in Jlt: its
+              // behaviour is known, and the closed list decides
+              // (std::ranges::sort and std::tie in a template write as
+              // they do outside one).
+              const auto ds = namedBy(c->getCallee());
+              const bool standard = std::any_of(ds.begin(), ds.end(), [](const clang::NamedDecl* d) {
+                return inStd(d);
+              });
+              if (!standard) return true;
+              const auto named = [&](llvm::StringRef n) {
+                return std::all_of(ds.begin(), ds.end(), [&](const clang::NamedDecl* d) {
+                  return d->getIdentifier() && d->getName() == n && inStd(d);
+                });
+              };
+              if (i < c->getNumArgs() && named("swap") && c->getNumArgs() == 2)
+                return disjoint(c, *ctx) && standsAlone(c);
+              if (i < c->getNumArgs() && named("get")) { cur = e; continue; }
+              return i < c->getNumArgs() && std::all_of(ds.begin(), ds.end(), readerDecl) &&
+                     !(std::any_of(ds.begin(), ds.end(), borrows) && escapes(c));
+            }
+            if (i == c->getNumArgs()) return false;  // called itself
+            if (g && inStd(g) && g->getIdentifier()) {
+              if (g->getName() == "swap" && c->getNumArgs() == 2)  // e
+                return disjoint(c, *ctx) && standsAlone(c);
+              if (g->getName() == "get" && c->isGLValue()) { cur = e; continue; }  // c
+            }
+            if (reader(c)) return !(borrows(readerNamed(c)) && escapes(c));
+            const int b = binds(g, i, c);
+            if (b == 2) { cur = e; continue; }
+            return b == 1;
+          }
+          if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(e)) {
+            unsigned i = 0;
+            while (i < c->getNumArgs() && c->getArg(i) != cur) ++i;
+            if (i == c->getNumArgs()) return false;
+            // A copy, or the move of a returned local (return a;): a.
+            if (c->getConstructor()->isCopyOrMoveConstructor()) return true;
+            // A value type of the standard copies what it is built from
+            // (std::optional{s.first}, by a forwarding reference).
+            if (const auto* r = c->getType()->getAsCXXRecordDecl())
+              if (inStd(r) && deepValue(c->getType())) return true;
+            return binds(c->getConstructor(), i, c) != 0;
+          }
+          if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {
+            if (b->isAssignmentOp() && b->getLHS() == cur)  // b
+              return !chosen && writable(var, b->getRHS(), cur != d);
+            // The comma's value is its right operand: (0, x) is x.
+            if (b->getOpcode() == clang::BO_Comma && b->getRHS() == cur) { chosen = true; cur = e; continue; }
+            return true;
+          }
+          if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e)) {
+            if (u->getOpcode() == clang::UO_AddrOf) return false;
+            if (u->getOpcode() == clang::UO_Deref) { cur = e; continue; }
+            if (u->isIncrementDecrementOp()) return !chosen && writable(var, nullptr, cur != d);  // b
+            return true;
+          }
+          if (llvm::isa<clang::AbstractConditionalOperator>(e)) {
+            // (c ? i : j) = 9 writes one of two variables: read only.
+            if (e->isGLValue()) { chosen = true; cur = e; continue; }
+            return true;
+          }
+          if (const auto* a = llvm::dyn_cast<clang::ArraySubscriptExpr>(e)) {
+            if (a->getBase() == cur) { cur = e; continue; }
+            return true;
+          }
+          // A value built from it holds a copy, unless a field of it is a
+          // reference: Ref{k}.x = 7 writes k.
+          if (const auto* il = llvm::dyn_cast<clang::InitListExpr>(e)) {
+            // The list as written has no type of its own (return {a, b};
+            // R{x} at a type parameter): judged where it has one.
+            const clang::QualType t = il->getType();
+            return t.isNull() || t->isVoidType() || t->isDependentType() || deepValue(t);
+          }
+          if (llvm::isa<clang::LambdaExpr, clang::CXXFoldExpr,
+                        clang::PackExpansionExpr, clang::UnaryExprOrTypeTraitExpr,
+                        clang::CXXNoexceptExpr, clang::CXXTypeidExpr,
+                        clang::CXXStdInitializerListExpr>(e))
+            return true;
+          return false;
+        }
+        return false;
+      }
+      /// A method named on an object of a dependent class template
+      /// specialization: 1 if every method of that name in the template's
+      /// pattern and partial specializations is const or static, 2 if it is
+      /// an accessor (front, back, value, at), 0 if not known.
+      static int dependentMethod(const clang::CXXDependentScopeMemberExpr* m) {
+        if (m->getBaseType().isNull()) return 0;
+        const clang::QualType base = m->isArrow()
+            ? m->getBaseType()->getPointeeType() : m->getBaseType();
+        if (base.isNull()) return 0;
+        const auto* spec = base->getAs<clang::TemplateSpecializationType>();
+        const auto* td = spec ? llvm::dyn_cast_or_null<clang::ClassTemplateDecl>(
+                                    spec->getTemplateName().getAsTemplateDecl())
+                              : nullptr;
+        if (!td || !m->getMember().isIdentifier()) return 0;
+        const llvm::StringRef name = m->getMember().getAsIdentifierInfo()->getName();
+        if (name == "front" || name == "back" || name == "value" || name == "at") return 2;
+        std::vector<const clang::CXXRecordDecl*> patterns{td->getTemplatedDecl()};
+        llvm::SmallVector<clang::ClassTemplatePartialSpecializationDecl*, 4> partial;
+        const_cast<clang::ClassTemplateDecl*>(td)->getPartialSpecializations(partial);
+        patterns.insert(patterns.end(), partial.begin(), partial.end());
+        bool found = false;
+        for (const clang::CXXRecordDecl* r : patterns) {
+          if (!r || !r->hasDefinition()) return 0;
+          for (const clang::Decl* d : r->getDefinition()->decls()) {
+            const clang::Decl* f = d;
+            if (const auto* t = llvm::dyn_cast<clang::FunctionTemplateDecl>(d)) f = t->getTemplatedDecl();
+            const auto* method = llvm::dyn_cast<clang::CXXMethodDecl>(f);
+            if (!method || !method->getIdentifier() || method->getName() != name) continue;
+            found = true;
+            if (!method->isConst() && !method->isStatic()) return 0;
+          }
+        }
+        return found ? 1 : 0;
+      }
+      bool VisitDeclRefExpr(clang::DeclRefExpr* d) {
+        const auto* v = llvm::dyn_cast<clang::VarDecl>(d->getDecl());
+        if (!mutableLocal(v) || llvm::isa<clang::RequiresExprBodyDecl>(v->getDeclContext()))
+          return true;
+        if (!allowed(d) && !unevaluated(d)) (*report)(d->getLocation());
+        return true;
+      }
+      bool VisitVarDecl(clang::VarDecl* v) {
+        if (v->hasLocalStorage() && v->getType()->isReferenceType() && v->getInit())
+          if (aliasesLocalState(v->getInit())) (*report)(v->getLocation());
+        // A local whose copies share storage (a view, a pointer, a tuple of
+        // references) initialised from local state: a second name for it.
+        if (v->hasLocalStorage() && !llvm::isa<clang::ParmVarDecl>(v) &&
+            !v->getType()->isReferenceType() && v->getInit() && !v->isImplicit() &&
+            !deepValue(v->getType()) && mentionsMutable(v->getInit()))
+          (*report)(v->getLocation());
+        // Written before it is read: a mutable local has an initialiser that
+        // writes it, not none and not a trivial default construction, which
+        // leaves scalar elements indeterminate (std::array<T, N> r;).  At
+        // compile time C++ refuses to read such a value, at run time the read
+        // is undefined: the two evaluations would part.
+        // A range-for's loop variable is written by its loop at every step
+        // (in a template over a dependent range Clang records no initialiser).
+        const auto* loop = [&]() -> const clang::CXXForRangeStmt* {
+          for (const auto& n : ctx->getParents(*v))
+            if (const auto* d = n.get<clang::DeclStmt>())
+              for (const auto& m : ctx->getParents(*d))
+                if (const auto* f = m.get<clang::CXXForRangeStmt>())
+                  if (f->getLoopVariable() == v) return f;
+          return nullptr;
+        }();
+        if (mutableLocal(v) && !llvm::isa<clang::ParmVarDecl>(v) && !loop) {
+          const auto* c = llvm::dyn_cast_or_null<clang::CXXConstructExpr>(
+              v->getInit() ? v->getInit()->IgnoreImplicit() : nullptr);
+          // Inside a template a default construction is recorded only at
+          // instantiation: a class template other than std::array is
+          // initialised by its constructor; a bare type parameter may be a
+          // scalar, so it stays refused.
+          const clang::QualType t = v->getType();
+          const auto* spec = t->getAs<clang::TemplateSpecializationType>();
+          const auto* td = spec ? spec->getTemplateName().getAsTemplateDecl() : nullptr;
+          // Of a class template outside std: only one that writes every
+          // field, by a constructor of its own or by default member
+          // initialisers (box<T> { T v; } leaves v indeterminate at
+          // T = size_t).
+          auto initialises = [](const clang::TemplateDecl* td) {
+            const auto* c = llvm::dyn_cast<clang::ClassTemplateDecl>(td);
+            const clang::CXXRecordDecl* r = c ? c->getTemplatedDecl() : nullptr;
+            if (!r || !r->hasDefinition()) return false;
+            r = r->getDefinition();
+            for (const clang::CXXConstructorDecl* k : r->ctors())
+              if (k->isDefaultConstructor() && k->isUserProvided()) return true;
+            return std::all_of(r->field_begin(), r->field_end(),
+                               [](const clang::FieldDecl* f) { return f->hasInClassInitializer(); });
+          };
+          const bool classTemplate =
+              t->isDependentType() && td &&
+              llvm::isa<clang::ClassTemplateDecl>(td) &&
+              !(td->getName() == "array" && inStd(td)) &&
+              (inStd(td) || initialises(td));
+          if ((!v->getInit() && !classTemplate) ||
+              (c && c->getConstructor()->isDefaultConstructor() &&
+               c->getConstructor()->isTrivial()))
+            (*report)(v->getLocation());
+        }
+        return true;
+      }
+      bool VisitCXXForRangeStmt(clang::CXXForRangeStmt* s) {
+        const clang::VarDecl* x = s->getLoopVariable();
+        if (x && x->getType()->isReferenceType() && aliasesLocalState(s->getRangeInit()))
+          (*report)(x->getLocation());
+        return true;
+      }
+      bool VisitCXXOperatorCallExpr(clang::CXXOperatorCallExpr* o) {
+        if (o->getOperator() == clang::OO_Subscript && o->getNumArgs() == 2) {
+          // Every standard sequence, local or not: its index is shown in
+          // range where its type gives the size (std::array, a static span),
+          // never where it does not (vector, string, deque, a dynamic span).
+          // The size of the sequence indexed, a.top in a.top[0].
+          const clang::QualType t = o->getArg(0)->getType();
+          std::optional<std::uint64_t> n = arraySize(t);
+          if (!n) n = spanSize(t);
+          if (n) {
+            std::set<const clang::VarDecl*> seen;
+            auto i = interval(o->getArg(1), *vs, seen);
+            if (!i || i->first < 0 || i->second > static_cast<long long>(*n) - 1)
+              (*report)(o->getExprLoc());
+          } else if (const auto* r = t.getNonReferenceType()->getAsCXXRecordDecl();
+                     dynamicSequence(t) || (r && inStd(r))) {
+            // Any other type of the standard: its size is not in its type
+            // (a vector, a string_view, a view), or its operator[] is not an
+            // element access at all (a map's inserts).
+            (*report)(o->getExprLoc());
+          }
+        }
+        return true;
+      }
+      // A built-in array of known size: the same.
+      bool VisitArraySubscriptExpr(clang::ArraySubscriptExpr* a) {
+        if (const auto* at = ctx->getAsConstantArrayType(a->getBase()->IgnoreImpCasts()->getType())) {
+          std::set<const clang::VarDecl*> seen;
+          auto i = interval(a->getIdx(), *vs, seen);
+          const long long n = static_cast<long long>(at->getSize().getZExtValue());
+          if (!i || i->first < 0 || i->second > n - 1) (*report)(a->getExprLoc());
+        }
+        return true;
+      }
+      bool VisitLambdaExpr(clang::LambdaExpr* l) {
+        for (const clang::LambdaCapture& c : l->captures())
+          if (c.capturesVariable() && c.getCaptureKind() == clang::LCK_ByRef)
+            if (const auto* v = llvm::dyn_cast<clang::VarDecl>(c.getCapturedVar()))
+              if (mutableLocal(v)) (*report)(l->getBeginLoc());
+        // A dependent call is read as binding by value because a callee in
+        // Jlt cannot write its argument; the rules that say so exempt
+        // lambdas, so a lambda is held to it here: no parameter by a
+        // reference it could write through, and not mutable.
+        if (const clang::CXXMethodDecl* call = l->getCallOperator()) {
+          bool writes = !call->isConst();
+          for (const clang::ParmVarDecl* q : call->parameters()) {
+            const clang::QualType t = q->getType();
+            if (t->isLValueReferenceType() && !t.getNonReferenceType().isConstQualified() &&
+                !t->isDependentType())
+              writes = true;
+          }
+          if (writes) (*report)(l->getBeginLoc());
+        }
+        return true;
+      }
+      // front() and back() of a sequence whose type does not give its size
+      // are an index not shown in range, as v[0] is.
+      bool VisitCXXMemberCallExpr(clang::CXXMemberCallExpr* m) {
+        const clang::CXXMethodDecl* method = m->getMethodDecl();
+        if (!method || !method->getIdentifier()) return true;
+        const llvm::StringRef n = method->getName();
+        // at(i) of a sequence of the standard: the index shown in range as
+        // for [], since out of range it throws, which Rule 1 keeps out.
+        if (n == "at" && m->getNumArgs() == 1) {
+          const clang::QualType t = m->getImplicitObjectArgument()->getType();
+          const clang::QualType o = t->isPointerType() ? t->getPointeeType() : t;
+          const auto* r = o.getNonReferenceType()->getAsCXXRecordDecl();
+          if (!r || !inStd(r)) return true;
+          std::optional<std::uint64_t> size = arraySize(o);
+          if (!size) size = spanSize(o);
+          std::set<const clang::VarDecl*> seen;
+          auto i = size ? interval(m->getArg(0), *vs, seen) : std::nullopt;
+          if (!size || !i || i->first < 0 || i->second > static_cast<long long>(*size) - 1)
+            (*report)(m->getExprLoc());
+          return true;
+        }
+        if (n != "front" && n != "back") return true;
+        const clang::QualType t = m->getImplicitObjectArgument()->getType();
+        const clang::QualType o = t->isPointerType() ? t->getPointeeType() : t;
+        const auto* r = o.getNonReferenceType()->getAsCXXRecordDecl();
+        std::optional<std::uint64_t> size = arraySize(o);
+        if (!size) size = spanSize(o);
+        if (r && inStd(r) && (!size || *size == 0)) (*report)(m->getExprLoc());
+        return true;
+      }
+      /// The written operand of a write.
+      static const clang::Expr* lhs(const clang::Stmt* s) {
+        if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(s)) return b->getLHS();
+        if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(s)) return u->getSubExpr();
+        if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(s))
+          return o->getNumArgs() ? o->getArg(0) : nullptr;
+        return nullptr;
+      }
+      bool VisitStmt(clang::Stmt* s) {
+        if (!isWrite(s)) return true;
+        // A write through a variable that is not a mutable local, to an
+        // element or a field: through a span or a pointer held by value,
+        // const or not, it is its caller's storage (s[0] = 7 with s a
+        // const std::span).  A mutable local is judged by its uses above;
+        // a reference parameter by Rule 1's own rule.
+        if (const clang::Expr* w = lhs(s)) {
+          const clang::Expr* e = w->IgnoreParenImpCasts();
+          if (!llvm::isa<clang::DeclRefExpr>(e))
+            if (const clang::VarDecl* b = base(e))
+              if (!mutableLocal(b) && !b->getType()->isReferenceType() && !deepValue(b->getType()))
+                (*report)(s->getBeginLoc());
+        }
+        // A statement of its own: the parent, wrappers aside, is a statement.
+        clang::DynTypedNode n = clang::DynTypedNode::create(*s);
+        for (int k = 0; k < 8; ++k) {
+          auto ps = ctx->getParents(n);
+          if (ps.empty()) return true;
+          n = ps[0];
+          if (const auto* e = n.get<clang::Expr>()) {
+            if (llvm::isa<clang::ExprWithCleanups, clang::ParenExpr,
+                          clang::ImplicitCastExpr>(e))
+              continue;
+            // The comma operator sequences its operands, left before right:
+            // ++i, ++it writes in order.
+            if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e))
+              if (b->getOpcode() == clang::BO_Comma) continue;
+            (*report)(s->getBeginLoc());  // inside another expression
+            return true;
+          }
+          return true;  // a statement: of its own, or a for's increment
+        }
+        return true;
+      }
+    } judge;
+    judge.ctx = &ctx;
+    judge.vs = &vs;
+    judge.report = &report;
+    judge.TraverseStmt(f->getBody());
+  }
+};
+
 std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
+  if (name == "local-state") return std::make_unique<LocalState>();
   if (name == "mutual-recursion") return std::make_unique<MutualRecursion>();
   if (name == "definition") return std::make_unique<Definition>();
   if (name == "inline-requires") return std::make_unique<InlineRequires>();
@@ -3929,10 +5189,12 @@ std::optional<DynTypedMatcher> parseMatcher(
   return m;
 }
 
-/// Read the scope probe and the rule files into queryRules: in a file, each
-/// line `match <matcher>` is a matcher and the first `set traversal <kind>`
-/// the traversal; every other line is commentary, as it was when the driver
-/// gave clang-query those lines alone.
+/// Read the scope probe and the rule files into queryRules.  In a file, a
+/// command is `match <matcher>`, `let <name> <matcher>` (a name for the rest
+/// of the file, as in clang-query) or the first `set traversal <kind>`; a line
+/// that starts with a space or a tab continues the command above it, so that
+/// a matcher can be written over several lines; every other line is
+/// commentary.
 bool readQueryRules() {
   const std::string ns = scope;
   clang::ast_matchers::dynamic::Parser::NamedValueMap named;
@@ -3964,12 +5226,52 @@ bool readQueryRules() {
     }
     QueryRule rule{llvm::sys::path::stem(path).str(), defaultTraversal, {}};
     bool traversalNamed = false;
-    llvm::SmallVector<llvm::StringRef, 16> lines;
-    (*buffer)->getBuffer().split(lines, '\n');
-    for (unsigned n = 0; n < lines.size(); ++n) {
-      llvm::StringRef line = lines[n].rtrim("\r");
-      const std::string where = path + ":" + std::to_string(n + 1);
-      if (line.consume_front("set traversal ")) {
+    // The file's names: the scope, and its own lets, which no other file sees.
+    clang::ast_matchers::dynamic::Parser::NamedValueMap local = named;
+    llvm::SmallVector<llvm::StringRef, 16> raw;
+    (*buffer)->getBuffer().split(raw, '\n');
+    // Commands, each with the line it starts on: an indented line continues
+    // the command above it.
+    std::vector<std::pair<std::string, unsigned>> commands;
+    for (unsigned n = 0; n < raw.size(); ++n) {
+      llvm::StringRef line = raw[n].rtrim("\r");
+      const bool continues = !line.empty() && (line[0] == ' ' || line[0] == '\t');
+      if (continues && line.trim().starts_with("#")) continue;  // a comment
+      if (continues && !commands.empty() &&
+          !llvm::StringRef(commands.back().first).starts_with("#"))
+        commands.back().first += " " + line.trim().str();
+      else
+        commands.emplace_back(line.str(), n + 1);
+    }
+    for (const auto& [text, n] : commands) {
+      llvm::StringRef line = text;
+      const std::string where = path + ":" + std::to_string(n);
+      if (line.consume_front("let ")) {
+        line = line.ltrim();
+        const llvm::StringRef name = line.take_while(
+            [](char c) { return std::isalnum(static_cast<unsigned char>(c)) || c == '_'; });
+        if (name.empty() || name == "scope") {
+          llvm::errs() << "jlt-lint: " << where
+                       << ": let wants a new name (not scope)\n";
+          return false;
+        }
+        llvm::StringRef rest = line.drop_front(name.size()).ltrim();
+        clang::ast_matchers::dynamic::Diagnostics diag;
+        clang::ast_matchers::dynamic::VariantValue value;
+        if (!clang::ast_matchers::dynamic::Parser::parseExpression(
+                rest, nullptr, &local, &value, &diag)) {
+          llvm::errs() << "jlt-lint: " << where << ": " << diag.toStringFull()
+                       << '\n';
+          return false;
+        }
+        if (!rest.trim().empty()) {
+          llvm::errs() << "jlt-lint: " << where
+                       << ": text after the value of " << name << ": "
+                       << rest.trim() << '\n';
+          return false;
+        }
+        local[name.str()] = value;
+      } else if (line.consume_front("set traversal ")) {
         if (traversalNamed) continue;  // the first one counts
         traversalNamed = true;
         llvm::StringRef kind = line.trim();
@@ -3983,7 +5285,7 @@ bool readQueryRules() {
           return false;
         }
       } else if (line.consume_front("match ")) {
-        auto m = parseMatcher(line, named, where);
+        auto m = parseMatcher(line, local, where);
         if (!m) return false;
         rule.matchers.push_back(*m);
       }

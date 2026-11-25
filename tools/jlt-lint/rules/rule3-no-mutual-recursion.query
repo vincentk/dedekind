@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes that the definition shows the rule's condition, as written; silence affirms nothing.
 # Rule 3: recursion only folds.  Functions on a call cycle of length two or
 # more recurse through each other, which the compiler does not bound and a
 # matcher cannot see: the tool builds the call graph and reports every

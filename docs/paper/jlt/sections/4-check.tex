@@ -3,22 +3,16 @@
 \label{sec:check}
 
 \Cpp{} holds a program to part of the three rules, and a tool holds it to more.
-The repository of this paper has such a tool, a linter built on Clang's own libraries, and this section says what it does today.
-% TODO(check): this section describes the linter as it is.  To be built, and
-% then described here: a strict mode in which every construct is kernel or a
-% listed derived form; the modes "check" (all rules satisfied, the axioms
-% listed) and "warn" (the axioms and each violation listed) on a named file;
-% the three conditions on the order of declarations, conservatively, and across
-% files by location; its output on the three listings (guessed_concat and
-% guessed_power refused, the false axiom on the list); a list of the derived
-% forms a project licenses beyond the paper's; what it does not see.  None of
-% the three listings is under the linter yet: their code is in a probe.
+The repository of this paper has such a tool, a linter built on Clang's own libraries and run in continuous integration, and this section says what it does today.
 
 It reads a source file as the compiler does and applies a set of rules to a named part of it.
 A rule either refuses the file or reports what it found.
-For the first rule it checks, among others, that functions are \cppinline{constexpr}, that call operators are \cppinline{const}, that nothing is thrown and that no mutable state is global.
+Most rules are patterns over Clang's syntax tree, written in the matcher language of \texttt{clang-query} and kept one to a file in \texttt{tools/jlt-lint/rules/}; the rule that refuses \cppinline{throw} is the line
+\cppinline{match cxxThrowExpr(isExpansionInMainFile(), hasAncestor(scope))}.
+The rest, which follow calls or compile a definition again, are checks written in \Cpp{} against Clang's libraries.
+For the first rule it checks that functions are \cppinline{constexpr}, that call operators are \cppinline{const} and that nothing is thrown, and it closes each channel a mutation could leak through at run time, with a check for each (Table~\ref{tab:lint}); inside the call it checks that each mutable local is reached through its own name only, so that local state reads as a fold of states (Appendix~\ref{app:derived}).
 For the second it checks that a template is constrained, that a generic body calls on its type parameters only what its constraints name, by the names of the calls, and that the body observes no type except through a shape.
-For the third it checks that there is no loop without a stated end and no function that calls itself.
+For the third it refuses a function that calls itself and a loop whose end is not stated before it starts: a counted \texttt{for} and a range-\texttt{for} over an array pass, as the folds Table~\ref{tab:derived} rewrites them to, and every other loop is a finding, which a reviewer may judge to show its end all the same.
 
 It also prints a list.
 Every entry of a trait at one type whose value is \cppinline{true} is an axiom, and the tool lists them with their places, for a file or for a whole library.
@@ -26,17 +20,14 @@ A conditional law, an entry at a form or one whose value is computed, is taken o
 The build compares both lists with ones kept under version control, so a law cannot be added without the change being seen.
 
 \paragraph{The linter is a check, not a proof.}
-The repository's linter, run in continuous integration on the compiler's own front end and documented there, checks Rule~3 for every instantiated body, Rule~1's syntactic part, and Rule~2 at the level of names: a body may use, on a value of parameter type, only what a declared constraint names.
-For Rule~1 it closes each channel a mutation could leak through at run time: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference.
-For Rule~3 it refuses a loop whose end is not stated before it starts: a counted \texttt{for} and a range-\texttt{for} over an array pass, as the folds Table~\ref{tab:derived} rewrites them to, and every other loop is a finding, which a reviewer may judge to show its end all the same.
 A finding is a breach or a gap in its reading of the standard's concepts, and its silence is not a proof.
 Review complements it: an agentic reviewer reads every pull request against the three rules.
 On the library behind the listings each check is a gate on many files, an exact count, zero or not, so that no finding is added unseen, and a count on the rest; Table~\ref{tab:lint} in Appendix~\ref{app:lint} gives the counts, check by check.
-On the listings it refuses exactly what the paper shows: \cppinline{guessed_power}, whose call to \cppinline{power} is decided by \cppinline{IsIdempotentMonoid}, which its constraints do not name; \cppinline{guessed_concat}, whose \cppinline{+} and \cppinline{=} on the element type no requirement names, and whose loop, over a range of no stated size, Rule~3 refuses; and it lists \cppinline{idempotent<Sum2>} with the other axioms.
+On the listings it refuses exactly the two definitions this paper planted, \cppinline{guessed_concat} and \cppinline{guessed_power}, for the reasons Table~\ref{tab:levels} gives, and it lists \cppinline{idempotent<Sum2>} with the other axioms.
 Each refusal is a gate, so a listing that changed what the linter refuses would fail the build; the list of the listings' axioms is reported, not yet pinned.
 
 \paragraph{Refused by name, admitted by type.}
-Every check in that table but the list of axioms is a deny-rule: it refuses a construct outside Jlt, and a definition it does not refuse is not thereby inside.
+Every check of Table~\ref{tab:lint} but the list of axioms and the admission by type is a deny-rule: it refuses a construct outside Jlt, and a definition it does not refuse is not thereby inside.
 To admit a definition, the linter has a second stage, a type check.
 For every constrained template, whether or not a deny-rule refuses it, it builds an \emph{archetype} of each shape in the template's signature, a type with exactly the calls and laws the shape promises and nothing more~\cite{siek2000concept}, as \cppinline{BareMonoid} in Listing~\ref{lst:motivation}, written by hand, nearly is: it also has equality and a default value.
 The archetypes are generated from the shapes, by one rule for each kind of requirement a shape may have (Figure~\ref{fig:fjlt-syntax}), so their number grows with the grammar of shapes and not with the number of concepts.
@@ -44,25 +35,15 @@ The few the standard's concepts need, such as \cppinline{sized_range}, are writt
 The template is instantiated at its archetypes and compiled, and if it type-checks there, its body uses only what its signature promises, at the promised types, under the hypotheses of Appendix~\ref{app:lint:conjecture}.
 Each definition then has one of three outcomes: refused, with a rule and a line as its witness; admitted, by the type check; or undecided, where neither stage settles it.
 The second stage approximates the check of definitions that the concepts proposed for \Cpp{0x} made, restricted to the fragment: those bound a name where the template is defined, and here a hypothesis does.
-The idea is not new.
-Siek and Lumsdaine wrote archetypes by hand for the concepts of the standard library of their day, in Boost's Concept Check Library, and a programmer checked a template by instantiating it at them in a test of their own~\cite{siek2000concept}.
-ConceptGCC generated them from the concepts proposed for \Cpp{0x}~\cite{gregor2006concepts}.
-The linter generates them from the concepts of \Cpp{20}, inside the fragment, and gives every definition its outcome in every build.
+The archetypes are the Concept Check Library's (Section~\ref{sec:intro}), which ConceptGCC generated from the concepts proposed for \Cpp{0x}~\cite{gregor2006concepts}; the linter generates them from the concepts of \Cpp{20}, inside the fragment, and gives every definition its outcome in every build.
 Inside it, the rules close most of the ways in which a real type differs from its archetype.
 An operation is a function object reached through a named type; \RuleTwo{} decides every choice of overload in the signature; a carrier has only what its shapes ask, and a required call a fixed result type, or one only convertible to it and converted at once; and an entry stands above every use that reads it (Section~\ref{sec:limits}).
 This paper's conjecture is that a definition admitted at its archetypes is well typed at every type that satisfies its shapes and keeps the rules itself, and resolves every choice its signature makes the same way; Appendix~\ref{app:lint:conjecture} states its hypotheses and the counterexamples they exclude, and it is tested on the definitions of the listings and on the library.
 For a definition it admits, satisfying the constraints then suffices to use it, under those hypotheses: no type that satisfies its shapes and keeps the rules can make the body fail to compile, and a misuse is reported where the template is called, as a constraint not satisfied.
 
 \paragraph{The listings, at their levels.}
-Table~\ref{tab:levels} gives every definition of the four listings its level, as the linter computes it from both stages and from the kinds of syntax each definition uses (Appendix~\ref{app:lint:admit}).
-A definition is in FJlt when it uses the kernel alone, in Jlt when it also uses a derived form, and refused when either stage refuses it.
+Table~\ref{tab:levels} gives every definition of the four listings its level, as the linter computes it from both stages and from the kinds of syntax each definition uses (Appendix~\ref{app:lint:admit}): in FJlt when it uses the kernel alone, in Jlt when it also uses a derived form, and refused when either stage refuses it.
 The level records how a definition is written, not a grade: every derived form rewrites into the kernel, and Table~\ref{tab:derived} says what each rewrite rests on.
-Every function template but \cppinline{guessed_concat} is admitted by type.
-Both cases of \cppinline{power} and \cppinline{named_power} use the kernel and one derived form, an alias such as \cppinline{op_t<E>}, which rests on nothing (Table~\ref{tab:derived}), and so do eleven of the other definitions, the aliases themselves and the shapes and types that write one.
-Sixty-two use the kernel alone: the laws, their entries and the types; \cppinline{concat} and \cppinline{free_theorem} take a range as well, and three types use a member call or a reference parameter.
-The two refused are the two this paper planted.
-\cppinline{guessed_concat} is refused by name, for an addition and an assignment its constraint does not name and for its loop over a range of no stated size, and it is not admitted by type, since \cppinline{s{}} makes a value no shape promises.
-\cppinline{guessed_power} is admitted by type, since its types are right, and refused by name, since its choice of case depends on a law its signature does not name.
 The table is regenerated by every build and compared with the one printed here, so it cannot drift from the code.
 
 \makeatletter\let\lintinput\@@input\makeatother
@@ -81,13 +62,34 @@ The two rows for \texttt{power} are its general and its idempotent case.}
 \label{tab:levels}
 \end{table}
 
-For this code, that has three consequences, each conditional on the conjecture above.
-For every admitted definition, satisfying its constraints suffices to use it.
-Its free theorem holds of the code the compiler builds, given in addition that its body observes no type except through a shape (Appendix~\ref{app:lint:conjecture}), the hypothesis of adequacy and the compiler's lowering (Section~\ref{sec:translation}).
+For this code, two more things follow, each conditional on the conjecture above.
+An admitted definition's free theorem holds of the code the compiler builds, given in addition that its body observes no type except through a shape (Appendix~\ref{app:lint:conjecture}), the hypothesis of adequacy and the compiler's lowering (Section~\ref{sec:translation}).
 And for those in FJlt, the program as written uses only kinds of syntax that the linter classes as kernel, a coarser test than being a term of the grammar of Figure~\ref{fig:fjlt-syntax}, whose image in System~F is the image of Table~\ref{tab:image}, with no derived form in between whose rewrite would have to be trusted; for those in Jlt the same holds after the rewrites of Table~\ref{tab:derived}, and of these an alias rests on nothing.
-% STATUS: the second stage runs in CI on the four listings, its fixtures and
-% the category layer of the library; the other layers are to follow.
-The second stage also runs on the library.
-Every count is pinned per file in continuous integration and held by a ratchet: no file's count of admitted definitions can fall, and no refusal can stay, without a reason written in the change.
-It admits 102 of the library's 748 function templates it reads, 14\,\%, leaves 646 undecided and refuses none, a count its gates hold: the definitions it refused, whose signatures promised less than their bodies or results used, have been fixed (Appendix~\ref{app:lint:admit}).
-Elsewhere, and for the definitions it leaves undecided, the first clause of this paper's promise rests on the deny-rules, the programmer and a reviewer.
+% STATUS (2026-11-25): the second stage runs in CI on the four listings, its
+% fixtures and the whole library.
+\paragraph{At scale.}
+Table~\ref{tab:summary} sums the levels of Table~\ref{tab:levels} over four bodies of code: the listings, the library, and two libraries not written under the rules, the ranges library of the standard library~\cite{libcxx23} and Catch2~\cite{catch2v3}, a test library that the build compiles for the tests, its headers and its sources apart; the same rules give every level, and Appendix~\ref{app:lint:summary} says how.
+The findings of every rule on the listings and the library are pinned per file and held by a ratchet, so that none is added without a reason written in the change; the two controls are reported, not pinned.
+Every build checks the whole library, on Linux and on macOS, within forty minutes, and the build on Linux compares this table with the one it computes.
+Of the \JltCatchHeadersDefinitions{} definitions in Catch2's headers, \JltCatchHeadersShown{} are shown to be in Jlt as written, and of the \JltCatchSourcesDefinitions{} in its sources, \JltCatchSourcesShown{}.
+A refusal says how far a definition is from the rules, and not only that it does not show them: of the \JltCatchSourcesRefused{} definitions refused in the sources, \JltCatchSourcesNotConstexpr{} are not declared \cppinline{constexpr}, and \JltCatchSourcesNotConstexprAlone{} are refused for that alone.
+The ranges library is the opposite case, constrained throughout and written for constant evaluation: its refusals are nearly all Rule~1's, for forwarding references, member functions that are not \cppinline{const} and references returned.
+The type check decides none of its templates, and the row records that as a gap in the tool: the check reads free function templates, where this library does its work in the member functions of class templates, and it has no archetypes yet for the standard's iterator concepts.
+Where a definition is undecided, that it means what its signature says rests on the deny-rules, the programmer and a reviewer.
+
+\begin{table}[tb]
+\centering
+\small
+\begin{tabular}{@{}l rrrrr c@{}}
+\toprule
+ & definitions & FJlt & Jlt & refused & undecided & constrained templates \\
+ & & \multicolumn{4}{c}{in per cent of the definitions} & admitted / not / undecided \\
+\midrule
+\lintinput generated/summary-table.tex
+\bottomrule
+\end{tabular}
+\caption{The levels of Table~\ref{tab:levels}, summed: for each body of code the number of its definitions, the share of them in FJlt, in Jlt, refused and undecided, in per cent, and of its function templates that a concept constrains, the number the type check admits, does not admit, and leaves undecided.
+The standard ranges are the ranges library of libc++~23~\cite{libcxx23}, the standard library that ships with the compiler; Catch2, a \Cpp{14} library, constrains its templates by \texttt{enable\_if} where it constrains them, and none by a concept.
+The sources are \texttt{tools/jlt-lint/scope} and the report of the build.}
+\label{tab:summary}
+\end{table}

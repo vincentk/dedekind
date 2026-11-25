@@ -16,10 +16,14 @@ A function template also carries the type check's outcome; anything else is
 not checked by type (a law's entry, a type, a concept: the archetypes are
 built from these, not checked against them).
 
-    python3 tools/jlt-lint/levels.py BUILD TOOL NAMESPACE FILE [--latex OUT] [--check OUT]
+    python3 tools/jlt-lint/levels.py BUILD TOOL NAMESPACE FILE [--latex OUT] [--check OUT] [--expect FILE]
 
 --latex writes the paper's table rows; --check regenerates them and fails if
 the committed file differs, so the paper's table cannot drift from the code.
+--expect compares every definition's level with FILE, lines `<name> <level>`
+(a name defined twice has its levels in order), and fails on a definition
+that differs, is missing or is not listed: a fixture's levels are then
+pinned definition by definition, not by a count.
 """
 import argparse
 import pathlib
@@ -28,7 +32,6 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import jlt_lint  # noqa: E402
 import admission  # noqa: E402
 
 LOCATION = re.compile(r"^(?P<path>\S+?):(?P<line>\d+):(?P<col>\d+)(?:: (?P<rest>.*))?$")
@@ -81,7 +84,12 @@ def classify(where, classes):
             level, why = "Jlt", ", ".join(k.split(":")[1] for k, c in cls.items() if c == "derived")
         else:
             level, why = "FJlt", ""
-        out.append((name, a[0], level, why, by_type))
+        # What else stands between the definition and the rules, beside the
+        # reason given: the kinds that are refused or open.  A definition
+        # refused by one rule "alone" has none.
+        said = {w.strip() for w in why.split(",")}
+        also = sorted(k for k, c in cls.items() if c in ("refused", "open") and k not in said)
+        out.append((name, a[0], level, why, by_type, also))
     return out
 
 
@@ -109,7 +117,7 @@ def latex(rows):
     by type and its level; every other definition (shapes, laws, types and
     their entries) summed by level, the names of those not in FJlt given."""
     lines, rest = [], {}
-    for name, _, level, why, by_type in rows:
+    for name, _, level, why, by_type, _also in rows:
         if by_type is not None:
             lines.append(f"\\texttt{{{name.replace('_', '\\_')}}} & {by_type} & {level}"
                          + (f" ({readable(why).replace('_', '\\_')})" if why else "") + " \\\\")
@@ -126,6 +134,9 @@ def latex(rows):
 
 
 def main():
+    # Here, not at the top: jlt_lint imports this module for classify, and
+    # only the command line needs jlt_lint back.
+    import jlt_lint
     args = argparse.ArgumentParser()
     args.add_argument("build", type=pathlib.Path)
     args.add_argument("tool", type=pathlib.Path)
@@ -133,6 +144,7 @@ def main():
     args.add_argument("file")
     args.add_argument("--latex", type=pathlib.Path)
     args.add_argument("--check", type=pathlib.Path)
+    args.add_argument("--expect", type=pathlib.Path)
     a = args.parse_args()
     rules = sorted(p.stem for p in (HERE / "rules").glob("*.query"))
     build = jlt_lint.one_entry_per_file(a.build, "levels") if (a.build / "compile_commands.json").exists() else a.build
@@ -140,14 +152,27 @@ def main():
     if counts is None or counts == "absent":
         sys.exit(f"levels.py: the linter did not run on {a.file}:\n{out[:2000]}")
     rows = classify(where, admission.admission())
-    for name, line, level, why, by_type in rows:
+    for name, line, level, why, by_type, _also in rows:
         print(f"{line:5d}  {level:10s} {by_type or '':13s} {name}" + (f"  ({why})" if why else ""))
+    if a.expect:
+        want = [tuple(l.split()) for l in a.expect.read_text().splitlines()
+                if l.strip() and not l.startswith("#")]
+        got = [(name, level) for name, _, level, _, _, _ in rows]
+        if want != got:
+            # Occurrence by occurrence, in order: a name may stand twice.
+            import difflib
+            diff = [f"  {l}" for l in difflib.unified_diff(
+                [" ".join(w) for w in want], [" ".join(g) for g in got],
+                "expected", "got", lineterm="", n=1)]
+            sys.exit(f"levels.py: {a.file} differs from {a.expect}:\n" + "\n".join(diff))
+        print(f"levels.py: {a.file}: {len(got)} levels as {a.expect.name} expects")
     text = latex(rows)
     if a.latex:
         a.latex.write_text(text)
     if a.check:
         if a.check.read_text() != text:
-            sys.exit(f"levels.py: {a.check} differs from the levels the linter gives; regenerate it with --latex")
+            sys.exit(f"levels.py: {a.check} differs from the levels the linter gives; "
+                     f"regenerate it with --latex.  The rows:\n{text}")
         print(f"levels.py: {a.check} matches")
 
 

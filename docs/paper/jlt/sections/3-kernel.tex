@@ -2,7 +2,7 @@
 \section{The Kernel and Its Warrant}
 \label{sec:kernel}
 
-The four listings are written in a language, Jlt, that is defined in two steps (Table~\ref{tab:model}).
+The four listings are written in a language, Jlt, that is defined in two steps (Figure~\ref{fig:arrows}).
 A small kernel, Featherweight Jlt or FJlt, is a subset of \Cpp{} whose meaning is given by a translation into a calculus that is well understood.
 Jlt is that kernel with \emph{derived forms}, each a way of writing something the kernel can already say.
 The first step follows Featherweight Java~\cite{igarashi2001featherweight}: a kernel small enough to reason about, every program of which is a program of the full language.
@@ -49,11 +49,11 @@ Terminals are in monospace and an overbar is a sequence, possibly empty.
 An empty \texttt{requires} clause, an empty list of a \texttt{requires} expression with its parentheses, and an empty \texttt{template} head are left out, except that an entry with no type variables keeps \texttt{template <>}.
 The requirements $\overline{A}$ of a shape and the constraints $\overline{Q}$ of a clause are joined by \texttt{\&\&}, and a negated constraint is written in parentheses.
 $\alpha$ are type variables, $g$ names of associated types, \texttt{cod} among them, the codomain of an arrow, given to the kernel, $C$ names of shapes, the standard's \texttt{copyable}, \texttt{equality\_comparable} and \texttt{same\_as} among them, $f$ names of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
-A parameter that is not used may go unnamed.
 $T$ is a declared type $O$, \texttt{std::pair}, a carrier, or an arrow supplied with a carrier, as the standard's \texttt{std::plus} is.
 $c$ is a constant of an atom, or a value of a carrier that its type provides.
+A parameter that is not used may go unnamed.
 $\tau\texttt{\{}\overline{e}\texttt{\}}$ is a value of a declared type from values for its fields, and at a type variable, with no fields, the one value of a function object.
-$\ominus$ and $\oplus$ are the operators of the atoms that are defined at every argument, with division and remainder by a constant that is not zero, the number of bits of a count and its rotation, \texttt{rotr}, which is defined at every amount, and \texttt{==} at a carrier whose shape asks for it.
+$\ominus$ and $\oplus$ are the operators of the atoms that are defined at every argument (Appendix~\ref{app:fjlt:evaluation}), and \texttt{==} at a carrier whose shape asks for it.
 In an iteration the first term is the count, the second the start, and the third the step, a function of the state and the index.}
 \label{fig:fjlt-syntax}
 \end{figure}
@@ -147,12 +147,14 @@ several call operators on one type & an entry that stands below a use that could
 Jlt is this kernel and its derived forms: rewrites of a Jlt program into FJlt that may change types inside the program and leave every observable value unchanged, the value of a closed term at an atom, while compiling and while running.
 Time is not observed, so a program and its rewrite may differ in cost and in nothing else.
 Most of what the listings write beyond the grammar is \Cpp{} that the standard itself defines as something in the kernel, and Appendix~\ref{app:derived} lists every derived form with its rewrite and the condition under which the rewrite keeps every value.
-One derived form carries weight, and it is a change of representation more than an abbreviation: a range, as an array or a view, stands for its length and the function that reads it, and \cppinline{ranges::fold_left} over a range for the kernel's iteration over that count.
-This paper does not prove that a derived form preserves values, and it claims them only as the listings use them.
+Two derived forms carry weight.
+A range, as an array or a view, stands for its length and the function that reads it, and \cppinline{ranges::fold_left} over a range for the kernel's iteration over that count, a change of representation more than an abbreviation.
+Local mutable state is read by state passing: an assignment to a local, or to an element of a local array, is the next state of the fold it is in, so that code written in place with counted loops, such as a running sum or a Fibonacci number by repeated squaring of a matrix (\texttt{tools/jlt-lint/fixtures/local-state.cpp}), is read as a term of System~F, under the condition that each piece of storage is reached through one name at a time, which the linter checks (Appendix~\ref{app:derived}).
+That a derived form preserves values is argued and tested, not proved, the standard of evidence of the work on JavaScript~\cite{guha2010essence}: Table~\ref{tab:derived} gives each form its reading and the condition it rests on, and a test sets a form beside its kernel reading and lets constant evaluation compare the two, as Listing~\ref{lst:running-sum} does for local state.
 The list is open, and a new derived form touches nothing that is said about the kernel.
 % TODO(derived): the standard's clauses for the first group are to be cited;
-% the tests that compile a listing beside its kernel form are to be written,
-% the standard of evidence of the work on JavaScript~\cite{guha2010essence}.
+% a test beside its kernel form exists for local state and for a variant
+% (tools/jlt-lint/fixtures); the other rows are to get theirs.
 
 \subsection{The image}
 \label{sec:translation}
@@ -205,7 +207,7 @@ Appendix~\ref{app:fjlt:theorems} shows them for this kernel on paper, with the t
 \end{enumerate}
 The first two need nothing of \RuleTwo{}: the compiler checks every body once it is instantiated.
 Only the third does, since it is about a definition before it is instantiated, and \Cpp{} does not check a body against its declaration.
-Inside the fragment, the linter's second stage makes that check (Section~\ref{sec:check}): for a definition it admits, the third result holds of the code the compiler builds, conditional on the conjecture stated there, on a body that observes no type except through a shape, on the hypothesis of adequacy above, and on the compiler's lowering, which is trusted.
+Inside the fragment, the linter's second stage makes that check: for a definition it admits, the third result holds of the code the compiler builds, under the conditions Section~\ref{sec:check} states.
 The third is the one a programmer can use, and \cppinline{free_theorem} in Listing~\ref{lst:theorems} is its statement for \cppinline{concat}.
 It is also why the monoid of Listing~\ref{lst:motivation} asks for no equality on its carrier.
 A shape that required one would count it among its calls, and a function that respects equality is one-to-one, which the length of a string is not.
@@ -218,13 +220,9 @@ None of the three says that a declared law is true, and a law is read in two way
 
 What is specific to \Cpp{} concerns the selection.
 The image is a function of the program only if the compiler's choice of an entry or a case is.
-\Cpp{} makes it one at concrete types, by its rules for the most specialised candidate.
-That the choice be the same wherever it is asked, \Cpp{} requires and does not check.
-A generic body may select by a law that its declaration never named, as \cppinline{guessed_power} does in Listing~\ref{lst:declare}, and an entry declared below a use is not seen by that use.
+\Cpp{} makes it one at concrete types, by its rules for the most specialised candidate; that the choice be the same wherever it is asked, \Cpp{} requires and does not check.
 So the kernel asks two things that \Cpp{} does not check: that a generic body selects only by what its declaration names (\RuleTwo{}), and that an entry stands above every use that could read it (Appendix~\ref{app:fjlt:order}).
 Under those two a selection should have one answer in a program, so that the image is a function of it.
-That is the coherence of resolution~\cite{jones1994qualified}, stated here as a condition; Appendix~\ref{app:fjlt:theorems} argues that the image is a function of the program, given the conditions on well-formed programs it uses: the order of declarations (Appendix~\ref{app:fjlt:order}), declarations well founded under the relation by which one depends on another, of two entries or cases that overlap one the more specific, and a call at a type variable resolved only where every instantiation keeps its choice (Appendix~\ref{app:fjlt:typing}).
-An associated type is resolved the same way, at concrete types, and at a type variable it becomes one more type parameter whose value each use supplies, as associated types are translated for Haskell~\cite{chakravarty2005class,chakravarty2005synonyms} and for the concepts of \Cpp{0x}~\cite{siek2005essential}.
-\Cpp{} asks for the same when two cases must be ordered and the type appears among their parameters, as in Listing~\ref{lst:power}.
+That is the coherence of resolution~\cite{jones1994qualified}, stated here as a condition; Appendix~\ref{app:fjlt:theorems} argues that the image is a function of the program, given the conditions on well-formed programs it uses (Appendices~\ref{app:fjlt:order} and~\ref{app:fjlt:typing}).
 % TODO(related): functional dependencies (Jones, ESOP 2000) to be verified
 % and cited beside the associated types.

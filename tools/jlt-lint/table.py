@@ -33,6 +33,16 @@ def scope():
     return status
 
 
+def grade(rule):
+    """The rule's grade, from its own file: Π rejecting, Σ affirming, Δ both,
+    "—" not a test (README, Choices the linter makes)."""
+    for line in (ROOT / "tools/jlt-lint/rules" / f"{rule}.query").read_text().splitlines():
+        if line.startswith("# grade: "):
+            g = line.split()[2].rstrip(",")
+            return "$\\" + {"Π": "Pi", "Σ": "Sigma", "Δ": "Delta"}[g] + "$" if g in "ΠΣΔ" else "---"
+    sys.exit(f"table.py: {rule}.query states no grade")
+
+
 def findings(text):
     found = collections.defaultdict(dict)
     for rule, f, n in re.findall(r"jlt-lint: (?:gate|report) +(\S+) (" + re.escape(LIB) + r"\S+): (\d+)", text):
@@ -41,7 +51,28 @@ def findings(text):
 
 
 def main():
-    text = sys.stdin.read()
+    # --check FILE: print nothing, fail if FILE differs from the table this
+    # report gives, so that the paper's table cannot drift from the code.
+    check = sys.argv[sys.argv.index("--check") + 1] if "--check" in sys.argv else None
+    # --report FILE: the report from a file rather than standard input, for
+    # the build, whose commands do not redirect.
+    report = sys.argv[sys.argv.index("--report") + 1] if "--report" in sys.argv else None
+    text = pathlib.Path(report).read_text() if report else sys.stdin.read()
+    if check:
+        import contextlib
+        import io
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            table(text)
+        if pathlib.Path(check).read_text() != buffer.getvalue():
+            sys.exit(f"table.py: {check} differs from the table the report gives; "
+                     "regenerate it: python3 tools/jlt-lint/table.py < build/jlt-lint/report.txt")
+        print(f"table.py: {check} matches")
+        return
+    table(text)
+
+
+def table(text):
     status, found = scope(), findings(text)
     gated = {f for r in status.values() for f, s in r.items() if s == "gate"}
     seen = set(re.findall(r"jlt-lint: gate +\S+ (" + re.escape(LIB) + r"\S+): ", text))
@@ -57,18 +88,18 @@ def main():
         ("Refused, outside Jlt: Rule 1, substitution", lambda r: r.startswith("rule1-")),
         ("Refused, outside Jlt: Rule 2, abstraction", lambda r: r.startswith("rule2-")),
         ("Refused, outside Jlt: Rule 3, descent", lambda r: r.startswith("rule3-")),
+        ("Affirmed: the second stage, admission by type", lambda r: r == "admitted"),
         ("Listed, taken on trust", lambda r: r == "axioms"),
     ]
     for i, (title, member) in enumerate(groups):
         if i:
             print("\\midrule")
-        print(f"\\multicolumn{{5}}{{@{{}}l}}{{\\emph{{{title}}}}} \\\\")
+        print(f"\\multicolumn{{6}}{{@{{}}l}}{{\\emph{{{title}}}}} \\\\")
         for rule in sorted(r for r in status if member(r)):
             gate = sum(1 for s in status[rule].values() if s == "gate")
             report = sum(1 for s in status[rule].values() if s == "report")
             hit = {f: n for f, n in found.get(rule, {}).items() if n > 0}
-            name = rule.split("-", 1)[1] if rule.startswith("rule") else rule
-            print(f"\\quad\\texttt{{{name}}} & {gate} & {report} & {len(hit)} & {sum(hit.values())} \\\\")
+            print(f"\\quad\\texttt{{{rule}}} & {grade(rule)} & {gate} & {report} & {len(hit)} & {sum(hit.values())} \\\\")
 
 
 if __name__ == "__main__":

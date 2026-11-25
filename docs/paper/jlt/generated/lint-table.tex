@@ -1,35 +1,40 @@
-% 148 of 160 library modules, 74091 lines
-\multicolumn{5}{@{}l}{\emph{Refused, outside Jlt: Rule 1, substitution}} \\
-\quad\texttt{boxed-identity} & 145 & 3 & 0 & 0 \\
-\quad\texttt{boxed-mutable-pointee} & 145 & 3 & 0 & 0 \\
-\quad\texttt{const-call-operator} & 145 & 3 & 0 & 0 \\
-\quad\texttt{const-member-functions} & 92 & 56 & 6 & 10 \\
-\quad\texttt{constexpr} & 103 & 45 & 7 & 38 \\
-\quad\texttt{forwarding-reference-params} & 80 & 68 & 13 & 47 \\
-\quad\texttt{lvalue-reference-params} & 128 & 20 & 2 & 4 \\
-\quad\texttt{no-escaping-reference-captures} & 137 & 11 & 2 & 7 \\
-\quad\texttt{no-inheritance} & 120 & 28 & 5 & 6 \\
-\quad\texttt{no-mutable-globals} & 145 & 3 & 1 & 1 \\
-\quad\texttt{no-reference-returns} & 111 & 37 & 7 & 10 \\
-\quad\texttt{no-static-locals} & 145 & 3 & 0 & 0 \\
-\quad\texttt{no-throw} & 103 & 45 & 11 & 68 \\
-\quad\texttt{no-volatile} & 145 & 3 & 0 & 0 \\
-\quad\texttt{rvalue-reference-params} & 145 & 3 & 0 & 0 \\
+% 148 of 160 library modules, 74090 lines
+\multicolumn{6}{@{}l}{\emph{Refused, outside Jlt: Rule 1, substitution}} \\
+\quad\texttt{rule1-boxed-identity} & $\Pi$ & 145 & 3 & 0 & 0 \\
+\quad\texttt{rule1-boxed-mutable-pointee} & $\Pi$ & 145 & 3 & 0 & 0 \\
+\quad\texttt{rule1-const-call-operator} & $\Pi$ & 145 & 3 & 0 & 0 \\
+\quad\texttt{rule1-const-member-functions} & $\Pi$ & 92 & 56 & 6 & 10 \\
+\quad\texttt{rule1-constexpr} & $\Pi$ & 103 & 45 & 7 & 38 \\
+\quad\texttt{rule1-forwarding-reference-params} & $\Pi$ & 80 & 68 & 13 & 47 \\
+\quad\texttt{rule1-local-state} & $\Delta$ & 147 & 1 & 55 & 573 \\
+\quad\texttt{rule1-lvalue-reference-params} & $\Pi$ & 128 & 20 & 2 & 4 \\
+\quad\texttt{rule1-no-escaping-reference-captures} & $\Pi$ & 137 & 11 & 2 & 7 \\
+\quad\texttt{rule1-no-inheritance} & $\Pi$ & 120 & 28 & 5 & 6 \\
+\quad\texttt{rule1-no-mutable-globals} & $\Pi$ & 145 & 3 & 1 & 1 \\
+\quad\texttt{rule1-no-reference-returns} & $\Pi$ & 111 & 37 & 7 & 10 \\
+\quad\texttt{rule1-no-static-locals} & $\Pi$ & 145 & 3 & 0 & 0 \\
+\quad\texttt{rule1-no-throw} & $\Pi$ & 103 & 45 & 11 & 68 \\
+\quad\texttt{rule1-no-volatile} & $\Pi$ & 145 & 3 & 0 & 0 \\
+\quad\texttt{rule1-rvalue-reference-params} & $\Pi$ & 145 & 3 & 0 & 0 \\
 \midrule
-\multicolumn{5}{@{}l}{\emph{Refused, outside Jlt: Rule 2, abstraction}} \\
-\quad\texttt{by-type} & 40 & 0 & 0 & 0 \\
-\quad\texttt{constrained-templates} & 0 & 148 & 60 & 547 \\
-\quad\texttt{context-order} & 40 & 0 & 0 & 0 \\
-\quad\texttt{converted-result} & 40 & 0 & 0 & 0 \\
-\quad\texttt{decided-resolution} & 107 & 41 & 17 & 52 \\
-\quad\texttt{definition} & 78 & 70 & 20 & 259 \\
-\quad\texttt{no-inline-requires} & 120 & 28 & 3 & 23 \\
+\multicolumn{6}{@{}l}{\emph{Refused, outside Jlt: Rule 2, abstraction}} \\
+\quad\texttt{rule2-by-type} & $\Pi$ & 148 & 0 & 0 & 0 \\
+\quad\texttt{rule2-constrained-templates} & $\Pi$ & 0 & 148 & 60 & 547 \\
+\quad\texttt{rule2-context-order} & $\Pi$ & 40 & 0 & 0 & 0 \\
+\quad\texttt{rule2-converted-result} & $\Pi$ & 40 & 0 & 0 & 0 \\
+\quad\texttt{rule2-decided-resolution} & $\Pi$ & 107 & 41 & 17 & 52 \\
+\quad\texttt{rule2-definition} & $\Pi$ & 78 & 70 & 20 & 259 \\
+\quad\texttt{rule2-no-inline-requires} & $\Pi$ & 120 & 28 & 3 & 23 \\
+\quad\texttt{rule2-no-type-observation} & $\Pi$ & 148 & 0 & 7 & 18 \\
 \midrule
-\multicolumn{5}{@{}l}{\emph{Refused, outside Jlt: Rule 3, descent}} \\
-\quad\texttt{bounded-fold} & 145 & 3 & 10 & 54 \\
-\quad\texttt{no-loops} & 78 & 70 & 27 & 121 \\
-\quad\texttt{no-mutual-recursion} & 145 & 3 & 2 & 14 \\
-\quad\texttt{no-self-recursion} & 145 & 3 & 1 & 3 \\
+\multicolumn{6}{@{}l}{\emph{Refused, outside Jlt: Rule 3, descent}} \\
+\quad\texttt{rule3-bounded-fold} & $\Pi$ & 145 & 3 & 10 & 54 \\
+\quad\texttt{rule3-no-loops} & $\Pi$ & 78 & 70 & 26 & 113 \\
+\quad\texttt{rule3-no-mutual-recursion} & $\Pi$ & 145 & 3 & 2 & 14 \\
+\quad\texttt{rule3-no-self-recursion} & $\Pi$ & 145 & 3 & 1 & 3 \\
 \midrule
-\multicolumn{5}{@{}l}{\emph{Listed, taken on trust}} \\
-\quad\texttt{axioms} & 0 & 40 & 9 & 26 \\
+\multicolumn{6}{@{}l}{\emph{Affirmed: the second stage, admission by type}} \\
+\quad\texttt{admitted} & $\Sigma$ & 148 & 0 & 28 & 102 \\
+\midrule
+\multicolumn{6}{@{}l}{\emph{Listed, taken on trust}} \\
+\quad\texttt{axioms} & --- & 0 & 40 & 9 & 26 \\

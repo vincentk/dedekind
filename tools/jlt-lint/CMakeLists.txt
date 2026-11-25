@@ -87,9 +87,26 @@ add_jlt_lint_part(fixtures)
 # workers over every file, so no part waits for another part's last files.
 # (Part by part, in sequence, the lint took four times as long: each part's
 # pool idled on its tail, and a small layer used few of the cores.)
+# The paper's generated tables are compared on Linux, the platform CI decides
+# on; on macOS they are printed only, so that a difference between the two
+# standard libraries shows in the log without failing the build (one unit has
+# a definition more under libc++).
+if(APPLE)
+  set(_jlt_summary_check)
+  set(_jlt_table_check)
+else()
+  set(_jlt_summary_check --check ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/summary-table.tex
+      --check-facts ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/summary-facts.tex)
+  set(_jlt_table_check --check ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/lint-table.tex)
+endif()
 add_custom_target(lint
     # The report is this run's or none: an earlier pass's report goes first.
     COMMAND ${CMAKE_COMMAND} -E rm -f ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
+    # A second control beside Catch2: the ranges library of libc++, the standard
+    # library that ships with the compiler, staged where the scope can name
+    # its headers.
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/stage_stdlib.py
+            ${CMAKE_CXX_COMPILER} ${CMAKE_BINARY_DIR}/_deps/stdlib-ranges
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/jlt_lint.py
             ${CMAKE_BINARY_DIR} ${_jlt_tool} --out ${_jlt_parts}
     COMMAND ${CMAKE_COMMAND} -E copy ${_jlt_parts}/all.txt ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
@@ -99,9 +116,33 @@ add_custom_target(lint
             ${CMAKE_BINARY_DIR} ${_jlt_tool} paper_listings
             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp
             --check ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/levels-table.tex
+    # The level of every definition of the fixtures for local state and for
+    # the conditions of the derived forms, definition by definition.
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/levels.py
+            ${CMAKE_BINARY_DIR} ${_jlt_tool} jlt_listing
+            tools/jlt-lint/fixtures/local-state.cpp
+            --expect ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/local-state.levels
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/levels.py
+            ${CMAKE_BINARY_DIR} ${_jlt_tool} jlt_listing
+            tools/jlt-lint/fixtures/derived-conditions.cpp
+            --expect ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/derived-conditions.levels
     # The fixture's outcome for every template, not only their count.
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/outcomes.py
             ${_jlt_tool} ${CMAKE_SOURCE_DIR}/tools/jlt-lint/fixtures/rule2-by-type.cpp
+    # Both generated tables are printed first, so that one run's log has
+    # what both checks below would ask for.
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/summary.py
+            --levels ${_jlt_parts}/all-levels.json
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/table.py
+            --report ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
+    # The paper's summary of the levels over the listings, the library and
+    # Catch2: compared, so that it cannot drift from the code.
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/summary.py
+            --levels ${_jlt_parts}/all-levels.json ${_jlt_summary_check}
+    # The paper's table of the checks on the library is the report's: compared,
+    # so that it cannot drift from the code.
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/table.py
+            --report ${CMAKE_BINARY_DIR}/jlt-lint/report.txt ${_jlt_table_check}
     # The shallow scan's premise, tested on the fixtures: both scans agree.
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scan.py ${_jlt_tool}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

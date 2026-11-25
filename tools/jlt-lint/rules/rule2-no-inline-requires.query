@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes that the definition shows the rule's condition, as written; silence affirms nothing.
 # Rule 2: generic code varies with a type only through declared concepts and
 # traits.  An `if` (constexpr or not) whose condition contains a requires-expression
 # tests a constraint the body did not declare, so the branch varies with the

@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes that the definition shows the rule's condition, as written; silence affirms nothing.
 # Jlt has no subtyping: the grammar has no base clause and no derived-to-base
 # conversion, and a value is known by its concepts, not by a class it derives
 # from.  A class with a base that is not an empty class, or with a virtual

@@ -428,6 +428,14 @@
   doi       = {10.1007/978-3-642-17336-3}
 }
 
+@book{gamma1995design,
+  author    = {Gamma, Erich and Helm, Richard and Johnson, Ralph and Vlissides, John},
+  title     = {Design Patterns: Elements of Reusable Object-Oriented Software},
+  publisher = {Addison-Wesley},
+  year      = {1995},
+  isbn      = {9780201633610}
+}
+
 @book{pierce1991basic,
   author    = {Pierce, Benjamin C.},
   title     = {Basic Category Theory for Computer Scientists},
@@ -709,10 +717,10 @@
 @software{Krautler_dedekind_2026,
   author  = {Kräutler, Vincent},
   title   = {{dedekind}},
-  version = {v0.20261122.0},
+  version = {v0.20261124.0},
   date    = {2026},
   url     = {https://github.com/vincentk/dedekind},
-  urldate = {2026-11-23},
+  urldate = {2026-11-24},
   doi     = {10.5281/zenodo.23697076},
   note    = {Apache-2.0. The DOI names every release, and resolves to the latest; one is archived about every two days. The listings of this paper are the tests \texttt{jlt\_listings\_test.cpp} and \texttt{tensor\_exhibit\_test.cpp}; the linter of Section~4 is \texttt{tools/jlt-lint}}
 }
@@ -1110,6 +1118,106 @@
   pages     = {291--310},
   year      = {2006},
   doi       = {10.1145/1167473.1167499}
+}
+
+@article{hoang2015spark,
+  author  = {Hoang, Duc and Moy, Yannick and Wallenburg, Angela and Chapman, Roderick},
+  title   = {{SPARK} 2014 and {GNATprove}: a competition report from builders of an industrial-strength verifying compiler},
+  journal = {International Journal on Software Tools for Technology Transfer},
+  volume  = {17},
+  number  = {6},
+  pages   = {695--707},
+  year    = {2015},
+  doi     = {10.1007/s10009-014-0322-5}
+}
+
+@inproceedings{politz2011adsafety,
+  author    = {Politz, Joe Gibbs and Eliopoulos, Spiridon Aristides and Guha, Arjun and Krishnamurthi, Shriram},
+  title     = {{ADsafety}: type-based verification of {JavaScript} sandboxing},
+  booktitle = {Proceedings of the 20th USENIX Security Symposium},
+  year      = {2011},
+  url       = {https://www.usenix.org/conference/usenix-security-11/adsafety-type-based-verification-javascript-sandboxing}
+}
+
+@software{catch2v3,
+  author  = {{Catch2 Authors}},
+  title   = {{Catch2}},
+  version = {v3.16.1},
+  date    = {2026-10-08},
+  url     = {https://github.com/catchorg/Catch2/releases/tag/v3.16.1},
+  note    = {A test framework for {C++14} and later. The release the build pins}
+}
+
+@software{libcxx23,
+  author  = {{The LLVM Project}},
+  title   = {libc++, the {LLVM} {C++} Standard Library},
+  version = {23.1},
+  date    = {2026},
+  url     = {https://libcxx.llvm.org},
+  note    = {The release that ships with Clang~23; its ranges library is the headers of \texttt{\_\_ranges/}}
+}
+
+@misc{pep484,
+  author       = {van Rossum, Guido and Lehtosalo, Jukka and Langa, {\L}ukasz},
+  title        = {{PEP} 484: Type Hints},
+  year         = {2014},
+  howpublished = {Python Enhancement Proposal},
+  url          = {https://peps.python.org/pep-0484/}
+}
+
+@inproceedings{rakamnouykit2020python,
+  author    = {Rak-amnouykit, Ingkarat and McCrevan, Daniel and Milanova, Ana and Hirzel, Martin and Dolby, Julian},
+  title     = {Python 3 types in the wild: a tale of two type systems},
+  booktitle = {Proceedings of the 16th ACM SIGPLAN International Symposium on Dynamic Languages (DLS)},
+  year      = {2020},
+  pages     = {57--70},
+  doi       = {10.1145/3426422.3426981}
+}
+
+@article{ding2025constraint,
+  author  = {Ding, Shuo and Zhang, Qirun},
+  title   = {Fast constraint synthesis for {C++} function templates},
+  journal = {Proceedings of the ACM on Programming Languages},
+  volume  = {9},
+  number  = {OOPSLA1},
+  pages   = {225--252},
+  year    = {2025},
+  doi     = {10.1145/3720422}
+}
+
+@inproceedings{stroustrup2005sell,
+  author    = {Stroustrup, Bjarne},
+  title     = {A rationale for semantically enhanced library languages},
+  booktitle = {Library-Centric Software Design (LCSD '05)},
+  year      = {2005},
+  url       = {https://www.stroustrup.com/SELLrationale.pdf}
+}
+
+@inproceedings{dosreis2010constexpr,
+  author    = {Dos Reis, Gabriel and Stroustrup, Bjarne},
+  title     = {General constant expressions for system programming languages},
+  booktitle = {Proceedings of the ACM Symposium on Applied Computing (SAC)},
+  year      = {2010},
+  pages     = {2131--2136},
+  doi       = {10.1145/1774088.1774537}
+}
+
+@inproceedings{delozier2013ironclad,
+  author    = {DeLozier, Christian and Eisenberg, Richard and Nagarakatte, Santosh and Osera, Peter-Michael and Martin, Milo M. K. and Zdancewic, Steve},
+  title     = {Ironclad {C++}: a library-augmented type-safe subset of {C++}},
+  booktitle = {Proceedings of the ACM SIGPLAN International Conference on Object Oriented Programming Systems Languages and Applications (OOPSLA)},
+  year      = {2013},
+  pages     = {287--304},
+  doi       = {10.1145/2509136.2509550}
+}
+
+@misc{stroustrup2025concept,
+  author       = {Stroustrup, Bjarne},
+  title        = {Concept-Based Generic Programming in {C++}},
+  year         = {2025},
+  eprint       = {2510.08969},
+  archiveprefix = {arXiv},
+  note         = {Preprint}
 }
 
 @inproceedings{dosreis2006specifying,
@@ -2936,4 +3044,43 @@
   month  = nov,
   note   = {Section 6.4.1, Canonical Loop Nest Form; Section 6.3, Structured Blocks},
   url    = {https://www.openmp.org/wp-content/uploads/OpenMP-API-Specification-6-0.pdf}
+}
+
+@book{reynolds1998theories,
+  title     = {Theories of Programming Languages},
+  author    = {Reynolds, John C.},
+  publisher = {Cambridge University Press},
+  address   = {Cambridge},
+  year      = {1998},
+  isbn      = {978-0-521-59414-1},
+  doi       = {10.1017/CBO9780511626364}
+}
+
+@article{timany2018logical,
+  title   = {A logical relation for monadic encapsulation of state: proving contextual equivalences in the presence of {runST}},
+  author  = {Timany, Amin and Stefanesco, L{\'e}o and Krogh-Jespersen, Morten and Birkedal, Lars},
+  journal = {Proceedings of the ACM on Programming Languages},
+  volume  = {2},
+  number  = {POPL},
+  pages   = {64:1--64:28},
+  year    = {2018},
+  doi     = {10.1145/3158152}
+}
+
+@book{allen2001optimizing,
+  title     = {Optimizing Compilers for Modern Architectures: A Dependence-based Approach},
+  author    = {Allen, Randy and Kennedy, Ken},
+  publisher = {Morgan Kaufmann},
+  address   = {San Francisco},
+  year      = {2001},
+  isbn      = {978-1-55860-286-1}
+}
+
+@inproceedings{knobe1998array,
+  author    = {Knobe, Kathleen and Sarkar, Vivek},
+  title     = {Array {SSA} Form and Its Use in Parallelization},
+  booktitle = {Proceedings of the 25th ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages (POPL '98)},
+  pages     = {107--120},
+  year      = {1998},
+  doi       = {10.1145/268946.268956}
 }

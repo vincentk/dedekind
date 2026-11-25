@@ -7,7 +7,7 @@ Table~\ref{tab:lint} counts what it finds there.
 A check is a \emph{gate} on a file when the build fails unless the file has exactly the number of findings the repository states for it, most often none.
 It is \emph{reported} on a file that is not yet clean, or not yet promoted: its findings are counted and printed, and the build does not fail.
 The checks are those of the scope file in the repository, each with a fixture that proves it fires, so a zero is not vacuous.
-Every check today is a deny-rule: a match refuses a construct outside Jlt, and the rows are sorted by the rule it serves.
+The deny-rules refuse a construct outside Jlt, sorted by the rule each serves; the second stage admits by type.
 The ledger of axioms is a list, not a rule.
 The inner boundaries, the kernel against the derived forms, are a question of admission, whether each construct is kernel or a listed derived form; the linter's inventory of the syntax a file uses is its material, and a strict mode that answers it is not yet built.
 The library's module units~\cite[{\texttt{module.unit}}]{cpp23standard}, most of them partitions, are all in scope but the few interfaces that only re-export the others.
@@ -17,23 +17,26 @@ The table is generated from a report of the build by a script in the repository,
 \begin{table}[htbp]
 \centering
 \small
-\begin{tabular}{@{}l rrrr@{}}
+\begin{tabular}{@{}l c rrrr@{}}
 \toprule
-check & gated & reported & with findings & findings \\
+check & grade & gated & reported & with findings & findings \\
 \midrule
 \lintinput generated/lint-table.tex 
 \bottomrule
 \end{tabular}
 \caption{The checks of \texttt{jlt-lint} on the library's module units in scope: the files on which each is a gate, an exact count, zero or not, that no change can move unseen; the files on which it is only reported; how many of all those have findings; and how many findings there are.
-Counted on commit \texttt{c5198b97e}.}
+Each check is the file \texttt{tools/jlt-lint/rules/<check>.query}, a pattern over Clang's syntax tree, or a check of the linter that the file names.
+Its grade says what its answer is worth, as a test of whether a definition shows, as written, the condition the check names: $\Pi$, rejecting, a finding refutes it and silence affirms nothing; $\Sigma$, affirming, an admission affirms it and its absence refutes nothing; $\Delta$, both; --- not a test.
+For \texttt{admitted}, the last two columns count admissions.
+The table is regenerated from the report of every build and compared with the one printed here.}
 \label{tab:lint}
 \end{table}
 
-Two checks carry half of what the deny-rules find: \texttt{definition}, the definition check by names, and \texttt{no-loops}, loops whose end is not stated before they start.
-\texttt{constrained-templates}, that every template is constrained, is reported everywhere and counts apart.
+Three checks carry most of what the deny-rules find: \texttt{rule2-constrained-templates}, which counts templates with a parameter left unconstrained, \texttt{rule2-definition}, the definition check by names, and \texttt{rule1-local-state}.
+\texttt{rule2-constrained-templates}, that every template is constrained, is reported everywhere and counts apart.
 
 A deny-rule can only say that a construct is outside Jlt, and a file it does not refuse is not thereby inside: the list of refusals is not complete.
-On that commit some two fifths of the units are refused by no check, and more than half if \texttt{constrained-templates} is set aside.
+Today some two fifths of the units are refused by no check, and more than half if \texttt{rule2-constrained-templates} is set aside.
 To say that a file is inside needs admission as well: inside FJlt when every construct of its inventory is admitted as kernel and no deny-rule fires, inside Jlt when every construct is kernel or a listed derived form and no deny-rule fires.
 Both halves are needed, because some exclusions are conditions on admitted syntax: \cppinline{guessed_power} is a call to an overload set, kernel syntax, and only the deny-rule sees that its signature does not decide the overload.
 
@@ -61,10 +64,9 @@ In the library, most of what is open is six kinds: string literals, most of them
 
 \subsection{Admission by type}
 \label{app:lint:admit}
-% STATUS: the second stage runs in CI on the paper's listings, its fixtures
-% and the category layer of the library (rules rule2-by-type,
-% undecided-by-type and admitted, gated per file); on the other layers it has
-% yet to run.
+% STATUS (2026-11-25): the second stage runs in CI on the paper's listings,
+% its fixtures and the whole library (rules rule2-by-type, undecided-by-type
+% and admitted, gated per file).
 
 The second stage of Section~\ref{sec:check} admits a constrained template, whether or not a deny-rule refuses it, when its body type-checks at archetypes of the shapes in its signature.
 It gives every type parameter an archetype by reading the shapes that constrain it, by one rule for each kind of requirement a shape may have (Table~\ref{tab:archetype-rules}).
@@ -120,6 +122,16 @@ Those refusals were all of one kind: a helper or a factory whose constraints wer
 Three helpers of a periodic fold piped an arrow into a chain without stating that its domain is the counts; \cppinline{until}, \cppinline{unfold} and \cppinline{chain} returned class templates whose constraints their own did not imply; and a reduction concatenated two arrows without stating that they compose.
 Each was fixed by stating the constraint, twice by naming it once as a concept that the class and its factory share.
 The undecided are the generator's coverage, not findings: parameters of templates over values, required calls and type requirements of forms it does not read, disjunctions, and, by design, every body with an \cppinline{if constexpr}, of whose branches the archetypes check only one.
+
+\paragraph{The levels, at scale.}
+\label{app:lint:summary}
+Table~\ref{tab:summary} counts definitions, as Table~\ref{tab:levels} does for the listings, and by the same rule.
+A definition is a declaration directly in the namespace judged, as the check \texttt{definitions} reports it with its lines and the kinds of syntax it uses.
+It is refused when a deny-rule finds something in its lines, when it uses a kind that \texttt{tools/jlt-lint/admission.txt} refuses, or when the type check does not admit it; undecided when it uses a kind still open or the type check leaves it undecided; in Jlt when every kind is kernel, scaffolding or a derived form and some is a derived form; and in FJlt otherwise.
+The table's last column counts definitions as well, each once, by the first outcome the type check gives within its lines, so its total, 742 for the library, is below the 748 function templates the type check reads there.
+The level is computed in the build's one run of the linter, for every file in scope, by the function that gives Table~\ref{tab:levels} its rows (\texttt{tools/jlt-lint/levels.py}), and summed for each body of code by \texttt{tools/jlt-lint/summary.py}.
+The listings are the namespace of Listings~\ref{lst:motivation} to~\ref{lst:theorems}; the library is its module units in scope; Catch2 is its sources, the \texttt{.cpp} files the build compiles, and its headers, each judged as a file of its own with the flags of a source file beside it, since the linter judges what a file declares; the table reports the two apart.
+A kind is coarser than the grammar, so a level counts what a definition writes, not everything it means: the deny-rules and the type check supply the rest.
 
 \paragraph{The conjecture and its hypotheses.}
 \label{app:lint:conjecture}

@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes that the definition shows the rule's condition, as written; silence affirms nothing.
 # Rule 1: a function argument is a const value with a const call operator.
 # A static operator() has no object and is exempt; so are lambdas.
 match cxxMethodDecl(isExpansionInMainFile(), hasOverloadedOperatorName("()"), unless(anyOf(isConst(), isStaticStorageClass(), ofClass(cxxRecordDecl(isLambda())))), hasAncestor(scope))

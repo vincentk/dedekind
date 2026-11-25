@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes that the definition shows the rule's condition, as written; silence affirms nothing.
 # Rule 2, well-formedness of resolution: an instance with a context whose head
 # has no proper part, a bare type parameter or a concrete type, may mention in
 # its context only shapes declared before the trait's primary.  Otherwise

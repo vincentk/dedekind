@@ -1,3 +1,4 @@
+# grade: Π, rejecting: a finding refutes that the definition shows the rule's condition, as written; silence affirms nothing.
 # Rule 3: recursion is structural.  A function that calls itself at the same
 # instantiation recurses on a value, and is refused: a recursion on a value is
 # the kernel's bounded fold (ranges::fold_left over a bounded range), never a
