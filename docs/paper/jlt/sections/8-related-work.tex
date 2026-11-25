@@ -33,6 +33,7 @@ Of the generic-programming features Garcia et al.~\cite{garcia2007extended} comp
 Featherweight Java~\cite{igarashi2001featherweight} set the pattern: a core calculus small enough to prove things about, with a syntax that is a subset of the host language's.
 Featherweight Go~\cite{griesemer2020featherweight} follows the pattern for structural subtyping and monomorphisation, and \emph{Generic Go to Go}~\cite{ellis2022generic} proves a dictionary-passing translation correct by a bisimulation.
 That is the genre of Section~\ref{sec:translation}, a translation by dictionary passing, with soundness, termination and parametricity inherited from the target rather than proved from scratch.
+Jlt is embedded in its host in Hudak's sense~\cite{hudak1996building}, in the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}: a term is generic code over a \cppinline{concept}, and an interpretation of it is a model of that \cppinline{concept}.
 
 \paragraph{Formal semantics of \Cpp{}.}
 CoreC++~\cite{wasserrab2006operational} gives an operational semantics and a machine-checked type safety proof for multiple inheritance; Ramananandro, Dos Reis and Leroy~\cite{ramananandro2011layout,ramananandro2012construction} mechanise object layout, construction and destruction in Coq.

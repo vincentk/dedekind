@@ -64,14 +64,6 @@ From its target the kernel inherits termination and parametricity, and its type 
 Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, which this paper names, and whose reading is argued and tested, not proved (Appendices~\ref{app:derived} and~\ref{app:fjlt:closure}).
 The arrangement is the Haskell Report's: a kernel and the translations into it~\cite{marlow2010haskell}.
 
-Jlt is an embedded domain-specific language in Hudak's sense~\cite{hudak1996building}: its host is \Cpp{23} and its domain is System~F.
-Nothing is added to the host.
-A Jlt program is an ordinary \Cpp{23} program, type-checked and compiled by an unmodified toolchain, Clang~23 in this paper (Section~\ref{sec:limits}).
-So the paper designs no language, and its claim is one of existence: \Cpp{23} already contains an embedding of a fragment of System~F, and the listings exhibit it.
-The fragment includes prenex polymorphism with type classes, which Wadler and Blott's translation covers~\cite{wadler1989adhoc}.
-The embedding follows the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}: an embedded term is generic code over a \cppinline{concept}, and an interpretation of it is a model of that \cppinline{concept}.
-Jlt is assembled from canonical pieces: System~F, Wadler and Blott's translation, and the concepts and folds of the standard.
-That does not make the assembly canonical, and whether another fragment would serve as well is left open.
 The name refers to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: a \cppinline{concept} is a predicate on a type's structure, not on its name or lineage.\footnote{``A rose by any other name would smell as sweet''~\cite{shakespeare1597romeo}.}
 Figure~\ref{fig:arrows} shows the languages of the paper and the maps between them.
 
