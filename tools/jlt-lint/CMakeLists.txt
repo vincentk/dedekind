@@ -95,7 +95,8 @@ if(APPLE)
   set(_jlt_summary_check)
   set(_jlt_table_check)
 else()
-  set(_jlt_summary_check --check ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/summary-table.tex)
+  set(_jlt_summary_check --check ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/summary-table.tex
+      --check-facts ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/summary-facts.tex)
   set(_jlt_table_check --check ${CMAKE_SOURCE_DIR}/docs/paper/jlt/generated/lint-table.tex)
 endif()
 add_custom_target(lint
