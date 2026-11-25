@@ -54,7 +54,7 @@ It does not hold a generic function to its declared constraints: the body may us
 %      by the compiler to every composite, and refused where they do not
 %      follow.
 %   4. A printed list of every law that was stated and not proved (today the
-%      axioms only; conditional laws and the laws derived from them are yet
+%      axioms and the conditional laws; the laws derived from them are yet
 %      to be listed, Appendix G).
 % All of it is decided while compiling.  The theory is not new, and that it
 % can be used here is the contribution.
@@ -64,20 +64,29 @@ It does not hold a generic function to its declared constraints: the body may us
 % jlt-lint recovers part of the difference, inside the fragment).  Still to be
 % said once: concept maps are not recovered.
 %
-% WHERE THE LIE STANDS.  The sentence is not yet true, and the work is to make
-% the untrue part smaller.  Update this list as it shrinks.
+% WHERE THE SENTENCE IS NOT YET SHOWN (was: where the lie stands; reviewed
+% 2026-11-25).  The sentence below is true where it is proved, argued and
+% tested, or listed as trusted; the work is to make the rest smaller.  Update
+% this list as it shrinks.
 %   - "some templates can then be classified as meaning what their
-%     signatures say": built, run and gated in CI on the listings and the
-%     library's category layer (#1211, #1212); what it means rests on the
-%     conjecture of Section 4, which the paper states as one.  Still untrue in
-%     part: the guarantee assumes that an entry stands above every use, and of
-%     the three conditions on the order of declarations the linter checks one
-%     in part (context-order, bare heads); the rest is a TODO of the linter.
-%   - Section 3.3, the three results about the target: stated from the agreed
-%     model, not yet checked against a written-out kernel.
+%     signatures say": built, run and gated in CI on the listings and on the
+%     whole library (#1211 to #1214); what it means rests on the conjecture
+%     of Section 4, which the paper states as one.  Not yet shown: the
+%     guarantee assumes that an entry stands above every use, and of the
+%     three conditions on the order of declarations the linter checks one in
+%     part (context-order, bare heads); the rest is a TODO of the linter.
 %   - "what was taken on trust comes out as a list": true for axioms and
 %     conditional laws (axioms.txt, laws.txt, #1213).  The laws the compiler
 %     derives from them at a use, and units named at a use, are not listed.
+%   - "every definition also has a meaning in System F" (the next paragraph):
+%     true of the kernel, and of a derived form whose condition has a check.
+%     The audit of 2026-11-25 (#1219) found rows of the table of derived
+%     forms whose condition nothing enforced; four are now checked, and what
+%     has no row or no check yet is classed undecided by the linter, not Jlt:
+%     if constexpr, if consteval, a generic lambda, std::variant.  Their rows
+%     are to be written, each argued and tested, not proved.
+%   Gone from this list: the results about the target (Section 3) are now
+%   checked against a written-out kernel, Appendices B to E.
 Under the rules of this paper and a check that a tool performs, some templates can then be classified as meaning what their signatures say, a declared law licenses a faster program, and the compiler carries laws through composition.
 What was taken on trust, in the spellings the tool reads, comes out as a list.
 

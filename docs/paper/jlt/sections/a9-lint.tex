@@ -26,7 +26,7 @@ check & grade & gated & reported & with findings & findings \\
 \end{tabular}
 \caption{The checks of \texttt{jlt-lint} on the library's module units in scope: the files on which each is a gate, an exact count, zero or not, that no change can move unseen; the files on which it is only reported; how many of all those have findings; and how many findings there are.
 Each check is the file \texttt{tools/jlt-lint/rules/<check>.query}, a pattern over Clang's syntax tree, or a check of the linter that the file names.
-Its grade says what its answer is worth, as a test of whether a definition can be read in System~F: $\Pi$, rejecting, a finding refutes it and silence affirms nothing; $\Sigma$, affirming, an admission affirms it and its absence refutes nothing; $\Delta$, both; --- not a test.
+Its grade says what its answer is worth, as a test of whether a definition shows, as written, the condition the check names: $\Pi$, rejecting, a finding refutes it and silence affirms nothing; $\Sigma$, affirming, an admission affirms it and its absence refutes nothing; $\Delta$, both; --- not a test.
 For \texttt{admitted}, the last two columns count admissions.
 The table is regenerated from the report of every build and compared with the one printed here.}
 \label{tab:lint}

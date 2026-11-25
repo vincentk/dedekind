@@ -12,23 +12,39 @@ Local mutable state is among them, read by state passing: an assignment to a loc
 This is the textbook semantics of a language of local variables and arrays~\cite[chapters 2 and 4]{reynolds1998theories}, and SSA read as functional programs~\cite{appel1998ssa} is the same reading, which Appendix~\ref{app:fjlt:ssa} gives the compiler's lowering of the kernel.
 It needs one condition: at every point, each piece of storage is reached through one name only, since a write through one name would otherwise change what another reads.
 Names may exchange their values, as \cppinline{swap} does; they may never share storage.
-Jlt meets the condition by construction where its rules hold: a reference to a local exists only within one expression, as the element \cppinline{r[i]} that an assignment writes or an expression reads, and Rule~1 closes every channel by which state could leave the call; the linter checks every use of a mutable local against this list (\texttt{rule1-local-state}, Appendix~\ref{app:lint}).
+Jlt meets the condition by construction where its rules hold: a reference to a local exists only within one expression, as the element \cppinline{r[i]} that an assignment writes or an expression reads, and Rule~1 closes every channel by which state could leave the call.
+A local's type is a value type, one whose copy shares no storage with the original, as an atom, a \cppinline{std::array} of them or a record of them is, and a view or a pointer is not.
+The linter checks every use of a mutable local against a list of the positions the rows read: read or copied, the left side of a write, the base of a field or an element, an argument taken by value or by a reference that cannot write, and an operand of \cppinline{swap}; any other use is a finding (\texttt{rule1-local-state}, Appendix~\ref{app:lint}).
+In a template, a call whose function is known only at instantiation is read as taking its arguments by value: \RuleOne{} refuses, at its definition, a function that takes a parameter by a reference it may write through and a call operator that is not \cppinline{const}, so the reading holds at every instance whose arguments are in Jlt.
+An instance at a function from code the linter does not read is not classified.
 Haskell's \texttt{runST} holds the same by a type~\cite{launchbury1994lazy}, proved sound by a logical relation~\cite{timany2018logical}.
-Read so, the function is pure: its value at every argument is the value of a term of System~F, the image under $\llbracket\cdot\rrbracket$ of the kernel program it is read as (Section~\ref{sec:translation}).
-Which function that is, is the program's own claim, tested here, as everywhere, by \cppinline{static_assert}.
+Read so, the function is a kernel program $P$, which the rows build (below), and $P$ has an image $\llbracket P \rrbracket$ in System~F (Section~\ref{sec:translation}).
+We call a \cppinline{constexpr} function \emph{pure} when its value, at every argument at which constant evaluation yields one, is the value of $\llbracket P \rrbracket$ there.
+That the forms of local state keep a function pure is argued below, under the hypothesis of adequacy.
+Which function $\llbracket P \rrbracket$ is, is the program's own claim, tested here, as everywhere, by \cppinline{static_assert}.
 Raw pointers are not among them.
 A pointer that is never null and never compared with a pointer into another object is an index into a range, its arithmetic the arithmetic of counts, but neither condition can be checked well, so the posture asks for a \cppinline{std::span} over storage declared constant instead~\cite[\texttt{views.span}]{cpp23standard}.
 
 % DECISION (2026-11-23, the practitioner's finding on the lambda row): the
 % condition is narrowed to where no constraint asks copyable or a default value
 % of a capturing closure; the struct reading would satisfy them, C++ does not.
-\begin{table}[htbp]
-\centering
+\begingroup
 \small
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.3\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.24\linewidth}@{}}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.3\linewidth}>{\raggedright\arraybackslash}p{\dimexpr 0.46\linewidth-4\tabcolsep\relax}>{\raggedright\arraybackslash}p{0.24\linewidth}@{}}
 \toprule
 derived form & read as & condition \\
 \midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\caption{The derived forms, each with the kernel program it is read as and the condition for that reading to keep every value.
+The number of bits of a count, \texttt{size\_t(bit\_width(n))}, and its rotation, \texttt{rotr(n, int(i))}, are not among them: each is one primitive of the kernel, an operator of \texttt{size\_t} (Figure~\ref{fig:fjlt-syntax}), written with the conversion that \texttt{<bit>}'s counts of type \texttt{int} force~\cite[\texttt{bit.pow.two}, \texttt{bit.rot}]{cpp23standard}.
+The row for implicit conversions is one rule, not a table of them: it reads a conversion that does not narrow as a coercion inserted by elaboration, the textbook treatment of implicit conversions~\cite{reynolds1980conversions,breazutannen1991inheritance}, whose obligation is coherence, that the meaning does not depend on where the coercions go.
+Such a conversion is a split monomorphism, the conversion back its retraction, so equality and order carry over along it; arithmetic does not, since the two types wrap at different widths, and \Cpp{} fixes where the conversions go instead, by the usual arithmetic conversions~\cite[\texttt{expr.arith.conv}]{cpp23standard}.
+A floating type is a carrier, its operations total, and no law of them is declared, not even commutativity; the ledger of laws refuses one (Appendix~\ref{app:lint}).}
+\label{tab:derived}
+\endlastfoot
 a constrained template parameter, \texttt{template <C T>} & \texttt{template <typename T> requires C<T>} & none \\
 an alias, \texttt{using S = T;}, and a use of an alias template, \texttt{op\_t<E>} & \texttt{T}, and the type it stands for, \texttt{op\_of<E>::type} & none: the standard defines it as that type~\cite[\texttt{temp.alias}]{cpp23standard} \\
 a braced \texttt{return \{a, b\};} & the record built from \texttt{a} and \texttt{b} & none \\
@@ -50,21 +66,69 @@ a counted \texttt{for}, a range-\texttt{for} over a sized range & \texttt{fold\_
 an assignment, \texttt{++}, \texttt{op=} on a local, \texttt{x = e;} & the next state of the fold or the call it is in, the state with \texttt{x} replaced by \texttt{e} & a statement of its own; the local written before it is read and reached through its own name only \\
 an assignment to an element of a local array, \texttt{r[i] = e;} & the update of the whole array, \texttt{r} with element \texttt{i} replaced by \texttt{e}~\cite[3.1.1]{cytron1991ssa} & the index shown to lie in range; the element's reference used in that statement only \\
 an \texttt{if} statement & the choice of the next state, \texttt{c ? s1(state) : s2(state)}, a missing \texttt{else} the state unchanged & no \texttt{break}, \texttt{return} or \texttt{goto} in a branch \\
-\texttt{std::swap(a, b)} of two locals & the simultaneous assignment of \texttt{b} to \texttt{a} and \texttt{a} to \texttt{b}~\cite[\texttt{utility.swap}]{cpp23standard} & not an array with itself, which the standard leaves undefined \\
+\texttt{std::swap(a, b)} of two locals & the simultaneous assignment of \texttt{b} to \texttt{a} and \texttt{a} to \texttt{b}~\cite[\texttt{utility.swap}]{cpp23standard} & a statement of its own; the two evidently disjoint, different locals or elements at different constant indices: an array with itself the standard leaves undefined \\
 \texttt{std::span<const T>} over storage declared constant & a range: its length and the function that reads it & the storage has static storage duration and no \texttt{mutable} member; the declaration, a law on the list of what is trusted \\
-\bottomrule
-\end{tabularx}
-\caption{The derived forms, each with the kernel program it is read as and the condition for that reading to keep every value.
-The number of bits of a count, \texttt{size\_t(bit\_width(n))}, and its rotation, \texttt{rotr(n, int(i))}, are not among them: each is one primitive of the kernel, an operator of \texttt{size\_t} (Figure~\ref{fig:fjlt-syntax}), written with the conversion that \texttt{<bit>}'s counts of type \texttt{int} force~\cite[\texttt{bit.pow.two}, \texttt{bit.rot}]{cpp23standard}.
-The row for implicit conversions is one rule, not a table of them: it reads a conversion that does not narrow as a coercion inserted by elaboration, the textbook treatment of implicit conversions~\cite{reynolds1980conversions,breazutannen1991inheritance}, whose obligation is coherence, that the meaning does not depend on where the coercions go.
-Such a conversion is a split monomorphism, the conversion back its retraction, so equality and order carry over along it; arithmetic does not, since the two types wrap at different widths, and \Cpp{} fixes where the conversions go instead, by the usual arithmetic conversions~\cite[\texttt{expr.arith.conv}]{cpp23standard}.
-A floating type is a carrier, its operations total, and no law of them is declared, not even commutativity; the ledger of laws refuses one (Appendix~\ref{app:lint}).}
-\label{tab:derived}
-\end{table}
+\end{longtable}
+\endgroup
+
+\paragraph{Local state, constructed.}
+The rows of Table~\ref{tab:derived} for local state build a kernel program from a function written in place, and Listing~\ref{lst:running-sum} shows it for a running sum.
+The state is a named type with one field for each mutable local in scope, an array of $N$ elements being $N$ fields.
+A statement is a function from states to states.
+An assignment gives the state with one field replaced.
+An element's update, \cppinline{r[i] = e;}, is a choice on the index among the $N$ states with one element replaced, and a read of \cppinline{r[i]} is the same choice among the $N$ fields; the index is shown to lie in range, so the last alternative is the last index.
+Two statements in sequence compose, an \cppinline{if} chooses between the states its branches give, and \cppinline{swap} gives the state with two fields exchanged.
+A counted loop is the kernel's iteration: its start is the state on entry, and its step the function its body is, a function object of the state and the index.
+A declaration with its initialiser extends the state by a field, the end of its scope drops the field, and \cppinline{return e;} is \cppinline{e} read from the last state.
+Each of these is a term of Figure~\ref{fig:fjlt-syntax}, so the program built has an image under $\llbracket\cdot\rrbracket$.
+
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+constexpr array<size_t, 4>
+running_sum(array<size_t, 4> a) {
+  for (size_t i = 0; i < 3; ++i)
+    a[i + 1] = a[i + 1] + a[i];
+  return a; }
+\end{cpp}
+\end{minipage}\hspace{0.04\linewidth}%
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+struct Sums { size_t a0, a1, a2, a3; };
+struct RunningStep {
+constexpr Sums
+operator()(Sums s, size_t i) const {
+  return
+  i == 0 ? Sums{s.a0, s.a1 + s.a0, s.a2, s.a3}
+: i == 1 ? Sums{s.a0, s.a1, s.a2 + s.a1, s.a3}
+         : Sums{s.a0, s.a1, s.a2, s.a3 + s.a2};
+} };
+constexpr Sums
+running_sum_as_read(Sums s) {
+  return ranges::fold_left(
+    views::iota(0uz, 3uz), s, RunningStep{}); }
+\end{cpp}
+\end{minipage}
+\caption{A running sum. Left: in place; step $i$ reads the element that step $i - 1$ wrote. Right: the kernel program it is read as, its state a record of the four elements.
+Both are in \texttt{tools/jlt-lint/fixtures/local-state.cpp}, where the linter gives the left the level Jlt and the right FJlt, and a \cppinline{static_assert} compares their values.}
+\label{lst:running-sum}
+\end{listing}
 
 \paragraph{Local state, argued.}
-For a \cppinline{constexpr} function whose mutable locals keep the condition above and whose statements are those of the rows of Table~\ref{tab:derived}, \Cpp{} and the state-passing reading compute the same value at every argument.
-The argument is an induction on the statements, its invariant that the locals in scope hold exactly the components of the state: each write changes one component, since no two names share storage, and \Cpp{} evaluates an assignment's right operand before its left~\cite[\texttt{expr.ass}]{cpp23standard}, so the order of evaluation inside a statement is not observed; a counted loop is a fold by its row, and at the \cppinline{return} the locals end, so dropping the state is sound.
+Read so, the function is a state machine: its state the locals, each statement a transition, a counted loop the run of its body's transition over the indices, and the result read from the last state.
+Jlt admits the state machines that are closed, deterministic and bounded: the state is created by the call and ends with it, the transition is a function of the kernel, and the number of steps is fixed before the first.
+The run of such a machine is the kernel's iteration, so the function is a term of System~F, and it is pure in the sense that its caller cannot tell the machine from a function without state.
+The boundaries are not new: state that a call encloses is no effect, as for \texttt{runST}~\cite{launchbury1994lazy}; a loop whose count is fixed on entry is an iteration, as in the \textsc{loop} programs~\cite{meyer1967loop}; and constant evaluation takes no input and admits no undefined behaviour of the language~\cite[\texttt{expr.const}]{cpp23standard}.
+
+For a \cppinline{constexpr} function whose mutable locals keep the condition above and whose statements are those of the rows of Table~\ref{tab:derived}, \Cpp{} and this reading compute the same value at every argument.
+The argument is an induction on the statements.
+Its invariant is that the locals in scope hold exactly the components of the state.
+A statement reads the state and then writes one component of it: its operands write nothing, so every read sees the state before, and no two names share storage, so the write changes that component alone.
+A statement is therefore a function from the state before to the state after, whichever elements it reads or writes.
+In the running sum of Listing~\ref{lst:running-sum}, step~1 reads the element that step~0 wrote because it reads the state that step~0 left: $(1, 2, 3, 4)$, $(1, 3, 3, 4)$, $(1, 3, 6, 4)$, $(1, 3, 6, 10)$.
+A counted loop is the run of its body's transition over the indices, the fold of its row, and at the \cppinline{return} the locals end, so dropping the state is sound.
 The semantics and the reading of arrays are standard~\cite{reynolds1998theories,cytron1991ssa}; the fragment of \Cpp{} that the conditions pin is this paper's, and that \Cpp{} evaluates it so is the hypothesis of adequacy of Section~\ref{sec:translation}, widened from the kernel's terms to these statements.
-The reading is sequential: it fixes what an in-place loop computes, not which of its iterations depend on one another, which dependence analysis decides for parallelising and vectorising compilers~\cite{allen2001optimizing}, for arrays element by element~\cite{knobe1998array}.
+The reading says what value an in-place loop computes when its steps run in order.
+It does not say that the steps may be reordered or run in parallel: that needs to know which step reads what another wrote, which dependence analysis tests, conservatively~\cite{allen2001optimizing}, for arrays element by element~\cite{knobe1998array}.
+The state is the function's own: an array enters and leaves by value, and a function that writes its caller's storage through a view is outside this reading.
 A reduction whose partial results OpenMP combines in an unspecified order~\cite[7.6.7]{openmp2024spec} assumes, at a floating type, a law that Jlt refuses there.
