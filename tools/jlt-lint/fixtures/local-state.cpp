@@ -7,13 +7,21 @@
 // correctness, tested whenever the file is parsed; the rules judge only
 // whether the code can be read as a pure function.
 //
-// rule1-local-state refuses the eight near-misses, one finding each, and
-// nothing else here: Fibonacci and the sound twins pass.  (An LU solve is left
+// rule1-local-state checks every use of a mutable local against a list of
+// the positions Table 7's rows read (an allowlist): it refuses each near-miss
+// (some with a finding at more than one use, 37 in all) and nothing else
+// here: Fibonacci and the sound twins pass.  (An LU solve is left
 // out until division and fields are under control: #1221.)  Standalone, no
 // imports, so it is checked without the build.
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
+#include <functional>
+#include <optional>
+#include <ranges>
+#include <span>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -185,8 +193,10 @@ constexpr std::size_t read_through_iterator(const std::array<std::size_t, 2>& a)
 }
 static_assert(aliased_through_iterator() == 7 &&
               read_through_iterator({1, 2}) == 1);
-// Not refused: a default-constructed class template in a template (its
-// constructor writes it), and two writes the comma operator sequences.
+// A default-constructed class template in a template (its constructor
+// writes it) is not refused, nor is v.size(); push_back, a mutating member
+// call, is (no row of Table 7 reads it: the theoretician's C8).  Two writes
+// the comma operator sequences are not refused.
 template <typename T>
 constexpr std::size_t built() {
   std::vector<T> v;
@@ -204,5 +214,121 @@ static_assert(built<int>() == 1 && comma_sequenced() == 2);
 enum Slot : std::size_t { first, second };
 constexpr std::size_t by_enumerator(std::array<std::size_t, 2> p) { return p[second]; }
 static_assert(by_enumerator({1, 2}) == 2);
+
+// The practitioner's cases on #1219, each refused.
+// A reference whose source is not traced but mentions local state.
+constexpr std::size_t aliased_through_max() {
+  std::size_t a = 1, b = 0;
+  const auto& m = std::max(a, b);
+  a = 9;
+  return m;  // 9
+}
+constexpr std::size_t aliased_through_choice(bool c) {
+  std::array<std::size_t, 2> r{1, 2};
+  const auto& s = c ? r[0] : r[1];
+  r[0] = 9;
+  return s;
+}
+constexpr std::size_t aliased_through_get() {
+  std::array<std::size_t, 2> r{1, 2};
+  const auto& g = std::get<0>(r);
+  r[0] = 9;
+  return g;
+}
+// An index written through swap, so not bounded by its initialiser.
+constexpr std::size_t swapped_index() {
+  std::array<std::size_t, 3> r{1, 2, 3};
+  std::size_t k = 0, m = 5;
+  std::swap(k, m);
+  return r[k];  // k is 5
+}
+// An index whose value does not fit its type: 200 wraps to -56.
+constexpr int wrapped_index() {
+  std::array<int, 256> r{};
+  signed char k = static_cast<signed char>(200);
+  return r[k];
+}
+// An index of a sequence that is not local state: a parameter's, unbounded.
+constexpr std::size_t parameter_index(const std::array<std::size_t, 3>& a, std::size_t i) {
+  return a[i];
+}
+constexpr std::size_t parameter_literal(const std::array<std::size_t, 3>& a) {  // sound
+  return a[2];
+}
+// An index of a sequence whose size its type does not give.
+constexpr std::size_t vector_index(const std::vector<std::size_t>& v) { return v[0]; }
+
+// The theoretician's cases on #1219 (C1, C2 and C6 are the practitioner's
+// above), each refused: a value type with reference semantics, a call that
+// writes inside an expression, a swap of an object with itself, a mutating
+// member call, a class template that leaves its field indeterminate.
+constexpr std::size_t aliased_through_tie() {  // C3
+  std::size_t x = 1;
+  auto t = std::tie(x);
+  std::get<0>(t) = 7;
+  return x;  // 7
+}
+constexpr std::size_t aliased_through_ref() {  // C4
+  std::size_t x = 1;
+  auto w = std::ref(x);
+  w.get() = 7;
+  return x;  // 7
+}
+constexpr std::size_t aliased_through_span() {  // C4
+  std::array<std::size_t, 2> r{1, 2};
+  std::span<std::size_t> s(r);
+  s.front() = 7;
+  return r[0];  // 7
+}
+constexpr std::size_t aliased_through_view() {  // C4
+  std::array<std::size_t, 2> r{1, 2};
+  auto v = std::views::all(r);
+  r[0] = 5;
+  return v.front();  // 5
+}
+constexpr std::size_t exchanged_and_read() {  // C5: 2 or 3, unspecified
+  std::size_t x = 1;
+  return std::exchange(x, 2) + x;
+}
+constexpr std::size_t swapped_by_member() {  // C7
+  std::array<std::size_t, 2> r{1, 2};
+  r.swap(r);
+  return r[0];
+}
+constexpr std::size_t swapped_element_with_itself() {  // C7
+  std::array<std::array<std::size_t, 2>, 2> m{};
+  std::swap(m[0], m[0]);
+  return m[0][0];
+}
+constexpr std::size_t swapped_by_ranges() {  // C7
+  std::array<std::size_t, 2> r{1, 2};
+  std::ranges::swap(r, r);
+  return r[0];
+}
+constexpr std::size_t swapped_elements() {  // sound: two elements, disjoint
+  std::array<std::array<std::size_t, 2>, 2> m{{{1, 2}, {3, 4}}};
+  std::swap(m[0], m[1]);
+  return m[0][0];
+}
+constexpr std::size_t emplaced_and_read() {  // C8: unspecified, as C5
+  std::optional<std::size_t> o;
+  return o.emplace(1) + o.value_or(0);
+}
+constexpr std::size_t optional_read() {  // sound
+  const std::optional<std::size_t> o{1};
+  return o.value_or(0);
+}
+template <typename T>
+struct box {
+  T v;
+};
+template <typename T>
+constexpr T unboxed() {  // C9: at T = size_t, v is indeterminate
+  box<T> b;
+  return b.v;
+}
+static_assert(aliased_through_tie() == 7 && aliased_through_ref() == 7 &&
+              aliased_through_span() == 7 && aliased_through_view() == 5 &&
+              swapped_elements() == 3 && optional_read() == 1);
 
 }  // namespace jlt_listing

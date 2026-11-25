@@ -10,18 +10,18 @@ rule3-no-loops               tools/jlt-lint/fixtures/rule3-loops.cpp  jlt_listin
 rule3-no-self-recursion      tools/jlt-lint/fixtures/rule3-recursion.cpp  jlt_listing  14
 rule3-no-mutual-recursion    tools/jlt-lint/fixtures/rule3-mutual.cpp  jlt_listing  9
 # Local state in place (local-state.cpp): Fibonacci with its loop, which the
-# loop rule passes, and eight near-misses of the
-# aliasing conditions, which rule1-local-state refuses (a reference local, an
-# index not provably in range, two writes in one expression, a reference
-# capture that writes, swap of an array with itself, a local with no
-# initialiser, an array default-constructed).
+# loop rule passes, and the near-misses of the aliasing conditions, which
+# rule1-local-state refuses (a second name for local state, by a reference or
+# a view, an index not provably in range, a write inside an expression, a
+# call that may write, swap of an object with itself, a field left
+# indeterminate), each beside its sound twin.
 # counted_over's range-for is over a range of template type, which the loop
 # rule refuses (only arrays pass); it is there for rule1-local-state, which
 # passes its loop variable.
 rule3-no-loops               tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  1
 rule3-no-self-recursion      tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
 rule3-no-mutual-recursion    tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
-rule1-local-state            tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  8
+rule1-local-state            tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  37
 rule1-lvalue-reference-params tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
 rule1-no-reference-returns   tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
 rule1-no-escaping-reference-captures tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
