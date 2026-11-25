@@ -65,15 +65,12 @@ So the law is used up there, and what it decided remains: associativity licensed
 
 The optimiser then does more with each monoid.
 Jlt does not claim these rewrites, and it cannot promise them, but it hands the optimiser the form they need: a fold with its bound stated before the first step, an operation that is a function of its arguments, and no state beside the fold's own.
-For the sum over a range it finds a closed formula.
 At the sum, squaring is doubling, and the loop becomes a shift and an addition where a bit of $n$ is set: the method of the Russian peasant, without anyone having asked for it.
-At the unit, the square stays the unit, the optimiser finds that by computing it, and the loop and the count disappear.
 Under exclusive or the power is the parity of the count, and the optimiser reduces the loop to a test of the lowest bit of $n$.
-At the two idempotent monoids the case that the law selects is already one step, and what remains is a comparison of $n$ with $0$.
 A law derived at a composite is the constant \texttt{true}, since a trait is a \cppinline{constexpr} variable, whose initialiser must be a constant expression~\cite[{\texttt{dcl.constexpr}}]{cpp23standard}.
 In these cases the discipline costs nothing at run time, and there is a structural reason: a Jlt fold names in the source the parameter the compiler would otherwise have to recover from assignments, so the algebra is in plain sight.
 
-In the terms of partial evaluation~\cite{jones1993partial}, the types and the declared laws are the static input, the values are the dynamic one, and the loop is the residual program.
+In the terms of partial evaluation, the types and the declared laws are the static input, the values are the dynamic one, and the loop is the residual program.
 The word specialisation then has one meaning twice: the compiler chooses the specialisation of each trait and the most specialised overload, and in doing so it specialises the program to its laws~\cite{veldhuizen1999partial}.
 
 The agreement between compile time and run time holds where both evaluations finish and neither meets undefined behaviour.
@@ -82,8 +79,5 @@ Constant evaluation is bounded in work, at about a million steps and 512 nested 
 It refuses undefined behaviour of the language, which at run time is met with no diagnostic and no guarantee.
 And the standard leaves it unspecified whether floating-point arithmetic gives one result in both~\cite[{\texttt{expr.const}}]{cpp23standard}.
 
-\Cpp{} passes no dictionaries but instantiates, so the translation models what a constrained call means, not what the compiler emits.
-Instantiation is partial evaluation~\cite{veldhuizen1999partial}, here of the dictionary-passing term at a static type.
-So the two agree on every closed term, and parametricity holds of every instantiation.
-Appendix~\ref{app:fjlt:ssa} argues this, trusting the compiler's lowering.
+\Cpp{} passes no dictionaries but instantiates, so the translation models what a constrained call means, not what the compiler emits: instantiation is partial evaluation of the dictionary-passing term at a static type, and Appendix~\ref{app:fjlt:ssa} argues, trusting the compiler's lowering, that the two agree on every closed term, so that parametricity holds of every instantiation.
 
