@@ -11,7 +11,7 @@ The first gives generic code a meaning.
 In 2005 Siek and Lumsdaine read concepts as type classes and translated them into System~F by dictionary passing, for a language extension they proposed~\cite{siek2005essential}.
 A year later Dos Reis and Stroustrup remarked of \Cpp{} as it stood that a type class and its instances ``correspond closely to \Cpp{}'s notion of template partial or full specialization'', which ``morally is what happens when the dictionaries, in the dictionary passing style translation [\ldots], are optimized away''~\cite[Section~6.2]{dosreis2006specifying}.
 The extension, concepts as proposed for \Cpp{0x}, checked a template's definition against its constraints and let a concept state axioms~\cite{gregor2006concepts,bagge2009axioms}; it was withdrawn in 2009~\cite{stroustrup2009remove}.
-What shipped in \Cpp{20} checks uses only, and its designer has since written of checking generic code in isolation, ``I now consider that a mistake''~\cite[Section~7.7]{stroustrup2025concept}.
+What shipped in \Cpp{20} checks uses only, and its designer has since written of checking generic code in isolation, ``I now consider that a mistake because isolating templates decreases their usability and can have negative performance implications''~\cite[Section~7.7]{stroustrup2025concept}.
 So the meaning was worked out for a language that does not exist, and remarked of the one that does.
 
 The second line restricts the language as it is, with a tool.
@@ -24,7 +24,9 @@ So the method exists, and it has not been applied to what generic code means.
 This paper sets a keystone between the two.
 For \Cpp{23} as shipped, it delimits a fragment by three stated rules, gives the translation into System~F for the fragment's kernel, and decides membership with a linter outside the compiler, so that a code base can enter one definition at a time.
 We know of no earlier statement of this for the shipped language.
-It does not argue the general case: checking every generic definition is what Rust delivers, at the cost of a rewrite~\cite{klabnik2023rust}.
+It does not argue the general case.
+Stroustrup's judgement is of the language as a whole, and this paper asks the check only of a fragment inside it, which a team enters by choice and leaves at will.
+Checking every generic definition is what Rust delivers, at the cost of a rewrite~\cite{klabnik2023rust}.
 It makes the remark of 2006 precise for a fragment, to the point where membership is checked mechanically in continuous integration.
 
 What the programmer is missing is old.
