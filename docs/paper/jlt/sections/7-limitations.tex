@@ -26,7 +26,8 @@ The linter checks one of the three conditions, for an instance whose context nam
 
 
 \paragraph{A shape knows the laws someone declared.}
-A law is what modelling asks beyond satisfying (Section~\ref{sec:intro}), and the posture makes it a declared certificate, a specialisation the compiler finds but does not check against the operation.
+The standard's own words are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not~\cite[{\texttt{res.on.requirements}}]{cpp23standard}, and the Core Guidelines ask that a concept carry meaningful semantics~\cite[T.20]{cppcoreguidelines}.
+A law is what modelling asks beyond satisfying, and the posture makes it a declared certificate, a specialisation the compiler finds but does not check against the operation.
 Since \cppinline{false} means \emph{not known} (Section~\ref{sec:translation}), the same declaration is the only refusal available for a carrier that passes a shape by signature and breaks its law by value.\footnote{\cppinline{*} on \cppinline{size_t} is commutative, but nobody in the listings certifies it, so \cppinline{IsCommutativeMonoid<size_t, multiplies<size_t>>} is refused.
 \cppinline{double} under \cppinline{+} has the signature of a monoid, but \cppinline{+} is not associative and the unit law fails at NaN, and nobody certifies it.}
 
