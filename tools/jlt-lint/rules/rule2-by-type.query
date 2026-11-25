@@ -1,4 +1,4 @@
-# grade: Π, rejecting: a finding refutes translatability by Table 7's rows; silence affirms nothing.
+# grade: Π, rejecting: a finding refutes that the definition shows the rule's condition, as written; silence affirms nothing.
 # Rule 2, by type (the linter's second stage, #1211): a constrained function
 # template that no deny-rule refuses is instantiated at archetypes built from
 # the shapes in its signature (archetypes.hpp, Appendix G.1 of the paper) and

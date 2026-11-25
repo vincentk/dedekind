@@ -1,4 +1,4 @@
-# grade: Π, rejecting: a finding refutes translatability by Table 7's rows; silence affirms nothing.
+# grade: Π, rejecting: a finding refutes that the definition shows the rule's condition, as written; silence affirms nothing.
 # Rule 2, at the level of names (jlt-lint): a function template's body may
 # use, on a value whose type depends on a template parameter, only an operation
 # some requirement of its constraints names, the constraints followed through

@@ -1,10 +1,21 @@
-# grade: Π, rejecting: a finding refutes translatability by Table 7's rows; silence affirms nothing.
+# grade: Δ, both: every use of a mutable local is checked against a list of allowed positions, so a finding refutes that the definition shows the condition of Table 7's rows for local state, as written, and silence affirms it.
 # Rule 1: local state read as a pure function.  Every mutable local of a
 # judged function is reached through its own name only, at any moment, so
 # that the function is a fold of states (Table 7's rows for local state; an
-# element's update as the whole array's, Cytron et al. 1991, 3.1.1).  The tool
-# refuses a second name for a mutable local's storage, an index of a mutable
-# local std::array not shown to lie in range, a write that is not a statement
-# of its own, a lambda capturing a mutable local by reference, and swap of an
-# array with itself.
+# element's update as the whole array's, Cytron et al. 1991, 3.1.1).  The
+# tool checks every use of a mutable local against the positions the rows
+# read: read or copied; the left side of a write; the base of a field or an
+# element; an argument taken by value or by const reference; an operand of
+# std::swap, the two disjoint, in a statement of its own.  Any other use is a
+# finding.  A closed list of the standard's functions read or copy what they
+# are given, though they take it by a forwarding reference: fold_left,
+# views::iota and views::transform, make_pair, make_tuple and make_optional,
+# and the constructors of its value types.  It refuses besides a second name for local state (a reference, or
+# a local of a type that is not a value type, initialised from it), an index
+# not shown to lie in range, a write that is not a statement of its own, a
+# lambda capturing a mutable local by reference, and a local with no
+# initialiser.  In a template, a call whose function is known only at
+# instantiation is read as taking its arguments by value, which Rule 1 gives
+# for a function in Jlt (rule1-lvalue-reference-params,
+# rule1-rvalue-reference-params, rule1-const-call-operator).
 tool local-state

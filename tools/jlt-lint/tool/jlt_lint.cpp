@@ -490,11 +490,16 @@ bool inStd(const clang::Decl* d) {
 
 /// The kind of a statement, as admission.txt classes it.  A conversion to an
 /// arithmetic type written as a call, size_t(e) or int(i), is the kernel's
-/// written conversion (Figure 2, Table 7), a kind of its own; T(x) to a class
-/// type, a construction, stays CXXFunctionalCastExpr.
+/// written conversion (Figure 2, Table 7), a kind of its own; a value of a
+/// class type from values for its fields, written with braces, Sums{a, b},
+/// is Figure 2's own form, as it already is in a template (an unresolved
+/// construction); T(x) to a class type, with parentheses, stays
+/// CXXFunctionalCastExpr.
 std::string stmtKind(const clang::Stmt* st) {
-  if (const auto* c = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(st))
+  if (const auto* c = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(st)) {
     if (c->getType()->isArithmeticType()) return "Stmt:ArithmeticConversion";
+    if (c->isListInitialization() && c->getType()->isRecordType()) return "Stmt:BracedValue";
+  }
   return std::string("Stmt:") + st->getStmtClassName();
 }
 
@@ -4277,6 +4282,21 @@ class LocalState : public clang::ASTConsumer {
         }
         return false;
       }
+      /// A function of the standard that only reads or copies what it is
+      /// given, though its signature takes a forwarding reference (a closed
+      /// list): the kernel's iteration is written with the first two.
+      static bool reader(const clang::CallExpr* c) {
+        static const std::set<std::string> readers{
+            "fold_left", "iota", "transform", "make_pair", "make_tuple", "make_optional"};
+        const clang::NamedDecl* named = c->getDirectCallee();
+        // A function object of the standard, views::iota(a, b): its name.
+        if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(c))
+          if (o->getOperator() == clang::OO_Call && o->getNumArgs() > 0)
+            if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(o->getArg(0)->IgnoreParenImpCasts()))
+              named = llvm::dyn_cast<clang::VarDecl>(d->getDecl());
+        return named && named->getIdentifier() && inStd(named) &&
+               readers.count(named->getName().str());
+      }
       /// How an argument binds: 0 a parameter that may write it (or one not
       /// known), 1 a copy or a const reference, 2 a const reference the
       /// call's result may be (std::max), to be followed.
@@ -4356,6 +4376,8 @@ class LocalState : public clang::ASTConsumer {
             clang::DynTypedNode up;
             const clang::DynTypedNode* q = above(m, up);
             const auto* call = q ? q->get<clang::CallExpr>() : nullptr;
+            // Called, and not an argument of the call (op(s.first, s.second)).
+            if (call && call->getCallee()->IgnoreParens() != m) call = nullptr;
             if (!call) { cur = e; continue; }  // a field, presumably: c
             // A method of a class template, looked up in its pattern and its
             // partial specializations: const in every one (v.size() of a
@@ -4394,6 +4416,7 @@ class LocalState : public clang::ASTConsumer {
             // rule1-const-call-operator), and a template is judged for its
             // instances in Jlt.
             if (!g) return op != clang::OO_Amp;
+            if (reader(o)) return true;
             int b;
             if (const auto* method = llvm::dyn_cast<clang::CXXMethodDecl>(g); method && !method->isStatic())
               b = i == 0 ? (method->isConst() ? (o->isGLValue() ? 2 : 1) : 0)
@@ -4419,6 +4442,7 @@ class LocalState : public clang::ASTConsumer {
                 return disjoint(c, *ctx) && standsAlone(c);
               if (g->getName() == "get" && c->isGLValue()) { cur = e; continue; }  // c
             }
+            if (reader(c)) return true;
             const int b = binds(g, i, c);
             if (b == 2) { cur = e; continue; }
             return b == 1;
@@ -4429,6 +4453,10 @@ class LocalState : public clang::ASTConsumer {
             if (i == c->getNumArgs()) return false;
             // A copy, or the move of a returned local (return a;): a.
             if (c->getConstructor()->isCopyOrMoveConstructor()) return true;
+            // A value type of the standard copies what it is built from
+            // (std::optional{s.first}, by a forwarding reference).
+            if (const auto* r = c->getType()->getAsCXXRecordDecl())
+              if (inStd(r) && deepValue(c->getType())) return true;
             return binds(c->getConstructor(), i, c) != 0;
           }
           if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {

@@ -10,7 +10,7 @@
 //
 // rule1-local-state checks every use of a mutable local against a list of
 // the positions Table 7's rows read (an allowlist): it refuses each near-miss
-// (some with a finding at more than one use, 37 in all) and nothing else
+// (some with a finding at more than one use, 38 in all) and nothing else
 // here: Fibonacci and the sound twins pass.  (An LU solve is left
 // out until division and fields are under control: #1221.)  Standalone, no
 // imports, so it is checked without the build.
@@ -70,19 +70,40 @@ static_assert(fibonacci(90) == 2880067194370816120uz);
 static_assert(fibonacci(77) == fibonacci_by_definition(77) &&
               fibonacci(93) == fibonacci_by_definition(93));
 
-// ---- sound: a running sum in place, mod 2^32.  Step i reads a[i - 1], which
+// ---- sound: a running sum in place, mod 2^64.  Step i reads a[i], which
 // step i - 1 wrote: the state of the fold over the indices is the whole array.
-constexpr std::array<unsigned, 4> running_sum(std::array<unsigned, 4> a) {
-  for (std::size_t i = 1; i < 4; ++i) a[i] = a[i] + a[i - 1];
+constexpr std::array<std::size_t, 4> running_sum(std::array<std::size_t, 4> a) {
+  for (std::size_t i = 0; i < 3; ++i) a[i + 1] = a[i + 1] + a[i];
   return a;
 }
+// The kernel program it is read as (Table 7's rows, applied): the state a
+// record with a field for each element, the step a function object of the
+// state and the index, the element's update a choice on the index, the loop
+// the kernel's iteration.
+struct Sums {
+  std::size_t a0, a1, a2, a3;
+};
+struct RunningStep {
+  constexpr Sums operator()(Sums s, std::size_t i) const {
+    return i == 0   ? Sums{s.a0, s.a1 + s.a0, s.a2, s.a3}
+           : i == 1 ? Sums{s.a0, s.a1, s.a2 + s.a1, s.a3}
+                    : Sums{s.a0, s.a1, s.a2, s.a3 + s.a2};
+  }
+};
+constexpr Sums running_sum_as_read(Sums s) {
+  return std::ranges::fold_left(std::views::iota(0uz, 3uz), s, RunningStep{});
+}
 // The reference: the definition, element k the sum of the first k + 1.
-constexpr std::array<unsigned, 4> running_sum_by_definition(std::array<unsigned, 4> a) {
+constexpr std::array<std::size_t, 4> running_sum_by_definition(std::array<std::size_t, 4> a) {
   return {a[0], a[0] + a[1], a[0] + a[1] + a[2], a[0] + a[1] + a[2] + a[3]};
 }
-static_assert(running_sum({1, 2, 3, 4}) == std::array<unsigned, 4>{1, 3, 6, 10} &&
-              running_sum({4294967295u, 1, 0, 0}) == std::array<unsigned, 4>{4294967295u, 0, 0, 0} &&
+static_assert(running_sum({1, 2, 3, 4}) == std::array<std::size_t, 4>{1, 3, 6, 10} &&
               running_sum({5, 6, 7, 8}) == running_sum_by_definition({5, 6, 7, 8}));
+// The in-place code and its reading agree, here at one argument.
+static_assert(running_sum({5, 6, 7, 8})[0] == running_sum_as_read({5, 6, 7, 8}).a0 &&
+              running_sum({5, 6, 7, 8})[1] == running_sum_as_read({5, 6, 7, 8}).a1 &&
+              running_sum({5, 6, 7, 8})[2] == running_sum_as_read({5, 6, 7, 8}).a2 &&
+              running_sum({5, 6, 7, 8})[3] == running_sum_as_read({5, 6, 7, 8}).a3);
 
 // ---- near-misses, each beside its sound twin.
 
@@ -229,6 +250,20 @@ static_assert(built<int>() == 1 && comma_sequenced() == 2);
 enum Slot : std::size_t { first, second };
 constexpr std::size_t by_enumerator(std::array<std::size_t, 2> p) { return p[second]; }
 static_assert(by_enumerator({1, 2}) == 2);
+
+// Not refused: the standard's forwarding signatures that only read or copy,
+// a closed list (the kernel's iteration is written with fold_left and iota);
+// an algorithm that writes its range, with the same shape of signature, is.
+constexpr std::optional<std::size_t> counted_to(std::size_t budget, std::pair<std::size_t, bool> s) {
+  const std::size_t n = std::ranges::fold_left(std::views::iota(0uz, budget), 0uz, std::plus{});
+  return s.second ? std::optional{s.first + n} : std::nullopt;
+}
+constexpr std::size_t sorted_in_place() {  // refused
+  std::array<std::size_t, 2> r{2, 1};
+  std::ranges::sort(r);
+  return r[0];
+}
+static_assert(counted_to(4, {1, true}) == 7 && sorted_in_place() == 1);
 
 // The practitioner's cases on #1219, each refused.
 // A reference whose source is not traced but mentions local state.

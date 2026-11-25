@@ -1,4 +1,4 @@
-# grade: Π, rejecting: a finding refutes translatability by Table 7's rows; silence affirms nothing.
+# grade: Π, rejecting: a finding refutes that the definition shows the rule's condition, as written; silence affirms nothing.
 # Rule 1: a function returns a value, never a reference (read through any
 # alias: the canonical return type).  const T and
 # const T& are one value only while no reference into an argument escapes;
