@@ -30,6 +30,7 @@ comma_sequenced undecided
 Slot undecided
 by_enumerator Jlt
 counted_to Jlt
+repeated Jlt
 sorted_in_place refused
 aliased_through_max refused
 aliased_through_choice refused

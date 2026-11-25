@@ -258,12 +258,15 @@ constexpr std::optional<std::size_t> counted_to(std::size_t budget, std::pair<st
   const std::size_t n = std::ranges::fold_left(std::views::iota(0uz, budget), 0uz, std::plus{});
   return s.second ? std::optional{s.first + n} : std::nullopt;
 }
+constexpr std::size_t repeated(std::size_t n, std::size_t times) {  // sound: views::repeat copies n
+  return std::ranges::fold_left(std::views::repeat(n, times), 0uz, std::plus{});
+}
 constexpr std::size_t sorted_in_place() {  // refused
   std::array<std::size_t, 2> r{2, 1};
   std::ranges::sort(r);
   return r[0];
 }
-static_assert(counted_to(4, {1, true}) == 7 && sorted_in_place() == 1);
+static_assert(counted_to(4, {1, true}) == 7 && repeated(5, 3) == 15 && sorted_in_place() == 1);
 
 // The practitioner's cases on #1219, each refused.
 // A reference whose source is not traced but mentions local state.

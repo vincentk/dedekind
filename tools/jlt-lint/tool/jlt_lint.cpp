@@ -4382,7 +4382,7 @@ class LocalState : public clang::ASTConsumer {
       /// list): the kernel's iteration is written with the first two.
       static bool reader(const clang::CallExpr* c) {
         static const std::set<std::string> readers{
-            "fold_left", "iota", "transform", "make_pair", "make_tuple", "make_optional",
+            "fold_left", "iota", "repeat", "transform", "make_pair", "make_tuple", "make_optional",
             // visit hands the alternative held to its visitor, which in Jlt
             // takes it by value (Rule 1).
             "visit"};

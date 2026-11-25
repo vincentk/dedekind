@@ -9,7 +9,7 @@
 # std::swap, the two disjoint, in a statement of its own.  Any other use is a
 # finding.  A closed list of the standard's functions read or copy what they
 # are given, though they take it by a forwarding reference: fold_left,
-# views::iota and views::transform, visit, make_pair, make_tuple and make_optional,
+# views::iota, views::repeat and views::transform, visit, make_pair, make_tuple and make_optional,
 # and the constructors of its value types.  It refuses besides a second name for local state (a reference, or
 # a local of a type that is not a value type, initialised from it), an index
 # not shown to lie in range, a write that is not a statement of its own, a
