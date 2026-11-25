@@ -55,4 +55,8 @@ Those counts are held by a ratchet and only go down.
 
 \paragraph{The standard library is trusted.}
 The listings compile with Clang~23 against two standard libraries, trusted as every \Cpp{} program trusts them and its compiler~\cite{thompson1984reflections}; the youngest piece they use, the folds over ranges, is complete since libc++~23~\cite{libcxx2026status}.
+What the linter shows of a call is what the callee's declaration permits.
+The standard fixes what \cppinline{views::repeat(n, k)} computes and leaves to each implementation how its parameters are declared: one of the two libraries takes the count by value, the other by a reference through which, by its type, it could write it.
+So one line of the library had one more finding under one than under the other, though neither writes anything.
+The linter therefore keeps a short, closed list of the standard's functions that it trusts only to read their arguments, and that list is part of what is trusted.
 
