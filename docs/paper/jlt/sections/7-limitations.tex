@@ -35,16 +35,10 @@ Constant evaluation refuses it and run time does not (Section~\ref{sec:binding})
 A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cannot overflow, a fact no rule checks.\footnote{A signed integer is a chain under \cppinline{<} and a bounded lattice under \cppinline{min} and \cppinline{max}, but no monoid under \cppinline{+} or \cppinline{*}, since overflow is undefined.}
 
 \paragraph{The posture is opinionated about idiom.}
-Jlt works best where a program is a composition of arrows over products and sums, in the constructions of Pierce~\cite{pierce1991basic}.
-The type of such a term is its structure, so a \cppinline{concept} can read it and a specialisation can be chosen by it: a pairing into a \cppinline{std::pair} is recognised as a pairing.
-Composition is also what lets laws be derived: a law passes from a term's parts to the term by one conditional law for each way of composing them (Table~\ref{tab:law-propagation}).
+Jlt prefers composition over inheritance, as the common rule of thumb has it for objects~\cite{gamma1995design}, and takes composition in the sense of Pierce's constructions~\cite{pierce1991basic}: a program is a composition of arrows over products and sums.
+Two arrows compose only where the codomain of one is the domain of the next, so each arrow's domain and codomain are known from its type, and that book-keeping is what the rest stands on: a \cppinline{concept} can read a term's structure, a specialisation can be chosen by it, and a law passes from a term's parts to the term by one conditional law for each way of composing them (Table~\ref{tab:law-propagation}).
 Two common idioms of \Cpp{} fit less well.
-By the standard a lambda's type is a unique, unnamed class type~\cite[{\texttt{expr.prim.lambda.closure}}]{cpp23standard}, so a law can be declared of it only through \cppinline{decltype} of one closure, its type differs from every other lambda's, and no fold reads inside it.
-The limit is the language's, not a compiler's.
-Jlt admits it as sugar for a function object (Appendix~\ref{app:fjlt:closure}), not as a pattern to build on.
-What dispatch by a \cppinline{concept} needs is that a function's domain and codomain be known from its type.
-The accompanying library states them as two member types of a function object and calls such an object an arrow.
-That is a convention of the library, not a construct of the language, and another convention that names both would serve.
+A lambda's type is a unique, unnamed class type~\cite[{\texttt{expr.prim.lambda.closure}}]{cpp23standard}, so a law can be declared of it only through \cppinline{decltype} of one closure, and no fold reads inside it; Jlt admits it as sugar for a function object (Appendix~\ref{app:fjlt:closure}), not as a pattern to build on.
 A class hierarchy is nominal, where a \cppinline{concept} is structural, and a base that holds state or a virtual function is outside the posture.
 
 \paragraph{The compiler has its own limits.}
