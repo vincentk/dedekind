@@ -82,7 +82,7 @@ Under the rules of this paper and a check that a tool performs, some templates c
 What was taken on trust, in the spellings the tool reads, comes out as a list.
 
 This paper characterises a fragment of \Cpp{23} as it ships, with no language modification or compiler extension, and no tool required to compile it: a fragment whose generic definitions have types of the prenex fragment of System~F and whose programs are ordinary \Cpp{23} programs.
-Jlt is the part of the \Cpp{} that can be evaluated at compile time in which every definition also has a meaning in System~F, and constant evaluation, which every compiler performs, is the reference that tests it.
+Jlt is a part of the \Cpp{} that can be evaluated at compile time in which every definition also has a meaning in System~F, and constant evaluation, which every compiler performs, is the reference it is tested against.
 The fragment is type-class-style code under three rules, called the Juliet Posture (Jlt):
 i) values are copyable data and functions are pure and evaluable at compile time;
 ii) generic code varies with a type only through that type's concepts and traits;
