@@ -32,7 +32,6 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import jlt_lint  # noqa: E402
 import admission  # noqa: E402
 
 LOCATION = re.compile(r"^(?P<path>\S+?):(?P<line>\d+):(?P<col>\d+)(?:: (?P<rest>.*))?$")
@@ -135,6 +134,9 @@ def latex(rows):
 
 
 def main():
+    # Here, not at the top: jlt_lint imports this module for classify, and
+    # only the command line needs jlt_lint back.
+    import jlt_lint
     args = argparse.ArgumentParser()
     args.add_argument("build", type=pathlib.Path)
     args.add_argument("tool", type=pathlib.Path)
