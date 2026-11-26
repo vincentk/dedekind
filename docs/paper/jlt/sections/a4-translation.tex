@@ -32,7 +32,7 @@ A declaration whose \cppinline{same_as} constraints have no unifier is ill forme
 
 \begin{lemma}[Factoring]
 \label{lem:factor}
-Let $\theta$ be the unifier of a declaration's \cppinline{same_as} constraints, and take types in an algebra in which the constructors are free, a read is a function of its arguments, and a read at concrete arguments is the type its entry names (\textsc{Eq-Assoc}, \textsc{Eq-Cod}, \textsc{Eq-Dom}).
+Let $\theta$ be the unifier of a declaration's \cppinline{same_as} constraints, which \ref{wf:unifier} gives, and take types in an algebra in which the constructors are free, a read is a function of its arguments, and a read at concrete arguments is the type its entry names (\textsc{Eq-Assoc}, \textsc{Eq-Cod}, \textsc{Eq-Dom}).
 If a substitution $\psi$ of the declaration's type variables makes the two sides of each of those constraints equal there, then $\psi = \theta;\psi'$, where $\psi'$ is $\psi$ on the type variables that $\theta$ keeps and, on each read that remains, the value of that read at $\psi$ of its arguments.
 \end{lemma}
 \begin{proof}
@@ -140,7 +140,7 @@ The program's image is its definitions in declaration order, each scoping over t
 An entry at a form is a function from its context's records and its own trait's values at the parts to its own value, the instance with a context of qualified types~\cite{jones1994qualified}.
 The translation of a read ends, because the only reads an entry adds are of its own trait at proper parts of its head (\textsc{D-Entry}).
 No generic function has a parameter that its declaration does not write: a body that depends on a trait reaches it through a shape, and the shape's record holds it, and a body that holds a value of an associated type has it among its type parameters.
-The definitions are acyclic, no body calling itself (Table~\ref{tab:excluded}), and the only recursion is iteration over a count, whose image is the iterator of the naturals (Figure~\ref{fig:fjlt-recursion}).
+The definitions are acyclic, no body calling itself (\ref{wf:acyclic}), and the only recursion is iteration over a count, whose image is the iterator of the naturals (Figure~\ref{fig:fjlt-recursion}).
 
 A coercion constant $\mathit{toNat}$ reads \cppinline{size_t} as the inductive naturals $\mathbb{N}$, and $\llbracket n \rrbracket$ is the natural number that is $n$'s value.
 An iteration's count is always such an image, so no count exceeds what \cppinline{size_t} holds: $\mathbb{N}$ is the type the iterator is stated at, and only its numerals below that limit occur.

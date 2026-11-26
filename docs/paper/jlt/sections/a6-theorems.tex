@@ -8,7 +8,7 @@ Each result uses only those before it, except that Lemma~\ref{lem:dict} and Theo
 The omitted cases are the textbook ones, and the inductions are on paper, with no mechanisation; their mechanisation is future work.
 Throughout, $\Sigma$ is the signature of the operators of the atoms, total as Figure~\ref{fig:fjlt-syntax} admits them, and the carriers with the arrows supplied with them are further constant types and constants of the target (Section~\ref{sec:kernel:fjlt}); $\llbracket \cdot \rrbracket$ is the translation of Appendix~\ref{app:fjlt:translation}.
 A context translates pointwise, after the unifier $\theta$ of $\Delta$'s \texttt{same\_as} constraints, computed on the source types, has been applied to it (Appendix~\ref{app:fjlt:translation}): $\llbracket \Delta \rrbracket$ has a type variable for each $\alpha \in \Delta$ that $\theta$ keeps and one $\chi$ for each distinct associated type that $\Delta$ then reads at them, a record variable $q_Q : \llbracket Q \rrbracket$ for each assumed constraint $Q \in \Delta$ other than \texttt{same\_as}, and $\llbracket \Gamma \rrbracket = \overline{x : \llbracket \tau \rrbracket}$.
-It is defined where $\theta$ exists, which well-formedness asks (Appendix~\ref{app:fjlt:typing}, \emph{Equal types}).
+It is defined where $\theta$ exists, which \ref{wf:unifier} asks; a well-formed program is one that meets \ref{wf:shapes} to~\ref{wf:acyclic} of Appendix~\ref{app:fjlt:typing}, and each result below names the conditions it uses.
 
 \subsection{Definitions and assumptions}
 
@@ -70,7 +70,7 @@ Takahashi's lemma, that $t \Rightarrow u$ implies $u \Rightarrow t^{*}$~\cite{ta
 So $\Rightarrow$ has the diamond property, and $\longrightarrow$ is confluent, on all terms, typed or not, without strong normalisation.
 
 \emph{Strong normalisation.}
-The defined names are acyclic, so each has a closed expansion $e(d)$, and $e(d) = e(b)$ for its body $b$.
+The defined names are acyclic, being images of declarations of which none calls itself and each calls only what stands above it (\ref{wf:acyclic}, \ref{wf:order}), so each has a closed expansion $e(d)$, and $e(d) = e(b)$ for its body $b$.
 A step other than an unfolding maps under $e$ to one step, since no left side holds a defined name, and an unfolding to none; unfoldings alone end, each replacing a name by names declared before it, so an infinite reduction has infinitely many other steps and maps to an infinite reduction without defined names.
 It remains to show that the target without defined names is strongly normalising, on typed terms, which reduction keeps~\cite{girard1989proofs}.
 We map it into the calculus of Theorem~\ref{cit:sn}, keeping types.
@@ -99,15 +99,15 @@ Parametricity of the image follows from preservation, and of the FJlt function f
 
 \begin{theorem}[Coherence]
 \label{thm:coherence}
-The translation is a function of a well-formed program: two resolutions of the same constraint at the same concrete types yield the same record.
+The translation is a function of a well-formed program (\ref{wf:shapes} to~\ref{wf:acyclic}): two resolutions of the same constraint at the same concrete types yield the same record.
 \end{theorem}
 \begin{proof}
-Resolution is a function, by well-formedness.
+Resolution is a function at concrete types, by \ref{wf:function}.
 At concrete types a read of a trait or of an associated type resolves to one entry or to the default (Appendix~\ref{app:fjlt:trait}, \emph{Associated types}), and a call to a unique most specific generic function among the entailed candidates.
-Well-formedness includes the conditions on the order of declarations (Appendix~\ref{app:fjlt:order}), under which a use resolves the same wherever it stands, so the record does not depend on the place of the use.
-At a type variable, a call resolves only where its context decides it.
+Under \ref{wf:order} (Appendix~\ref{app:fjlt:order}) a use resolves the same wherever it stands, so the record does not depend on the place of the use.
+At a type variable, a call resolves only where its context decides it (\ref{wf:stable}).
 So a body's call resolves to the same declaration at every instantiation of the body.
-Contexts are well-founded, so the recursion through contexts terminates with one answer.
+Contexts are well founded (\ref{wf:founded}), so the recursion through contexts terminates with one answer.
 
 Entailment makes no choice: for each constraint exactly one rule of Figure~\ref{fig:fjlt-entailment} applies, the side conditions keeping the rules apart, except for a law, where the two law rules build the same $\mathit{true}$ (Table~\ref{tab:entailment-cases}).
 \begin{table}[htbp]
@@ -176,11 +176,11 @@ An associated type read at $\overline{\alpha}$ translates to its $\chi$, and aft
 
 \begin{lemma}[Dictionaries are well typed]
 \label{lem:dict}
-If $\Delta \Vdash Q$ in a well-formed program $P$, then $\Gamma_P; \llbracket \Delta \rrbracket; \varnothing \vdash \llbracket \Delta \Vdash Q \rrbracket : \llbracket Q \rrbracket$, with $\Gamma_P$ as in Theorem~\ref{thm:preservation}.
+If $\Delta \Vdash Q$ in a well-formed program $P$ (\ref{wf:shapes} to~\ref{wf:acyclic}), then $\Gamma_P; \llbracket \Delta \rrbracket; \varnothing \vdash \llbracket \Delta \Vdash Q \rrbracket : \llbracket Q \rrbracket$, with $\Gamma_P$ as in Theorem~\ref{thm:preservation}.
 \end{lemma}
 \begin{proof}
 By induction on the entailment derivation, mutually with Theorem~\ref{thm:preservation}: \textsc{E-Op}'s field is a translated expression, which that theorem types, and that theorem needs this lemma for the dictionaries passed at a call, at a call of a function object and at a read (\textsc{T-Call}, \textsc{T-App}, \textsc{T-Trait}).
-The induction is on the relation \emph{depends on} of Appendix~\ref{app:fjlt:typing} (\emph{Well-founded declarations}), which well-formedness requires to be well founded, and then on the size of the derivation.
+The induction is on the relation \emph{depends on} of Appendix~\ref{app:fjlt:typing} (\emph{Well-founded declarations}), which \ref{wf:founded} requires to be well founded, and then on the size of the derivation.
 Declaration order would not do: an entry may be declared after a shape whose dictionary reaches it.
 Each of the two uses the other only on a declaration, at its types, that the present one depends on, or on a smaller derivation: the entailments whose records a call or a read passes are premises of \textsc{T-Call}, \textsc{T-App} and \textsc{T-Trait}, so subderivations.
 Table~\ref{tab:entailment-cases} has one row per rule of Figure~\ref{fig:fjlt-entailment}, and the row with work is \textsc{E-Op}'s.
@@ -190,7 +190,7 @@ So the field has type $\overline{\llbracket \tau_x \rrbracket} \to \llbracket \t
 
 \begin{theorem}[Type preservation]
 \label{thm:preservation}
-Let $P$ be a well-formed program, so that the \texttt{same\_as} constraints of each of its declarations have a unifier (Appendix~\ref{app:fjlt:translation}), and let $\Gamma_P$ be the target signature of its definitions, each defined name with the type of its image.
+Let $P$ be a well-formed program (\ref{wf:shapes} to~\ref{wf:acyclic}), so that the \texttt{same\_as} constraints of each of its declarations have a unifier (\ref{wf:unifier}), and let $\Gamma_P$ be the target signature of its definitions, each defined name with the type of its image.
 If $\Delta; \Gamma \vdash e : \tau$ in $P$, then $\Gamma_P; \llbracket \Delta \rrbracket; \llbracket \Gamma \rrbracket \vdash \llbracket e \rrbracket : \llbracket \tau \rrbracket$ in the target.
 \end{theorem}
 \begin{proof}
@@ -222,7 +222,7 @@ rule & its image has its type, because \\
 \addtocounter{table}{-1}
 \endgroup
 \case{\textsc{D-Generic}}the body is typed${}^{\textsc{ih}}$ under $\overline{\alpha}$, the variables $\overline{\chi}$ of its associated types, the record variables $\overline{q : \llbracket Q \rrbracket}$ and $\overline{x : \llbracket \tau_x \rrbracket}$, so the abstraction has the stated type, $\tau$ the written result type.
-Its calls on constrained types are \textsc{T-Req-Assumed}, and its other calls are to declarations it depends on, no body calling its own function, directly or through another, so the measure of Lemma~\ref{lem:dict}'s proof gives the induction hypothesis for them.
+Its calls on constrained types are \textsc{T-Req-Assumed}, and its other calls are to declarations it depends on, no body calling its own function, directly or through another (\ref{wf:acyclic}), so the measure of Lemma~\ref{lem:dict}'s proof gives the induction hypothesis for them.
 \case{\textsc{T-Construct}}$O_{\mathrm{call}}$ has the type $\forall\overline{\alpha'}.\,\forall\overline{\chi}.\,\overline{\llbracket \tau_y \rrbracket} \to \overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau_r \rrbracket$ under $\Delta_O$, its body typed as a generic function's${}^{\textsc{ih}}$ (by \textsc{D-Op}), a standard one's is its constant's type in the target (Definition~\ref{def:target}), and the sum's three given terms have the types Figure~\ref{fig:fjlt-types} assigns, by the target's rules for injections and case.
 The rule's premise $\Delta \vdash O\texttt{<}\overline{\tau}\texttt{>}$ defines the types $\overline{\tau'}$ at the kept $\overline{\alpha'}$ and the images $\overline{\llbracket \rho \rrbracket}$ of the reads, so $O_{\mathrm{call}}\,\overline{\llbracket \tau' \rrbracket}\,\overline{\llbracket \rho \rrbracket}$ has that type with them substituted (Theorem~\ref{cit:subst}), and applied to the fields it has the second component of $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$, by its definition (Figure~\ref{fig:fjlt-types}).
 The fields are typed at $\tau_y[\overline{\tau}/\overline{\alpha}]$${}^{\textsc{ih}}$, whose image is $\llbracket \tau_y \rrbracket$ so substituted${}^{\ddagger}$, the premise's \texttt{same\_as} constraints being the hypothesis of Lemma~\ref{lem:subst}~(i) at $\Delta_O$; so the pair has type $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$.
@@ -241,6 +241,7 @@ An operator expression is the case of the call it resolves to, or the textbook c
 
 \subsection{Simulation of evaluation}
 
+Throughout this subsection the program is well formed (\ref{wf:shapes} to~\ref{wf:acyclic}), and a term is typed in it.
 Evaluation agrees across the translation (Theorem~\ref{thm:simulation}); the work is in Lemma~\ref{lem:forward}, stated for a relation $\sqsupseteq$ wider than the translation so that the induction goes through, and the theorem and its corollaries are its special cases.
 
 \begin{lemma}[Dictionaries agree with resolution]
@@ -282,7 +283,7 @@ rule & what the substitution changes & reduces to the concrete side, because \\
 \textsc{E-Same} & nothing & no dictionary on either side \\
 \multicolumn{3}{@{}l}{\textit{(ii), terms}} \\
 \textsc{T-Req-Assumed} & $q_Q.r\,\ldots$ becomes $d.r\,\ldots$ & it reduces to the resolved instance's translation${}^{\dagger}$ \\
-\textsc{T-Call}, \textsc{T-Op}, \textsc{T-App}, \textsc{T-Construct} & their types, each $\chi$ among them, and their dictionaries & the types by Lemma~\ref{lem:subst}~(i), the dictionaries by (i) \\
+\textsc{T-Call}, \textsc{T-Op}, \textsc{T-App}, \textsc{T-Construct} & their types, each $\chi$ among them, and their dictionaries & a call resolves at $\overline{\sigma}$ to the declaration it resolved to under $\Delta$ (\ref{wf:stable}); the types by Lemma~\ref{lem:subst}~(i), the dictionaries by (i) \\
 \textsc{T-Trait} & nothing: a read in a typed term is at concrete types, and so are the entry's associated types it supplies & the same closed term on both sides \\
 \textsc{T-Eq} & nothing & the image is the premise's, and the two types have one image before the substitution and after it, by Lemma~\ref{lem:subst}~(i), the substitution factoring through the unifier \\
 every other rule & its subterms & structural${}^{\textsc{ih}}$ \\
@@ -305,6 +306,7 @@ Its cases with work are three.
 \textsc{T-Req-Assumed}: at concrete types the site is the requirement's expression with its arguments, which \textsc{E-Op}'s premise types at the instantiated constraint, the arguments substituted by (a); so it is typed at the declared type by whichever rule types that expression, \textsc{T-Call}, \textsc{T-Trait}, \textsc{T-App}, \textsc{T-Op} or an operator's, an $\alpha\texttt{\{\}}$ in it being a construction at the concrete type, typed by \textsc{T-Construct}.
 \textsc{T-Eq} by \textsc{Eq-Same}: at concrete types the constraint holds by \textsc{E-Same}, so the two types are one once resolved, and the use is \textsc{T-Eq} by reflexivity.
 \textsc{T-Eq} by \textsc{Eq-Assoc}, \textsc{Eq-Cod} or \textsc{Eq-Dom}, and any associated type in a type: at concrete types it resolves, and the type is the one its entry names.
+\textsc{T-Call}: the call resolves at $\overline{\sigma}$ to the declaration it resolved to under $\Delta_D$, by \ref{wf:stable}, and its premises are instances of the premises there.
 Every other case is structural.
 The steps, one row per rule of evaluation; ${}^{\textsc{ih}}$ marks the induction hypothesis on the context, and the rows with work follow the table.
 \begingroup
@@ -350,7 +352,7 @@ redex & steps by & because \\
 \endlastfoot
 a non-value in an evaluation position & \textsc{S-Ctx} & the leftmost such subterm steps${}^{\textsc{ih}}$ \\
 a call $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)}$ & \textsc{S-Call} & the premise of \textsc{T-Call} says it resolves; \textsc{T-Req-Assumed} cannot occur, $\Delta$ being empty \\
-a read $f\texttt{<}\overline{\sigma}\texttt{>}$ & \textsc{S-Trait} & the premise of \textsc{T-Trait} says it resolves, and \textsc{D-Entry}'s condition on overlapping entries that it does so at all types \\
+a read $f\texttt{<}\overline{\sigma}\texttt{>}$ & \textsc{S-Trait} & the premise of \textsc{T-Trait} says it resolves, and \textsc{D-Entry}'s condition on overlapping entries that it does so at all types (\ref{wf:function}) \\
 $O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)}$ & \textsc{S-Op}, \textsc{S-Std} & the choice of $O$; a standard one or an arrow supplied with a carrier is total (Assumption~\ref{ass:instance}) \\
 $\ominus v$, $v_1 \oplus v_2$ & \textsc{S-Prim}, or the call it resolves to & the choice of $\Sigma$, the operators of Figure~\ref{fig:fjlt-syntax} defined at every argument, on constants by canonical forms \\
 a conditional, a projection & \textsc{S-If}, \textsc{S-Proj} & canonical forms: a constant of type \texttt{bool}, a pair or a constructed object \\
@@ -410,7 +412,7 @@ The case $k = n$ is one step of the iterator followed by a projection, to $\llbr
 
 \begin{corollary}[Termination]
 \label{cor:termination}
-Every well-formed FJlt program terminates.
+Every well-formed FJlt program (\ref{wf:shapes} to~\ref{wf:acyclic}) terminates.
 \end{corollary}
 \begin{proof}
 Let $e$ be the program's term, closed and well typed since the program is well formed.

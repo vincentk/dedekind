@@ -10,7 +10,7 @@ There are four judgments:
 \item $\Delta \Vdash Q$ says that the constraint $Q$ is \emph{entailed} in the context $\Delta$ (Figure~\ref{fig:fjlt-entailment}).
 \item $\Delta; \Gamma \vdash e : \tau$ types a term, $\Gamma$ holding the term variables with their types (Figure~\ref{fig:fjlt-typing}).
 \item $\Delta \vdash \tau \equiv \sigma$ says that two types are equal (Figure~\ref{fig:fjlt-assoc}).
-\item $\vdash D$ says a declaration is well formed (Figures~\ref{fig:fjlt-assoc} and~\ref{fig:fjlt-declarations}); a shape has no such rule and is assumed well formed: the names it uses are declared above it, each law is a term of type \cppinline{bool} at concrete types, and each required call is typed, at concrete types, by \textsc{E-Op}'s premise.
+\item $\vdash D$ says a declaration is well formed (Figures~\ref{fig:fjlt-assoc} and~\ref{fig:fjlt-declarations}); a shape has no such rule and is assumed well formed (\ref{wf:shapes}, below).
 \end{enumerate}
 The context $\Delta$ of a declaration holds three things: its type variables; the associated types it reads at them, each $g\texttt{<}\overline{\tau}\texttt{>::type}$ with a type variable in $\overline{\tau}$; and its constraints, as assumptions.
 The reads it holds are those that its head, its constraints or the types of its parameters, fields and result name, or that the requirements of a shape it assumes name, transitively.
@@ -18,7 +18,23 @@ It also holds every other read at its type variables that a type in the typing d
 The calls of a body are to declarations above it, so this closure is taken in declaration order and is finite.
 For each named type $O\texttt{<}\overline{\tau}\texttt{>}$ among the types above, $\Delta$ also holds the reads of $O$'s own context at $\overline{\tau}$ that are still at a type variable, so that the image of $O\texttt{<}\overline{\tau}\texttt{>}$ is defined (\emph{Constructions}, below); $O$ stands above its uses, so this closure is finite too.
 Substitution, $e[\overline{e}/\overline{a}]$ and $\tau[\overline{\sigma}/\overline{\alpha}]$, is simultaneous, and an overbar abbreviates a sequence, as in Figure~\ref{fig:fjlt-syntax}.
-A program $P = \overline{D}\; e$ (Figure~\ref{fig:fjlt-syntax}) is well formed when $\vdash D$ for each of its declarations other than a shape, in order, and $\varnothing; \varnothing \vdash e : \tau$ for some $\tau$.
+
+\newcounter{wf}\renewcommand{\thewf}{W\arabic{wf}}
+\paragraph{Well-formed programs.}
+\label{app:fjlt:wf}
+A program $P = \overline{D}\; e$ (Figure~\ref{fig:fjlt-syntax}) is \emph{well formed} when $\vdash D$ for each of its declarations other than a shape, in order, $\varnothing; \varnothing \vdash e : \tau$ for some $\tau$, and it meets eight conditions that the rules do not state.
+Each names the paragraph below that explains it and, in the letters of Table~\ref{tab:derived}, who holds it, with C for a breach that \Cpp{} itself refuses.
+\begin{description}
+\item[\refstepcounter{wf}\thewf\label{wf:shapes}] Shapes. In every shape, each law is a closed term of type \cppinline{bool} at concrete types, and each required call is typed, at concrete types, by \textsc{E-Op}'s premise (\emph{Entailment and laws}). A.
+\item[\refstepcounter{wf}\thewf\label{wf:unifier}] Unifier. The \cppinline{same_as} constraints of every declaration have a unifier (\emph{Equal types}). A.
+\item[\refstepcounter{wf}\thewf\label{wf:construct}] Constructions. Every named type $O\texttt{<}\overline{\tau}\texttt{>}$ that a declaration's types name is well formed under the declaration's $\Delta$ (\emph{Constructions}). A.
+\item[\refstepcounter{wf}\thewf\label{wf:function}] Resolution. At concrete types every use resolves to one declaration: a call has a unique best candidate, and a trait or an associated type one entry at a head (Table~\ref{tab:resolution}). C for an ambiguous call, A for the rest.
+\item[\refstepcounter{wf}\thewf\label{wf:stable}] Stability. In a body, a call resolves only where its choice survives every instantiation of the body (\emph{Resolution at a type variable}). L, in part (Table~\ref{tab:lint}).
+\item[\refstepcounter{wf}\thewf\label{wf:order}] Order. What a shape names stands above the shape; an entry stands above the first read it matches and above the first use, at those types, of a shape that reads it; and every case of a function stands above the first call it could be chosen for (\emph{The order of declarations}). L, in part (Section~\ref{sec:limits}).
+\item[\refstepcounter{wf}\thewf\label{wf:founded}] Well-foundedness. The relation \emph{depends on}, between declarations at their type arguments, is well founded (\emph{Well-founded declarations}). A.
+\item[\refstepcounter{wf}\thewf\label{wf:acyclic}] No self-call. No body calls itself, directly or through another (Table~\ref{tab:excluded}). L (Section~\ref{sec:check}).
+\end{description}
+
 
 \begin{figure}[htbp]
 \[
@@ -71,7 +87,7 @@ shape & the kernel reads it as & against the standard \\
 \textsc{E-Same} holds where the two types are the same, which at concrete types is the same type once every associated type in them is resolved (\textsc{Eq-Assoc}, below).
 Under a type variable an assumed \cppinline{same_as<T, U>} makes two types equal (\textsc{Eq-Same}), and \textsc{T-Eq} lets a term of the one be used at the other.
 An assumed \cppinline{same_as} carries no evidence: the translation solves it (Appendix~\ref{app:fjlt:translation}).
-A declaration whose \cppinline{same_as} constraints have no solution, as \cppinline{same_as<size_t, bool>}, has no instance, and FJlt counts it ill formed: well-formedness asks of every declaration that the unifier of its \cppinline{same_as} constraints exist (Appendix~\ref{app:fjlt:translation}).
+A declaration whose \cppinline{same_as} constraints have no solution, as \cppinline{same_as<size_t, bool>}, has no instance, and FJlt counts it ill formed (\ref{wf:unifier}; the unifier is defined in Appendix~\ref{app:fjlt:translation}).
 
 \begin{figure}[htbp]
 \[
@@ -114,7 +130,7 @@ The context $\Delta_O$ of a named type $O$ is that of a declaration (above): its
 $\Delta \vdash O\texttt{<}\overline{\tau}\texttt{>}$, read $O\texttt{<}\overline{\tau}\texttt{>}$ is well formed under $\Delta$, holds when two things hold of $\Delta_O$ at $\overline{\tau}$.
 Each read of $\Delta_O$, with $\overline{\tau}$ for $\overline{\alpha}$, resolves where it is concrete (\textsc{Eq-Assoc}) and is held by $\Delta$ where it is not.
 And $\Delta \Vdash \texttt{same\_as<}\tau_1\texttt{, }\tau_2\texttt{>}[\overline{\tau}/\overline{\alpha}]$ for each \cppinline{same_as} constraint among the call operator's constraints, so that $\overline{\tau}$ solves them and the image of $O\texttt{<}\overline{\tau}\texttt{>}$, the type of $O$'s call function at $\overline{\tau}$, is defined (Appendix~\ref{app:fjlt:translation}).
-Well-formedness asks the same of every type $O\texttt{<}\overline{\tau}\texttt{>}$ that a declaration's types name, under the declaration's $\Delta$.
+\ref{wf:construct} asks the same of every type that a declaration's types name.
 The call's other constraints are asked where it is called, by \textsc{T-App}, whose dictionaries the image passes there.
 This is stricter than \Cpp{}, which asks both only at the call, a member function's constraints being instantiated only where it is called~\cite[{\texttt{temp.inst}}]{cpp23standard}; the listings construct no type at which the difference shows.
 
@@ -134,7 +150,7 @@ An atom, a type variable and a type of no arguments, such as \cppinline{All}, ha
 
 \paragraph{Overload resolution.}
 A use \emph{resolves} at concrete types to one declaration, by \Cpp{}'s rule for it, to which the kernel adds a condition (Table~\ref{tab:resolution}).
-At concrete types resolution is therefore a function of the use's types, which is what Theorem~\ref{thm:coherence} needs of it.
+At concrete types resolution is therefore a function of the use's types (\ref{wf:function}), which is what Theorem~\ref{thm:coherence} needs of it.
 
 \begin{table}[htbp]
 \centering
@@ -257,7 +273,7 @@ The compiler applies the conditional laws to the axioms and computes the rest.}
 \end{table}
 
 \paragraph{Resolution at a type variable.}
-At a type variable FJlt adds one condition to \Cpp{}'s rule, which well-formedness requires: in a body with context $\Delta$, a call resolves only when its choice survives every instantiation of the body.
+At a type variable FJlt adds one condition to \Cpp{}'s rule, \ref{wf:stable}: in a body with context $\Delta$, a call resolves only when its choice survives every instantiation of the body.
 So every candidate that would be more specific than the chosen one and whose head unifies with the call's types is excluded by a constraint $\Delta$ decides, entailing it or its negation.
 That refines GHC's rule for overlapping instances~\cite{ghc2024overlapping}, which looks at instance heads only and refuses to commit to an instance the types do not yet decide.
 \Cpp{} does not hold it (Listing~\ref{lst:declare}), and no instantiation reports a breach: the body is well formed at every instantiation, so the function's meaning, not its validity, depends on the undeclared constraint.
@@ -312,20 +328,15 @@ Once instantiated, the candidates denote one operation, by Lemma~\ref{lem:resolv
 \label{app:fjlt:order}
 \Cpp{} finds a declaration from a place (Section~\ref{sec:limits}), and the kernel's resolution takes no account of place.
 So a program is well formed only where place makes no difference, which is the second of the two things the kernel asks that \Cpp{} does not check (Section~\ref{sec:translation}): that an entry stands above every use that could read it.
-Spelled out for each kind of declaration that a use can find, it is three conditions.
-\begin{enumerate}
-\item What a shape names stands above the shape.
-\item An entry of a trait or of an associated type stands above the first read it matches, and above the first use, at those types, of a shape that reads it.
-\Cpp{} makes a breach ill-formed, with no diagnostic required, for an entry at one type~\cite[{\texttt{temp.expl.spec}}]{cpp23standard} and for one at a form~\cite[{\texttt{temp.spec.partial}}]{cpp23standard}.
-\item Every case of a function stands above the first call it could be chosen for.
-\end{enumerate}
+Spelled out for each kind of declaration that a use can find, it is the three conditions of \ref{wf:order}.
+\Cpp{} makes a breach of the second ill-formed, with no diagnostic required, for an entry at one type~\cite[{\texttt{temp.expl.spec}}]{cpp23standard} and for one at a form~\cite[{\texttt{temp.spec.partial}}]{cpp23standard}.
 Under the three, a use that is valid at one place is valid at any later place and means the same there: position is a condition of validity and never a source of meaning.
 \Cpp{} asks as much across translation units, by the one-definition rule~\cite[{\texttt{basic.def.odr}}]{cpp23standard}, and within one it accepts a breach of the first or the third in silence.
-The second is a condition of \textsc{D-Entry} and of \textsc{D-Assoc-Entry}, and the first and the third are stated here; the linter checks the three only in part (Section~\ref{sec:limits}).
+The second is also a condition of \textsc{D-Entry} and of \textsc{D-Assoc-Entry}; the linter checks the three only in part (Section~\ref{sec:limits}).
 
 \paragraph{Well-founded declarations.}
 Typing is itself a computation: resolving a call may ask whether a constraint holds, which may ask for another resolution, and \RuleThree{} asks that this chain end too.
-Well-formedness therefore requires the declarations, taken at their type arguments, to be well founded under \emph{depends on}, which relates a declaration at some types to the declarations below, each at the types it names.
+\ref{wf:founded} therefore requires the declarations, taken at their type arguments, to be well founded under \emph{depends on}, which relates a declaration at some types to the declarations below, each at the types it names.
 \begin{center}
 \small
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.3\linewidth}>{\raggedright\arraybackslash}X@{}}
@@ -340,7 +351,7 @@ named type, also & the named types in its field, parameter and result types \\
 \bottomrule
 \end{tabularx}
 \end{center}
-The relation is on instantiations, not on bare declarations, and no single measure is given here: well-formedness asks for its well-foundedness outright.
+The relation is on instantiations, not on bare declarations, and no single measure is given here: \ref{wf:founded} asks for its well-foundedness outright.
 Resolution, entailment, \textsc{E-Not}'s negative premise and \textsc{E-Law}'s evaluation all recurse along it, so its being well founded makes the rules define one relation and resolution terminate.
 The mutual induction of Lemma~\ref{lem:dict} and Theorem~\ref{thm:preservation} is on it too, and then on the size of a derivation.
 
@@ -350,7 +361,7 @@ An entry on a structured head, such as \cppinline{Via<A, F, B, G, C>}, reads its
 So each step descends by the type, as Haskell's Paterson conditions do~\cite{sulzmann2007understanding}, and as Equation~\eqref{eq:cata} writes it.
 An entry on an unstructured head, a concrete type, has no parts to descend to, so it reads only traits, and asks only shapes, that are declared before its own trait.
 
-The declarations' own recursion is closed by Table~\ref{tab:excluded}: no body calls itself, directly or through another.
+The declarations' own recursion is closed by \ref{wf:acyclic}.
 
 \paragraph{Two rules of Jlt.}
 \label{app:fjlt:jlt-rules}
