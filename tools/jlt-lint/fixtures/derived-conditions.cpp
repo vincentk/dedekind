@@ -6,6 +6,7 @@
 // if constexpr is undecided wherever it stands: its two rows have no check
 // yet, so neither its sound uses nor these two are classed.
 // Standalone, no imports, so it is checked without the build.
+#include <initializer_list>
 #include <concepts>
 #include <cstddef>
 #include <cstdlib>
@@ -212,5 +213,38 @@ constexpr Pt diagonal(std::size_t n) { return Pt(n, n); }
 // The same construction narrowing an argument: refused.
 constexpr Pt narrowed_point(int n) { return Pt(n, n); }
 static_assert(plain_value(Plain{3}) == 3 && width() == 64 && diagonal(2).y == 2 && narrowed_point(1).x == 1);
+// A class whose braces would choose another constructor (Copilot on #1229):
+// Listed{n} is the list {n}, Listed(n) the count n, so no rewrite; open.
+struct Listed {
+  std::size_t n;
+  constexpr explicit Listed(std::size_t count) : n(count) {}
+  constexpr Listed(std::initializer_list<std::size_t> l) : n(l.size()) {}
+};
+constexpr std::size_t listed(std::size_t count) { return Listed(count).n; }
+static_assert(listed(3) == 3 && Listed{3}.n == 1);
+// A floating argument narrowed, or an integer made floating, as braces
+// would refuse them: refused.  A constant within range is not narrowing.
+struct Single {
+  float x;
+};
+struct Double {
+  double x;
+};
+constexpr Single to_single(double d) { return Single(d); }
+constexpr Double to_double(std::size_t n) { return Double(n); }
+constexpr Single one_single() { return Single(1.0); }
+static_assert(to_single(0.5).x == 0.5f && to_double(2).x == 2.0 && one_single().x == 1.0f);
+// An empty destructor whose member's destructor does something: its class's
+// destruction is not nothing, so not scaffolding (Copilot on #1229).
+struct Counted {
+  std::size_t v;
+  constexpr ~Counted() { v = 0; }
+};
+struct Owner {
+  Counted c;
+  constexpr ~Owner() = default;
+};
+constexpr std::size_t owned(std::size_t n) { return Owner{Counted{n}}.c.v; }
+static_assert(owned(4) == 4);
 
 }  // namespace jlt_listing

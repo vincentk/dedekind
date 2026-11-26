@@ -114,7 +114,13 @@ def main():
     shown_after = shown((HERE / "levels.counts").read_text()) if (HERE / "levels.counts").exists() else {}
     for body, was in sorted(shown_before.items()):
         now = shown_after.get(body)
-        if now is not None and now < was and ("levels", body.replace(" ", "_")) not in allow:
+        if ("levels", body.replace(" ", "_")) in allow:
+            continue
+        if now is None:
+            # A body main counts and this scope no longer does: its gate is
+            # gone, the quietest way to lose coverage.
+            worse.append(f"  levels {body}: shown {was}, the body is gone")
+        elif now < was:
             worse.append(f"  levels {body}: shown {was} -> {now}")
     if worse:
         sys.exit("ratchet.py: gates moved the wrong way; fix them, or name each in "
