@@ -166,14 +166,13 @@ A range of any other kind, as an array, a repetition or a view of one, is a deri
 
 \paragraph{Sums.}
 \label{app:fjlt:sums}
-The kernel's sum is \cppinline{std::variant<A, B>} of two types, read as the coproduct of Pierce's account~\cite{pierce1991basic}: by its two injections $\iota_1 : A \to A + B$ and $\iota_2 : B \to A + B$, and by the copairing $[f, g] : A + B \to C$ of two arrows $f : A \to C$ and $g : B \to C$, which applies the one whose side the sum holds.
-They are the library's \cppinline{Injection} and \cppinline{Copairing}, arrows given to the kernel with their signatures as the standard's function objects are (\textsc{T-Op}), so the kernel has no rule of its own for a sum; their bodies are the one place a sum is built or taken apart by hand.
-Every other use of a variant is outside the kernel: \cppinline{std::get} and the writes to a variant are refused, since they may fail or change its side, and the total ones, \cppinline{std::visit} among them, are derived forms not yet written.
-A variant of more than two types is read as binary ones nested, as \cppinline{std::tuple} is read as pairs nested, under the conditions of its row in Table~\ref{tab:derived}, and \cppinline{std::expected}, a binary sum with an interface of its own, is left to the derived forms.
-\cppinline{==} at a sum is not in the kernel, since \Cpp{23} does not constrain it by the parts.
-Listing~\ref{lst:subtraction} shows the use the kernel has a sum for: subtraction on the naturals, which has no value where the second exceeds the first, returns how far short it falls; \cppinline{size_t}'s own subtraction, which wraps, is defined everywhere, so nothing in it is undefined.
+The kernel's sum is \cppinline{std::variant<A, B>}, read as Pierce's coproduct~\cite{pierce1991basic}: built by the injections $\iota_1 : A \to A + B$ and $\iota_2 : B \to A + B$, and read by the copairing $[f, g] : A + B \to C$ of $f : A \to C$ and $g : B \to C$.
+These are the library's \cppinline{Injection} and \cppinline{Copairing}, given to the kernel as the standard's function objects are (\textsc{T-Op}), so a sum needs no rule of its own.
+The linter refuses \cppinline{std::get} and writes to a variant, and leaves open the total uses, \cppinline{std::visit} among them, a variant of more types and \cppinline{std::expected}, derived forms not yet written (Table~\ref{tab:derived}).
+\cppinline{==} at a sum is not in the kernel: \Cpp{23} does not constrain it by the parts.
+Listing~\ref{lst:subtraction} uses a sum for subtraction on the naturals, which says how far short it falls where \cppinline{size_t}'s own subtraction wraps.
 
-\begin{listing}[htbp]
+\begin{listing}[ht]
 \begin{cpp}
 struct Short { size_t by; };
 using Difference = variant<size_t, Short>;
@@ -184,8 +183,8 @@ constexpr size_t monus(size_t n, size_t m) {
   return Copairing<Same, Nothing>{Same{}, Nothing{}}(minus(n, m)); }
 static_assert(monus(7, 2) == 5 && monus(2, 7) == 0);
 \end{cpp}
-\caption{Subtraction on the naturals as a sum, the difference or how far short, read by a copairing: \cppinline{Same} is the identity at \cppinline{size_t} and \cppinline{Nothing} the constant $0$ at \cppinline{Short}.
-The code is in \texttt{tools/jlt-lint/fixtures/sum.cpp}, with \cppinline{Injection} (\cppinline{ι}) and \cppinline{Copairing} as in the library's \texttt{category/cartesian.cppm}; the linter gives \cppinline{monus} the level FJlt and \cppinline{minus} Jlt, the name \cppinline{ι} being an alias of \cppinline{Injection}, beside the uses of a variant it refuses or leaves open.}
+\caption{Subtraction on the naturals, read by a copairing: \cppinline{Same} is the identity and \cppinline{Nothing} the constant $0$.
+From \texttt{tools/jlt-lint/fixtures/sum.cpp}, where the linter gives \cppinline{monus} the level FJlt and \cppinline{minus} Jlt, \cppinline{ι} being an alias.}
 \label{lst:subtraction}
 \end{listing}
 

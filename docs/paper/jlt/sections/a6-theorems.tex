@@ -72,19 +72,18 @@ The first clause is what Theorem~\ref{cit:equational} needs: equational deductio
 It does not follow from the kernel, whose one requirement of a carrier is \cppinline{copyable}, which gives no value; a default value, which local state needs to start from, belongs to a derived form, the row of Table~\ref{tab:derived} for an assignment and \texttt{++} on a local, and not to the kernel, so it is assumed.
 With it Theorem~\ref{cit:equational} applies to the laws of the carriers, as Section~\ref{sec:intro}'s completeness claim for many sorts needs.
 No result of this appendix uses the first clause; it is stated here for that claim.
-The second clause keeps the $\delta$-rules ground: an arrow that gave a sum would give a term of the target, not a constant.
-The second clause is the condition of Section~\ref{sec:translation} that the arrows supplied with carriers end, stated as Theorem~\ref{cit:sn} asks for it.
+The second clause keeps the $\delta$-rules ground: an arrow giving a sum would give a term, not a constant.
+The third clause is the condition of Section~\ref{sec:translation} that the arrows supplied with carriers end, stated as Theorem~\ref{cit:sn} asks for it.
 The assumption is what is asserted rather than carried out; Theorem~\ref{cit:sn}'s other hypotheses are checked here.
-The conditional is a rule of the calculus; products and sums are treated after the iterator.
+The conditional is a rule of the calculus.
 The $\delta$-rules of $\Sigma$ are first-order rules on constants: ground, a constant out of constants, so each step removes one operator application and they terminate, they are conservative, having no variables, and they are confluent, being a function of their argument constants.
 $\mathit{toNat}$ is a ground rule of the same kind, from a constant to a numeral of $\mathbb{N}$.
 $\mathit{iter}$ is G\"odel's recursor on $\mathbb{N}$, whose constructors take no functional argument, under the General Schema; in the accumulator form above it is the standard iterator at $\sigma \to \sigma$, each of its steps at least one step of that, so the target is System~T over $\mathbb{N}$ inside System~F.
 The defined names are acyclic, by the declaration order and since no body calls itself, and expand away.
-Products and sums are not under the General Schema as stated, since a pair or a side may hold a function, the image of a function object among them.
-Both are taken out by their encodings in System~F~\cite[Sections~11.3.2 and~11.3.4]{girard1989proofs}: $\tau \times \sigma$ as $\forall X.\,(\tau \to \sigma \to X) \to X$, and $\tau + \sigma$ as $\forall X.\,(\tau \to X) \to (\sigma \to X) \to X$, with $\mathit{inl}\,a$ as $\Lambda X.\,\lambda f.\,\lambda g.\,f\,a$, $\mathit{inr}\,b$ alike, and $\mathit{case}_\rho\,s\,f\,g$ as $s\,[\rho]\,f\,g$.
-The encodings are compositional and keep types, so they commute with substitution, and they map a projection or a step of the case to three steps of type application and $\beta$-reduction and every other step to a step of the same rule.
-What remains, System~F with the iterator, whose constructors take no functional argument, and the ground $\delta$-rules, is under Theorem~\ref{cit:sn}, so, granted the assumption, it is strongly normalising, and an infinite reduction with products and sums would give one without them; Matthes shows the same directly for System~F with products and sums~\cite{matthes1999extensions}.
-The encoding carries strong normalisation and not confluence, which follows from strong normalisation by Newman's lemma once the target is locally confluent: its rules are left-linear patterns with no critical pair between them, and local confluence follows by the critical pair lemma for higher-order rewriting~\cite{mayr1998higher}.
+Products and sums fall outside the General Schema, since a pair or a side may hold a function, and are taken out by their encodings in System~F~\cite[Sections~11.3.2 and~11.3.4]{girard1989proofs}: $\tau \times \sigma$ as $\forall X.\,(\tau \to \sigma \to X) \to X$, and $\tau + \sigma$ as $\forall X.\,(\tau \to X) \to (\sigma \to X) \to X$.
+The encodings are compositional and keep types; they turn a projection or a step of a case into three steps of type application and $\beta$-reduction, and every other step into a step of the same rule.
+An infinite reduction with products and sums would therefore give one without them, which Theorem~\ref{cit:sn} excludes, granted the assumption; Matthes shows this directly~\cite{matthes1999extensions}.
+Confluence follows by Newman's lemma: the rules are left-linear patterns without critical pairs, so locally confluent by the critical pair lemma for higher-order rewriting~\cite{mayr1998higher}.
 The one-step-at-a-time iterator is what makes Theorem~\ref{thm:simulation} exact, where a Church encoding, unfolding all at once, would not be.
 % Before 2026-11-23 the carriers' non-emptiness was read off std::semiregular
 % (a default value); copyable is now the kernel's one requirement, so it is
