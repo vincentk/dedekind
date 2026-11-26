@@ -9,7 +9,7 @@ That \Cpp{} evaluates a kernel program as the calculus does is assumed, with con
 
 The compiler holds no rule in full; the rest is held by the author, a linter and a reviewer (Table~\ref{tab:posture}, Section~\ref{sec:limits}).
 The linter says of each definition whether it is shown to be in Jlt, and what it cannot settle it names.
-Four things follow as work not done here: rows for the forms it leaves undecided, among them the other spellings of a sum and, once constant evaluation reaches a \cppinline{throw} in \Cpp{26}~\cite{dusikova2024p3068}, exceptions read as sums; a test beside its kernel reading for every derived form; the library that motivated Jlt brought fully under its own linter; and a mechanisation of the proofs, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}.
+Four things follow as work not done here: rows for the forms it leaves undecided, among them the other spellings of a sum and, once constant evaluation reaches a \cppinline{throw} in \Cpp{26}~\cite{dusikova2024p3068}, exceptions read as sums; a test beside its kernel reading for every form of sugar; the library that motivated Jlt brought fully under its own linter; and a mechanisation of the proofs, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}.
 A pattern lies beyond them: what is known when a program is built is computed then, in part or in whole, and what crosses to run time is state whose size is fixed at compile time.
 So the computations that specialise well may be those that run in small state over an unbounded input, one element at a time, by a step that is a function of Jlt: the streaming algorithms~\cite{alon1999space}.
 

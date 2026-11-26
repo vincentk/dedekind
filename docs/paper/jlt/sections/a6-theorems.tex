@@ -2,7 +2,7 @@
 \section{Coherence, preservation and simulation}
 \label{app:fjlt:theorems}
 
-This appendix shows, on paper, the three results that Section~\ref{sec:translation} states about the target, and argues the coherence of the translation that it asks for, relative to the rules of Figures~\ref{fig:fjlt-entailment} to~\ref{fig:fjlt-eval} and to the assumptions below.
+This appendix proves, on paper, the three results that Section~\ref{sec:translation} states about the target, and argues the coherence of the translation that it asks for, relative to the rules of Figures~\ref{fig:fjlt-entailment} to~\ref{fig:fjlt-eval} and to the assumptions below.
 The plan is short: the translation into System~F is a function (coherence) and preserves types; evaluation agrees across it (simulation); the rest are corollaries.
 Each result uses only those before it, except that the lemma on dictionaries and type preservation are proved together, by mutual induction.
 Throughout, $\Sigma$ is the signature of the operators of the atoms, total as Figure~\ref{fig:fjlt-syntax} admits them, and the carriers with the arrows supplied with them are further constant types and constants of the target (Section~\ref{sec:kernel:fjlt}); $\llbracket \cdot \rrbracket$ is the translation of Appendix~\ref{app:fjlt:translation}.
@@ -69,7 +69,7 @@ The constants of the carriers and of the arrows supplied with them have $\delta$
 \end{assumption}
 
 The first clause is what Theorem~\ref{cit:equational} needs: equational deduction is sound for many-sorted algebras only where no carrier is empty.
-It does not follow from the kernel, whose one requirement of a carrier is \cppinline{copyable}, which gives no value; a default value, which local state needs to start from, belongs to a derived form, the row of Table~\ref{tab:derived} for an assignment and \texttt{++} on a local, and not to the kernel, so it is assumed.
+It does not follow from the kernel, whose one requirement of a carrier is \cppinline{copyable}, which gives no value; a default value, which local state needs to start from, belongs to sugar, the row of Table~\ref{tab:derived} for an assignment and \texttt{++} on a local, and not to the kernel, so it is assumed.
 With it Theorem~\ref{cit:equational} applies to the laws of the carriers, as Section~\ref{sec:intro}'s completeness claim for many sorts needs.
 No result of this appendix uses the first clause; it is stated here for that claim.
 The second clause keeps the $\delta$-rules ground: an arrow giving a pair or a sum would give a term, not a constant.

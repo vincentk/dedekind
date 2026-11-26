@@ -207,7 +207,7 @@ An iteration is the iterator of the naturals, their catamorphism, run $n$ times 
 The index is a \cppinline{size_t} and never wraps, since it stays below the count.
 The step's call $f\texttt{(}s\texttt{, }i\texttt{)}$ is translated by the rule that types it, \textsc{T-App}, \textsc{T-Op} or \textsc{T-Req-Assumed}, with its dictionaries supplied, and then abstracted over $s$ and $i$.
 For \cppinline{power} in Listing~\ref{lst:power} the count is the number of bits of $n$, the state a pair, and the step the call of \cppinline{Squaring<E>}; the image below the listing writes the same with the index first.
-A range of another kind is a derived form, rewritten into an iteration over its length before it is translated (Table~\ref{tab:derived}).
+A range of another kind is sugar, rewritten into an iteration over its length before it is translated (Table~\ref{tab:derived}).
 
 \paragraph{Conventions.}
 Table~\ref{tab:conventions} is the fragment's convention on the standard library: each type, adopted by opinion, has rules of its own in Appendices~\ref{app:fjlt:typing} and~\ref{app:fjlt:evaluation}.
@@ -235,7 +235,7 @@ Each is adopted rather than declared because it lands on a construct of the targ
 
 This subsection takes the general case of \cppinline{power} in Listing~\ref{lst:power} through the rules, and its second case as far as the choice between the two.
 The record types and their fields are named as in the image below Listing~\ref{lst:motivation}: $\mathit{Monoid}\;T$ is $\llbracket \texttt{IsMonoid<E>} \rrbracket$ under a context whose carrier is $T$, with the unit at $q.\mathit{um}.\mathit{unit}$ and the operation at $q.\mathit{um}.\mathit{m}.\mathit{op}$.
-The alias \cppinline{T} in \cppinline{Squaring} is a derived form (Table~\ref{tab:derived}), and \cppinline{carrier_t<E>} and \cppinline{op_t<E>} are read as associated types, as in the rest of this appendix.
+The alias \cppinline{T} in \cppinline{Squaring} is sugar (Table~\ref{tab:derived}), and \cppinline{carrier_t<E>} and \cppinline{op_t<E>} are read as associated types, as in the rest of this appendix.
 
 \paragraph{The step.}
 The context $\Delta_S$ of \cppinline{Squaring} holds \cppinline{E}, the reads \cppinline{carrier_t<E>}, from the call's parameter type, and \cppinline{op_t<E>}, through \cppinline{IsMagma<E>}, and the constraint \cppinline{IsMonoid<E>}.

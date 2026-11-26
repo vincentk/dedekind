@@ -55,7 +55,7 @@ Two things rest on the programmer's discipline instead, a generic body held to i
 \]
 \caption{The rules of entailment, $\Delta \Vdash Q$.
 Seven rules: an assumption, two for laws, a shape, the required calls, a negation and the equality of two types.
-A required call is checked only at its declared type: \texttt{same\_as} is the kernel's one result concept, and a result required only to convert is a derived form (Table~\ref{tab:derived}; \emph{Two rules of Jlt}, below).}
+A required call is checked only at its declared type: \texttt{same\_as} is the kernel's one result concept, and a result required only to convert is sugar (Table~\ref{tab:derived}; \emph{Two rules of Jlt}, below).}
 \label{fig:fjlt-entailment}
 \end{figure}
 
@@ -164,7 +164,7 @@ A program writes an iteration from \texttt{0uz}; \textsc{T-Iter-Run} types the i
 In \cppinline{power} of Listing~\ref{lst:power} the count is the number of bits of $n$ and the step a value of \cppinline{Squaring<E>}.
 \cppinline{ranges::fold_left} asks more of its state and its step than \textsc{T-Iter}'s premises say: that the state's type be movable and assignable from the step's result, and that the step be copy constructible~\cite[{\texttt{alg.fold}}]{cpp23standard}.
 \textsc{T-Iter} leaves these out because \cppinline{copyable} holds at every type of the kernel (\emph{Entailment and laws}, above), which gives all three where the premises hold, the step's result being of the state's type.
-A range of any other kind, as an array, a repetition or a view of one, is a derived form, read as its length and the function that reads it (Table~\ref{tab:derived}).
+A range of any other kind, as an array, a repetition or a view of one, is sugar, read as its length and the function that reads it (Table~\ref{tab:derived}).
 
 \paragraph{Parts.}
 \label{app:fjlt:parts}
@@ -183,7 +183,7 @@ A call $f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)}$ of a generi
 It considers the generic functions of that name whose head matches and whose context is entailed.
 It takes the best viable candidate~\cite[{\texttt{over.match.best}}]{cpp23standard}, ranked first by the implicit conversion sequences of the arguments.
 Where these do not decide, it takes the template more specialised by head~\cite[{\texttt{temp.func.order}}]{cpp23standard}, and only between two templates whose template parameter lists and function parameter types are equivalent the more constrained by context~\cite[{\texttt{temp.func.order}}, {\texttt{temp.constr.order}}]{cpp23standard}; constraints are no general tiebreak after the heads.
-In the kernel no argument converts, an implicit conversion being a derived form (Table~\ref{tab:derived}), so every candidate's conversion sequences are identities and the first ranking decides nothing; the two cases of \cppinline{power} in Listing~\ref{lst:power} have one head and are ordered by their constraints.
+In the kernel no argument converts, an implicit conversion being sugar (Table~\ref{tab:derived}), so every candidate's conversion sequences are identities and the first ranking decides nothing; the two cases of \cppinline{power} in Listing~\ref{lst:power} have one head and are ordered by their constraints.
 At concrete types \Cpp{} makes resolution a function: a call with no unique most specific candidate is ambiguous~\cite[{\texttt{over.match.best}}]{cpp23standard}.
 
 \paragraph{Reading a trait.}
@@ -272,7 +272,7 @@ constexpr size_t monus_by_index(size_t n, size_t m) {
   return d.index() == 0 ? get<0>(d) : 0uz; }
 static_assert(monus(7, 2) == 5 && monus(2, 7) == monus_by_index(2, 7));
 \end{cpp}
-\caption{Subtraction on the naturals, read by a copairing, \cppinline{Same} the identity and \cppinline{Zero} the constant $0$, and by the conditional that is its derived form (Table~\ref{tab:derived}).
+\caption{Subtraction on the naturals, read by a copairing, \cppinline{Same} the identity and \cppinline{Zero} the constant $0$, and by the conditional that is its sugar (Table~\ref{tab:derived}).
 From \texttt{tools/jlt-lint/fixtures/sum.cpp}, where the linter gives \cppinline{minus} and \cppinline{monus} the level FJlt and \cppinline{monus_by_index} Jlt.}
 \label{lst:subtraction}
 \end{listing}
@@ -336,7 +336,7 @@ An operator expression $\ominus e$ or $e_1 \oplus e_2$ is resolved as \Cpp{} res
 The built-in operator is a candidate beside the declared functions \texttt{operator}$\oplus$, and the only one when no operand is of class or enumeration type.
 Where the choice is a primitive of $\Sigma$, the operators of the atoms (Figure~\ref{fig:fjlt-syntax}), the expression is typed by the primitive's signature; otherwise it is the call \texttt{operator}$\oplus$\texttt{(}$e_1$\texttt{, }$e_2$\texttt{)}, typed by \textsc{T-Call}.
 In the kernel the two operands of a primitive have one atom as their type.
-Where they differ, as in \cppinline{(rotr(n, int(i)) & 1) == 1} in Listing~\ref{lst:power}, a \cppinline{size_t} against an \cppinline{int}, the expression is Jlt, and its kernel form writes the conversion out: the derived form of an implicit conversion that does not narrow (Table~\ref{tab:derived}), here the literal written as a count, \cppinline{1uz}.
+Where they differ, as in \cppinline{(rotr(n, int(i)) & 1) == 1} in Listing~\ref{lst:power}, a \cppinline{size_t} against an \cppinline{int}, the expression is Jlt, and its kernel form writes the conversion out, the reading of the sugar for an implicit conversion that does not narrow (Table~\ref{tab:derived}), here the literal written as a count, \cppinline{1uz}.
 A declared \texttt{operator}$\oplus$ needs no common type, since its signature is its own: in the library's \cppinline{v * a}, a matrix acting on a vector, the operands' types differ and nothing converts.
 The candidate selected may be a rewritten or a reversed one~\cite[{\texttt{over.match.oper}}]{cpp23standard}.
 The expression is then the call under the standard's rewrite: \cppinline{a != b} as \cppinline{!(a == b)}, \cppinline{a < b} as \cppinline{(a <=> b) < 0}, a reversed candidate with its arguments swapped.
@@ -476,7 +476,7 @@ A body never calls itself, directly or through another (Table~\ref{tab:excluded}
 \paragraph{Two rules of Jlt.}
 \label{app:fjlt:jlt-rules}
 The rules above are the kernel's.
-Two more type Jlt programs before their derived forms are rewritten, and the linter's table of archetypes names them (Table~\ref{tab:archetype-rules}); no result of Appendix~\ref{app:fjlt:theorems} uses them.
+Two more type Jlt programs before their sugar is rewritten, and the linter's table of archetypes names them (Table~\ref{tab:archetype-rules}); no result of Appendix~\ref{app:fjlt:theorems} uses them.
 \[
 \begin{array}{@{}l@{\quad}l@{}}
 \textsc{(E-Range)} & \dfrac{R \text{ a range of Table~\ref{tab:derived}} \quad \texttt{ranges::size(r)} \text{ valid for } \texttt{r} \text{ of type } R \quad \texttt{sized\_range<}R\texttt{>} \notin \Delta}{\Delta \Vdash \texttt{sized\_range<}R\texttt{>}}

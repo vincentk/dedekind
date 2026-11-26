@@ -9,7 +9,7 @@ It is \emph{reported} on a file that is not yet clean, or not yet promoted: its 
 The checks are those of the scope file in the repository, each with a fixture that proves it fires, so a zero is not vacuous.
 The deny-rules refuse a construct outside Jlt, sorted by the rule each serves; the second stage admits by type.
 The ledger of axioms is a list, not a rule.
-The inner boundaries, the kernel against the derived forms, are a question of admission, whether each construct is kernel or a listed derived form; the linter's inventory of the syntax a file uses is its material, and a strict mode that answers it is not yet built.
+The inner boundaries, the kernel against the sugar, are a question of admission, whether each construct is kernel or a listed form of sugar; the linter's inventory of the syntax a file uses is its material, and a strict mode that answers it is not yet built.
 The library's module units~\cite[{\texttt{module.unit}}]{cpp23standard}, most of them partitions, are all in scope but the few interfaces that only re-export the others.
 The table is generated from a report of the build by a script in the repository, \texttt{tools/jlt-lint/table.py}.
 
@@ -37,11 +37,11 @@ Three checks carry most of what the deny-rules find: \texttt{rule2-constrained-t
 
 A deny-rule can only say that a construct is outside Jlt, and a file it does not refuse is not thereby inside: the list of refusals is not complete.
 Today some two fifths of the units are refused by no check, and more than half if \texttt{rule2-constrained-templates} is set aside.
-To say that a file is inside needs admission as well: inside FJlt when every construct of its inventory is admitted as kernel and no deny-rule fires, inside Jlt when every construct is kernel or a listed derived form and no deny-rule fires.
+To say that a file is inside needs admission as well: inside FJlt when every construct of its inventory is admitted as kernel and no deny-rule fires, inside Jlt when every construct is kernel or a listed form of sugar and no deny-rule fires.
 Both halves are needed, because some exclusions are conditions on admitted syntax: \cppinline{guessed_power} is a call to an overload set, kernel syntax, and only the deny-rule sees that its signature does not decide the overload.
 
 A first cut of the admission side exists.
-The inventory names the kind of every construct a file writes, 111 kinds over the library, and a file in the repository, \texttt{tools/jlt-lint/admission.txt}, classes each kind as kernel, derived form, scaffolding (modules, namespaces, assertions), refused, or still open.
+The inventory names the kind of every construct a file writes, 111 kinds over the library, and a file in the repository, \texttt{tools/jlt-lint/admission.txt}, classes each kind as kernel, sugar, scaffolding (modules, namespaces, assertions), refused, or still open.
 A kind is coarser than the grammar of Figure~\ref{fig:fjlt-syntax}, so this is admission by kind, and it is a statistic, not yet a gate.
 Table~\ref{tab:admission} gives it.
 
@@ -50,7 +50,7 @@ Table~\ref{tab:admission} gives it.
 \small
 \begin{tabular}{@{}l r rrrrr@{}}
 \toprule
- & constructs & kernel & derived & scaffolding & refused & open \\
+ & constructs & kernel & sugar & scaffolding & refused & open \\
 \midrule
 \lintinput generated/admission-table.tex 
 \bottomrule
@@ -71,7 +71,7 @@ In the library, most of what is open is six kinds: string literals, most of them
 The second stage of Section~\ref{sec:check} admits a constrained template, whether or not a deny-rule refuses it, when its body type-checks at archetypes of the shapes in its signature.
 It gives every type parameter an archetype by reading the shapes that constrain it, by one rule for each kind of requirement a shape may have (Table~\ref{tab:archetype-rules}).
 The building blocks are a header that ships with the linter and depends on nothing in the library: a carrier that can only be copied, and ones that can also be compared, default-constructed, or both; a unit, a binary operation, an arrow, and a range whose size is known before the first step; a result that can only be converted; and the smallest and largest integer types a constraint admits.
-The standard's foundational concepts follow the Palo Alto report~\cite[\S 3.3]{stroustrup2012concept}: copying is the kernel's, equality is a call, and a default value is partially formed, to be written before it is read~\cite[\S 1.5]{stepanov2009elements}, the derived form of local state (Table~\ref{tab:derived}).
+The standard's foundational concepts follow the Palo Alto report~\cite[\S 3.3]{stroustrup2012concept}: copying is the kernel's, equality is a call, and a default value is partially formed, to be written before it is read~\cite[\S 1.5]{stepanov2009elements}, the sugar for local state (Table~\ref{tab:derived}).
 A shape with a requirement of any other kind leaves the templates written against it undecided, with that requirement named.
 In the terms of Appendix~\ref{app:fjlt:typing}, a generic body reaches its shapes only as assumptions, a law by \textsc{E-Law-Assumed} and a required call by \textsc{T-Req-Assumed}; at the archetypes the same shapes are entailed instead, by \textsc{E-Shape}, \textsc{E-Law} and \textsc{E-Op}, from the entries the linter writes.
 An archetype is the concrete counterpart of an assumed shape's record variable, the dictionary of Appendix~\ref{app:fjlt:translation}, and the conjecture below is that the two derivations agree.
@@ -94,7 +94,7 @@ call: \texttt{op\_t<E>\{\}(a, b)} & \textsc{T-Req-Assumed} / \textsc{E-Op} & \te
 call: \texttt{f(x)} & \textsc{T-Req-Assumed} / \textsc{E-Op} & \texttt{arrow<A, B>} \\
 call: \texttt{f<T>(x)} & \textsc{T-Req-Assumed} / \textsc{E-Op}, \textsc{T-Call} & none \\
 \midrule
-\multicolumn{3}{@{}l}{\emph{Jlt: derived forms (Table~\ref{tab:derived}) and the standard's concepts}} \\
+\multicolumn{3}{@{}l}{\emph{Jlt: sugar (Table~\ref{tab:derived}) and the standard's concepts}} \\
 \texttt{sized\_range<R>} & range; \textsc{E-Range} & \texttt{sized\_range\_of<C>} \\
 \texttt{-> convertible\_to<T>} & \texttt{convertible\_to}; \textsc{T-Conv} & \texttt{converts\_to<T>} \\
 \texttt{movable<T>}, \texttt{destructible<T>} & Rule~1: copyable data & \texttt{carrier} \\
@@ -127,7 +127,7 @@ The undecided are the generator's coverage, not findings: parameters of template
 \label{app:lint:summary}
 Table~\ref{tab:summary} counts definitions, as Table~\ref{tab:levels} does for the listings, and by the same rule.
 A definition is a declaration directly in the namespace judged, as the check \texttt{definitions} reports it with its lines and the kinds of syntax it uses.
-It is refused when a deny-rule finds something in its lines, when it uses a kind that \texttt{tools/jlt-lint/admission.txt} refuses, or when the type check does not admit it; undecided when it uses a kind still open or the type check leaves it undecided; in Jlt when every kind is kernel, scaffolding or a derived form and some is a derived form; and in FJlt otherwise.
+It is refused when a deny-rule finds something in its lines, when it uses a kind that \texttt{tools/jlt-lint/admission.txt} refuses, or when the type check does not admit it; undecided when it uses a kind still open or the type check leaves it undecided; in Jlt when every kind is kernel, scaffolding or sugar, and some kind is sugar; and in FJlt otherwise.
 The table's last column counts definitions as well, each once, by the first outcome the type check gives within its lines, so its total, 742 for the library, is below the 748 function templates the type check reads there.
 The level is computed in the build's one run of the linter, for every file in scope, by the function that gives Table~\ref{tab:levels} its rows (\texttt{tools/jlt-lint/levels.py}), and summed for each body of code by \texttt{tools/jlt-lint/summary.py}.
 The listings are the namespace of Listings~\ref{lst:motivation} to~\ref{lst:theorems}; the library is its module units in scope; Catch2 is its sources, the \texttt{.cpp} files the build compiles, and its headers, each judged as a file of its own with the flags of a source file beside it, since the linter judges what a file declares; the table reports the two apart.

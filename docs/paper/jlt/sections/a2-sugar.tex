@@ -2,12 +2,12 @@
 \section{Desugaring Jlt into Featherweight Jlt}
 \label{app:fjlt:closure}
 
-\subsection{The derived forms}
+\subsection{The sugar}
 \label{app:derived}
 
-Table~\ref{tab:derived} lists the derived forms of Section~\ref{sec:kernel:derived}: each with the kernel program it is read as, and the condition under which that reading keeps every value.
+Table~\ref{tab:derived} lists the sugar of Section~\ref{sec:kernel:derived}: each with the kernel program it is read as, and the condition under which that reading keeps every value.
 The linter reads the same list, in its classification of syntax kinds (Appendix~\ref{app:lint}), so a definition is in FJlt exactly when it uses none of them.
-The list is open: a new derived form is a new row, and nothing said about the kernel changes.
+The list is open: a new form of sugar is a new row, and nothing said about the kernel changes.
 Local mutable state is among them, read by state passing: an assignment to a local is the next state of the fold or the call it is in, and an assignment to an element of a local array is the update of the whole array~\cite[3.1.1]{cytron1991ssa}.
 This is the textbook semantics of a language of local variables and arrays~\cite[chapters 2 and 4]{reynolds1998theories}, and SSA read as functional programs~\cite{appel1998ssa} is the same reading, which Appendix~\ref{app:fjlt:ssa} gives the compiler's lowering of the kernel.
 It needs one condition: at every point, each piece of storage is reached through one name only, since a write through one name would otherwise change what another reads.
@@ -32,13 +32,13 @@ A pointer that is never null and never compared with a pointer into another obje
 \small
 \begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.3\linewidth}>{\raggedright\arraybackslash}p{\dimexpr 0.46\linewidth-4\tabcolsep\relax}>{\raggedright\arraybackslash}p{0.24\linewidth}@{}}
 \toprule
-derived form & read as & condition \\
+sugar & read as & condition \\
 \midrule
 \endhead
 \bottomrule
 \endfoot
 \bottomrule
-\caption{The derived forms, each with the kernel program it is read as and the condition for that reading to keep every value.
+\caption{The sugar, each with the kernel program it is read as and the condition for that reading to keep every value.
 The number of bits of a count, \texttt{size\_t(bit\_width(n))}, and its rotation, \texttt{rotr(n, int(i))}, are not among them: each is one primitive of the kernel, an operator of \texttt{size\_t} (Figure~\ref{fig:fjlt-syntax}), written with the conversion that \texttt{<bit>}'s counts of type \texttt{int} force~\cite[\texttt{bit.pow.two}, \texttt{bit.rot}]{cpp23standard}.
 The row for implicit conversions is one rule, not a table of them: it reads a conversion that does not narrow as a coercion inserted by elaboration, the textbook treatment of implicit conversions~\cite{reynolds1980conversions,breazutannen1991inheritance}, whose obligation is coherence, that the meaning does not depend on where the coercions go.
 Such a conversion is a split monomorphism, the conversion back its retraction, so equality and order carry over along it; arithmetic does not, since the two types wrap at different widths, and \Cpp{} fixes where the conversions go instead, by the usual arithmetic conversions~\cite[\texttt{expr.arith.conv}]{cpp23standard}.

@@ -8,7 +8,7 @@ The concepts of \Cpp{20} check a template's uses and not its definition~\cite{st
 
 Two lines of work have each gone part of the way.
 The first gives generic code a meaning.
-In 2005 Siek and Lumsdaine read concepts as type classes and translated them into System~F by dictionary passing, for a language extension they proposed~\cite{siek2005essential}.
+In 2005 Siek and Lumsdaine read concepts as type classes and translated them into System~F~\cite{girard1972interpretation,reynolds1974towards} by dictionary passing, for a language extension they proposed~\cite{siek2005essential}.
 A year later Dos Reis and Stroustrup remarked of \Cpp{} as it stood that a type class and its instances ``correspond closely to \Cpp{}'s notion of template partial or full specialization'', which ``morally is what happens when the dictionaries, in the dictionary passing style translation [\ldots], are optimized away''~\cite[Section~6.2]{dosreis2006specifying}.
 The extension, concepts as proposed for \Cpp{0x}, checked a template's definition against its constraints and let a concept state axioms~\cite{gregor2006concepts,bagge2009axioms}; it was withdrawn in 2009~\cite{stroustrup2009remove}.
 What shipped in \Cpp{20} checks uses only, and its designer has since written of checking generic code in isolation, ``I now consider that a mistake because isolating templates decreases their usability and can have negative performance implications''~\cite[Section~7.7]{stroustrup2025concept}.
@@ -24,19 +24,18 @@ So the method exists, and it has not been applied to what generic code means.
 This paper sets a keystone between the two.
 For \Cpp{23} as shipped, it delimits a fragment by three stated rules, gives the translation into System~F for the fragment's kernel, and decides membership with a linter outside the compiler, so that a code base can enter one definition at a time.
 We know of no earlier statement of this for the shipped language.
+It makes the remark of 2006 precise for a fragment, to the point where membership is checked mechanically in continuous integration.
 It does not argue the general case.
 Stroustrup's judgement is of the language as a whole, and this paper asks the check only of a fragment inside it, which a team enters by choice and leaves at will.
 Checking every generic definition is what Rust delivers, at the cost of a rewrite~\cite{klabnik2023rust}.
-It makes the remark of 2006 precise for a fragment, to the point where membership is checked mechanically in continuous integration.
 
 What the programmer is missing is old.
 A function that depends on its arguments alone can be replaced by its value~\cite{backus1978can}.
 A function that is polymorphic in a type cannot inspect that type, so its type alone yields theorems about it~\cite{wadler1989theorems}.
 A class of types with operations and laws lets generic code be written once against the operations and reasoned about by the laws~\cite{wadler1989adhoc}.
-A recursion that follows the structure of its data ends, so a program built from such recursions has a value~\cite{turner2004total}.
-Reasoning about a partial language as if it were total is ``morally correct'': for a small Haskell-like language, Danielsson et al.\ prove that two closed terms equal in a total semantics are related in the partial one by a relation on the total values, which gives a bicartesian closed category, with products, sums and functions~\cite{danielsson2006fast}; this paper makes the same move for \Cpp{}, and assumes the link between the two semantics where they prove it.
 The approach is open to laws of a program's own, since for declared equations the reasoning is complete: an equation follows from them by equational reasoning exactly when it holds in every model of them, with several sorts as here~\cite{birkhoff1935structure,goguen1985completeness,burris1981universalalgebra}.
-The theory is not new; that it can be used in \Cpp{23} as shipped is.
+A recursion that follows the structure of its data ends, so a program built from such recursions has a value~\cite{turner2004total}.
+Reasoning about a partial language as if it were total is ``morally correct'': for a small Haskell-like language, Danielsson et al.\ prove that two closed terms equal in a total semantics are related in the partial one by a relation on the total values, which gives a bicartesian closed category, with products, sums, functions and recursive types~\cite{danielsson2006fast}; this paper does the same for \Cpp{}, assumes the link between the two semantics where they prove it, and tests it against constant evaluation.
 
 These benefits are usually pursued in a language designed for them, and this paper pursues them in \Cpp{23}, a mainstream systems language with a compiler for nearly every machine and abstraction without run-time overhead, its zero-overhead principle~\cite{stroustrup2005abstraction}, which its designer has since called an understatement: ``We can do negative overhead abstraction''~\cite{stroustrup2026peterman} (Figure~\ref{fig:sketch-ir} shows cases).
 \Cpp{23} is the first standard with every ingredient of such a fragment: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
@@ -47,15 +46,14 @@ Under the discipline, a program declares such laws itself, of the types at which
 The programmer declares a law, and the compiler does not check it: a law declared falsely is the programmer's error, as the standard has it for a concept (Section~\ref{sec:limits}).
 What the compiler does mechanically is compose: it derives laws of a construction from the laws of its parts, and it selects among the overloads that those laws license (Section~\ref{sec:examples:inference}).
 
-The fragment is the \emph{Juliet Posture}, or Jlt, and it has two boundaries.
-The outer one is drawn by the three rules (Section~\ref{sec:posture}): one keeps substitution of equals valid, one keeps generic code to its declared constraints, and one makes every recursion end.
-It is called a posture because it asks only for a style of programming: every ingredient is in the ISO standard~\cite{cpp23standard} and implemented by toolchains in wide use, the compiler holds some of the rules and the programmer the rest, and a linter helps but is not required to compile (Table~\ref{tab:posture}).
-The inner one is drawn by a translation: the \emph{kernel}, Featherweight Jlt (FJlt), is the part of Jlt on which a translation $\llbracket\cdot\rrbracket$ is defined into System~F~\cite{girard1972interpretation,reynolds1974towards}, extended with data types and iterators (Appendix~\ref{app:fjlt:translation}).
-The translation is proved on paper to preserve types and values, with the textbook cases omitted, and from its target the kernel inherits termination and parametricity (Section~\ref{sec:translation}).
-Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, whose reading is argued and tested, not proved (Appendices~\ref{app:derived} and~\ref{app:fjlt:closure}).
-That \Cpp{} evaluates a kernel program as the calculus does is assumed, and tested against constant evaluation.
+The fragment is the \emph{Juliet Posture}, or Jlt.
 The name refers to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: a \cppinline{concept} is a predicate on a type's structure, not on its name or lineage.\footnote{``A rose by any other name would smell as sweet''~\cite{shakespeare1597romeo}.}
-Figure~\ref{fig:arrows} shows the languages of the paper and the maps between them.
+It is called a posture because it asks only for a style of programming: every ingredient is in the ISO standard~\cite{cpp23standard} and implemented by toolchains in wide use, the compiler holds some of the rules and the programmer the rest, and a linter helps but is not required to compile (Table~\ref{tab:posture}).
+It has two boundaries, which Figure~\ref{fig:arrows} draws with the languages of the paper and the maps between them.
+The outer one is drawn by the three rules (Section~\ref{sec:posture}): one keeps substitution of equals valid, one keeps generic code to its declared constraints, and one makes every recursion end.
+The inner one is drawn by a translation: the \emph{kernel}, Featherweight Jlt (FJlt), is the part of Jlt on which a translation $\llbracket\cdot\rrbracket$ is defined into System~F, extended with truth values, counts and an iterator over a count (Appendix~\ref{app:fjlt:translation}).
+The translation is proved on paper to preserve types and values, with the textbook cases omitted, and from its target the kernel inherits termination and parametricity (Section~\ref{sec:translation}).
+Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, the dashed arrow of the figure (Appendices~\ref{app:derived} and~\ref{app:fjlt:closure}).
 
 \begin{figure}[tb]
 \centering
