@@ -13,11 +13,11 @@ The second follows the treatment of JavaScript by a small core and a desugaring 
 \subsection{The kernel}
 \label{sec:kernel:fjlt}
 
-One principle chooses the kernel's constructs.
-For each construct of System~F that it needs, it asks whether \Cpp{23} or its standard library has a clear counterpart.
+One principle chooses the kernel's constructs, the one Danielsson et al.\ state for their category of total values, whose constructions ``should correspond closely to those in the underlying language''~\cite[Section~8]{danielsson2006fast}.
+For each construct of that category the kernel needs, products, coproducts, functions and the fold of the naturals, it asks whether \Cpp{23} or its standard library has a clear counterpart.
 Where there is one, the kernel takes it as \Cpp{} writes it, as \cppinline{std::pair} for a product, and leaves the mapping to System~F to the translation $\llbracket\cdot\rrbracket$ of Figure~\ref{fig:arrows}.
-Where there is none, the kernel names the construct as category theory and System~F do, as the copairing of a sum~\cite{pierce1991basic}.
-The rest of \Cpp{23} that a program needs is added as derived forms (Section~\ref{sec:kernel:derived}).
+Where there is none, the kernel names the construct as the category does, as the copairing of a sum.
+The category's final coalgebras are left out, Jlt being about data, and the rest of \Cpp{23} that a program needs is added as derived forms (Section~\ref{sec:kernel:derived}).
 
 FJlt has two layers.
 The \emph{value layer} is what a program computes with.
