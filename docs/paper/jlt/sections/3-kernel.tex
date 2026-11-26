@@ -114,18 +114,10 @@ associated type & a \texttt{struct} template whose entries each name one type, r
 % complete").  The table states what was agreed on 2026-11-20
 % and has not been checked line by line against the three listings.
 
-The value layer has little of \Cpp{} in it, only what the principle asks for.
-A carrier is a type the kernel never looks inside: a generic definition reaches a value of it only through the calls that a shape names, and that is all the kernel knows of a string.
-A carrier comes with arrows of its own, as \cppinline{std::plus} comes with strings and \cppinline{Size} is written with a string's own length, and their declarations are given to the kernel, not written in it.
-A sum is read by its copairing $[f, g] : A + B \to C$ only, and its other spellings, \cppinline{std::expected} and the choice on \cppinline{index()} among them, are sugar (Appendix~\ref{app:derived}).
-The one recursion over a value is iteration, with its count given before the first step.
-A state of several parts is a record.
-
-The resolution layer is where \Cpp{} lives.
-A named type gives the compiler something to select by, a shape says what a generic definition may assume, and a trait and a function with several cases are each a selection by the form of a type.
-An associated type is a trait whose result is a type: a function on types with one entry for each head, as the standard's \cppinline{range_value_t} gives the type of a range's elements.
-Read at a type variable, it may only name a type in a declaration, never choose a case.
-\Cpp{} says what a kernel program computes, and the kernel leaves out what would break that reading, some of it by its grammar and some by rules that the grammar cannot state (Table~\ref{tab:excluded}).
+Table~\ref{tab:kernel} says what each construct is; three things it cannot say.
+A carrier is a type the kernel never looks inside: a generic definition reaches a value of it only through the calls that a shape names, and the declarations of the arrows it comes with, as \cppinline{std::plus} with strings, are given to the kernel, not written in it.
+An associated type read at a type variable may only name a type in a declaration, never choose a case.
+And \Cpp{} says what a kernel program computes, and the kernel leaves out what would break that reading, some of it by its grammar and some by rules that the grammar cannot state (Table~\ref{tab:excluded}).
 
 \begin{table}[tb]
 \centering
@@ -153,12 +145,8 @@ several call operators on one type & an entry that stands below a use that could
 \label{sec:kernel:derived}
 A form of sugar is a rewrite of a Jlt program into FJlt that may change types inside the program and leave every observable value unchanged, the value of a closed term at an atom, while compiling and while running.
 Time is not observed, so a program and its rewrite may differ in cost and in nothing else.
-Most of what the listings write beyond the grammar is \Cpp{} that the standard itself defines as something in the kernel, and Appendix~\ref{app:derived} lists every form of sugar with its rewrite and the condition under which the rewrite keeps every value.
-Two forms of sugar carry weight.
-A range, as an array or a view, stands for its length and the function that reads it, and \cppinline{ranges::fold_left} over a range for the kernel's iteration over that count, a change of representation more than an abbreviation.
-Local mutable state is read by state passing: an assignment to a local, or to an element of a local array, is the next state of the fold it is in, so that code written in place with counted loops, such as a running sum or a Fibonacci number by repeated squaring of a matrix (\texttt{tools/jlt-lint/fixtures/local-state.cpp}), is read as a term of System~F, under the condition that each piece of storage is reached through one name at a time, which the linter checks (Appendix~\ref{app:derived}).
-That a form of sugar preserves values is argued and tested, not proved, the standard of evidence of the work on JavaScript~\cite{guha2010essence}: Table~\ref{tab:derived} gives each form its reading and the condition it rests on, and a test sets a form beside its kernel reading and lets constant evaluation compare the two, as Listing~\ref{lst:running-sum} does for local state.
-The list is open, and a new form of sugar touches nothing that is said about the kernel.
+Appendix~\ref{app:derived} lists every form with its reading and the condition it rests on, ranges and local mutable state among them.
+That a form preserves values is argued and tested, not proved, the standard of evidence of the work on JavaScript~\cite{guha2010essence}: a test sets a form beside its kernel reading and lets constant evaluation compare the two (Listing~\ref{lst:running-sum}).
 % TODO(derived): the standard's clauses for the first group are to be cited;
 % a test beside its kernel form exists for local state and for a variant
 % (tools/jlt-lint/fixtures); the other rows are to get theirs.
