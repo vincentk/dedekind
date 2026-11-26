@@ -53,15 +53,15 @@ It is called a posture because it asks only for a style of programming: every in
 Figure~\ref{fig:arrows} draws it with the languages of the paper and the maps between them, and two boundaries matter most.
 The outer one is drawn by the three rules (Section~\ref{sec:posture}): one keeps substitution of equals valid, one keeps generic code to its declared constraints, and one makes every recursion end.
 The inner one is drawn by a translation: the \emph{kernel}, Featherweight Jlt (FJlt), is the part of the posture on which a translation $\llbracket\cdot\rrbracket$ is defined into System~F, extended with truth values, counts and an iterator over a count (Appendix~\ref{app:fjlt:translation}).
-The translation is proved on paper to preserve types and values, with the textbook cases omitted, and from its target the kernel inherits termination and parametricity (Section~\ref{sec:translation}).
+The translation is proved on paper to preserve types and values, under stated assumptions and with the textbook cases omitted, and from its target the kernel inherits termination and, by the cited abstraction theorem, parametricity (Section~\ref{sec:translation}).
 Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, the dashed arrow of the figure: Jlt is the kernel with sugar, a list of forms that the linter holds, and what the posture admits but no form on the list reads is outside Jlt (Appendix~\ref{app:fjlt:closure}).
 
 \begin{figure}[tb]
 \centering
-\begin{tikzcd}[column sep=2.4em, row sep=2.2em]
-  & \text{Jlt} \arrow[r, hook, "{-}\,\text{lint}"] \arrow[dl, dashed, bend right=25, "{-}\,\text{sugar}"']
+\begin{tikzcd}[column sep=3.4em, row sep=2.2em]
+  & \text{Jlt} \arrow[r, hook, dashed, "{-}\,\text{lint}"] \arrow[dl, dashed, bend right=25, "{-}\,\text{sugar}"']
   & \text{Posture} \arrow[dr, hook, "{-}\,\text{rules}"] \\[-0.8em]
-\text{FJlt} \arrow[ur, hook, bend right=25, "{+}\,\text{sugar}"'] \arrow[d, bend right=25, "\llbracket\cdot\rrbracket"']
+\text{FJlt} \arrow[ur, hook, bend right=25, "{+}\,\text{sugar}"'] \arrow[d, bend right=25, "\llbracket\cdot\rrbracket"'] \arrow[dd, bend right=75, "\Downarrow"']
   &
   &
   & \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
@@ -69,7 +69,7 @@ Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964m
   &
   &
   & \text{LLVM IR} \arrow[d, "\text{run}"] \\
-\text{value} \arrow[rrr, equal]
+\text{value} \arrow[rrr, equal, dashed]
   &
   &
   & \text{value}
@@ -77,8 +77,10 @@ Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964m
 \caption{The arrows of the paper.
 A hooked arrow is injective: an inclusion, labelled with what it adds or removes, or $\mathit{embed}$, defined on the translation's image only.
 The inclusion of Jlt into \Cpp{23} has two factors: the posture is what the three rules admit, and Jlt is the part of it that the sugar reads, form by form, from a list the linter holds (Table~\ref{tab:derived}).
-A solid arrow is a map the paper defines or takes as given, and the dashed arrow is argued and tested, not proved, as is the linter's verdict that a definition is in Jlt.
-The bottom edge says that the two paths compute one value.}
+A solid arrow is a map the paper defines or takes as given.
+$\Downarrow$ is FJlt's own evaluation, and that it agrees with $\mathit{eval}$ after $\llbracket\cdot\rrbracket$ is proved on paper, under stated assumptions (Theorem~\ref{thm:simulation}).
+The dashed arrows are argued and tested, not proved: the sugar, and the linter's verdict that a definition is in Jlt.
+The dashed bottom edge says that the two paths compute one value, which is assumed, and tested against constant evaluation.}
 \label{fig:arrows}
 \end{figure}
 
@@ -86,7 +88,7 @@ The bottom edge says that the two paths compute one value.}
 Each step from \Cpp{23} to System~F is known, and the contribution is that the steps connect.
 \begin{enumerate}
 \item The posture: three rules on standard \Cpp{23}, drawn from four listings of functions the reader already knows, each rule with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:examples}).
-Among them is an observation about \Cpp{20} concepts: with overlapping constrained overloads, a generic function's behaviour can depend on a constraint it never declared, by default and silently (Listing~\ref{lst:declare}), which GHC's rule for overlapping instances refuses and Jlt's second rule forbids.
+Among them is an observation about \Cpp{20} concepts: with overlapping constrained overloads, a generic function's behaviour can depend on a constraint it never declared, by default and silently (Listing~\ref{lst:declare}), which GHC's rule for overlapping instances refuses and the posture's second rule forbids.
 \item Featherweight Jlt, the kernel: a subset of \Cpp{23} as written, in a value layer and a resolution layer, with its translation into System~F by dictionary passing, what is proved of it, and the sugar that reduces Jlt to it (Section~\ref{sec:kernel}).
 It differs from Siek and Lumsdaine's $F^G$ in three ways: its syntax is \Cpp{23} as written, a constraint is satisfied structurally and may be negated, and recursion is one iterator over a count.
 \item The linter: a rule book, and for each definition whether it is shown to be in Jlt, not shown to be, or undecided, with the laws a program takes on trust listed, run on the listings, on the library that motivated Jlt and on Catch2 (Section~\ref{sec:check}).

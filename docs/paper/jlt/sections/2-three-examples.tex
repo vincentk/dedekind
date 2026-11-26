@@ -1,5 +1,5 @@
 % !TEX root = ../jlt.tex
-\section{Jlt, by Four Examples}
+\section{The Posture, by Four Examples}
 \label{sec:examples}
 
 This section makes the case in four listings, each on a function the reader already knows.
@@ -7,6 +7,11 @@ The first shows a bug that a signature would have prevented.
 The second shows an optimisation that a declared law permits.
 The third shows a dependency on a law that a signature must declare.
 The fourth shows a fact that the compiler works out from facts it was given.
+Six words recur, and Section~\ref{sec:kernel} defines each.
+A \emph{carrier} is a type of values, and an \emph{arrow} a function object, a \cppinline{struct} with a call operator.
+A \emph{shape} is a \cppinline{concept}: the calls and the laws it asks of a type.
+A \emph{trait} is a value read at a type, a variable template, and an \emph{entry} is its specialisation at one type.
+The \emph{image} of a definition is the term of System~F it translates to.
 Each listing has its code on the left, the tests of that code on the right, and below them what the code becomes under the translation of Section~\ref{sec:translation}.
 
 \subsection{What a signature prevents}
@@ -171,7 +176,7 @@ The carrier $T$ and the operation $\mathit{Op}$ of the unit $E$ are one type par
 \cppinline{guessed_concat} has no image: no record gives it a \cppinline{+}, and a checker that holds a body to its signature refuses it and says so, that no operation \cppinline{+} is declared for the range's elements.
 \Cpp{} accepts both functions.
 
-Of the lines of Listing~\ref{lst:motivation}, the shapes, the traits with their entries and the function objects are in the kernel as written.
+The lines of Listing~\ref{lst:motivation} are in Jlt as written, and Table~\ref{tab:levels} gives each definition its level.
 The range that \cppinline{concat} folds over, and the arrays and strings of the tests, are sugar for it (Section~\ref{sec:kernel:derived}).
 
 \subsection{What a law permits}
@@ -299,7 +304,7 @@ The power of the unit is the unit, whatever the count, as the last line of the t
 \cppinline{power} has no case for that.
 With the base fixed to the unit and the count left for later, the compiler removes the fold and the count by itself, since the unit squared is the unit and it finds that by computing it (Section~\ref{sec:binding}).
 
-The lines of Listing~\ref{lst:power} are in the kernel as written, the fold over a count being its one recursion over a value, apart from the range in the first line of the test (Section~\ref{sec:kernel:derived}).
+The lines of Listing~\ref{lst:power} are in Jlt as written, the fold over a count being its one recursion over a value.
 
 The lower panels show a law selecting a case.
 Where the operation is idempotent, $x \cdot x = x$, as conjunction and the larger of two counts are, a power is the value itself.
@@ -519,7 +524,7 @@ A derived law is worth having because of a theorem that comes with every functio
 Each of its three calls reads as a sentence: from this monoid, to that one, by this function, on these values, and names the two monoids by their units.
 The third can be written only because of the fact the compiler derived.
 A call checks one case and proves nothing, and the theorem holds whether or not anyone calls it.
-The lines of Listing~\ref{lst:theorems} are in the kernel as written, apart from the ranges (Section~\ref{sec:kernel:derived}).
+The lines of Listing~\ref{lst:theorems} are in Jlt as written.
 An axiom, in turn, is only as good as its author: ``a sum of counts is zero exactly when every count is'' looks as safe as the three above, and is false of \cppinline{size_t}, where a sum can wrap around to zero.
 
 \subsection{What the four have in common}

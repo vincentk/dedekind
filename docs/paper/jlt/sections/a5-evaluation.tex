@@ -56,7 +56,7 @@ An operator on values whose resolution picks a declared \texttt{operator}$\oplus
 \paragraph{Totality.}
 \textsc{S-Prim} and \textsc{S-Std} are total, which is what Lemma~\ref{lem:progress} needs: \textsc{S-Prim} because the admitted operators are, and \textsc{S-Std} because the arrows supplied with a carrier are assumed to end (Section~\ref{sec:translation}; Assumption~\ref{ass:instance}).
 $\Sigma$ is the operators of the atoms that are defined at every argument, as Figure~\ref{fig:fjlt-syntax} admits them, and that totality is a reading: neither \cppinline{constexpr} nor a successful evaluation shows an operator defined on every input.
-On \cppinline{size_t} they are the comparisons, and addition, subtraction, multiplication and the bitwise operators, which wrap; division and remainder by a constant that is not zero; a shift by a constant below the width; the number of bits, \cppinline{size_t(bit_width(n))}; and a rotation, \cppinline{rotr(n, int(i))}, which is defined at every amount, where a shift by a variable is not (Definition~\ref{def:standard}).
+On \cppinline{size_t} they are the comparisons, and addition, subtraction, multiplication and the bitwise operators, which wrap; division and remainder by a constant that is not zero; a shift by a constant below the width; the number of bits, \cppinline{size_t(bit_width(n))}; and a rotation, \cppinline{rotr(n, int(i))}, which is defined at every amount, where a shift by a variable is not (Assumption~\ref{def:standard}).
 On \cppinline{bool} they are the logical operators.
 \texttt{==} at a carrier is the call its shape requires, an arrow supplied with the carrier, and steps by \textsc{S-Std}; a carrier is not in $\Sigma$ (Section~\ref{sec:kernel:fjlt}).
 

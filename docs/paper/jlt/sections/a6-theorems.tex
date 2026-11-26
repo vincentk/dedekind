@@ -31,19 +31,19 @@ The parts are older than their combination: System~F with sums and iterators~\ci
 Substituting types for type variables preserves typing in the target.
 \end{citedtheorem}
 
-\begin{definition}[The standard's functions; ISO~\cite{cpp23standard}]
+\begin{assumption}[The standard's functions; ISO~\cite{cpp23standard}]
 \label{def:standard}
 The primitives' translations compute the standard's functions on constants: a $\delta$-step lands on the constant the standard, or the declaration, assigns.
 \cppinline{ranges::fold_left} over \cppinline{views::iota} is a primitive with the evaluation rule of Figure~\ref{fig:fjlt-eval}, as the standard specifies \cppinline{ranges::fold_left}, a fold from the left~\cite[{\texttt{alg.fold}}]{cpp23standard}.
 \cppinline{views::iota(i, j)} is the range of the values from $i$ up to $j$, not including $j$~\cite[{\texttt{range.iota}}]{cpp23standard}.
-\cppinline{std::bit_width(n)} is the number of bits needed to write $n$, zero at zero~\cite[{\texttt{bit.pow.two}}]{cpp23standard}, and \cppinline{std::rotr(n, s)} is $n$ rotated right by $s$ modulo the width, at every $s$~\cite[{\texttt{bit.rot}}]{cpp23standard}.
-\end{definition}
+\cppinline{std::bit_width(n)} is the number of bits needed to write $n$, zero at zero~\cite[{\texttt{bit.pow.two}}]{cpp23standard}, and \cppinline{std::rotr(n, s)} is $n$ rotated right by $s$ modulo the width, at every $s$~\cite[{\texttt{bit.rotate}}]{cpp23standard}.
+\end{assumption}
 
 \begin{assumption}[The instance]
 \label{ass:instance}
 Every carrier has a value.
 The arrows supplied with carriers take and give atoms and carriers only, not pairs or sums; the sum's own arrows are not among them, their images being terms of the target and not constants.
-The constants of the carriers and of the arrows supplied with them have $\delta$-rules that are first-order rules on constants, terminating, conservative and confluent, with no critical pair against the other rules of the target.
+The constants of the carriers and of the arrows supplied with them have $\delta$-rules that are ground, a constant applied to constants giving a constant, terminating and orthogonal: no two of them share a left side, and none overlaps another rule of the target.
 \end{assumption}
 
 The first clause is what the completeness of equational reasoning with several sorts needs, the claim of Section~\ref{sec:intro}~\cite{goguen1985completeness}; it does not follow from the kernel, whose one requirement of a carrier, \cppinline{copyable}, gives no value, and no result of this appendix uses it.
@@ -63,7 +63,7 @@ Each left side is a symbol applied to the number of arguments its rules take: a 
 The arguments a left side fixes, $(a, b)$, $\mathit{inl}\,a$, $\mathit{inr}\,b$, $\mathit{true}$, $\mathit{false}$, $0$, $k{+}1$ and the constants of a $\delta$-rule, are headed by constructors and constants that head no left side.
 So no left side matches inside the fixed part of another.
 The $k{+}1$ of $\mathit{iter}$'s rule is the successor of $\mathbb{N}$, not the constant $+$ of \texttt{size\_t}, whose $\delta$-rule $c_k + 1 \longrightarrow c_{k+1}$ is at another type, and $\mathit{toNat}$ meets the iterator only through its result, a numeral, which is normal.
-Two $\delta$-rules with one left side have one right side, since their right sides are constants or numerals, so normal, and they are confluent (Assumption~\ref{ass:instance}).
+No two $\delta$-rules share a left side (Assumption~\ref{ass:instance}).
 Let $\Rightarrow$ be parallel reduction: the reflexive relation, closed under the term formers, that also rewrites an instance of a left side to the instance of its right side with each argument rewritten by $\Rightarrow$; and let $t^{*}$ be $t$ with every redex of $t$ contracted at once.
 Then ${\longrightarrow} \subseteq {\Rightarrow} \subseteq {\longrightarrow^{*}}$, and $\Rightarrow$ is closed under substitution of terms and of types, since each rule is.
 Takahashi's lemma, that $t \Rightarrow u$ implies $u \Rightarrow t^{*}$~\cite{takahashi1995parallel}, follows by induction on $t$; the one case beyond $\beta$ is a redex at the root, where, the rules being left-linear and not overlapping, $u$ is either an instance of the same left side or of its right side, with the arguments rewritten by $\Rightarrow$, and both rewrite to $t^{*}$ by the induction hypothesis.
@@ -91,7 +91,7 @@ The one-step-at-a-time iterator is what makes Theorem~\ref{thm:simulation} exact
 The image of an iteration counts as the source does: for constants $c_k$ and $c_n$ of \cppinline{size_t} with $k \le n$, $\mathit{toNat}\,(c_n - c_k)$ reduces to the numeral $n - k$, and $c_k + 1$ to the constant $c_{k+1}$, where $k < n$.
 \end{assumption}
 
-The assumption is that the subtraction and the successor of counts, and the coercion to $\mathbb{N}$, compute what \cppinline{views::iota} counts (Definition~\ref{def:standard}); none of them wraps, since $k \le n$ is a typing invariant, kept by \textsc{T-Iter-Run} (Lemma~\ref{lem:subject}).
+The assumption is that the subtraction and the successor of counts, and the coercion to $\mathbb{N}$, compute what \cppinline{views::iota} counts (Assumption~\ref{def:standard}); none of them wraps, since $k \le n$ is a typing invariant, kept by \textsc{T-Iter-Run} (Lemma~\ref{lem:subject}).
 
 \subsection{Coherence of the translation}
 
@@ -318,7 +318,7 @@ step & the result has the type, because \\
 \endlastfoot
 \textsc{S-Trait} & the initialiser's type at the types that match, which is the read's (by \textsc{D-Trait}, \textsc{D-Entry}) \\
 \textsc{S-Call}, \textsc{S-Op} & below \\
-\textsc{S-Std}, \textsc{S-Prim} & the value the standard, the declaration or $\Sigma$ assigns has the result type (Definition~\ref{def:standard}) \\
+\textsc{S-Std}, \textsc{S-Prim} & the value the standard, the declaration or $\Sigma$ assigns has the result type (Assumption~\ref{def:standard}) \\
 \textsc{S-If}, \textsc{S-Proj} & the selected branch's type, the component's type \\
 \textsc{S-Inj}, \textsc{S-Copair} & the result type of the given call, by \textsc{T-App}; an injected value by \textsc{T-Inj-Run} \\
 \textsc{S-Fold} & the call $v_f\texttt{(}v_a\texttt{, }c_k\texttt{)}$ has type $\sigma$ by the step's premise of \textsc{T-Iter} or \textsc{T-Iter-Run} and (a), and the reduct is typed by \textsc{T-Iter-Run}, since $0 < k + 1 \le n$ where $k < n$ \\
@@ -386,7 +386,7 @@ source step & target steps & landing, because \\
 \textsc{S-Trait} & unfolding, then type application and $\beta$-reduction & the entry's image at the types that match and its associated types there, its dictionaries and the images of its reads at the parts, reduces by type application and $\beta$-reduction to $\llbracket e[\overline{\sigma'}/\overline{\beta}] \rrbracket$, the variables for the parts replaced by exactly the images of those reads, and the dictionaries by Lemma~\ref{lem:subst-dict}; the default's by the unfolding of its name and its type applications \\
 \textsc{S-Call} & several & below \\
 \textsc{S-Op} & several & below \\
-\textsc{S-Std}, \textsc{S-Prim} & a projection where there is one, then a $\delta$-step & the value the standard or the declaration assigns, by Definition~\ref{def:standard} \\
+\textsc{S-Std}, \textsc{S-Prim} & a projection where there is one, then a $\delta$-step & the value the standard or the declaration assigns, by Assumption~\ref{def:standard} \\
 \textsc{S-If} & a reduction of the conditional & to the selected branch \\
 \textsc{S-Inj} & a projection, then $\beta$-reduction & the injection, at the other alternative's type \\
 \textsc{S-Copair} & projections, type application and $\beta$-reduction, then the case, then a projection of the record & the required call of the arrow the alternative chooses, applied to the arrow and the value it holds, the image of the call the source stepped to, by Lemma~\ref{lem:resolve} \\
@@ -442,8 +442,7 @@ Conversely, if $\llbracket e \rrbracket \longrightarrow^{*} c$ for a constant $c
 \label{cor:parametricity}
 The image of a generic FJlt function satisfies the free theorem of its System~F type, and so does the function, its instances observed at an atom.
 \end{corollary}
-\begin{proof}
-By Theorem~\ref{thm:preservation}, a generic FJlt function translates to a closed System~F term of type $\forall\overline{\alpha}.\,\forall\overline{\chi}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$; Reynolds' abstraction theorem~\cite{reynolds1983types,wadler1989theorems} gives its free theorem, in which the record parameters are ordinary term parameters, so the theorem relates behaviour at two instantiations through the relation between their records.
+\noindent\emph{Argued.}\ By Theorem~\ref{thm:preservation}, a generic FJlt function translates to a closed System~F term of type $\forall\overline{\alpha}.\,\forall\overline{\chi}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$; Reynolds' abstraction theorem~\cite{reynolds1983types,wadler1989theorems} gives its free theorem, in which the record parameters are ordinary term parameters, so the theorem relates behaviour at two instantiations through the relation between their records.
 The target's constants are interpreted by the identity relation at their types and its iterator by the identity on $\mathbb{N}$, so the abstraction theorem extends to it, and the term is closed once the defined names are expanded.
 An associated type is a type parameter $\chi$ of the image like any other, so the free theorem is for homomorphisms of the shape that include its associated types: a relation on each associated type, chosen together with the relation on the carrier, which a homomorphism of Section~\ref{sec:translation}'s third result must respect as it respects the calls.
 Two associated types that the unifier makes one read have one $\chi$ and so one relation, as their equality in the source asks.
@@ -451,4 +450,4 @@ Two associated types that the unifier makes one read have one $\chi$ and so one 
 For the function itself: a closed instance $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)}$ at an atom evaluates to $v$ exactly when its image reduces to $\llbracket v \rrbracket$ (Theorem~\ref{thm:simulation}).
 That image is $f$'s image applied to the kept $\overline{\llbracket \sigma \rrbracket}$, the images $\overline{\llbracket \rho \rrbracket}$ of its associated types and the records built at $\overline{\sigma}$, and the instantiated dictionaries reduce to those records (Lemma~\ref{lem:subst-dict}).
 So the free theorem of $f$'s image, taken at those records, is a statement about the values of $f$'s instances in FJlt, and \cppinline{free_theorem} in Listing~\ref{lst:theorems} is its instance for \cppinline{concat}.
-\end{proof}
+
