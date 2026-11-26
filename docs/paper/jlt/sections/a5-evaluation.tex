@@ -9,7 +9,7 @@ It is \Cpp{}'s constant evaluation restricted to the grammar, and Figures~\ref{f
 Evaluation is small-step and call-by-value on closed terms, $e \longrightarrow e'$, with values and evaluation contexts,
 \[
 \begin{array}{rcl}
-v &::=& c \mid O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}} \mid \texttt{std::pair\{}v\texttt{, }v\texttt{\}} \mid \mathit{inl}_{\tau, \sigma}\,v \mid \mathit{inr}_{\tau, \sigma}\,v \mid \texttt{views::iota(}c\texttt{, }c\texttt{)} \\
+v &::=& c \mid O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}} \mid \texttt{std::pair\{}v\texttt{, }v\texttt{\}} \mid \mathit{inl}\,v \mid \mathit{inr}\,v \mid \texttt{views::iota(}c\texttt{, }c\texttt{)} \\
 E &::=& [\,] \mid f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid E\texttt{(}\overline{e}\texttt{)} \mid v\texttt{(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid \ominus E \mid E \oplus e \mid v \oplus E \mid E \texttt{ ? } e \texttt{ : } e \\
   &\mid& \tau\texttt{\{}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{\}} \mid E\texttt{.}y \mid \texttt{fold\_left(iota(}c\texttt{, }E\texttt{), }e\texttt{, }e\texttt{)} \mid \texttt{fold\_left(}v\texttt{, }E\texttt{, }e\texttt{)} \mid \texttt{fold\_left(}v\texttt{, }v\texttt{, }E\texttt{)}
 \end{array}
@@ -73,7 +73,8 @@ A carrier is not in $\Sigma$: \cppinline{std::string} is a type the kernel never
 \textsc{(S-If)} & \texttt{true ? } e_1 \texttt{ : } e_2 \longrightarrow e_1 \qquad \texttt{false ? } e_1 \texttt{ : } e_2 \longrightarrow e_2 \\[5pt]
 \textsc{(S-Proj)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}.}y_i \longrightarrow v_i \quad \text{a field, \texttt{std::pair}'s \texttt{first} and \texttt{second} among them} \\[5pt]
 \textsc{(S-Inj)} & \texttt{Inl<}\tau\texttt{, }\sigma\texttt{>\{\}(}v\texttt{)} \longrightarrow \mathit{inl}_{\tau, \sigma}\,v \qquad \texttt{Inr<}\tau\texttt{, }\sigma\texttt{>\{\}(}v\texttt{)} \longrightarrow \mathit{inr}_{\tau, \sigma}\,v \\[5pt]
-\textsc{(S-Copair)} & \texttt{Copairing<}F\texttt{, }G\texttt{>\{}v_f\texttt{, }v_g\texttt{\}(}\mathit{inl}\,v\texttt{)} \longrightarrow v_f\texttt{(}v\texttt{)} \qquad \ldots\texttt{(}\mathit{inr}\,v\texttt{)} \longrightarrow v_g\texttt{(}v\texttt{)} \\[5pt]
+\textsc{(S-Copair)} & \texttt{Copairing<}F\texttt{, }G\texttt{>\{}v_f\texttt{, }v_g\texttt{\}(}\mathit{inl}\,v\texttt{)} \longrightarrow v_f\texttt{(}v\texttt{)} \\
+ & \texttt{Copairing<}F\texttt{, }G\texttt{>\{}v_f\texttt{, }v_g\texttt{\}(}\mathit{inr}\,v\texttt{)} \longrightarrow v_g\texttt{(}v\texttt{)} \\[5pt]
 \textsc{(S-Fold)} & \texttt{fold\_left(iota(}c_k\texttt{, }c_n\texttt{), }v_a\texttt{, }v_f\texttt{)} \longrightarrow \texttt{fold\_left(iota(}c_{k+1}\texttt{, }c_n\texttt{), }v_f\texttt{(}v_a\texttt{, }c_k\texttt{), }v_f\texttt{)} \quad \text{if } k < n \\
  & \texttt{fold\_left(iota(}c_k\texttt{, }c_n\texttt{), }v_a\texttt{, }v_f\texttt{)} \longrightarrow v_a \quad \text{if } k = n \\[5pt]
 \textsc{(S-Ctx)} & E[e] \longrightarrow E[e'] \quad \text{if } e \longrightarrow e' \\
