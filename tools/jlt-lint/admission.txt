@@ -217,8 +217,17 @@ Stmt:IfConstexpr open
 # to the kernel with their rules.  Their bodies are the one place a sum is
 # built or taken apart by hand.
 Sum:arrow scaffolding
-# Any other use of a variant that may fail or changes it: std::get and
-# get_if, emplace, assignment, swap, valueless_by_exception.
+# The copairing written as a choice on the index, x.index() == 0 ? e1 : e2
+# (or by if, negated, joined by && or ||, or as a guard), with
+# std::get<0>(x) only where the side 0 is known and std::get<1>(x) only
+# where the side 1 is: sugar for the copairing of two function objects
+# whose bodies are the branches (#1222).  The nearest test of x decides.
+Sum:case-sugar derived
+# The same choice with branches of different types, one converted.
+Sum:case-converted refused
+# Any other use of a variant that may fail or changes it: std::get by type,
+# or by index outside the branch that knows the side, get_if, emplace,
+# assignment, swap, valueless_by_exception.
 Sum:other refused
 # The other uses of a variant, each total, and a variant of more than two
 # types: derived forms not yet written (a tagged construction is an
@@ -227,7 +236,14 @@ Sum:other refused
 # n types nested binary ones).  Open until each row is written with its
 # conditions and a tested pair.
 Derived:variant open
-# std::expected, a sum with an interface of its own: open.
+# std::expected<A, B>, the other spelling of a binary sum, read as
+# std::variant<A, B> (#1222): its type is sugar, and so are its tagged
+# constructions, {std::in_place, a} and {std::unexpect, b}, the injections,
+# and x.has_value() ? ... *x ... : ... x.error() ..., the copairing
+# (Sum:case-sugar).  value() and writes are Sum:other; the rest of its
+# interface (value_or, transform, the untagged conversions, ==, the test as
+# bool) is open, derived forms not yet written.
+Sum:expected derived
 Derived:expected open
 # value() of a std::optional: it throws where no value is held, which Rule 1
 # keeps out.  Open until optional has its row.

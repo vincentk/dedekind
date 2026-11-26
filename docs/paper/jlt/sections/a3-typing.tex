@@ -168,7 +168,8 @@ A range of any other kind, as an array, a repetition or a view of one, is a deri
 \label{app:fjlt:sums}
 The kernel's sum is \cppinline{std::variant<A, B>}, read as Pierce's coproduct~\cite{pierce1991basic}: built by the injections $\iota_1 : A \to A + B$ and $\iota_2 : B \to A + B$, and read by the copairing $[f, g] : A + B \to C$ of $f : A \to C$ and $g : B \to C$.
 These are the library's \cppinline{Injection} and \cppinline{Copairing}, given to the kernel as the standard's function objects are (\textsc{T-Op}), so a sum needs no rule of its own.
-The linter refuses \cppinline{std::get} and writes to a variant, and leaves open the total uses, \cppinline{std::visit} among them, a variant of more types and \cppinline{std::expected}, derived forms not yet written (Table~\ref{tab:derived}).
+The conditional on the side, with \cppinline{std::get<k>(x)} read only where side $k$ is known, is the copairing's derived form, and \cppinline{std::expected} with its test \cppinline{has_value()} another spelling of it (Table~\ref{tab:derived}).
+The linter refuses any other \cppinline{std::get} and the writes to a sum, and leaves open the other total uses, \cppinline{std::visit} among them, and a variant of more types.
 \cppinline{==} at a sum is not in the kernel: \Cpp{23} does not constrain it by the parts.
 Listing~\ref{lst:subtraction} uses a sum for subtraction on the naturals, which says how far short it falls where \cppinline{size_t}'s own subtraction wraps.
 
@@ -181,10 +182,13 @@ constexpr Difference minus(size_t n, size_t m) {
                 : ι<2, size_t, Short>{}(Short{m - n}); }
 constexpr size_t monus(size_t n, size_t m) {
   return Copairing<Same, Nothing>{Same{}, Nothing{}}(minus(n, m)); }
-static_assert(monus(7, 2) == 5 && monus(2, 7) == 0);
+constexpr size_t monus_by_index(size_t n, size_t m) {
+  const Difference d = minus(n, m);
+  return d.index() == 0 ? get<0>(d) : 0uz; }
+static_assert(monus(7, 2) == 5 && monus(2, 7) == monus_by_index(2, 7));
 \end{cpp}
-\caption{Subtraction on the naturals, read by a copairing: \cppinline{Same} is the identity and \cppinline{Nothing} the constant $0$.
-From \texttt{tools/jlt-lint/fixtures/sum.cpp}, where the linter gives \cppinline{monus} the level FJlt and \cppinline{minus} Jlt, \cppinline{ι} being an alias.}
+\caption{Subtraction on the naturals, read by a copairing, \cppinline{Same} the identity and \cppinline{Nothing} the constant $0$, and by the conditional that is its derived form.
+From \texttt{tools/jlt-lint/fixtures/sum.cpp}, where the linter gives \cppinline{monus} the level FJlt and \cppinline{minus} and \cppinline{monus_by_index} Jlt, \cppinline{ι} being an alias.}
 \label{lst:subtraction}
 \end{listing}
 

@@ -449,8 +449,8 @@ constexpr std::size_t written_by_lambda() {
 constexpr char character_at(std::string_view s, std::size_t i) { return s[i]; }
 constexpr std::size_t first_of(const std::vector<std::size_t>& v) { return v.front(); }
 // Not refused by local state: a local of a value type of the standard that
-// is not a container of old, std::expected.  Undecided, since std::expected
-// is left to the derived forms (#1222).
+// is not a container of old, std::expected.  Undecided, since its value is
+// built by conversion, a spelling of the sum not yet written (#1222).
 constexpr std::expected<std::size_t, bool> half(std::size_t n) {
   std::expected<std::size_t, bool> r = n / 2;
   return r;

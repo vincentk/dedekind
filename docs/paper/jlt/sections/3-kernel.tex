@@ -112,6 +112,7 @@ The value layer has little of \Cpp{} in it, on purpose.
 A carrier is a type the kernel never looks inside: a generic definition reaches a value of it only through the calls that a shape names, and that is all the kernel knows of a string.
 A carrier comes with arrows of its own, as \cppinline{std::plus} comes with strings and \cppinline{Size} is written with a string's own length, and their declarations are given to the kernel, not written in it.
 A sum type, \cppinline{std::variant<A, B>}, holds a value of one of two types, as Haskell's \texttt{Either a b} does, and a program builds and reads it only by the arrows of the coproduct~\cite{pierce1991basic}: a partial operation, as subtraction on the naturals, returns the reason it has no result.
+The kernel writes a construction in \Cpp{}'s own syntax where that syntax is the construction, as \cppinline{pair{a, b}} and \cppinline{.first} are a pair's, and by an arrow of the library where no syntax is, as for a sum's copairing; the conditional on the side, \cppinline{x.index() == 0 ? e1 : e2}, and \cppinline{std::expected}'s spelling of the same choice are derived forms of it.
 The one recursion over a value is iteration, with its count given before the first step.
 Its step is a function of the state and the index, and a state of several parts is a record.
 
