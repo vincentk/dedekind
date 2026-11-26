@@ -156,24 +156,30 @@ def main():
     sys.stdout.write(reasons(levels))
     sys.stdout.flush()
     macros = facts(levels)
+    tally = counts(levels)
+    # Every generated file that differs is reported in one run, so that one
+    # log has all of them.
+    failed = []
     if a.facts:
         a.facts.write_text(macros)
     if a.check_facts and a.check_facts.read_text() != macros:
-        sys.exit(f"summary.py: {a.check_facts} differs from the build's numbers; "
-                 f"regenerate it with --facts.  The macros:\n{macros}")
-    tally = counts(levels)
+        failed.append(f"summary.py: {a.check_facts} differs from the build's numbers; "
+                      f"regenerate it with --facts.  The macros:\n{macros}")
     if a.counts:
         a.counts.write_text(tally)
     if a.check_counts and a.check_counts.read_text() != tally:
-        sys.exit(f"summary.py: {a.check_counts} differs from the build's levels; "
-                 f"regenerate it with --counts.  The counts:\n{tally}")
+        failed.append(f"summary.py: {a.check_counts} differs from the build's levels; "
+                      f"regenerate it with --counts.  The counts:\n{tally}")
     if a.latex:
         a.latex.write_text(text)
     if a.check:
         if a.check.read_text() != text:
-            sys.exit(f"summary.py: {a.check} differs from the levels the linter gives; "
-                     f"regenerate it with --latex.  The rows:\n{text}")
-        print(f"summary.py: {a.check} matches")
+            failed.append(f"summary.py: {a.check} differs from the levels the linter gives; "
+                          f"regenerate it with --latex.  The rows:\n{text}")
+        else:
+            print(f"summary.py: {a.check} matches")
+    if failed:
+        sys.exit("\n".join(failed))
     if not a.latex and not a.check:
         sys.stdout.write(text)
         sys.stdout.write(macros)
