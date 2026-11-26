@@ -3810,8 +3810,8 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     return true;
   }
   // ---- The binary sum, std::variant<A, B> (#1222). ----
-  /// Whether t is std::variant<A, B>, written or deduced, dependent or not.
-  static bool isSum(clang::QualType t) {
+  /// Whether t is a std::variant of any number of types.
+  static bool isVariant(clang::QualType t) {
     if (t.isNull()) return false;
     t = t.getNonReferenceType().getUnqualifiedType();
     if (const auto* r = t->getAsCXXRecordDecl())
@@ -3821,26 +3821,51 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
         return td->getIdentifier() && td->getName() == "variant" && inStd(td);
     return false;
   }
-  /// The function a statement stands in.
-  const clang::FunctionDecl* enclosing(const clang::Stmt* s) const {
-    if (!ctx) return nullptr;
-    clang::DynTypedNode n = clang::DynTypedNode::create(*s);
-    for (int k = 0; k < 256; ++k) {
-      auto ps = const_cast<clang::ASTContext*>(ctx)->getParents(n);  // the map is built lazily
-      if (ps.empty()) return nullptr;
-      n = ps[0];
-      if (const auto* f = n.get<clang::FunctionDecl>()) return f;
+  /// The alternatives of a variant, or of an expected, where they are known:
+  /// a pack expanded; empty where the type is dependent with a pack.
+  static std::vector<clang::QualType> alternatives(clang::QualType t) {
+    std::vector<clang::QualType> out;
+    if (t.isNull()) return out;
+    t = t.getNonReferenceType().getUnqualifiedType();
+    const auto add = [&](const clang::TemplateArgument& a, auto&& self) -> bool {
+      if (a.getKind() == clang::TemplateArgument::Pack) {
+        for (const auto& e : a.pack_elements())
+          if (!self(e, self)) return false;
+        return true;
+      }
+      if (a.getKind() != clang::TemplateArgument::Type) return false;
+      if (a.getAsType()->getAs<clang::PackExpansionType>()) return false;
+      out.push_back(a.getAsType());
+      return true;
+    };
+    if (const auto* sd = llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(t->getAsCXXRecordDecl())) {
+      for (const auto& a : sd->getTemplateArgs().asArray())
+        if (!add(a, add)) return {};
+      return out;
     }
-    return nullptr;
+    if (const auto* ts = t->getAs<clang::TemplateSpecializationType>()) {
+      for (const auto& a : ts->template_arguments())
+        if (!add(a, add)) return {};
+      return out;
+    }
+    return out;
   }
-  /// Whether a statement is in the body of one of the sum's structure
-  /// arrows, the injections and the copairing, which are given to the
-  /// kernel with their rules as the standard's function objects are: their
-  /// bodies are the one place a sum is taken apart or built by hand.
-  bool inStructureArrow(const clang::Stmt* s) const {
-    const auto* m = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(enclosing(s));
-    const clang::CXXRecordDecl* r = m ? m->getParent() : nullptr;
-    return r && r->getIdentifier() && (r->getName() == "Injection" || r->getName() == "Copairing");
+  /// Whether t is the kernel's sum: a std::variant of exactly two types.
+  static bool isSum(clang::QualType t) { return isVariant(t) && alternatives(t).size() == 2; }
+  /// Whether a tested variable cannot be written: const, so that no write
+  /// stands between its test and a reading.
+  static bool constant(const clang::ValueDecl* x) {
+    return x && x->getType().getNonReferenceType().isConstQualified();
+  }
+  /// Whether a payload converted to the alternative's type loses values.
+  bool payloadNarrows(const clang::Expr* e, clang::QualType to) const {
+    if (!ctx || !e || to.isNull() || to->isDependentType()) return false;
+    const clang::Expr* x = e->IgnoreParenImpCasts();
+    const clang::QualType from = x->getType();
+    if (from.isNull() || from->isDependentType()) return false;
+    if (from->isRealFloatingType() && to->isIntegralOrEnumerationType()) return true;
+    if (from->isIntegralOrEnumerationType() && to->isIntegerType()) return narrows(x, to);
+    return false;
   }
   // ---- The copairing written as a conditional on index(): sugar. ----
   /// The variable an expression names, parentheses and implicit nodes aside.
@@ -3926,8 +3951,12 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(st); c && isExpected(c->getType())) {
       if (c->getConstructor()->isCopyOrMoveConstructor()) return std::nullopt;
       if (c->getNumArgs() == 2 && (namedStd(c->getArg(0)->getType(), "in_place_t") ||
-                                   namedStd(c->getArg(0)->getType(), "unexpect_t")))
-        return std::string("Sum:case-sugar");
+                                   namedStd(c->getArg(0)->getType(), "unexpect_t"))) {
+        const auto alts = alternatives(c->getType());
+        const std::size_t k = namedStd(c->getArg(0)->getType(), "in_place_t") ? 0 : 1;
+        if (alts.size() == 2 && payloadNarrows(c->getArg(1), alts[k])) return std::string("Conversion:narrowing");
+        return std::string("Sum:inj-sugar");
+      }
       return std::string("Derived:expected");
     }
     std::string name;
@@ -3977,7 +4006,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   /// operand of && or ||, or the statements after a guard if (c) return
   /// ...; with no else.  A lambda or a function ends the search.
   int knownSide(const clang::Stmt* occ, const clang::ValueDecl* x) const {
-    if (!x || !ctx) return -1;
+    if (!constant(x) || !ctx) return -1;
     const clang::Stmt* child = occ;
     clang::DynTypedNode n = clang::DynTypedNode::create(*occ);
     for (int k = 0; k < 256; ++k) {
@@ -4033,7 +4062,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   /// ||, compared with 0 or 1, negated or alone; converted, refused, where
   /// the choice's branches differ in type; open anywhere else.
   std::string indexKind(const clang::Stmt* st, const clang::ValueDecl* x) const {
-    if (!x || !ctx) return "Derived:variant";
+    if (!constant(x) || !ctx) return "Derived:variant";
     const clang::Stmt* child = st;
     clang::DynTypedNode n = clang::DynTypedNode::create(*st);
     for (int k = 0; k < 16; ++k) {
@@ -4082,14 +4111,42 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   /// may fail or changes the sum (get, get_if, emplace, =, swap,
   /// valueless_by_exception).  None where the statement is no such use.
   std::optional<std::string> sumUse(const clang::Stmt* st) const {
+    // A variant of more than two types: read as binary ones nested, a
+    // derived form not yet written.
+    {
+      const clang::Expr* obj = nullptr;
+      if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(st)) {
+        if (isVariant(c->getType()) && !isSum(c->getType()) && !c->getConstructor()->isCopyOrMoveConstructor())
+          return std::string("Derived:variant");
+      } else if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(st)) {
+        obj = m->getImplicitObjectArgument();
+      } else if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st)) {
+        for (const clang::Expr* a : c->arguments())
+          if (isVariant(a->getType())) obj = a;
+      }
+      if (obj && isVariant(obj->getType()) && !isSum(obj->getType())) return std::string("Derived:variant");
+    }
     const auto kind = [&](llvm::StringRef name) -> std::optional<std::string> {
-      if (inStructureArrow(st)) return std::string("Sum:arrow");
       static const std::set<std::string> partial{"get", "get_if", "emplace", "swap", "=",
                                                  "valueless_by_exception"};
       return std::string(partial.count(name.str()) ? "Sum:other" : "Derived:variant");
     };
     if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(st); c && isSum(c->getType())) {
       if (c->getConstructor()->isCopyOrMoveConstructor()) return std::nullopt;
+      // variant<A, B>(in_place_index<k>, a): the injection inl or inr in the
+      // standard's positional spelling, sugar; a payload that narrows is
+      // refused.
+      if (c->getNumArgs() == 2)
+        if (const auto* sd = llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
+                c->getArg(0)->getType().getNonReferenceType()->getAsCXXRecordDecl());
+            sd && sd->getIdentifier() && sd->getName() == "in_place_index_t" && inStd(sd) &&
+            sd->getTemplateArgs().size() == 1 && sd->getTemplateArgs()[0].getKind() == clang::TemplateArgument::Integral) {
+          const auto k = sd->getTemplateArgs()[0].getAsIntegral().getZExtValue();
+          const auto alts = alternatives(c->getType());
+          if (k > 1 || alts.size() != 2) return std::string("Sum:other");
+          if (payloadNarrows(c->getArg(1), alts[k])) return std::string("Conversion:narrowing");
+          return std::string("Sum:inj-sugar");
+        }
       return kind("construct");
     }
     if (const auto* c = llvm::dyn_cast<clang::CXXUnresolvedConstructExpr>(st); c && isSum(c->getTypeAsWritten()))
@@ -4104,7 +4161,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       const clang::CXXMethodDecl* g = m->getMethodDecl();
       const clang::Expr* obj = m->getImplicitObjectArgument();
       if (g && g->getIdentifier() && obj && isSum(obj->getType())) {
-        if (g->getName() == "index" && !inStructureArrow(st)) return indexKind(st, named(obj));
+        if (g->getName() == "index") return indexKind(st, named(obj));
         return kind(g->getName());
       }
       return std::nullopt;
@@ -4113,7 +4170,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       const clang::Expr* callee = c->getCallee()->IgnoreParenImpCasts();
       if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(callee))
         if (!d->isImplicitAccess() && isSum(d->getBaseType()) && d->getMember().isIdentifier()) {
-          if (d->getMember().getAsString() == "index" && !inStructureArrow(st)) return indexKind(st, named(d->getBase()));
+          if (d->getMember().getAsString() == "index") return indexKind(st, named(d->getBase()));
           return kind(d->getMember().getAsString());
         }
       std::vector<const clang::NamedDecl*> ds;
@@ -4125,7 +4182,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
             if (isSum(arg->getType())) {
               // std::get<K>(x) in the branch that knows x holds side K: the
               // copairing's sugar.  By type, or anywhere else: refused.
-              if (d->getName() == "get" && !inStructureArrow(st) && c->getNumArgs() == 1) {
+              if (d->getName() == "get" && c->getNumArgs() == 1) {
                 const int k = getIndex(c);
                 if (k >= 0 && knownSide(st, named(arg)) == k) return std::string("Sum:case-sugar");
               }

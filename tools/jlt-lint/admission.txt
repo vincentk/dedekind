@@ -211,17 +211,20 @@ Stmt:IfConsteval open
 # the test is a shape the signature names, and no check shows either yet; the
 # type check leaves a body with one undecided for the same reason.
 Stmt:IfConstexpr open
-# The binary sum, std::variant<A, B>, is in the kernel (#1222), read as
-# Pierce's coproduct: by its injections and its copairing only, the
-# library's Injection and Copairing (category/cartesian.cppm), arrows given
-# to the kernel with their rules.  Their bodies are the one place a sum is
-# built or taken apart by hand.
-Sum:arrow scaffolding
+# The binary sum, std::variant<A, B> of exactly two types, is in the kernel
+# (#1222), read as Pierce's coproduct: built by the named injections inl and
+# inr and read by the copairing [f, g], arrows given to the kernel with dom
+# and cod, as a pair is built by pair{a, b} and read by .first and .second.
+# The positional spellings are sugar: variant<A, B>(in_place_index<k>, a),
+# the library's Injection (ι), and std::expected's {in_place, a} and
+# {unexpect, b}; a payload that narrows is Conversion:narrowing.
+Sum:inj-sugar derived
 # The copairing written as a choice on the index, x.index() == 0 ? e1 : e2
-# (or by if, negated, joined by && or ||, or as a guard), with
-# std::get<0>(x) only where the side 0 is known and std::get<1>(x) only
-# where the side 1 is: sugar for the copairing of two function objects
-# whose bodies are the branches (#1222).  The nearest test of x decides.
+# (or by if, negated, joined by && or ||, or as an early exit), with x a
+# const variable, std::get<0>(x) only where alternative 0 is known and
+# std::get<1>(x) only where alternative 1 is: sugar for the copairing of two
+# function objects whose bodies are the branches (#1222).  The nearest test
+# of x decides.
 Sum:case-sugar derived
 # The same choice with branches of different types, one converted.
 Sum:case-converted refused
@@ -229,17 +232,16 @@ Sum:case-converted refused
 # or by index outside the branch that knows the side, get_if, emplace,
 # assignment, swap, valueless_by_exception.
 Sum:other refused
-# The other uses of a variant, each total, and a variant of more than two
-# types: derived forms not yet written (a tagged construction is an
-# injection, visit on two distinct alternatives a copairing, index and
-# holds_alternative a copairing into a count or a truth value, a variant of
-# n types nested binary ones).  Open until each row is written with its
-# conditions and a tested pair.
+# The other uses of a variant, each total, and any use of a variant of more
+# than two types: derived forms not yet written (visit on two distinct
+# alternatives is a copairing, index and holds_alternative a copairing into
+# a count or a truth value, a variant of n types nested binary ones).
+# Undecided until each row is written with its conditions and a tested pair.
 Derived:variant open
 # std::expected<A, B>, the other spelling of a binary sum, read as
 # std::variant<A, B> (#1222): its type is sugar, and so are its tagged
-# constructions, {std::in_place, a} and {std::unexpect, b}, the injections,
-# and x.has_value() ? ... *x ... : ... x.error() ..., the copairing
+# constructions, the injections (Sum:inj-sugar), and, with x a const
+# variable, x.has_value() ? ... *x ... : ... x.error() ..., the copairing
 # (Sum:case-sugar).  value() and writes are Sum:other; the rest of its
 # interface (value_or, transform, the untagged conversions, ==, the test as
 # bool) is open, derived forms not yet written.
