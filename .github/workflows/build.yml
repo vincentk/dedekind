@@ -202,7 +202,25 @@ jobs:
     # Build, then the lint in one pass over the whole tree and the tests
     # (CMake's `check`).
     - name: Build, Lint & Test
-      run: make check CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+      run: |
+        # The lines of ninja's log a restored cache brought in, so that the
+        # timings below count only this run's edges.
+        wc -l < build/.ninja_log > "$RUNNER_TEMP/ninja-log-before" 2>/dev/null || echo 0 > "$RUNNER_TEMP/ninja-log-before"
+        make check CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+
+    # Where the build's time went, on the run's page and as an artifact
+    # (#900): measured before anything is optimised.
+    - name: Timings
+      if: always() && hashFiles('build/.ninja_log') != ''
+      run: |
+        python3 tools/ci/ninja_times.py build/.ninja_log --skip "$(cat "$RUNNER_TEMP/ninja-log-before" 2>/dev/null || echo 0)" >> "$GITHUB_STEP_SUMMARY"
+    - name: Keep ninja's log
+      if: always() && hashFiles('build/.ninja_log') != ''
+      uses: actions/upload-artifact@v7
+      with:
+        name: ninja-log-${{ inputs.runner || 'macos-26' }}
+        path: build/.ninja_log
+        retention-days: 30
 
     # main keeps the build it has just made, and only the newest copy.  The
     # tests' profiles stay out.
