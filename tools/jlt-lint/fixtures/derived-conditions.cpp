@@ -190,4 +190,27 @@ constexpr std::size_t area_as_read(Tagged shape) {  // sound
 static_assert(area(3uz) == area_as_read({false, 3, {}}) &&
               area(std::pair{2uz, 5uz}) == area_as_read({true, 0, {2, 5}}));
 
+// A destructor that does nothing is scaffolding; one that is virtual is not
+// (and its class is refused for subtyping).
+struct Plain {
+  std::size_t v;
+  constexpr ~Plain() = default;
+};
+struct Quiet {
+  std::size_t v;
+  constexpr ~Quiet() {}
+};
+constexpr std::size_t plain_value(Plain p) { return p.v; }
+// sizeof of a type that is not dependent: a constant.
+constexpr std::size_t width() { return sizeof(std::size_t) * 8; }
+// T(x) to a class type with parentheses: the construction T{x}.
+struct Pt {
+  std::size_t x;
+  std::size_t y;
+};
+constexpr Pt diagonal(std::size_t n) { return Pt(n, n); }
+// The same construction narrowing an argument: refused.
+constexpr Pt narrowed_point(int n) { return Pt(n, n); }
+static_assert(plain_value(Plain{3}) == 3 && width() == 64 && diagonal(2).y == 2 && narrowed_point(1).x == 1);
+
 }  // namespace jlt_listing

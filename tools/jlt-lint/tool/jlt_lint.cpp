@@ -515,7 +515,21 @@ std::string stmtKind(const clang::Stmt* st) {
   if (const auto* c = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(st)) {
     if (c->getType()->isArithmeticType()) return "Stmt:ArithmeticConversion";
     if (c->isListInitialization() && c->getType()->isRecordType()) return "Stmt:BracedValue";
+    // T(x) to a class type, with parentheses: the construction T{x}, whose
+    // arguments' conversions the narrowing check reads as it reads any.
+    if (c->getType()->isRecordType() && !c->getType()->isDependentType()) return "Stmt:ParenValue";
   }
+  // T(a, b) to an aggregate, C++20's parenthesised aggregate initialisation:
+  // the same construction with braces.
+  if (const auto* c = llvm::dyn_cast<clang::CXXParenListInitExpr>(st); c && !c->getType()->isDependentType())
+    return "Stmt:ParenValue";
+  // sizeof and alignof of a type that is not dependent: a constant of
+  // size_t, fixed by the type (at a type variable they observe the type,
+  // which rule2-no-type-observation refuses).
+  if (const auto* u = llvm::dyn_cast<clang::UnaryExprOrTypeTraitExpr>(st))
+    if ((u->getKind() == clang::UETT_SizeOf || u->getKind() == clang::UETT_AlignOf) && !u->isValueDependent() &&
+        !u->isTypeDependent() && !u->isInstantiationDependent())
+      return "Stmt:SizeConstant";
   // if consteval chooses by how the call is evaluated, and a generic lambda
   // is a template with no constraint: kinds of their own, apart from the if
   // statement and the lambda of Table 7.
@@ -534,6 +548,13 @@ std::string stmtKind(const clang::Stmt* st) {
 /// `using type = T;` of a struct is Figure 2's entry of an associated type,
 /// a form of the kernel, and not Table 7's alias.
 std::string declKind(const clang::Decl* d) {
+  // A destructor that does nothing: defaulted, or with an empty body, and
+  // not virtual.  Its class's values are values; the destructor is
+  // scaffolding, as a defaulted copy is.
+  if (const auto* x = llvm::dyn_cast<clang::CXXDestructorDecl>(d))
+    if (!x->isVirtual() && (x->isDefaulted() || (x->hasBody() && llvm::isa_and_nonnull<clang::CompoundStmt>(x->getBody()) &&
+                                                  llvm::cast<clang::CompoundStmt>(x->getBody())->body_empty())))
+      return "Decl:EmptyDestructor";
   if (const auto* a = llvm::dyn_cast<clang::TypeAliasDecl>(d))
     if (a->getName() == "type" && llvm::isa<clang::CXXRecordDecl>(a->getDeclContext()))
       return "Decl:AssociatedTypeEntry";
