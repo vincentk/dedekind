@@ -71,7 +71,7 @@ So $\Rightarrow$ has the diamond property, and $\longrightarrow$ is confluent, o
 
 \emph{Strong normalisation.}
 The defined names are acyclic, being images of declarations of which none calls itself and each calls only what stands above it (\ref{wf:acyclic}, \ref{wf:order}), so each has a closed expansion $e(d)$, and $e(d) = e(b)$ for its body $b$.
-A step other than an unfolding maps under $e$ to one step, since no left side holds a defined name, and an unfolding to none; unfoldings alone end, each replacing a name by names declared before it, so an infinite reduction has infinitely many other steps and maps to an infinite reduction without defined names.
+A step other than an unfolding maps under $e$ to one step, since no left side holds a defined name, and an unfolding to none; unfoldings alone end, each replacing a name by the names its body calls, which in a finite program with no cycle of calls (\ref{wf:acyclic}) cannot go on, so an infinite reduction has infinitely many other steps and maps to an infinite reduction without defined names.
 It remains to show that the target without defined names is strongly normalising, on typed terms, which reduction keeps~\cite{girard1989proofs}.
 We map it into the calculus of Theorem~\ref{cit:sn}, keeping types.
 Products and sums go to their encodings in System~F~\cite[Sections~11.3.2 and~11.3.4]{girard1989proofs}, as closed terms: $\tau \times \sigma$ to $\forall X.\,(\tau \to \sigma \to X) \to X$, $\pi_1$ to $\lambda p.\,p\,[\tau]\,(\lambda x.\,\lambda y.\,x)$, and sums and $\mathit{case}$ alike.
@@ -306,7 +306,7 @@ Its cases with work are three.
 \textsc{T-Req-Assumed}: at concrete types the site is the requirement's expression with its arguments, which \textsc{E-Op}'s premise types at the instantiated constraint, the arguments substituted by (a); so it is typed at the declared type by whichever rule types that expression, \textsc{T-Call}, \textsc{T-Trait}, \textsc{T-App}, \textsc{T-Op} or an operator's, an $\alpha\texttt{\{\}}$ in it being a construction at the concrete type, typed by \textsc{T-Construct}.
 \textsc{T-Eq} by \textsc{Eq-Same}: at concrete types the constraint holds by \textsc{E-Same}, so the two types are one once resolved, and the use is \textsc{T-Eq} by reflexivity.
 \textsc{T-Eq} by \textsc{Eq-Assoc}, \textsc{Eq-Cod} or \textsc{Eq-Dom}, and any associated type in a type: at concrete types it resolves, and the type is the one its entry names.
-\textsc{T-Call}: the call resolves at $\overline{\sigma}$ to the declaration it resolved to under $\Delta_D$, by \ref{wf:stable}, and its premises are instances of the premises there.
+\textsc{T-Call}: the call resolves at $\overline{\sigma}$ to the declaration it resolved to under $\Delta_D$, by \ref{wf:stable}, and its premises are instances of the premises there: entailment is closed under such a substitution, by induction on its derivation, an assumption of $\Delta_D$ being entailed at $\overline{\sigma}$ by hypothesis and a law resolved to an entry resolving to the same one (\ref{wf:stable}); the induction is argued here and not written out.
 Every other case is structural.
 The steps, one row per rule of evaluation; ${}^{\textsc{ih}}$ marks the induction hypothesis on the context, and the rows with work follow the table.
 \begingroup
