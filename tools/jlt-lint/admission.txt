@@ -215,43 +215,61 @@ Stmt:IfConstexpr open
 # (#1222), read as Pierce's coproduct: built by the named injections inl and
 # inr and read by the copairing [f, g], arrows given to the kernel with dom
 # and cod, as a pair is built by pair{a, b} and read by .first and .second.
-# The positional spellings are sugar: variant<A, B>(in_place_index<k>, a),
-# the library's Injection (ι), and std::expected's {in_place, a} and
-# {unexpect, b}; a payload that narrows is Conversion:narrowing.
+# The positional spellings are sugar: variant<A, B>(in_place_index<k>, a)
+# and std::expected's {in_place, a} and {unexpect, b}, the payload of exactly
+# its alternative's type.
 Sum:inj-sugar sugar
+# A payload of another type, converted inside the standard's constructor
+# (narrowing or widening): not the row's form.
+Sum:payload-converted refused
+# In a template, a payload whose type differs as written from its
+# alternative's: only an instance tells whether it converts (T = int and -1
+# give SIZE_MAX).  Undecided until instances are read.
+Sum:payload-dependent open
 # The copairing written as a choice on the index, x.index() == 0 ? e1 : e2
 # (or by if, negated, joined by && or ||, or as an early exit), with x a
 # const variable, std::get<0>(x) only where alternative 0 is known and
 # std::get<1>(x) only where alternative 1 is: sugar for the copairing of two
-# function objects whose bodies are the branches (#1222).  The nearest test
-# of x decides; the test compares x.index() with an integer constant 0 or 1,
+# function objects whose bodies are the branches (#1222).  The nearest
+# informative test of x decides; x a reference to const, the test and the
+# reading stand in one expression (?:, && or ||), since the object it names
+# may be written through another path between statements.  A variant without
+# a value goes to the branch of alternative 1; it arises only where a throw
+# interrupts emplace or an assignment changing the alternative, which Rule 1
+# keeps out of a closed Jlt program.  The test compares x.index() with an
+# integer constant 0 or 1,
 # or is x.has_value() or x as a truth value on an expected, negated or
 # joined by && or ||.  A payload has exactly its alternative's type.
 Sum:case-sugar sugar
 # The same choice with branches of different types, one converted.
 Sum:case-converted refused
-# A reading of an alternative of a tested variable that is not const: make the
-# variable const, so that no write can stand between the test and the
-# reading, and the reading is sugar.
+# A reading of an alternative of a tested variable that is not const, or of a
+# reference outside the expression that tests it: make the variable a const
+# local, so that no write can stand between the test and the reading, and the
+# reading is sugar.
 Sum:not-const refused
 # Any other use of a variant that may fail or changes it: std::get by type,
-# or by index outside the branch that knows the side, get_if, emplace,
-# assignment, swap, valueless_by_exception.
+# or by index outside the branch that knows the side (inside a switch on the
+# index: Sugar:variant), emplace, assignment, swap.
 Sum:other refused
 # The other uses of a variant, each total, and any use of a variant of more
 # than two types: sugar not yet written (visit on two distinct
 # alternatives is a copairing, index and holds_alternative a copairing into
-# a count or a truth value, a variant of n types nested binary ones).
+# a count or a truth value, a variant of n types nested binary ones, a
+# switch on the index, get_if, valueless_by_exception).
 # Undecided until each row is written with its conditions and a tested pair.
 Sugar:variant open
 # std::expected<A, B>, the other spelling of a binary sum, read as
 # std::variant<A, B> (#1222): its type is sugar, and so are its tagged
 # constructions, the injections (Sum:inj-sugar), and, with x a const
 # variable, x.has_value() ? ... *x ... : ... x.error() ..., the copairing
-# (Sum:case-sugar).  value() and writes are Sum:other; the rest of its
-# interface (value_or, transform, the untagged conversions, ==, the test as
-# bool) is open, sugar not yet written.
+# (Sum:case-sugar), x as a truth value among the tests.  value() and writes
+# are Sum:other; the rest of its interface (value_or, transform, the untagged
+# conversions, ==) is open, sugar not yet written.
 Sum:expected sugar
+# std::expected<void, B>: its reading, variant<void, B>, is ill-formed; open
+# until it has a row of its own (optional<B> turned around).
+Sum:expected-void open
 Sugar:expected open
 # value() of a std::optional: it throws where no value is held, which Rule 1
 # keeps out.  Open until optional has its row.

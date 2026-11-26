@@ -17,6 +17,7 @@ short_by Jlt
 or_zero_negated Jlt
 or_zero_guarded Jlt
 more_than Jlt
+negated_disjunction Jlt
 Checked Jlt
 minus_checked Jlt
 monus_checked Jlt
@@ -36,6 +37,8 @@ widened_payload refused
 checked_untested refused
 checked_by_value refused
 checked_wrong_branch refused
+read_through_alias refused
+emplaced refused
 Either FJlt
 read_by_visit undecided
 short_of undecided
@@ -43,6 +46,13 @@ three undecided
 checked_or undecided
 ordered undecided
 checked_untagged undecided
+lift undecided
+lift_checked undecided
+Done undecided
+short_or_done undecided
+by_switch refused
+held refused
+valueless undecided
 NaN FJlt
 Number FJlt
 classify FJlt

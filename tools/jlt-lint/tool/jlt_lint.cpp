@@ -3853,18 +3853,48 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   /// Whether t is the kernel's sum: a std::variant of exactly two types.
   static bool isSum(clang::QualType t) { return isVariant(t) && alternatives(t).size() == 2; }
   /// Whether a tested variable cannot be written: const, so that no write
-  /// stands between its test and a reading.
+  /// stands between its test and a reading.  A reference to const counts
+  /// here, but may name an object written through another path
+  /// ([dcl.type.cv]), so knownSide accepts its test and its reading only
+  /// inside one expression (aliased()).
   static bool constant(const clang::ValueDecl* x) {
     return x && x->getType().getNonReferenceType().isConstQualified();
   }
-  /// Whether a payload is not of its alternative's type: converted, which
-  /// the row does not read (a narrowing among such conversions).
-  bool payloadNarrows(const clang::Expr* e, clang::QualType to) const {
-    if (!ctx || !e || to.isNull() || to->isDependentType()) return false;
-    const clang::Expr* x = e->IgnoreParenImpCasts();
-    const clang::QualType from = x->getType();
-    if (from.isNull() || from->isDependentType()) return false;
-    return from.getCanonicalType().getUnqualifiedType() != to.getCanonicalType().getUnqualifiedType();
+  /// Whether a tested variable is a reference: const, but not a const object.
+  static bool aliased(const clang::ValueDecl* x) { return x && x->getType()->isReferenceType(); }
+  /// The kind of a payload that is not of its alternative's type, or none
+  /// where it is: Sum:payload-converted where both types are known (a
+  /// narrowing or a widening, which the row does not read), and
+  /// Sum:payload-dependent where they differ as written in a template, so
+  /// that only an instance would tell (lift(-1) with T = int converts -1 to
+  /// SIZE_MAX).  A template's payload of exactly the alternative's type, as
+  /// in Inl's body, A for A, is no conversion at any instance.
+  std::optional<std::string> payloadKind(const clang::Expr* e, clang::QualType to) const {
+    if (!ctx || !e || to.isNull()) return std::nullopt;
+    const clang::QualType from = e->IgnoreParenImpCasts()->getType();
+    if (from.isNull()) return std::string("Sum:payload-dependent");
+    if (from.getCanonicalType().getUnqualifiedType() == to.getCanonicalType().getUnqualifiedType())
+      return std::nullopt;
+    if (from->isDependentType() || to->isDependentType()) return std::string("Sum:payload-dependent");
+    return std::string("Sum:payload-converted");
+  }
+  /// The arguments of a construction in a template, T(a, b) or T{a, b}.
+  static std::vector<const clang::Expr*> unresolvedArgs(const clang::CXXUnresolvedConstructExpr* c) {
+    std::vector<const clang::Expr*> out;
+    if (c->getNumArgs() == 1)
+      if (const auto* l = llvm::dyn_cast<clang::InitListExpr>(c->getArg(0))) {
+        for (const clang::Expr* e : l->inits()) out.push_back(e);
+        return out;
+      }
+    for (const clang::Expr* e : c->arguments()) out.push_back(e);
+    return out;
+  }
+  /// Whether t is std::expected<void, B>: its reading, variant<void, B>, is
+  /// ill-formed ([variant.variant.general]), so it has no row yet.
+  static bool expectedVoid(clang::QualType t) {
+    if (!isExpected(t)) return false;
+    const auto alts = alternatives(t);
+    return !alts.empty() && alts[0]->isVoidType();
   }
   // ---- The copairing written as a conditional on index(): sugar. ----
   /// The variable an expression names, parentheses and implicit nodes aside.
@@ -3963,11 +3993,29 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   std::optional<std::string> expectedUse(const clang::Stmt* st) const {
     if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(st); c && isExpected(c->getType())) {
       if (c->getConstructor()->isCopyOrMoveConstructor()) return std::nullopt;
+      if (expectedVoid(c->getType())) return std::string("Sum:expected-void");
       if (c->getNumArgs() == 2 && (namedStd(c->getArg(0)->getType(), "in_place_t") ||
                                    namedStd(c->getArg(0)->getType(), "unexpect_t"))) {
         const auto alts = alternatives(c->getType());
         const std::size_t k = namedStd(c->getArg(0)->getType(), "in_place_t") ? 0 : 1;
-        if (alts.size() == 2 && payloadNarrows(c->getArg(1), alts[k])) return std::string("Conversion:narrowing");
+        if (alts.size() == 2)
+          if (auto p = payloadKind(c->getArg(1), alts[k])) return p;
+        return std::string("Sum:inj-sugar");
+      }
+      return std::string("Sugar:expected");
+    }
+    // In a template: expected<A, B>{in_place, a} or {unexpect, b}, the
+    // payload's type known only at the instance where it is not the
+    // alternative's as written.
+    if (const auto* c = llvm::dyn_cast<clang::CXXUnresolvedConstructExpr>(st); c && isExpected(c->getTypeAsWritten())) {
+      if (expectedVoid(c->getTypeAsWritten())) return std::string("Sum:expected-void");
+      const auto args = unresolvedArgs(c);
+      if (args.size() == 2 && (namedStd(args[0]->getType(), "in_place_t") ||
+                               namedStd(args[0]->getType(), "unexpect_t"))) {
+        const auto alts = alternatives(c->getTypeAsWritten());
+        const std::size_t k = namedStd(args[0]->getType(), "in_place_t") ? 0 : 1;
+        if (alts.size() != 2) return std::string("Sum:payload-dependent");
+        if (auto p = payloadKind(args[1], alts[k])) return p;
         return std::string("Sum:inj-sugar");
       }
       return std::string("Sugar:expected");
@@ -4003,6 +4051,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       return std::nullopt;
     }
     const clang::ValueDecl* x = named(obj);
+    if (expectedVoid(obj->getType())) return std::string("Sum:expected-void");
     if (name == "has_value" || name == "bool") {
       const std::string k = indexKind(st, x);
       return k == "Sum:case-sugar" || k == "Sum:case-converted" ? k : "Sugar:expected";
@@ -4017,9 +4066,14 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     return s && llvm::isa<clang::ReturnStmt>(s);
   }
   /// The side of x known where an occurrence stands, 0 or 1, or -1.  The
-  /// nearest test of x decides: a branch of c ? t : e or of an if, the right
-  /// operand of && or ||, or the statements after a guard if (c) return
-  /// ...; with no else.  A lambda or a function ends the search.
+  /// nearest informative test of x decides (a test that says nothing of x,
+  /// as p in p || x.index() == 1, is passed over, x being const): a branch
+  /// of c ? t : e or of an if, the right operand of && or ||, or the
+  /// statements after a guard if (c) return ...; with no else.  A lambda or
+  /// a function ends the search.  Where x is a reference, the test and the
+  /// reading must stand in one expression, a conditional or && or ||: the
+  /// object it names may be written through another path between two
+  /// statements.
   int knownSide(const clang::Stmt* occ, const clang::ValueDecl* x) const {
     if (!constant(x) || !ctx) return -1;
     const clang::Stmt* child = occ;
@@ -4034,6 +4088,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
         return -1;
       }
       if (llvm::isa<clang::LambdaExpr>(s)) return -1;
+      if (aliased(x) && !llvm::isa<clang::Expr>(s)) return -1;
       if (const auto* c = llvm::dyn_cast<clang::ConditionalOperator>(s)) {
         const auto [t, f] = indexTest(c->getCond(), x);
         if (t >= 0 && child == c->getTrueExpr()) return t;
@@ -4133,7 +4188,29 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   /// (so that the message says what to do), refused otherwise.
   std::string reading(const clang::Stmt* st, const clang::ValueDecl* x, int k) const {
     if (x && !constant(x) && llvm::isa<clang::VarDecl>(x)) return "Sum:not-const";
-    return knownSide(st, x) == k ? "Sum:case-sugar" : "Sum:other";
+    const int side = knownSide(st, x);
+    if (side == k) return "Sum:case-sugar";
+    // A reference read outside the expression that tests it: copy it into a
+    // const local.
+    if (side < 0 && aliased(x) && llvm::isa<clang::VarDecl>(x)) return "Sum:not-const";
+    // Inside a switch on x.index(): total, a choice not yet read as sugar.
+    if (side < 0 && inSwitchOnIndex(st, x)) return "Sugar:variant";
+    return "Sum:other";
+  }
+  /// Whether an occurrence stands in the body of switch (x.index()).
+  bool inSwitchOnIndex(const clang::Stmt* occ, const clang::ValueDecl* x) const {
+    if (!ctx || !x) return false;
+    clang::DynTypedNode n = clang::DynTypedNode::create(*occ);
+    for (int k = 0; k < 256; ++k) {
+      auto ps = const_cast<clang::ASTContext*>(ctx)->getParents(n);
+      if (ps.empty()) return false;
+      n = ps[0];
+      const clang::Stmt* s = n.get<clang::Stmt>();
+      if (!s) return false;
+      if (llvm::isa<clang::LambdaExpr>(s)) return false;
+      if (const auto* w = llvm::dyn_cast<clang::SwitchStmt>(s)) return isIndexOf(w->getCond(), x);
+    }
+    return false;
   }
   /// The index K of std::get<K>(x), or -1 where it names a type or is not known.
   int getIndex(const clang::CallExpr* c) const {
@@ -4151,8 +4228,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   /// The kind of a use of a sum other than through its structure arrows:
   /// open, sugar not yet written, where it is total (the tagged
   /// construction, visit, holds_alternative, index, ==); refused where it
-  /// may fail or changes the sum (get, get_if, emplace, =, swap,
-  /// valueless_by_exception).  None where the statement is no such use.
+  /// may fail or changes the sum (get, emplace, =, swap).  None where the statement is no such use.
   std::optional<std::string> sumUse(const clang::Stmt* st) const {
     // A variant of more than two types: read as binary ones nested, a
     // sugar not yet written.
@@ -4170,8 +4246,9 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       if (obj && isVariant(obj->getType()) && !isSum(obj->getType())) return std::string("Sugar:variant");
     }
     const auto kind = [&](llvm::StringRef name) -> std::optional<std::string> {
-      static const std::set<std::string> partial{"get", "get_if", "emplace", "swap", "=",
-                                                 "valueless_by_exception"};
+      // get_if is total, a pointer or null, and valueless_by_exception a
+      // total observer: open, as the other total uses.
+      static const std::set<std::string> partial{"get", "emplace", "swap", "="};
       return std::string(partial.count(name.str()) ? "Sum:other" : "Sugar:variant");
     };
     if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(st); c && isSum(c->getType())) {
@@ -4187,21 +4264,27 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
           const auto k = sd->getTemplateArgs()[0].getAsIntegral().getZExtValue();
           const auto alts = alternatives(c->getType());
           if (k > 1 || alts.size() != 2) return std::string("Sum:other");
-          if (payloadNarrows(c->getArg(1), alts[k])) return std::string("Conversion:narrowing");
+          if (auto p = payloadKind(c->getArg(1), alts[k])) return p;
           return std::string("Sum:inj-sugar");
         }
       return kind("construct");
     }
     if (const auto* c = llvm::dyn_cast<clang::CXXUnresolvedConstructExpr>(st); c && isSum(c->getTypeAsWritten())) {
       // In a template: variant<A, B>(in_place_index<k>, a), the positional
-      // injection, its payload's type known only at the instance.
-      if (c->getNumArgs() == 2)
+      // injection, its payload's type known only at the instance; braces or
+      // parentheses.
+      if (const auto args = unresolvedArgs(c); args.size() == 2)
         if (const auto* sd = llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
-                c->getArg(0)->getType().getNonReferenceType()->getAsCXXRecordDecl());
+                args[0]->getType().getNonReferenceType()->getAsCXXRecordDecl());
             sd && sd->getIdentifier() && sd->getName() == "in_place_index_t" && inStd(sd) &&
-            sd->getTemplateArgs().size() == 1 && sd->getTemplateArgs()[0].getKind() == clang::TemplateArgument::Integral)
-          return sd->getTemplateArgs()[0].getAsIntegral().getZExtValue() <= 1 ? std::string("Sum:inj-sugar")
-                                                                              : std::string("Sum:other");
+            sd->getTemplateArgs().size() == 1 && sd->getTemplateArgs()[0].getKind() == clang::TemplateArgument::Integral) {
+          const auto k = sd->getTemplateArgs()[0].getAsIntegral().getZExtValue();
+          const auto alts = alternatives(c->getTypeAsWritten());
+          if (k > 1) return std::string("Sum:other");
+          if (alts.size() != 2) return std::string("Sum:payload-dependent");
+          if (auto p = payloadKind(args[1], alts[k])) return p;
+          return std::string("Sum:inj-sugar");
+        }
       return kind("construct");
     }
     // A comparison C++20 rewrites through <=>: an order on a sum, open as ==.
@@ -4402,7 +4485,8 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
           if (td->getIdentifier() && inStd(td)) {
             if (td->getName() == "variant" && ts->template_arguments().size() != 2)
               kinds.insert("Sugar:variant");
-            if (td->getName() == "expected") kinds.insert("Sum:expected");
+            if (td->getName() == "expected")
+              kinds.insert(expectedVoid(tl.getType()) ? "Sum:expected-void" : "Sum:expected");
           }
     }
     return true;

@@ -32,12 +32,20 @@ struct call_of<R (*)(A)> {  // a static call operator
   using dom = std::remove_cvref_t<A>;
   using cod = R;
 };
+// Empty where F has no one call operator of these forms, so that a
+// constraint naming dom<F>::type fails as a constraint, not as an error.
 template <typename F>
-struct dom {
+struct dom {};
+template <typename F>
+  requires requires { typename call_of<decltype(&F::operator())>::dom; }
+struct dom<F> {
   using type = typename call_of<decltype(&F::operator())>::dom;
 };
 template <typename F>
-struct cod {
+struct cod {};
+template <typename F>
+  requires requires { typename call_of<decltype(&F::operator())>::cod; }
+struct cod<F> {
   using type = typename call_of<decltype(&F::operator())>::cod;
 };
 }  // namespace jlt_given
@@ -122,6 +130,11 @@ constexpr std::size_t or_zero_guarded(const Difference d) {
   return std::get<0>(d);
 }
 constexpr bool more_than(const Difference d, std::size_t k) { return d.index() == 0 && std::get<0>(d) > k; }
+// A disjunction negated: where !(d.index() == 0 || p) holds, each operand
+// fails, so alternative 1 is known.
+constexpr std::size_t negated_disjunction(const Difference d, bool p) {
+  return !(d.index() == 0 || p) ? std::get<1>(d).by : 0uz;
+}
 static_assert(monus_by_index(7, 2) == monus(7, 2) && monus_by_index(2, 7) == monus(2, 7));
 static_assert(Copairing<Same, Zero>{Same{}, Zero{}}(minus_by_index(5, 1)) == monus(5, 1) &&
               Copairing<Same, Zero>{Same{}, Zero{}}(minus_by_index(1, 5)) == monus(1, 5));
@@ -172,6 +185,20 @@ constexpr std::size_t checked_untested(const Checked c) { return *c; }
 constexpr std::size_t checked_by_value(const Checked c) { return c.value(); }
 constexpr std::size_t checked_wrong_branch(const Checked c) { return c.has_value() ? c.error().by : 0uz; }
 
+// The test on a reference to const, the reading in another statement: the
+// object may be written through another path in between, and get throw.
+constexpr std::size_t read_through_alias(const Difference& d) {
+  if (d.index() == 1) return 0uz;
+  return std::get<0>(d);
+}
+// emplace, which may leave a variant without a value where a throw
+// interrupts it.
+constexpr std::size_t emplaced(std::size_t n) {
+  Difference d = minus(n, 1);
+  d.emplace<0>(n);
+  return n;
+}
+
 // ---- Undecided: total, sugar not yet written. ----
 struct Either {
   constexpr std::size_t operator()(std::size_t n) const { return n; }
@@ -184,6 +211,36 @@ constexpr std::size_t three(const std::variant<std::size_t, bool, Short> v) { re
 constexpr std::size_t checked_or(const Checked c) { return c.value_or(0uz); }
 constexpr bool ordered(const std::variant<std::size_t, bool> a, const std::variant<std::size_t, bool> b) { return a < b; }
 constexpr Checked checked_untagged(std::size_t n) { return n; }
+// A payload whose type only an instance tells: lift(-1) with T = int is
+// SIZE_MAX, the constructor converting.  The same in an expected.
+template <typename T>
+constexpr Difference lift(T t) {
+  return Difference(std::in_place_index<0>, t);
+}
+template <typename T>
+constexpr Checked lift_checked(T t) {
+  return Checked{std::in_place, t};
+}
+static_assert(std::get<0>(lift(-1)) == std::numeric_limits<std::size_t>::max() && *lift_checked(2) == 2);
+// std::expected<void, B>: its reading, variant<void, B>, is ill-formed.
+using Done = std::expected<void, Short>;
+constexpr std::size_t short_or_done(const Done c) { return c.has_value() ? 0uz : c.error().by; }
+static_assert(short_or_done(Done{std::unexpect, Short{3}}) == 3);
+// A switch on the index: total, not yet read as sugar; its get is open, and
+// the definition is refused only for the returns from inside the switch
+// (Stmt:EarlyReturn).  get_if is open too; held is refused for the address
+// and the null pointer, not for the sum.
+constexpr std::size_t by_switch(const Difference d) {
+  switch (d.index()) {
+    case 0:
+      return std::get<0>(d);
+    default:
+      return 0uz;
+  }
+}
+constexpr bool held(const Difference d) { return std::get_if<0>(&d) != nullptr; }
+constexpr bool valueless(const Difference d) { return d.valueless_by_exception(); }
+static_assert(by_switch(minus(5, 1)) == 4 && held(minus(5, 1)) && !valueless(minus(5, 1)));
 static_assert(read_by_visit(minus(5, 1)) == 4 && short_of(minus(1, 5)));
 
 // ---- NaN as a sum (#1215). ----
