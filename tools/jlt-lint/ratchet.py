@@ -6,10 +6,13 @@ gate, for every (rule, file, namespace) both name:
 - `admitted` counts certificates: it may grow, not shrink;
 - every other gated rule counts findings (refusals, undecided definitions, the
   deny-rules' findings): it may shrink, not grow;
-- a gate may not become `report` again, nor disappear while its file stays.
+- a gate may not become `report` again, nor disappear while its file stays;
+- the levels of each body of code (levels.counts): its definitions shown,
+  FJlt and Jlt together, may not fall.
 
 A gate that moves the wrong way fails, unless tools/jlt-lint/ratchet.allow
-names it with a reason, one line `<rule> <file> <reason>`, so that the reason
+names it with a reason, one line `<rule> <file> <reason>` (for a body's
+levels, `levels <body, its spaces as _> <reason>`), so that the reason
 is in the diff, where a reviewer reads it.  New files, new rules, files no
 longer there and the fixtures (negative controls, whose counts change on
 purpose and which outcomes.py holds) are not compared.
@@ -28,6 +31,18 @@ import jlt_lint  # noqa: E402
 
 def gates(text):
     return {(r, f, ns): e for r, f, ns, e in jlt_lint.read_scope(text, strict=False)}
+
+
+def shown(text):
+    """Each body's definitions shown, FJlt and Jlt, from levels.counts."""
+    out = {}
+    for line in text.splitlines():
+        if not line.strip() or line.startswith("#"):
+            continue
+        body, numbers = line.split("\t")
+        _n, fjlt, jlt, _refused, _undecided = (int(x) for x in numbers.split())
+        out[body] = fjlt + jlt
+    return out
 
 
 def allowed():
@@ -92,10 +107,20 @@ def main():
             continue
         if was != "report" and (rule, f) not in allow:
             worse.append(f"  {rule} {f}: the gate {was} is gone")
+    # The levels of each body: its definitions shown may not fall.
+    old = subprocess.run(["git", "show", f"{sys.argv[1]}:tools/jlt-lint/levels.counts"],
+                         capture_output=True, text=True, cwd=jlt_lint.ROOT)
+    shown_before = shown(old.stdout) if old.returncode == 0 else {}
+    shown_after = shown((HERE / "levels.counts").read_text()) if (HERE / "levels.counts").exists() else {}
+    for body, was in sorted(shown_before.items()):
+        now = shown_after.get(body)
+        if now is not None and now < was and ("levels", body.replace(" ", "_")) not in allow:
+            worse.append(f"  levels {body}: shown {was} -> {now}")
     if worse:
         sys.exit("ratchet.py: gates moved the wrong way; fix them, or name each in "
                  "tools/jlt-lint/ratchet.allow with a reason:\n" + "\n".join(worse))
-    print(f"ratchet.py: {len(after)} gates, none moved the wrong way since {sys.argv[1]}")
+    print(f"ratchet.py: {len(after)} gates and {len(shown_after)} bodies' levels, "
+          f"none moved the wrong way since {sys.argv[1]}")
 
 
 if __name__ == "__main__":
