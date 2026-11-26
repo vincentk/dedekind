@@ -43,15 +43,22 @@ def main():
         del args[i:i + 2]
     if len(args) != 1:
         sys.exit(__doc__)
-    edges = []
-    for n, line in enumerate(open(args[0], errors="replace")):
-        if n < skip or line.startswith("#"):
-            continue
-        fields = line.rstrip("\n").split("\t")
-        if len(fields) < 4:
-            continue
-        start, end, output = int(fields[0]), int(fields[1]), fields[3]
-        edges.append((start, end, output))
+    # One record per output: a command with two outputs, a module's object
+    # and its BMI, is one edge, known by its start, end and command hash.
+    edges, seen = [], set()
+    with open(args[0], errors="replace") as log:
+        for n, line in enumerate(log):
+            if n < skip or line.startswith("#"):
+                continue
+            fields = line.rstrip("\n").split("\t")
+            if len(fields) < 4:
+                continue
+            start, end, output = int(fields[0]), int(fields[1]), fields[3]
+            command = (start, end, fields[4] if len(fields) > 4 else output)
+            if command in seen:
+                continue
+            seen.add(command)
+            edges.append((start, end, output))
     if not edges:
         print("No edges ran: the build was up to date.")
         return
