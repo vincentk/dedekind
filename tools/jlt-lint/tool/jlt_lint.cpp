@@ -3694,9 +3694,11 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       kinds.insert(declKind(d));
     return clang::RecursiveASTVisitor<Kinds>::TraverseDecl(d);
   }
-  // The one form of sugar no syntax kind shows: a range.  A parameter
-  // constrained by a standard range concept, or a standard view other than
-  // the counted iota the kernel iterates over.
+  /// \sugar{a range} The one form of sugar no syntax kind shows.  A
+  /// parameter constrained by a standard range concept (Sugar:range), or a
+  /// standard view other than the counted iota the kernel iterates over
+  /// (Sugar:view).  The row's condition, finite and its size known before
+  /// the first step, is the deny-rule rule3-bounded-fold's.
   bool VisitConceptSpecializationExpr(clang::ConceptSpecializationExpr* e) {
     const clang::ConceptDecl* c = e->getNamedConcept();
     if (c && inStd(c) && c->getName().ends_with("range"))
@@ -3724,12 +3726,13 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       kinds.insert("Sugar:variant");
     return true;
   }
-  // Where a return may stand for Table 7's reading of statements: at the end
-  // of the function, at the end of both branches of a last if, or at the end
-  // of a branch of an if that the statements after it follow as its other
-  // branch (a guard, if (c) return e; rest, which is if (c) return e; else
-  // { rest }).  Any other return, in a loop or in a branch that only
-  // sometimes returns, is Stmt:EarlyReturn.
+  /// \sugar{an early exit} Where a return may stand for the table's reading
+  /// of statements: at the end of the function, at the end of both branches
+  /// of a last if, or at the end of a branch of an if that the statements
+  /// after it follow as its other branch (a guard, if (c) return e; rest,
+  /// which is if (c) return e; else { rest }).  Any other return, in a loop
+  /// or in a branch that only sometimes returns, is Stmt:EarlyReturn.
+  /// Fixture: local-state.cpp.
   std::set<const clang::Stmt*> tailReturns;
   static bool alwaysReturns(const clang::Stmt* s) {
     if (!s) return false;
@@ -3763,10 +3766,11 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     markTail(l->getBody());  // a lambda's returns are its own
     return true;
   }
-  /// A conversion between integer types that the destination cannot hold at
-  /// every value of the source ([dcl.init.list]); a constant that fits is
-  /// held.
   const clang::ASTContext* ctx = nullptr;
+  /// \sugar{an implicit conversion of an arithmetic value} A conversion
+  /// between integer types that the destination cannot hold at every value
+  /// of the source ([dcl.init.list]) is Conversion:narrowing, refused; a
+  /// constant that fits is held.  Fixture: sugar-conditions.cpp.
   bool narrows(const clang::ImplicitCastExpr* c) const {
     // The conversion written out, int(i), has an implicit node inside it:
     // that one is the explicit conversion's, not an implicit conversion.
@@ -3852,8 +3856,9 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   }
   /// Whether t is the kernel's sum: a std::variant of exactly two types.
   static bool isSum(clang::QualType t) { return isVariant(t) && alternatives(t).size() == 2; }
-  /// Whether a tested variable cannot be written: const, so that no write
-  /// stands between its test and a reading.  A reference to const counts
+  /// \sugar{the choice on a sum's alternative, x const} Whether a tested
+  /// variable cannot be written: const, so that no write stands between its
+  /// test and a reading.  A reference to const counts
   /// here, but may name an object written through another path
   /// ([dcl.type.cv]), so knownSide accepts its test and its reading only
   /// inside one expression (aliased()).
@@ -3862,8 +3867,8 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   }
   /// Whether a tested variable is a reference: const, but not a const object.
   static bool aliased(const clang::ValueDecl* x) { return x && x->getType()->isReferenceType(); }
-  /// The kind of a payload that is not of its alternative's type, or none
-  /// where it is: Sum:payload-converted where both types are known (a
+  /// \sugar{the positional injections} The kind of a payload that is not of
+  /// its alternative's type, or none where it is: Sum:payload-converted where both types are known (a
   /// narrowing or a widening, which the row does not read), and
   /// Sum:payload-dependent where they differ as written in a template, so
   /// that only an instance would tell (lift(-1) with T = int converts -1 to
@@ -3889,7 +3894,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     for (const clang::Expr* e : c->arguments()) out.push_back(e);
     return out;
   }
-  /// Whether t is std::expected<void, B>: its reading, variant<void, B>, is
+  /// \sugar{std::expected, A not void} Whether t is std::expected<void, B>: its reading, variant<void, B>, is
   /// ill-formed ([variant.variant.general]), so it has no row yet.
   static bool expectedVoid(clang::QualType t) {
     if (!isExpected(t)) return false;
@@ -3916,8 +3921,8 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
                isSum(d->getBaseType()) && named(d->getBase()) == x;
     return false;
   }
-  /// For a condition on x: the alternative known where it holds and the
-  /// one known where it fails, each 0, 1, or -1 for none.  x.index() == k
+  /// \sugar{the choice on a sum's alternative, the test} For a condition on
+  /// x: the alternative known where it holds and the one known where it fails, each 0, 1, or -1 for none.  x.index() == k
   /// and != k with k an integer constant 0 or 1, x.index() alone (true on
   /// alternative 1), x.has_value() and x as a truth value (true on
   /// alternative 0), a negation, and && and ||: a conjunction that holds
@@ -3985,8 +3990,8 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     if (const auto* r = t->getAsCXXRecordDecl(); r && r->getIdentifier() && r->getName() == name && inStd(r)) return true;
     return false;
   }
-  /// The uses of a std::expected, the other spelling of a binary sum, read
-  /// as std::variant<A, B>: the tagged constructions are the injections, and
+  /// \sugar{std::expected} The uses of a std::expected, the other spelling
+  /// of a binary sum, read as std::variant<A, B>: the tagged constructions are the injections, and
   /// x.has_value() ? ... *x ... : ... x.error() ... is the copairing's sugar,
   /// *x and x-> only where side 0 is known, x.error() only where side 1 is.
   /// value() and writes are refused; the rest of its interface is open.
@@ -4065,8 +4070,10 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     if (const auto* c = llvm::dyn_cast_or_null<clang::CompoundStmt>(s); c && !c->body_empty()) s = c->body_back();
     return s && llvm::isa<clang::ReturnStmt>(s);
   }
-  /// The side of x known where an occurrence stands, 0 or 1, or -1.  The
-  /// nearest informative test of x decides (a test that says nothing of x,
+  /// \sugar{the choice on a sum's alternative, the reading} The side of x
+  /// known where an occurrence stands, 0 or 1, or -1.  A reading get<k>(x)
+  /// is the copairing's sugar only where side k is known, and x is used
+  /// otherwise only whole.  The nearest informative test of x decides (a test that says nothing of x,
   /// as p in p || x.index() == 1, is passed over, x being const): a branch
   /// of c ? t : e or of an if, the right operand of && or ||, or the
   /// statements after a guard if (c) return ...; with no else.  A lambda or
@@ -4128,8 +4135,8 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       default: return true;
     }
   }
-  /// The kind of x.index(): the test of the copairing's sugar where it
-  /// stands in the condition of a choice, or in the left operand of && or
+  /// \sugar{the choice on a sum's alternative, the branches} The kind of
+  /// x.index(): the test of the copairing's sugar where it stands in the condition of a choice, or in the left operand of && or
   /// ||, compared with 0 or 1, negated or alone; converted, refused, where
   /// the choice's branches differ in type; open anywhere else.
   std::string indexKind(const clang::Stmt* st, const clang::ValueDecl* x) const {
@@ -4225,8 +4232,11 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       if (auto v = a.getAsExpr()->getIntegerConstantExpr(*ctx); v && v->ule(1)) return static_cast<int>(v->getZExtValue());
     return -1;
   }
-  /// The kind of a use of a sum other than through its structure arrows:
-  /// open, sugar not yet written, where it is total (the tagged
+  /// \sugar{std::variant, its other uses} The kind of a use of a sum other
+  /// than through its structure arrows.  A variant of three or more types
+  /// (Sugar:variant) is open until its nesting is checked; std::visit,
+  /// holds_alternative, get_if, valueless_by_exception and a switch on the
+  /// index are open too.  Otherwise: open, sugar not yet written, where it is total (the tagged
   /// construction, visit, holds_alternative, index, ==); refused where it
   /// may fail or changes the sum (get, emplace, =, swap).  None where the statement is no such use.
   std::optional<std::string> sumUse(const clang::Stmt* st) const {
@@ -4582,8 +4592,8 @@ class Definitions : public clang::ASTConsumer {
   }
 };
 
-/// One check by name, or null for an unknown name.
-/// Local state that the state-passing reading of Table 7 covers: every
+/// \sugar{local state: an assignment, an element's update, std::swap} Local
+/// state that the state-passing reading of the table covers: every
 /// mutable local of a judged function is reached through its own name only,
 /// so that a write through one name never changes what another reads, and
 /// the function is a fold of states (the paper's aliasing conditions; Cytron
@@ -5617,6 +5627,7 @@ class LocalState : public clang::ASTConsumer {
   }
 };
 
+/// One check by name, or null for an unknown name.
 std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
   if (name == "local-state") return std::make_unique<LocalState>();
   if (name == "mutual-recursion") return std::make_unique<MutualRecursion>();

@@ -14,6 +14,22 @@ findings are read there.  `lint-<layer>` lints one layer's lines of `scope`
 once that layer and its tests are built, and `lint-fixtures` the fixtures,
 for a look at one part; each writes `parts/<part>.txt`.
 
+## Reference
+
+`make doxygen-jlt-lint` generates the linter's reference from its sources into
+`build/docs-jlt-lint/html`, published with the library's at
+<https://vincentk.github.io/dedekind/jlt-lint/>.  Nothing in it is written twice:
+
+- *The sugar, row by row* collects the `\sugar{row}` entries, one at each check
+  in `tool/jlt_lint.cpp` that holds a row of the paper's table of sugar: what
+  the check reads, what it leaves undecided, and the fixture that pins it.
+- Each `rules/<rule>.query` is a page: its header comment, then its matchers.
+- `admission.txt` is a page: every syntax kind with its class, the comments
+  beside the kinds they explain.
+
+A new row of sugar is documented where it is checked, by a `\sugar{row}` line
+in that check's comment, or in the rule file's header.
+
 ## Layout
 
 - `rules/<rule>.query`: one `clang-query` matcher per check, named for the rule
