@@ -76,7 +76,8 @@ A carrier is not in $\Sigma$: \cppinline{std::string} is a type the kernel never
  & \texttt{Inr<}\tau\texttt{, }\sigma\texttt{>\{\}(}v\texttt{)} \longrightarrow \mathit{inr}_{\tau, \sigma}\,v \\[5pt]
 \textsc{(S-Copair)} & \texttt{Copairing<}F\texttt{, }G\texttt{>\{}v_f\texttt{, }v_g\texttt{\}(}\mathit{inl}\,v\texttt{)} \longrightarrow v_f\texttt{(}v\texttt{)} \\
  & \texttt{Copairing<}F\texttt{, }G\texttt{>\{}v_f\texttt{, }v_g\texttt{\}(}\mathit{inr}\,v\texttt{)} \longrightarrow v_g\texttt{(}v\texttt{)} \\[5pt]
-\textsc{(S-Fold)} & \texttt{fold\_left(iota(}c_k\texttt{, }c_n\texttt{), }v_a\texttt{, }v_f\texttt{)} \longrightarrow \texttt{fold\_left(iota(}c_{k+1}\texttt{, }c_n\texttt{), }v_f\texttt{(}v_a\texttt{, }c_k\texttt{), }v_f\texttt{)} \quad \text{if } k < n \\
+\textsc{(S-Fold)} & \texttt{fold\_left(iota(}c_k\texttt{, }c_n\texttt{), }v_a\texttt{, }v_f\texttt{)} \longrightarrow \texttt{fold\_left(iota(}c_{k+1}\texttt{, }c_n\texttt{), }v_f\texttt{(}v_a\texttt{, }c_k\texttt{), }v_f\texttt{)} \\
+ & \qquad \text{if } k < n \\
  & \texttt{fold\_left(iota(}c_k\texttt{, }c_n\texttt{), }v_a\texttt{, }v_f\texttt{)} \longrightarrow v_a \quad \text{if } k = n \\[5pt]
 \textsc{(S-Ctx)} & E[e] \longrightarrow E[e'] \quad \text{if } e \longrightarrow e' \\
 \end{array}
