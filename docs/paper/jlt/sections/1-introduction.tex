@@ -54,25 +54,30 @@ It has two boundaries, which Figure~\ref{fig:arrows} draws with the languages of
 The outer one is drawn by the three rules (Section~\ref{sec:posture}): one keeps substitution of equals valid, one keeps generic code to its declared constraints, and one makes every recursion end.
 The inner one is drawn by a translation: the \emph{kernel}, Featherweight Jlt (FJlt), is the part of Jlt on which a translation $\llbracket\cdot\rrbracket$ is defined into System~F, extended with truth values, counts and an iterator over a count (Appendix~\ref{app:fjlt:translation}).
 The translation is proved on paper to preserve types and values, with the textbook cases omitted, and from its target the kernel inherits termination and parametricity (Section~\ref{sec:translation}).
-Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, the dashed arrow of the figure (Appendices~\ref{app:derived} and~\ref{app:fjlt:closure}).
+Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, the dashed arrow of the figure: Jlt is the kernel with sugar, a list of forms that the linter holds, and what the rules admit but no form on the list reads is outside it (Appendix~\ref{app:fjlt:closure}).
 
 \begin{figure}[tb]
 \centering
 \begin{tikzcd}[column sep=2.4em, row sep=2.2em]
-  & \text{Jlt} \arrow[dr, hook, "{-}\,\text{rules}"] \arrow[dl, dashed, bend right=25, "{-}\,\text{sugar}"'] \\[-0.8em]
+  & \text{Jlt} \arrow[r, hook, "{-}\,\text{lint}"] \arrow[dl, dashed, bend right=25, "{-}\,\text{sugar}"']
+  & \bullet \arrow[dr, hook, "{-}\,\text{rules}"] \\[-0.8em]
 \text{FJlt} \arrow[ur, hook, bend right=25, "{+}\,\text{sugar}"'] \arrow[d, bend right=25, "\llbracket\cdot\rrbracket"']
+  &
   &
   & \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
 \text{System~F} \arrow[u, hook, bend right=25, "\text{embed}"'] \arrow[d, "\text{eval}"']
   &
+  &
   & \text{LLVM IR} \arrow[d, "\text{run}"] \\
-\text{value} \arrow[rr, equal]
+\text{value} \arrow[rrr, equal]
+  &
   &
   & \text{value}
 \end{tikzcd}
 \caption{The arrows of the paper.
 A hooked arrow is injective: an inclusion, labelled with what it adds or removes, or $\mathit{embed}$, defined on the translation's image only.
-A solid arrow is a map the paper defines or takes as given, and the dashed arrow, the sugar, is defined on the forms Appendix~\ref{app:derived} lists, not on all that the rules admit, and that it keeps values is argued and tested, not proved.
+The inclusion of Jlt into \Cpp{23} has two factors: $\bullet$ is what the three rules admit, and Jlt is the part of it that the sugar reads, form by form, from a list the linter holds (Table~\ref{tab:derived}).
+A solid arrow is a map the paper defines or takes as given, and the dashed arrow is argued and tested, not proved, as is the linter's verdict that a definition is in Jlt.
 The bottom edge says that the two paths compute one value.}
 \label{fig:arrows}
 \end{figure}
