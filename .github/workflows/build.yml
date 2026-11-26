@@ -298,6 +298,13 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
+        # The save reports success even where its upload failed: delete the
+        # older copies only once the new one is there, else keep them.
+        new="build-linux-main-${{ steps.inputs.outputs.today }}-${{ github.sha }}"
+        if ! gh cache list --repo "$GITHUB_REPOSITORY" --key "$new" --json key --jq '.[].key' | grep -qx "$new"; then
+          echo "build cache: $new was not saved; the older copies stay"
+          exit 0
+        fi
         gh cache list --repo "$GITHUB_REPOSITORY" --key build-linux- --json id,key \
-          --jq '.[] | select(.key != "build-linux-main-${{ steps.inputs.outputs.today }}-${{ github.sha }}") | .id' |
+          --jq ".[] | select(.key != \"$new\") | .id" |
           xargs -r -n1 gh cache delete --repo "$GITHUB_REPOSITORY"
