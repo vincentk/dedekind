@@ -497,6 +497,17 @@ bool inStd(const clang::Decl* d) {
 /// construction); T(x) to a class type, with parentheses, stays
 /// CXXFunctionalCastExpr.
 std::string stmtKind(const clang::Stmt* st) {
+  // static_cast<T>(e) between arithmetic types: the written conversion T(e)
+  // in the other spelling, a derived form with its conditions (a floating
+  // value to an integer is open as Op:float-to-integer, which the kinds add);
+  // any other static_cast keeps its kind.
+  if (const auto* c = llvm::dyn_cast<clang::CXXStaticCastExpr>(st)) {
+    const clang::QualType to = c->getType();
+    const clang::QualType from = c->getSubExpr()->IgnoreParenImpCasts()->getType();
+    if (!to->isDependentType() && !from.isNull() && !from->isDependentType() && to->isArithmeticType() &&
+        from->isArithmeticType() && !to->isEnumeralType() && !from->isEnumeralType())
+      return "Cast:static";
+  }
   if (const auto* c = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(st)) {
     if (c->getType()->isArithmeticType()) return "Stmt:ArithmeticConversion";
     if (c->isListInitialization() && c->getType()->isRecordType()) return "Stmt:BracedValue";

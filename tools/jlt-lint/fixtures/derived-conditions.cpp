@@ -24,6 +24,9 @@ constexpr std::size_t narrowed_to_char(std::size_t n) {
   return c;
 }
 constexpr int written_out(std::size_t i) { return int(i); }  // sound: the conversion is written
+// The same conversion spelled static_cast: read as int(i), a derived form.
+constexpr int written_static(std::size_t i) { return static_cast<int>(i); }
+constexpr double widened_static(std::size_t i) { return static_cast<double>(i); }
 constexpr unsigned char low_byte(std::size_t n) {  // refused: += converts back
   unsigned char c = 0;
   c += n;

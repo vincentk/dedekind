@@ -3,6 +3,8 @@ narrowed_to_bool refused
 compared FJlt
 narrowed_to_char refused
 written_out FJlt
+written_static Jlt
+widened_static Jlt
 low_byte refused
 wrapped_byte refused
 empty_value Jlt
