@@ -1,149 +1,139 @@
-// The binary sum of the kernel, std::expected<A, B> (#1222): its two
-// introductions, which name the side, and its one elimination, the case
-// x.has_value() ? ... *x ... : ... x.error() ... on a variable x.  Beside each
-// use the kernel does not read, a twin it does.  The levels the linter gives
-// are pinned definition by definition in sum.levels (levels.py --expect).
-// Standalone, no imports, so it is checked without the build.
-#include <concepts>
+// The binary sum of the kernel (#1222), std::variant<A, B>, read as Pierce's
+// coproduct, Haskell's Either a b: by its two injections and its copairing
+// only.  They are the library's Injection (ι) and Copairing
+// (category/cartesian.cppm), copied here with the same shape so that the
+// fixture stands alone: arrows with a Domain, a Codomain and a const call
+// operator.  Their bodies are the one place a sum is built or taken apart by
+// hand.  Every other use of a variant is a derived form not yet written
+// (open) or refused, each beside a twin through the arrows.  The levels are
+// pinned definition by definition in sum.levels (levels.py --expect).
 #include <cstddef>
 #include <expected>
 #include <limits>
 #include <type_traits>
 #include <utility>
+#include <variant>
 
 namespace jlt_listing {
 
-// Division on the naturals, total: the quotient, or the reason there is none.
-// The division stands where a test has shown the divisor not zero.
-struct DivisionByZero {};
-using Quotient = std::expected<std::size_t, DivisionByZero>;
+// ---- The structure arrows, as in the library. ----
+template <std::size_t K, typename A, typename B>
+  requires(K == 1 || K == 2)
+struct Injection {
+  using Domain = std::conditional_t<K == 1, A, B>;
+  using Codomain = std::variant<A, B>;
+  constexpr Codomain operator()(const Domain& x) const { return Codomain(std::in_place_index<K - 1>, x); }
+};
+template <std::size_t K, typename A, typename B>
+using ι = Injection<K, A, B>;
 
-constexpr Quotient divide(std::size_t n, std::size_t d) {
-  return d == 0 ? Quotient{std::unexpect, DivisionByZero{}} : Quotient{std::in_place, n / d};
-}
-// The same after a guard, an early exit.
-constexpr Quotient divide_guarded(std::size_t n, std::size_t d) {
-  if (d == 0) return Quotient{std::unexpect, DivisionByZero{}};
-  return Quotient{std::in_place, n / d};
-}
-// The same with the introductions as sugar: a value, and std::unexpected,
-// each converted to the sum.
-constexpr Quotient divide_as_written(std::size_t n, std::size_t d) {
-  if (d == 0) return std::unexpected(DivisionByZero{});
-  return n / d;
-}
-// No test: division by a value stays open.
-constexpr std::size_t divide_unguarded(std::size_t n, std::size_t d) { return n / d; }
-// A test of another variable shows nothing about the divisor.
-constexpr std::size_t divide_tested_wrongly(std::size_t n, std::size_t d) { return n == 0 ? 0uz : n / d; }
-
-// The case: the one way out of the sum.
-constexpr std::size_t or_zero(Quotient q) { return q.has_value() ? *q : 0uz; }
-constexpr std::size_t or_zero_by_if(Quotient q) {
-  if (q.has_value()) {
-    return *q;
-  } else {
-    return 0uz;
+template <typename F, typename G>
+  requires std::same_as<typename F::Codomain, typename G::Codomain>
+struct Copairing {
+  using Domain = std::variant<typename F::Domain, typename G::Domain>;
+  using Codomain = typename F::Codomain;
+  F f;
+  G g;
+  constexpr Codomain operator()(const Domain& x) const {
+    return x.index() == 0 ? f(std::get<0>(x)) : g(std::get<1>(x));
   }
-}
-// Both payloads read, each in the branch that knows its side.
-struct Reason {
-  std::size_t code;
 };
-using Coded = std::expected<std::size_t, Reason>;
-constexpr std::size_t value_or_code(Coded c) { return c.has_value() ? *c : c.error().code; }
-// The case with a constant for the other side, written as the library's
-// value_or: sugar.
-constexpr std::size_t or_default(Quotient q) { return q.value_or(0uz); }
 
-// Near misses, each refused.  The payload read with no test.
-constexpr std::size_t read_without_test(Quotient q) { return *q; }
-// value() throws on the other side.
-constexpr std::size_t read_by_value(Quotient q) { return q.value(); }
-// The payload read in the branch that knows the other side.
-constexpr std::size_t read_in_wrong_branch(Quotient q) { return q.has_value() ? 0uz : *q; }
-// The two branches of different types: 0 is an int, converted.
-constexpr std::size_t read_converted(Quotient q) { return q.has_value() ? *q : 0; }
-// The test spelled as a conversion to bool.
-constexpr std::size_t read_by_bool(Quotient q) { return q ? *q : 0uz; }
-// A sum constructed empty holds its first side's default value: sugar.
-constexpr bool default_sum() {
-  const Quotient q;
-  return q.has_value() ? true : false;
-}
-// A test of one sum, the payload of another.
-constexpr std::size_t read_other(Quotient p, Quotient q) { return p.has_value() ? *q : 0uz; }
-
-// The practitioner's cases on #1226.  A conversion inside the standard's
-// constructors narrows as one written out does: refused.
-constexpr Quotient negative_payload() { return Quotient{std::in_place, -1}; }
-constexpr Quotient negative_returned() { return -1; }
-constexpr std::size_t negative_default(Quotient q) { return q.value_or(-1); }
-// A sum of other types converted: refused.
-using Real = std::expected<double, DivisionByZero>;
-using Count = std::expected<std::size_t, DivisionByZero>;
-constexpr Count from_real(Real r) { return r; }
-// The divisor written after its test: the division is open again.
-constexpr std::size_t divide_after_write(std::size_t n, std::size_t d) {
-  if (d == 0) return 0;
-  --d;
-  return n / d;
-}
-// Signed division: a divisor not zero is not enough (INT_MIN / -1): open.
-constexpr int divide_signed(int n, int d) { return d != 0 ? n / d : 0; }
-// The test in other spellings, each the case's sugar: Jlt.
-constexpr bool tested_alone(Quotient q) { return q.has_value(); }
-constexpr std::size_t guarded_negated(Quotient q) {
-  if (!q.has_value()) return 0uz;
-  return *q;
-}
-constexpr std::size_t guarded_both(Coded c) {
-  if (c.has_value()) return *c;
-  return c.error().code;
-}
-constexpr bool tested_and(Quotient q) { return q.has_value() && *q > 3; }
-// In a template: the case, and a member read with no test (refused).
-template <typename T>
-  requires std::copyable<T>
-constexpr T or_given(std::expected<T, DivisionByZero> x, T d) {
-  return x.has_value() ? *x : d;
-}
-template <typename T>
-  requires std::copyable<T>
-constexpr double member_untested(std::expected<T, DivisionByZero> x) {
-  return x->v;
-}
-
-// A map inside the sum, total but not a way out: open.
-struct Half {
-  constexpr std::size_t operator()(std::size_t n) const { return n / 2; }
+// ---- Subtraction on the naturals: the difference, or how far short. ----
+// size_t subtraction wraps, and is defined everywhere; the sum gives the
+// naturals' own subtraction, which has no value where m exceeds n.
+struct Short {
+  std::size_t by;
 };
-constexpr Quotient halved(const Quotient q) { return q.transform(Half{}); }
+using Difference = std::variant<std::size_t, Short>;
+constexpr Difference minus(std::size_t n, std::size_t m) {
+  return m <= n ? ι<1, std::size_t, Short>{}(n - m) : ι<2, std::size_t, Short>{}(Short{m - n});
+}
+// Read by a copairing: the difference, or zero (truncated subtraction).
+struct Same {
+  using Domain = std::size_t;
+  using Codomain = std::size_t;
+  constexpr std::size_t operator()(std::size_t n) const { return n; }
+};
+struct Nothing {
+  using Domain = Short;
+  using Codomain = std::size_t;
+  constexpr std::size_t operator()(Short) const { return 0; }
+};
+constexpr std::size_t monus(std::size_t n, std::size_t m) {
+  return Copairing<Same, Nothing>{Same{}, Nothing{}}(minus(n, m));
+}
+static_assert(monus(7, 2) == 5 && monus(2, 7) == 0);
 
-static_assert(or_zero(divide(7, 2)) == 3 && or_zero(divide(7, 0)) == 0);
-static_assert(or_zero(divide_guarded(9, 3)) == 3 && or_zero_by_if(divide_as_written(9, 0)) == 0);
-static_assert(value_or_code(Coded{std::unexpect, Reason{4}}) == 4 && or_default(divide(8, 4)) == 2);
-static_assert(or_zero(halved(divide(8, 2))) == 2);
-static_assert(default_sum() && guarded_negated(divide(9, 3)) == 3 && guarded_both(Coded{std::unexpect, Reason{5}}) == 5);
-static_assert(!tested_alone(divide(1, 0)) && tested_and(divide(8, 2)) && or_given(divide(9, 0), 7uz) == 7);
+// A shape, a square by its side or a rectangle by its sides, and its area by
+// a copairing: the twin of derived-conditions.cpp's area by std::visit.
+using Sides = std::pair<std::size_t, std::size_t>;
+struct Square {
+  using Domain = std::size_t;
+  using Codomain = std::size_t;
+  constexpr std::size_t operator()(std::size_t s) const { return s * s; }
+};
+struct Rectangle {
+  using Domain = Sides;
+  using Codomain = std::size_t;
+  constexpr std::size_t operator()(Sides s) const { return s.first * s.second; }
+};
+constexpr std::size_t area(std::variant<std::size_t, Sides> shape) {
+  return Copairing<Square, Rectangle>{Square{}, Rectangle{}}(shape);
+}
+static_assert(area(ι<1, std::size_t, Sides>{}(3)) == 9 && area(ι<2, std::size_t, Sides>{}(Sides{2, 5})) == 10);
 
-// NaN as a sum (#1215): a double is a number or it is not, and an operation
-// decides by cases before it operates.  On the side of numbers equality is
-// reflexive again; the arithmetic is still neither closed nor associative.
+// ---- Other uses of a variant. ----
+// Refused, each may fail or changes the sum: a side read by get,
+constexpr std::size_t read_by_get(Difference d) { return std::get<0>(d); }
+// even after a test of its index, which the kernel does not read;
+constexpr std::size_t read_after_index(Difference d) { return d.index() == 0 ? std::get<0>(d) : 0uz; }
+// a sum changed in place.
+constexpr std::size_t changed(Difference d) {
+  d.emplace<0>(1uz);
+  return monus(1, 0);
+}
+// Open, each total, a derived form not yet written: the tagged
+// construction, which is an injection;
+constexpr Difference built_by_tag(std::size_t n) { return Difference(std::in_place_index<0>, n); }
+// visit on two distinct alternatives, which is a copairing;
+struct Either {
+  constexpr std::size_t operator()(std::size_t n) const { return n; }
+  constexpr std::size_t operator()(Short) const { return 0; }
+};
+constexpr std::size_t read_by_visit(Difference d) { return std::visit(Either{}, d); }
+// holds_alternative, a copairing into the truth values;
+constexpr bool short_of(Difference d) { return std::holds_alternative<Short>(d); }
+// a variant of three types, read as nested binary ones;
+constexpr std::size_t three(std::variant<std::size_t, bool, Short> v) { return v.index(); }
+// and std::expected, a sum with an interface of its own, for the sugar layer.
+constexpr std::size_t from_expected(std::expected<std::size_t, Short> e) { return e.has_value() ? *e : 0uz; }
+static_assert(read_by_visit(minus(5, 1)) == 4 && short_of(minus(1, 5)) && from_expected(4uz) == 4);
+
+// ---- NaN as a sum (#1215). ----
+// A double is a number or it is not, and the kernel reads it by a copairing.
+// On the side of numbers equality is reflexive again; the arithmetic is
+// still neither closed nor associative, so no law follows.
 struct NaN {};
 struct Number {
   double v;
 };
-using Float = std::expected<Number, NaN>;
+using Float = std::variant<Number, NaN>;
 constexpr Float classify(double x) {
-  return x != x ? Float{std::unexpect, NaN{}} : Float{std::in_place, Number{x}};
+  return x != x ? ι<2, Number, NaN>{}(NaN{}) : ι<1, Number, NaN>{}(Number{x});
 }
-constexpr Float plus(Float a, Float b) {
-  return a.has_value() ? (b.has_value() ? classify(a->v + b->v) : b) : a;
-}
-constexpr bool same(Number a, Number b) { return a.v == b.v; }
-static_assert(!classify(std::numeric_limits<double>::quiet_NaN()).has_value());
-static_assert(classify(1.5).has_value() && same(*plus(classify(1.0), classify(2.0)), Number{3.0}));
+struct Known {
+  using Domain = Number;
+  using Codomain = bool;
+  constexpr bool operator()(Number) const { return true; }
+};
+struct Unknown {
+  using Domain = NaN;
+  using Codomain = bool;
+  constexpr bool operator()(NaN) const { return false; }
+};
+constexpr bool is_number(Float f) { return Copairing<Known, Unknown>{Known{}, Unknown{}}(f); }
+static_assert(!is_number(classify(std::numeric_limits<double>::quiet_NaN())) && is_number(classify(1.5)));
 // Clang's constant evaluation does not produce a NaN: infinity minus
 // infinity is not a constant there, so no sum built at compile time holds one
 // by arithmetic.  The standard leaves this to the implementation.

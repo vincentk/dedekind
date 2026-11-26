@@ -113,24 +113,15 @@ A declaration whose \cppinline{same_as} constraints have no solution, as \cppinl
 \textsc{(T-Iter)} & \dfrac{\Delta; \Gamma \vdash e_n : \texttt{size\_t} \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma, s : \sigma, i : \texttt{size\_t} \vdash f\texttt{(}s\texttt{, }i\texttt{)} : \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{ranges::fold\_left(views::iota(0uz, }e_n\texttt{), }a\texttt{, }f\texttt{)} : \sigma}
 \\[12pt]
 \textsc{(T-Iter-Run)} & \dfrac{0 < k \le n \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma, s : \sigma, i : \texttt{size\_t} \vdash f\texttt{(}s\texttt{, }i\texttt{)} : \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{ranges::fold\_left(views::iota(}c_k\texttt{, }c_n\texttt{), }a\texttt{, }f\texttt{)} : \sigma}
-\\[12pt]
-\textsc{(T-Inl)} & \dfrac{\Delta; \Gamma \vdash e : \tau}{\Delta; \Gamma \vdash \texttt{expected<}\tau\texttt{, }\sigma\texttt{>\{in\_place, }e\texttt{\}} : \texttt{expected<}\tau\texttt{, }\sigma\texttt{>}}
-\qquad
-\textsc{(T-Inr)} \; \dfrac{\Delta; \Gamma \vdash e : \sigma}{\Delta; \Gamma \vdash \texttt{expected<}\tau\texttt{, }\sigma\texttt{>\{unexpect, }e\texttt{\}} : \texttt{expected<}\tau\texttt{, }\sigma\texttt{>}}
-\\[12pt]
-\textsc{(T-Case)} & \dfrac{\Delta; \Gamma \vdash u : \texttt{expected<}\tau\texttt{, }\sigma\texttt{>} \quad \Delta; \Gamma, y : \tau \vdash e_1 : \rho \quad \Delta; \Gamma, z : \sigma \vdash e_2 : \rho^{\P}}{\Delta; \Gamma \vdash u\texttt{.has\_value() ? }e_1[\texttt{*}u/y]\texttt{ : }e_2[u\texttt{.error()}/z] : \rho^{\dagger}}
 \end{array}
 \]
-\caption{The rules for terms, $\Delta; \Gamma \vdash e : \tau$: constructions, calls, reads, iteration and sums.
+\caption{The rules for terms, $\Delta; \Gamma \vdash e : \tau$: constructions, calls, reads and iteration.
 $^{\S}$~The named type is well formed at $\overline{\tau}$: its reads resolve there or $\Delta$ holds them, and $\Delta$ entails its call operator's \texttt{same\_as} constraints there (\emph{Constructions}, below).
 A standard function object, or one supplied with a carrier, has no field and no read, and is constructed as $O\texttt{<}\overline{\tau}\texttt{>\{\}}$.
 $^{\ast}$~The standard's signature of the function object, at atoms, or the signature declared for an arrow supplied with a carrier (Section~\ref{sec:kernel:fjlt}).
-$^{\P}$~$s$ and $i$ fresh, and $y$ and $z$.
-$^{\dagger}$~$u$ is a variable, and at run time a value, as for \textsc{T-Iter-Run}: a program tests a variable, and a call puts a value in its place.
-The readings are maximal: $y$ stands for every $\texttt{*}u$ in the first branch, and $z$ for every $u\texttt{.error()}$ in the second, that no inner case on $u$ holds, so a term has one derivation by \textsc{T-Case}.
+$^{\P}$~$s$ and $i$ fresh.
 \textsc{T-Iter-Run} types the iterations that evaluation reaches and a program does not write, $c_k$ the constant of \texttt{size\_t} whose value is $k$ (Figure~\ref{fig:fjlt-eval}).
-Omitted as textbook~\cite[Chapters~8, 9 and~11]{pierce2002tapl}: \textsc{T-Var}, \textsc{T-Field}, and the rules for pairs, conditionals and the operators of the atoms.
-The rules for sums are the textbook's~\cite[Section~11.9]{pierce2002tapl}, shown because the case binds its two variables by reading the tested variable, not by a pattern.}
+Omitted as textbook~\cite[Chapters~8, 9 and~11]{pierce2002tapl}: \textsc{T-Var}, \textsc{T-Field}, and the rules for pairs, conditionals and the operators of the atoms.}
 \label{fig:fjlt-typing}
 \end{figure}
 
@@ -175,32 +166,27 @@ A range of any other kind, as an array, a repetition or a view of one, is a deri
 
 \paragraph{Sums.}
 \label{app:fjlt:sums}
-The kernel's sum is \cppinline{std::expected<A, B>}, and its rules are the textbook's~\cite[Sections~11.9 and~11.10]{pierce2002tapl}.
-A side is built by the tag that names it, \cppinline{std::in_place} or \cppinline{std::unexpect}, which says the side whatever the two types are.
-\textsc{T-Case}, the textbook's case, is the one way out: it reads \cppinline{*x} only in the branch that knows the value is there, and \cppinline{x.error()} only in the other, and the linter checks both.
-The standard's other ways out are partial or stay inside the sum: \cppinline{value()} throws on the other side, and \cppinline{transform} and its kin map a sum to a sum.
-\cppinline{==} at a sum is not in the kernel, since \Cpp{23} does not constrain it by its parts.
-A write to a sum, by assignment, \cppinline{emplace} or \cppinline{swap}, is refused, since between a test and a reading it would make the reading wrong; a default construction is the first side with its value's default, and sugar.
-\cppinline{bool} stays an atom, though its conditional is the case of a sum of two types with one value each.
-
-Listing~\ref{lst:division} shows a partial operation, division on the naturals, returning the reason it has no result.
-The linter reads the test before the division, and there the division is in the kernel (Appendix~\ref{app:fjlt:evaluation}, \emph{Totality}).
-\cppinline{std::variant} is read as nested sums, under the conditions of its row in Table~\ref{tab:derived}.
+The kernel's sum is \cppinline{std::variant<A, B>} of two types, read as the coproduct of Pierce's account~\cite{pierce1991basic}: by its two injections $\iota_1 : A \to A + B$ and $\iota_2 : B \to A + B$, and by the copairing $[f, g] : A + B \to C$ of two arrows $f : A \to C$ and $g : B \to C$, which applies the one whose side the sum holds.
+They are the library's \cppinline{Injection} and \cppinline{Copairing}, arrows given to the kernel with their signatures as the standard's function objects are (\textsc{T-Op}), so the kernel has no rule of its own for a sum; their bodies are the one place a sum is built or taken apart by hand.
+Every other use of a variant is outside the kernel: \cppinline{std::get} and the writes to a variant are refused, since they may fail or change its side, and the total ones, \cppinline{std::visit} among them, are derived forms not yet written.
+A variant of more than two types is read as binary ones nested, as \cppinline{std::tuple} is read as pairs nested, under the conditions of its row in Table~\ref{tab:derived}, and \cppinline{std::expected}, a binary sum with an interface of its own, is left to the derived forms.
+\cppinline{==} at a sum is not in the kernel, since \Cpp{23} does not constrain it by the parts.
+Listing~\ref{lst:subtraction} shows the use the kernel has a sum for: subtraction on the naturals, which has no value where the second exceeds the first, returns how far short it falls; \cppinline{size_t}'s own subtraction, which wraps, is defined everywhere, so nothing in it is undefined.
 
 \begin{listing}[htbp]
 \begin{cpp}
-struct DivisionByZero {};
-using Quotient = expected<size_t, DivisionByZero>;
-constexpr Quotient divide(size_t n, size_t d) {
-  return d == 0 ? Quotient{unexpect, DivisionByZero{}}
-                : Quotient{in_place, n / d}; }
-constexpr size_t or_zero(Quotient q) {
-  return q.has_value() ? *q : 0uz; }
-static_assert(or_zero(divide(7, 2)) == 3 && or_zero(divide(7, 0)) == 0);
+struct Short { size_t by; };
+using Difference = variant<size_t, Short>;
+constexpr Difference minus(size_t n, size_t m) {
+  return m <= n ? ι<1, size_t, Short>{}(n - m)
+                : ι<2, size_t, Short>{}(Short{m - n}); }
+constexpr size_t monus(size_t n, size_t m) {
+  return Copairing<Same, Nothing>{Same{}, Nothing{}}(minus(n, m)); }
+static_assert(monus(7, 2) == 5 && monus(2, 7) == 0);
 \end{cpp}
-\caption{Division on the naturals as a sum: the quotient, or the reason there is none, and a case that reads it.
-Both are in \texttt{tools/jlt-lint/fixtures/sum.cpp}, where the linter gives them the level FJlt, beside the uses of a sum it refuses.}
-\label{lst:division}
+\caption{Subtraction on the naturals as a sum, the difference or how far short, read by a copairing: \cppinline{Same} is the identity at \cppinline{size_t} and \cppinline{Nothing} the constant $0$ at \cppinline{Short}.
+The code is in \texttt{tools/jlt-lint/fixtures/sum.cpp}, with \cppinline{Injection} (\cppinline{ι}) and \cppinline{Copairing} as in the library's \texttt{category/cartesian.cppm}; the linter gives \cppinline{monus} the level FJlt and \cppinline{minus} Jlt, the name \cppinline{ι} being an alias of \cppinline{Injection}, beside the uses of a variant it refuses or leaves open.}
+\label{lst:subtraction}
 \end{listing}
 
 \paragraph{Parts.}

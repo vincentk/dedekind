@@ -448,9 +448,9 @@ constexpr std::size_t written_by_lambda() {
 // An index and an end of a sequence whose type does not give its size.
 constexpr char character_at(std::string_view s, std::size_t i) { return s[i]; }
 constexpr std::size_t first_of(const std::vector<std::size_t>& v) { return v.front(); }
-// Not refused: a local of a value type of the standard that is not a
-// container of old, std::expected, C++23's answer where Rule 1 keeps
-// exceptions out.
+// Not refused by local state: a local of a value type of the standard that
+// is not a container of old, std::expected.  Undecided, since std::expected
+// is left to the derived forms (#1222).
 constexpr std::expected<std::size_t, bool> half(std::size_t n) {
   std::expected<std::size_t, bool> r = n / 2;
   return r;

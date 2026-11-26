@@ -9,7 +9,6 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdlib>
-#include <expected>
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -158,8 +157,8 @@ constexpr std::size_t truncated_float(double x) { return std::size_t(x); }
 constexpr int truncated_static(double x) { return static_cast<int>(x); }
 static_assert(truncated_float(2.5) == 2 && truncated_static(2.5) == 2);
 
-// A sum as the standard's variant: undecided until its row exists.  Beside it
-// the kernel's sum it is read as, two alternatives being one binary sum.
+// A sum read through std::visit: a derived form not yet written, so
+// undecided.  Its twin, the copairing of the two arrows, is in sum.cpp.
 struct Area {
   constexpr std::size_t operator()(std::size_t side) const { return side * side; }
   constexpr std::size_t operator()(std::pair<std::size_t, std::size_t> sides) const {
@@ -169,11 +168,6 @@ struct Area {
 constexpr std::size_t area(std::variant<std::size_t, std::pair<std::size_t, std::size_t>> shape) {
   return std::visit(Area{}, shape);
 }
-using Shape = std::expected<std::size_t, std::pair<std::size_t, std::size_t>>;
-constexpr std::size_t area_as_sum(Shape shape) {  // sound
-  return shape.has_value() ? Area{}(*shape) : Area{}(shape.error());
-}
-static_assert(area(3uz) == area_as_sum(Shape{std::in_place, 3uz}) &&
-              area(std::pair{2uz, 5uz}) == area_as_sum(Shape{std::unexpect, std::pair{2uz, 5uz}}));
+static_assert(area(3uz) == 9 && area(std::pair{2uz, 5uz}) == 10);
 
 }  // namespace jlt_listing

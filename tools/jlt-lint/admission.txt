@@ -211,58 +211,34 @@ Stmt:IfConsteval open
 # the test is a shape the signature names, and no check shows either yet; the
 # type check leaves a body with one undecided for the same reason.
 Stmt:IfConstexpr open
-# The binary sum, std::expected<A, B>, in the kernel beside std::pair (#1222).
-# Its introductions name the side: {std::in_place, a} and {std::unexpect, b}.
-# Its elimination is one form, x.has_value() ? ... *x ... : ... x.error() ...
-# (or the same choice by if), with x a variable, *x and x-> only in the first
-# branch, x.error() only in the second, and both branches of one type.
-Sum:inl kernel
-Sum:inr kernel
-Sum:case kernel
-# The test negated, or joined by && or ||, and a guard if (test) return e;
-# before the rest: the case with its branches swapped or nested.  And the
-# test alone, has_value(): the case with true and false for its branches.
-Sum:case-sugar derived
-Sum:test derived
-# The introductions without the tag: {a} or a returned, converted to the sum;
-# std::unexpected(b), converted; a payload of another type that holds every
-# value of it; and the default construction, the first side with its value's
-# own default.  Sugar for the tagged ones.  A conversion that narrows is
-# Conversion:narrowing, refused.
-Sum:inl-converted derived
-Sum:inr-converted derived
-# value_or(d) and error_or(d): the case with a constant for the other side.
-Sum:value-or derived
-# transform, and_then, or_else, transform_error: total, but maps inside the
-# sum, not ways out of it.  Open until each has its row.
-Sum:map open
-# A case whose two branches are of different types, one converted.
-Sum:case-converted refused
-# Every other use of a sum: *x, x-> or x.error() outside the case that knows
-# the side; value(), which throws on the other side; the test spelled as a
-# conversion to bool; ==, which C++23 does not constrain by the parts; a sum
-# built from a sum of other types, or by a tag with several arguments; and a
-# write to a sum (=, emplace, swap, exchange), which between its test and a
-# reading would make the reading wrong, and which the linter does not track.
+# The binary sum, std::variant<A, B>, is in the kernel (#1222), read as
+# Pierce's coproduct: by its injections and its copairing only, the
+# library's Injection and Copairing (category/cartesian.cppm), arrows given
+# to the kernel with their rules.  Their bodies are the one place a sum is
+# built or taken apart by hand.
+Sum:arrow scaffolding
+# Any other use of a variant that may fail or changes it: std::get and
+# get_if, emplace, assignment, swap, valueless_by_exception.
 Sum:other refused
-# The standard's variant: read as nested binary sums, as std::tuple is read
-# as nested pairs, up to isomorphism, for a chosen nesting.  The statement
-# owes that a variant's valueless state cannot arise without throw, and that
-# std::visit chooses by the alternative's type, not its position, so it holds
-# for distinct alternatives that do not convert to one another.  Open until
-# its row is written with those conditions and a tested pair.
+# The other uses of a variant, each total, and a variant of more than two
+# types: derived forms not yet written (a tagged construction is an
+# injection, visit on two distinct alternatives a copairing, index and
+# holds_alternative a copairing into a count or a truth value, a variant of
+# n types nested binary ones).  Open until each row is written with its
+# conditions and a tested pair.
 Derived:variant open
+# std::expected, a sum with an interface of its own: open.
+Derived:expected open
 # value() of a std::optional: it throws where no value is held, which Rule 1
-# keeps out.  Open until optional has its row, a sum with a one-valued type.
+# keeps out.  Open until optional has its row.
 Derived:sum-value open
 # A call to a function not declared constexpr: since C++23 the keyword on
 # the caller does not require it of the callee, so the linter looks.
 Call:NotConstexpr refused
 # Integer division and remainder by a value, and a shift by a value: the
-# kernel has each by a constant only (not zero; below the width), or a
-# division of unsigned values by a variable that a test before it has shown
-# not zero and that nothing writes, where it is defined at every argument.
-# Any other is open, a signed division by -1 among them (INT_MIN / -1).
+# kernel has each by a constant only (not zero, and not -1 on a signed type,
+# where the least value divided by it overflows; below the width), where it
+# is defined at every argument.  Any other is open.
 # A floating value converted to an integer, written out (size_t(x),
 # static_cast): undefined where the value does not fit ([conv.fpint]), so
 # partial as division is.
