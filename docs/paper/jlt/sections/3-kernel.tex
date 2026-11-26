@@ -13,6 +13,12 @@ The second follows the treatment of JavaScript by a small core and a desugaring 
 \subsection{The kernel}
 \label{sec:kernel:fjlt}
 
+One principle chooses the kernel's constructs.
+For each construct of System~F that it needs, it asks whether \Cpp{23} or its standard library has a clear counterpart.
+Where there is one, the kernel takes it as \Cpp{} writes it, as \cppinline{std::pair} for a product, and leaves the mapping to System~F to the translation $\llbracket\cdot\rrbracket$ of Figure~\ref{fig:arrows}.
+Where there is none, the kernel names the construct as category theory and System~F do, as the copairing of a sum~\cite{pierce1991basic}.
+The rest of \Cpp{23} that a program needs is added as derived forms (Section~\ref{sec:kernel:derived}).
+
 FJlt has two layers.
 The \emph{value layer} is what a program computes with.
 The \emph{resolution layer} is what the compiler chooses before the program runs.
@@ -111,8 +117,7 @@ associated type & a \texttt{struct} template whose entries each name one type, r
 The value layer has little of \Cpp{} in it, on purpose.
 A carrier is a type the kernel never looks inside: a generic definition reaches a value of it only through the calls that a shape names, and that is all the kernel knows of a string.
 A carrier comes with arrows of its own, as \cppinline{std::plus} comes with strings and \cppinline{Size} is written with a string's own length, and their declarations are given to the kernel, not written in it.
-A sum type, \cppinline{std::variant<A, B>}, holds a value of one of two types, as Haskell's \texttt{Either a b} does, built by the injections \cppinline{Inl} and \cppinline{Inr} and read by the copairing $[f, g] : A + B \to C$ of $f : A \to C$ and $g : B \to C$~\cite{pierce1991basic}: a partial operation, as subtraction on the naturals, returns the reason it has no result.
-The kernel writes a construction in \Cpp{}'s own syntax where that syntax is the construction, as \cppinline{pair{a, b}} and \cppinline{.first} are a pair's, and by a named arrow where it is not: \Cpp{} names a sum's alternatives by a number in a template argument, \cppinline{in_place_index<0>}, which the kernel's types do not take, and has no expression for the copairing, \cppinline{std::visit} choosing by type and so unable to tell the alternatives of \cppinline{variant<A, A>} apart; those spellings, the conditional \cppinline{x.index() == 0 ? e1 : e2} and \cppinline{std::expected} are derived forms (Table~\ref{tab:derived}).
+A sum, \cppinline{std::variant<A, B>} of two types, is built by the injections \cppinline{Inl} and \cppinline{Inr} and read by the copairing $[f, g] : A + B \to C$, for which \Cpp{} has no expression; its other spellings are derived forms.
 The one recursion over a value is iteration, with its count given before the first step.
 Its step is a function of the state and the index, and a state of several parts is a record.
 
@@ -165,7 +170,7 @@ The list is open, and a new derived form touches nothing that is said about the 
 The meaning of a kernel program is its image in System~F~\cite{girard1972interpretation,reynolds1974towards} with truth values, counts and an iterator over a count.
 A function of several arguments is curried in the image and a record of several fields is a product, the textbook's treatment of both~\cite{pierce2002tapl}.
 That a closed program of an atom has the same value in \Cpp{} and in its image is this paper's hypothesis of adequacy.
-Its part between FJlt's own evaluation (Appendix~\ref{app:fjlt:evaluation}) and the image Appendix~\ref{app:fjlt:theorems} shows on paper; that \Cpp{} evaluates a kernel program as FJlt does is assumed, and the results below are about the image.
+Its part between FJlt's own evaluation (Appendix~\ref{app:fjlt:evaluation}) and the image Appendix~\ref{app:fjlt:theorems} argues on paper; that \Cpp{} evaluates a kernel program as FJlt does is assumed, and the results below are about the image.
 The translation is the one that gives Haskell's type classes their meaning, dictionary passing~\cite{wadler1989adhoc,jones1994qualified}, and Table~\ref{tab:image} states it, Appendix~\ref{app:fjlt:translation} in full.
 The images below the panels of the listings were made by hand according to it.
 

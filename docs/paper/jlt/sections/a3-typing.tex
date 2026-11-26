@@ -166,32 +166,6 @@ In \cppinline{power} of Listing~\ref{lst:power} the count is the number of bits 
 \textsc{T-Iter} leaves these out because \cppinline{copyable} holds at every type of the kernel (\emph{Entailment and laws}, above), which gives all three where the premises hold, the step's result being of the state's type.
 A range of any other kind, as an array, a repetition or a view of one, is a derived form, read as its length and the function that reads it (Table~\ref{tab:derived}).
 
-\paragraph{Sums.}
-\label{app:fjlt:sums}
-The sum's three arrows are named types given to the kernel with their calls, as an arrow supplied with a carrier is: \cppinline{Inl<A, B>} and \cppinline{Inr<A, B>}, with no fields, and the calls $A \to \texttt{variant<A, B>}$ and $B \to \texttt{variant<A, B>}$, and \cppinline{Copairing<F, G>}, with the fields \cppinline{f} and \cppinline{g} and the call $\texttt{variant<dom<F>::type, dom<G>::type>} \to \texttt{cod<F>::type}$ under \cppinline{same_as<cod<F>::type, cod<G>::type>}.
-They are typed by \textsc{T-Construct} and \textsc{T-App} as any named type is, so an arrow of the sum has a type before it is applied, and a copairing of copairings, or $[\iota_2, \iota_1]$, is a term; at a type variable, \texttt{dom} and \texttt{cod} are reads the context holds.
-Their bodies are not the kernel's: the images of their calls are the target's injections and case (Appendix~\ref{app:fjlt:translation}).
-\cppinline{==} at a sum is not in the kernel, since \Cpp{23} does not constrain it by the alternatives.
-Listing~\ref{lst:subtraction} uses a sum for subtraction on the naturals, which says how far short it falls where \cppinline{size_t}'s own subtraction wraps.
-
-\begin{listing}[ht]
-\begin{cpp}
-struct Short { size_t by; };
-constexpr variant<size_t, Short> minus(size_t n, size_t m) {
-  return m <= n ? Inl<size_t, Short>{}(n - m)
-                : Inr<size_t, Short>{}(Short{m - n}); }
-constexpr size_t monus(size_t n, size_t m) {
-  return Copairing<Same, Zero>{Same{}, Zero{}}(minus(n, m)); }
-constexpr size_t monus_by_index(size_t n, size_t m) {
-  const variant<size_t, Short> d = minus(n, m);
-  return d.index() == 0 ? get<0>(d) : 0uz; }
-static_assert(monus(7, 2) == 5 && monus(2, 7) == monus_by_index(2, 7));
-\end{cpp}
-\caption{Subtraction on the naturals, read by a copairing, \cppinline{Same} the identity and \cppinline{Zero} the constant $0$, and by the conditional that is its derived form (Table~\ref{tab:derived}).
-From \texttt{tools/jlt-lint/fixtures/sum.cpp}, where the linter gives \cppinline{minus} and \cppinline{monus} the level FJlt and \cppinline{monus_by_index} Jlt.}
-\label{lst:subtraction}
-\end{listing}
-
 \paragraph{Parts.}
 \label{app:fjlt:parts}
 Section~\ref{sec:posture} states the recursion over a type on proper parts (Equation~\eqref{eq:cata}), and this is that relation on the kernel's types.
@@ -276,6 +250,32 @@ $^{\ddagger}$~The call of a declared type $O$, as \textsc{T-App} reads it, or th
 Omitted as textbook: that $\equiv$ is reflexive, symmetric, transitive and a congruence.}
 \label{fig:fjlt-assoc}
 \end{figure}
+
+\paragraph{Sums.}
+\label{app:fjlt:sums}
+The sum's three arrows are named types given to the kernel with their calls, as an arrow supplied with a carrier is: \cppinline{Inl<A, B>} and \cppinline{Inr<A, B>}, with no fields, and the calls $A \to \texttt{variant<A, B>}$ and $B \to \texttt{variant<A, B>}$, and \cppinline{Copairing<F, G>}, with the fields \cppinline{f} and \cppinline{g} and the call $\texttt{variant<dom<F>::type, dom<G>::type>} \to \texttt{cod<F>::type}$ under \cppinline{same_as<cod<F>::type, cod<G>::type>}.
+They are typed by \textsc{T-Construct} and \textsc{T-App} as any named type is, so an arrow of the sum has a type before it is applied, and a copairing of copairings, or $[\iota_2, \iota_1]$, is a term; at a type variable, \texttt{dom} and \texttt{cod} are reads the context holds.
+Their bodies are not the kernel's: the images of their calls are the target's injections and case (Appendix~\ref{app:fjlt:translation}).
+\cppinline{==} at a sum is not in the kernel, since \Cpp{23} does not constrain it by the alternatives.
+Listing~\ref{lst:subtraction} uses a sum for subtraction on the naturals, which says how far short it falls where \cppinline{size_t}'s own subtraction wraps.
+
+\begin{listing}[ht]
+\begin{cpp}
+struct Short { size_t by; };
+constexpr variant<size_t, Short> minus(size_t n, size_t m) {
+  return m <= n ? Inl<size_t, Short>{}(n - m)
+                : Inr<size_t, Short>{}(Short{m - n}); }
+constexpr size_t monus(size_t n, size_t m) {
+  return Copairing<Same, Zero>{Same{}, Zero{}}(minus(n, m)); }
+constexpr size_t monus_by_index(size_t n, size_t m) {
+  const variant<size_t, Short> d = minus(n, m);
+  return d.index() == 0 ? get<0>(d) : 0uz; }
+static_assert(monus(7, 2) == 5 && monus(2, 7) == monus_by_index(2, 7));
+\end{cpp}
+\caption{Subtraction on the naturals, read by a copairing, \cppinline{Same} the identity and \cppinline{Zero} the constant $0$, and by the conditional that is its derived form (Table~\ref{tab:derived}).
+From \texttt{tools/jlt-lint/fixtures/sum.cpp}, where the linter gives \cppinline{minus} and \cppinline{monus} the level FJlt and \cppinline{monus_by_index} Jlt.}
+\label{lst:subtraction}
+\end{listing}
 
 \paragraph{The axioms of a program.}
 \label{app:fjlt:axioms}

@@ -34,7 +34,7 @@ A function that depends on its arguments alone can be replaced by its value~\cit
 A function that is polymorphic in a type cannot inspect that type, so its type alone yields theorems about it~\cite{wadler1989theorems}.
 A class of types with operations and laws lets generic code be written once against the operations and reasoned about by the laws~\cite{wadler1989adhoc}.
 A recursion that follows the structure of its data ends, so a program built from such recursions has a value~\cite{turner2004total}.
-Reasoning about a partial language as if it were total is ``morally correct'': Danielsson et al.\ show, for a small Haskell-like language, that equations proved in the total reading hold of its total values, which form a bicartesian closed category, with products, sums and functions~\cite{danielsson2006fast}.
+Reasoning about a partial language as if it were total is ``morally correct'': for a small Haskell-like language, Danielsson et al.\ prove that two closed terms equal in a total semantics are related in the partial one by a relation on the total values, which gives a bicartesian closed category, with products, sums and functions~\cite{danielsson2006fast}; this paper makes the same move for \Cpp{}, and assumes the link between the two semantics where they prove it.
 The approach is open to laws of a program's own, since for declared equations the reasoning is complete: an equation follows from them by equational reasoning exactly when it holds in every model of them, with several sorts as here~\cite{birkhoff1935structure,goguen1985completeness,burris1981universalalgebra}.
 The theory is not new; that it can be used in \Cpp{23} as shipped is.
 
