@@ -54,7 +54,7 @@ It is called a posture because it asks only for a style of programming: every in
 Figure~\ref{fig:arrows} draws it with the languages of the paper and the maps between them, and two boundaries matter most.
 The outer one is drawn by the three rules (Section~\ref{sec:posture}): one keeps substitution of equals valid, one keeps generic code to its declared constraints, and one makes every recursion end.
 The inner one is drawn by a translation: the \emph{kernel}, Featherweight Jlt (FJlt), is the part of the posture on which a translation $\llbracket\cdot\rrbracket$ is defined into System~F, extended with truth values, counts and an iterator over a count (Appendix~\ref{app:fjlt:translation}).
-The translation is proved on paper to preserve types and values, under stated assumptions and with the textbook cases omitted, and from its target the kernel inherits termination and, by the cited abstraction theorem, parametricity (Section~\ref{sec:translation}).
+The translation is proved on paper to preserve types and values, under stated assumptions and with the textbook cases omitted, and from its target the kernel inherits termination and, by the cited abstraction theorem, argued to extend to the target's constants, parametricity (Section~\ref{sec:translation}).
 Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, the dashed arrow of the figure: Jlt is the kernel with sugar, a list of forms that the linter holds, and what the posture admits but no form on the list reads is outside Jlt (Appendix~\ref{app:fjlt:closure}).
 
 \begin{figure}[tb]

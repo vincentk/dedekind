@@ -176,7 +176,7 @@ The carrier $T$ and the operation $\mathit{Op}$ of the unit $E$ are one type par
 \cppinline{guessed_concat} has no image: no record gives it a \cppinline{+}, and a checker that holds a body to its signature refuses it and says so, that no operation \cppinline{+} is declared for the range's elements.
 \Cpp{} accepts both functions.
 
-The lines of Listing~\ref{lst:motivation} are in Jlt as written, and Table~\ref{tab:levels} gives each definition its level.
+The lines of Listing~\ref{lst:motivation} are in Jlt as written, but for \cppinline{guessed_concat}, which the linter refuses, and Table~\ref{tab:levels} gives each definition its level.
 The range that \cppinline{concat} folds over, and the arrays and strings of the tests, are sugar for it (Section~\ref{sec:kernel:derived}).
 
 \subsection{What a law permits}

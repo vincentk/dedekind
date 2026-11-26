@@ -51,6 +51,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write  # required by codecov-action to post PR coverage comments
+      actions: write  # the build cache keeps one copy: main deletes the one it replaces
     steps:
     - uses: actions/checkout@v7
       with:
@@ -146,10 +147,83 @@ jobs:
     - name: Check Code Formatting
       run: make format-check CLANG_FORMAT="$CLANG_FORMAT"
 
+    # A cache of build/ on Linux (#900): one copy, written by main under its
+    # commit, read by every run for a day.  It is used only where it was built from the same inputs as
+    # this run's library build: the sources it compiles, the CMake files, the
+    # toolchain and the flags, hashed and stored inside the cache.  Otherwise
+    # build/ is discarded and the build is clean, as without a cache.  The
+    # tools and docs are not among those inputs: after a restore they are made
+    # newer than build/, so whatever depends on them is rebuilt.  The release
+    # jobs build their own artifacts and never read it.
+    - name: The inputs of the library's build
+      id: inputs
+      if: runner.os == 'Linux'
+      run: |
+        {
+          git ls-files -s src python ext CMakeLists.txt CMakePresets.json Makefile pyproject.toml
+          "$CXX" --version
+          cmake --version
+          ninja --version
+          python --version
+          dpkg-query -W libstdc++-16-dev libc++-23-dev
+          echo 'CMAKE_EXTRA_ARGS=-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON'
+        } | sha256sum | cut -d' ' -f1 > "$RUNNER_TEMP/build-inputs"
+        echo "hash=$(cat "$RUNNER_TEMP/build-inputs")" >> "$GITHUB_OUTPUT"
+        # A copy lives a day: it is found under today's or yesterday's date.
+        echo "today=$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
+        echo "yesterday=$(date -u -d yesterday +%Y%m%d)" >> "$GITHUB_OUTPUT"
+
+    - name: Restore the build of main
+      id: restore
+      if: runner.os == 'Linux'
+      uses: actions/cache/restore@v6
+      with:
+        path: build
+        key: build-linux-main-${{ steps.inputs.outputs.today }}-${{ github.sha }}
+        restore-keys: |
+          build-linux-main-${{ steps.inputs.outputs.today }}-
+          build-linux-main-${{ steps.inputs.outputs.yesterday }}-
+
+    - name: Use the restored build only if it was built from the same inputs
+      if: runner.os == 'Linux' && steps.restore.outputs.cache-matched-key != ''
+      run: |
+        if [ "$(cat build/.build-inputs 2>/dev/null)" = "${{ steps.inputs.outputs.hash }}" ]; then
+          # The checkout made every source newer than build/.  The outputs'
+          # times stay as restored, since ninja's dependency log records them;
+          # the inputs the hash covers, identical by it, are made older than
+          # any output instead.  tools/, docs/ and .github/ keep the
+          # checkout's time, so what depends on them rebuilds.
+          find src python ext cmake CMakeLists.txt CMakePresets.json Makefile pyproject.toml \
+            -exec touch -h -d '2000-01-01T00:00:00Z' {} + 2>/dev/null || true
+          echo "build cache: hit, ${{ steps.restore.outputs.cache-matched-key }}, $(du -sh build | cut -f1)"
+        else
+          echo "build cache: built from other inputs, discarded"
+          rm -rf build
+        fi
+
     # Build, then the lint in one pass over the whole tree and the tests
     # (CMake's `check`).
     - name: Build, Lint & Test
-      run: make check CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+      run: |
+        # The lines of ninja's log a restored cache brought in, so that the
+        # timings below count only this run's edges.
+        wc -l < build/.ninja_log > "$RUNNER_TEMP/ninja-log-before" 2>/dev/null || echo 0 > "$RUNNER_TEMP/ninja-log-before"
+        make check CXX="$CXX" CC="$CC" CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+
+    # Where the build's time went, on the run's page and as an artifact
+    # (#900): measured before anything is optimised.
+    - name: Timings
+      if: always() && hashFiles('build/.ninja_log') != ''
+      run: |
+        python3 tools/ci/ninja_times.py build/.ninja_log --skip "$(cat "$RUNNER_TEMP/ninja-log-before" 2>/dev/null || echo 0)" >> "$GITHUB_STEP_SUMMARY"
+    - name: Keep ninja's log
+      if: always() && hashFiles('build/.ninja_log') != ''
+      uses: actions/upload-artifact@v7
+      with:
+        name: ninja-log-${{ inputs.runner || 'macos-26' }}
+        path: build/.ninja_log
+        include-hidden-files: true
+        retention-days: 30
 
     # The report (gates, reported counts, the syntax inventory) is kept as an
     # artifact: the paper's closure table rests on the inventory as
@@ -202,3 +276,35 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
         verbose: true
+
+    # main keeps the build it has just made, and only the newest copy, after
+    # coverage has read the tests' profiles: they are deleted first, since
+    # actions/cache does not honour negated paths, and the path is the
+    # restore's, since the path list is part of the cache's version.
+    - name: Mark the build with its inputs
+      if: success() && runner.os == 'Linux' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        find build \( -name '*.profraw' -o -name '*.profdata' \) -delete
+        cp "$RUNNER_TEMP/build-inputs" build/.build-inputs
+        echo "build cache: saving $(du -sh build | cut -f1)"
+    - name: Save the build for later runs
+      if: success() && runner.os == 'Linux' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: actions/cache/save@v6
+      with:
+        path: build
+        key: build-linux-main-${{ steps.inputs.outputs.today }}-${{ github.sha }}
+    - name: Keep one copy
+      if: success() && runner.os == 'Linux' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        # The save reports success even where its upload failed: delete the
+        # older copies only once the new one is there, else keep them.
+        new="build-linux-main-${{ steps.inputs.outputs.today }}-${{ github.sha }}"
+        if ! gh cache list --repo "$GITHUB_REPOSITORY" --key "$new" --json key --jq '.[].key' | grep -qx "$new"; then
+          echo "build cache: $new was not saved; the older copies stay"
+          exit 0
+        fi
+        gh cache list --repo "$GITHUB_REPOSITORY" --key build-linux- --json id,key \
+          --jq ".[] | select(.key != \"$new\") | .id" |
+          xargs -r -n1 gh cache delete --repo "$GITHUB_REPOSITORY"

@@ -24,6 +24,17 @@ constexpr std::size_t narrowed_to_char(std::size_t n) {
   return c;
 }
 constexpr int written_out(std::size_t i) { return int(i); }  // sound: the conversion is written
+// The same conversion spelled static_cast: read as int(i), a derived form.
+constexpr int written_static(std::size_t i) { return static_cast<int>(i); }
+constexpr double widened_static(std::size_t i) { return static_cast<double>(i); }
+// Not read as T(e): a cast to a reference, and one through a conversion
+// operator.
+constexpr int cast_to_reference(int x) { return static_cast<const int&>(x); }
+struct Boxed {
+  int v;
+  constexpr operator int() const { return v; }
+};
+constexpr int cast_through_operator(Boxed b) { return static_cast<int>(b); }
 constexpr unsigned char low_byte(std::size_t n) {  // refused: += converts back
   unsigned char c = 0;
   c += n;
