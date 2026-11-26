@@ -2,7 +2,7 @@
 #
 # One line per AST node kind the inventory prints: <kind> <class>.  Classes:
 #   kernel       a form of FJlt (the grammar of the paper's Figure 2)
-#   derived      a derived form: Jlt, rewritten into the kernel
+#   sugar        Jlt, rewritten into the kernel
 #   scaffolding  organisation without meaning (modules, namespaces, tests)
 #   refused      outside Jlt
 #   open         not yet decided; counted as not admitted
@@ -56,38 +56,38 @@ Stmt:CXXUnresolvedConstructExpr kernel
 Type:DependentName kernel
 Type:Decltype kernel
 
-# ---- derived forms
+# ---- sugar
 # an alias, its declaration and a use of an alias template of the program
 # (Table 7: the standard defines it as the type it stands for, [temp.alias])
-Decl:TypeAlias derived
+Decl:TypeAlias sugar
 # the member using type = T; of a struct: Figure 2's entry of an associated type
 Decl:AssociatedTypeEntry kernel
-Decl:TypeAliasTemplate derived
-Type:AliasTemplateSpecialization derived
+Decl:TypeAliasTemplate sugar
+Type:AliasTemplateSpecialization sugar
 Type:Typedef scaffolding
 Type:Using scaffolding
-Type:Auto derived
-Type:DeducedTemplateSpecialization derived
-Type:InjectedClassName derived
-Type:LValueReference derived
+Type:Auto sugar
+Type:DeducedTemplateSpecialization sugar
+Type:InjectedClassName sugar
+Type:LValueReference sugar
 Type:Paren scaffolding
 Stmt:ParenExpr scaffolding
-Decl:Var derived
-Stmt:DeclStmt derived
-Stmt:IfStmt derived
-# A structured binding has no row in the table of derived forms, and
+Decl:Var sugar
+Stmt:DeclStmt sugar
+Stmt:IfStmt sugar
+# A structured binding has no row in the table of sugar, and
 # rule1-local-state does not yet read a binding as the local it names.
 Decl:Decomposition open
 Decl:Binding open
-Stmt:DesignatedInitExpr derived
-Stmt:ParenListExpr derived
-Type:PackExpansion derived
-Stmt:PackExpansionExpr derived
-Stmt:SizeOfPackExpr derived
-Stmt:CXXFoldExpr derived
-Stmt:CXXRewrittenBinaryOperator derived
-Stmt:UserDefinedLiteral derived
-Decl:CXXDeductionGuide derived
+Stmt:DesignatedInitExpr sugar
+Stmt:ParenListExpr sugar
+Type:PackExpansion sugar
+Stmt:PackExpansionExpr sugar
+Stmt:SizeOfPackExpr sugar
+Stmt:CXXFoldExpr sugar
+Stmt:CXXRewrittenBinaryOperator sugar
+Stmt:UserDefinedLiteral sugar
+Decl:CXXDeductionGuide sugar
 
 # ---- operators by spelling (definitions only; the file inventory still
 # counts Stmt:BinaryOperator and Stmt:UnaryOperator as a whole)
@@ -110,17 +110,17 @@ Op:>= kernel
 Op:<=> kernel
 Op:&& kernel
 Op:|| kernel
-Op:+= derived
-Op:-= derived
-Op:*= derived
-Op:/= derived
-Op:= derived
+Op:+= sugar
+Op:-= sugar
+Op:*= sugar
+Op:/= sugar
+Op:= sugar
 Op:, open
 Op:() kernel
 # operator[]: an operator like any other, a member operator call (Table 7);
 # the reference it returns is how a write or an alias reaches local state, and
 # rule1-local-state refuses every such use it does not show to be safe.
-Op:[] derived
+Op:[] sugar
 Op:-> open
 Op:u! kernel
 Op:u- kernel
@@ -128,14 +128,14 @@ Op:u~ kernel
 Op:u+ kernel
 Op:u& refused
 Op:u* refused
-Op:u++ derived
-Op:u-- derived
-Op:u++post derived
-Op:u--post derived
+Op:u++ sugar
+Op:u-- sugar
+Op:u++post sugar
+Op:u--post sugar
 
-# ---- the derived forms no syntax kind shows (definitions only)
-Derived:range derived
-Derived:view derived
+# ---- the sugar no syntax kind shows (definitions only)
+Sugar:range sugar
+Sugar:view sugar
 # a conversion between integer types written as a call (decided 2026-11-22)
 Cast:integer kernel
 # Decided 2026-11-22 (user), Appendix A's table: a lambda (not generic, or
@@ -146,7 +146,7 @@ Cast:integer kernel
 # and refuses the rest.
 # Decided 2026-11-22, to be counted with the library run: an implicit
 # conversion between atoms (int to bool, bool promoted to int) and a result
-# required only convertible_to<T> are a derived form, the call followed by
+# required only convertible_to<T> are sugar, the call followed by
 # T(...), conditional on rule2-converted-result (the result used at T only).
 
 # ---- scaffolding
@@ -164,7 +164,7 @@ Stmt:CXXThrowExpr refused
 Stmt:WhileStmt refused
 Stmt:BreakStmt refused
 Stmt:ContinueStmt refused
-Stmt:CompoundAssignOperator derived
+Stmt:CompoundAssignOperator sugar
 Stmt:CStyleCastExpr refused
 Stmt:CXXNullPtrLiteralExpr refused
 Type:Pointer refused
@@ -179,9 +179,9 @@ Stmt:CXXReinterpretCastExpr refused
 Stmt:DoStmt refused
 
 # ---- open: to be decided
-Stmt:ForStmt derived
-Stmt:CXXForRangeStmt derived
-Stmt:LambdaExpr derived
+Stmt:ForStmt sugar
+Stmt:CXXForRangeStmt sugar
+Stmt:LambdaExpr sugar
 Stmt:SwitchStmt open
 Stmt:CaseStmt open
 Stmt:DefaultStmt open
@@ -218,7 +218,7 @@ Stmt:IfConstexpr open
 # The positional spellings are sugar: variant<A, B>(in_place_index<k>, a),
 # the library's Injection (ι), and std::expected's {in_place, a} and
 # {unexpect, b}; a payload that narrows is Conversion:narrowing.
-Sum:inj-sugar derived
+Sum:inj-sugar sugar
 # The copairing written as a choice on the index, x.index() == 0 ? e1 : e2
 # (or by if, negated, joined by && or ||, or as an early exit), with x a
 # const variable, std::get<0>(x) only where alternative 0 is known and
@@ -227,7 +227,7 @@ Sum:inj-sugar derived
 # of x decides; the test compares x.index() with an integer constant 0 or 1,
 # or is x.has_value() or x as a truth value on an expected, negated or
 # joined by && or ||.  A payload has exactly its alternative's type.
-Sum:case-sugar derived
+Sum:case-sugar sugar
 # The same choice with branches of different types, one converted.
 Sum:case-converted refused
 # A reading of an alternative of a tested variable that is not const: make the
@@ -239,23 +239,23 @@ Sum:not-const refused
 # assignment, swap, valueless_by_exception.
 Sum:other refused
 # The other uses of a variant, each total, and any use of a variant of more
-# than two types: derived forms not yet written (visit on two distinct
+# than two types: sugar not yet written (visit on two distinct
 # alternatives is a copairing, index and holds_alternative a copairing into
 # a count or a truth value, a variant of n types nested binary ones).
 # Undecided until each row is written with its conditions and a tested pair.
-Derived:variant open
+Sugar:variant open
 # std::expected<A, B>, the other spelling of a binary sum, read as
 # std::variant<A, B> (#1222): its type is sugar, and so are its tagged
 # constructions, the injections (Sum:inj-sugar), and, with x a const
 # variable, x.has_value() ? ... *x ... : ... x.error() ..., the copairing
 # (Sum:case-sugar).  value() and writes are Sum:other; the rest of its
 # interface (value_or, transform, the untagged conversions, ==, the test as
-# bool) is open, derived forms not yet written.
-Sum:expected derived
-Derived:expected open
+# bool) is open, sugar not yet written.
+Sum:expected sugar
+Sugar:expected open
 # value() of a std::optional: it throws where no value is held, which Rule 1
 # keeps out.  Open until optional has its row.
-Derived:sum-value open
+Sugar:sum-value open
 # A call to a function not declared constexpr: since C++23 the keyword on
 # the caller does not require it of the callee, so the linter looks.
 Call:NotConstexpr refused
@@ -275,7 +275,7 @@ Stmt:GenericLambda open
 Stmt:CXXStaticCastExpr open
 Stmt:CXXThisExpr open
 Stmt:CXXConstructExpr kernel
-Stmt:CXXMemberCallExpr derived
+Stmt:CXXMemberCallExpr sugar
 Stmt:ArraySubscriptExpr open
 Stmt:StringLiteral open
 Stmt:FloatingLiteral open

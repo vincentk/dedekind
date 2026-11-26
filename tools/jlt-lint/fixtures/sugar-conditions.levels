@@ -1,4 +1,4 @@
-# The level of every definition of derived-conditions.cpp, in order (levels.py --expect).
+# The level of every definition of sugar-conditions.cpp, in order (levels.py --expect).
 narrowed_to_bool refused
 compared FJlt
 narrowed_to_char refused

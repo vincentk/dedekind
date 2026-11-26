@@ -527,7 +527,7 @@ std::string declKind(const clang::Decl* d) {
 
 /// The kind of a written type, as admission.txt classes it.  A use of an alias
 /// template of the program, op_t<E>, is a kind of its own: Table 7's alias,
-/// a derived form the standard defines as the type it stands for
+/// sugar the standard defines as the type it stands for
 /// ([temp.alias]).  The standard's own, range_value_t, is a read the kernel
 /// is given, and stays a template specialization.
 std::string typeKind(clang::TypeLoc tl) {
@@ -1073,7 +1073,7 @@ class InlineRequires : public clang::ASTConsumer,
 /// compiler's __is_same), or a standard concept used as a value.  An archetype
 /// answers such an observation for itself, so the second stage would admit a
 /// body that is not parametric (the cold reads of #1212).  The condition of an
-/// if constexpr is not judged here: Table 7 reads it as a derived form, and
+/// if constexpr is not judged here: Table 7 reads it as sugar, and
 /// the second stage leaves such a body undecided.
 class TypeObservation : public clang::ASTConsumer,
                         public clang::RecursiveASTVisitor<TypeObservation> {
@@ -2781,7 +2781,7 @@ struct Selection {
   bool marked = false;
   // A result a shape promises only convertible_to<T> passed straight to a
   // call: converted to whatever parameter type resolution picks there, which
-  // a real type's overloads may pick differently.  Table 7's derived form is
+  // a real type's overloads may pick differently.  Table 7's sugar is
   // copy-initialisation of a T, so the result goes into a declared T or a
   // return at T, and nowhere else.
   bool lateConversion = false;
@@ -3694,20 +3694,20 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       kinds.insert(declKind(d));
     return clang::RecursiveASTVisitor<Kinds>::TraverseDecl(d);
   }
-  // The one derived form no syntax kind shows: a range.  A parameter
+  // The one form of sugar no syntax kind shows: a range.  A parameter
   // constrained by a standard range concept, or a standard view other than
   // the counted iota the kernel iterates over.
   bool VisitConceptSpecializationExpr(clang::ConceptSpecializationExpr* e) {
     const clang::ConceptDecl* c = e->getNamedConcept();
     if (c && inStd(c) && c->getName().ends_with("range"))
-      kinds.insert("Derived:range");
+      kinds.insert("Sugar:range");
     return true;
   }
   bool VisitTemplateTypeParmDecl(clang::TemplateTypeParmDecl* d) {
     if (const clang::TypeConstraint* tc = d->getTypeConstraint())
       if (const clang::TemplateDecl* c = tc->getNamedConcept())
         if (inStd(c) && c->getName().ends_with("range"))
-          kinds.insert("Derived:range");
+          kinds.insert("Sugar:range");
     return true;
   }
   bool VisitDeclRefExpr(clang::DeclRefExpr* e) {
@@ -3717,11 +3717,11 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     if (d && llvm::isa<clang::VarDecl>(d) && inStd(d) &&
         d->getQualifiedNameAsString().find("views::") != std::string::npos &&
         d->getName() != "iota")
-      kinds.insert("Derived:view");
+      kinds.insert("Sugar:view");
     // std::visit on a value whose variant type is not written (auto).
     if (d && llvm::isa<clang::FunctionDecl>(d) && d->getIdentifier() && inStd(d) &&
         (d->getName() == "visit" || d->getName() == "holds_alternative"))
-      kinds.insert("Derived:variant");
+      kinds.insert("Sugar:variant");
     return true;
   }
   // Where a return may stand for Table 7's reading of statements: at the end
@@ -3970,7 +3970,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
         if (alts.size() == 2 && payloadNarrows(c->getArg(1), alts[k])) return std::string("Conversion:narrowing");
         return std::string("Sum:inj-sugar");
       }
-      return std::string("Derived:expected");
+      return std::string("Sugar:expected");
     }
     std::string name;
     const clang::Expr* obj = nullptr;
@@ -4005,12 +4005,12 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     const clang::ValueDecl* x = named(obj);
     if (name == "has_value" || name == "bool") {
       const std::string k = indexKind(st, x);
-      return k == "Sum:case-sugar" || k == "Sum:case-converted" ? k : "Derived:expected";
+      return k == "Sum:case-sugar" || k == "Sum:case-converted" ? k : "Sugar:expected";
     }
     if (name == "*" || name == "->") return reading(st, x, 0);
     if (name == "error") return reading(st, x, 1);
     if (name == "value" || name == "=" || name == "emplace" || name == "swap") return std::string("Sum:other");
-    return std::string("Derived:expected");
+    return std::string("Sugar:expected");
   }
   static bool returns(const clang::Stmt* s) {
     if (const auto* c = llvm::dyn_cast_or_null<clang::CompoundStmt>(s); c && !c->body_empty()) s = c->body_back();
@@ -4078,7 +4078,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   /// ||, compared with 0 or 1, negated or alone; converted, refused, where
   /// the choice's branches differ in type; open anywhere else.
   std::string indexKind(const clang::Stmt* st, const clang::ValueDecl* x) const {
-    if (!constant(x) || !ctx) return "Derived:variant";
+    if (!constant(x) || !ctx) return "Sugar:variant";
     const clang::Stmt* child = st;
     clang::DynTypedNode n = clang::DynTypedNode::create(*st);
     for (int k = 0; k < 16; ++k) {
@@ -4126,7 +4126,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
         if (!m.get<clang::Expr>()) break;
       }
     }
-    return "Derived:variant";
+    return "Sugar:variant";
   }
   /// A reading of alternative k of x: the copairing's sugar where k is
   /// known, a finding of its own where x is a variable that is not const
@@ -4149,30 +4149,30 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     return -1;
   }
   /// The kind of a use of a sum other than through its structure arrows:
-  /// open, a derived form not yet written, where it is total (the tagged
+  /// open, sugar not yet written, where it is total (the tagged
   /// construction, visit, holds_alternative, index, ==); refused where it
   /// may fail or changes the sum (get, get_if, emplace, =, swap,
   /// valueless_by_exception).  None where the statement is no such use.
   std::optional<std::string> sumUse(const clang::Stmt* st) const {
     // A variant of more than two types: read as binary ones nested, a
-    // derived form not yet written.
+    // sugar not yet written.
     {
       const clang::Expr* obj = nullptr;
       if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(st)) {
         if (isVariant(c->getType()) && !isSum(c->getType()) && !c->getConstructor()->isCopyOrMoveConstructor())
-          return std::string("Derived:variant");
+          return std::string("Sugar:variant");
       } else if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(st)) {
         obj = m->getImplicitObjectArgument();
       } else if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st)) {
         for (const clang::Expr* a : c->arguments())
           if (isVariant(a->getType())) obj = a;
       }
-      if (obj && isVariant(obj->getType()) && !isSum(obj->getType())) return std::string("Derived:variant");
+      if (obj && isVariant(obj->getType()) && !isSum(obj->getType())) return std::string("Sugar:variant");
     }
     const auto kind = [&](llvm::StringRef name) -> std::optional<std::string> {
       static const std::set<std::string> partial{"get", "get_if", "emplace", "swap", "=",
                                                  "valueless_by_exception"};
-      return std::string(partial.count(name.str()) ? "Sum:other" : "Derived:variant");
+      return std::string(partial.count(name.str()) ? "Sum:other" : "Sugar:variant");
     };
     if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(st); c && isSum(c->getType())) {
       if (c->getConstructor()->isCopyOrMoveConstructor()) return std::nullopt;
@@ -4296,7 +4296,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       if (const clang::CXXMethodDecl* g = m->getMethodDecl(); g && g->getIdentifier() && g->getName() == "value")
         if (const clang::CXXRecordDecl* r = g->getParent(); r && inStd(r) && r->getIdentifier() &&
             (r->getName() == "optional" || r->getName() == "expected"))
-          kinds.insert("Derived:sum-value");
+          kinds.insert("Sugar:sum-value");
     // A call from a judged definition to a function not declared constexpr:
     // since C++23 the keyword on the caller promises nothing about it, so
     // the callee is looked at (std::rand, std::getenv, a stream's <<).
@@ -4395,13 +4395,13 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     if (!tl.isNull()) {
       kinds.insert(typeKind(tl));
       // The kernel's sum is the standard's variant of two types (#1222); a
-      // variant of more is read as nested binary ones, a derived form not
+      // variant of more is read as nested binary ones, sugar not
       // yet written.  std::expected is a sum with an API of its own: open.
       if (const auto* ts = tl.getTypePtr()->getAs<clang::TemplateSpecializationType>())
         if (const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl())
           if (td->getIdentifier() && inStd(td)) {
             if (td->getName() == "variant" && ts->template_arguments().size() != 2)
-              kinds.insert("Derived:variant");
+              kinds.insert("Sugar:variant");
             if (td->getName() == "expected") kinds.insert("Sum:expected");
           }
     }
@@ -4411,7 +4411,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
 
 /// Not a rule: every declaration directly in the scope namespace, with its
 /// lines and the syntax kinds it uses, one line each, so that a script can
-/// give each definition its level (kernel or derived forms, by admission.txt)
+/// give each definition its level (kernel or sugar, by admission.txt)
 /// and join it with the findings that fall in its lines.
 class Definitions : public clang::ASTConsumer {
  public:

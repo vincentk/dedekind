@@ -6,7 +6,7 @@
 // call operator.  dom and cod are given to the kernel, as cod is in the
 // listings, and declared in jlt_given, outside the namespace the linter
 // judges; the injections and the copairing are judged as any definition.  The positional spellings, the conditional on index() and
-// std::expected are derived forms, each beside the kernel program it is read
+// std::expected are sugar, each beside the kernel program it is read
 // as; the other uses of a variant are refused or undecided.  The levels are
 // pinned definition by definition in sum.levels (levels.py --expect).
 #include <cstddef>
@@ -84,7 +84,7 @@ constexpr std::size_t monus(std::size_t n, std::size_t m) { return Copairing<Sam
 static_assert(monus(7, 2) == 5 && monus(2, 7) == 0);
 
 // A shape, a square by its side or a rectangle by its sides, and its area by
-// a copairing: the twin of derived-conditions.cpp's area by std::visit.
+// a copairing: the twin of sugar-conditions.cpp's area by std::visit.
 struct Square {
   constexpr std::size_t operator()(std::size_t s) const { return s * s; }
 };
@@ -96,7 +96,7 @@ constexpr std::size_t area(std::variant<std::size_t, std::pair<std::size_t, std:
 }
 static_assert(area(Inl<std::size_t, std::pair<std::size_t, std::size_t>>{}(3)) == 9);
 
-// ---- Derived forms: the injections and the copairing spelled otherwise. ----
+// ---- Sugar: the injections and the copairing spelled otherwise. ----
 using Difference = std::variant<std::size_t, Short>;
 // The standard's positional spelling of inl and inr.
 constexpr Difference minus_by_index(std::size_t n, std::size_t m) {
@@ -172,7 +172,7 @@ constexpr std::size_t checked_untested(const Checked c) { return *c; }
 constexpr std::size_t checked_by_value(const Checked c) { return c.value(); }
 constexpr std::size_t checked_wrong_branch(const Checked c) { return c.has_value() ? c.error().by : 0uz; }
 
-// ---- Undecided: total, derived forms not yet written. ----
+// ---- Undecided: total, sugar not yet written. ----
 struct Either {
   constexpr std::size_t operator()(std::size_t n) const { return n; }
   constexpr std::size_t operator()(Short) const { return 0; }

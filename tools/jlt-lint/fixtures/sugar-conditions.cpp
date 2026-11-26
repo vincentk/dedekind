@@ -1,6 +1,6 @@
 // The conditions of Table 7's rows, tested: beside each definition that
 // breaks a row's condition, a twin that keeps it.  The levels the linter
-// gives are pinned definition by definition in derived-conditions.levels
+// gives are pinned definition by definition in sugar-conditions.levels
 // (levels.py --expect), so that a condition once checked stays checked.
 // The audit of 2026-11-25 found each of the broken ones classed Jlt or FJlt.
 // if constexpr is undecided wherever it stands: its two rows have no check
@@ -157,7 +157,7 @@ constexpr std::size_t truncated_float(double x) { return std::size_t(x); }
 constexpr int truncated_static(double x) { return static_cast<int>(x); }
 static_assert(truncated_float(2.5) == 2 && truncated_static(2.5) == 2);
 
-// A sum read through std::visit: a derived form not yet written, so
+// A sum read through std::visit: sugar not yet written, so
 // undecided.  Its twin, the copairing of the two arrows, is in sum.cpp.
 struct Area {
   constexpr std::size_t operator()(std::size_t side) const { return side * side; }

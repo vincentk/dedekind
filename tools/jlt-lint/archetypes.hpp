@@ -17,7 +17,7 @@
 // "A Concept Design for the STL", WG21 N3351, 2012, Section 3.3), after
 // Stepanov and McJones, "Elements of Programming" (2009), whose default
 // constructor makes an object partially formed: it may be assigned or
-// destroyed, not read.  That is why a default value here is a derived form,
+// destroyed, not read.  That is why a default value here is sugar,
 // a local written before it is read, and not a value of the kernel.
 //
 // Part of the linter, shipped with it; it depends on nothing in dedekind.
@@ -66,7 +66,7 @@ struct comparable_carrier {
 /// A carrier a shape asks a default value of as well (std::semiregular,
 /// std::default_initializable): copyable and default-constructible.  The value
 /// is partially formed in Stepanov's sense, to be written before it is read,
-/// which a type cannot say: Table 7's derived form, local state.
+/// which a type cannot say: Table 7's sugar, local state.
 template <typename Tag>
 struct semiregular_carrier {
   semiregular_carrier() = default;

@@ -8,8 +8,8 @@ syntax kinds it uses), the level is:
   admission.txt refuses, or the type check does not admit it;
 - undecided, when it uses a kind still open, or the type check cannot read
   its constraints;
-- Jlt, when every kind is kernel, scaffolding or a derived form, and some is
-  a derived form;
+- Jlt, when every kind is kernel, scaffolding or sugar, and some kind
+  is sugar;
 - FJlt, when every kind is kernel or scaffolding.
 
 A function template also carries the type check's outcome; anything else is
@@ -80,8 +80,8 @@ def classify(where, classes):
             level, why = "refused", ", ".join(k for k, c in cls.items() if c == "refused")
         elif "open" in cls.values() or by_type == "undecided":
             level, why = "undecided", ", ".join(k for k, c in cls.items() if c == "open") or "by type"
-        elif "derived" in cls.values():
-            level, why = "Jlt", ", ".join(k.split(":")[1] for k, c in cls.items() if c == "derived")
+        elif "sugar" in cls.values():
+            level, why = "Jlt", ", ".join(k.split(":")[1] for k, c in cls.items() if c == "sugar")
         else:
             level, why = "FJlt", ""
         # What else stands between the definition and the rules, beside the
