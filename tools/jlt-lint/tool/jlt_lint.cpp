@@ -502,10 +502,14 @@ std::string stmtKind(const clang::Stmt* st) {
   // value to an integer is open as Op:float-to-integer, which the kinds add);
   // any other static_cast keeps its kind.
   if (const auto* c = llvm::dyn_cast<clang::CXXStaticCastExpr>(st)) {
-    const clang::QualType to = c->getType();
-    const clang::QualType from = c->getSubExpr()->IgnoreParenImpCasts()->getType();
-    if (!to->isDependentType() && !from.isNull() && !from->isDependentType() && to->isArithmeticType() &&
-        from->isArithmeticType() && !to->isEnumeralType() && !from->isEnumeralType())
+    // The types as written: a cast to a reference, static_cast<const int&>,
+    // has an arithmetic expression type, and a conversion through a
+    // conversion operator hides its source under the implicit call.
+    const clang::QualType to = c->getTypeAsWritten();
+    const clang::QualType from = c->getSubExprAsWritten()->getType();
+    if (!to->isDependentType() && !to->isReferenceType() && !from.isNull() && !from->isDependentType() &&
+        to->isArithmeticType() && from.getNonReferenceType()->isArithmeticType() && !to->isEnumeralType() &&
+        !from->isEnumeralType() && c->getConversionFunction() == nullptr)
       return "Cast:static";
   }
   if (const auto* c = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(st)) {

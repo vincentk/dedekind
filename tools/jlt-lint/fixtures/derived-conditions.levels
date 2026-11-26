@@ -5,6 +5,9 @@ narrowed_to_char refused
 written_out FJlt
 written_static Jlt
 widened_static Jlt
+cast_to_reference undecided
+Boxed refused
+cast_through_operator undecided
 low_byte refused
 wrapped_byte refused
 empty_value Jlt
