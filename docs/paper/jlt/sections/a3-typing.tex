@@ -273,30 +273,7 @@ Composed, these give an admissible rule, the instance rule of the entailment of 
 \[
 \textsc{(E-Law-Ctx)}\quad \dfrac{\begin{array}{c} \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \text{ resolves to } \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \mathit{law}\texttt{<}\overline{\tau'}\texttt{>} \\ \overline{\tau} = \overline{\tau'}[\overline{\sigma}/\overline{\alpha}] \quad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \quad \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \Downarrow \texttt{true} \end{array}}{\Delta \Vdash \mathit{law}\texttt{<}\overline{\tau}\texttt{>}}
 \]
-A finite power of a semiring is a semimodule over it in this way, by one entry whose context is the base's semiring laws.
-Each step reads the laws of a term's immediate parts only, so the inference is local~\cite{pierce2000local}.
-It ends by the conditions on contexts that end instance search~\cite{sulzmann2007understanding}.
-Each entry states its law as a conjunction or a disjunction of the laws of the parts (Table~\ref{tab:law-propagation}).
-
-\begin{table}[htbp]
-\centering
-\small
-\begin{tabular}{@{}lcccc@{}}
-\toprule
- & monic & epic & constant & involutive \\
-\midrule
-$g \circ f$, written \texttt{f >> g} & $\wedge$ & $\wedge$ & $\vee$ & -- \\
-$f \times g$ & $\wedge$ & $\wedge$ & $\wedge$ & $\wedge$ \\
-$f + g$ & $\wedge$ & $\wedge$ & -- & $\wedge$ \\
-$\langle f, g \rangle$ & $\vee$ & -- & $\wedge$ & -- \\
-$[f, g]$ & -- & $\vee$ & -- & -- \\
-\bottomrule
-\end{tabular}
-\caption{How four laws pass from an arrow's legs to the arrow, in the accompanying library.
-$\wedge$: the arrow has the law if both legs have it; $\vee$: if either has it; --: nothing is inferred.
-Each entry is a sufficient condition, so an inferred law holds, and its absence says nothing.}
-\label{tab:law-propagation}
-\end{table}
+Each step reads the laws of a term's immediate parts only, so the inference is local~\cite{pierce2000local}, and it ends by the conditions on contexts that end instance search~\cite{sulzmann2007understanding}.
 
 \begin{figure}[htbp]
 \[

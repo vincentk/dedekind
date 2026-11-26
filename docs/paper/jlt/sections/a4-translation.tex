@@ -10,7 +10,7 @@ The target is the calculus of Definition~\ref{def:target}, whose iterator is $\m
 
 \paragraph{Type parameters of the image.}
 A declaration's image takes as type parameters the type variables $\overline{\alpha}$ that the unifier below keeps and, after them, one variable $\chi$ for each distinct associated type that its context reads at them once the unifier is applied (Appendices~\ref{app:fjlt:typing} and~\ref{app:fjlt:assoc}), and $\llbracket g\texttt{<}\overline{\tau}\texttt{>::type} \rrbracket = \chi$ there.
-This holds of every declaration with type variables: a generic function, the call function of a named type, and an entry of a trait (\textsc{E-Law-Ctx}, the semimodule entry).
+This holds of every declaration with type variables: a generic function, the call function of a named type, and an entry of a trait (\textsc{E-Law-Ctx}).
 The parameters are named in a fixed order: the type variables as the template head lists them, then the reads in the order of their first occurrence in the declaration, its head, its constraints, the types of its parameters, fields and result, and then the derivation of its body, from left to right, a read before the reads in its arguments, and a read reached only through an assumed shape at the place of the constraint that names the shape.
 A read is named by the arguments the declaration writes, $g\texttt{<}\overline{\tau}\texttt{>::type}$, and not by its arguments with the unifier applied, so a read that the unifier puts inside its own argument, as under \cppinline{same_as<T, pair<typename g<T>::type, bool>>}, is still one finite name with one $\chi$.
 This is the translation of associated types for Haskell~\cite{chakravarty2005class,chakravarty2005synonyms} and for the concepts of \Cpp{0x}~\cite{siek2005essential}, and Table~\ref{tab:image}'s last row.
@@ -129,7 +129,7 @@ O \text{ standard, or supplied with a carrier} \;\mapsto\; O_{\mathrm{call}} = \
 \llbracket e_0 \texttt{ ? } e_1 \texttt{ : } e_2 \rrbracket = \mathit{if}\,\llbracket e_0 \rrbracket\,\llbracket e_1 \rrbracket\,\llbracket e_2 \rrbracket & \note{the conditional of the target's \textit{Bool}} \\
 \end{array}
 \]
-\caption{The translation of declarations and terms; pairs are the target's own (Table~\ref{tab:conventions}).
+\caption{The translation of declarations and terms; pairs, sums and the iteration are the target's own (Table~\ref{tab:kernel}).
 A declaration becomes a definition of the target, written $D \mapsto f = t$; a term translates to a term, $\llbracket e \rrbracket = t$.
 $\alpha\texttt{\{\}}$ at a type variable has no line: it stands only inside a required call, whose image is the field of the requirement.}
 \label{fig:fjlt-translation}
@@ -162,23 +162,6 @@ A term with a run-time \cppinline{n} translates to a term with $n$ free, of type
 The iterator hands its step only the result so far, so the index is carried beside the state.
 The index is a \cppinline{size_t} and never wraps, since it stays below the count.
 
-\begin{table}[htbp]
-\centering
-\small
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}p{0.3\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.2\linewidth}@{}}
-\toprule
-System~F & FJlt & \Cpp{} & rules \\
-\midrule
-$\tau \times \sigma$, $(a, b)$, $\pi_1$, $\pi_2$~\cite{pierce1991basic} & \texttt{pair<τ, σ>}, \texttt{pair\{a, b\}}, \texttt{.first}, \texttt{.second} & the same & \textsc{T-Construct}, \textsc{T-Field}; \textsc{S-Proj} \\
-$\tau + \sigma$, $\mathit{inl}$, $\mathit{inr}$, $\mathit{case}$~\cite[Section~11.9]{pierce2002tapl} & \texttt{variant<τ, σ>}, \texttt{Inl}, \texttt{Inr}, \texttt{Copairing} & the same & \textsc{T-Construct}, \textsc{T-App}, \textsc{T-Inj-Run}; \textsc{S-Inj}, \textsc{S-Copair} \\
-$\mathbb{N}$, \textit{iter} & \texttt{fold\_left(iota(0uz, n), a, f)} & the same & \textsc{T-Iter}; \textsc{S-Fold} \\
-\bottomrule
-\end{tabularx}
-\caption{The fragment's convention on the standard library, each type beside the rules that type and evaluate it (Appendices~\ref{app:fjlt:typing} and~\ref{app:fjlt:evaluation}).
-Each is adopted rather than declared because it lands on a construct of the target: a product, a sum, and the iterator of the naturals.
-}
-\label{tab:conventions}
-\end{table}
 
 \subsection{A worked translation: power}
 \label{app:fjlt:power}
