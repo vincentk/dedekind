@@ -3857,15 +3857,14 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   static bool constant(const clang::ValueDecl* x) {
     return x && x->getType().getNonReferenceType().isConstQualified();
   }
-  /// Whether a payload converted to the alternative's type loses values.
+  /// Whether a payload is not of its alternative's type: converted, which
+  /// the row does not read (a narrowing among such conversions).
   bool payloadNarrows(const clang::Expr* e, clang::QualType to) const {
     if (!ctx || !e || to.isNull() || to->isDependentType()) return false;
     const clang::Expr* x = e->IgnoreParenImpCasts();
     const clang::QualType from = x->getType();
     if (from.isNull() || from->isDependentType()) return false;
-    if (from->isRealFloatingType() && to->isIntegralOrEnumerationType()) return true;
-    if (from->isIntegralOrEnumerationType() && to->isIntegerType()) return narrows(x, to);
-    return false;
+    return from.getCanonicalType().getUnqualifiedType() != to.getCanonicalType().getUnqualifiedType();
   }
   // ---- The copairing written as a conditional on index(): sugar. ----
   /// The variable an expression names, parentheses and implicit nodes aside.
@@ -3887,39 +3886,53 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
                isSum(d->getBaseType()) && named(d->getBase()) == x;
     return false;
   }
-  /// For a condition, the side of x it shows held where it is true: 0 or 1,
-  /// or -1 if it tests no side of x.  x.index() == k, != k, its negation,
-  /// and x.index() alone, which is true on the second side.
-  static int indexTest(const clang::Expr* cond, const clang::ValueDecl* x) {
-    if (!cond || !x) return -1;
+  /// For a condition on x: the alternative known where it holds and the
+  /// one known where it fails, each 0, 1, or -1 for none.  x.index() == k
+  /// and != k with k an integer constant 0 or 1, x.index() alone (true on
+  /// alternative 1), x.has_value() and x as a truth value (true on
+  /// alternative 0), a negation, and && and ||: a conjunction that holds
+  /// holds in each operand, a disjunction that fails fails in each.
+  std::pair<int, int> indexTest(const clang::Expr* cond, const clang::ValueDecl* x) const {
+    constexpr std::pair<int, int> none{-1, -1};
+    if (!cond || !x) return none;
     cond = cond->IgnoreParenImpCasts();
     if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(cond); u && u->getOpcode() == clang::UO_LNot) {
-      const int t = indexTest(u->getSubExpr(), x);
-      return t < 0 ? -1 : 1 - t;
+      const auto [t, f] = indexTest(u->getSubExpr(), x);
+      return {f, t};
     }
-    if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(cond);
-        b && (b->getOpcode() == clang::BO_EQ || b->getOpcode() == clang::BO_NE)) {
-      const auto literal = [](const clang::Expr* e) -> int {
-        const auto* i = llvm::dyn_cast<clang::IntegerLiteral>(e->IgnoreParenImpCasts());
-        return i && i->getValue().ule(1) ? static_cast<int>(i->getValue().getZExtValue()) : -1;
-      };
-      int k = -1;
-      if (isIndexOf(b->getLHS(), x)) k = literal(b->getRHS());
-      else if (isIndexOf(b->getRHS(), x)) k = literal(b->getLHS());
-      if (k < 0) return -1;
-      return b->getOpcode() == clang::BO_EQ ? k : 1 - k;
+    if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(cond)) {
+      if (b->getOpcode() == clang::BO_LAnd || b->getOpcode() == clang::BO_LOr) {
+        const auto l = indexTest(b->getLHS(), x), r = indexTest(b->getRHS(), x);
+        if (b->getOpcode() == clang::BO_LAnd) return {l.first >= 0 ? l.first : r.first, -1};
+        return {-1, l.second >= 0 ? l.second : r.second};
+      }
+      if (b->getOpcode() == clang::BO_EQ || b->getOpcode() == clang::BO_NE) {
+        const auto constant01 = [&](const clang::Expr* e) -> int {
+          if (!ctx || e->isValueDependent()) return -1;
+          if (auto v = e->getIntegerConstantExpr(*ctx); v && v->ule(1)) return static_cast<int>(v->getZExtValue());
+          return -1;
+        };
+        int k = -1;
+        if (isIndexOf(b->getLHS(), x)) k = constant01(b->getRHS());
+        else if (isIndexOf(b->getRHS(), x)) k = constant01(b->getLHS());
+        if (k < 0) return none;
+        return b->getOpcode() == clang::BO_EQ ? std::pair{k, 1 - k} : std::pair{1 - k, k};
+      }
+      return none;
     }
-    if (isHasValueOf(cond, x)) return 0;
-    return isIndexOf(cond, x) ? 1 : -1;
+    if (isHasValueOf(cond, x)) return {0, 1};
+    if (isIndexOf(cond, x)) return {1, 0};
+    return none;
   }
   /// Whether e is x.has_value() on a variable x of a std::expected type.
   static bool isHasValueOf(const clang::Expr* e, const clang::ValueDecl* x) {
     if (!e || !x) return false;
     e = e->IgnoreParenImpCasts();
-    if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(e))
-      return m->getMethodDecl() && m->getMethodDecl()->getIdentifier() &&
-             m->getMethodDecl()->getName() == "has_value" && isExpected(m->getImplicitObjectArgument()->getType()) &&
-             named(m->getImplicitObjectArgument()) == x;
+    if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(e)) {
+      const clang::CXXMethodDecl* g = m->getMethodDecl();
+      return g && (llvm::isa<clang::CXXConversionDecl>(g) || (g->getIdentifier() && g->getName() == "has_value")) &&
+             isExpected(m->getImplicitObjectArgument()->getType()) && named(m->getImplicitObjectArgument()) == x;
+    }
     if (const auto* c = llvm::dyn_cast<clang::CallExpr>(e))
       if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens()))
         return !d->isImplicitAccess() && d->getMember().isIdentifier() && d->getMember().getAsString() == "has_value" &&
@@ -3990,10 +4003,12 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       return std::nullopt;
     }
     const clang::ValueDecl* x = named(obj);
-    if (name == "has_value") return indexKind(st, x) == "Sum:case-sugar" ? "Sum:case-sugar"
-                                   : indexKind(st, x) == "Sum:case-converted" ? "Sum:case-converted" : "Derived:expected";
-    if (name == "*" || name == "->") return knownSide(st, x) == 0 ? "Sum:case-sugar" : "Sum:other";
-    if (name == "error") return knownSide(st, x) == 1 ? "Sum:case-sugar" : "Sum:other";
+    if (name == "has_value" || name == "bool") {
+      const std::string k = indexKind(st, x);
+      return k == "Sum:case-sugar" || k == "Sum:case-converted" ? k : "Derived:expected";
+    }
+    if (name == "*" || name == "->") return reading(st, x, 0);
+    if (name == "error") return reading(st, x, 1);
     if (name == "value" || name == "=" || name == "emplace" || name == "swap") return std::string("Sum:other");
     return std::string("Derived:expected");
   }
@@ -4020,19 +4035,20 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       }
       if (llvm::isa<clang::LambdaExpr>(s)) return -1;
       if (const auto* c = llvm::dyn_cast<clang::ConditionalOperator>(s)) {
-        const int t = indexTest(c->getCond(), x);
+        const auto [t, f] = indexTest(c->getCond(), x);
         if (t >= 0 && child == c->getTrueExpr()) return t;
-        if (t >= 0 && child == c->getFalseExpr()) return 1 - t;
+        if (f >= 0 && child == c->getFalseExpr()) return f;
       } else if (const auto* i = llvm::dyn_cast<clang::IfStmt>(s)) {
         if (!i->isConsteval() && !i->isConstexpr()) {
-          const int t = indexTest(i->getCond(), x);
+          const auto [t, f] = indexTest(i->getCond(), x);
           if (t >= 0 && child == i->getThen()) return t;
-          if (t >= 0 && child == i->getElse()) return 1 - t;
+          if (f >= 0 && child == i->getElse()) return f;
         }
       } else if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(s)) {
         if (child == b->getRHS() && (b->getOpcode() == clang::BO_LAnd || b->getOpcode() == clang::BO_LOr)) {
-          const int t = indexTest(b->getLHS(), x);
-          if (t >= 0) return b->getOpcode() == clang::BO_LAnd ? t : 1 - t;
+          const auto [t, f] = indexTest(b->getLHS(), x);
+          const int k = b->getOpcode() == clang::BO_LAnd ? t : f;
+          if (k >= 0) return k;
         }
       } else if (const auto* b = llvm::dyn_cast<clang::CompoundStmt>(s)) {
         int found = -1;
@@ -4040,7 +4056,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
           if (e == child) break;
           const auto* i = llvm::dyn_cast<clang::IfStmt>(e);
           if (!i || i->getElse() || i->isConstexpr() || i->isConsteval() || !returns(i->getThen())) continue;
-          if (const int t = indexTest(i->getCond(), x); t >= 0) found = 1 - t;
+          if (const int f = indexTest(i->getCond(), x).second; f >= 0) found = f;
         }
         if (found >= 0) return found;
       }
@@ -4074,23 +4090,50 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       if (llvm::isa<clang::ImplicitCastExpr, clang::ParenExpr, clang::ExprWithCleanups>(s)) { child = s; continue; }
       if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(s); u && u->getOpcode() == clang::UO_LNot) { child = s; continue; }
       if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(s)) {
-        if (b->getOpcode() == clang::BO_EQ || b->getOpcode() == clang::BO_NE) { child = s; continue; }
-        if (child == b->getLHS() && (b->getOpcode() == clang::BO_LAnd || b->getOpcode() == clang::BO_LOr) &&
-            indexTest(b->getLHS(), x) >= 0)
-          return "Sum:case-sugar";
+        if (b->getOpcode() == clang::BO_EQ || b->getOpcode() == clang::BO_NE ||
+            b->getOpcode() == clang::BO_LAnd || b->getOpcode() == clang::BO_LOr) {
+          child = s;
+          continue;
+        }
         break;
       }
       if (const auto* c = llvm::dyn_cast<clang::ConditionalOperator>(s)) {
-        if (child != c->getCond() || indexTest(c->getCond(), x) < 0) break;
+        const auto [t, f] = indexTest(c->getCond(), x);
+        if (child != c->getCond() || (t < 0 && f < 0)) break;
         return converted(c->getTrueExpr()) || converted(c->getFalseExpr()) ? "Sum:case-converted" : "Sum:case-sugar";
       }
       if (const auto* i = llvm::dyn_cast<clang::IfStmt>(s)) {
-        if (child != i->getCond() || i->isConstexpr() || i->isConsteval() || indexTest(i->getCond(), x) < 0) break;
+        const auto [t, f] = indexTest(i->getCond(), x);
+        if (child != i->getCond() || i->isConstexpr() || i->isConsteval() || (t < 0 && f < 0)) break;
         return "Sum:case-sugar";
       }
       break;
     }
+    // A test as an operand of && or || that is no choice's condition, as in
+    // return x.index() == 0 && std::get<0>(x) > k;: it guards the operand
+    // after it.
+    {
+      clang::DynTypedNode m = clang::DynTypedNode::create(*st);
+      for (int k = 0; k < 16; ++k) {
+        auto ps = const_cast<clang::ASTContext*>(ctx)->getParents(m);
+        if (ps.empty()) break;
+        m = ps[0];
+        if (const auto* b = m.get<clang::BinaryOperator>())
+          if (b->getOpcode() == clang::BO_LAnd || b->getOpcode() == clang::BO_LOr) {
+            const auto [t, f] = indexTest(b->getLHS(), x);
+            if (t >= 0 || f >= 0) return "Sum:case-sugar";
+          }
+        if (!m.get<clang::Expr>()) break;
+      }
+    }
     return "Derived:variant";
+  }
+  /// A reading of alternative k of x: the copairing's sugar where k is
+  /// known, a finding of its own where x is a variable that is not const
+  /// (so that the message says what to do), refused otherwise.
+  std::string reading(const clang::Stmt* st, const clang::ValueDecl* x, int k) const {
+    if (x && !constant(x) && llvm::isa<clang::VarDecl>(x)) return "Sum:not-const";
+    return knownSide(st, x) == k ? "Sum:case-sugar" : "Sum:other";
   }
   /// The index K of std::get<K>(x), or -1 where it names a type or is not known.
   int getIndex(const clang::CallExpr* c) const {
@@ -4149,12 +4192,31 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
         }
       return kind("construct");
     }
-    if (const auto* c = llvm::dyn_cast<clang::CXXUnresolvedConstructExpr>(st); c && isSum(c->getTypeAsWritten()))
+    if (const auto* c = llvm::dyn_cast<clang::CXXUnresolvedConstructExpr>(st); c && isSum(c->getTypeAsWritten())) {
+      // In a template: variant<A, B>(in_place_index<k>, a), the positional
+      // injection, its payload's type known only at the instance.
+      if (c->getNumArgs() == 2)
+        if (const auto* sd = llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
+                c->getArg(0)->getType().getNonReferenceType()->getAsCXXRecordDecl());
+            sd && sd->getIdentifier() && sd->getName() == "in_place_index_t" && inStd(sd) &&
+            sd->getTemplateArgs().size() == 1 && sd->getTemplateArgs()[0].getKind() == clang::TemplateArgument::Integral)
+          return sd->getTemplateArgs()[0].getAsIntegral().getZExtValue() <= 1 ? std::string("Sum:inj-sugar")
+                                                                              : std::string("Sum:other");
       return kind("construct");
+    }
+    // A comparison C++20 rewrites through <=>: an order on a sum, open as ==.
+    if (const auto* r = llvm::dyn_cast<clang::CXXRewrittenBinaryOperator>(st);
+        r && (isVariant(r->getLHS()->getType()) || isVariant(r->getRHS()->getType())))
+      return kind("==");
     if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(st)) {
       if (o->getNumArgs() == 0 || !isSum(o->getArg(0)->getType())) return std::nullopt;
       if (o->getOperator() == clang::OO_Equal) return kind("=");
-      if (o->getOperator() == clang::OO_EqualEqual || o->getOperator() == clang::OO_ExclaimEqual) return kind("==");
+      switch (o->getOperator()) {
+        case clang::OO_EqualEqual: case clang::OO_ExclaimEqual: case clang::OO_Less: case clang::OO_LessEqual:
+        case clang::OO_Greater: case clang::OO_GreaterEqual: case clang::OO_Spaceship:
+          return kind("==");
+        default: break;
+      }
       return std::nullopt;
     }
     if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(st)) {
@@ -4184,12 +4246,21 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
               // copairing's sugar.  By type, or anywhere else: refused.
               if (d->getName() == "get" && c->getNumArgs() == 1) {
                 const int k = getIndex(c);
-                if (k >= 0 && knownSide(st, named(arg)) == k) return std::string("Sum:case-sugar");
+                if (k >= 0) return reading(st, named(arg), k);
               }
               return kind(d->getName());
             }
     }
     return std::nullopt;
+  }
+  /// A call of a function not declared constexpr, for a node whose kind the
+  /// sum's forms give.
+  void notConstexprCall(const clang::Stmt* st) {
+    const clang::FunctionDecl* callee = nullptr;
+    if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st)) callee = c->getDirectCallee();
+    if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(st)) callee = c->getConstructor();
+    if (callee && !callee->isConstexpr() && !callee->getBuiltinID() && !callee->isImplicit() && !callee->isDeleted())
+      kinds.insert("Call:NotConstexpr");
   }
   bool VisitStmt(clang::Stmt* st) {
     if (const auto* t = llvm::dyn_cast<clang::CXXThisExpr>(st))
@@ -4197,9 +4268,11 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     // A use of a sum: its kind, in place of the call's or the operator's.
     if (auto k = expectedUse(st)) {
       kinds.insert(*k);
+      notConstexprCall(st);
       return true;
     }
     if (auto k = sumUse(st)) {
+      notConstexprCall(st);
       kinds.insert(*k);
       return true;
     }

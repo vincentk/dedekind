@@ -224,10 +224,16 @@ Sum:inj-sugar derived
 # const variable, std::get<0>(x) only where alternative 0 is known and
 # std::get<1>(x) only where alternative 1 is: sugar for the copairing of two
 # function objects whose bodies are the branches (#1222).  The nearest test
-# of x decides.
+# of x decides; the test compares x.index() with an integer constant 0 or 1,
+# or is x.has_value() or x as a truth value on an expected, negated or
+# joined by && or ||.  A payload has exactly its alternative's type.
 Sum:case-sugar derived
 # The same choice with branches of different types, one converted.
 Sum:case-converted refused
+# A reading of an alternative of a tested variable that is not const: make the
+# variable const, so that no write can stand between the test and the
+# reading, and the reading is sugar.
+Sum:not-const refused
 # Any other use of a variant that may fail or changes it: std::get by type,
 # or by index outside the branch that knows the side, get_if, emplace,
 # assignment, swap, valueless_by_exception.

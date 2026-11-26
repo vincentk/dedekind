@@ -88,8 +88,8 @@ The encodings are compositional and keep types; they turn a projection or a step
 Granted Assumption~\ref{ass:instance}, the target is strongly normalising and confluent.
 \end{proposition}
 
-\noindent\emph{Argued.}\ An infinite reduction with products and sums would give, by the encodings, one without them, which Theorem~\ref{cit:sn} excludes; Matthes proves strong normalisation for System~F with products and sums directly~\cite{matthes1999extensions}.
-The rules are left-linear and do not overlap, and confluence follows by Newman's lemma from local confluence, which orthogonality gives, as the critical pair lemma does for simply typed higher-order rewriting~\cite{mayr1998higher}; that it carries to System~F with $\beta$ as a rule is argued, not proved.
+\noindent\emph{Argued.}\ An infinite reduction with products and sums would give, by the encodings, one without them, which Theorem~\ref{cit:sn} excludes.
+The rules are left-linear and do not overlap, and confluence follows by Newman's lemma from local confluence, which orthogonality gives, as the critical pair lemma does for simply typed higher-order rewriting~\cite{mayr1998higher}; that it carries to System~F with $\beta$ as a rule is the step not proved.
 
 The one-step-at-a-time iterator is what makes Theorem~\ref{thm:simulation} exact, where a Church encoding, unfolding all at once, would not be.
 % Before 2026-11-23 the carriers' non-emptiness was read off std::semiregular
@@ -156,7 +156,7 @@ rule & applies to \\
 \textsc{T-Construct} & a construction of a declared type: one rule, at the types the construction names \\
 \textsc{T-Op}, \textsc{T-App} & a call of a function object: \textsc{T-Op} for a standard one or one supplied with a carrier, \textsc{T-App} for a declared one \\
 \textsc{T-Iter}, \textsc{T-Iter-Run} & an iteration: \textsc{T-Iter} from \texttt{0uz}, \textsc{T-Iter-Run} from a constant above it, so never both \\
-\textsc{T-Inl}, \textsc{T-Inr}, \textsc{T-Copair}, \textsc{T-Inj-Run} & a call of \texttt{Inl}, \texttt{Inr} or \texttt{Copairing}, given to the kernel and typed by these rules alone, never by \textsc{T-Op} or \textsc{T-App}; a value $\mathit{inl}\,v$ or $\mathit{inr}\,v$ \\
+\textsc{T-Inj-Run} & a value $\mathit{inl}\,v$ or $\mathit{inr}\,v$, which no program writes; the sum's arrows are named types, typed by \textsc{T-Construct} and \textsc{T-App} \\
 \textsc{T-Eq} & a change of type between equal types, whose images are one type (Appendix~\ref{app:fjlt:translation}), so it adds nothing to the image \\
 \bottomrule
 \end{tabularx}
@@ -272,7 +272,7 @@ The step has the pair type: $\pi_1 p + 1 : \texttt{size\_t}$, and $\lambda s.\,\
 The start $(c, \llbracket a \rrbracket)$ has the pair type${}^{\textsc{ih}}$, so $\pi_2$ of the result has type $\llbracket \sigma \rrbracket$.
 \textsc{T-Iter-Run} is the same with $c_k$ for $c$ and $c_n$ for $e_n$.
 
-An operator expression is the case of the call it resolves to, or the textbook case of a primitive; the omitted rules are the textbook cases for pairs and conditionals, and \textsc{T-Inl}, \textsc{T-Inr}, \textsc{T-Copair} and \textsc{T-Inj-Run} the textbook cases for sums~\cite[Section~11.9]{pierce2002tapl}.
+An operator expression is the case of the call it resolves to, or the textbook case of a primitive; the omitted rules are the textbook cases for pairs and conditionals, and \textsc{T-Inj-Run} the textbook value of a sum~\cite[Section~11.9]{pierce2002tapl}.
 \end{proof}
 
 \subsection{Simulation of evaluation}
@@ -359,7 +359,7 @@ step & the result has the type, because & relies on \\
 \textsc{S-Op} & below & \textsc{D-Op} \\
 \textsc{S-Std}, \textsc{S-Prim} & the value the standard, the declaration or $\Sigma$ assigns has the result type & Definition~\ref{def:standard} \\
 \textsc{S-If} & the selected branch's type &  \\
-\textsc{S-Inj}, \textsc{S-Copair} & the sum's type, by \textsc{T-Inj-Run}; the chosen arrow's codomain, by \textsc{T-Copair}'s premises & \textsc{T-Inl}, \textsc{T-Inr}, \textsc{T-Copair} \\
+\textsc{S-Inj}, \textsc{S-Copair} & the result type of the given call, by \textsc{T-App}; an injected value by \textsc{T-Inj-Run} & \textsc{T-App}, \textsc{T-Inj-Run} \\
 \textsc{S-Proj} & the component's type &  \\
 \textsc{S-Fold} & the call $v_f\texttt{(}v_a\texttt{, }c_k\texttt{)}$ has type $\sigma$ by the step's premise of \textsc{T-Iter} or \textsc{T-Iter-Run} and (a), and the reduct is typed by \textsc{T-Iter-Run}, since $0 < k + 1 \le n$ where $k < n$ & \textsc{T-Iter}, \textsc{T-Iter-Run} \\
 \textsc{S-Ctx} & the hole's type is unchanged${}^{\textsc{ih}}$ &  \\
@@ -430,8 +430,8 @@ source step & target steps & landing, because \\
 \textsc{S-Op} & several & below \\
 \textsc{S-Std}, \textsc{S-Prim} & a projection where there is one, then a $\delta$-step & the value the standard or the declaration assigns, by Definition~\ref{def:standard} \\
 \textsc{S-If} & a reduction of the conditional & to the selected branch \\
-\textsc{S-Inj} & none & the same injection \\
-\textsc{S-Copair} & a reduction of the case & the call function of the arrow the alternative chooses, applied to the value it holds \\
+\textsc{S-Inj} & a projection, then $\beta$-reduction & the injection, at the other alternative's type \\
+\textsc{S-Copair} & a projection, $\beta$-reduction, then the case & the call function of the arrow the alternative chooses, applied to the value it holds \\
 \textsc{S-Proj} & a projection, two for a constructed object's field & the selected component \\
 \textsc{S-Fold} & several & below \\
 \end{longtable}

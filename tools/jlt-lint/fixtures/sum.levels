@@ -1,4 +1,7 @@
 # The level of every definition of sum.cpp, in order (levels.py --expect).
+Inl Jlt
+Inr Jlt
+Copairing Jlt
 Short FJlt
 minus FJlt
 Same FJlt
@@ -18,6 +21,9 @@ Checked Jlt
 minus_checked Jlt
 monus_checked Jlt
 short_checked Jlt
+by_constant Jlt
+by_conjunction Jlt
+checked_as_bool Jlt
 read_by_get refused
 read_in_wrong_branch refused
 read_by_type refused
@@ -26,6 +32,7 @@ read_converted refused
 read_mutable refused
 negative_payload refused
 negative_checked refused
+widened_payload refused
 checked_untested refused
 checked_by_value refused
 checked_wrong_branch refused
@@ -34,6 +41,7 @@ read_by_visit undecided
 short_of undecided
 three undecided
 checked_or undecided
+ordered undecided
 checked_untagged undecided
 NaN FJlt
 Number FJlt

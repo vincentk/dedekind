@@ -3,9 +3,9 @@
 // inl and inr and read by the copairing [f, g], as a pair is built by
 // pair{a, b} and read by .first and .second.  The copairing is typed by dom
 // and cod, an arrow's two objects (Pierce, Definition 1.1.1), read off its
-// call operator.  All of them are given to the kernel, as cod is in the
+// call operator.  dom and cod are given to the kernel, as cod is in the
 // listings, and declared in jlt_given, outside the namespace the linter
-// judges.  The positional spellings, the conditional on index() and
+// judges; the injections and the copairing are judged as any definition.  The positional spellings, the conditional on index() and
 // std::expected are derived forms, each beside the kernel program it is read
 // as; the other uses of a variant are refused or undecided.  The levels are
 // pinned definition by definition in sum.levels (levels.py --expect).
@@ -25,6 +25,13 @@ struct call_of<R (F::*)(A) const> {
   using dom = std::remove_cvref_t<A>;
   using cod = R;
 };
+template <typename R, typename F, typename A>
+struct call_of<R (F::*)(A) const noexcept> : call_of<R (F::*)(A) const> {};
+template <typename R, typename A>
+struct call_of<R (*)(A)> {  // a static call operator
+  using dom = std::remove_cvref_t<A>;
+  using cod = R;
+};
 template <typename F>
 struct dom {
   using type = typename call_of<decltype(&F::operator())>::dom;
@@ -33,6 +40,9 @@ template <typename F>
 struct cod {
   using type = typename call_of<decltype(&F::operator())>::cod;
 };
+}  // namespace jlt_given
+
+namespace jlt_listing {
 // The injections, named as a pair's projections are.
 template <typename A, typename B>
 struct Inl {
@@ -44,21 +54,15 @@ struct Inr {
 };
 // The copairing [f, g] : dom f + dom g -> cod f, where cod f = cod g.
 template <typename F, typename G>
-  requires std::same_as<typename cod<F>::type, typename cod<G>::type>
+  requires std::same_as<typename jlt_given::cod<F>::type, typename jlt_given::cod<G>::type>
 struct Copairing {
   F f;
   G g;
-  constexpr typename cod<F>::type operator()(
-      const std::variant<typename dom<F>::type, typename dom<G>::type>& x) const {
+  constexpr typename jlt_given::cod<F>::type operator()(
+      const std::variant<typename jlt_given::dom<F>::type, typename jlt_given::dom<G>::type>& x) const {
     return x.index() == 0 ? f(std::get<0>(x)) : g(std::get<1>(x));
   }
 };
-}  // namespace jlt_given
-
-namespace jlt_listing {
-using jlt_given::Copairing;
-using jlt_given::Inl;
-using jlt_given::Inr;
 
 // ---- Subtraction on the naturals: the difference, or how far short. ----
 // size_t's subtraction wraps and is defined everywhere; the sum gives the
@@ -139,6 +143,13 @@ constexpr std::size_t short_checked(const Checked c) { return c.has_value() ? 0u
 static_assert(monus_checked(7, 2) == monus(7, 2) && monus_checked(2, 7) == monus(2, 7) &&
               short_checked(minus_checked(1, 5)) == 4);
 
+// The test in other spellings: an integer constant, a conjunction in the
+// condition, and an expected as a truth value.  Jlt.
+constexpr std::size_t by_constant(const Difference d) { return d.index() == std::size_t{0} ? std::get<0>(d) : 0uz; }
+constexpr std::size_t by_conjunction(const Difference d, bool p) { return p && d.index() == 0 ? std::get<0>(d) : 0uz; }
+constexpr std::size_t checked_as_bool(const Checked c) { return c ? *c : 0uz; }
+static_assert(by_constant(minus(5, 1)) == 4 && by_conjunction(minus(5, 1), true) == 4 && checked_as_bool(minus_checked(5, 1)) == 4);
+
 // ---- Refused: each may read an alternative that is not there, or convert. ----
 constexpr std::size_t read_by_get(const Difference d) { return std::get<0>(d); }
 constexpr std::size_t read_in_wrong_branch(const Difference d) { return d.index() == 0 ? 0uz : std::get<0>(d); }
@@ -150,9 +161,11 @@ constexpr std::size_t read_converted(const Difference d) { return d.index() == 0
 // A tested variable that can be written: a write could stand between the
 // test and the reading.
 constexpr std::size_t read_mutable(Difference d) { return d.index() == 0 ? std::get<0>(d) : 0uz; }
-// A payload that narrows inside the standard's constructor.
+// A payload not of its alternative's type, converted inside the standard's
+// constructor: narrowing, or not.
 constexpr Difference negative_payload() { return Difference(std::in_place_index<0>, -1); }
 constexpr Checked negative_checked() { return Checked{std::in_place, -1}; }
+constexpr Difference widened_payload(unsigned k) { return Difference(std::in_place_index<0>, k); }
 // expected: the value with no test, value(), the other alternative where
 // the value is known.
 constexpr std::size_t checked_untested(const Checked c) { return *c; }
@@ -169,6 +182,7 @@ constexpr bool short_of(const Difference d) { return std::holds_alternative<Shor
 // A variant of three types, read as binary ones nested.
 constexpr std::size_t three(const std::variant<std::size_t, bool, Short> v) { return v.index() == 0 ? std::get<0>(v) : 0uz; }
 constexpr std::size_t checked_or(const Checked c) { return c.value_or(0uz); }
+constexpr bool ordered(const std::variant<std::size_t, bool> a, const std::variant<std::size_t, bool> b) { return a < b; }
 constexpr Checked checked_untagged(std::size_t n) { return n; }
 static_assert(read_by_visit(minus(5, 1)) == 4 && short_of(minus(1, 5)));
 

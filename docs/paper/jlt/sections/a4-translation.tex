@@ -144,6 +144,7 @@ A required call is checked at its declared type (\textsc{E-Op}), so the field ho
 \qquad \mapsto\; f = \Lambda\overline{\alpha}.\,\Lambda\overline{\chi}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \note{$\overline{\chi}$ its associated types (above)} \\
 \texttt{struct } O \texttt{ \{ } \overline{y}\texttt{; ... operator()(}\overline{x}\texttt{) ... requires } \overline{Q}\texttt{ ... } e \texttt{ ... \};} & \note{a function object's call function} \\
 \qquad \mapsto\; O_{\mathrm{call}} = \Lambda\overline{\alpha}.\,\Lambda\overline{\chi}.\,\lambda\overline{y}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \note{$\overline{\alpha}$ the type variables its unifier $\theta_O$ keeps} \\
+\texttt{Inl}, \texttt{Inr}, \texttt{Copairing} \;\mapsto\; \mathit{Inl}_{\mathrm{call}} = \Lambda\alpha\,\beta.\,\lambda a.\,\mathit{inl}_{\beta}\,a, \ \mathit{Inr}_{\mathrm{call}} \text{ alike}, \ \mathit{Copairing}_{\mathrm{call}} = \Lambda\varphi\,\gamma.\,\lambda f\,g.\,\lambda s.\,\mathit{case}_{\rho}\,s\,(\lambda a.\,(\pi_2\,f)\,\overline{d_f}\,a)\,(\lambda b.\,(\pi_2\,g)\,\overline{d_g}\,b) & \note{the sum's arrows, given: their calls' images are the target's injections and case; $\rho$ the read $\mathit{cod}\,\varphi$, $\overline{d_f}$ and $\overline{d_g}$ the dictionaries of $f$'s and $g$'s calls} \\
 O \text{ standard, or supplied with a carrier} \;\mapsto\; O_{\mathrm{call}} = \Lambda\overline{\alpha}.\,o_{\overline{\alpha}} & \note{such as \texttt{std::plus}: no field, constraint or associated type, so the construction below gives $((), o_{\overline{\llbracket \tau \rrbracket}})$; $o$ a constant of the target} \\
 \texttt{concept}, \text{ an associated type and its entries} \;\mapsto\; \text{nothing} & \note{resolved before the translation} \\[6pt]
 \multicolumn{2}{l}{\textit{terms}} \\
@@ -158,8 +159,6 @@ O \text{ standard, or supplied with a carrier} \;\mapsto\; O_{\mathrm{call}} = \
 \llbracket e_1 \oplus e_2 \rrbracket = \oplus\,\llbracket e_1 \rrbracket\,\llbracket e_2 \rrbracket \text{ or } \llbracket \texttt{operator}\oplus\texttt{(}e_1\texttt{, }e_2\texttt{)} \rrbracket & \note{a primitive of $\Sigma$, its constant; otherwise the call it resolves to, under the standard's rewrite where the candidate is rewritten or reversed; $\ominus$ alike} \\
 \llbracket e\texttt{.}y_i \rrbracket = \pi_i\,(\pi_1\,\llbracket e \rrbracket) & \note{a field: $\pi_1$ takes the fields out of the object's pair (construction, above), $\pi_i$ the field} \\
 \llbracket e_0 \texttt{ ? } e_1 \texttt{ : } e_2 \rrbracket = \mathit{if}\,\llbracket e_0 \rrbracket\,\llbracket e_1 \rrbracket\,\llbracket e_2 \rrbracket & \note{the conditional of the target's \textit{Bool}} \\
-\llbracket \texttt{Inl<}\tau\texttt{, }\sigma\texttt{>\{\}(}e\texttt{)} \rrbracket = \mathit{inl}_{\llbracket \sigma \rrbracket}\,\llbracket e \rrbracket \qquad \llbracket \texttt{Inr<}\tau\texttt{, }\sigma\texttt{>\{\}(}e\texttt{)} \rrbracket = \mathit{inr}_{\llbracket \tau \rrbracket}\,\llbracket e \rrbracket & \note{\textsc{T-Inl}, \textsc{T-Inr}: the target's injections} \\
-\llbracket \texttt{Copairing<}F\texttt{, }G\texttt{>\{}f\texttt{, }g\texttt{\}(}e\texttt{)} \rrbracket = \mathit{case}_{\llbracket \rho \rrbracket}\,\llbracket e \rrbracket\,(\pi_2\,\llbracket f \rrbracket\,\overline{d_f})\,(\pi_2\,\llbracket g \rrbracket\,\overline{d_g}) & \note{\textsc{T-Copair}: the target's case, $\overline{d_f}$ and $\overline{d_g}$ the dictionaries of $f$'s and $g$'s call operators, as for \textsc{T-App}} \\
 \end{array}
 \]
 \caption{The translation of declarations and terms; pairs are the target's own (Table~\ref{tab:conventions}).
@@ -218,7 +217,7 @@ Table~\ref{tab:conventions} is the fragment's convention on the standard library
 System~F & FJlt & \Cpp{} & rules \\
 \midrule
 $\tau \times \sigma$, $(a, b)$, $\pi_1$, $\pi_2$~\cite{pierce1991basic} & \texttt{pair<τ, σ>}, \texttt{pair\{a, b\}}, \texttt{.first}, \texttt{.second} & the same & \textsc{T-Construct}, \textsc{T-Field}; \textsc{S-Proj} \\
-$\tau + \sigma$, $\mathit{inl}$, $\mathit{inr}$, $\mathit{case}$~\cite[Section~11.9]{pierce2002tapl} & \texttt{variant<τ, σ>}, \texttt{Inl}, \texttt{Inr}, \texttt{Copairing} & the same & \textsc{T-Inl}, \textsc{T-Inr}, \textsc{T-Copair}; \textsc{S-Inj}, \textsc{S-Copair} \\
+$\tau + \sigma$, $\mathit{inl}$, $\mathit{inr}$, $\mathit{case}$~\cite[Section~11.9]{pierce2002tapl} & \texttt{variant<τ, σ>}, \texttt{Inl}, \texttt{Inr}, \texttt{Copairing} & the same & \textsc{T-Construct}, \textsc{T-App}, \textsc{T-Inj-Run}; \textsc{S-Inj}, \textsc{S-Copair} \\
 $\mathbb{N}$, \textit{iter} & \texttt{fold\_left(iota(0uz, n), a, f)} & the same & \textsc{T-Iter}; \textsc{S-Fold} \\
 \bottomrule
 \end{tabularx}

@@ -114,10 +114,6 @@ A declaration whose \cppinline{same_as} constraints have no solution, as \cppinl
 \\[12pt]
 \textsc{(T-Iter-Run)} & \dfrac{0 < k \le n \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma, s : \sigma, i : \texttt{size\_t} \vdash f\texttt{(}s\texttt{, }i\texttt{)} : \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{ranges::fold\_left(views::iota(}c_k\texttt{, }c_n\texttt{), }a\texttt{, }f\texttt{)} : \sigma}
 \\[12pt]
-\textsc{(T-Inl)} & \dfrac{\Delta; \Gamma \vdash e : \tau}{\Delta; \Gamma \vdash \texttt{Inl<}\tau\texttt{, }\sigma\texttt{>\{\}(}e\texttt{)} : \texttt{variant<}\tau\texttt{, }\sigma\texttt{>}} \qquad \textsc{(T-Inr)}\; \text{alike, at } \sigma
-\\[12pt]
-\textsc{(T-Copair)} & \dfrac{\Delta; \Gamma \vdash f : F \quad \Delta; \Gamma \vdash g : G \quad \mathit{dom}\,F = \tau \quad \mathit{dom}\,G = \sigma \quad \mathit{cod}\,F = \mathit{cod}\,G = \rho \quad \Delta; \Gamma \vdash e : \texttt{variant<}\tau\texttt{, }\sigma\texttt{>}}{\Delta; \Gamma \vdash \texttt{Copairing<}F\texttt{, }G\texttt{>\{}f\texttt{, }g\texttt{\}(}e\texttt{)} : \rho}
-\\[12pt]
 \textsc{(T-Inj-Run)} & \dfrac{\Delta; \Gamma \vdash v : \tau}{\Delta; \Gamma \vdash \mathit{inl}_{\tau, \sigma}\,v : \texttt{variant<}\tau\texttt{, }\sigma\texttt{>}} \qquad \text{and } \mathit{inr}_{\tau, \sigma}\,v \text{ alike}
 \end{array}
 \]
@@ -126,8 +122,7 @@ $^{\S}$~The named type is well formed at $\overline{\tau}$: its reads resolve th
 A standard function object, or one supplied with a carrier, has no field and no read, and is constructed as $O\texttt{<}\overline{\tau}\texttt{>\{\}}$.
 $^{\ast}$~The standard's signature of the function object, at atoms, or the signature declared for an arrow supplied with a carrier (Section~\ref{sec:kernel:fjlt}).
 $^{\P}$~$s$ and $i$ fresh.
-\textsc{T-Iter-Run} types the iterations that evaluation reaches and a program does not write, $c_k$ the constant of \texttt{size\_t} whose value is $k$ (Figure~\ref{fig:fjlt-eval}), and \textsc{T-Inj-Run} the values of a sum, which no program writes.
-$\mathit{dom}\,F$ and $\mathit{cod}\,F$ are the parameter and result type of $F$'s one call operator, each of them a read of an associated type given to the kernel.
+\textsc{T-Iter-Run} types the iterations that evaluation reaches and a program does not write, $c_k$ the constant of \texttt{size\_t} whose value is $k$ (Figure~\ref{fig:fjlt-eval}), and \textsc{T-Inj-Run} the values of a sum, which no program writes either.
 Omitted as textbook~\cite[Chapters~8, 9 and~11]{pierce2002tapl}: \textsc{T-Var}, \textsc{T-Field}, and the rules for pairs, conditionals and the operators of the atoms.}
 \label{fig:fjlt-typing}
 \end{figure}
@@ -173,10 +168,11 @@ A range of any other kind, as an array, a repetition or a view of one, is a deri
 
 \paragraph{Sums.}
 \label{app:fjlt:sums}
-\textsc{T-Inl}, \textsc{T-Inr} and \textsc{T-Copair} are the coproduct of Pierce's account~\cite{pierce1991basic}, written in the rules' form~\cite[Section~11.9]{pierce2002tapl}: the injections are named, as a pair's projections are, and the copairing is typed by the domain and codomain of its two arrows, an arrow's two objects in the definition of a category~\cite[Definition~1.1.1]{pierce1991basic}.
-\texttt{dom} and \texttt{cod} are read off an arrow's one call operator, so an arrow with several, or a generic one, has no copairing.
-\cppinline{==} at a sum is not in the kernel: \Cpp{23} does not constrain it by the alternatives.
-Listing~\ref{lst:subtraction} uses a sum for subtraction on the naturals, which says how far short it falls where \cppinline{size_t}'s own subtraction wraps, and reads it by the copairing and by the conditional that is its derived form (Table~\ref{tab:derived}).
+The sum's three arrows are named types given to the kernel with their calls, as an arrow supplied with a carrier is: \cppinline{Inl<A, B>} and \cppinline{Inr<A, B>}, with no fields, and the calls $A \to \texttt{variant<A, B>}$ and $B \to \texttt{variant<A, B>}$, and \cppinline{Copairing<F, G>}, with the fields \cppinline{f} and \cppinline{g} and the call $\texttt{variant<dom<F>::type, dom<G>::type>} \to \texttt{cod<F>::type}$ under \cppinline{same_as<cod<F>::type, cod<G>::type>}.
+They are typed by \textsc{T-Construct} and \textsc{T-App} as any named type is, so an arrow of the sum has a type before it is applied, and a copairing of copairings, or $[\iota_2, \iota_1]$, is a term; at a type variable, \texttt{dom} and \texttt{cod} are reads the context holds.
+Their bodies are not the kernel's: the images of their calls are the target's injections and case (Appendix~\ref{app:fjlt:translation}).
+\cppinline{==} at a sum is not in the kernel, since \Cpp{23} does not constrain it by the alternatives.
+Listing~\ref{lst:subtraction} uses a sum for subtraction on the naturals, which says how far short it falls where \cppinline{size_t}'s own subtraction wraps.
 
 \begin{listing}[ht]
 \begin{cpp}
@@ -191,7 +187,7 @@ constexpr size_t monus_by_index(size_t n, size_t m) {
   return d.index() == 0 ? get<0>(d) : 0uz; }
 static_assert(monus(7, 2) == 5 && monus(2, 7) == monus_by_index(2, 7));
 \end{cpp}
-\caption{Subtraction on the naturals, read by a copairing, \cppinline{Same} the identity and \cppinline{Zero} the constant $0$, and by the conditional that is its derived form.
+\caption{Subtraction on the naturals, read by a copairing, \cppinline{Same} the identity and \cppinline{Zero} the constant $0$, and by the conditional that is its derived form (Table~\ref{tab:derived}).
 From \texttt{tools/jlt-lint/fixtures/sum.cpp}, where the linter gives \cppinline{minus} and \cppinline{monus} the level FJlt and \cppinline{monus_by_index} Jlt.}
 \label{lst:subtraction}
 \end{listing}
@@ -240,7 +236,7 @@ A dispatch like that of \cppinline{guessed_power} in Listing~\ref{lst:declare}, 
 \label{app:fjlt:assoc}
 An associated type is a trait whose result is a type (Section~\ref{sec:kernel:fjlt}): a \texttt{struct} template $g$ whose default names no type and whose entries each name one, read as $g\texttt{<}\overline{\tau}\texttt{>::type}$.
 \cppinline{op_of} in Listing~\ref{lst:motivation} is one, with an entry for each monoid, and the standard's \cppinline{range_value_t} is another.
-The kernel is given a third, \cppinline{cod}, the codomain of an arrow: the result type of its call, by \textsc{Eq-Cod}.
+The kernel is given a third and a fourth, \cppinline{cod} and \cppinline{dom}, the codomain and domain of an arrow: the result type of its call, by \textsc{Eq-Cod}, and the type of its one parameter, by \textsc{Eq-Dom}, an arrow's two objects in the definition of a category~\cite[Definition~1.1.1]{pierce1991basic}.
 Its one entry reads the type of the call operator, which the grammar cannot write, and it is a function because an arrow of the kernel has exactly one call, never a template (Figure~\ref{fig:fjlt-syntax}); like \Cpp{}, it names a type only where that call's constraints hold, since the address of a call whose constraints fail is ill formed~\cite[\texttt{expr.prim.id.general}]{cpp23standard}.
 Below, a read resolved at concrete types by \textsc{Eq-Assoc} includes one resolved by \textsc{Eq-Cod}, and ``the type its entry names'' includes \textsc{Eq-Cod}'s $\rho$; a read of a read, as \cppinline{cod<op_of<All>::type>::type}, resolves from the inside out, by congruence and then \textsc{Eq-Cod}.
 \Cpp{} in general has no such function, since a function object may have several calls or a template of them, and a shape cannot bind a type that it is not given: the restriction is what makes the carrier of \cppinline{IsMagma} a read, \cppinline{cod_t<op_t<E>>}, and not a second declaration.
@@ -265,6 +261,8 @@ An entry is a definition, not a claim: it names a type, and there is nothing for
 \textsc{(Eq-Assoc)} & \dfrac{\begin{array}{c} g\texttt{<}\overline{\tau}\texttt{>} \text{ resolves, at concrete } \overline{\tau} \text{, to the entry } \texttt{template <typename }\overline{\beta}\texttt{> requires } \overline{Q} \\ \texttt{struct } g\texttt{<}\overline{\sigma}\texttt{> \{ using type = } \rho\texttt{; \};} \quad \overline{\tau} = \overline{\sigma}[\overline{\rho'}/\overline{\beta}] \quad \varnothing \Vdash \overline{Q}[\overline{\rho'}/\overline{\beta}] \end{array}}{\Delta \vdash g\texttt{<}\overline{\tau}\texttt{>::type} \equiv \rho[\overline{\rho'}/\overline{\beta}]}
 \\[22pt]
 \textsc{(Eq-Cod)} & \dfrac{T\texttt{<}\overline{\tau}\texttt{>} \text{ has the call } \overline{Q} \Rightarrow \overline{\sigma} \to \rho\,{}^{\ddagger} \text{, at concrete } \overline{\tau} \quad \varnothing \Vdash \overline{Q}[\overline{\tau}/\overline{\alpha}]}{\Delta \vdash \texttt{cod<}T\texttt{<}\overline{\tau}\texttt{>>::type} \equiv \rho[\overline{\tau}/\overline{\alpha}]}
+\\[14pt]
+\textsc{(Eq-Dom)} & \dfrac{T\texttt{<}\overline{\tau}\texttt{>} \text{ has the call } \overline{Q} \Rightarrow \sigma \to \rho\,{}^{\ddagger} \text{, at concrete } \overline{\tau} \quad \varnothing \Vdash \overline{Q}[\overline{\tau}/\overline{\alpha}]}{\Delta \vdash \texttt{dom<}T\texttt{<}\overline{\tau}\texttt{>>::type} \equiv \sigma[\overline{\tau}/\overline{\alpha}]}
 \\[14pt]
 \textsc{(Eq-Same)} & \dfrac{\texttt{same\_as<}\tau\texttt{, }\sigma\texttt{>} \in \Delta}{\Delta \vdash \tau \equiv \sigma}
 \\[12pt]

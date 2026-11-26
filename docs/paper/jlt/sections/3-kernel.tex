@@ -49,7 +49,7 @@ Terminals are in monospace and an overbar is a sequence, possibly empty.
 An empty \texttt{requires} clause, an empty list of a \texttt{requires} expression with its parentheses, and an empty \texttt{template} head are left out, except that an entry with no type variables keeps \texttt{template <>}.
 The requirements $\overline{A}$ of a shape and the constraints $\overline{Q}$ of a clause are joined by \texttt{\&\&}, and a negated constraint is written in parentheses.
 $\alpha$ are type variables, $g$ names of associated types, \texttt{dom} and \texttt{cod} among them, the domain and codomain of an arrow, given to the kernel, $C$ names of shapes, the standard's \texttt{copyable}, \texttt{equality\_comparable} and \texttt{same\_as} among them, $f$ names of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
-$T$ is a declared type $O$, \texttt{std::pair}, \texttt{std::variant} of two types, a carrier, or an arrow supplied with a carrier, as the standard's \texttt{std::plus} is, or with the sum: \texttt{Inl}, \texttt{Inr} and \texttt{Copairing}.
+$T$ is a declared type $O$, \texttt{std::pair}, \texttt{std::variant} of two types, a carrier, an arrow supplied with a carrier, as the standard's \texttt{std::plus} is, or one of the sum's arrows, \texttt{Inl}, \texttt{Inr} and \texttt{Copairing}.
 $c$ is a constant of an atom, or a value of a carrier that its type provides.
 A parameter that is not used may go unnamed.
 $\tau\texttt{\{}\overline{e}\texttt{\}}$ is a value of a declared type from values for its fields, and at a type variable, with no fields, the one value of a function object.
@@ -86,7 +86,7 @@ construct & written in \Cpp{} as & in the listings \\
 atom & \texttt{bool}, \texttt{size\_t}: a truth value, a count modulo $2^{64}$ & \texttt{true}, the count \texttt{n} \\
 carrier & any type of values, known only by the calls a shape names & \texttt{string}, \texttt{Bare}, the \texttt{T} of a template \\
 pair, record & \texttt{std::pair}, or a \texttt{struct} of fields & the state of \texttt{Squaring}'s fold \\
-sum type & \texttt{std::variant<A, B>}, built by its injections \texttt{Inl}, \texttt{Inr} and read by its copairing only, arrows given to the kernel & subtraction (Appendix~\ref{app:fjlt:sums}) \\
+sum type & \texttt{std::variant<A, B>}, built by its injections \texttt{Inl}, \texttt{Inr} and read by its copairing only & --- \\
 arrow & a \texttt{struct} with a \texttt{constexpr}, \texttt{const} call operator, or one of the standard's function objects & \texttt{Size}, \texttt{Squaring}, \texttt{Xor}, \texttt{std::plus} \\
 choice & the conditional \texttt{?:} on a truth value & in \texttt{Squaring} \\
 iteration & the standard's fold over the counts below a bound & the fold of \texttt{power} \\
@@ -112,7 +112,7 @@ The value layer has little of \Cpp{} in it, on purpose.
 A carrier is a type the kernel never looks inside: a generic definition reaches a value of it only through the calls that a shape names, and that is all the kernel knows of a string.
 A carrier comes with arrows of its own, as \cppinline{std::plus} comes with strings and \cppinline{Size} is written with a string's own length, and their declarations are given to the kernel, not written in it.
 A sum type, \cppinline{std::variant<A, B>}, holds a value of one of two types, as Haskell's \texttt{Either a b} does, built by the injections \cppinline{Inl} and \cppinline{Inr} and read by the copairing $[f, g] : A + B \to C$ of $f : A \to C$ and $g : B \to C$~\cite{pierce1991basic}: a partial operation, as subtraction on the naturals, returns the reason it has no result.
-The kernel writes a construction in \Cpp{}'s own syntax where that syntax is the construction at two types, as \cppinline{pair{a, b}} and \cppinline{.first} are a pair's, and by a named arrow where it is not: \Cpp{} spells a sum's alternatives by position, for any number of them, and has no expression for its copairing; the positional spellings, the conditional \cppinline{x.index() == 0 ? e1 : e2} and \cppinline{std::expected} are derived forms.
+The kernel writes a construction in \Cpp{}'s own syntax where that syntax is the construction, as \cppinline{pair{a, b}} and \cppinline{.first} are a pair's, and by a named arrow where it is not: \Cpp{} names a sum's alternatives by a number in a template argument, \cppinline{in_place_index<0>}, which the kernel's types do not take, and has no expression for the copairing, \cppinline{std::visit} choosing by type and so unable to tell the alternatives of \cppinline{variant<A, A>} apart; those spellings, the conditional \cppinline{x.index() == 0 ? e1 : e2} and \cppinline{std::expected} are derived forms (Table~\ref{tab:derived}).
 The one recursion over a value is iteration, with its count given before the first step.
 Its step is a function of the state and the index, and a state of several parts is a record.
 
@@ -202,7 +202,7 @@ So System~F is not needed to say what a kernel program computes.
 It is needed for what a generic definition means before anyone uses it: a template under a \texttt{requires} clause whose body keeps to it has a type of the form ``for all $T$, given a record for $T$, \ldots'', a System~F type of rank one.
 
 Three results about the target then hold of a kernel program.
-Appendix~\ref{app:fjlt:theorems} shows them for this kernel on paper, with the textbook cases omitted, relative to two stated assumptions and the conditions on well-formed programs.
+Appendix~\ref{app:fjlt:theorems} argues them for this kernel on paper, with the textbook cases omitted, relative to two stated assumptions and the conditions on well-formed programs.
 \begin{enumerate}
 \item A well-typed program does not go wrong~\cite{pierce2002tapl}.
 \item Every program ends, since the target's only recursion is iteration over a count~\cite{girard1989proofs}, provided the arrows supplied with carriers end, the compiler's selection ends, and no function calls itself.
