@@ -24,21 +24,12 @@ Reduction in the target is full $\beta$-reduction, any redex anywhere, together 
 The polymorphic $\lambda$-calculus with first-order rewrite rules that terminate and are conservative, a variable occurring no more often on the right than on the left, and with higher-order rules, recursors among them, under the General Schema on inductive types whose constructors take no functional arguments, is strongly normalising~\cite[Theorem~25]{jouannaud1997abstract}.
 \end{citedtheorem}
 
-The parts are older than their combination.
-Matthes shows System~F with products, sums and positive inductive types with their iterators strongly normalising and confluent, and its iterative fragment embedded into System~F by an encoding that preserves reduction~\cite{matthes1999extensions}.
-Breazu-Tannen and Gallier show that adding first-order rewrite rules on algebraic constants to System~F conserves strong normalisation and confluence~\cite{breazutannen1991polymorphic,breazutannen1994polymorphic}.
-Blanqui extends the General Schema to the Calculus of Constructions~\cite{blanqui2005definitions}, under a confluence hypothesis that dependent types need and System~F does not.
+The parts are older than their combination: System~F with sums and iterators~\cite{matthes1999extensions}, first-order rewriting added to System~F~\cite{breazutannen1991polymorphic,breazutannen1994polymorphic}, and the General Schema, which Blanqui later extends to the Calculus of Constructions~\cite{blanqui2005definitions}.
 
 \begin{citedtheorem}[Type substitution; Girard~\cite{girard1989proofs}, Pierce~\cite{pierce2002tapl}]
 \label{cit:subst}
 Substituting types for type variables preserves typing in the target.
 \end{citedtheorem}
-
-\begin{citedtheorem}[Many-sorted equational logic; Goguen and Meseguer~\cite{goguen1985completeness}]
-\label{cit:equational}
-Equational deduction is sound and complete for many-sorted algebras whose carriers are non-empty.
-\end{citedtheorem}
-
 
 \begin{definition}[The standard's functions; ISO~\cite{cpp23standard}]
 \label{def:standard}
@@ -55,7 +46,7 @@ The arrows supplied with carriers take and give atoms and carriers only, not pai
 The constants of the carriers and of the arrows supplied with them have $\delta$-rules that are first-order rules on constants, terminating, conservative and confluent, with no critical pair against the other rules of the target.
 \end{assumption}
 
-The first clause is what Theorem~\ref{cit:equational} needs to apply to the laws of the carriers, as Section~\ref{sec:intro}'s completeness claim for many sorts asks; it does not follow from the kernel, whose one requirement of a carrier, \cppinline{copyable}, gives no value, and no result of this appendix uses it.
+The first clause is what the completeness of equational reasoning with several sorts needs, the claim of Section~\ref{sec:intro}~\cite{goguen1985completeness}; it does not follow from the kernel, whose one requirement of a carrier, \cppinline{copyable}, gives no value, and no result of this appendix uses it.
 The second clause keeps the $\delta$-rules ground: an arrow giving a pair or a sum would give a term, not a constant.
 The third clause is the condition of Section~\ref{sec:translation} that the arrows supplied with carriers end, stated as Theorem~\ref{cit:sn} asks for it.
 The assumption is what is asserted rather than carried out; Theorem~\ref{cit:sn}'s other hypotheses are checked in the proof below.
