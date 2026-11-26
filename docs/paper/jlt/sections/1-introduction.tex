@@ -36,8 +36,7 @@ A class of types with operations and laws lets generic code be written once agai
 The approach is open to laws of a program's own, since for declared equations the reasoning is complete: an equation follows from them by equational reasoning exactly when it holds in every model of them, with several sorts as here~\cite{birkhoff1935structure,goguen1985completeness,burris1981universalalgebra}.
 A recursion that follows the structure of its data ends, so a program built from such recursions has a value~\cite{turner2004total}.
 Reasoning about a partial language as if it were total is ``morally correct'': for a small Haskell-like language, Danielsson et al.\ prove that two closed terms equal in a total semantics are related in the partial one by a relation on the total values, which gives a bicartesian closed category, with products, sums, functions and recursive types~\cite{danielsson2006fast}.
-This paper goes further for a fragment of \Cpp{}: partiality is left only between what its three rules ask and what its linter clears, and from the sugar on, the translation and its interpretation are total.
-The link it needs, from the kernel to the calculus, is proved on paper (Section~\ref{sec:translation}), assuming only that \Cpp{} evaluates a kernel program as the calculus does, which is tested against constant evaluation.
+Their language is monomorphic and leaves polymorphism to future work; the kernel of this paper is polymorphic but recurses only by iterating over a count, which lets it prove the step from the kernel to System~F on paper (Section~\ref{sec:translation}) and leave the step from \Cpp{} to the kernel assumed, tested against constant evaluation.
 
 These benefits are usually pursued in a language designed for them, and this paper pursues them in \Cpp{23}, a mainstream systems language with a compiler for nearly every machine and abstraction without run-time overhead, its zero-overhead principle~\cite{stroustrup2005abstraction}, which its designer has since called an understatement: ``We can do negative overhead abstraction''~\cite{stroustrup2026peterman} (Figure~\ref{fig:sketch-ir} shows cases).
 \Cpp{23} is the first standard with every ingredient of such a fragment: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
@@ -73,7 +72,7 @@ Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964m
 \end{tikzcd}
 \caption{The arrows of the paper.
 A hooked arrow is injective: an inclusion, labelled with what it adds or removes, or $\mathit{embed}$, defined on the translation's image only.
-A solid arrow is a map the paper defines or takes as given, and the dashed arrow is argued and tested, not proved.
+A solid arrow is a map the paper defines or takes as given, and the dashed arrow, the sugar, is defined on the forms Appendix~\ref{app:derived} lists, not on all that the rules admit, and that it keeps values is argued and tested, not proved.
 The bottom edge says that the two paths compute one value.}
 \label{fig:arrows}
 \end{figure}
