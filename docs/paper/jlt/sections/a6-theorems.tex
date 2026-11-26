@@ -31,10 +31,9 @@ The iterator reduces by $\mathit{iter}\,(k{+}1)\,s\,z \longrightarrow \mathit{it
 Reduction in the target is full $\beta$-reduction, any redex anywhere, together with projections, the conditional, the case, the $\delta$-rules of the constants, the unfolding of a defined name to its body and the two iterator rules; no evaluation order is imposed.
 \end{definition}
 
-\begin{citedtheorem}[Strong normalisation and confluence; Jouannaud and Okada~\cite{jouannaud1997abstract}]
+\begin{citedtheorem}[Strong normalisation; Jouannaud and Okada~\cite{jouannaud1997abstract}]
 \label{cit:sn}
 The polymorphic $\lambda$-calculus with first-order rewrite rules that terminate and are conservative, a variable occurring no more often on the right than on the left, and with higher-order rules, recursors among them, under the General Schema on inductive types whose constructors take no functional arguments, is strongly normalising~\cite[Theorem~25]{jouannaud1997abstract}.
-Its reductions are confluent where the first-order rules are and no critical pair lies between the higher-order rules, or between them and the first-order ones~\cite[Propositions~28 and~29]{jouannaud1997abstract}.
 \end{citedtheorem}
 
 The parts are older than their combination.
@@ -74,22 +73,40 @@ With it Theorem~\ref{cit:equational} applies to the laws of the carriers, as Sec
 No result of this appendix uses the first clause; it is stated here for that claim.
 The second clause keeps the $\delta$-rules ground: an arrow giving a pair or a sum would give a term, not a constant.
 The third clause is the condition of Section~\ref{sec:translation} that the arrows supplied with carriers end, stated as Theorem~\ref{cit:sn} asks for it.
-The assumption is what is asserted rather than carried out; Theorem~\ref{cit:sn}'s other hypotheses are checked here.
-The conditional is a rule of the calculus.
-The $\delta$-rules of $\Sigma$ are first-order rules on constants: ground, a constant out of constants, so each step removes one operator application and they terminate, they are conservative, having no variables, and they are confluent, being a function of their argument constants.
-$\mathit{toNat}$ is a ground rule of the same kind, from a constant to a numeral of $\mathbb{N}$.
-$\mathit{iter}$ is G\"odel's recursor on $\mathbb{N}$, whose constructors take no functional argument, under the General Schema; in the accumulator form above it is the standard iterator at $\sigma \to \sigma$, each of its steps at least one step of that, so the target is System~T over $\mathbb{N}$ inside System~F.
-The defined names are acyclic, by the declaration order and since no body calls itself, and expand away.
-Products and sums fall outside the General Schema, since a pair or an alternative may hold a function, and are taken out by their encodings in System~F~\cite[Sections~11.3.2 and~11.3.4]{girard1989proofs}: $\tau \times \sigma$ as $\forall X.\,(\tau \to \sigma \to X) \to X$, and $\tau + \sigma$ as $\forall X.\,(\tau \to X) \to (\sigma \to X) \to X$.
-The encodings are compositional and keep types; they turn a projection or a step of a case into steps of type application and $\beta$-reduction, at least one, and every other step into a step of the same rule.
+The assumption is what is asserted rather than carried out; Theorem~\ref{cit:sn}'s other hypotheses are checked in the proof below.
 
 \begin{proposition}[The target]
 \label{prop:target}
 Granted Assumption~\ref{ass:instance}, the target is strongly normalising and confluent.
 \end{proposition}
+\begin{proof}
+\emph{Confluence.}
+The rules are left-linear: no variable occurs twice in a left side, the type annotations included, which are variables of their own that typing makes agree and no rule tests.
+They do not overlap.
+Each left side is a symbol applied to the number of arguments its rules take: a $\lambda$ or a $\Lambda$ for the two $\beta$-rules, or $\pi_i$, $\mathit{case}$, $\mathit{if}$, $\mathit{iter}$, a defined name or a constant with $\delta$-rules; that symbol applied to fewer arguments is no left side.
+The arguments a left side fixes, $(a, b)$, $\mathit{inl}\,a$, $\mathit{inr}\,b$, $\mathit{true}$, $\mathit{false}$, $0$, $k{+}1$ and the constants of a $\delta$-rule, are headed by constructors and constants that head no left side.
+So no left side matches inside the fixed part of another.
+The $k{+}1$ of $\mathit{iter}$'s rule is the successor of $\mathbb{N}$, not the constant $+$ of \texttt{size\_t}, whose $\delta$-rule $c_k + 1 \longrightarrow c_{k+1}$ is at another type, and $\mathit{toNat}$ meets the iterator only through its result, a numeral, which is normal.
+Two $\delta$-rules with one left side have one right side, since their right sides are constants or numerals, so normal, and they are confluent (Assumption~\ref{ass:instance}).
+Let $\Rightarrow$ be parallel reduction: the reflexive relation, closed under the term formers, that also rewrites an instance of a left side to the instance of its right side with each argument rewritten by $\Rightarrow$; and let $t^{*}$ be $t$ with every redex of $t$ contracted at once.
+Then ${\longrightarrow} \subseteq {\Rightarrow} \subseteq {\longrightarrow^{*}}$, and $\Rightarrow$ is closed under substitution of terms and of types, since each rule is.
+Takahashi's lemma, that $t \Rightarrow u$ implies $u \Rightarrow t^{*}$~\cite{takahashi1995parallel}, follows by induction on $t$; the one case beyond $\beta$ is a redex at the root, where, the rules being left-linear and not overlapping, $u$ is either an instance of the same left side or of its right side, with the arguments rewritten by $\Rightarrow$, and both rewrite to $t^{*}$ by the induction hypothesis.
+So $\Rightarrow$ has the diamond property, and $\longrightarrow$ is confluent, on all terms, typed or not, without strong normalisation.
 
-\noindent\emph{Argued.}\ An infinite reduction with products and sums would give, by the encodings, one without them, which Theorem~\ref{cit:sn} excludes.
-The rules are left-linear and do not overlap, and confluence follows by Newman's lemma from local confluence, which orthogonality gives, as the critical pair lemma does for simply typed higher-order rewriting~\cite{mayr1998higher}; that it carries to System~F with $\beta$ as a rule is the step not proved.
+\emph{Strong normalisation.}
+The defined names are acyclic, so each has a closed expansion $e(d)$, and $e(d) = e(b)$ for its body $b$.
+A step other than an unfolding maps under $e$ to one step, since no left side holds a defined name, and an unfolding to none; unfoldings alone end, each replacing a name by names declared before it, so an infinite reduction has infinitely many other steps and maps to an infinite reduction without defined names.
+It remains to show that the target without defined names is strongly normalising, on typed terms, which reduction keeps~\cite{girard1989proofs}.
+We map it into the calculus of Theorem~\ref{cit:sn}, keeping types.
+Products and sums go to their encodings in System~F~\cite[Sections~11.3.2 and~11.3.4]{girard1989proofs}, as closed terms: $\tau \times \sigma$ to $\forall X.\,(\tau \to \sigma \to X) \to X$, $\pi_1$ to $\lambda p.\,p\,[\tau]\,(\lambda x.\,\lambda y.\,x)$, and sums and $\mathit{case}$ alike.
+The constants with $\delta$-rules, $\mathit{toNat}$ and $\mathit{if}$ go to symbols of the same arity, and $\mathit{iter}$ to G\"odel's iterator at $\sigma \to \sigma$, whose rules $\mathit{It}\,0\,h\,a \longrightarrow a$ and $\mathit{It}\,(k{+}1)\,h\,a \longrightarrow h\,(\mathit{It}\,k\,h\,a)$ pass $h$ and $a$ unchanged:
+$\mathit{iter}\,[\sigma]\,n\,s\,z$ goes to $\mathit{It}_{\sigma \to \sigma}\,n\,(\lambda f.\,\lambda x.\,f\,(s\,x))\,(\lambda x.\,x)\,z$; an occurrence of any of them applied to fewer arguments is first $\eta$-expanded.
+A step then maps to at least one step: a projection or a case to type applications and $\beta$-steps, a step of $\mathit{iter}$ to one step of $\mathit{It}$ and two $\beta$-steps, and every other step to a step of the same rule, after the $\beta$-steps that fill an $\eta$-expanded symbol; substituting into a mapped term reduces to the map of the substituted term.
+The image satisfies Theorem~\ref{cit:sn}'s hypotheses.
+The $\delta$-rules and $\mathit{toNat}$ are first-order rules on constants: they terminate, each step removing one constant with rules, and are conservative, having no variables.
+$\mathit{if}$ and $\mathit{It}$ follow the General Schema on $\mathit{Bool}$ and $\mathbb{N}$, whose constructors take no functional argument: $\mathit{if}$ has no recursive call, and $\mathit{It}$'s one call is on $k$, a proper subterm of $k{+}1$, with $h$ and $a$ as on the left.
+So an infinite reduction in the target would give one in that calculus, which Theorem~\ref{cit:sn} excludes.
+\end{proof}
 
 The one-step-at-a-time iterator is what makes Theorem~\ref{thm:simulation} exact, where a Church encoding, unfolding all at once, would not be.
 % Before 2026-11-23 the carriers' non-emptiness was read off std::semiregular
