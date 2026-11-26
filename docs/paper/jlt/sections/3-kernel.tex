@@ -42,7 +42,7 @@ b &::=& \texttt{bool} \;\mid\; \texttt{size\_t} & \text{atom} \\[3pt]
 e &::=& x \;\mid\; c \;\mid\; f\texttt{<}\overline{\tau}\texttt{>} \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; \tau\texttt{\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
   & \mid & \ominus e \;\mid\; e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e & \text{operators, choice} \\
   & \mid & \tau\texttt{\{in\_place, }e\texttt{\}} \;\mid\; \tau\texttt{\{unexpect, }e\texttt{\}} & \text{sides of a sum} \\
-  & \mid & x\texttt{.has\_value() ? }e\texttt{ : }e \;\mid\; \texttt{*}x \;\mid\; x\texttt{.error()} & \text{case} \\
+  & \mid & x\texttt{.has\_value() ? }e\texttt{ : }e \;\mid\; \texttt{*}x \;\mid\; x\texttt{.error()} & \text{choice on a sum} \\
   & \mid & \texttt{ranges::fold\_left(views::iota(0uz, }e\texttt{), }e\texttt{, }e\texttt{)} & \text{iteration} \\
 \end{array}
 \]
@@ -57,7 +57,7 @@ A parameter that is not used may go unnamed.
 $\tau\texttt{\{}\overline{e}\texttt{\}}$ is a value of a declared type from values for its fields, and at a type variable, with no fields, the one value of a function object.
 $\ominus$ and $\oplus$ are the operators of the atoms that are defined at every argument (Appendix~\ref{app:fjlt:evaluation}), and \texttt{==} at a carrier whose shape asks for it.
 In an iteration the first term is the count, the second the start, and the third the step, a function of the state and the index.
-A side of a sum is built at a type $\texttt{expected<}\tau\texttt{, }\sigma\texttt{>}$; in a case, $\texttt{*}x$ stands only in the first branch and $x\texttt{.error()}$ only in the second, $x$ the variable the case tests, and the two branches have one type.}
+In a choice on a sum, $\texttt{*}x$ stands only in the first branch and $x\texttt{.error()}$ only in the second.}
 \label{fig:fjlt-syntax}
 \end{figure}
 % TODO(kernel), for discussion, found while trimming the grammar:
@@ -89,7 +89,7 @@ construct & written in \Cpp{} as & in the listings \\
 atom & \texttt{bool}, \texttt{size\_t}: a truth value, a count modulo $2^{64}$ & \texttt{true}, the count \texttt{n} \\
 carrier & any type of values, known only by the calls a shape names & \texttt{string}, \texttt{Bare}, the \texttt{T} of a template \\
 pair, record & \texttt{std::pair}, or a \texttt{struct} of fields & the state of \texttt{Squaring}'s fold \\
-sum & \texttt{std::expected}: a side built by its tag, taken apart by a case that tests the side & division (Appendix~\ref{app:fjlt:typing}) \\
+sum & \texttt{std::expected}: a side built by its tag, read by a choice that tests the side & division (Appendix~\ref{app:fjlt:sums}) \\
 arrow & a \texttt{struct} with a \texttt{constexpr}, \texttt{const} call operator, or one of the standard's function objects & \texttt{Size}, \texttt{Squaring}, \texttt{Xor}, \texttt{std::plus} \\
 choice & the conditional \texttt{?:} on a truth value & in \texttt{Squaring} \\
 iteration & the standard's fold over the counts below a bound & the fold of \texttt{power} \\
@@ -114,7 +114,7 @@ associated type & a \texttt{struct} template whose entries each name one type, r
 The value layer has little of \Cpp{} in it, on purpose.
 A carrier is a type the kernel never looks inside: a generic definition reaches a value of it only through the calls that a shape names, and that is all the kernel knows of a string.
 A carrier comes with arrows of its own, as \cppinline{std::plus} comes with strings and \cppinline{Size} is written with a string's own length, and their declarations are given to the kernel, not written in it.
-A value of one of two kinds is a value of a sum type, \cppinline{std::expected<A, B>}, built by naming its side and read only by a case that tests the side first, so that a partial operation, as division, returns the reason it has no result instead of failing~\cite[Section~11.9]{pierce2002tapl}.
+A sum type, \cppinline{std::expected<A, B>}, holds a value of one of two types~\cite[Section~11.9]{pierce2002tapl}: a partial operation, as division, returns the reason it has no result instead of failing.
 The one recursion over a value is iteration, with its count given before the first step.
 Its step is a function of the state and the index, and a state of several parts is a record.
 

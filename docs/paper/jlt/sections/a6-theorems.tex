@@ -63,26 +63,29 @@ The primitives' translations compute the standard's functions on constants: a $\
 
 \begin{assumption}[The instance]
 \label{ass:instance}
-Every carrier has a value.
+Every carrier has a value, and its move constructor does not throw.
+The arrows supplied with carriers take and give atoms and carriers, not sums.
 The constants of the carriers and of the arrows supplied with them have $\delta$-rules that are first-order rules on constants, terminating, conservative and confluent, with no critical pair against the other rules of the target.
 \end{assumption}
 
 The first clause is what Theorem~\ref{cit:equational} needs: equational deduction is sound for many-sorted algebras only where no carrier is empty.
 It does not follow from the kernel, whose one requirement of a carrier is \cppinline{copyable}, which gives no value; a default value, which local state needs to start from, belongs to a derived form, the row of Table~\ref{tab:derived} for an assignment and \texttt{++} on a local, and not to the kernel, so it is assumed.
 With it Theorem~\ref{cit:equational} applies to the laws of the carriers, as Section~\ref{sec:intro}'s completeness claim for many sorts needs.
-No result of this appendix uses the first clause; it is stated here for that claim.
+No result of this appendix uses the first clause's first half; it is stated here for that claim.
+Its second half is what \cppinline{copyable} at a sum needs, and the fold moves its state: \Cpp{23} defines a sum's copy and move assignment only where a move of one side cannot throw~\cite[\texttt{expected.object.assign}]{cpp23standard}, a property a type declares, which the absence of \cppinline{throw} that Rule~1 asks does not declare for it.
+The second clause keeps the $\delta$-rules ground: an arrow that gave a sum would give a term of the target, not a constant.
 The second clause is the condition of Section~\ref{sec:translation} that the arrows supplied with carriers end, stated as Theorem~\ref{cit:sn} asks for it.
 The assumption is what is asserted rather than carried out; Theorem~\ref{cit:sn}'s other hypotheses are checked here.
-Products are a sort with its constructor, and their projections and the conditional are rules of the calculus; sums are treated after the iterator.
+The conditional is a rule of the calculus; products and sums are treated after the iterator.
 The $\delta$-rules of $\Sigma$ are first-order rules on constants: ground, a constant out of constants, so each step removes one operator application and they terminate, they are conservative, having no variables, and they are confluent, being a function of their argument constants.
 $\mathit{toNat}$ is a ground rule of the same kind, from a constant to a numeral of $\mathbb{N}$.
 $\mathit{iter}$ is G\"odel's recursor on $\mathbb{N}$, whose constructors take no functional argument, under the General Schema; in the accumulator form above it is the standard iterator at $\sigma \to \sigma$, each of its steps at least one step of that, so the target is System~T over $\mathbb{N}$ inside System~F.
 The defined names are acyclic, by the declaration order and since no body calls itself, and expand away.
-No critical pair lies between the rules, so, granted the assumption, the target without sums is strongly normalising and confluent by Theorem~\ref{cit:sn}.
-Sums are not under the General Schema as stated, since $\mathit{inl}$ takes a function where its first type is an arrow.
-They are taken out by the encoding of System~F, $\tau + \sigma$ as $\forall X.\,(\tau \to X) \to (\sigma \to X) \to X$, $\mathit{inl}\,a$ as $\Lambda X.\,\lambda f.\,\lambda g.\,f\,a$, $\mathit{inr}\,b$ alike, and $\mathit{case}\,s\,f\,g$ as $s\,[\rho]\,f\,g$ at the case's result type $\rho$~\cite[Section~11.3]{girard1989proofs}.
-The encoding is compositional and keeps types, and it maps a step of the case to three steps of type application and $\beta$-reduction and every other step to a step of the same rule, so an infinite reduction with sums would give one without them; the target is strongly normalising, as Matthes shows directly for System~F with sums~\cite{matthes1999extensions}.
-The case's two rules overlap neither each other nor the other rules, so the target stays locally confluent, and confluent by Newman's lemma.
+Products and sums are not under the General Schema as stated, since a pair or a side may hold a function, the image of a function object among them.
+Both are taken out by their encodings in System~F~\cite[Sections~11.3.2 and~11.3.4]{girard1989proofs}: $\tau \times \sigma$ as $\forall X.\,(\tau \to \sigma \to X) \to X$, and $\tau + \sigma$ as $\forall X.\,(\tau \to X) \to (\sigma \to X) \to X$, with $\mathit{inl}\,a$ as $\Lambda X.\,\lambda f.\,\lambda g.\,f\,a$, $\mathit{inr}\,b$ alike, and $\mathit{case}_\rho\,s\,f\,g$ as $s\,[\rho]\,f\,g$.
+The encodings are compositional and keep types, so they commute with substitution, and they map a projection or a step of the case to three steps of type application and $\beta$-reduction and every other step to a step of the same rule.
+What remains, System~F with the iterator, whose constructors take no functional argument, and the ground $\delta$-rules, is under Theorem~\ref{cit:sn}, so, granted the assumption, it is strongly normalising, and an infinite reduction with products and sums would give one without them; Matthes shows the same directly for System~F with products and sums~\cite{matthes1999extensions}.
+The encoding carries strong normalisation and not confluence, which follows from strong normalisation by Newman's lemma once the target is locally confluent: its rules are left-linear patterns with no critical pair between them, and local confluence follows by the critical pair lemma for higher-order rewriting~\cite{mayr1998higher}.
 The one-step-at-a-time iterator is what makes Theorem~\ref{thm:simulation} exact, where a Church encoding, unfolding all at once, would not be.
 % Before 2026-11-23 the carriers' non-emptiness was read off std::semiregular
 % (a default value); copyable is now the kernel's one requirement, so it is
@@ -148,6 +151,7 @@ rule & applies to \\
 \textsc{T-Construct} & a construction of a declared type: one rule, at the types the construction names \\
 \textsc{T-Op}, \textsc{T-App} & a call of a function object: \textsc{T-Op} for a standard one or one supplied with a carrier, \textsc{T-App} for a declared one \\
 \textsc{T-Iter}, \textsc{T-Iter-Run} & an iteration: \textsc{T-Iter} from \texttt{0uz}, \textsc{T-Iter-Run} from a constant above it, so never both \\
+\textsc{T-Case} & a conditional whose test is \texttt{has\_value()} on a sum, which is no term of type \texttt{bool} of the kernel, so never the conditional's rule; its readings maximal, so one abstraction \\
 \textsc{T-Eq} & a change of type between equal types, whose images are one type (Appendix~\ref{app:fjlt:translation}), so it adds nothing to the image \\
 \bottomrule
 \end{tabularx}
@@ -386,7 +390,7 @@ a read $f\texttt{<}\overline{\sigma}\texttt{>}$ & \textsc{S-Trait} & the premise
 $O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)}$ & \textsc{S-Op}, \textsc{S-Std} & the choice of $O$; a standard one or an arrow supplied with a carrier is total (Assumption~\ref{ass:instance}) \\
 $\ominus v$, $v_1 \oplus v_2$ & \textsc{S-Prim}, or the call it resolves to & the choice of $\Sigma$, the operators of Figure~\ref{fig:fjlt-syntax} defined at every argument, on constants by canonical forms \\
 a conditional, a projection & \textsc{S-If}, \textsc{S-Proj} & canonical forms: a constant of type \texttt{bool}, a pair or a constructed object \\
-a case & \textsc{S-Case} & canonical forms: a value of a sum type is one of its two sides \\
+a case & \textsc{S-Case} & canonical forms: a value of a sum type is one of its two sides, no constant and no value of a carrier having a sum type \\
 an iteration over \texttt{iota(}$c_k$\texttt{, }$c_n$\texttt{)} & \textsc{S-Fold} & its two cases cover $k < n$ and $k = n$, and $k \le n$: \textsc{T-Iter-Run} has it as a premise, and under \textsc{T-Iter} $k = 0$ \\
 \end{longtable}
 \addtocounter{table}{-1}

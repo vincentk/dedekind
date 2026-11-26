@@ -4,6 +4,7 @@
 // use the kernel does not read, a twin it does.  The levels the linter gives
 // are pinned definition by definition in sum.levels (levels.py --expect).
 // Standalone, no imports, so it is checked without the build.
+#include <concepts>
 #include <cstddef>
 #include <expected>
 #include <limits>
@@ -65,13 +66,53 @@ constexpr std::size_t read_in_wrong_branch(Quotient q) { return q.has_value() ? 
 constexpr std::size_t read_converted(Quotient q) { return q.has_value() ? *q : 0; }
 // The test spelled as a conversion to bool.
 constexpr std::size_t read_by_bool(Quotient q) { return q ? *q : 0uz; }
-// A sum with no side yet.
-constexpr bool empty_sum() {
-  Quotient q;
+// A sum constructed empty holds its first side's default value: sugar.
+constexpr bool default_sum() {
+  const Quotient q;
   return q.has_value() ? true : false;
 }
 // A test of one sum, the payload of another.
 constexpr std::size_t read_other(Quotient p, Quotient q) { return p.has_value() ? *q : 0uz; }
+
+// The practitioner's cases on #1226.  A conversion inside the standard's
+// constructors narrows as one written out does: refused.
+constexpr Quotient negative_payload() { return Quotient{std::in_place, -1}; }
+constexpr Quotient negative_returned() { return -1; }
+constexpr std::size_t negative_default(Quotient q) { return q.value_or(-1); }
+// A sum of other types converted: refused.
+using Real = std::expected<double, DivisionByZero>;
+using Count = std::expected<std::size_t, DivisionByZero>;
+constexpr Count from_real(Real r) { return r; }
+// The divisor written after its test: the division is open again.
+constexpr std::size_t divide_after_write(std::size_t n, std::size_t d) {
+  if (d == 0) return 0;
+  --d;
+  return n / d;
+}
+// Signed division: a divisor not zero is not enough (INT_MIN / -1): open.
+constexpr int divide_signed(int n, int d) { return d != 0 ? n / d : 0; }
+// The test in other spellings, each the case's sugar: Jlt.
+constexpr bool tested_alone(Quotient q) { return q.has_value(); }
+constexpr std::size_t guarded_negated(Quotient q) {
+  if (!q.has_value()) return 0uz;
+  return *q;
+}
+constexpr std::size_t guarded_both(Coded c) {
+  if (c.has_value()) return *c;
+  return c.error().code;
+}
+constexpr bool tested_and(Quotient q) { return q.has_value() && *q > 3; }
+// In a template: the case, and a member read with no test (refused).
+template <typename T>
+  requires std::copyable<T>
+constexpr T or_given(std::expected<T, DivisionByZero> x, T d) {
+  return x.has_value() ? *x : d;
+}
+template <typename T>
+  requires std::copyable<T>
+constexpr double member_untested(std::expected<T, DivisionByZero> x) {
+  return x->v;
+}
 
 // A map inside the sum, total but not a way out: open.
 struct Half {
@@ -83,6 +124,8 @@ static_assert(or_zero(divide(7, 2)) == 3 && or_zero(divide(7, 0)) == 0);
 static_assert(or_zero(divide_guarded(9, 3)) == 3 && or_zero_by_if(divide_as_written(9, 0)) == 0);
 static_assert(value_or_code(Coded{std::unexpect, Reason{4}}) == 4 && or_default(divide(8, 4)) == 2);
 static_assert(or_zero(halved(divide(8, 2))) == 2);
+static_assert(default_sum() && guarded_negated(divide(9, 3)) == 3 && guarded_both(Coded{std::unexpect, Reason{5}}) == 5);
+static_assert(!tested_alone(divide(1, 0)) && tested_and(divide(8, 2)) && or_given(divide(9, 0), 7uz) == 7);
 
 // NaN as a sum (#1215): a double is a number or it is not, and an operation
 // decides by cases before it operates.  On the side of numbers equality is
@@ -101,8 +144,9 @@ constexpr Float plus(Float a, Float b) {
 constexpr bool same(Number a, Number b) { return a.v == b.v; }
 static_assert(!classify(std::numeric_limits<double>::quiet_NaN()).has_value());
 static_assert(classify(1.5).has_value() && same(*plus(classify(1.0), classify(2.0)), Number{3.0}));
-// Constant evaluation does not produce a NaN: infinity minus infinity is not
-// a constant, so no sum built at compile time holds one by arithmetic.
+// Clang's constant evaluation does not produce a NaN: infinity minus
+// infinity is not a constant there, so no sum built at compile time holds one
+// by arithmetic.  The standard leaves this to the implementation.
 template <double A, double B>
 concept ConstantSum = requires { typename std::integral_constant<double, A + B>; };
 static_assert(ConstantSum<1.0, 2.0>);

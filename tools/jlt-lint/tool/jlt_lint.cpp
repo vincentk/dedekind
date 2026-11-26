@@ -3809,6 +3809,37 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     }
     return true;
   }
+  /// Whether a variable is written anywhere in the function that declares
+  /// it: assigned, incremented or decremented.
+  bool written(const clang::VarDecl* v) const {
+    const auto* f = llvm::dyn_cast_or_null<clang::FunctionDecl>(v->getDeclContext());
+    if (!f || !f->hasBody()) return true;
+    struct Writes : clang::RecursiveASTVisitor<Writes> {
+      const clang::VarDecl* v = nullptr;
+      bool found = false;
+      static const clang::VarDecl* of(const clang::Expr* e) {
+        const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e->IgnoreParenImpCasts());
+        return d ? llvm::dyn_cast<clang::VarDecl>(d->getDecl()) : nullptr;
+      }
+      bool VisitBinaryOperator(clang::BinaryOperator* b) {
+        if (b->isAssignmentOp() && of(b->getLHS()) == v) found = true;
+        return true;
+      }
+      bool VisitUnaryOperator(clang::UnaryOperator* u) {
+        if (u->isIncrementDecrementOp() && of(u->getSubExpr()) == v) found = true;
+        return true;
+      }
+      bool VisitCXXOperatorCallExpr(clang::CXXOperatorCallExpr* o) {
+        if (o->getNumArgs() > 0 && of(o->getArg(0)) == v &&
+            (o->isAssignmentOp() || o->getOperator() == clang::OO_PlusPlus || o->getOperator() == clang::OO_MinusMinus))
+          found = true;
+        return true;
+      }
+    } w;
+    w.v = v;
+    w.TraverseStmt(f->getBody());
+    return w.found;
+  }
   /// For a test of d against zero, the branch in which d is not zero:
   /// 1 the first (d != 0, d > 0, 0 < d, d), 2 the second (d == 0, !d).
   static int nonZeroIn(const clang::Expr* cond, const clang::ValueDecl* d) {
@@ -3842,6 +3873,10 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     const clang::ValueDecl* d = named(o->getRHS());
     const auto* var = llvm::dyn_cast_or_null<clang::VarDecl>(d);
     if (!var || !(llvm::isa<clang::ParmVarDecl>(var) || var->getType().isConstQualified())) return false;
+    // On a signed type a divisor not zero is not enough: INT_MIN / -1 is
+    // undefined.  And a parameter written anywhere in its function is not
+    // the value the test saw.
+    if (!o->getType()->isUnsignedIntegerType() || written(var)) return false;
     const clang::Stmt* below = o;
     for (const auto& n : ancestors(o)) {
       if (const auto* c = n.get<clang::ConditionalOperator>()) {
@@ -3886,34 +3921,62 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     return d ? d->getDecl() : nullptr;
   }
   /// An observer of a sum: its name, the object it is applied to, or none.
-  /// *x and x-> (an operator call, or a dereference in a template), x.m()
-  /// (a member call, resolved or dependent), and x = y.
+  /// *x and x-> (an operator call, a dereference or a member in a template),
+  /// x.m() (a member call, resolved or dependent), x = y, x == y, and the
+  /// standard's swap and exchange of a sum.
   static std::optional<std::pair<std::string, const clang::Expr*>> observer(const clang::Stmt* st) {
+    using R = std::optional<std::pair<std::string, const clang::Expr*>>;
     if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(st)) {
-      if (o->getNumArgs() == 0 || !isExpected(o->getArg(0)->getType())) return std::nullopt;
+      if (o->getNumArgs() == 0) return std::nullopt;
+      const bool left = isExpected(o->getArg(0)->getType());
+      const bool right = o->getNumArgs() > 1 && isExpected(o->getArg(1)->getType());
       switch (o->getOperator()) {
-        case clang::OO_Star: if (o->getNumArgs() == 1) return std::pair{std::string("*"), o->getArg(0)}; break;
-        case clang::OO_Arrow: return std::pair{std::string("->"), o->getArg(0)};
-        case clang::OO_Equal: return std::pair{std::string("="), o->getArg(0)};
+        case clang::OO_Star: if (left && o->getNumArgs() == 1) return R{{"*", o->getArg(0)}}; break;
+        case clang::OO_Arrow: if (left) return R{{"->", o->getArg(0)}}; break;
+        case clang::OO_Equal: if (left) return R{{"=", o->getArg(0)}}; break;
+        case clang::OO_EqualEqual: case clang::OO_ExclaimEqual:
+          if (left || right) return R{{"==", o->getArg(0)}};
+          break;
         default: break;
       }
       return std::nullopt;
     }
     if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(st))
       if (u->getOpcode() == clang::UO_Deref && isExpected(u->getSubExpr()->getType()))
-        return std::pair{std::string("*"), u->getSubExpr()};
+        return R{{"*", u->getSubExpr()}};
+    if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(st)) {
+      if (b->isAssignmentOp() && isExpected(b->getLHS()->getType())) return R{{"=", b->getLHS()}};
+      if ((b->getOpcode() == clang::BO_EQ || b->getOpcode() == clang::BO_NE) &&
+          (isExpected(b->getLHS()->getType()) || isExpected(b->getRHS()->getType())))
+        return R{{"==", b->getLHS()}};
+      return std::nullopt;
+    }
     if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(st)) {
       const clang::CXXMethodDecl* g = m->getMethodDecl();
       const clang::Expr* obj = m->getImplicitObjectArgument();
       if (!g || !obj || !isExpected(obj->getType())) return std::nullopt;
-      if (llvm::isa<clang::CXXConversionDecl>(g)) return std::pair{std::string("bool"), obj};
-      if (g->getIdentifier()) return std::pair{g->getName().str(), obj};
+      if (llvm::isa<clang::CXXConversionDecl>(g)) return R{{"bool", obj}};
+      if (g->getIdentifier()) return R{{g->getName().str(), obj}};
       return std::nullopt;
     }
-    if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st))
-      if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens()))
-        if (!d->isImplicitAccess() && isExpected(d->getBaseType()) && d->getMember().isIdentifier())
-          return std::pair{d->getMember().getAsString(), d->getBase()};
+    if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st)) {
+      const clang::Expr* callee = c->getCallee()->IgnoreParenImpCasts();
+      if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(callee))
+        if (!d->isImplicitAccess() && !d->isArrow() && isExpected(d->getBaseType()) && d->getMember().isIdentifier())
+          return R{{d->getMember().getAsString(), d->getBase()}};
+      // std::swap(x, y) and std::exchange(x, v) on a sum.
+      std::vector<const clang::NamedDecl*> ds;
+      if (const auto* r = llvm::dyn_cast<clang::DeclRefExpr>(callee)) ds.push_back(r->getDecl());
+      if (const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(callee)) ds.assign(u->decls_begin(), u->decls_end());
+      for (const clang::NamedDecl* d : ds)
+        if (d && d->getIdentifier() && inStd(d) && (d->getName() == "swap" || d->getName() == "exchange"))
+          for (const clang::Expr* arg : c->arguments())
+            if (isExpected(arg->getType())) return R{{"swap", arg}};
+      return std::nullopt;
+    }
+    // x->m in a template: a member of the value the sum holds.
+    if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(st))
+      if (!d->isImplicitAccess() && d->isArrow() && isExpected(d->getBaseType())) return R{{"->", d->getBase()}};
     return std::nullopt;
   }
   /// The ancestors of a node, nearest first, wrappers included.
@@ -3936,37 +3999,88 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       if (n.get<clang::Stmt>() == e) return true;
     return false;
   }
-  /// The condition x.has_value() of a case, and the variable x it tests.
-  static const clang::ValueDecl* tested(const clang::Expr* cond) {
-    if (!cond) return nullptr;
+  /// Whether cond tests the side of x: 1 if it is x.has_value(), -1 if it
+  /// is its negation, 0 if neither.
+  static int test(const clang::Expr* cond, const clang::ValueDecl* x) {
+    if (!cond || !x) return 0;
     cond = cond->IgnoreParenImpCasts();
-    if (auto o = observer(cond); o && o->first == "has_value") return named(o->second);
-    return nullptr;
+    if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(cond); u && u->getOpcode() == clang::UO_LNot)
+      return -test(u->getSubExpr(), x);
+    if (auto o = observer(cond); o && o->first == "has_value" && named(o->second) == x) return 1;
+    return 0;
   }
-  /// The kernel's case on a sum: c ? t : e, or if (c) t else e, with c the
-  /// test x.has_value() of a variable x.  An occurrence of *x, x->m or
-  /// x.error() is part of one when the nearest such choice on the same x
-  /// holds it in the branch that knows the side: the first for *x and x->,
-  /// the second for x.error().
-  bool inCase(const clang::Expr* occurrence, const clang::ValueDecl* x, bool first) const {
-    if (!x) return false;
-    for (const auto& n : ancestors(occurrence)) {
-      const clang::Stmt* branch1 = nullptr;
-      const clang::Stmt* branch2 = nullptr;
-      const clang::Expr* cond = nullptr;
-      if (const auto* c = n.get<clang::ConditionalOperator>()) {
-        cond = c->getCond(); branch1 = c->getTrueExpr(); branch2 = c->getFalseExpr();
-      } else if (const auto* i = n.get<clang::IfStmt>()) {
-        if (i->isConsteval() || i->isConstexpr()) continue;
-        cond = i->getCond(); branch1 = i->getThen(); branch2 = i->getElse();
-      } else {
-        continue;
+  /// Whether a statement always returns: a return, or a block ending in one.
+  static bool returns(const clang::Stmt* s) {
+    if (const auto* c = llvm::dyn_cast_or_null<clang::CompoundStmt>(s); c && !c->body_empty()) s = c->body_back();
+    return s && llvm::isa<clang::ReturnStmt>(s);
+  }
+  /// The side of x that is known where an occurrence stands: 1 the value,
+  /// 2 the other side, 0 neither.  The nearest test of x decides, so an inner
+  /// case on x takes its readings (they are maximal): a branch of a choice,
+  /// c ? t : e or if, on the test or its negation; the right operand of &&
+  /// or ||; and the statements after a guard, if (test) return ...; that has
+  /// no else.  A lambda, a function or a declaration other than a variable's
+  /// ends the search: no test outside it is known inside.
+  int knownSide(const clang::Stmt* occ, const clang::ValueDecl* x) const {
+    if (!x) return 0;
+    const auto side = [](int t, bool first) { return t == 0 ? 0 : ((t > 0) == first ? 1 : 2); };
+    const clang::Stmt* child = occ;
+    for (const auto& n : ancestors(occ)) {
+      const clang::Stmt* s = n.get<clang::Stmt>();
+      if (!s) {
+        if (n.get<clang::VarDecl>()) continue;
+        return 0;
       }
-      if (tested(cond) != x) continue;
-      if (within(occurrence, cond)) return false;
-      return first ? within(occurrence, branch1) : (branch2 && within(occurrence, branch2));
+      if (llvm::isa<clang::LambdaExpr>(s)) return 0;
+      if (const auto* c = llvm::dyn_cast<clang::ConditionalOperator>(s)) {
+        const int t = test(c->getCond(), x);
+        if (t && child == c->getTrueExpr()) return side(t, true);
+        if (t && child == c->getFalseExpr()) return side(t, false);
+      } else if (const auto* i = llvm::dyn_cast<clang::IfStmt>(s)) {
+        if (!i->isConsteval() && !i->isConstexpr()) {
+          const int t = test(i->getCond(), x);
+          if (t && child == i->getThen()) return side(t, true);
+          if (t && child == i->getElse()) return side(t, false);
+        }
+      } else if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(s)) {
+        if (child == b->getRHS() && (b->getOpcode() == clang::BO_LAnd || b->getOpcode() == clang::BO_LOr)) {
+          const int t = test(b->getLHS(), x);
+          if (t) return side(t, b->getOpcode() == clang::BO_LAnd);
+        }
+      } else if (const auto* b = llvm::dyn_cast<clang::CompoundStmt>(s)) {
+        // The nearest guard before the statement that holds the occurrence.
+        int found = 0;
+        for (const clang::Stmt* e : b->body()) {
+          if (e == child) break;
+          const auto* i = llvm::dyn_cast<clang::IfStmt>(e);
+          if (!i || i->getElse() || i->isConstexpr() || i->isConsteval() || !returns(i->getThen())) continue;
+          if (const int t = test(i->getCond(), x)) found = side(t, false);
+        }
+        if (found) return found;
+      }
+      child = s;
     }
-    return false;
+    return 0;
+  }
+  /// How a has_value() call stands: as the test of a choice, 2; as its
+  /// negation, or the left operand of && or ||, 1; otherwise 0.
+  static int testPosition(const clang::Stmt* st, const std::vector<clang::DynTypedNode>& up) {
+    bool negated = false;
+    const clang::Stmt* child = st;
+    for (const auto& n : up) {
+      const clang::Stmt* s = n.get<clang::Stmt>();
+      if (!s) return 0;
+      if (llvm::isa<clang::ImplicitCastExpr, clang::ParenExpr, clang::ExprWithCleanups>(s)) { child = s; continue; }
+      if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(s); u && u->getOpcode() == clang::UO_LNot) {
+        negated = !negated; child = s; continue;
+      }
+      if (const auto* c = llvm::dyn_cast<clang::ConditionalOperator>(s)) return child == c->getCond() ? (negated ? 1 : 2) : 0;
+      if (const auto* i = llvm::dyn_cast<clang::IfStmt>(s)) return child == i->getCond() ? (negated ? 1 : 2) : 0;
+      if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(s))
+        return (child == b->getLHS() && (b->getOpcode() == clang::BO_LAnd || b->getOpcode() == clang::BO_LOr)) ? 1 : 0;
+      return 0;
+    }
+    return 0;
   }
   /// A case whose two branches have different types, one converted to the
   /// other: the elimination asks one type of both.
@@ -3982,75 +4096,148 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       default: return true;
     }
   }
+  /// The two types of a sum, where they are known.
+  static std::pair<clang::QualType, clang::QualType> sides(clang::QualType t) {
+    if (t.isNull()) return {};
+    t = t.getNonReferenceType().getUnqualifiedType();
+    if (const auto* s = llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(t->getAsCXXRecordDecl())) {
+      const auto& a = s->getTemplateArgs();
+      if (a.size() >= 2 && a[0].getKind() == clang::TemplateArgument::Type &&
+          a[1].getKind() == clang::TemplateArgument::Type)
+        return {a[0].getAsType(), a[1].getAsType()};
+    }
+    return {};
+  }
+  /// Whether a value converted to the type to loses values: an integer to
+  /// one that cannot hold it, a floating value to an integer or to a
+  /// narrower floating type.
+  bool narrowsTo(const clang::Expr* e, clang::QualType to) const {
+    if (!ctx || !e || to.isNull() || to->isDependentType()) return false;
+    e = e->IgnoreParenImpCasts();
+    const clang::QualType from = e->getType();
+    if (from.isNull() || from->isDependentType()) return false;
+    to = to.getNonReferenceType().getUnqualifiedType();
+    if (from->isRealFloatingType() && to->isIntegralOrEnumerationType()) return true;
+    if (from->isRealFloatingType() && to->isRealFloatingType())
+      return ctx->getTypeSize(from) > ctx->getTypeSize(to);
+    return narrows(e, to);
+  }
+  static bool sameType(clang::QualType a, clang::QualType b) {
+    return !a.isNull() && !b.isNull() &&
+           a.getNonReferenceType().getCanonicalType().getUnqualifiedType() ==
+               b.getNonReferenceType().getCanonicalType().getUnqualifiedType();
+  }
+  static const clang::TemplateDecl* templateOf(clang::QualType t) {
+    if (const auto* ts = t->getAs<clang::TemplateSpecializationType>()) return ts->getTemplateName().getAsTemplateDecl();
+    if (const auto* s = llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(t->getAsCXXRecordDecl()))
+      return s->getSpecializedTemplate();
+    return nullptr;
+  }
+  static bool namedStd(clang::QualType t, llvm::StringRef name) {
+    t = t.getNonReferenceType().getUnqualifiedType();
+    if (const auto* r = t->getAsCXXRecordDecl(); r && r->getIdentifier() && r->getName() == name && inStd(r)) return true;
+    const clang::TemplateDecl* td = templateOf(t);
+    return td && td->getIdentifier() && td->getName() == name && inStd(td);
+  }
+  /// The kind of a construction of a sum of type sum from its arguments:
+  /// by the tag that names the side (kernel), the payload of that side's
+  /// type; by conversion (sugar), from a value or from unexpected; empty,
+  /// the first side's default value (sugar); a copy (no kind of its own);
+  /// a narrowing payload, or a sum of another type, refused.
+  std::optional<std::string> introduction(clang::QualType sum, const std::vector<const clang::Expr*>& args) const {
+    const auto [first, second] = sides(sum);
+    if (args.empty()) return std::string("Sum:inl-converted");
+    const clang::QualType t = args[0]->getType();
+    const auto payload = [&](clang::QualType side, const char* exact) -> std::optional<std::string> {
+      if (args.size() != 2) return std::string("Sum:other");
+      if (narrowsTo(args[1], side)) return std::string("Conversion:narrowing");
+      if (!side.isNull() && !args[1]->getType()->isDependentType() && !side->isDependentType() &&
+          !sameType(args[1]->IgnoreParenImpCasts()->getType(), side))
+        return std::string(exact) + "-converted";
+      return std::string(exact);
+    };
+    if (namedStd(t, "in_place_t")) return payload(first, "Sum:inl");
+    if (namedStd(t, "unexpect_t")) return payload(second, "Sum:inr");
+    if (namedStd(t, "unexpected")) {
+      clang::QualType held;  // the G of unexpected<G>
+      if (const auto* s = llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
+              t.getNonReferenceType()->getAsCXXRecordDecl()))
+        if (s->getTemplateArgs().size() == 1 && s->getTemplateArgs()[0].getKind() == clang::TemplateArgument::Type)
+          held = s->getTemplateArgs()[0].getAsType();
+      if (!held.isNull() && !second.isNull() && held->isArithmeticType() && second->isArithmeticType()) {
+        const bool floatToInt = held->isRealFloatingType() && second->isIntegralOrEnumerationType();
+        if (floatToInt || (held->isIntegerType() && second->isIntegerType() && !fits(held, second)))
+          return std::string("Conversion:narrowing");
+      }
+      return std::string("Sum:inr-converted");
+    }
+    if (namedStd(t, "expected")) {
+      if (sameType(t, sum)) return std::nullopt;  // a copy
+      return std::string("Sum:other");             // another sum, its sides converted
+    }
+    if (narrowsTo(args[0], first)) return std::string("Conversion:narrowing");
+    return std::string("Sum:inl-converted");
+  }
   /// The sum's forms: the kind of a construction of an expected, of an
   /// observer, or none.
   std::optional<std::string> sumKind(const clang::Stmt* st) const {
-    // Introductions.  A construction of an expected: by the tag that says
-    // the side (kernel), by conversion from a value or from unexpected
-    // (sugar), copied (no kind of its own), or empty (refused: no side).
-    const auto introduction = [](const clang::Expr* first, unsigned args) -> std::optional<std::string> {
-      if (args == 0) return std::string("Sum:other");
-      const clang::QualType t = first->getType().getNonReferenceType().getUnqualifiedType();
-      if (const auto* r = t->getAsCXXRecordDecl(); r && r->getIdentifier() && inStd(r)) {
-        if (r->getName() == "in_place_t") return std::string("Sum:inl");
-        if (r->getName() == "unexpect_t") return std::string("Sum:inr");
-        if (r->getName() == "unexpected") return std::string("Sum:inr-converted");
-        if (r->getName() == "expected") return std::nullopt;  // a copy
-      }
-      if (const auto* ts = t->getAs<clang::TemplateSpecializationType>())
-        if (const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl();
-            td && td->getIdentifier() && inStd(td)) {
-          if (td->getName() == "unexpected") return std::string("Sum:inr-converted");
-          if (td->getName() == "expected") return std::nullopt;
-        }
-      return std::string("Sum:inl-converted");
-    };
     // std::unexpected(b), the second side written apart, to be converted.
-    if (const auto* f = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(st)) {
-      const clang::QualType t = f->getType();
-      const auto* r = t->getAsCXXRecordDecl();
-      const auto* ts = t->getAs<clang::TemplateSpecializationType>();
-      const clang::TemplateDecl* td = ts ? ts->getTemplateName().getAsTemplateDecl() : nullptr;
-      if ((r && r->getIdentifier() && r->getName() == "unexpected" && inStd(r)) ||
-          (td && td->getIdentifier() && td->getName() == "unexpected" && inStd(td)))
-        return std::string("Sum:inr-converted");
-    }
+    if (const auto* f = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(st); f && namedStd(f->getType(), "unexpected"))
+      return std::string("Sum:inr-converted");
+    const auto list = [](auto range) {
+      std::vector<const clang::Expr*> v;
+      for (const clang::Expr* e : range)
+        if (!llvm::isa<clang::CXXDefaultArgExpr>(e)) v.push_back(e);
+      return v;
+    };
     if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(st); c && isExpected(c->getType())) {
-      if (c->getConstructor()->isCopyOrMoveConstructor()) return std::nullopt;
-      return introduction(c->getNumArgs() ? c->getArg(0) : nullptr, c->getNumArgs());
+      if (c->getConstructor()->isCopyOrMoveConstructor() && c->getNumArgs() == 1 &&
+          sameType(c->getArg(0)->getType(), c->getType()))
+        return std::nullopt;
+      return introduction(c->getType(), list(c->arguments()));
     }
     if (const auto* c = llvm::dyn_cast<clang::CXXUnresolvedConstructExpr>(st); c && isExpected(c->getTypeAsWritten()))
-      return introduction(c->getNumArgs() ? c->getArg(0) : nullptr, c->getNumArgs());
+      return introduction(c->getTypeAsWritten(), list(c->arguments()));
     if (const auto* l = llvm::dyn_cast<clang::InitListExpr>(st); l && isExpected(l->getType()) && l->getType()->isDependentType())
-      return introduction(l->getNumInits() ? l->getInit(0) : nullptr, l->getNumInits());
+      return introduction(l->getType(), list(l->inits()));
     // Observers.
     const auto o = observer(st);
     if (!o) return std::nullopt;
     const auto& [name, obj] = *o;
     const clang::ValueDecl* x = named(obj);
     if (name == "has_value") {
-      // The test of a case: the condition of a choice, on a variable.
-      for (const auto& n : ancestors(st)) {
-        const clang::Expr* cond = nullptr;
-        if (const auto* c = n.get<clang::ConditionalOperator>()) cond = c->getCond();
-        else if (const auto* i = n.get<clang::IfStmt>()) cond = i->getCond();
-        else if (n.get<clang::ImplicitCastExpr>() || n.get<clang::ParenExpr>() || n.get<clang::ExprWithCleanups>()) continue;
-        if (cond && x && cond->IgnoreParenImpCasts() == st) {
-          if (const auto* c = n.get<clang::ConditionalOperator>(); c && convertedBranches(c))
-            return std::string("Sum:case-converted");
-          return std::string("Sum:case");
-        }
-        break;
+      if (!x) return std::string("Sum:other");
+      const auto up = ancestors(st);
+      const int pos = testPosition(st, up);
+      if (pos == 2) {
+        for (const auto& n : up)
+          if (const auto* c = n.get<clang::ConditionalOperator>()) {
+            if (convertedBranches(c)) return std::string("Sum:case-converted");
+            break;
+          } else if (n.get<clang::IfStmt>()) {
+            break;
+          }
+        return std::string("Sum:case");
       }
-      return std::string("Sum:other");
+      // The test negated, or joined by && or ||, and the test alone: the
+      // case with its branches swapped, or with true and false for them.
+      return std::string(pos == 1 ? "Sum:case-sugar" : "Sum:test");
     }
-    if (name == "*" || name == "->") return inCase(llvm::cast<clang::Expr>(st), x, true) ? "Sum:case" : "Sum:other";
-    if (name == "error") return inCase(llvm::cast<clang::Expr>(st), x, false) ? "Sum:case" : "Sum:other";
-    if (name == "value_or" || name == "error_or") return std::string("Sum:value-or");
+    if (name == "*" || name == "->") return knownSide(st, x) == 1 ? "Sum:case" : "Sum:other";
+    if (name == "error") return knownSide(st, x) == 2 ? "Sum:case" : "Sum:other";
+    if (name == "value_or" || name == "error_or") {
+      const auto [first, second] = sides(obj->getType());
+      const auto* m = llvm::dyn_cast<clang::CallExpr>(st);
+      if (m && m->getNumArgs() == 1 && narrowsTo(m->getArg(0), name == "value_or" ? first : second))
+        return std::string("Conversion:narrowing");
+      return std::string("Sum:value-or");
+    }
     if (name == "transform" || name == "and_then" || name == "or_else" || name == "transform_error")
       return std::string("Sum:map");
-    // value() throws on the other side, operator bool is the test spelled
-    // otherwise, emplace, swap and = change a sum's side.
+    // value() throws on the other side; operator bool is the test spelled
+    // otherwise; == at a sum is not constrained by its parts in C++23; and
+    // =, emplace, swap and exchange write a sum, which between its test and
+    // a reading would make the reading wrong.
     return std::string("Sum:other");
   }
   bool VisitStmt(clang::Stmt* st) {
@@ -4120,7 +4307,8 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
         if (!v && divides && guarded(o)) {
           // Division by a value that a test has shown not zero: the kernel's
           // division, defined where it stands (the exhibit of #1222).
-        } else if (!v || (divides && *v == 0) || (shifts && (v->isNegative() || *v >= width))) {
+        } else if (!v || (divides && *v == 0) || (divides && o->getType()->isSignedIntegerType() && *v == -1) ||
+                   (shifts && (v->isNegative() || *v >= width))) {
           kinds.insert(divides ? "Op:division-by-value" : "Op:shift-by-value");
         }
       }
