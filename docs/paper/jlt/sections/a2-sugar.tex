@@ -6,7 +6,7 @@
 \label{app:derived}
 
 Table~\ref{tab:derived} lists the sugar of Section~\ref{sec:kernel:derived}: each form with the kernel program it is read as, and the condition under which that reading keeps every value.
-The linter reads the same list, in its classification of syntax kinds (Appendix~\ref{app:lint}), so a definition is in FJlt exactly when it uses none of them.
+The linter reads the same list, in its classification of syntax kinds (Appendix~\ref{app:lint}), so a definition of Jlt is in FJlt exactly when it uses none of them, and a form with no row leaves a definition that uses it undecided.
 How the linter checks a row, what it leaves undecided there and the fixture that pins it are written at the check itself, in the linter's source, and collected from there into its reference~\cite{Krautler_dedekind_2026}.\footnote{\url{https://vincentk.github.io/dedekind/jlt-lint/sugar.html}}
 
 Local mutable state is read by state passing, and needs one condition: at every point, each piece of storage is reached through one name only, since a write through one name would otherwise change what another reads.
@@ -28,7 +28,7 @@ sugar & read as & condition \\
 \caption{The sugar, each form with the kernel program it is read as and the condition for that reading to keep every value.
 A mark says who holds a condition: (L) the linter checks it, (U) the linter leaves a definition that uses the form undecided, (T) it is trusted.
 An implicit conversion that does not narrow is a coercion inserted by elaboration~\cite{reynolds1980conversions,breazutannen1991inheritance}, and \Cpp{} fixes where the coercions go, by the usual arithmetic conversions~\cite[\texttt{expr.arith.conv}]{cpp23standard}.
-A floating type is a carrier, its operations total, and no law of them is declared, not even commutativity; the ledger of laws refuses one (Appendix~\ref{app:lint}).}
+A floating type is a carrier, its operations total, and no law of them is declared, not even commutativity; the linter's list of axioms refuses one (Section~\ref{sec:check}).}
 \label{tab:derived}
 \endlastfoot
 a constrained template parameter, \texttt{template <C T>} & \texttt{template <typename T> requires C<T>} & none \\

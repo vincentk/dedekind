@@ -14,7 +14,7 @@ It is defined where $\theta$ exists, which well-formedness asks (Appendix~\ref{a
 
 \begin{definition}[The target; System~F of Girard~\cite{girard1972interpretation} and Reynolds~\cite{reynolds1974towards}, extended]
 \label{def:target}
-System~F~\cite{girard1989proofs} with products and sums, the atoms and the carriers as constant types with their constants and $\delta$-rules, a conditional on $\mathit{Bool}$, and the naturals $\mathbb{N}$ with the iterator $\mathit{iter}$.
+System~F~\cite{girard1989proofs} with products, the unit type and sums, the atoms and the carriers as constant types with their constants and $\delta$-rules, a conditional on $\mathit{Bool}$, and the naturals $\mathbb{N}$ with the iterator $\mathit{iter}$ and the coercion $\mathit{toNat}$ from the counts, a ground rule from a constant to its numeral.
 The iterator reduces by $\mathit{iter}\,(k{+}1)\,s\,z \longrightarrow \mathit{iter}\,k\,s\,(s\,z)$ and $\mathit{iter}\,0\,s\,z \longrightarrow z$, and the conditional by $\mathit{if}\,\mathit{true}\,t\,u \longrightarrow t$ and $\mathit{if}\,\mathit{false}\,t\,u \longrightarrow u$, and the case of a sum by $\mathit{case}\,(\mathit{inl}\,a)\,f\,g \longrightarrow f\,a$ and $\mathit{case}\,(\mathit{inr}\,b)\,f\,g \longrightarrow g\,b$.
 Reduction in the target is full $\beta$-reduction, any redex anywhere, together with projections, the conditional, the case, the $\delta$-rules of the constants, the unfolding of a defined name to its body and the two iterator rules; no evaluation order is imposed.
 \end{definition}
@@ -42,7 +42,7 @@ The primitives' translations compute the standard's functions on constants: a $\
 \begin{assumption}[The instance]
 \label{ass:instance}
 Every carrier has a value.
-The arrows supplied with carriers take and give atoms and carriers only, not pairs or sums.
+The arrows supplied with carriers take and give atoms and carriers only, not pairs or sums; the sum's own arrows are not among them, their images being terms of the target and not constants.
 The constants of the carriers and of the arrows supplied with them have $\delta$-rules that are first-order rules on constants, terminating, conservative and confluent, with no critical pair against the other rules of the target.
 \end{assumption}
 
@@ -223,7 +223,7 @@ rule & its image has its type, because \\
 \endgroup
 \case{\textsc{D-Generic}}the body is typed${}^{\textsc{ih}}$ under $\overline{\alpha}$, the variables $\overline{\chi}$ of its associated types, the record variables $\overline{q : \llbracket Q \rrbracket}$ and $\overline{x : \llbracket \tau_x \rrbracket}$, so the abstraction has the stated type, $\tau$ the written result type.
 Its calls on constrained types are \textsc{T-Req-Assumed}, and its other calls are to declarations it depends on, no body calling its own function, directly or through another, so the measure of Lemma~\ref{lem:dict}'s proof gives the induction hypothesis for them.
-\case{\textsc{T-Construct}}$O_{\mathrm{call}}$ has the type $\forall\overline{\alpha'}.\,\forall\overline{\chi}.\,\overline{\llbracket \tau_y \rrbracket} \to \overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau_r \rrbracket$ under $\Delta_O$, its body typed as a generic function's${}^{\textsc{ih}}$ (by \textsc{D-Op}), and a standard one's is its constant's type in the target (Definition~\ref{def:target}).
+\case{\textsc{T-Construct}}$O_{\mathrm{call}}$ has the type $\forall\overline{\alpha'}.\,\forall\overline{\chi}.\,\overline{\llbracket \tau_y \rrbracket} \to \overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau_r \rrbracket$ under $\Delta_O$, its body typed as a generic function's${}^{\textsc{ih}}$ (by \textsc{D-Op}), a standard one's is its constant's type in the target (Definition~\ref{def:target}), and the sum's three given terms have the types Figure~\ref{fig:fjlt-types} assigns, by the target's rules for injections and case.
 The rule's premise $\Delta \vdash O\texttt{<}\overline{\tau}\texttt{>}$ defines the types $\overline{\tau'}$ at the kept $\overline{\alpha'}$ and the images $\overline{\llbracket \rho \rrbracket}$ of the reads, so $O_{\mathrm{call}}\,\overline{\llbracket \tau' \rrbracket}\,\overline{\llbracket \rho \rrbracket}$ has that type with them substituted (Theorem~\ref{cit:subst}), and applied to the fields it has the second component of $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$, by its definition (Figure~\ref{fig:fjlt-types}).
 The fields are typed at $\tau_y[\overline{\tau}/\overline{\alpha}]$${}^{\textsc{ih}}$, whose image is $\llbracket \tau_y \rrbracket$ so substituted${}^{\ddagger}$, the premise's \texttt{same\_as} constraints being the hypothesis of Lemma~\ref{lem:subst}~(i) at $\Delta_O$; so the pair has type $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$.
 \case{\textsc{T-Op} and \textsc{T-App}}$\pi_2\,\llbracket e \rrbracket$ has the call function's type${}^{\textsc{ih}}$, at the object's types, the second component of $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$ (by \textsc{T-Construct}); the dictionaries $\overline{\llbracket \Delta \Vdash Q[\overline{\tau}/\overline{\alpha}] \rrbracket}$, for the constraints other than \texttt{same\_as}, have the parameter types${}^{\dagger}$ and the arguments theirs${}^{\textsc{ih}}$, both by Lemma~\ref{lem:subst}~(i) at $\Delta_O$, whose \texttt{same\_as} hypothesis \textsc{T-App}'s entailment premise gives by \textsc{E-Same}.
@@ -389,7 +389,7 @@ source step & target steps & landing, because \\
 \textsc{S-Std}, \textsc{S-Prim} & a projection where there is one, then a $\delta$-step & the value the standard or the declaration assigns, by Definition~\ref{def:standard} \\
 \textsc{S-If} & a reduction of the conditional & to the selected branch \\
 \textsc{S-Inj} & a projection, then $\beta$-reduction & the injection, at the other alternative's type \\
-\textsc{S-Copair} & projections, type application and $\beta$-reduction, then the case, then a projection of the record & the required call of the arrow the alternative chooses, applied to the arrow and the value it holds, which reduces as \textsc{S-Op} below \\
+\textsc{S-Copair} & projections, type application and $\beta$-reduction, then the case, then a projection of the record & the required call of the arrow the alternative chooses, applied to the arrow and the value it holds, the image of the call the source stepped to, by Lemma~\ref{lem:resolve} \\
 \textsc{S-Proj} & a projection, two for a constructed object's field & the selected component \\
 \textsc{S-Fold} & several & below \\
 \end{longtable}

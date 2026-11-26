@@ -536,14 +536,14 @@ Table~\ref{tab:posture} sets them side by side.
 \small
 \begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-rule & keeps out of Jlt & buys & costs & held by \\
+rule & keeps out & buys & costs & held by \\
 \midrule
 1 Substitution & state, pointers, exceptions & one program, at compile time and at run time & no state beyond a call's own locals, no I/O & $\ast$~in part\newline $\dagger$~syntax \\
 2 Abstraction & a body using what its constraints do not name & parametricity & no ad hoc use of a type & $\dagger$~names\newline $\ddagger$~the rest \\
 3 Descent & unbounded loops, general recursion & termination & a bound on every fold, stated before it starts & $\ast$~compile time\newline $\dagger$, $\ddagger$~loops \\
 \bottomrule
 \end{tabularx}
-\caption{The posture at a glance: what each rule keeps out of Jlt, what it buys, what it costs and who holds it: $\ast$~the compiler, $\dagger$~the linter, $\ddagger$~review, by a person or an agent, which checks nothing.}
+\caption{The posture at a glance: what each rule keeps out, what it buys, what it costs and who holds it: $\ast$~the compiler, $\dagger$~the linter, $\ddagger$~review, by a person or an agent, which checks nothing.}
 \label{tab:posture}
 \end{table}
 

@@ -75,7 +75,7 @@ An archetype is named as in the linter's header, \texttt{tools/jlt-lint/archetyp
 \paragraph{The levels, at scale.}
 \label{app:lint:summary}
 Table~\ref{tab:summary} counts definitions, as Table~\ref{tab:levels} does for the listings, and by the same rule.
-A definition is a declaration directly in the namespace judged.
+A definition is a declaration directly in the namespace judged, and the linter's list classes every kind of syntax it uses as kernel, sugar, scaffolding (modules, namespaces, assertions), refused, or still open.
 It is refused when a deny-rule finds something in its lines, when it uses a kind of syntax the linter's list refuses, or when the type check does not admit it; undecided when it uses a kind still open or the type check leaves it undecided; in Jlt when every kind is kernel, scaffolding or sugar, and some kind is sugar; and in FJlt otherwise.
 A kind is coarser than the grammar, so a level counts what a definition writes, not everything it means: the deny-rules and the type check supply the rest.
 The table's last column counts definitions as well, each once, by the first outcome the type check gives within its lines.

@@ -111,7 +111,7 @@ A required call is checked at its declared type (\textsc{E-Op}), so the field ho
 \texttt{struct } O \texttt{ \{ } \overline{y}\texttt{; ... operator()(}\overline{x}\texttt{) ... requires } \overline{Q}\texttt{ ... } e \texttt{ ... \};} & \note{a function object's call function} \\
 \qquad \mapsto\; O_{\mathrm{call}} = \Lambda\overline{\alpha}.\,\Lambda\overline{\chi}.\,\lambda\overline{y}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \note{$\overline{\alpha}$ the type variables its unifier $\theta_O$ keeps} \\
 \texttt{Inl} \;\mapsto\; \mathit{Inl}_{\mathrm{call}} = \Lambda\alpha\,\beta.\,\lambda a.\,\mathit{inl}_{\beta}\,a, \quad \texttt{Inr} \text{ alike} & \note{the sum's arrows, given: their calls' images are the target's injections and case} \\
-\texttt{Copairing} \;\mapsto\; \mathit{Copairing}_{\mathrm{call}} = \Lambda\varphi\,\gamma.\,\Lambda\delta_f\,\delta_g\,\rho. & \note{$\delta_f$, $\delta_g$, $\rho$ the reads $\mathit{dom}\,\varphi$, $\mathit{dom}\,\gamma$, $\mathit{cod}\,\varphi$; $q_f$, $q_g$ the records of its call's two shapes, passed by \textsc{T-App} (Appendix~\ref{app:fjlt:sums})} \\
+\texttt{Copairing} \;\mapsto\; \mathit{Copairing}_{\mathrm{call}} = \Lambda\varphi\,\gamma.\,\Lambda\rho\,\delta_f\,\delta_g. & \note{$\rho$, $\delta_f$, $\delta_g$ the reads $\mathit{cod}\,\varphi$, $\mathit{dom}\,\varphi$, $\mathit{dom}\,\gamma$, in the order its constraints name them; $q_f$, $q_g$ the records of its call's two shapes, passed by \textsc{T-App} (Appendix~\ref{app:fjlt:sums})} \\
 \qquad \lambda f\,g.\,\lambda q_f\,q_g.\,\lambda s.\,\mathit{case}_{\rho}\,s\,(q_f.\mathit{call}\,f)\,(q_g.\mathit{call}\,g) & \\
 O \text{ standard, or supplied with a carrier} \;\mapsto\; O_{\mathrm{call}} = \Lambda\overline{\alpha}.\,o_{\overline{\alpha}} & \note{such as \texttt{std::plus}: no field, constraint or associated type, so the construction below gives $((), o_{\overline{\llbracket \tau \rrbracket}})$; $o$ a constant of the target} \\
 \texttt{concept}, \text{ an associated type and its entries} \;\mapsto\; \text{nothing} & \note{resolved before the translation} \\[6pt]
@@ -129,7 +129,7 @@ O \text{ standard, or supplied with a carrier} \;\mapsto\; O_{\mathrm{call}} = \
 \llbracket e_0 \texttt{ ? } e_1 \texttt{ : } e_2 \rrbracket = \mathit{if}\,\llbracket e_0 \rrbracket\,\llbracket e_1 \rrbracket\,\llbracket e_2 \rrbracket & \note{the conditional of the target's \textit{Bool}} \\
 \end{array}
 \]
-\caption{The translation of declarations and terms; pairs, sums and the iteration are the target's own (Table~\ref{tab:kernel}).
+\caption{The translation of declarations and terms; pairs, sums and the iteration are the target's own (Table~\ref{tab:kernel}), \texttt{pair\{a, b\}} the pair $(a, b)$ and \texttt{.first}, \texttt{.second} its projections $\pi_1$, $\pi_2$.
 A declaration becomes a definition of the target, written $D \mapsto f = t$; a term translates to a term, $\llbracket e \rrbracket = t$.
 $\alpha\texttt{\{\}}$ at a type variable has no line: it stands only inside a required call, whose image is the field of the requirement.}
 \label{fig:fjlt-translation}
@@ -185,7 +185,7 @@ term & typed by & image \\
 \midrule
 \texttt{E\{\}()} & \textsc{T-Req-Assumed} at \texttt{carrier\_t<E>}, then \textsc{T-Eq} by \textsc{Eq-Same} at \texttt{T} & $q.\mathit{um}.\mathit{unit}$ \\
 \texttt{pair<T, T>\{E\{\}(), x\}} & the rule for pairs & $(q.\mathit{um}.\mathit{unit}, x)$ \\
-\texttt{Squaring<E>\{n\}} & \textsc{T-Construct}: $\Delta_P$ holds both reads at \texttt{E}, and the call has no \texttt{same\_as} & $(n, \mathit{Squaring}_{\mathrm{call}}\,E\,T\,\mathit{Op}\,n)$ \\
+\texttt{Squaring<E>\{n\}} & \textsc{T-Construct}: \texttt{power}'s context holds both reads at \texttt{E}, and the call has no \texttt{same\_as} & $(n, \mathit{Squaring}_{\mathrm{call}}\,E\,T\,\mathit{Op}\,n)$ \\
 its call on \texttt{s} and \texttt{i} & \textsc{T-App}: \texttt{IsMonoid<E>} by \textsc{E-Assume}; parameter and result types equal to \texttt{pair<T, T>} by \textsc{T-Eq} & $(\pi_2\,(n, \mathit{Squaring}_{\mathrm{call}}\,E\,T\,\mathit{Op}\,n))\,q\,s\,i$ \\
 the fold & \textsc{T-Iter}, its count \texttt{size\_t(bit\_width(n))}, one primitive & Figure~\ref{fig:fjlt-recursion} \\
 \texttt{.first} & the rule for pairs & $\pi_1$ \\
