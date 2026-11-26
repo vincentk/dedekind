@@ -212,7 +212,7 @@ An associated type is a trait whose result is a type (Section~\ref{sec:kernel:fj
 \cppinline{op_of} in Listing~\ref{lst:motivation} is one, with an entry for each monoid, and the standard's \cppinline{range_value_t} is another.
 The kernel is given a third and a fourth, \cppinline{cod} and \cppinline{dom}, the codomain and domain of an arrow: the result type of its call, by \textsc{Eq-Cod}, and the type of its one parameter, by \textsc{Eq-Dom}, an arrow's two objects in the definition of a category~\cite[Definition~1.1.1]{pierce1991basic}.
 Its one entry reads the type of the call operator, which the grammar cannot write, and it is a function because an arrow of the kernel has exactly one call, never a template (Figure~\ref{fig:fjlt-syntax}); like \Cpp{}, it names a type only where that call's constraints hold, since the address of a call whose constraints fail is ill formed~\cite[\texttt{expr.prim.id.general}]{cpp23standard}.
-Below, a read resolved at concrete types by \textsc{Eq-Assoc} includes one resolved by \textsc{Eq-Cod}, and ``the type its entry names'' includes \textsc{Eq-Cod}'s $\rho$; a read of a read, as \cppinline{cod<op_of<All>::type>::type}, resolves from the inside out, by congruence and then \textsc{Eq-Cod}.
+Below, a read resolved at concrete types by \textsc{Eq-Assoc} includes one resolved by \textsc{Eq-Cod} or \textsc{Eq-Dom}, and ``the type its entry names'' includes \textsc{Eq-Cod}'s $\rho$ and \textsc{Eq-Dom}'s $\sigma$; a read of a read, as \cppinline{cod<op_of<All>::type>::type}, resolves from the inside out, by congruence and then \textsc{Eq-Cod}.
 \Cpp{} in general has no such function, since a function object may have several calls or a template of them, and a shape cannot bind a type that it is not given: the restriction is what makes the carrier of \cppinline{IsMagma} a read, \cppinline{cod_t<op_t<E>>}, and not a second declaration.
 A relation, as an order from two values of a carrier to a truth value, has \cppinline{bool} as its codomain, so its carrier is read elsewhere: from a shape that already has it, as an order on the carrier of a monoid, or, for a relation standing alone, from the type of its call's parameters, a function of the arrow for the same reason, which the listings do not need.
 Figure~\ref{fig:fjlt-assoc} gives its rules.
@@ -253,9 +253,10 @@ Omitted as textbook: that $\equiv$ is reflexive, symmetric, transitive and a con
 
 \paragraph{Sums.}
 \label{app:fjlt:sums}
-The sum's three arrows are named types given to the kernel with their calls, as an arrow supplied with a carrier is: \cppinline{Inl<A, B>} and \cppinline{Inr<A, B>}, with no fields, and the calls $A \to \texttt{variant<A, B>}$ and $B \to \texttt{variant<A, B>}$, and \cppinline{Copairing<F, G>}, with the fields \cppinline{f} and \cppinline{g} and the call $\texttt{variant<dom<F>::type, dom<G>::type>} \to \texttt{cod<F>::type}$ under \cppinline{same_as<cod<F>::type, cod<G>::type>}.
+The sum's three arrows are named types given to the kernel with their calls, as an arrow supplied with a carrier is: \cppinline{Inl<A, B>} and \cppinline{Inr<A, B>}, with no fields, and the calls $A \to \texttt{variant<A, B>}$ and $B \to \texttt{variant<A, B>}$, and \cppinline{Copairing<F, G>}, with the fields \cppinline{f} and \cppinline{g} and the call $\texttt{variant<dom<F>::type, dom<G>::type>} \to \texttt{cod<F>::type}$ under \cppinline{same_as<cod<F>::type, cod<G>::type>} and two shapes, each with one required call, that \cppinline{F} has a call from its \texttt{dom} to its \texttt{cod}, and \cppinline{G} likewise.
 They are typed by \textsc{T-Construct} and \textsc{T-App} as any named type is, so an arrow of the sum has a type before it is applied, and a copairing of copairings, or $[\iota_2, \iota_1]$, is a term; at a type variable, \texttt{dom} and \texttt{cod} are reads the context holds.
-Their bodies are not the kernel's: the images of their calls are the target's injections and case (Appendix~\ref{app:fjlt:translation}).
+Their bodies are not the kernel's: the images of their calls are the target's injections and case, given directly (Appendix~\ref{app:fjlt:translation}).
+The bodies that \Cpp{} runs are the library's, and the linter's verdict on them, Jlt, is a check of consistency, not their meaning: that they compute what their images do is assumed, as for an arrow supplied with a carrier.
 \cppinline{==} at a sum is not in the kernel, since \Cpp{23} does not constrain it by the alternatives.
 Listing~\ref{lst:subtraction} uses a sum for subtraction on the naturals, which says how far short it falls where \cppinline{size_t}'s own subtraction wraps.
 
@@ -347,7 +348,7 @@ Typing, translation and evaluation read the rewritten call.
 A law at a construction is entailed, not declared.
 The law is a read of a trait, resolution picks the entry whose head matches and whose context the program entails, and \textsc{E-Law} evaluates it, to \texttt{true}.
 Listing~\ref{lst:theorems}'s entry of \cppinline{homomorphism} at \cppinline{Via} is such an entry, true where the law holds at both parts, and \cppinline{NonEmpty} is a construction at which it is derived.
-Composed, these give a derived rule, the instance rule of the entailment of qualified types~\cite{jones1994qualified}:
+Composed, these give an admissible rule, the instance rule of the entailment of qualified types~\cite{jones1994qualified}:
 \[
 \textsc{(E-Law-Ctx)}\quad \dfrac{\begin{array}{c} \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \text{ resolves to } \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \mathit{law}\texttt{<}\overline{\tau'}\texttt{>} \\ \overline{\tau} = \overline{\tau'}[\overline{\sigma}/\overline{\alpha}] \quad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \quad \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \Downarrow \texttt{true} \end{array}}{\Delta \Vdash \mathit{law}\texttt{<}\overline{\tau}\texttt{>}}
 \]

@@ -174,7 +174,7 @@ The translation of dictionaries and terms is therefore a function of the program
 
 \begin{lemma}[Translation commutes with substitution]
 \label{lem:subst}
-(i) For a type $\tau$ of a derivation under $\Delta$, with type variables $\overline{\alpha}$, and types $\overline{\sigma}$ at which $\Delta$'s \texttt{same\_as} constraints hold (\textsc{E-Same}), $\llbracket \tau[\overline{\sigma}/\overline{\alpha}] \rrbracket = \llbracket \tau \rrbracket[\overline{\llbracket \sigma \rrbracket}/\overline{\alpha'}][\overline{\llbracket \rho \rrbracket}/\overline{\chi}]$, where $\overline{\alpha'}$ are the type variables that the unifier $\theta$ of $\Delta$ keeps, each with its $\sigma$, each $\chi$ is the variable of an associated type $g\texttt{<}\overline{\theta'}\texttt{>::type}$ read at them, and $\rho$ is $g\texttt{<}\overline{\theta'}[\overline{\sigma}/\overline{\alpha}]\texttt{>::type}$, resolved from the inside out where it has no type variable (\textsc{Eq-Assoc}, \textsc{Eq-Cod}).
+(i) For a type $\tau$ of a derivation under $\Delta$, with type variables $\overline{\alpha}$, and types $\overline{\sigma}$ at which $\Delta$'s \texttt{same\_as} constraints hold (\textsc{E-Same}), $\llbracket \tau[\overline{\sigma}/\overline{\alpha}] \rrbracket = \llbracket \tau \rrbracket[\overline{\llbracket \sigma \rrbracket}/\overline{\alpha'}][\overline{\llbracket \rho \rrbracket}/\overline{\chi}]$, where $\overline{\alpha'}$ are the type variables that the unifier $\theta$ of $\Delta$ keeps, each with its $\sigma$, each $\chi$ is the variable of an associated type $g\texttt{<}\overline{\theta'}\texttt{>::type}$ read at them, and $\rho$ is $g\texttt{<}\overline{\theta'}[\overline{\sigma}/\overline{\alpha}]\texttt{>::type}$, resolved from the inside out where it has no type variable (\textsc{Eq-Assoc}, \textsc{Eq-Cod}, \textsc{Eq-Dom}).
 (ii) For a term $e$ typed at concrete types and terms $\overline{e'}$ of the variables' types, values or not, $\llbracket e[\overline{e'}/\overline{x}] \rrbracket = \llbracket e \rrbracket[\overline{\llbracket e' \rrbracket}/\overline{x}]$.
 \end{lemma}
 
@@ -249,7 +249,7 @@ rule & its image has its type, because & relies on \\
 \textsc{T-Field} & the field's type${}^{\textsc{ih}}$ &  \\
 \textsc{T-Req-Assumed} & $q_Q.r$'s field type in $\llbracket \Delta \rrbracket$, the arguments theirs${}^{\textsc{ih}}$ &  \\
 \textsc{T-Trait} & the entry's image at the kept types that match and at its associated types resolved there, its record parameters then of the types of the rule's dictionaries${}^{\ddagger}$, which have them by the rule's entailment premises${}^{\dagger}$, and the images of its reads at the parts, from its typing premises${}^{\textsc{ih}}$, or the default's image, either of type $b_f$, the entry having the trait's atom (\textsc{D-Entry}) & \textsc{D-Trait}, \textsc{D-Entry} \\
-\textsc{T-Eq} & the image is the premise's, and $\Delta \vdash \tau \equiv \sigma$ gives $\llbracket \tau \rrbracket = \llbracket \sigma \rrbracket$, by induction on the equality's derivation (Appendix~\ref{app:fjlt:translation}): \textsc{Eq-Same} by the unifier, taken on the source types; \textsc{Eq-Assoc} and \textsc{Eq-Cod} because the image of a resolved associated type is that of the type its entry names; congruence at a read because reads with arguments of one image share their $\chi$ &  \\
+\textsc{T-Eq} & the image is the premise's, and $\Delta \vdash \tau \equiv \sigma$ gives $\llbracket \tau \rrbracket = \llbracket \sigma \rrbracket$, by induction on the equality's derivation (Appendix~\ref{app:fjlt:translation}): \textsc{Eq-Same} by the unifier, taken on the source types; \textsc{Eq-Assoc}, \textsc{Eq-Cod} and \textsc{Eq-Dom} because the image of a resolved associated type is that of the type its entry names; congruence at a read because reads with arguments of one image share their $\chi$ &  \\
 \textsc{T-Construct} & below & \textsc{D-Op} \\
 \textsc{T-Op}, \textsc{T-App} & below & \textsc{T-Construct} \\
 \textsc{T-Call} & below & \textsc{D-Generic} \\
@@ -342,7 +342,7 @@ Two substitution facts carry it.
 Its cases with work are three.
 \textsc{T-Req-Assumed}: at concrete types the site is the requirement's expression with its arguments, which \textsc{E-Op}'s premise types at the instantiated constraint, the arguments substituted by (a); so it is typed at the declared type by whichever rule types that expression, \textsc{T-Call}, \textsc{T-Trait}, \textsc{T-App}, \textsc{T-Op} or an operator's, an $\alpha\texttt{\{\}}$ in it being a construction at the concrete type, typed by \textsc{T-Construct}.
 \textsc{T-Eq} by \textsc{Eq-Same}: at concrete types the constraint holds by \textsc{E-Same}, so the two types are one once resolved, and the use is \textsc{T-Eq} by reflexivity.
-\textsc{T-Eq} by \textsc{Eq-Assoc} or \textsc{Eq-Cod}, and any associated type in a type: at concrete types it resolves, and the type is the one its entry names.
+\textsc{T-Eq} by \textsc{Eq-Assoc}, \textsc{Eq-Cod} or \textsc{Eq-Dom}, and any associated type in a type: at concrete types it resolves, and the type is the one its entry names.
 Every other case is structural.
 The steps, one row per rule of evaluation; ${}^{\textsc{ih}}$ marks the induction hypothesis on the context, and the rows with work follow the table.
 \begingroup
@@ -431,7 +431,7 @@ source step & target steps & landing, because \\
 \textsc{S-Std}, \textsc{S-Prim} & a projection where there is one, then a $\delta$-step & the value the standard or the declaration assigns, by Definition~\ref{def:standard} \\
 \textsc{S-If} & a reduction of the conditional & to the selected branch \\
 \textsc{S-Inj} & a projection, then $\beta$-reduction & the injection, at the other alternative's type \\
-\textsc{S-Copair} & a projection, $\beta$-reduction, then the case & the call function of the arrow the alternative chooses, applied to the value it holds \\
+\textsc{S-Copair} & projections, type application and $\beta$-reduction, then the case, then a projection of the record & the required call of the arrow the alternative chooses, applied to the arrow and the value it holds, which reduces as \textsc{S-Op} below \\
 \textsc{S-Proj} & a projection, two for a constructed object's field & the selected component \\
 \textsc{S-Fold} & several & below \\
 \end{longtable}

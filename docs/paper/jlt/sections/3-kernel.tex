@@ -2,7 +2,7 @@
 \section{The Kernel and Its Warrant}
 \label{sec:kernel}
 
-Jlt is defined in two steps, the inclusions on the left of Figure~\ref{fig:arrows}.
+Section~\ref{sec:examples} drew Jlt from the outside, by the three rules, and this section draws it from the inside, in two steps, the left half of Figure~\ref{fig:arrows}.
 The kernel, FJlt (Section~\ref{sec:intro}), is a subset of \Cpp{} whose meaning is its image under $\llbracket\cdot\rrbracket$.
 Jlt is the kernel with sugar, each form of which is a way of writing something the kernel can already say.
 The first step follows Featherweight Java~\cite{igarashi2001featherweight}: a kernel small enough to reason about, every program of which is a program of the full language.
@@ -10,10 +10,12 @@ The second follows the treatment of JavaScript by a small core and a desugaring 
 % TODO(related): the bare language and derived forms of the Definition of
 % Standard ML are the older precedent for the second step; cite once verified.
 
-One principle chooses the kernel's constructs, the one Danielsson et al.\ state for their category of total values (Section~\ref{sec:intro}), whose constructions ``should correspond closely to those in the underlying language''~\cite[Section~8]{danielsson2006fast}.
+One principle chooses the constructs of the kernel's value layer, the one Danielsson et al.\ state for their category of total values (Section~\ref{sec:intro}), whose constructions ``should correspond closely to those in the underlying language''~\cite[Section~8]{danielsson2006fast}.
 For each construct of that category the kernel needs (products, sums, functions and, from its recursive types, the fold of the naturals), it asks whether \Cpp{23} or its standard library has a clear counterpart.
 Where there is one, the kernel takes it as \Cpp{} writes it, as \cppinline{std::pair} for a product, and leaves its image in System~F to $\llbracket\cdot\rrbracket$.
 Where there is none, the kernel names the construct as the category does, as the copairing of a sum.
+It names the injections too, since \Cpp{}'s own, \cppinline{std::in_place_index}, puts the alternative among a template's parameters, which the kernel leaves out (Table~\ref{tab:excluded}).
+The resolution layer, of shapes, traits and associated types, has no counterpart in that category, and is \Cpp{}'s own.
 The category's final coalgebras are left out, Jlt being about data, and the rest of \Cpp{23} that a program needs comes as sugar (Section~\ref{sec:kernel:derived}).
 
 \subsection{The kernel}
@@ -145,7 +147,8 @@ several call operators on one type & an entry that stands below a use that could
 \label{sec:kernel:derived}
 A form of sugar is a rewrite of a Jlt program into FJlt that may change types inside the program and leave every observable value unchanged, the value of a closed term at an atom, while compiling and while running.
 Time is not observed, so a program and its rewrite may differ in cost and in nothing else.
-Appendix~\ref{app:derived} lists every form with its reading and the condition it rests on, ranges and local mutable state among them.
+Appendix~\ref{app:derived} lists every form with its reading and the condition it rests on.
+Two of them carry most programs: a finite range, as an array or a view, is its length and the function that reads it, folded over by the kernel's iteration over that count, and a mutable local is the state of such a fold.
 That a form preserves values is argued and tested, not proved, the standard of evidence of the work on JavaScript~\cite{guha2010essence}: a test sets a form beside its kernel reading and lets constant evaluation compare the two (Listing~\ref{lst:running-sum}).
 % TODO(derived): the standard's clauses for the first group are to be cited;
 % a test beside its kernel form exists for local state and for a variant

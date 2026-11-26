@@ -33,7 +33,7 @@ In Listing~\ref{lst:motivation}, $T$ and $\mathit{Op}$ in the image of \cppinlin
 An assumed \cppinline{same_as} is solved and not passed, on the source types and before any $\chi$ is given.
 A read $g\texttt{<}\overline{\tau}\texttt{>::type}$ at a type variable is taken as an uninterpreted function symbol $g$ applied to its arguments: it may be made equal to any type, as a variable may, and two reads of one $g$ whose arguments are made equal are thereby equal.
 The unifier $\theta$ of a declaration is a substitution of its type variables and of its reads that makes the two sides of each of its \cppinline{same_as} constraints one type and is closed under that congruence, and every other such substitution factors through it (Lemma~\ref{lem:factor}, below).
-It is computed by rounds: unify the constraints, treating each read as a variable; identify two reads of one $g$ whose arguments are equal under the result; replace a read whose arguments have become concrete by the type its entry names (\textsc{Eq-Assoc}, \textsc{Eq-Cod}); and unify again, until nothing changes.
+It is computed by rounds: unify the constraints, treating each read as a variable; identify two reads of one $g$ whose arguments are equal under the result; replace a read whose arguments have become concrete by the type its entry names (\textsc{Eq-Assoc}, \textsc{Eq-Cod}, \textsc{Eq-Dom}); and unify again, until nothing changes.
 Each round binds a variable or removes a read, and there are finitely many of both, so the rounds end.
 Of two variables or reads that $\theta$ identifies, it keeps the one that comes first in the order above, so the image's parameters are named by the declaration and not merely up to names.
 The image is then taken of the declaration with $\theta$ applied, with one $\chi$ for each distinct read that remains (Appendix~\ref{app:fjlt:typing}, \emph{Equal types}).
@@ -49,7 +49,7 @@ A declaration whose \cppinline{same_as} constraints have no unifier, as \cppinli
 
 \begin{lemma}[Factoring]
 \label{lem:factor}
-Let $\theta$ be the unifier of a declaration's \cppinline{same_as} constraints, and take types in an algebra in which the constructors are free, a read is a function of its arguments, and a read at concrete arguments is the type its entry names (\textsc{Eq-Assoc}, \textsc{Eq-Cod}).
+Let $\theta$ be the unifier of a declaration's \cppinline{same_as} constraints, and take types in an algebra in which the constructors are free, a read is a function of its arguments, and a read at concrete arguments is the type its entry names (\textsc{Eq-Assoc}, \textsc{Eq-Cod}, \textsc{Eq-Dom}).
 If a substitution $\psi$ of the declaration's type variables makes the two sides of each of those constraints equal there, then $\psi = \theta;\psi'$, where $\psi'$ is $\psi$ on the type variables that $\theta$ keeps and, on each read that remains, the value of that read at $\psi$ of its arguments.
 \end{lemma}
 \begin{proof}
@@ -80,7 +80,7 @@ The caller's context holds it, by its closure under the reads its derivation rea
 \llbracket \texttt{std::pair<}\tau\texttt{, }\sigma\texttt{>} \rrbracket = \llbracket \tau \rrbracket \times \llbracket \sigma \rrbracket & \\
 \llbracket \texttt{std::variant<}\tau\texttt{, }\sigma\texttt{>} \rrbracket = \llbracket \tau \rrbracket + \llbracket \sigma \rrbracket & \\
 \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket = (\overline{\llbracket \tau_y \rrbracket} \times (\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau_r \rrbracket))[\overline{\llbracket \tau' \rrbracket}/\overline{\alpha'}][\overline{\llbracket \rho \rrbracket}/\overline{\chi}] & \note{a function object: its fields and the type of its call function $O_{\mathrm{call}}$, translated under $\Delta_O$ and its unifier $\theta_O$, at the $\overline{\tau'}$ of $\overline{\tau}$ at the variables $\overline{\alpha'}$ that $\theta_O$ keeps and the images of $\Delta_O$'s reads $\overline{\rho}$ at $\overline{\tau}$ under the user's $\Delta$; $\overline{Q}$ the constraints other than \texttt{same\_as}} \\
-\llbracket g\texttt{<}\overline{\tau}\texttt{>::type} \rrbracket = \chi \text{ under a type variable}, \ \llbracket \rho \rrbracket \text{ at concrete } \overline{\tau} & \note{$\chi$ held by the context; $\rho$ the type the entry names (\textsc{Eq-Assoc}, \textsc{Eq-Cod})} \\
+\llbracket g\texttt{<}\overline{\tau}\texttt{>::type} \rrbracket = \chi \text{ under a type variable}, \ \llbracket \rho \rrbracket \text{ at concrete } \overline{\tau} & \note{$\chi$ held by the context; $\rho$ the type the entry names (\textsc{Eq-Assoc}, \textsc{Eq-Cod}, \textsc{Eq-Dom})} \\
 \end{array}
 \]
 \caption{The translation of types; a named type without a call operator is its fields alone.
@@ -126,7 +126,7 @@ An assumed \texttt{same\_as} has no record variable, being solved (above), and a
 Figure~\ref{fig:fjlt-dictionaries} builds the translation's one non-local ingredient, the \emph{dictionary} of an entailment: $\llbracket \Delta \Vdash Q \rrbracket$ is the record that witnesses $Q$, built by the same recursion as resolution.
 A shape has no context of its own, so the record type of a constraint is not a function of the shape alone.
 The requirements are substituted in the source, the constraint's types for the shape's type variables, and then translated under the context $\Delta$ of the declaration where the constraint is written or entailed, the user's $\Delta$.
-An associated type in a requirement, as \cppinline{carrier_t<E>} in \cppinline{IsMagma}, is then that declaration's $\chi$ or, at concrete types, the type its entry names; for \cppinline{cod}, the result type of the arrow's call (\textsc{Eq-Cod}).
+An associated type in a requirement, as \cppinline{carrier_t<E>} in \cppinline{IsMagma}, is then that declaration's $\chi$ or, at concrete types, the type its entry names; for \cppinline{cod}, the result type of the arrow's call (\textsc{Eq-Cod}), and for \cppinline{dom}, the type of its parameter (\textsc{Eq-Dom}).
 So no operator on types such as $\mathit{Dict}_C$ is needed, which would take the target beyond System~F.
 $\llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket$ is the type of $O_{\mathrm{call}}$ itself at $\overline{\tau}$: its fields, and its call function applied to the types $\overline{\tau'}$ at the variables that $O$'s own unifier $\theta_O$ keeps, to the images of the reads of $O$'s context at $\overline{\tau}$, and to the fields (Figure~\ref{fig:fjlt-types}).
 \textsc{T-Construct} asks that $\overline{\tau}$ solve the \cppinline{same_as} constraints of $O$'s call operator and that those reads resolve or be held by the user's $\Delta$ (Appendix~\ref{app:fjlt:construct}), so the type is defined, and by Lemma~\ref{lem:factor} and Lemma~\ref{lem:subst}~(i) at $O$'s context it is also the translation of the field types $\overline{\tau_y}$, the constraints $\overline{Q}$, the parameter types $\overline{\tau_x}$ and the result type $\tau_r$ of \textsc{D-Op}, substituted in the source.
@@ -146,8 +146,8 @@ A required call is checked at its declared type (\textsc{E-Op}), so the field ho
 \texttt{struct } O \texttt{ \{ } \overline{y}\texttt{; ... operator()(}\overline{x}\texttt{) ... requires } \overline{Q}\texttt{ ... } e \texttt{ ... \};} & \note{a function object's call function} \\
 \qquad \mapsto\; O_{\mathrm{call}} = \Lambda\overline{\alpha}.\,\Lambda\overline{\chi}.\,\lambda\overline{y}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \note{$\overline{\alpha}$ the type variables its unifier $\theta_O$ keeps} \\
 \texttt{Inl} \;\mapsto\; \mathit{Inl}_{\mathrm{call}} = \Lambda\alpha\,\beta.\,\lambda a.\,\mathit{inl}_{\beta}\,a, \quad \texttt{Inr} \text{ alike} & \note{the sum's arrows, given: their calls' images are the target's injections and case} \\
-\texttt{Copairing} \;\mapsto\; \mathit{Copairing}_{\mathrm{call}} = \Lambda\varphi\,\gamma.\,\lambda f\,g\,s. & \note{$\rho$ the read $\mathit{cod}\,\varphi$; $\overline{d_f}$ and $\overline{d_g}$ the dictionaries of $f$'s and $g$'s calls} \\
-\qquad \mathit{case}_{\rho}\,s\,(\lambda a.\,(\pi_2\,f)\,\overline{d_f}\,a)\,(\lambda b.\,(\pi_2\,g)\,\overline{d_g}\,b) & \\
+\texttt{Copairing} \;\mapsto\; \mathit{Copairing}_{\mathrm{call}} = \Lambda\varphi\,\gamma.\,\Lambda\delta_f\,\delta_g\,\rho. & \note{$\delta_f$, $\delta_g$, $\rho$ the reads $\mathit{dom}\,\varphi$, $\mathit{dom}\,\gamma$, $\mathit{cod}\,\varphi$; $q_f$, $q_g$ the records of its call's two shapes, passed by \textsc{T-App} (Appendix~\ref{app:fjlt:sums})} \\
+\qquad \lambda f\,g.\,\lambda q_f\,q_g.\,\lambda s.\,\mathit{case}_{\rho}\,s\,(q_f.\mathit{call}\,f)\,(q_g.\mathit{call}\,g) & \\
 O \text{ standard, or supplied with a carrier} \;\mapsto\; O_{\mathrm{call}} = \Lambda\overline{\alpha}.\,o_{\overline{\alpha}} & \note{such as \texttt{std::plus}: no field, constraint or associated type, so the construction below gives $((), o_{\overline{\llbracket \tau \rrbracket}})$; $o$ a constant of the target} \\
 \texttt{concept}, \text{ an associated type and its entries} \;\mapsto\; \text{nothing} & \note{resolved before the translation} \\[6pt]
 \multicolumn{2}{l}{\textit{terms}} \\
