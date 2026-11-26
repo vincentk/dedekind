@@ -33,5 +33,5 @@ truncated_float undecided
 truncated_static undecided
 Area FJlt
 area undecided
-Tagged FJlt
-area_as_read FJlt
+Shape Jlt
+area_as_sum FJlt

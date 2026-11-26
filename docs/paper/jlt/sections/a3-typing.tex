@@ -113,15 +113,22 @@ A declaration whose \cppinline{same_as} constraints have no solution, as \cppinl
 \textsc{(T-Iter)} & \dfrac{\Delta; \Gamma \vdash e_n : \texttt{size\_t} \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma, s : \sigma, i : \texttt{size\_t} \vdash f\texttt{(}s\texttt{, }i\texttt{)} : \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{ranges::fold\_left(views::iota(0uz, }e_n\texttt{), }a\texttt{, }f\texttt{)} : \sigma}
 \\[12pt]
 \textsc{(T-Iter-Run)} & \dfrac{0 < k \le n \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma, s : \sigma, i : \texttt{size\_t} \vdash f\texttt{(}s\texttt{, }i\texttt{)} : \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{ranges::fold\_left(views::iota(}c_k\texttt{, }c_n\texttt{), }a\texttt{, }f\texttt{)} : \sigma}
+\\[12pt]
+\textsc{(T-Inl)} & \dfrac{\Delta; \Gamma \vdash e : \tau}{\Delta; \Gamma \vdash \texttt{expected<}\tau\texttt{, }\sigma\texttt{>\{in\_place, }e\texttt{\}} : \texttt{expected<}\tau\texttt{, }\sigma\texttt{>}}
+\qquad
+\textsc{(T-Inr)} \; \dfrac{\Delta; \Gamma \vdash e : \sigma}{\Delta; \Gamma \vdash \texttt{expected<}\tau\texttt{, }\sigma\texttt{>\{unexpect, }e\texttt{\}} : \texttt{expected<}\tau\texttt{, }\sigma\texttt{>}}
+\\[12pt]
+\textsc{(T-Case)} & \dfrac{\Gamma(x) = \texttt{expected<}\tau\texttt{, }\sigma\texttt{>} \quad \Delta; \Gamma, y : \tau \vdash e_1 : \rho \quad \Delta; \Gamma, z : \sigma \vdash e_2 : \rho^{\P}}{\Delta; \Gamma \vdash x\texttt{.has\_value() ? }e_1[\texttt{*}x/y]\texttt{ : }e_2[x\texttt{.error()}/z] : \rho}
 \end{array}
 \]
-\caption{The rules for terms, $\Delta; \Gamma \vdash e : \tau$: constructions, calls, reads and iteration.
+\caption{The rules for terms, $\Delta; \Gamma \vdash e : \tau$: constructions, calls, reads, iteration and sums.
 $^{\S}$~The named type is well formed at $\overline{\tau}$: its reads resolve there or $\Delta$ holds them, and $\Delta$ entails its call operator's \texttt{same\_as} constraints there (\emph{Constructions}, below).
 A standard function object, or one supplied with a carrier, has no field and no read, and is constructed as $O\texttt{<}\overline{\tau}\texttt{>\{\}}$.
 $^{\ast}$~The standard's signature of the function object, at atoms, or the signature declared for an arrow supplied with a carrier (Section~\ref{sec:kernel:fjlt}).
-$^{\P}$~$s$ and $i$ fresh.
+$^{\P}$~$s$ and $i$ fresh, and $y$ and $z$.
 \textsc{T-Iter-Run} types the iterations that evaluation reaches and a program does not write, $c_k$ the constant of \texttt{size\_t} whose value is $k$ (Figure~\ref{fig:fjlt-eval}).
-Omitted as textbook~\cite[Chapters~8, 9 and~11]{pierce2002tapl}: \textsc{T-Var}, \textsc{T-Field}, and the rules for pairs, conditionals and the operators of the atoms.}
+Omitted as textbook~\cite[Chapters~8, 9 and~11]{pierce2002tapl}: \textsc{T-Var}, \textsc{T-Field}, and the rules for pairs, conditionals and the operators of the atoms.
+The rules for sums are the textbook's~\cite[Section~11.9]{pierce2002tapl}, shown because the case binds its two variables by reading the tested variable, not by a pattern.}
 \label{fig:fjlt-typing}
 \end{figure}
 
@@ -163,6 +170,41 @@ In \cppinline{power} of Listing~\ref{lst:power} the count is the number of bits 
 \cppinline{ranges::fold_left} asks more of its state and its step than \textsc{T-Iter}'s premises say: that the state's type be movable and assignable from the step's result, and that the step be copy constructible~\cite[{\texttt{alg.fold}}]{cpp23standard}.
 \textsc{T-Iter} leaves these out because \cppinline{copyable} holds at every type of the kernel (\emph{Entailment and laws}, above), which gives all three where the premises hold, the step's result being of the state's type.
 A range of any other kind, as an array, a repetition or a view of one, is a derived form, read as its length and the function that reads it (Table~\ref{tab:derived}).
+
+\paragraph{Sums.}
+\label{app:fjlt:sums}
+The kernel's sum is \cppinline{std::expected<A, B>}, a value of $A$ or of $B$ that knows which~\cite[{\texttt{expected}}]{cpp23standard}.
+\textsc{T-Inl} and \textsc{T-Inr} build a side by the tag that names it, \cppinline{std::in_place} or \cppinline{std::unexpect}, which the standard provides so that a construction says its side whatever the two types are.
+\textsc{T-Case} is the one way out.
+It tests the side of a variable $x$ and reads $x$'s value, written \cppinline{*x}, only in the branch that knows it holds one, and the other side's, \cppinline{x.error()}, only in the other: the two readings are the variables the textbook's case binds, and the linter checks that each stands in its branch.
+Both branches have one type, with no conversion between them.
+The standard's other ways out are not the case: \cppinline{value()} throws on the other side, \cppinline{*x} outside the case reads a value that may not be there, and \cppinline{transform} and its kin map a sum to a sum.
+\cppinline{value_or(d)} is the case with a constant for the other side, and is sugar; the tag left out, \cppinline{{a}}, and \cppinline{std::unexpected(b)} are sugar for the two sides (Table~\ref{tab:derived}).
+A sum has no value of its own before its side is chosen, so a default construction is refused, and a sum does not change side, so assignment and \cppinline{emplace} are refused.
+\cppinline{bool} stays an atom: its conditional is the case of a sum of two types of one value each, and the kernel keeps it for what it is.
+
+Listing~\ref{lst:division} is the use the kernel has a sum for: an operation that is not defined everywhere, here division on the naturals, returns the reason it has no result.
+The division stands where the test has shown the divisor not zero, which the linter reads, so that division by a variable, open where nothing shows the divisor not zero, is in the kernel there.
+A floating value is read the same way, a number or not a number, in the linter's fixtures; the arithmetic of the numbers is still neither closed nor associative, so no law follows.
+\cppinline{std::variant} is a sum of more than two types, read as binary sums nested, as \cppinline{std::tuple} is read as pairs nested, up to isomorphism and for a chosen nesting.
+That reading owes two conditions: a variant's state with no value arises only by \cppinline{throw}, which Rule~1 keeps out, and \cppinline{std::visit} chooses by the alternative's type, not its position, so it holds where the alternatives are distinct and none converts to another.
+The linter leaves \cppinline{std::variant} undecided until its row in Table~\ref{tab:derived} is written with both.
+
+\begin{listing}[htbp]
+\begin{cpp}
+struct DivisionByZero {};
+using Quotient = expected<size_t, DivisionByZero>;
+constexpr Quotient divide(size_t n, size_t d) {
+  return d == 0 ? Quotient{unexpect, DivisionByZero{}}
+                : Quotient{in_place, n / d}; }
+constexpr size_t or_zero(Quotient q) {
+  return q.has_value() ? *q : 0uz; }
+static_assert(or_zero(divide(7, 2)) == 3 && or_zero(divide(7, 0)) == 0);
+\end{cpp}
+\caption{Division on the naturals as a sum: the quotient, or the reason there is none, and a case that reads it.
+Both are in \texttt{tools/jlt-lint/fixtures/sum.cpp}, where the linter gives them the level FJlt, beside the uses of a sum it refuses.}
+\label{lst:division}
+\end{listing}
 
 \paragraph{Parts.}
 \label{app:fjlt:parts}

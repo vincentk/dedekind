@@ -41,6 +41,8 @@ Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\over
 b &::=& \texttt{bool} \;\mid\; \texttt{size\_t} & \text{atom} \\[3pt]
 e &::=& x \;\mid\; c \;\mid\; f\texttt{<}\overline{\tau}\texttt{>} \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; \tau\texttt{\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
   & \mid & \ominus e \;\mid\; e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e & \text{operators, choice} \\
+  & \mid & \tau\texttt{\{in\_place, }e\texttt{\}} \;\mid\; \tau\texttt{\{unexpect, }e\texttt{\}} & \text{sides of a sum} \\
+  & \mid & x\texttt{.has\_value() ? }e\texttt{ : }e \;\mid\; \texttt{*}x \;\mid\; x\texttt{.error()} & \text{case} \\
   & \mid & \texttt{ranges::fold\_left(views::iota(0uz, }e\texttt{), }e\texttt{, }e\texttt{)} & \text{iteration} \\
 \end{array}
 \]
@@ -49,12 +51,13 @@ Terminals are in monospace and an overbar is a sequence, possibly empty.
 An empty \texttt{requires} clause, an empty list of a \texttt{requires} expression with its parentheses, and an empty \texttt{template} head are left out, except that an entry with no type variables keeps \texttt{template <>}.
 The requirements $\overline{A}$ of a shape and the constraints $\overline{Q}$ of a clause are joined by \texttt{\&\&}, and a negated constraint is written in parentheses.
 $\alpha$ are type variables, $g$ names of associated types, \texttt{cod} among them, the codomain of an arrow, given to the kernel, $C$ names of shapes, the standard's \texttt{copyable}, \texttt{equality\_comparable} and \texttt{same\_as} among them, $f$ names of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
-$T$ is a declared type $O$, \texttt{std::pair}, a carrier, or an arrow supplied with a carrier, as the standard's \texttt{std::plus} is.
+$T$ is a declared type $O$, \texttt{std::pair}, \texttt{std::expected}, a carrier, or an arrow supplied with a carrier, as the standard's \texttt{std::plus} is.
 $c$ is a constant of an atom, or a value of a carrier that its type provides.
 A parameter that is not used may go unnamed.
 $\tau\texttt{\{}\overline{e}\texttt{\}}$ is a value of a declared type from values for its fields, and at a type variable, with no fields, the one value of a function object.
 $\ominus$ and $\oplus$ are the operators of the atoms that are defined at every argument (Appendix~\ref{app:fjlt:evaluation}), and \texttt{==} at a carrier whose shape asks for it.
-In an iteration the first term is the count, the second the start, and the third the step, a function of the state and the index.}
+In an iteration the first term is the count, the second the start, and the third the step, a function of the state and the index.
+A side of a sum is built at a type $\texttt{expected<}\tau\texttt{, }\sigma\texttt{>}$; in a case, $\texttt{*}x$ stands only in the first branch and $x\texttt{.error()}$ only in the second, $x$ the variable the case tests, and the two branches have one type.}
 \label{fig:fjlt-syntax}
 \end{figure}
 % TODO(kernel), for discussion, found while trimming the grammar:
@@ -86,6 +89,7 @@ construct & written in \Cpp{} as & in the listings \\
 atom & \texttt{bool}, \texttt{size\_t}: a truth value, a count modulo $2^{64}$ & \texttt{true}, the count \texttt{n} \\
 carrier & any type of values, known only by the calls a shape names & \texttt{string}, \texttt{Bare}, the \texttt{T} of a template \\
 pair, record & \texttt{std::pair}, or a \texttt{struct} of fields & the state of \texttt{Squaring}'s fold \\
+sum & \texttt{std::expected}: a side built by its tag, taken apart by a case that tests the side & division (Appendix~\ref{app:fjlt:typing}) \\
 arrow & a \texttt{struct} with a \texttt{constexpr}, \texttt{const} call operator, or one of the standard's function objects & \texttt{Size}, \texttt{Squaring}, \texttt{Xor}, \texttt{std::plus} \\
 choice & the conditional \texttt{?:} on a truth value & in \texttt{Squaring} \\
 iteration & the standard's fold over the counts below a bound & the fold of \texttt{power} \\
@@ -110,6 +114,7 @@ associated type & a \texttt{struct} template whose entries each name one type, r
 The value layer has little of \Cpp{} in it, on purpose.
 A carrier is a type the kernel never looks inside: a generic definition reaches a value of it only through the calls that a shape names, and that is all the kernel knows of a string.
 A carrier comes with arrows of its own, as \cppinline{std::plus} comes with strings and \cppinline{Size} is written with a string's own length, and their declarations are given to the kernel, not written in it.
+A value of one of two kinds is a value of a sum type, \cppinline{std::expected<A, B>}, built by naming its side and read only by a case that tests the side first, so that a partial operation, as division, returns the reason it has no result instead of failing~\cite[Section~11.9]{pierce2002tapl}.
 The one recursion over a value is iteration, with its count given before the first step.
 Its step is a function of the state and the index, and a state of several parts is a record.
 
@@ -153,7 +158,7 @@ Local mutable state is read by state passing: an assignment to a local, or to an
 That a derived form preserves values is argued and tested, not proved, the standard of evidence of the work on JavaScript~\cite{guha2010essence}: Table~\ref{tab:derived} gives each form its reading and the condition it rests on, and a test sets a form beside its kernel reading and lets constant evaluation compare the two, as Listing~\ref{lst:running-sum} does for local state.
 The list is open, and a new derived form touches nothing that is said about the kernel.
 % TODO(derived): the standard's clauses for the first group are to be cited;
-% a test beside its kernel form exists for local state and for a variant
+% a test beside its kernel form exists for local state and for the sum
 % (tools/jlt-lint/fixtures); the other rows are to get theirs.
 
 \subsection{The image}

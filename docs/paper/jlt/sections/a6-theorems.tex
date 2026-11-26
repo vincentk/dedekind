@@ -26,9 +26,9 @@ The arguments are relative to both.
 
 \begin{definition}[The target; System~F of Girard~\cite{girard1972interpretation} and Reynolds~\cite{reynolds1974towards}, extended]
 \label{def:target}
-System~F~\cite{girard1989proofs} with products, the atoms and the carriers as constant types with their constants and $\delta$-rules, a conditional on $\mathit{Bool}$, and the naturals $\mathbb{N}$ with the iterator $\mathit{iter}$.
-The iterator reduces by $\mathit{iter}\,(k{+}1)\,s\,z \longrightarrow \mathit{iter}\,k\,s\,(s\,z)$ and $\mathit{iter}\,0\,s\,z \longrightarrow z$, and the conditional by $\mathit{if}\,\mathit{true}\,t\,u \longrightarrow t$ and $\mathit{if}\,\mathit{false}\,t\,u \longrightarrow u$.
-Reduction in the target is full $\beta$-reduction, any redex anywhere, together with projections, the conditional, the $\delta$-rules of the constants, the unfolding of a defined name to its body and the two iterator rules; no evaluation order is imposed.
+System~F~\cite{girard1989proofs} with products and sums, the atoms and the carriers as constant types with their constants and $\delta$-rules, a conditional on $\mathit{Bool}$, and the naturals $\mathbb{N}$ with the iterator $\mathit{iter}$.
+The iterator reduces by $\mathit{iter}\,(k{+}1)\,s\,z \longrightarrow \mathit{iter}\,k\,s\,(s\,z)$ and $\mathit{iter}\,0\,s\,z \longrightarrow z$, and the conditional by $\mathit{if}\,\mathit{true}\,t\,u \longrightarrow t$ and $\mathit{if}\,\mathit{false}\,t\,u \longrightarrow u$, and the case of a sum by $\mathit{case}\,(\mathit{inl}\,a)\,f\,g \longrightarrow f\,a$ and $\mathit{case}\,(\mathit{inr}\,b)\,f\,g \longrightarrow g\,b$.
+Reduction in the target is full $\beta$-reduction, any redex anywhere, together with projections, the conditional, the case, the $\delta$-rules of the constants, the unfolding of a defined name to its body and the two iterator rules; no evaluation order is imposed.
 \end{definition}
 
 \begin{citedtheorem}[Strong normalisation and confluence; Jouannaud and Okada~\cite{jouannaud1997abstract}]
@@ -73,12 +73,16 @@ With it Theorem~\ref{cit:equational} applies to the laws of the carriers, as Sec
 No result of this appendix uses the first clause; it is stated here for that claim.
 The second clause is the condition of Section~\ref{sec:translation} that the arrows supplied with carriers end, stated as Theorem~\ref{cit:sn} asks for it.
 The assumption is what is asserted rather than carried out; Theorem~\ref{cit:sn}'s other hypotheses are checked here.
-Products are a sort with its constructor, and their projections and the conditional are rules of the calculus.
+Products are a sort with its constructor, and their projections and the conditional are rules of the calculus; sums are treated after the iterator.
 The $\delta$-rules of $\Sigma$ are first-order rules on constants: ground, a constant out of constants, so each step removes one operator application and they terminate, they are conservative, having no variables, and they are confluent, being a function of their argument constants.
 $\mathit{toNat}$ is a ground rule of the same kind, from a constant to a numeral of $\mathbb{N}$.
 $\mathit{iter}$ is G\"odel's recursor on $\mathbb{N}$, whose constructors take no functional argument, under the General Schema; in the accumulator form above it is the standard iterator at $\sigma \to \sigma$, each of its steps at least one step of that, so the target is System~T over $\mathbb{N}$ inside System~F.
 The defined names are acyclic, by the declaration order and since no body calls itself, and expand away.
-No critical pair lies between the rules, so, granted the assumption, the target is strongly normalising and confluent by Theorem~\ref{cit:sn}.
+No critical pair lies between the rules, so, granted the assumption, the target without sums is strongly normalising and confluent by Theorem~\ref{cit:sn}.
+Sums are not under the General Schema as stated, since $\mathit{inl}$ takes a function where its first type is an arrow.
+They are taken out by the encoding of System~F, $\tau + \sigma$ as $\forall X.\,(\tau \to X) \to (\sigma \to X) \to X$, $\mathit{inl}\,a$ as $\Lambda X.\,\lambda f.\,\lambda g.\,f\,a$, $\mathit{inr}\,b$ alike, and $\mathit{case}\,s\,f\,g$ as $s\,[\rho]\,f\,g$ at the case's result type $\rho$~\cite[Section~11.3]{girard1989proofs}.
+The encoding is compositional and keeps types, and it maps a step of the case to three steps of type application and $\beta$-reduction and every other step to a step of the same rule, so an infinite reduction with sums would give one without them; the target is strongly normalising, as Matthes shows directly for System~F with sums~\cite{matthes1999extensions}.
+The case's two rules overlap neither each other nor the other rules, so the target stays locally confluent, and confluent by Newman's lemma.
 The one-step-at-a-time iterator is what makes Theorem~\ref{thm:simulation} exact, where a Church encoding, unfolding all at once, would not be.
 % Before 2026-11-23 the carriers' non-emptiness was read off std::semiregular
 % (a default value); copyable is now the kernel's one requirement, so it is
@@ -259,7 +263,7 @@ The step has the pair type: $\pi_1 p + 1 : \texttt{size\_t}$, and $\lambda s.\,\
 The start $(c, \llbracket a \rrbracket)$ has the pair type${}^{\textsc{ih}}$, so $\pi_2$ of the result has type $\llbracket \sigma \rrbracket$.
 \textsc{T-Iter-Run} is the same with $c_k$ for $c$ and $c_n$ for $e_n$.
 
-An operator expression is the case of the call it resolves to, or the textbook case of a primitive; the omitted rules are the textbook cases for pairs and conditionals.
+An operator expression is the case of the call it resolves to, or the textbook case of a primitive; the omitted rules are the textbook cases for pairs, conditionals and sums~\cite[Section~11.9]{pierce2002tapl}, the case's two readings typed as the variables \textsc{T-Case} binds.
 \end{proof}
 
 \subsection{Simulation of evaluation}
@@ -346,6 +350,7 @@ step & the result has the type, because & relies on \\
 \textsc{S-Op} & below & \textsc{D-Op} \\
 \textsc{S-Std}, \textsc{S-Prim} & the value the standard, the declaration or $\Sigma$ assigns has the result type & Definition~\ref{def:standard} \\
 \textsc{S-If} & the selected branch's type &  \\
+\textsc{S-Case} & the selected branch's type, its reading replaced by a value of the side's type, by (a) & \textsc{T-Case}, \textsc{T-Inl}, \textsc{T-Inr} \\
 \textsc{S-Proj} & the component's type &  \\
 \textsc{S-Fold} & the call $v_f\texttt{(}v_a\texttt{, }c_k\texttt{)}$ has type $\sigma$ by the step's premise of \textsc{T-Iter} or \textsc{T-Iter-Run} and (a), and the reduct is typed by \textsc{T-Iter-Run}, since $0 < k + 1 \le n$ where $k < n$ & \textsc{T-Iter}, \textsc{T-Iter-Run} \\
 \textsc{S-Ctx} & the hole's type is unchanged${}^{\textsc{ih}}$ &  \\
@@ -381,6 +386,7 @@ a read $f\texttt{<}\overline{\sigma}\texttt{>}$ & \textsc{S-Trait} & the premise
 $O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)}$ & \textsc{S-Op}, \textsc{S-Std} & the choice of $O$; a standard one or an arrow supplied with a carrier is total (Assumption~\ref{ass:instance}) \\
 $\ominus v$, $v_1 \oplus v_2$ & \textsc{S-Prim}, or the call it resolves to & the choice of $\Sigma$, the operators of Figure~\ref{fig:fjlt-syntax} defined at every argument, on constants by canonical forms \\
 a conditional, a projection & \textsc{S-If}, \textsc{S-Proj} & canonical forms: a constant of type \texttt{bool}, a pair or a constructed object \\
+a case & \textsc{S-Case} & canonical forms: a value of a sum type is one of its two sides \\
 an iteration over \texttt{iota(}$c_k$\texttt{, }$c_n$\texttt{)} & \textsc{S-Fold} & its two cases cover $k < n$ and $k = n$, and $k \le n$: \textsc{T-Iter-Run} has it as a premise, and under \textsc{T-Iter} $k = 0$ \\
 \end{longtable}
 \addtocounter{table}{-1}
@@ -415,6 +421,7 @@ source step & target steps & landing, because \\
 \textsc{S-Op} & several & below \\
 \textsc{S-Std}, \textsc{S-Prim} & a projection where there is one, then a $\delta$-step & the value the standard or the declaration assigns, by Definition~\ref{def:standard} \\
 \textsc{S-If} & a reduction of the conditional & to the selected branch \\
+\textsc{S-Case} & a reduction of the case, then $\beta$-reduction & to the selected branch, its variable replaced by the image of the value the side holds \\
 \textsc{S-Proj} & a projection, two for a constructed object's field & the selected component \\
 \textsc{S-Fold} & several & below \\
 \end{longtable}

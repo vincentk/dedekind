@@ -9,6 +9,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdlib>
+#include <expected>
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -158,7 +159,7 @@ constexpr int truncated_static(double x) { return static_cast<int>(x); }
 static_assert(truncated_float(2.5) == 2 && truncated_static(2.5) == 2);
 
 // A sum as the standard's variant: undecided until its row exists.  Beside it
-// the record it is to be read as, a tag and a field for each alternative.
+// the kernel's sum it is read as, two alternatives being one binary sum.
 struct Area {
   constexpr std::size_t operator()(std::size_t side) const { return side * side; }
   constexpr std::size_t operator()(std::pair<std::size_t, std::size_t> sides) const {
@@ -168,15 +169,11 @@ struct Area {
 constexpr std::size_t area(std::variant<std::size_t, std::pair<std::size_t, std::size_t>> shape) {
   return std::visit(Area{}, shape);
 }
-struct Tagged {
-  bool second;
-  std::size_t side;
-  std::pair<std::size_t, std::size_t> sides;
-};
-constexpr std::size_t area_as_read(Tagged shape) {  // sound
-  return shape.second ? Area{}(shape.sides) : Area{}(shape.side);
+using Shape = std::expected<std::size_t, std::pair<std::size_t, std::size_t>>;
+constexpr std::size_t area_as_sum(Shape shape) {  // sound
+  return shape.has_value() ? Area{}(*shape) : Area{}(shape.error());
 }
-static_assert(area(3uz) == area_as_read({false, 3, {}}) &&
-              area(std::pair{2uz, 5uz}) == area_as_read({true, 0, {2, 5}}));
+static_assert(area(3uz) == area_as_sum(Shape{std::in_place, 3uz}) &&
+              area(std::pair{2uz, 5uz}) == area_as_sum(Shape{std::unexpect, std::pair{2uz, 5uz}}));
 
 }  // namespace jlt_listing

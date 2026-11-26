@@ -211,21 +211,47 @@ Stmt:IfConsteval open
 # the test is a shape the signature names, and no check shows either yet; the
 # type check leaves a body with one undecided for the same reason.
 Stmt:IfConstexpr open
-# The standard's variant, a sum: to be a derived form, read as a record with
-# a tag and a field for each alternative, std::visit the choice on the tag
-# (decided 2026-11-25; not in the kernel).  Open until the row is written
-# with its conditions and a tested pair.
+# The binary sum, std::expected<A, B>, in the kernel beside std::pair (#1222).
+# Its introductions name the side: {std::in_place, a} and {std::unexpect, b}.
+# Its elimination is one form, x.has_value() ? ... *x ... : ... x.error() ...
+# (or the same choice by if), with x a variable, *x and x-> only in the first
+# branch, x.error() only in the second, and both branches of one type.
+Sum:inl kernel
+Sum:inr kernel
+Sum:case kernel
+# The introductions without the tag: {a} or a returned, converted to the sum,
+# and std::unexpected(b), converted.  Sugar for the tagged ones.
+Sum:inl-converted derived
+Sum:inr-converted derived
+# value_or(d) and error_or(d): the case with a constant for the other side.
+Sum:value-or derived
+# transform, and_then, or_else, transform_error: total, but maps inside the
+# sum, not ways out of it.  Open until each has its row.
+Sum:map open
+# A case whose two branches are of different types, one converted.
+Sum:case-converted refused
+# Every other use of a sum: *x, x-> or x.error() outside the case that knows
+# the side, value() (it throws on the other side), the test spelled as a
+# conversion to bool, a sum with no side (default construction), and a sum
+# that changes side (=, emplace, swap).
+Sum:other refused
+# The standard's variant: read as nested binary sums, as std::tuple is read
+# as nested pairs, up to isomorphism, for a chosen nesting.  The statement
+# owes that a variant's valueless state cannot arise without throw, and that
+# std::visit chooses by the alternative's type, not its position, so it holds
+# for distinct alternatives that do not convert to one another.  Open until
+# its row is written with those conditions and a tested pair.
 Derived:variant open
-# value() of a std::optional or a std::expected: it throws where no value is
-# held, which Rule 1 keeps out.  Open until the sum has its eliminator
-# (#1222), which decides the side before it reads it.
+# value() of a std::optional: it throws where no value is held, which Rule 1
+# keeps out.  Open until optional has its row, a sum with a one-valued type.
 Derived:sum-value open
 # A call to a function not declared constexpr: since C++23 the keyword on
 # the caller does not require it of the callee, so the linter looks.
 Call:NotConstexpr refused
 # Integer division and remainder by a value, and a shift by a value: the
-# kernel has each by a constant only (not zero; below the width), where it is
-# defined at every argument.  Open until division has its row (#1222).
+# kernel has each by a constant only (not zero; below the width), or a
+# division by a variable that a test before it has shown not zero, where it
+# is defined at every argument.  Any other is open.
 # A floating value converted to an integer, written out (size_t(x),
 # static_cast): undefined where the value does not fit ([conv.fpint]), so
 # partial as division is.

@@ -77,7 +77,7 @@ The caller's context holds it, by its closure under the reads its derivation rea
 \begin{array}{@{}l@{\quad}l@{}}
 \multicolumn{2}{l}{\textit{types}} \\
 \llbracket \alpha \rrbracket = \alpha \qquad \llbracket b \rrbracket = b \qquad \llbracket T \rrbracket = T \text{ for a carrier } T & \\
-\llbracket \texttt{std::pair<}\tau\texttt{, }\sigma\texttt{>} \rrbracket = \llbracket \tau \rrbracket \times \llbracket \sigma \rrbracket & \\
+\llbracket \texttt{std::pair<}\tau\texttt{, }\sigma\texttt{>} \rrbracket = \llbracket \tau \rrbracket \times \llbracket \sigma \rrbracket \qquad \llbracket \texttt{std::expected<}\tau\texttt{, }\sigma\texttt{>} \rrbracket = \llbracket \tau \rrbracket + \llbracket \sigma \rrbracket & \\
 \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket = (\overline{\llbracket \tau_y \rrbracket} \times (\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau_r \rrbracket))[\overline{\llbracket \tau' \rrbracket}/\overline{\alpha'}][\overline{\llbracket \rho \rrbracket}/\overline{\chi}] & \note{a function object: its fields and the type of its call function $O_{\mathrm{call}}$, translated under $\Delta_O$ and its unifier $\theta_O$, at the $\overline{\tau'}$ of $\overline{\tau}$ at the variables $\overline{\alpha'}$ that $\theta_O$ keeps and the images of $\Delta_O$'s reads $\overline{\rho}$ at $\overline{\tau}$ under the user's $\Delta$; $\overline{Q}$ the constraints other than \texttt{same\_as}} \\
 \llbracket g\texttt{<}\overline{\tau}\texttt{>::type} \rrbracket = \chi \text{ under a type variable}, \ \llbracket \rho \rrbracket \text{ at concrete } \overline{\tau} & \note{$\chi$ held by the context; $\rho$ the type the entry names (\textsc{Eq-Assoc}, \textsc{Eq-Cod})} \\
 \end{array}
@@ -158,9 +158,11 @@ O \text{ standard, or supplied with a carrier} \;\mapsto\; O_{\mathrm{call}} = \
 \llbracket e_1 \oplus e_2 \rrbracket = \oplus\,\llbracket e_1 \rrbracket\,\llbracket e_2 \rrbracket \text{ or } \llbracket \texttt{operator}\oplus\texttt{(}e_1\texttt{, }e_2\texttt{)} \rrbracket & \note{a primitive of $\Sigma$, its constant; otherwise the call it resolves to, under the standard's rewrite where the candidate is rewritten or reversed; $\ominus$ alike} \\
 \llbracket e\texttt{.}y_i \rrbracket = \pi_i\,(\pi_1\,\llbracket e \rrbracket) & \note{a field: $\pi_1$ takes the fields out of the object's pair (construction, above), $\pi_i$ the field} \\
 \llbracket e_0 \texttt{ ? } e_1 \texttt{ : } e_2 \rrbracket = \mathit{if}\,\llbracket e_0 \rrbracket\,\llbracket e_1 \rrbracket\,\llbracket e_2 \rrbracket & \note{the conditional of the target's \textit{Bool}} \\
+\llbracket \tau\texttt{\{in\_place, }e\texttt{\}} \rrbracket = \mathit{inl}\,\llbracket e \rrbracket \qquad \llbracket \tau\texttt{\{unexpect, }e\texttt{\}} \rrbracket = \mathit{inr}\,\llbracket e \rrbracket & \note{\textsc{T-Inl}, \textsc{T-Inr}: the injections of the target's sum} \\
+\llbracket x\texttt{.has\_value() ? }e_1[\texttt{*}x/y]\texttt{ : }e_2[x\texttt{.error()}/z] \rrbracket = \mathit{case}\,x\,(\lambda y.\,\llbracket e_1 \rrbracket)\,(\lambda z.\,\llbracket e_2 \rrbracket) & \note{\textsc{T-Case}: the case of the target's sum, $y$ and $z$ the readings of $x$ in the two branches} \\
 \end{array}
 \]
-\caption{The translation of declarations and terms; pairs are the target's own (Table~\ref{tab:conventions}).
+\caption{The translation of declarations and terms; pairs and sums are the target's own (Table~\ref{tab:conventions}).
 A declaration becomes a definition of the target, written $D \mapsto f = t$; a term translates to a term, $\llbracket e \rrbracket = t$.
 The right-hand column says which case a line is.
 The record parameters $\overline{q}$ and the dictionaries passed range over the constraints other than \texttt{same\_as}, which is solved (\emph{Type parameters of the image}, above).
@@ -216,11 +218,12 @@ Table~\ref{tab:conventions} is the fragment's convention on the standard library
 System~F & FJlt & \Cpp{} & rules \\
 \midrule
 $\tau \times \sigma$, $(a, b)$, $\pi_1$, $\pi_2$~\cite{pierce1991basic} & \texttt{pair<τ, σ>}, \texttt{pair\{a, b\}}, \texttt{.first}, \texttt{.second} & the same & \textsc{T-Construct}, \textsc{T-Field}; \textsc{S-Proj} \\
+$\tau + \sigma$, $\mathit{inl}$, $\mathit{inr}$, $\mathit{case}$~\cite[Section~11.9]{pierce2002tapl} & \texttt{expected<τ, σ>}, \texttt{\{in\_place, a\}}, \texttt{\{unexpect, b\}}, the case & the same & \textsc{T-Inl}, \textsc{T-Inr}, \textsc{T-Case}; \textsc{S-Case} \\
 $\mathbb{N}$, \textit{iter} & \texttt{fold\_left(iota(0uz, n), a, f)} & the same & \textsc{T-Iter}; \textsc{S-Fold} \\
 \bottomrule
 \end{tabularx}
 \caption{The fragment's convention on the standard library, each type beside the rules that type and evaluate it (Appendices~\ref{app:fjlt:typing} and~\ref{app:fjlt:evaluation}).
-Each is adopted rather than declared because it lands on a construct of the target: a product, and the iterator of the naturals.}
+Each is adopted rather than declared because it lands on a construct of the target: a product, a sum, and the iterator of the naturals.}
 \label{tab:conventions}
 \end{table}
 

@@ -69,6 +69,9 @@ an \texttt{if} statement & the choice of the next state, \texttt{c ? s1(state) :
 an early exit, \texttt{if (c) return e;} before the rest of a function & the choice between \texttt{e} and the value of the rest, \Cpp{}'s own reading of it as \texttt{if (c) return e; else \{ rest \}} & not in a loop; the branch always returns, which the linter checks \\
 \texttt{std::swap(a, b)} of two locals & the simultaneous assignment of \texttt{b} to \texttt{a} and \texttt{a} to \texttt{b}~\cite[\texttt{utility.swap}]{cpp23standard} & a statement of its own; the two evidently disjoint, different locals or elements at different constant indices: an array with itself the standard leaves undefined \\
 \texttt{std::span<const T>} over storage declared constant & a range: its length and the function that reads it & the storage has static storage duration and no \texttt{mutable} member; the declaration, a law on the list of what is trusted \\
+a side of a sum without its tag: \texttt{a} or \texttt{\{a\}} where an \texttt{expected<A, B>} is asked for; \texttt{std::unexpected(b)} & \texttt{expected<A, B>\{in\_place, a\}}; \texttt{expected<A, B>\{unexpect, b\}} & \texttt{a} of type \texttt{A}, not converted; the standard's converting constructors~\cite[\texttt{expected.object.cons}]{cpp23standard} \\
+\texttt{x.value\_or(d)} on a sum & the case \texttt{x.has\_value() ? *x : d} & \texttt{d} of the value's type, not converted \\
+\texttt{std::variant<A, B, C>} & nested sums, \texttt{expected<A, expected<B, C>{}>}, \texttt{std::visit} the nested cases & up to isomorphism, for a chosen nesting; no \texttt{throw}, so no state without a value; distinct alternatives, none converting to another; undecided by the linter until checked \\
 \end{longtable}
 \endgroup
 
