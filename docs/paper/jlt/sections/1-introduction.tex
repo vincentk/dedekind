@@ -48,7 +48,8 @@ The programmer declares a law, and the compiler does not check it: a law declare
 What the compiler does mechanically is compose: it derives laws of a construction from the laws of its parts, and it selects among the overloads that those laws license (Section~\ref{sec:examples:inference}).
 
 The fragment is the \emph{Juliet Posture}, and the language inside it, the part a linter can show, is Jlt.
-The name refers to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: a \cppinline{concept} is a predicate on a type's structure, not on its name or lineage.\footnote{``A rose by any other name would smell as sweet''~\cite{shakespeare1597romeo}.}
+The name refers to structural typing, in the classification of Cardelli and of Pierce~\cite{cardelli1996typesystems,pierce2002tapl}: whether a type may stand where a constraint asks is decided by its structure, not by its name or lineage.\footnote{``A rose by any other name would smell as sweet''~\cite{shakespeare1597romeo}.}
+A \cppinline{concept} is such a predicate on the calls a type has; a law is the exception, since no structure shows it, and it is declared for a type by name.
 It is called a posture because it asks only for a style of programming: every ingredient is in the ISO standard~\cite{cpp23standard} and implemented by toolchains in wide use, the compiler holds some of the rules and the programmer the rest, and a linter helps but is not required to compile (Table~\ref{tab:posture}).
 Figure~\ref{fig:arrows} draws it with the languages of the paper and the maps between them, and two boundaries matter most.
 The outer one is drawn by the three rules (Section~\ref{sec:posture}): one keeps substitution of equals valid, one keeps generic code to its declared constraints, and one makes every recursion end.
