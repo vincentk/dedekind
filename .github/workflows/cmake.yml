@@ -49,6 +49,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      actions: write  # build.yml's cache keeps one copy
 
   # Whether a PR changes docs/ beyond the papers, which papers.yml builds.
   changes:
@@ -356,6 +357,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      actions: write  # build.yml's cache keeps one copy
 
   # The release, step by step, one job per privilege: each step one call,
   # so that these jobs read back are the runbook of a release by hand.  A job
