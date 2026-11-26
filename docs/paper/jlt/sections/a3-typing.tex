@@ -113,6 +113,12 @@ A declaration whose \cppinline{same_as} constraints have no solution, as \cppinl
 \textsc{(T-Iter)} & \dfrac{\Delta; \Gamma \vdash e_n : \texttt{size\_t} \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma, s : \sigma, i : \texttt{size\_t} \vdash f\texttt{(}s\texttt{, }i\texttt{)} : \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{ranges::fold\_left(views::iota(0uz, }e_n\texttt{), }a\texttt{, }f\texttt{)} : \sigma}
 \\[12pt]
 \textsc{(T-Iter-Run)} & \dfrac{0 < k \le n \quad \Delta; \Gamma \vdash a : \sigma \quad \Delta; \Gamma, s : \sigma, i : \texttt{size\_t} \vdash f\texttt{(}s\texttt{, }i\texttt{)} : \sigma^{\P}}{\Delta; \Gamma \vdash \texttt{ranges::fold\_left(views::iota(}c_k\texttt{, }c_n\texttt{), }a\texttt{, }f\texttt{)} : \sigma}
+\\[12pt]
+\textsc{(T-Inl)} & \dfrac{\Delta; \Gamma \vdash e : \tau}{\Delta; \Gamma \vdash \texttt{Inl<}\tau\texttt{, }\sigma\texttt{>\{\}(}e\texttt{)} : \texttt{variant<}\tau\texttt{, }\sigma\texttt{>}} \qquad \textsc{(T-Inr)}\; \text{alike, at } \sigma
+\\[12pt]
+\textsc{(T-Copair)} & \dfrac{\Delta; \Gamma \vdash f : F \quad \Delta; \Gamma \vdash g : G \quad \mathit{dom}\,F = \tau \quad \mathit{dom}\,G = \sigma \quad \mathit{cod}\,F = \mathit{cod}\,G = \rho \quad \Delta; \Gamma \vdash e : \texttt{variant<}\tau\texttt{, }\sigma\texttt{>}}{\Delta; \Gamma \vdash \texttt{Copairing<}F\texttt{, }G\texttt{>\{}f\texttt{, }g\texttt{\}(}e\texttt{)} : \rho}
+\\[12pt]
+\textsc{(T-Inj-Run)} & \dfrac{\Delta; \Gamma \vdash v : \tau}{\Delta; \Gamma \vdash \mathit{inl}_{\tau, \sigma}\,v : \texttt{variant<}\tau\texttt{, }\sigma\texttt{>}} \qquad \text{and } \mathit{inr}_{\tau, \sigma}\,v \text{ alike}
 \end{array}
 \]
 \caption{The rules for terms, $\Delta; \Gamma \vdash e : \tau$: constructions, calls, reads and iteration.
@@ -120,7 +126,8 @@ $^{\S}$~The named type is well formed at $\overline{\tau}$: its reads resolve th
 A standard function object, or one supplied with a carrier, has no field and no read, and is constructed as $O\texttt{<}\overline{\tau}\texttt{>\{\}}$.
 $^{\ast}$~The standard's signature of the function object, at atoms, or the signature declared for an arrow supplied with a carrier (Section~\ref{sec:kernel:fjlt}).
 $^{\P}$~$s$ and $i$ fresh.
-\textsc{T-Iter-Run} types the iterations that evaluation reaches and a program does not write, $c_k$ the constant of \texttt{size\_t} whose value is $k$ (Figure~\ref{fig:fjlt-eval}).
+\textsc{T-Iter-Run} types the iterations that evaluation reaches and a program does not write, $c_k$ the constant of \texttt{size\_t} whose value is $k$ (Figure~\ref{fig:fjlt-eval}), and \textsc{T-Inj-Run} the values of a sum, which no program writes.
+$\mathit{dom}\,F$ and $\mathit{cod}\,F$ are the parameter and result type of $F$'s one call operator, each of them a read of an associated type given to the kernel.
 Omitted as textbook~\cite[Chapters~8, 9 and~11]{pierce2002tapl}: \textsc{T-Var}, \textsc{T-Field}, and the rules for pairs, conditionals and the operators of the atoms.}
 \label{fig:fjlt-typing}
 \end{figure}
@@ -166,29 +173,26 @@ A range of any other kind, as an array, a repetition or a view of one, is a deri
 
 \paragraph{Sums.}
 \label{app:fjlt:sums}
-The kernel's sum is \cppinline{std::variant<A, B>}, read as Pierce's coproduct~\cite{pierce1991basic}: built by the injections $\iota_1 : A \to A + B$ and $\iota_2 : B \to A + B$, and read by the copairing $[f, g] : A + B \to C$ of $f : A \to C$ and $g : B \to C$.
-These are the library's \cppinline{Injection} and \cppinline{Copairing}, given to the kernel as the standard's function objects are (\textsc{T-Op}), so a sum needs no rule of its own.
-The conditional on the side, with \cppinline{std::get<k>(x)} read only where side $k$ is known, is the copairing's derived form, and \cppinline{std::expected} with its test \cppinline{has_value()} another spelling of it (Table~\ref{tab:derived}).
-The linter refuses any other \cppinline{std::get} and the writes to a sum, and leaves open the other total uses, \cppinline{std::visit} among them, and a variant of more types.
-\cppinline{==} at a sum is not in the kernel: \Cpp{23} does not constrain it by the parts.
-Listing~\ref{lst:subtraction} uses a sum for subtraction on the naturals, which says how far short it falls where \cppinline{size_t}'s own subtraction wraps.
+\textsc{T-Inl}, \textsc{T-Inr} and \textsc{T-Copair} are the coproduct of Pierce's account~\cite{pierce1991basic}, written in the rules' form~\cite[Section~11.9]{pierce2002tapl}: the injections are named, as a pair's projections are, and the copairing is typed by the domain and codomain of its two arrows, an arrow's two objects in the definition of a category~\cite[Definition~1.1.1]{pierce1991basic}.
+\texttt{dom} and \texttt{cod} are read off an arrow's one call operator, so an arrow with several, or a generic one, has no copairing.
+\cppinline{==} at a sum is not in the kernel: \Cpp{23} does not constrain it by the alternatives.
+Listing~\ref{lst:subtraction} uses a sum for subtraction on the naturals, which says how far short it falls where \cppinline{size_t}'s own subtraction wraps, and reads it by the copairing and by the conditional that is its derived form (Table~\ref{tab:derived}).
 
 \begin{listing}[ht]
 \begin{cpp}
 struct Short { size_t by; };
-using Difference = variant<size_t, Short>;
-constexpr Difference minus(size_t n, size_t m) {
-  return m <= n ? ι<1, size_t, Short>{}(n - m)
-                : ι<2, size_t, Short>{}(Short{m - n}); }
+constexpr variant<size_t, Short> minus(size_t n, size_t m) {
+  return m <= n ? Inl<size_t, Short>{}(n - m)
+                : Inr<size_t, Short>{}(Short{m - n}); }
 constexpr size_t monus(size_t n, size_t m) {
-  return Copairing<Same, Nothing>{Same{}, Nothing{}}(minus(n, m)); }
+  return Copairing<Same, Zero>{Same{}, Zero{}}(minus(n, m)); }
 constexpr size_t monus_by_index(size_t n, size_t m) {
-  const Difference d = minus(n, m);
+  const variant<size_t, Short> d = minus(n, m);
   return d.index() == 0 ? get<0>(d) : 0uz; }
 static_assert(monus(7, 2) == 5 && monus(2, 7) == monus_by_index(2, 7));
 \end{cpp}
-\caption{Subtraction on the naturals, read by a copairing, \cppinline{Same} the identity and \cppinline{Nothing} the constant $0$, and by the conditional that is its derived form.
-From \texttt{tools/jlt-lint/fixtures/sum.cpp}, where the linter gives \cppinline{monus} the level FJlt and \cppinline{minus} and \cppinline{monus_by_index} Jlt, \cppinline{ι} being an alias.}
+\caption{Subtraction on the naturals, read by a copairing, \cppinline{Same} the identity and \cppinline{Zero} the constant $0$, and by the conditional that is its derived form.
+From \texttt{tools/jlt-lint/fixtures/sum.cpp}, where the linter gives \cppinline{minus} and \cppinline{monus} the level FJlt and \cppinline{monus_by_index} Jlt.}
 \label{lst:subtraction}
 \end{listing}
 

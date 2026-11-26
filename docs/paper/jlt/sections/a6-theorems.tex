@@ -64,7 +64,7 @@ The primitives' translations compute the standard's functions on constants: a $\
 \begin{assumption}[The instance]
 \label{ass:instance}
 Every carrier has a value.
-The arrows supplied with carriers take and give atoms and carriers, not sums.
+The arrows supplied with carriers take and give atoms and carriers only, not pairs or sums.
 The constants of the carriers and of the arrows supplied with them have $\delta$-rules that are first-order rules on constants, terminating, conservative and confluent, with no critical pair against the other rules of the target.
 \end{assumption}
 
@@ -72,7 +72,7 @@ The first clause is what Theorem~\ref{cit:equational} needs: equational deductio
 It does not follow from the kernel, whose one requirement of a carrier is \cppinline{copyable}, which gives no value; a default value, which local state needs to start from, belongs to a derived form, the row of Table~\ref{tab:derived} for an assignment and \texttt{++} on a local, and not to the kernel, so it is assumed.
 With it Theorem~\ref{cit:equational} applies to the laws of the carriers, as Section~\ref{sec:intro}'s completeness claim for many sorts needs.
 No result of this appendix uses the first clause; it is stated here for that claim.
-The second clause keeps the $\delta$-rules ground: an arrow giving a sum would give a term, not a constant.
+The second clause keeps the $\delta$-rules ground: an arrow giving a pair or a sum would give a term, not a constant.
 The third clause is the condition of Section~\ref{sec:translation} that the arrows supplied with carriers end, stated as Theorem~\ref{cit:sn} asks for it.
 The assumption is what is asserted rather than carried out; Theorem~\ref{cit:sn}'s other hypotheses are checked here.
 The conditional is a rule of the calculus.
@@ -80,10 +80,17 @@ The $\delta$-rules of $\Sigma$ are first-order rules on constants: ground, a con
 $\mathit{toNat}$ is a ground rule of the same kind, from a constant to a numeral of $\mathbb{N}$.
 $\mathit{iter}$ is G\"odel's recursor on $\mathbb{N}$, whose constructors take no functional argument, under the General Schema; in the accumulator form above it is the standard iterator at $\sigma \to \sigma$, each of its steps at least one step of that, so the target is System~T over $\mathbb{N}$ inside System~F.
 The defined names are acyclic, by the declaration order and since no body calls itself, and expand away.
-Products and sums fall outside the General Schema, since a pair or a side may hold a function, and are taken out by their encodings in System~F~\cite[Sections~11.3.2 and~11.3.4]{girard1989proofs}: $\tau \times \sigma$ as $\forall X.\,(\tau \to \sigma \to X) \to X$, and $\tau + \sigma$ as $\forall X.\,(\tau \to X) \to (\sigma \to X) \to X$.
-The encodings are compositional and keep types; they turn a projection or a step of a case into three steps of type application and $\beta$-reduction, and every other step into a step of the same rule.
-An infinite reduction with products and sums would therefore give one without them, which Theorem~\ref{cit:sn} excludes, granted the assumption; Matthes shows this directly~\cite{matthes1999extensions}.
-Confluence follows by Newman's lemma: the rules are left-linear patterns without critical pairs, so locally confluent by the critical pair lemma for higher-order rewriting~\cite{mayr1998higher}.
+Products and sums fall outside the General Schema, since a pair or an alternative may hold a function, and are taken out by their encodings in System~F~\cite[Sections~11.3.2 and~11.3.4]{girard1989proofs}: $\tau \times \sigma$ as $\forall X.\,(\tau \to \sigma \to X) \to X$, and $\tau + \sigma$ as $\forall X.\,(\tau \to X) \to (\sigma \to X) \to X$.
+The encodings are compositional and keep types; they turn a projection or a step of a case into steps of type application and $\beta$-reduction, at least one, and every other step into a step of the same rule.
+
+\begin{proposition}[The target]
+\label{prop:target}
+Granted Assumption~\ref{ass:instance}, the target is strongly normalising and confluent.
+\end{proposition}
+
+\noindent\emph{Argued.}\ An infinite reduction with products and sums would give, by the encodings, one without them, which Theorem~\ref{cit:sn} excludes; Matthes proves strong normalisation for System~F with products and sums directly~\cite{matthes1999extensions}.
+The rules are left-linear and do not overlap, and confluence follows by Newman's lemma from local confluence, which orthogonality gives, as the critical pair lemma does for simply typed higher-order rewriting~\cite{mayr1998higher}; that it carries to System~F with $\beta$ as a rule is argued, not proved.
+
 The one-step-at-a-time iterator is what makes Theorem~\ref{thm:simulation} exact, where a Church encoding, unfolding all at once, would not be.
 % Before 2026-11-23 the carriers' non-emptiness was read off std::semiregular
 % (a default value); copyable is now the kernel's one requirement, so it is
@@ -149,6 +156,7 @@ rule & applies to \\
 \textsc{T-Construct} & a construction of a declared type: one rule, at the types the construction names \\
 \textsc{T-Op}, \textsc{T-App} & a call of a function object: \textsc{T-Op} for a standard one or one supplied with a carrier, \textsc{T-App} for a declared one \\
 \textsc{T-Iter}, \textsc{T-Iter-Run} & an iteration: \textsc{T-Iter} from \texttt{0uz}, \textsc{T-Iter-Run} from a constant above it, so never both \\
+\textsc{T-Inl}, \textsc{T-Inr}, \textsc{T-Copair}, \textsc{T-Inj-Run} & a call of \texttt{Inl}, \texttt{Inr} or \texttt{Copairing}, given to the kernel and typed by these rules alone, never by \textsc{T-Op} or \textsc{T-App}; a value $\mathit{inl}\,v$ or $\mathit{inr}\,v$ \\
 \textsc{T-Eq} & a change of type between equal types, whose images are one type (Appendix~\ref{app:fjlt:translation}), so it adds nothing to the image \\
 \bottomrule
 \end{tabularx}
@@ -264,7 +272,7 @@ The step has the pair type: $\pi_1 p + 1 : \texttt{size\_t}$, and $\lambda s.\,\
 The start $(c, \llbracket a \rrbracket)$ has the pair type${}^{\textsc{ih}}$, so $\pi_2$ of the result has type $\llbracket \sigma \rrbracket$.
 \textsc{T-Iter-Run} is the same with $c_k$ for $c$ and $c_n$ for $e_n$.
 
-An operator expression is the case of the call it resolves to, or the textbook case of a primitive; the omitted rules are the textbook cases for pairs and conditionals, and a sum's injections and copairing are calls of function objects given to the kernel, typed by \textsc{T-Op}.
+An operator expression is the case of the call it resolves to, or the textbook case of a primitive; the omitted rules are the textbook cases for pairs and conditionals, and \textsc{T-Inl}, \textsc{T-Inr}, \textsc{T-Copair} and \textsc{T-Inj-Run} the textbook cases for sums~\cite[Section~11.9]{pierce2002tapl}.
 \end{proof}
 
 \subsection{Simulation of evaluation}
@@ -351,6 +359,7 @@ step & the result has the type, because & relies on \\
 \textsc{S-Op} & below & \textsc{D-Op} \\
 \textsc{S-Std}, \textsc{S-Prim} & the value the standard, the declaration or $\Sigma$ assigns has the result type & Definition~\ref{def:standard} \\
 \textsc{S-If} & the selected branch's type &  \\
+\textsc{S-Inj}, \textsc{S-Copair} & the sum's type, by \textsc{T-Inj-Run}; the chosen arrow's codomain, by \textsc{T-Copair}'s premises & \textsc{T-Inl}, \textsc{T-Inr}, \textsc{T-Copair} \\
 \textsc{S-Proj} & the component's type &  \\
 \textsc{S-Fold} & the call $v_f\texttt{(}v_a\texttt{, }c_k\texttt{)}$ has type $\sigma$ by the step's premise of \textsc{T-Iter} or \textsc{T-Iter-Run} and (a), and the reduct is typed by \textsc{T-Iter-Run}, since $0 < k + 1 \le n$ where $k < n$ & \textsc{T-Iter}, \textsc{T-Iter-Run} \\
 \textsc{S-Ctx} & the hole's type is unchanged${}^{\textsc{ih}}$ &  \\
@@ -386,7 +395,7 @@ a read $f\texttt{<}\overline{\sigma}\texttt{>}$ & \textsc{S-Trait} & the premise
 $O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)}$ & \textsc{S-Op}, \textsc{S-Std} & the choice of $O$; a standard one or an arrow supplied with a carrier is total (Assumption~\ref{ass:instance}) \\
 $\ominus v$, $v_1 \oplus v_2$ & \textsc{S-Prim}, or the call it resolves to & the choice of $\Sigma$, the operators of Figure~\ref{fig:fjlt-syntax} defined at every argument, on constants by canonical forms \\
 a conditional, a projection & \textsc{S-If}, \textsc{S-Proj} & canonical forms: a constant of type \texttt{bool}, a pair or a constructed object \\
-a copairing applied to a value & \textsc{S-Std} & canonical forms: a value of a sum type is an injection applied to a value, no constant and no value of a carrier having a sum type \\
+an injection, a copairing applied to a value & \textsc{S-Inj}, \textsc{S-Copair} & canonical forms: a value of a sum type is $\mathit{inl}\,v$ or $\mathit{inr}\,v$, no constant and no value of a carrier having a sum type \\
 an iteration over \texttt{iota(}$c_k$\texttt{, }$c_n$\texttt{)} & \textsc{S-Fold} & its two cases cover $k < n$ and $k = n$, and $k \le n$: \textsc{T-Iter-Run} has it as a premise, and under \textsc{T-Iter} $k = 0$ \\
 \end{longtable}
 \addtocounter{table}{-1}
@@ -421,7 +430,8 @@ source step & target steps & landing, because \\
 \textsc{S-Op} & several & below \\
 \textsc{S-Std}, \textsc{S-Prim} & a projection where there is one, then a $\delta$-step & the value the standard or the declaration assigns, by Definition~\ref{def:standard} \\
 \textsc{S-If} & a reduction of the conditional & to the selected branch \\
-\textsc{S-Std} at a copairing & a projection, a reduction of the case, then an application & the arrow the side chooses, applied to the value the side holds \\
+\textsc{S-Inj} & none & the same injection \\
+\textsc{S-Copair} & a reduction of the case & the call function of the arrow the alternative chooses, applied to the value it holds \\
 \textsc{S-Proj} & a projection, two for a constructed object's field & the selected component \\
 \textsc{S-Fold} & several & below \\
 \end{longtable}
@@ -447,7 +457,7 @@ Every well-formed FJlt program terminates.
 \begin{proof}
 Let $e$ be the program's term, closed and well typed since the program is well formed.
 By Lemma~\ref{lem:subject} every term $e_i$ it reduces to is closed and well typed, so Lemma~\ref{lem:forward} applies at each step.
-An infinite reduction $e \longrightarrow e_1 \longrightarrow \cdots$ would give, by Lemma~\ref{lem:forward} from $\llbracket e \rrbracket \sqsupseteq e$, an infinite reduction $\llbracket e \rrbracket \longrightarrow^{+} t_1 \longrightarrow^{+} \cdots$ with $t_i \sqsupseteq e_i$ in the target, which is strongly normalising (Theorem~\ref{cit:sn}, Assumption~\ref{ass:instance}).
+An infinite reduction $e \longrightarrow e_1 \longrightarrow \cdots$ would give, by Lemma~\ref{lem:forward} from $\llbracket e \rrbracket \sqsupseteq e$, an infinite reduction $\llbracket e \rrbracket \longrightarrow^{+} t_1 \longrightarrow^{+} \cdots$ with $t_i \sqsupseteq e_i$ in the target, which is strongly normalising (Proposition~\ref{prop:target}).
 \end{proof}
 
 \begin{corollary}[Type soundness]
@@ -467,7 +477,7 @@ For closed well-typed terms of an atom, $e$ evaluates to $v$ if and only if $\ll
 \begin{proof}
 The first two claims are Lemma~\ref{lem:forward}, the first up to $\sqsupseteq$.
 For the converse at an atom: if $e \Downarrow v$ then $\llbracket e \rrbracket \longrightarrow^{*} t \sqsupseteq v$ by Lemma~\ref{lem:forward} and induction on the sequence, each term of which is well typed by Lemma~\ref{lem:subject}, and $t = \llbracket v \rrbracket$, a constant.
-Conversely, if $\llbracket e \rrbracket \longrightarrow^{*} c$ for a constant $c$: by Corollary~\ref{cor:soundness} $e \Downarrow v$ for some $v$, so $\llbracket e \rrbracket \longrightarrow^{*} \llbracket v \rrbracket$ by the half just proved, and $c = \llbracket v \rrbracket$ since the target is confluent (Theorem~\ref{cit:sn}, Assumption~\ref{ass:instance}) and both are normal forms, the translation being injective on constants.
+Conversely, if $\llbracket e \rrbracket \longrightarrow^{*} c$ for a constant $c$: by Corollary~\ref{cor:soundness} $e \Downarrow v$ for some $v$, so $\llbracket e \rrbracket \longrightarrow^{*} \llbracket v \rrbracket$ by the half just proved, and $c = \llbracket v \rrbracket$ since the target is confluent (Proposition~\ref{prop:target}) and both are normal forms, the translation being injective on constants.
 \end{proof}
 
 \begin{corollary}[Parametricity]

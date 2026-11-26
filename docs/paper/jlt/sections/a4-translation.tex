@@ -158,6 +158,8 @@ O \text{ standard, or supplied with a carrier} \;\mapsto\; O_{\mathrm{call}} = \
 \llbracket e_1 \oplus e_2 \rrbracket = \oplus\,\llbracket e_1 \rrbracket\,\llbracket e_2 \rrbracket \text{ or } \llbracket \texttt{operator}\oplus\texttt{(}e_1\texttt{, }e_2\texttt{)} \rrbracket & \note{a primitive of $\Sigma$, its constant; otherwise the call it resolves to, under the standard's rewrite where the candidate is rewritten or reversed; $\ominus$ alike} \\
 \llbracket e\texttt{.}y_i \rrbracket = \pi_i\,(\pi_1\,\llbracket e \rrbracket) & \note{a field: $\pi_1$ takes the fields out of the object's pair (construction, above), $\pi_i$ the field} \\
 \llbracket e_0 \texttt{ ? } e_1 \texttt{ : } e_2 \rrbracket = \mathit{if}\,\llbracket e_0 \rrbracket\,\llbracket e_1 \rrbracket\,\llbracket e_2 \rrbracket & \note{the conditional of the target's \textit{Bool}} \\
+\llbracket \texttt{Inl<}\tau\texttt{, }\sigma\texttt{>\{\}(}e\texttt{)} \rrbracket = \mathit{inl}_{\llbracket \sigma \rrbracket}\,\llbracket e \rrbracket \qquad \llbracket \texttt{Inr<}\tau\texttt{, }\sigma\texttt{>\{\}(}e\texttt{)} \rrbracket = \mathit{inr}_{\llbracket \tau \rrbracket}\,\llbracket e \rrbracket & \note{\textsc{T-Inl}, \textsc{T-Inr}: the target's injections} \\
+\llbracket \texttt{Copairing<}F\texttt{, }G\texttt{>\{}f\texttt{, }g\texttt{\}(}e\texttt{)} \rrbracket = \mathit{case}_{\llbracket \rho \rrbracket}\,\llbracket e \rrbracket\,(\pi_2\,\llbracket f \rrbracket\,\overline{d_f})\,(\pi_2\,\llbracket g \rrbracket\,\overline{d_g}) & \note{\textsc{T-Copair}: the target's case, $\overline{d_f}$ and $\overline{d_g}$ the dictionaries of $f$'s and $g$'s call operators, as for \textsc{T-App}} \\
 \end{array}
 \]
 \caption{The translation of declarations and terms; pairs are the target's own (Table~\ref{tab:conventions}).
@@ -216,13 +218,13 @@ Table~\ref{tab:conventions} is the fragment's convention on the standard library
 System~F & FJlt & \Cpp{} & rules \\
 \midrule
 $\tau \times \sigma$, $(a, b)$, $\pi_1$, $\pi_2$~\cite{pierce1991basic} & \texttt{pair<τ, σ>}, \texttt{pair\{a, b\}}, \texttt{.first}, \texttt{.second} & the same & \textsc{T-Construct}, \textsc{T-Field}; \textsc{S-Proj} \\
-$\tau + \sigma$, $\mathit{inl}$, $\mathit{inr}$, $\lambda s.\,\mathit{case}\,s\,f\,g$~\cite[Section~11.9]{pierce2002tapl} & \texttt{variant<τ, σ>}, $\iota_1$, $\iota_2$, $[f, g]$ & \texttt{Injection}, \texttt{Copairing} of the library & \textsc{T-Op}; \textsc{S-Std} \\
+$\tau + \sigma$, $\mathit{inl}$, $\mathit{inr}$, $\mathit{case}$~\cite[Section~11.9]{pierce2002tapl} & \texttt{variant<τ, σ>}, \texttt{Inl}, \texttt{Inr}, \texttt{Copairing} & the same & \textsc{T-Inl}, \textsc{T-Inr}, \textsc{T-Copair}; \textsc{S-Inj}, \textsc{S-Copair} \\
 $\mathbb{N}$, \textit{iter} & \texttt{fold\_left(iota(0uz, n), a, f)} & the same & \textsc{T-Iter}; \textsc{S-Fold} \\
 \bottomrule
 \end{tabularx}
 \caption{The fragment's convention on the standard library, each type beside the rules that type and evaluate it (Appendices~\ref{app:fjlt:typing} and~\ref{app:fjlt:evaluation}).
 Each is adopted rather than declared because it lands on a construct of the target: a product, a sum, and the iterator of the naturals.
-The injections and the copairing are arrows given to the kernel; their images are the target's injections, at the other side's type, and its case, $\llbracket [f, g] \rrbracket$ applying $\pi_2\,\llbracket f \rrbracket$ or $\pi_2\,\llbracket g \rrbracket$ to the value the side holds.}
+}
 \label{tab:conventions}
 \end{table}
 
