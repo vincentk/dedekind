@@ -36,7 +36,7 @@ endif
 _HOST_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 JOBS ?= $(shell j=$$(( $(_HOST_CORES) - 2 )); [ $$j -lt 2 ] && j=2; echo $$j)
 
-.PHONY: help python-api jlt-lint
+.PHONY: help python-api jlt-lint doxygen-jlt-lint
 .PHONY: bench bench-native all clean compile test-compile test check coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks doxygen paper-jlt \
 	ci-history ci-main pr-init pr-status pr-status-all pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list
@@ -392,6 +392,11 @@ doxygen: $(BUILD_DIR)/CMakeCache.txt ## The Doxygen API docs in build/docs
 		-DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON \
 		$(CMAKE_EXTRA_ARGS)
 	cmake --build $(BUILD_DIR) --target docs --parallel $(JOBS)
+
+# The linter's reference, from its sources: each check's comment, each rule
+# file's header, and the page of sugar rows that the paper cites (#1231).
+doxygen-jlt-lint: ## The linter's reference in build/docs-jlt-lint
+	doxygen tools/jlt-lint/Doxyfile
 
 papers: ## The paper with its bibliography, as CI builds it
 	$(MAKE) paper-jlt

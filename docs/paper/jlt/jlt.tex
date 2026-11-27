@@ -48,60 +48,15 @@ Contact him at \email{vincent.kraeutler@alumni.ethz.ch}.}
 % equal, a generic function depends on a type only through what its
 % declaration names, and every computation has a bound read off before it
 % starts.  That much rests on the programmer's care.
-%
-% Passing the check gives four things that do not:
-%   1. The signature is the contract: a generic body is checked against its
-%      declaration where it is defined, not at each use.
-%   2. A free theorem for each generic definition, usable as an equation in a
-%      review (a function written for any monoid commutes with every monoid
-%      homomorphism).
-%   3. Laws compose by themselves: stated once at the smallest pieces, carried
-%      by the compiler to every composite, and refused where they do not
-%      follow.
-%   4. A printed list of every law that was stated and not proved (today the
-%      axioms and the conditional laws; the laws derived from them are yet
-%      to be listed, Appendix G).
-% All of it is decided while compiling.  The theory is not new, and that it
-% can be used here is the contribution.
-%
-% THE CONTEXT is in the introduction (C++0x checked a template's definition
-% and let a concept state axioms; withdrawn in 2009; C++20 checks only uses;
-% jlt-lint recovers part of the difference, inside the fragment).  Still to be
-% said once: concept maps are not recovered.
-%
-% WHERE THE ABSTRACT IS NOT YET SHOWN (was: where the lie stands; reviewed
-% 2026-11-25).  The abstract below is true where it is proved, argued and
-% tested, or listed as trusted; the work is to make the rest smaller.  Update
-% this list as it shrinks.
-%   - "classifies each definition ... as shown to be in Jlt", for a
-%     template that it means what its signature says: built, run and gated in CI on the listings and on the
-%     whole library (#1211 to #1214); what it means rests on the conjecture
-%     of Section 4, which the paper states as one.  Not yet shown: the
-%     guarantee assumes that an entry stands above every use, and of the
-%     three conditions on the order of declarations the linter checks one in
-%     part (context-order, bare heads); the rest is a TODO of the linter.
-%   - "it lists the laws the code takes on trust": true for axioms and
-%     conditional laws (axioms.txt, laws.txt, #1213).  The laws the compiler
-%     derives from them at a use, and units named at a use, are not listed.
-%   - "every definition also has a meaning in System F", the rest of Jlt
-%     being sugar that desugars into the kernel: true of the kernel, and of
-%     a derived form whose condition has a check.
-%     The audit of 2026-11-25 (#1219) found rows of the table of derived
-%     forms whose condition nothing enforced; four are now checked, and what
-%     has no row or no check yet is classed undecided by the linter, not Jlt:
-%     if constexpr, if consteval, a generic lambda, std::variant.  Their rows
-%     are to be written, each argued and tested, not proved.
-%   Gone from this list: the results about the target (Section 3) are now
-%   checked against a written-out kernel, Appendices B to E.
 \Cpp{} is a mainstream language with zero-overhead abstraction but few guarantees about generic code; System~F offers those guarantees, and Haskell's type classes are the established way for overloading to reach it.
 
 We restrict \Cpp{23} to what can be evaluated at compile time under three rules: values are copyable data and functions are pure; generic code varies with a type only through that type's concepts and traits; and recursion is bounded before its first step.
 This drops input and output, state that outlives a call, and unbounded data and computation.
-What remains, the Juliet Posture or Jlt, is ordinary \Cpp{23} with templates, concepts and overloading, and needs no extension and no tool to compile.
+What remains, the Juliet Posture, is ordinary \Cpp{23} with templates, concepts and overloading, and needs no extension and no tool to compile.
 
-Jlt is a part of the \Cpp{} that can be evaluated at compile time in which every definition also has a meaning in System~F.
+Jlt is the part of the posture in which every definition also has a meaning in System~F.
 Its kernel, Featherweight Jlt (FJlt), translates into System~F by dictionary passing, and the rest of Jlt is sugar, such as local state and loops, that desugars into the kernel.
-The translation is defined on every well-formed kernel program and proved on paper to preserve types and values.
+The translation is defined on every well-formed kernel program and proved on paper, under stated assumptions, to preserve types and values.
 The desugaring is argued and tested, not proved.
 That \Cpp{} evaluates a kernel program as the calculus does is assumed, with constant evaluation, which every compiler performs, as the reference it is tested against.
 

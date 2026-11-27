@@ -2,7 +2,7 @@
 \section{The compiler's own functional language}
 \label{app:fjlt:ssa}
 
-This appendix is the argument for the right-hand leg of Figure~\ref{fig:arrows}: that for a closed term $t$ of base type in the image of $\llbracket\cdot\rrbracket$, $\mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$ is $\mathit{eval}\,t$.
+This appendix is the argument for the right-hand leg of Figure~\ref{fig:arrows}: that for a closed kernel program $e$ of base type, $\mathit{run}\,(\texttt{clang++}\,e)$ is $\mathit{eval}\,\llbracket e \rrbracket$, the figure's hypothesis at the kernel.
 Theorem~\ref{thm:simulation} gives that inside the calculus.
 Here the program the compiler emits is read as the same term.
 It is a reason, not a theorem: the compiler is not among the hypotheses, and its lowering is trusted, as every \Cpp{} program trusts it.
@@ -10,12 +10,10 @@ It is a reason, not a theorem: the compiler is not among the hypotheses, and its
 \paragraph{From the term to SSA.}
 Instantiation is partial evaluation of the dictionary-passing term (Section~\ref{sec:binding}), finite by \RuleThree{}, and it leaves a closed first-order term over the base types.
 The type abstractions are gone with their arguments, and the record parameters with the records the compiler resolved.
-Every read of a trait is one entry or the default, and the only recursion left is $\mathit{iter}$ and $\mathit{fold}_F$.
+Every read of a trait is one entry or the default, and the only recursion left is $\mathit{iter}$.
 For Go, Ellis et al.~\cite{ellis2022generic} prove the dictionary-passing translation correct beside monomorphisation, which Griesemer et al.~\cite{griesemer2020featherweight} proved; \Cpp{} only ever does the second, and the first carries the theorems.
 The compiler lowers the first-order term to static single assignment form~\cite{cytron1991ssa}, and SSA is a functional language: Kelsey showed it to correspond to continuation-passing style~\cite{kelsey1995correspondence}, and Appel reads a basic block as a local function and its $\phi$-nodes as that function's parameters~\cite{appel1998ssa}.
-So a Jlt function is translated twice into a functional language, by Appendix~\ref{app:fjlt:translation} into System~F with records and iterators and by the compiler into first-order functions with tail calls.
-Rules~1 and~3 are what makes the source already look like the second.
-Section~\ref{sec:binding} reads one loop this way, and both targets make the loop's state a parameter.
+So a Jlt function is translated twice into a functional language, by Appendix~\ref{app:fjlt:translation} and by the compiler, and both targets make a loop's state a parameter, as Section~\ref{sec:binding} reads one loop.
 One seam shows there.
 SSA's values are the scalars in registers, and a value in memory, a boxed value in particular, is read and written through a pointer that no $\phi$-node carries.
 That is the line between a value and a cell that Rule~1 draws.

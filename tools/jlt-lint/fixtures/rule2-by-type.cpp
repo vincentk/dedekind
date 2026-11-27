@@ -121,7 +121,7 @@ concept LooseMon = requires {
   { op_t<E>{}(a, b) } -> std::convertible_to<carrier_t<E>>;
 };
 // Admitted: each result goes into a declared carrier or the return, the
-// derived form's copy-initialisation of a T (Table 7).
+// sugar's copy-initialisation of a T (Table 7).
 template <typename E>
   requires LooseMon<E>
 constexpr carrier_t<E> thrice(carrier_t<E> x) {

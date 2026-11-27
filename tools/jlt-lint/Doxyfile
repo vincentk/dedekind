@@ -1,0 +1,26 @@
+# The linter's reference, generated from its sources (#1231); run from the
+# repository's root: `make doxygen-jlt-lint`, HTML in build/docs-jlt-lint/html.
+# The page "The sugar, row by row" collects the \sugar entries, one at each
+# check that holds a row of the paper's table of sugar.
+PROJECT_NAME           = "jlt-lint"
+PROJECT_BRIEF          = "The linter of the Jlt fragment of C++23"
+OUTPUT_DIRECTORY       = build/docs-jlt-lint
+INPUT                  = tools/jlt-lint/README.md \
+                         tools/jlt-lint/tool/jlt_lint.cpp \
+                         tools/jlt-lint/rules \
+                         tools/jlt-lint/admission.txt
+FILE_PATTERNS          = *.md *.cpp *.query *.txt
+EXTENSION_MAPPING      = query=C++ txt=C++
+FILTER_PATTERNS        = *.query="python3 tools/jlt-lint/doxfilter.py" \
+                         *.txt="python3 tools/jlt-lint/doxfilter.py"
+USE_MDFILE_AS_MAINPAGE = tools/jlt-lint/README.md
+ALIASES               += "sugar{1}=\xrefitem sugar \"Sugar\" \"The sugar, row by row\" \b \"\1.\""
+# The checks are members of classes in an unnamed namespace.
+EXTRACT_ANON_NSPACES   = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+GENERATE_LATEX         = NO
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARN_AS_ERROR          = NO

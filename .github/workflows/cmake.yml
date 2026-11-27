@@ -204,6 +204,7 @@ jobs:
 
         wait "$DOXYGEN_BUILD_PID"
         wait "$PAPER_BUILD_PID"
+        make doxygen-jlt-lint
 
     - name: Download the wheel
       uses: actions/download-artifact@v8
@@ -220,6 +221,8 @@ jobs:
         mkdir -p build/pages
         cp -R build/docs/html/. build/pages/
         cp -R build/python-api build/pages/python
+        cp -R build/docs-jlt-lint/html build/pages/jlt-lint
+        test -f build/pages/jlt-lint/sugar.html
         test -f build/pages/python/pynzli.html
         cp docs/paper/jlt/jlt.pdf build/pages/jlt.pdf
 

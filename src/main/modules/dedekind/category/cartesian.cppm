@@ -823,6 +823,15 @@ static_assert(!IsExponential<std::function<int(int)>, int, bool>,
  *
  * This triple of structures provides the categorical foundations required for
  * the Dedekind topos (ETCS).
+ *
+ * With the coproducts of @c IsCoproduct (@c std::variant<A, B>) beside it, and
+ * an initial object, it would be a @b bicartesian closed category: products,
+ * sums and functions.  That is the structure Danielsson, Hughes, Jansson and
+ * Gibbons find in the total part of a partial functional language, which
+ * makes reasoning as if the language were total sound there ("Fast and Loose
+ * Reasoning is Morally Correct", POPL 2006, doi:10.1145/1111037.1111056), and
+ * the structure of the Jlt paper's kernel (#1222).  No concept here names it
+ * yet (#1227).
  */
 // Concept-as-predicate / @c &&-as-intersection composition: the cartesian
 // closed concept narrows @c IsCartesian by additionally requiring

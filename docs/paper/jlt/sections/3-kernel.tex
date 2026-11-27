@@ -2,13 +2,21 @@
 \section{The Kernel and Its Warrant}
 \label{sec:kernel}
 
-The four listings are written in a language, Jlt, that is defined in two steps (Figure~\ref{fig:arrows}).
-A small kernel, Featherweight Jlt or FJlt, is a subset of \Cpp{} whose meaning is given by a translation into a calculus that is well understood.
-Jlt is that kernel with \emph{derived forms}, each a way of writing something the kernel can already say.
+Section~\ref{sec:examples} drew the posture, by the three rules, and this section defines Jlt inside it, in two steps, the arrows $-$sugar and $\llbracket\cdot\rrbracket$ of Figure~\ref{fig:arrows}.
+The kernel, FJlt (Section~\ref{sec:intro}), is a subset of \Cpp{} whose meaning is its image under $\llbracket\cdot\rrbracket$.
+Jlt is the kernel with sugar, each form of which is a way of writing something the kernel can already say (Definition~\ref{def:sugar}).
 The first step follows Featherweight Java~\cite{igarashi2001featherweight}: a kernel small enough to reason about, every program of which is a program of the full language.
 The second follows the treatment of JavaScript by a small core and a desugaring into it~\cite{guha2010essence}.
 % TODO(related): the bare language and derived forms of the Definition of
 % Standard ML are the older precedent for the second step; cite once verified.
+
+One principle chooses the constructs of the kernel's value layer, the one Danielsson et al.\ state for their category of total values (Section~\ref{sec:intro}), whose constructions ``should correspond closely to those in the underlying language''~\cite[Section~8]{danielsson2006fast}.
+For each construct of that category the kernel needs (products, sums, functions and, from its recursive types, the fold of the naturals), it asks whether \Cpp{23} or its standard library has a clear counterpart.
+Where there is one, the kernel takes it as \Cpp{} writes it, as \cppinline{std::pair} for a product, and leaves its image in System~F to $\llbracket\cdot\rrbracket$.
+Where there is none, the kernel names the construct as the category does, as the copairing of a sum.
+It names the injections too, since \Cpp{}'s own, \cppinline{std::in_place_index}, puts the alternative among a template's parameters, which the kernel leaves out (Table~\ref{tab:excluded}).
+The resolution layer, of shapes, traits and associated types, has no counterpart in that category, and is \Cpp{}'s own.
+The category's final coalgebras are left out, Jlt being about data, and the rest of \Cpp{23} that a program needs comes as sugar (Section~\ref{sec:kernel:derived}).
 
 \subsection{The kernel}
 \label{sec:kernel:fjlt}
@@ -48,8 +56,8 @@ e &::=& x \;\mid\; c \;\mid\; f\texttt{<}\overline{\tau}\texttt{>} \;\mid\; f\te
 Terminals are in monospace and an overbar is a sequence, possibly empty.
 An empty \texttt{requires} clause, an empty list of a \texttt{requires} expression with its parentheses, and an empty \texttt{template} head are left out, except that an entry with no type variables keeps \texttt{template <>}.
 The requirements $\overline{A}$ of a shape and the constraints $\overline{Q}$ of a clause are joined by \texttt{\&\&}, and a negated constraint is written in parentheses.
-$\alpha$ are type variables, $g$ names of associated types, \texttt{cod} among them, the codomain of an arrow, given to the kernel, $C$ names of shapes, the standard's \texttt{copyable}, \texttt{equality\_comparable} and \texttt{same\_as} among them, $f$ names of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
-$T$ is a declared type $O$, \texttt{std::pair}, a carrier, or an arrow supplied with a carrier, as the standard's \texttt{std::plus} is.
+$\alpha$ are type variables, $g$ names of associated types, \texttt{dom} and \texttt{cod} among them, the domain and codomain of an arrow, given to the kernel, $C$ names of shapes, the standard's \texttt{copyable}, \texttt{equality\_comparable} and \texttt{same\_as} among them, $f$ names of traits and functions, $O$ of declared types, $x$ of variables and $y$ of fields.
+$T$ is a declared type $O$, \texttt{std::pair}, \texttt{std::variant} of two types, a carrier, an arrow supplied with a carrier, as the standard's \texttt{std::plus} is, or one of the sum's arrows, \texttt{Inl}, \texttt{Inr} and \texttt{Copairing}.
 $c$ is a constant of an atom, or a value of a carrier that its type provides.
 A parameter that is not used may go unnamed.
 $\tau\texttt{\{}\overline{e}\texttt{\}}$ is a value of a declared type from values for its fields, and at a type variable, with no fields, the one value of a function object.
@@ -86,6 +94,7 @@ construct & written in \Cpp{} as & in the listings \\
 atom & \texttt{bool}, \texttt{size\_t}: a truth value, a count modulo $2^{64}$ & \texttt{true}, the count \texttt{n} \\
 carrier & any type of values, known only by the calls a shape names & \texttt{string}, \texttt{Bare}, the \texttt{T} of a template \\
 pair, record & \texttt{std::pair}, or a \texttt{struct} of fields & the state of \texttt{Squaring}'s fold \\
+sum type & \texttt{std::variant<A, B>}, built by its injections \texttt{Inl}, \texttt{Inr} and read by its copairing only & --- \\
 arrow & a \texttt{struct} with a \texttt{constexpr}, \texttt{const} call operator, or one of the standard's function objects & \texttt{Size}, \texttt{Squaring}, \texttt{Xor}, \texttt{std::plus} \\
 choice & the conditional \texttt{?:} on a truth value & in \texttt{Squaring} \\
 iteration & the standard's fold over the counts below a bound & the fold of \texttt{power} \\
@@ -107,18 +116,10 @@ associated type & a \texttt{struct} template whose entries each name one type, r
 % complete").  The table states what was agreed on 2026-11-20
 % and has not been checked line by line against the three listings.
 
-The value layer has little of \Cpp{} in it, on purpose.
-A carrier is a type the kernel never looks inside: a generic definition reaches a value of it only through the calls that a shape names, and that is all the kernel knows of a string.
-A carrier comes with arrows of its own, as \cppinline{std::plus} comes with strings and \cppinline{Size} is written with a string's own length, and their declarations are given to the kernel, not written in it.
-The one recursion over a value is iteration, with its count given before the first step.
-Its step is a function of the state and the index, and a state of several parts is a record.
-
-The resolution layer is where \Cpp{} lives.
-A named type gives the compiler something to select by, a shape says what a generic definition may assume, and a trait and a function with several cases are each a selection by the form of a type.
-An associated type is a trait whose result is a type: a function on types with one entry for each head, as the standard's \cppinline{range_value_t} gives the type of a range's elements.
-Read at a type variable, it may only name a type in a declaration, never choose a case.
-Every program of the kernel is a \Cpp{} program, and \Cpp{} says what it computes.
-The kernel leaves out what would break that reading, some of it by its grammar and some by rules that the grammar cannot state (Table~\ref{tab:excluded}).
+Table~\ref{tab:kernel} says what each construct is; three things it cannot say.
+A carrier is a type the kernel never looks inside: a generic definition reaches a value of it only through the calls that a shape names, and the declarations of the arrows it comes with, as \cppinline{std::plus} with strings, are given to the kernel, not written in it.
+An associated type read at a type variable may only name a type in a declaration, never choose a case.
+And \Cpp{} says what a kernel program computes, and the kernel leaves out what would break that reading, some of it by its grammar and some by rules that the grammar cannot state (Table~\ref{tab:excluded}).
 
 \begin{table}[tb]
 \centering
@@ -142,16 +143,25 @@ several call operators on one type & an entry that stands below a use that could
 \label{tab:excluded}
 \end{table}
 
-\paragraph{Derived forms.}
+\paragraph{Sugar.}
 \label{sec:kernel:derived}
-Jlt is this kernel and its derived forms: rewrites of a Jlt program into FJlt that may change types inside the program and leave every observable value unchanged, the value of a closed term at an atom, while compiling and while running.
-Time is not observed, so a program and its rewrite may differ in cost and in nothing else.
-Most of what the listings write beyond the grammar is \Cpp{} that the standard itself defines as something in the kernel, and Appendix~\ref{app:derived} lists every derived form with its rewrite and the condition under which the rewrite keeps every value.
-Two derived forms carry weight.
-A range, as an array or a view, stands for its length and the function that reads it, and \cppinline{ranges::fold_left} over a range for the kernel's iteration over that count, a change of representation more than an abbreviation.
-Local mutable state is read by state passing: an assignment to a local, or to an element of a local array, is the next state of the fold it is in, so that code written in place with counted loops, such as a running sum or a Fibonacci number by repeated squaring of a matrix (\texttt{tools/jlt-lint/fixtures/local-state.cpp}), is read as a term of System~F, under the condition that each piece of storage is reached through one name at a time, which the linter checks (Appendix~\ref{app:derived}).
-That a derived form preserves values is argued and tested, not proved, the standard of evidence of the work on JavaScript~\cite{guha2010essence}: Table~\ref{tab:derived} gives each form its reading and the condition it rests on, and a test sets a form beside its kernel reading and lets constant evaluation compare the two, as Listing~\ref{lst:running-sum} does for local state.
-The list is open, and a new derived form touches nothing that is said about the kernel.
+\begin{definition}[Sugar, Jlt]
+\label{def:sugar}
+A \emph{form} is a shape of a program's syntax tree, as the compiler builds it.
+A form is \emph{sugar} when
+(a) it is recognised on the tree, by its shape and a condition decidable there;
+(b) it has a \emph{reading}, a program in the kernel's forms or in sugar already admitted, which has the form's value wherever the condition holds, the value of a closed term at an atom as \Cpp{23} defines it, while compiling and while running; and
+(c) no other reading applies to it.
+\emph{Jlt} is the set of programs of the posture written in the kernel's forms and in sugar.
+\end{definition}
+
+\noindent A reading may change types inside the program, and time is not observed, so a program and its reading may differ in cost and in nothing else.
+The definition is by what a form must meet, and no list of forms is part of it: \Cpp{} moves, and so does what has been shown.
+Appendix~\ref{app:derived} gives the forms shown so far to be sugar, each with its reading and its condition, and a form not among them leaves a definition that uses it undecided.
+Two of them carry most programs: a finite range, as an array or a view, is its length and the function that reads it, folded over by the kernel's iteration over that count, and a mutable local is the state of such a fold.
+That a form meets (b) is argued and tested for that form, and not proved, the standard of evidence of the work on JavaScript~\cite{guha2010essence}: a test sets the form beside its reading and lets constant evaluation compare the two (Listing~\ref{lst:running-sum}).
+That is also how the fragment grows, a form at a time: a row, a test, and a check in the linter.
+The burden lies with whoever adds a form: until its reading is argued and tested, a definition that uses it is undecided.
 % TODO(derived): the standard's clauses for the first group are to be cited;
 % a test beside its kernel form exists for local state and for a variant
 % (tools/jlt-lint/fixtures); the other rows are to get theirs.
@@ -159,10 +169,32 @@ The list is open, and a new derived form touches nothing that is said about the 
 \subsection{The image}
 \label{sec:translation}
 
-The meaning of a kernel program is its image in System~F~\cite{girard1972interpretation,reynolds1974towards} with truth values, counts and an iterator over a count.
+The meaning of a kernel program is its image in System~F with truth values, counts and an iterator over a count.
 A function of several arguments is curried in the image and a record of several fields is a product, the textbook's treatment of both~\cite{pierce2002tapl}.
-That a closed program of an atom has the same value in \Cpp{} and in its image is this paper's hypothesis of adequacy.
-Its part between FJlt's own evaluation (Appendix~\ref{app:fjlt:evaluation}) and the image Appendix~\ref{app:fjlt:theorems} shows on paper; that \Cpp{} evaluates a kernel program as FJlt does is assumed, and the results below are about the image.
+That a closed program has the same value in \Cpp{} and in its image is the paper's one hypothesis, the bottom arrow of Figure~\ref{fig:arrows}.
+
+\begin{hypothesis}[Adequacy]
+\label{hyp:adequacy}
+Let $p$ be a closed program of Jlt of an atom, and $p'$ its reading in the kernel (Definition~\ref{def:sugar}).
+Wherever the compiler's path gives a value,
+\begin{equation}
+\label{eq:adequacy}
+\mathit{run}\,(\texttt{clang++}\;p) \;=\; \mathit{eval}\,\llbracket p' \rrbracket .
+\end{equation}
+\end{hypothesis}
+
+\noindent Equation~\eqref{eq:adequacy} is a chain of four, and each link has its own standing, drawn as the lines of Figure~\ref{fig:arrows} are, $=$ for solid, $\approx$ for dashed and $\doteq$ for dotted:
+\begin{equation}
+\label{eq:adequacy-chain}
+\mathit{run}\,(\texttt{clang++}\;p)
+\;\underset{\text{trusted}}{\doteq}\; \mathit{std}\,p
+\;\underset{\text{argued, tested}}{\approx}\; \mathit{std}\,p'
+\;\underset{\text{assumed}}{\doteq}\; v \text{ with } p' \Downarrow v
+\;\underset{\text{proved}}{=}\; \mathit{eval}\,\llbracket p' \rrbracket ,
+\end{equation}
+where $\mathit{std}$ is the value the standard gives a program, and $\Downarrow$ FJlt's own evaluation (Appendix~\ref{app:fjlt:evaluation}).
+The first link trusts the compiler, the second is the sugar (Definition~\ref{def:sugar}), the third takes constant evaluation as its reference, and the fourth is Theorem~\ref{thm:simulation}, under its assumptions.
+The chain is as sure as its weakest link, and the results below are about the image.
 The translation is the one that gives Haskell's type classes their meaning, dictionary passing~\cite{wadler1989adhoc,jones1994qualified}, and Table~\ref{tab:image} states it, Appendix~\ref{app:fjlt:translation} in full.
 The images below the panels of the listings were made by hand according to it.
 
@@ -199,7 +231,7 @@ So System~F is not needed to say what a kernel program computes.
 It is needed for what a generic definition means before anyone uses it: a template under a \texttt{requires} clause whose body keeps to it has a type of the form ``for all $T$, given a record for $T$, \ldots'', a System~F type of rank one.
 
 Three results about the target then hold of a kernel program.
-Appendix~\ref{app:fjlt:theorems} shows them for this kernel on paper, with the textbook cases omitted, relative to two stated assumptions and the conditions on well-formed programs.
+Appendix~\ref{app:fjlt:theorems} proves the first two for this kernel on paper, with the textbook cases omitted, relative to three stated assumptions and the eight conditions on well-formed programs (\ref{wf:shapes} to~\ref{wf:acyclic}, Appendix~\ref{app:fjlt:typing}); the third is the cited abstraction theorem at the image, argued, not proved, to extend to the target's constants and iterator.
 \begin{enumerate}
 \item A well-typed program does not go wrong~\cite{pierce2002tapl}.
 \item Every program ends, since the target's only recursion is iteration over a count~\cite{girard1989proofs}, provided the arrows supplied with carriers end, the compiler's selection ends, and no function calls itself.
@@ -223,6 +255,6 @@ The image is a function of the program only if the compiler's choice of an entry
 \Cpp{} makes it one at concrete types, by its rules for the most specialised candidate; that the choice be the same wherever it is asked, \Cpp{} requires and does not check.
 So the kernel asks two things that \Cpp{} does not check: that a generic body selects only by what its declaration names (\RuleTwo{}), and that an entry stands above every use that could read it (Appendix~\ref{app:fjlt:order}).
 Under those two a selection should have one answer in a program, so that the image is a function of it.
-That is the coherence of resolution~\cite{jones1994qualified}, stated here as a condition; Appendix~\ref{app:fjlt:theorems} argues that the image is a function of the program, given the conditions on well-formed programs it uses (Appendices~\ref{app:fjlt:order} and~\ref{app:fjlt:typing}).
+That is the coherence of resolution~\cite{jones1994qualified}, stated here as a condition; Appendix~\ref{app:fjlt:theorems} argues that the image is a function of the program, given the conditions on well-formed programs it uses (\ref{wf:function} to~\ref{wf:founded}, Appendix~\ref{app:fjlt:typing}).
 % TODO(related): functional dependencies (Jones, ESOP 2000) to be verified
 % and cited beside the associated types.

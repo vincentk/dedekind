@@ -1,5 +1,5 @@
 % !TEX root = ../jlt.tex
-\section{Jlt, by Four Examples}
+\section{The Posture, by Four Examples}
 \label{sec:examples}
 
 This section makes the case in four listings, each on a function the reader already knows.
@@ -7,6 +7,11 @@ The first shows a bug that a signature would have prevented.
 The second shows an optimisation that a declared law permits.
 The third shows a dependency on a law that a signature must declare.
 The fourth shows a fact that the compiler works out from facts it was given.
+Six words recur, and Section~\ref{sec:kernel} defines each.
+A \emph{carrier} is a type of values, and an \emph{arrow} a function object, a \cppinline{struct} with a call operator.
+A \emph{shape} is a \cppinline{concept}: the calls and the laws it asks of a type.
+A \emph{trait} is a value read at a type, a variable template, and an \emph{entry} is its specialisation at one type.
+The \emph{image} of a definition is the term of System~F it translates to.
 Each listing has its code on the left, the tests of that code on the right, and below them what the code becomes under the translation of Section~\ref{sec:translation}.
 
 \subsection{What a signature prevents}
@@ -171,8 +176,8 @@ The carrier $T$ and the operation $\mathit{Op}$ of the unit $E$ are one type par
 \cppinline{guessed_concat} has no image: no record gives it a \cppinline{+}, and a checker that holds a body to its signature refuses it and says so, that no operation \cppinline{+} is declared for the range's elements.
 \Cpp{} accepts both functions.
 
-Of the lines of Listing~\ref{lst:motivation}, the shapes, the traits with their entries and the function objects are in the kernel as written.
-The range that \cppinline{concat} folds over, and the arrays and strings of the tests, are derived forms of it (Section~\ref{sec:kernel:derived}).
+The lines of Listing~\ref{lst:motivation} are in Jlt as written, but for \cppinline{guessed_concat}, which the linter refuses, and Table~\ref{tab:levels} gives each definition its level.
+The range that \cppinline{concat} folds over, and the arrays and strings of the tests, are sugar for it (Section~\ref{sec:kernel:derived}).
 
 \subsection{What a law permits}
 \label{sec:examples:law}
@@ -299,7 +304,7 @@ The power of the unit is the unit, whatever the count, as the last line of the t
 \cppinline{power} has no case for that.
 With the base fixed to the unit and the count left for later, the compiler removes the fold and the count by itself, since the unit squared is the unit and it finds that by computing it (Section~\ref{sec:binding}).
 
-The lines of Listing~\ref{lst:power} are in the kernel as written, the fold over a count being its one recursion over a value, apart from the range in the first line of the test (Section~\ref{sec:kernel:derived}).
+The lines of Listing~\ref{lst:power} are in Jlt as written, the fold over a count being its one recursion over a value.
 
 The lower panels show a law selecting a case.
 Where the operation is idempotent, $x \cdot x = x$, as conjunction and the larger of two counts are, a power is the value itself.
@@ -519,7 +524,7 @@ A derived law is worth having because of a theorem that comes with every functio
 Each of its three calls reads as a sentence: from this monoid, to that one, by this function, on these values, and names the two monoids by their units.
 The third can be written only because of the fact the compiler derived.
 A call checks one case and proves nothing, and the theorem holds whether or not anyone calls it.
-The lines of Listing~\ref{lst:theorems} are in the kernel as written, apart from the ranges (Section~\ref{sec:kernel:derived}).
+The lines of Listing~\ref{lst:theorems} are in Jlt as written.
 An axiom, in turn, is only as good as its author: ``a sum of counts is zero exactly when every count is'' looks as safe as the three above, and is false of \cppinline{size_t}, where a sum can wrap around to zero.
 
 \subsection{What the four have in common}
@@ -536,14 +541,14 @@ Table~\ref{tab:posture} sets them side by side.
 \small
 \begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-rule & keeps out of Jlt & buys & costs & held by \\
+rule & keeps out & buys & costs & held by \\
 \midrule
 1 Substitution & state, pointers, exceptions & one program, at compile time and at run time & no state beyond a call's own locals, no I/O & $\ast$~in part\newline $\dagger$~syntax \\
 2 Abstraction & a body using what its constraints do not name & parametricity & no ad hoc use of a type & $\dagger$~names\newline $\ddagger$~the rest \\
 3 Descent & unbounded loops, general recursion & termination & a bound on every fold, stated before it starts & $\ast$~compile time\newline $\dagger$, $\ddagger$~loops \\
 \bottomrule
 \end{tabularx}
-\caption{The posture at a glance: what each rule keeps out of Jlt, what it buys, what it costs and who holds it: $\ast$~the compiler, $\dagger$~the linter, $\ddagger$~review, by a person or an agent, which checks nothing.}
+\caption{The posture at a glance: what each rule keeps out, what it buys, what it costs and who holds it: $\ast$~the compiler, $\dagger$~the linter, $\ddagger$~review, by a person or an agent, which checks nothing.}
 \label{tab:posture}
 \end{table}
 
@@ -588,6 +593,10 @@ A proper part is smaller than its whole, so the compiler's search ends.
 The rule keeps out a loop with no stated end and a function that calls itself.
 It keeps a loop whose count is fixed before its first step: that is a fold written as a loop, and it ends if its body does~\cite{meyer1967loop}.
 
-The three rules are a heuristic: what a programmer keeps in mind.
-They do not define a language, and keeping them does not by itself put a program inside one.
-The rest of the paper supplies that: a small language in which a signature means what it says (Section~\ref{sec:kernel}), and a check that a program is written in it (Section~\ref{sec:check}).
+\begin{definition}[The posture]
+\label{def:posture}
+The \emph{posture} is the set of \Cpp{23} programs that keep the three rules.
+\end{definition}
+
+\noindent The rules are what a programmer keeps in mind, and they give no test of membership: whether a program keeps them is, in general, for its author and a reviewer to say.
+The rest of the paper supplies what can be tested: a small language inside the posture in which a signature means what it says (Section~\ref{sec:kernel}), and a check that a program is written in it (Section~\ref{sec:check}).

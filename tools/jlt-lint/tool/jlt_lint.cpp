@@ -611,7 +611,7 @@ std::string declKind(const clang::Decl* d) {
 
 /// The kind of a written type, as admission.txt classes it.  A use of an alias
 /// template of the program, op_t<E>, is a kind of its own: Table 7's alias,
-/// a derived form the standard defines as the type it stands for
+/// sugar the standard defines as the type it stands for
 /// ([temp.alias]).  The standard's own, range_value_t, is a read the kernel
 /// is given, and stays a template specialization.
 std::string typeKind(clang::TypeLoc tl) {
@@ -1157,7 +1157,7 @@ class InlineRequires : public clang::ASTConsumer,
 /// compiler's __is_same), or a standard concept used as a value.  An archetype
 /// answers such an observation for itself, so the second stage would admit a
 /// body that is not parametric (the cold reads of #1212).  The condition of an
-/// if constexpr is not judged here: Table 7 reads it as a derived form, and
+/// if constexpr is not judged here: Table 7 reads it as sugar, and
 /// the second stage leaves such a body undecided.
 class TypeObservation : public clang::ASTConsumer,
                         public clang::RecursiveASTVisitor<TypeObservation> {
@@ -2865,7 +2865,7 @@ struct Selection {
   bool marked = false;
   // A result a shape promises only convertible_to<T> passed straight to a
   // call: converted to whatever parameter type resolution picks there, which
-  // a real type's overloads may pick differently.  Table 7's derived form is
+  // a real type's overloads may pick differently.  Table 7's sugar is
   // copy-initialisation of a T, so the result goes into a declared T or a
   // return at T, and nowhere else.
   bool lateConversion = false;
@@ -3778,20 +3778,22 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       kinds.insert(declKind(d));
     return clang::RecursiveASTVisitor<Kinds>::TraverseDecl(d);
   }
-  // The one derived form no syntax kind shows: a range.  A parameter
-  // constrained by a standard range concept, or a standard view other than
-  // the counted iota the kernel iterates over.
+  /// \sugar{a range} The one form of sugar no syntax kind shows.  A
+  /// parameter constrained by a standard range concept (Sugar:range), or a
+  /// standard view other than the counted iota the kernel iterates over
+  /// (Sugar:view).  The row's condition, finite and its size known before
+  /// the first step, is the deny-rule rule3-bounded-fold's.
   bool VisitConceptSpecializationExpr(clang::ConceptSpecializationExpr* e) {
     const clang::ConceptDecl* c = e->getNamedConcept();
     if (c && inStd(c) && c->getName().ends_with("range"))
-      kinds.insert("Derived:range");
+      kinds.insert("Sugar:range");
     return true;
   }
   bool VisitTemplateTypeParmDecl(clang::TemplateTypeParmDecl* d) {
     if (const clang::TypeConstraint* tc = d->getTypeConstraint())
       if (const clang::TemplateDecl* c = tc->getNamedConcept())
         if (inStd(c) && c->getName().ends_with("range"))
-          kinds.insert("Derived:range");
+          kinds.insert("Sugar:range");
     return true;
   }
   bool VisitDeclRefExpr(clang::DeclRefExpr* e) {
@@ -3801,19 +3803,20 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     if (d && llvm::isa<clang::VarDecl>(d) && inStd(d) &&
         d->getQualifiedNameAsString().find("views::") != std::string::npos &&
         d->getName() != "iota")
-      kinds.insert("Derived:view");
+      kinds.insert("Sugar:view");
     // std::visit on a value whose variant type is not written (auto).
     if (d && llvm::isa<clang::FunctionDecl>(d) && d->getIdentifier() && inStd(d) &&
         (d->getName() == "visit" || d->getName() == "holds_alternative"))
-      kinds.insert("Derived:variant");
+      kinds.insert("Sugar:variant");
     return true;
   }
-  // Where a return may stand for Table 7's reading of statements: at the end
-  // of the function, at the end of both branches of a last if, or at the end
-  // of a branch of an if that the statements after it follow as its other
-  // branch (a guard, if (c) return e; rest, which is if (c) return e; else
-  // { rest }).  Any other return, in a loop or in a branch that only
-  // sometimes returns, is Stmt:EarlyReturn.
+  /// \sugar{an early exit} Where a return may stand for the table's reading
+  /// of statements: at the end of the function, at the end of both branches
+  /// of a last if, or at the end of a branch of an if that the statements
+  /// after it follow as its other branch (a guard, if (c) return e; rest,
+  /// which is if (c) return e; else { rest }).  Any other return, in a loop
+  /// or in a branch that only sometimes returns, is Stmt:EarlyReturn.
+  /// Fixture: local-state.cpp.
   std::set<const clang::Stmt*> tailReturns;
   static bool alwaysReturns(const clang::Stmt* s) {
     if (!s) return false;
@@ -3847,10 +3850,11 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     markTail(l->getBody());  // a lambda's returns are its own
     return true;
   }
-  /// A conversion between integer types that the destination cannot hold at
-  /// every value of the source ([dcl.init.list]); a constant that fits is
-  /// held.
   const clang::ASTContext* ctx = nullptr;
+  /// \sugar{an implicit conversion of an arithmetic value} A conversion
+  /// between integer types that the destination cannot hold at every value
+  /// of the source ([dcl.init.list]) is Conversion:narrowing, refused; a
+  /// constant that fits is held.  Fixture: sugar-conditions.cpp.
   bool narrows(const clang::ImplicitCastExpr* c) const {
     // The conversion written out, int(i), has an implicit node inside it:
     // that one is the explicit conversion's, not an implicit conversion.
@@ -3918,9 +3922,569 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     }
     return true;
   }
+  // ---- The binary sum, std::variant<A, B> (#1222). ----
+  /// Whether t is a std::variant of any number of types.
+  static bool isVariant(clang::QualType t) {
+    if (t.isNull()) return false;
+    t = t.getNonReferenceType().getUnqualifiedType();
+    if (const auto* r = t->getAsCXXRecordDecl())
+      return r->getIdentifier() && r->getName() == "variant" && inStd(r);
+    if (const auto* ts = t->getAs<clang::TemplateSpecializationType>())
+      if (const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl())
+        return td->getIdentifier() && td->getName() == "variant" && inStd(td);
+    return false;
+  }
+  /// The alternatives of a variant, or of an expected, where they are known:
+  /// a pack expanded; empty where the type is dependent with a pack.
+  static std::vector<clang::QualType> alternatives(clang::QualType t) {
+    std::vector<clang::QualType> out;
+    if (t.isNull()) return out;
+    t = t.getNonReferenceType().getUnqualifiedType();
+    const auto add = [&](const clang::TemplateArgument& a, auto&& self) -> bool {
+      if (a.getKind() == clang::TemplateArgument::Pack) {
+        for (const auto& e : a.pack_elements())
+          if (!self(e, self)) return false;
+        return true;
+      }
+      if (a.getKind() != clang::TemplateArgument::Type) return false;
+      if (a.getAsType()->getAs<clang::PackExpansionType>()) return false;
+      out.push_back(a.getAsType());
+      return true;
+    };
+    if (const auto* sd = llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(t->getAsCXXRecordDecl())) {
+      for (const auto& a : sd->getTemplateArgs().asArray())
+        if (!add(a, add)) return {};
+      return out;
+    }
+    if (const auto* ts = t->getAs<clang::TemplateSpecializationType>()) {
+      for (const auto& a : ts->template_arguments())
+        if (!add(a, add)) return {};
+      return out;
+    }
+    return out;
+  }
+  /// Whether t is the kernel's sum: a std::variant of exactly two types.
+  static bool isSum(clang::QualType t) { return isVariant(t) && alternatives(t).size() == 2; }
+  /// \sugar{the choice on a sum's alternative, x const} Whether a tested
+  /// variable cannot be written: const, so that no write stands between its
+  /// test and a reading.  A reference to const counts
+  /// here, but may name an object written through another path
+  /// ([dcl.type.cv]), so knownSide accepts its test and its reading only
+  /// inside one expression (aliased()).
+  static bool constant(const clang::ValueDecl* x) {
+    return x && x->getType().getNonReferenceType().isConstQualified();
+  }
+  /// Whether a tested variable is a reference: const, but not a const object.
+  static bool aliased(const clang::ValueDecl* x) { return x && x->getType()->isReferenceType(); }
+  /// \sugar{the positional injections} The kind of a payload that is not of
+  /// its alternative's type, or none where it is: Sum:payload-converted where both types are known (a
+  /// narrowing or a widening, which the row does not read), and
+  /// Sum:payload-dependent where they differ as written in a template, so
+  /// that only an instance would tell (lift(-1) with T = int converts -1 to
+  /// SIZE_MAX).  A template's payload of exactly the alternative's type, as
+  /// in Inl's body, A for A, is no conversion at any instance.
+  std::optional<std::string> payloadKind(const clang::Expr* e, clang::QualType to) const {
+    if (!ctx || !e || to.isNull()) return std::nullopt;
+    const clang::QualType from = e->IgnoreParenImpCasts()->getType();
+    if (from.isNull()) return std::string("Sum:payload-dependent");
+    if (from.getCanonicalType().getUnqualifiedType() == to.getCanonicalType().getUnqualifiedType())
+      return std::nullopt;
+    if (from->isDependentType() || to->isDependentType()) return std::string("Sum:payload-dependent");
+    return std::string("Sum:payload-converted");
+  }
+  /// The arguments of a construction in a template, T(a, b) or T{a, b}.
+  static std::vector<const clang::Expr*> unresolvedArgs(const clang::CXXUnresolvedConstructExpr* c) {
+    std::vector<const clang::Expr*> out;
+    if (c->getNumArgs() == 1)
+      if (const auto* l = llvm::dyn_cast<clang::InitListExpr>(c->getArg(0))) {
+        for (const clang::Expr* e : l->inits()) out.push_back(e);
+        return out;
+      }
+    for (const clang::Expr* e : c->arguments()) out.push_back(e);
+    return out;
+  }
+  /// \sugar{std::expected, A not void} Whether t is std::expected<void, B>: its reading, variant<void, B>, is
+  /// ill-formed ([variant.variant.general]), so it has no row yet.
+  static bool expectedVoid(clang::QualType t) {
+    if (!isExpected(t)) return false;
+    const auto alts = alternatives(t);
+    return !alts.empty() && alts[0]->isVoidType();
+  }
+  // ---- The copairing written as a conditional on index(): sugar. ----
+  /// The variable an expression names, parentheses and implicit nodes aside.
+  static const clang::ValueDecl* named(const clang::Expr* e) {
+    if (!e) return nullptr;
+    const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(e->IgnoreParenImpCasts());
+    return d ? d->getDecl() : nullptr;
+  }
+  /// Whether e is x.index() on a variable x, resolved or in a template.
+  static bool isIndexOf(const clang::Expr* e, const clang::ValueDecl* x) {
+    if (!e || !x) return false;
+    e = e->IgnoreParenImpCasts();
+    if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(e))
+      return m->getMethodDecl() && m->getMethodDecl()->getIdentifier() && m->getMethodDecl()->getName() == "index" &&
+             isSum(m->getImplicitObjectArgument()->getType()) && named(m->getImplicitObjectArgument()) == x;
+    if (const auto* c = llvm::dyn_cast<clang::CallExpr>(e))
+      if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens()))
+        return !d->isImplicitAccess() && d->getMember().isIdentifier() && d->getMember().getAsString() == "index" &&
+               isSum(d->getBaseType()) && named(d->getBase()) == x;
+    return false;
+  }
+  /// \sugar{the choice on a sum's alternative, the test} For a condition on
+  /// x: the alternative known where it holds and the one known where it fails, each 0, 1, or -1 for none.  x.index() == k
+  /// and != k with k an integer constant 0 or 1, x.index() alone (true on
+  /// alternative 1), x.has_value() and x as a truth value (true on
+  /// alternative 0), a negation, and && and ||: a conjunction that holds
+  /// holds in each operand, a disjunction that fails fails in each.
+  std::pair<int, int> indexTest(const clang::Expr* cond, const clang::ValueDecl* x) const {
+    constexpr std::pair<int, int> none{-1, -1};
+    if (!cond || !x) return none;
+    cond = cond->IgnoreParenImpCasts();
+    if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(cond); u && u->getOpcode() == clang::UO_LNot) {
+      const auto [t, f] = indexTest(u->getSubExpr(), x);
+      return {f, t};
+    }
+    if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(cond)) {
+      if (b->getOpcode() == clang::BO_LAnd || b->getOpcode() == clang::BO_LOr) {
+        const auto l = indexTest(b->getLHS(), x), r = indexTest(b->getRHS(), x);
+        if (b->getOpcode() == clang::BO_LAnd) return {l.first >= 0 ? l.first : r.first, -1};
+        return {-1, l.second >= 0 ? l.second : r.second};
+      }
+      if (b->getOpcode() == clang::BO_EQ || b->getOpcode() == clang::BO_NE) {
+        const auto constant01 = [&](const clang::Expr* e) -> int {
+          if (!ctx || e->isValueDependent()) return -1;
+          if (auto v = e->getIntegerConstantExpr(*ctx); v && v->ule(1)) return static_cast<int>(v->getZExtValue());
+          return -1;
+        };
+        int k = -1;
+        if (isIndexOf(b->getLHS(), x)) k = constant01(b->getRHS());
+        else if (isIndexOf(b->getRHS(), x)) k = constant01(b->getLHS());
+        if (k < 0) return none;
+        return b->getOpcode() == clang::BO_EQ ? std::pair{k, 1 - k} : std::pair{1 - k, k};
+      }
+      return none;
+    }
+    if (isHasValueOf(cond, x)) return {0, 1};
+    if (isIndexOf(cond, x)) return {1, 0};
+    return none;
+  }
+  /// Whether e is x.has_value() on a variable x of a std::expected type.
+  static bool isHasValueOf(const clang::Expr* e, const clang::ValueDecl* x) {
+    if (!e || !x) return false;
+    e = e->IgnoreParenImpCasts();
+    if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(e)) {
+      const clang::CXXMethodDecl* g = m->getMethodDecl();
+      return g && (llvm::isa<clang::CXXConversionDecl>(g) || (g->getIdentifier() && g->getName() == "has_value")) &&
+             isExpected(m->getImplicitObjectArgument()->getType()) && named(m->getImplicitObjectArgument()) == x;
+    }
+    if (const auto* c = llvm::dyn_cast<clang::CallExpr>(e))
+      if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens()))
+        return !d->isImplicitAccess() && d->getMember().isIdentifier() && d->getMember().getAsString() == "has_value" &&
+               isExpected(d->getBaseType()) && named(d->getBase()) == x;
+    return false;
+  }
+  /// Whether t is std::expected<A, B>, written or deduced, dependent or not.
+  static bool isExpected(clang::QualType t) {
+    if (t.isNull()) return false;
+    t = t.getNonReferenceType().getUnqualifiedType();
+    if (const auto* r = t->getAsCXXRecordDecl())
+      return r->getIdentifier() && r->getName() == "expected" && inStd(r);
+    if (const auto* ts = t->getAs<clang::TemplateSpecializationType>())
+      if (const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl())
+        return td->getIdentifier() && td->getName() == "expected" && inStd(td);
+    return false;
+  }
+  static bool namedStd(clang::QualType t, llvm::StringRef name) {
+    t = t.getNonReferenceType().getUnqualifiedType();
+    if (const auto* r = t->getAsCXXRecordDecl(); r && r->getIdentifier() && r->getName() == name && inStd(r)) return true;
+    return false;
+  }
+  /// \sugar{std::expected} The uses of a std::expected, the other spelling
+  /// of a binary sum, read as std::variant<A, B>: the tagged constructions are the injections, and
+  /// x.has_value() ? ... *x ... : ... x.error() ... is the copairing's sugar,
+  /// *x and x-> only where side 0 is known, x.error() only where side 1 is.
+  /// value() and writes are refused; the rest of its interface is open.
+  std::optional<std::string> expectedUse(const clang::Stmt* st) const {
+    if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(st); c && isExpected(c->getType())) {
+      if (c->getConstructor()->isCopyOrMoveConstructor()) return std::nullopt;
+      if (expectedVoid(c->getType())) return std::string("Sum:expected-void");
+      if (c->getNumArgs() == 2 && (namedStd(c->getArg(0)->getType(), "in_place_t") ||
+                                   namedStd(c->getArg(0)->getType(), "unexpect_t"))) {
+        const auto alts = alternatives(c->getType());
+        const std::size_t k = namedStd(c->getArg(0)->getType(), "in_place_t") ? 0 : 1;
+        if (alts.size() == 2)
+          if (auto p = payloadKind(c->getArg(1), alts[k])) return p;
+        return std::string("Sum:inj-sugar");
+      }
+      return std::string("Sugar:expected");
+    }
+    // In a template: expected<A, B>{in_place, a} or {unexpect, b}, the
+    // payload's type known only at the instance where it is not the
+    // alternative's as written.
+    if (const auto* c = llvm::dyn_cast<clang::CXXUnresolvedConstructExpr>(st); c && isExpected(c->getTypeAsWritten())) {
+      if (expectedVoid(c->getTypeAsWritten())) return std::string("Sum:expected-void");
+      const auto args = unresolvedArgs(c);
+      if (args.size() == 2 && (namedStd(args[0]->getType(), "in_place_t") ||
+                               namedStd(args[0]->getType(), "unexpect_t"))) {
+        const auto alts = alternatives(c->getTypeAsWritten());
+        const std::size_t k = namedStd(args[0]->getType(), "in_place_t") ? 0 : 1;
+        if (alts.size() != 2) return std::string("Sum:payload-dependent");
+        if (auto p = payloadKind(args[1], alts[k])) return p;
+        return std::string("Sum:inj-sugar");
+      }
+      return std::string("Sugar:expected");
+    }
+    std::string name;
+    const clang::Expr* obj = nullptr;
+    if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(st)) {
+      if (o->getNumArgs() == 0 || !isExpected(o->getArg(0)->getType())) return std::nullopt;
+      obj = o->getArg(0);
+      switch (o->getOperator()) {
+        case clang::OO_Star: name = "*"; break;
+        case clang::OO_Arrow: name = "->"; break;
+        case clang::OO_Equal: name = "="; break;
+        default: name = "operator"; break;
+      }
+    } else if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(st)) {
+      if (u->getOpcode() != clang::UO_Deref || !isExpected(u->getSubExpr()->getType())) return std::nullopt;
+      name = "*"; obj = u->getSubExpr();
+    } else if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(st)) {
+      const clang::CXXMethodDecl* g = m->getMethodDecl();
+      obj = m->getImplicitObjectArgument();
+      if (!g || !obj || !isExpected(obj->getType())) return std::nullopt;
+      name = llvm::isa<clang::CXXConversionDecl>(g) ? "bool" : (g->getIdentifier() ? g->getName().str() : "");
+    } else if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st)) {
+      const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens());
+      if (!d || d->isImplicitAccess() || d->isArrow() || !isExpected(d->getBaseType()) || !d->getMember().isIdentifier())
+        return std::nullopt;
+      name = d->getMember().getAsString(); obj = d->getBase();
+    } else if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(st)) {
+      if (d->isImplicitAccess() || !d->isArrow() || !isExpected(d->getBaseType())) return std::nullopt;
+      name = "->"; obj = d->getBase();
+    } else {
+      return std::nullopt;
+    }
+    const clang::ValueDecl* x = named(obj);
+    if (expectedVoid(obj->getType())) return std::string("Sum:expected-void");
+    if (name == "has_value" || name == "bool") {
+      const std::string k = indexKind(st, x);
+      return k == "Sum:case-sugar" || k == "Sum:case-converted" ? k : "Sugar:expected";
+    }
+    if (name == "*" || name == "->") return reading(st, x, 0);
+    if (name == "error") return reading(st, x, 1);
+    if (name == "value" || name == "=" || name == "emplace" || name == "swap") return std::string("Sum:other");
+    return std::string("Sugar:expected");
+  }
+  static bool returns(const clang::Stmt* s) {
+    if (const auto* c = llvm::dyn_cast_or_null<clang::CompoundStmt>(s); c && !c->body_empty()) s = c->body_back();
+    return s && llvm::isa<clang::ReturnStmt>(s);
+  }
+  /// \sugar{the choice on a sum's alternative, the reading} The side of x
+  /// known where an occurrence stands, 0 or 1, or -1.  A reading get<k>(x)
+  /// is the copairing's sugar only where side k is known, and x is used
+  /// otherwise only whole.  The nearest informative test of x decides (a test that says nothing of x,
+  /// as p in p || x.index() == 1, is passed over, x being const): a branch
+  /// of c ? t : e or of an if, the right operand of && or ||, or the
+  /// statements after a guard if (c) return ...; with no else.  A lambda or
+  /// a function ends the search.  Where x is a reference, the test and the
+  /// reading must stand in one expression, a conditional or && or ||: the
+  /// object it names may be written through another path between two
+  /// statements.
+  int knownSide(const clang::Stmt* occ, const clang::ValueDecl* x) const {
+    if (!constant(x) || !ctx) return -1;
+    const clang::Stmt* child = occ;
+    clang::DynTypedNode n = clang::DynTypedNode::create(*occ);
+    for (int k = 0; k < 256; ++k) {
+      auto ps = const_cast<clang::ASTContext*>(ctx)->getParents(n);
+      if (ps.empty()) return -1;
+      n = ps[0];
+      const clang::Stmt* s = n.get<clang::Stmt>();
+      if (!s) {
+        if (n.get<clang::VarDecl>()) continue;
+        return -1;
+      }
+      if (llvm::isa<clang::LambdaExpr>(s)) return -1;
+      if (aliased(x) && !llvm::isa<clang::Expr>(s)) return -1;
+      if (const auto* c = llvm::dyn_cast<clang::ConditionalOperator>(s)) {
+        const auto [t, f] = indexTest(c->getCond(), x);
+        if (t >= 0 && child == c->getTrueExpr()) return t;
+        if (f >= 0 && child == c->getFalseExpr()) return f;
+      } else if (const auto* i = llvm::dyn_cast<clang::IfStmt>(s)) {
+        if (!i->isConsteval() && !i->isConstexpr()) {
+          const auto [t, f] = indexTest(i->getCond(), x);
+          if (t >= 0 && child == i->getThen()) return t;
+          if (f >= 0 && child == i->getElse()) return f;
+        }
+      } else if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(s)) {
+        if (child == b->getRHS() && (b->getOpcode() == clang::BO_LAnd || b->getOpcode() == clang::BO_LOr)) {
+          const auto [t, f] = indexTest(b->getLHS(), x);
+          const int k = b->getOpcode() == clang::BO_LAnd ? t : f;
+          if (k >= 0) return k;
+        }
+      } else if (const auto* b = llvm::dyn_cast<clang::CompoundStmt>(s)) {
+        int found = -1;
+        for (const clang::Stmt* e : b->body()) {
+          if (e == child) break;
+          const auto* i = llvm::dyn_cast<clang::IfStmt>(e);
+          if (!i || i->getElse() || i->isConstexpr() || i->isConsteval() || !returns(i->getThen())) continue;
+          if (const int f = indexTest(i->getCond(), x).second; f >= 0) found = f;
+        }
+        if (found >= 0) return found;
+      }
+      child = s;
+    }
+    return -1;
+  }
+  /// Whether an expression is converted, reading a value and adding const aside.
+  static bool converted(const clang::Expr* x) {
+    const auto* i = llvm::dyn_cast<clang::ImplicitCastExpr>(x->IgnoreParens());
+    if (!i) return false;
+    switch (i->getCastKind()) {
+      case clang::CK_LValueToRValue: case clang::CK_NoOp: return converted(i->getSubExpr());
+      default: return true;
+    }
+  }
+  /// \sugar{the choice on a sum's alternative, the branches} The kind of
+  /// x.index(): the test of the copairing's sugar where it stands in the condition of a choice, or in the left operand of && or
+  /// ||, compared with 0 or 1, negated or alone; converted, refused, where
+  /// the choice's branches differ in type; open anywhere else.
+  std::string indexKind(const clang::Stmt* st, const clang::ValueDecl* x) const {
+    if (!constant(x) || !ctx) return "Sugar:variant";
+    const clang::Stmt* child = st;
+    clang::DynTypedNode n = clang::DynTypedNode::create(*st);
+    for (int k = 0; k < 16; ++k) {
+      auto ps = const_cast<clang::ASTContext*>(ctx)->getParents(n);
+      if (ps.empty()) break;
+      n = ps[0];
+      const clang::Stmt* s = n.get<clang::Stmt>();
+      if (!s) break;
+      if (llvm::isa<clang::ImplicitCastExpr, clang::ParenExpr, clang::ExprWithCleanups>(s)) { child = s; continue; }
+      if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(s); u && u->getOpcode() == clang::UO_LNot) { child = s; continue; }
+      if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(s)) {
+        if (b->getOpcode() == clang::BO_EQ || b->getOpcode() == clang::BO_NE ||
+            b->getOpcode() == clang::BO_LAnd || b->getOpcode() == clang::BO_LOr) {
+          child = s;
+          continue;
+        }
+        break;
+      }
+      if (const auto* c = llvm::dyn_cast<clang::ConditionalOperator>(s)) {
+        const auto [t, f] = indexTest(c->getCond(), x);
+        if (child != c->getCond() || (t < 0 && f < 0)) break;
+        // In a template the conversions are not yet in the tree: branches
+        // whose types differ as written, one of them dependent, agree or not
+        // only at an instance (Copilot on #1226), so the choice is open.
+        const clang::QualType tt = c->getTrueExpr()->getType(), ft = c->getFalseExpr()->getType();
+        if ((tt->isDependentType() || ft->isDependentType()) &&
+            !ctx->hasSameUnqualifiedType(tt.getNonReferenceType(), ft.getNonReferenceType()))
+          return "Sum:case-dependent";
+        return converted(c->getTrueExpr()) || converted(c->getFalseExpr()) ? "Sum:case-converted" : "Sum:case-sugar";
+      }
+      if (const auto* i = llvm::dyn_cast<clang::IfStmt>(s)) {
+        const auto [t, f] = indexTest(i->getCond(), x);
+        if (child != i->getCond() || i->isConstexpr() || i->isConsteval() || (t < 0 && f < 0)) break;
+        return "Sum:case-sugar";
+      }
+      break;
+    }
+    // A test as an operand of && or || that is no choice's condition, as in
+    // return x.index() == 0 && std::get<0>(x) > k;: it guards the operand
+    // after it.
+    {
+      clang::DynTypedNode m = clang::DynTypedNode::create(*st);
+      for (int k = 0; k < 16; ++k) {
+        auto ps = const_cast<clang::ASTContext*>(ctx)->getParents(m);
+        if (ps.empty()) break;
+        m = ps[0];
+        if (const auto* b = m.get<clang::BinaryOperator>())
+          if (b->getOpcode() == clang::BO_LAnd || b->getOpcode() == clang::BO_LOr) {
+            const auto [t, f] = indexTest(b->getLHS(), x);
+            if (t >= 0 || f >= 0) return "Sum:case-sugar";
+          }
+        if (!m.get<clang::Expr>()) break;
+      }
+    }
+    return "Sugar:variant";
+  }
+  /// A reading of alternative k of x: the copairing's sugar where k is
+  /// known, a finding of its own where x is a variable that is not const
+  /// (so that the message says what to do), refused otherwise.
+  std::string reading(const clang::Stmt* st, const clang::ValueDecl* x, int k) const {
+    if (x && !constant(x) && llvm::isa<clang::VarDecl>(x)) return "Sum:not-const";
+    const int side = knownSide(st, x);
+    if (side == k) return "Sum:case-sugar";
+    // A reference read outside the expression that tests it: copy it into a
+    // const local.
+    if (side < 0 && aliased(x) && llvm::isa<clang::VarDecl>(x)) return "Sum:not-const";
+    // Inside a switch on x.index(): total, a choice not yet read as sugar.
+    if (side < 0 && inSwitchOnIndex(st, x)) return "Sugar:variant";
+    return "Sum:other";
+  }
+  /// Whether an occurrence stands in the body of switch (x.index()).
+  bool inSwitchOnIndex(const clang::Stmt* occ, const clang::ValueDecl* x) const {
+    if (!ctx || !x) return false;
+    clang::DynTypedNode n = clang::DynTypedNode::create(*occ);
+    for (int k = 0; k < 256; ++k) {
+      auto ps = const_cast<clang::ASTContext*>(ctx)->getParents(n);
+      if (ps.empty()) return false;
+      n = ps[0];
+      const clang::Stmt* s = n.get<clang::Stmt>();
+      if (!s) return false;
+      if (llvm::isa<clang::LambdaExpr>(s)) return false;
+      if (const auto* w = llvm::dyn_cast<clang::SwitchStmt>(s)) return isIndexOf(w->getCond(), x);
+    }
+    return false;
+  }
+  /// The index K of std::get<K>(x), or -1 where it names a type or is not known.
+  int getIndex(const clang::CallExpr* c) const {
+    const clang::Expr* callee = c->getCallee()->IgnoreParenImpCasts();
+    llvm::ArrayRef<clang::TemplateArgumentLoc> args;
+    if (const auto* r = llvm::dyn_cast<clang::DeclRefExpr>(callee)) args = r->template_arguments();
+    if (const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(callee)) args = u->template_arguments();
+    if (args.empty() || !ctx) return -1;
+    const clang::TemplateArgument& a = args[0].getArgument();
+    if (a.getKind() == clang::TemplateArgument::Integral) return static_cast<int>(a.getAsIntegral().getZExtValue());
+    if (a.getKind() == clang::TemplateArgument::Expression)
+      if (auto v = a.getAsExpr()->getIntegerConstantExpr(*ctx); v && v->ule(1)) return static_cast<int>(v->getZExtValue());
+    return -1;
+  }
+  /// \sugar{std::variant, its other uses} The kind of a use of a sum other
+  /// than through its structure arrows.  A variant of three or more types
+  /// (Sugar:variant) is open until its nesting is checked; std::visit,
+  /// holds_alternative, get_if, valueless_by_exception and a switch on the
+  /// index are open too.  Otherwise: open, sugar not yet written, where it is total (the tagged
+  /// construction, visit, holds_alternative, index, ==); refused where it
+  /// may fail or changes the sum (get, emplace, =, swap).  None where the statement is no such use.
+  std::optional<std::string> sumUse(const clang::Stmt* st) const {
+    // A variant of more than two types: read as binary ones nested, a
+    // sugar not yet written.
+    {
+      const clang::Expr* obj = nullptr;
+      if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(st)) {
+        if (isVariant(c->getType()) && !isSum(c->getType()) && !c->getConstructor()->isCopyOrMoveConstructor())
+          return std::string("Sugar:variant");
+      } else if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(st)) {
+        obj = m->getImplicitObjectArgument();
+      } else if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st)) {
+        for (const clang::Expr* a : c->arguments())
+          if (isVariant(a->getType())) obj = a;
+      }
+      if (obj && isVariant(obj->getType()) && !isSum(obj->getType())) return std::string("Sugar:variant");
+    }
+    const auto kind = [&](llvm::StringRef name) -> std::optional<std::string> {
+      // get_if is total, a pointer or null, and valueless_by_exception a
+      // total observer: open, as the other total uses.
+      static const std::set<std::string> partial{"get", "emplace", "swap", "="};
+      return std::string(partial.count(name.str()) ? "Sum:other" : "Sugar:variant");
+    };
+    if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(st); c && isSum(c->getType())) {
+      if (c->getConstructor()->isCopyOrMoveConstructor()) return std::nullopt;
+      // variant<A, B>(in_place_index<k>, a): the injection inl or inr in the
+      // standard's positional spelling, sugar; a payload that narrows is
+      // refused.
+      if (c->getNumArgs() == 2)
+        if (const auto* sd = llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
+                c->getArg(0)->getType().getNonReferenceType()->getAsCXXRecordDecl());
+            sd && sd->getIdentifier() && sd->getName() == "in_place_index_t" && inStd(sd) &&
+            sd->getTemplateArgs().size() == 1 && sd->getTemplateArgs()[0].getKind() == clang::TemplateArgument::Integral) {
+          const auto k = sd->getTemplateArgs()[0].getAsIntegral().getZExtValue();
+          const auto alts = alternatives(c->getType());
+          if (k > 1 || alts.size() != 2) return std::string("Sum:other");
+          if (auto p = payloadKind(c->getArg(1), alts[k])) return p;
+          return std::string("Sum:inj-sugar");
+        }
+      return kind("construct");
+    }
+    if (const auto* c = llvm::dyn_cast<clang::CXXUnresolvedConstructExpr>(st); c && isSum(c->getTypeAsWritten())) {
+      // In a template: variant<A, B>(in_place_index<k>, a), the positional
+      // injection, its payload's type known only at the instance; braces or
+      // parentheses.
+      if (const auto args = unresolvedArgs(c); args.size() == 2)
+        if (const auto* sd = llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
+                args[0]->getType().getNonReferenceType()->getAsCXXRecordDecl());
+            sd && sd->getIdentifier() && sd->getName() == "in_place_index_t" && inStd(sd) &&
+            sd->getTemplateArgs().size() == 1 && sd->getTemplateArgs()[0].getKind() == clang::TemplateArgument::Integral) {
+          const auto k = sd->getTemplateArgs()[0].getAsIntegral().getZExtValue();
+          const auto alts = alternatives(c->getTypeAsWritten());
+          if (k > 1) return std::string("Sum:other");
+          if (alts.size() != 2) return std::string("Sum:payload-dependent");
+          if (auto p = payloadKind(args[1], alts[k])) return p;
+          return std::string("Sum:inj-sugar");
+        }
+      return kind("construct");
+    }
+    // A comparison C++20 rewrites through <=>: an order on a sum, open as ==.
+    if (const auto* r = llvm::dyn_cast<clang::CXXRewrittenBinaryOperator>(st);
+        r && (isVariant(r->getLHS()->getType()) || isVariant(r->getRHS()->getType())))
+      return kind("==");
+    if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(st)) {
+      if (o->getNumArgs() == 0 || !isSum(o->getArg(0)->getType())) return std::nullopt;
+      if (o->getOperator() == clang::OO_Equal) return kind("=");
+      switch (o->getOperator()) {
+        case clang::OO_EqualEqual: case clang::OO_ExclaimEqual: case clang::OO_Less: case clang::OO_LessEqual:
+        case clang::OO_Greater: case clang::OO_GreaterEqual: case clang::OO_Spaceship:
+          return kind("==");
+        default: break;
+      }
+      return std::nullopt;
+    }
+    if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(st)) {
+      const clang::CXXMethodDecl* g = m->getMethodDecl();
+      const clang::Expr* obj = m->getImplicitObjectArgument();
+      if (g && g->getIdentifier() && obj && isSum(obj->getType())) {
+        if (g->getName() == "index") return indexKind(st, named(obj));
+        return kind(g->getName());
+      }
+      return std::nullopt;
+    }
+    if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st)) {
+      const clang::Expr* callee = c->getCallee()->IgnoreParenImpCasts();
+      if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(callee))
+        if (!d->isImplicitAccess() && isSum(d->getBaseType()) && d->getMember().isIdentifier()) {
+          if (d->getMember().getAsString() == "index") return indexKind(st, named(d->getBase()));
+          return kind(d->getMember().getAsString());
+        }
+      std::vector<const clang::NamedDecl*> ds;
+      if (const auto* r = llvm::dyn_cast<clang::DeclRefExpr>(callee)) ds.push_back(r->getDecl());
+      if (const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(callee)) ds.assign(u->decls_begin(), u->decls_end());
+      for (const clang::NamedDecl* d : ds)
+        if (d && d->getIdentifier() && inStd(d))
+          for (const clang::Expr* arg : c->arguments())
+            if (isSum(arg->getType())) {
+              // std::get<K>(x) in the branch that knows x holds side K: the
+              // copairing's sugar.  By type, or anywhere else: refused.
+              if (d->getName() == "get" && c->getNumArgs() == 1) {
+                const int k = getIndex(c);
+                if (k >= 0) return reading(st, named(arg), k);
+              }
+              return kind(d->getName());
+            }
+    }
+    return std::nullopt;
+  }
+  /// A call of a function not declared constexpr, for a node whose kind the
+  /// sum's forms give.
+  void notConstexprCall(const clang::Stmt* st) {
+    const clang::FunctionDecl* callee = nullptr;
+    if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st)) callee = c->getDirectCallee();
+    if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(st)) callee = c->getConstructor();
+    if (callee && !callee->isConstexpr() && !callee->getBuiltinID() && !callee->isImplicit() && !callee->isDeleted())
+      kinds.insert("Call:NotConstexpr");
+  }
   bool VisitStmt(clang::Stmt* st) {
     if (const auto* t = llvm::dyn_cast<clang::CXXThisExpr>(st))
       if (t->isImplicit()) return true;  // a member named without this->
+    // A use of a sum: its kind, in place of the call's or the operator's.
+    if (auto k = expectedUse(st)) {
+      kinds.insert(*k);
+      notConstexprCall(st);
+      return true;
+    }
+    if (auto k = sumUse(st)) {
+      notConstexprCall(st);
+      kinds.insert(*k);
+      return true;
+    }
     // c += n converts the result back to c's type with no node of its own.
     // The value stored back is of the computation's type (c += 1 with c an
     // unsigned char computes in int, and 256 becomes 0): narrowing where that
@@ -3941,7 +4505,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       if (const clang::CXXMethodDecl* g = m->getMethodDecl(); g && g->getIdentifier() && g->getName() == "value")
         if (const clang::CXXRecordDecl* r = g->getParent(); r && inStd(r) && r->getIdentifier() &&
             (r->getName() == "optional" || r->getName() == "expected"))
-          kinds.insert("Derived:sum-value");
+          kinds.insert("Sugar:sum-value");
     // A call from a judged definition to a function not declared constexpr:
     // since C++23 the keyword on the caller promises nothing about it, so
     // the callee is looked at (std::rand, std::getenv, a stream's <<).
@@ -3975,7 +4539,8 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
           o->getLHS()->getType()->isIntegerType() && r->getType()->isIntegerType()) {
         const auto v = r->getIntegerConstantExpr(*ctx);
         const unsigned width = ctx->getIntWidth(o->getLHS()->IgnoreParenImpCasts()->getType());
-        if (!v || (divides && *v == 0) || (shifts && (v->isNegative() || *v >= width)))
+        if (!v || (divides && *v == 0) || (divides && o->getType()->isSignedIntegerType() && *v == -1) ||
+            (shifts && (v->isNegative() || *v >= width)))
           kinds.insert(divides ? "Op:division-by-value" : "Op:shift-by-value");
       }
     }
@@ -4038,11 +4603,20 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   bool VisitTypeLoc(clang::TypeLoc tl) {
     if (!tl.isNull()) {
       kinds.insert(typeKind(tl));
-      // A sum written as the standard's variant: no syntax kind shows it.
+      // The kernel's sum is the standard's variant of two types (#1222); a
+      // variant of more is read as nested binary ones, sugar not
+      // yet written.  std::expected is a sum with an API of its own: open.
       if (const auto* ts = tl.getTypePtr()->getAs<clang::TemplateSpecializationType>())
         if (const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl())
-          if (td->getIdentifier() && td->getName() == "variant" && inStd(td))
-            kinds.insert("Derived:variant");
+          if (td->getIdentifier() && inStd(td)) {
+            // Counted by its alternatives, a pack expanded, not by the
+            // arguments written: variant<Ts..., bool> may have more than
+            // two, and an unexpanded pack leaves it open (Copilot on #1226).
+            if (td->getName() == "variant" && alternatives(tl.getType()).size() != 2)
+              kinds.insert("Sugar:variant");
+            if (td->getName() == "expected")
+              kinds.insert(expectedVoid(tl.getType()) ? "Sum:expected-void" : "Sum:expected");
+          }
     }
     return true;
   }
@@ -4050,7 +4624,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
 
 /// Not a rule: every declaration directly in the scope namespace, with its
 /// lines and the syntax kinds it uses, one line each, so that a script can
-/// give each definition its level (kernel or derived forms, by admission.txt)
+/// give each definition its level (kernel or sugar, by admission.txt)
 /// and join it with the findings that fall in its lines.
 class Definitions : public clang::ASTConsumer {
  public:
@@ -4137,8 +4711,8 @@ class Definitions : public clang::ASTConsumer {
   }
 };
 
-/// One check by name, or null for an unknown name.
-/// Local state that the state-passing reading of Table 7 covers: every
+/// \sugar{local state: an assignment, an element's update, std::swap} Local
+/// state that the state-passing reading of the table covers: every
 /// mutable local of a judged function is reached through its own name only,
 /// so that a write through one name never changes what another reads, and
 /// the function is a fold of states (the paper's aliasing conditions; Cytron
@@ -4769,7 +5343,7 @@ class LocalState : public clang::ASTConsumer {
             const clang::DynTypedNode* q = above(m, up);
             const auto* call = q ? q->get<clang::CXXMemberCallExpr>() : nullptr;
             if (!method || !call) return false;
-            static const std::set<std::string> accessors{"front", "back", "value", "at"};
+            static const std::set<std::string> accessors{"front", "back", "value", "at", "error"};
             if (method->isConst() || method->isStatic() ||
                 (method->getIdentifier() && accessors.count(method->getName().str()))) {
               if (call->isGLValue()) { cur = call; continue; }  // c
@@ -4944,7 +5518,7 @@ class LocalState : public clang::ASTConsumer {
                               : nullptr;
         if (!td || !m->getMember().isIdentifier()) return 0;
         const llvm::StringRef name = m->getMember().getAsIdentifierInfo()->getName();
-        if (name == "front" || name == "back" || name == "value" || name == "at") return 2;
+        if (name == "front" || name == "back" || name == "value" || name == "at" || name == "error") return 2;
         std::vector<const clang::CXXRecordDecl*> patterns{td->getTemplatedDecl()};
         llvm::SmallVector<clang::ClassTemplatePartialSpecializationDecl*, 4> partial;
         const_cast<clang::ClassTemplateDecl*>(td)->getPartialSpecializations(partial);
@@ -5172,6 +5746,7 @@ class LocalState : public clang::ASTConsumer {
   }
 };
 
+/// One check by name, or null for an unknown name.
 std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
   if (name == "local-state") return std::make_unique<LocalState>();
   if (name == "mutual-recursion") return std::make_unique<MutualRecursion>();

@@ -74,7 +74,7 @@ The agreement between compile time and run time holds where both evaluations fin
 The two part in three ways, for Clang~23 with its default limits.
 Constant evaluation is bounded in work, at about a million steps and 512 nested calls, past which a program does not compile, and the template instantiation depth bounds both binding times; Rule~3 keeps these limits predictable, because every fold's length is in the program: a count, which meets no depth limit, or the depth of a term, one instantiation or one call per nesting.
 It refuses undefined behaviour of the language, which at run time is met with no diagnostic and no guarantee.
-And the standard leaves it unspecified whether floating-point arithmetic gives one result in both~\cite[{\texttt{expr.const}}]{cpp23standard}.
+And the standard leaves two things unspecified: whether floating-point arithmetic gives one result in both, and whether constant evaluation notices undefined behaviour of the standard library, as it must the language's~\cite[{\texttt{expr.const}}]{cpp23standard}.
 
 \Cpp{} passes no dictionaries but instantiates, so the translation models what a constrained call means, not what the compiler emits: instantiation is partial evaluation of the dictionary-passing term at a static type, and Appendix~\ref{app:fjlt:ssa} argues, trusting the compiler's lowering, that the two agree on every closed term, so that parametricity holds of every instantiation.
 

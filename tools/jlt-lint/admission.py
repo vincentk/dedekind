@@ -15,7 +15,7 @@ import re
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-CLASSES = ["kernel", "derived", "scaffolding", "refused", "open"]
+CLASSES = ["kernel", "sugar", "scaffolding", "refused", "open"]
 SCOPES = [
     ("library", "src/main/modules/dedekind/"),
     ("listings", "src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp"),
