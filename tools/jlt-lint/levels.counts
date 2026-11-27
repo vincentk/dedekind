@@ -3,7 +3,7 @@
 # build on Linux, held by ratchet.py: a body's definitions shown (FJlt and Jlt)
 # may not fall.
 listings	83 62 19 2 0
-library	4081 1537 1177 680 687
+library	4081 1544 1195 572 770
 standard ranges	351 70 99 149 33
 Catch2, headers	626 75 112 408 31
 Catch2, sources	955 6 10 891 48
