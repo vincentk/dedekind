@@ -5223,13 +5223,6 @@ class LocalState : public clang::ASTConsumer {
             return false;
           if (n.get<clang::FunctionDecl>()) break;
         }
-        // The move's full-expression: the outermost expression above it.
-        const clang::Stmt* full = move;
-        for (int k = 0; k < 256; ++k) {
-          auto ps = ctx->getParents(*full);
-          if (ps.empty() || !ps[0].get<clang::Expr>()) break;
-          full = ps[0].get<clang::Expr>();
-        }
         // Mentions in unevaluated operands (a type, as in decltype(x);
         // sizeof, alignof, noexcept) cannot observe the move and are not
         // counted; typeid may evaluate its operand and is.
@@ -5243,10 +5236,32 @@ class LocalState : public clang::ASTConsumer {
             if (d->getDecl() == x) ++n;
             return true;
           }
-        } mentions;
-        mentions.x = x;
-        mentions.TraverseStmt(const_cast<clang::Stmt*>(full));
-        if (mentions.n > 1) return false;
+        };
+        const auto count = [x](const clang::Stmt* s) {
+          Mentions m;
+          m.x = x;
+          m.TraverseStmt(const_cast<clang::Stmt*>(s));
+          return m.n;
+        };
+        // The move's full-expression, the outermost expression above it;
+        // on the way up, the operands sequenced before the move's side are
+        // set aside: the left of &&, || and the comma ([expr.log.and]/2,
+        // [expr.log.or]/2, [expr.comma]/1), the condition of ?:
+        // ([expr.cond]/1).  A mention there runs before the move.
+        const clang::Stmt* full = move;
+        int before = 0;
+        for (int k = 0; k < 256; ++k) {
+          auto ps = ctx->getParents(*full);
+          const auto* up = ps.empty() ? nullptr : ps[0].get<clang::Expr>();
+          if (!up) break;
+          if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(up);
+              b && (b->isLogicalOp() || b->isCommaOp()) && b->getRHS() == full)
+            before += count(b->getLHS());
+          else if (const auto* c = llvm::dyn_cast<clang::ConditionalOperator>(up); c && c->getCond() != full)
+            before += count(c->getCond());
+          full = up;
+        }
+        if (count(full) - before > 1) return false;
         struct Later : clang::RecursiveASTVisitor<Later> {
           const clang::VarDecl* x;
           clang::SourceLocation end;

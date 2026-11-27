@@ -83,6 +83,7 @@ sum_of Jlt
 moved_last Jlt
 used_after_move refused
 moved_beside_its_type FJlt
+moved_after_its_test Jlt
 moved_beside_use refused
 moved_in_loop refused
 moved_reference refused

@@ -557,6 +557,9 @@ constexpr std::size_t used_after_move(std::array<std::size_t, 2> a) {  // refuse
 constexpr std::array<std::size_t, 2> moved_beside_its_type(std::array<std::size_t, 2> a) {  // sound
   return decltype(a){std::move(a)};
 }
+constexpr bool moved_after_its_test(std::array<std::size_t, 2> a) {  // sound: && sequences its left first
+  return a[0] == 1 && sum_of(std::move(a)) == 3;
+}
 constexpr std::size_t moved_beside_use(std::array<std::size_t, 2> a) {  // refused
   return a[0] + sum_of(std::move(a));
 }
@@ -571,7 +574,7 @@ constexpr std::size_t moved_reference(std::array<std::size_t, 2> a) {  // refuse
 }
 static_assert(moved_into_local({1, 2, 3}) == 1 && moved_in_return({1, 2})[1] == 2 &&
               moved_last({1, 2}) == 7 && used_after_move({1, 2}) == 3 &&
-              moved_beside_use({1, 2}) == 4 && moved_beside_its_type({1, 2})[1] == 2 && moved_in_loop({1, 2}) == 6 &&
+              moved_beside_use({1, 2}) == 4 && moved_after_its_test({1, 2}) && moved_beside_its_type({1, 2})[1] == 2 && moved_in_loop({1, 2}) == 6 &&
               moved_reference({1, 2}) == 3);
 
 }  // namespace jlt_listing
