@@ -6,8 +6,8 @@
 \label{app:derived}
 
 Table~\ref{tab:derived} lists the forms shown so far to be sugar (Definition~\ref{def:sugar}): each with the kernel program it is read as, and the condition under which that reading keeps every value.
-The linter reads the same list, in its classification of syntax kinds (Appendix~\ref{app:lint}), so a definition of Jlt is in FJlt exactly when it uses none of them, and a form with no row leaves a definition that uses it undecided.
-How the linter checks a row, what it leaves undecided there and the fixture that pins it are written at the check itself, in the linter's source, and collected from there into its reference~\cite{Krautler_dedekind_2026}.\footnote{\url{https://vincentk.github.io/dedekind/jlt-lint/sugar.html}}
+The linter holds every form shown so far to be sugar, in its classification of syntax kinds (Appendix~\ref{app:lint}): the table's, and those added since, which its reference lists; a definition of Jlt is in FJlt exactly when it uses none of them, and a form the linter does not hold leaves a definition that uses it undecided.
+How the linter checks a form, what it leaves undecided there and the fixture that pins it are written at the check itself, in the linter's source, and collected from there into its reference, which is the authoritative list~\cite{Krautler_dedekind_2026}.\footnote{\url{https://vincentk.github.io/dedekind/jlt-lint/sugar.html}}
 
 Local mutable state is read by state passing, and needs one condition: at every point, each piece of storage is reached through one name only, since a write through one name would otherwise change what another reads.
 Jlt meets it where its rules hold: a reference to a local exists only within one expression, a local's type is a value type, one whose copy shares no storage with the original, and \RuleOne{} closes every channel by which state could leave the call.
