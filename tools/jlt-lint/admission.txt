@@ -314,7 +314,10 @@ Stmt:CXXNoexceptExpr open
 Stmt:UnaryExprOrTypeTraitExpr open
 # sizeof and alignof of a type that is not dependent: a constant of size_t.
 Stmt:SizeConstant sugar
-Decl:NonTypeTemplateParm open
+# A value among a template's parameters (#1232): used only as a number, or
+# named inside a type; both open, counted apart.
+Value:number open
+Value:size open
 Decl:CXXConstructor open
 Decl:Friend open
 # A scoped enumeration, its enumerators and its type: a record of one field of

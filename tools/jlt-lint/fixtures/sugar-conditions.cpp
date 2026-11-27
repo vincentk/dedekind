@@ -6,6 +6,7 @@
 // if constexpr is undecided wherever it stands: its two rows have no check
 // yet, so neither its sound uses nor these two are classed.
 // Standalone, no imports, so it is checked without the build.
+#include <array>
 #include <initializer_list>
 #include <concepts>
 #include <cstddef>
@@ -151,6 +152,17 @@ constexpr int by_switch_on(Rel r) {                                       // und
     default: return 1;
   }
 }
+// A value among a template's parameters: as a number, or as a size, which
+// asks for a type computed from a number (both open, counted apart).
+template <std::size_t N>
+constexpr std::size_t modulo(std::size_t x) {  // undecided (Value:number)
+  return x % N;
+}
+template <std::size_t N>
+constexpr std::size_t first_of(std::array<std::size_t, N> a) {  // undecided (Value:size)
+  return a[0];
+}
+static_assert(modulo<3>(7) == 1 && first_of<2>({5, 6}) == 5);
 // A structured binding has no row yet.
 constexpr std::size_t bound(std::pair<std::size_t, std::size_t> p) {  // undecided
   auto [a, b] = p;

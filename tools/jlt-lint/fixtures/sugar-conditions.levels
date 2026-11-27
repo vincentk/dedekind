@@ -40,6 +40,8 @@ from_code Jlt
 Untyped undecided
 is_a undecided
 by_switch_on refused
+modulo undecided
+first_of undecided
 bound undecided
 by_evaluation undecided
 by_observer undecided

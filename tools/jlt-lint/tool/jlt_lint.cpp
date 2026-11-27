@@ -3807,10 +3807,41 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     // The variable a variable template declares is the template, not a
     // local variable: counted as the VarTemplate.
     const auto* v = llvm::dyn_cast_or_null<clang::VarDecl>(d);
-    if (d && !d->isImplicit() && !(v && v->getDescribedVarTemplate()))
+    if (const auto* p = llvm::dyn_cast_or_null<clang::NonTypeTemplateParmDecl>(d))
+      values.insert(p);
+    else if (d && !d->isImplicit() && !(v && v->getDescribedVarTemplate()))
       kinds.insert(declKind(d));
-    return clang::RecursiveASTVisitor<Kinds>::TraverseDecl(d);
+    ++depth;
+    const bool r = clang::RecursiveASTVisitor<Kinds>::TraverseDecl(d);
+    if (--depth == 0) {
+      for (const auto* p : values) kinds.insert(sizes.count(p) ? "Value:size" : "Value:number");
+      values.clear();
+      sizes.clear();
+    }
+    return r;
   }
+  /// A value among a template's parameters, two kinds (#1232): used only
+  /// as a number, in expressions, Value:number; named inside a type, as
+  /// array<T, N> or Window<N>, Value:size.  The first has a reading as a
+  /// type parameter at a type with one value, its uses that type's value;
+  /// the second asks for a type computed from a number, which System F has
+  /// not.  A type passed the number counts as a size even where it only uses
+  /// it as one; decltype(N), which names only N's type, does not count.
+  bool TraverseTypeLoc(clang::TypeLoc tl) {
+    if (!tl.isNull() && tl.getAs<clang::DecltypeTypeLoc>()) {
+      const int saved = inType;
+      inType = 0;
+      const bool r = clang::RecursiveASTVisitor<Kinds>::TraverseTypeLoc(tl);
+      inType = saved;
+      return r;
+    }
+    ++inType;
+    const bool r = clang::RecursiveASTVisitor<Kinds>::TraverseTypeLoc(tl);
+    --inType;
+    return r;
+  }
+  int depth = 0, inType = 0;
+  std::set<const clang::NonTypeTemplateParmDecl*> values, sizes;
   /// \sugar{a range} The one form of sugar no syntax kind shows.  A
   /// parameter constrained by a standard range concept (Sugar:range), or a
   /// standard view other than the counted iota the kernel iterates over
@@ -3830,6 +3861,8 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     return true;
   }
   bool VisitDeclRefExpr(clang::DeclRefExpr* e) {
+    if (const auto* p = llvm::dyn_cast<clang::NonTypeTemplateParmDecl>(e->getDecl()); p && inType > 0)
+      sizes.insert(p);
     // The view objects themselves (views::transform), not their call
     // operators, whose names are operator().
     const clang::ValueDecl* d = e->getDecl();
