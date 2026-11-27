@@ -21,7 +21,7 @@ rule3-no-mutual-recursion    tools/jlt-lint/fixtures/rule3-mutual.cpp  jlt_listi
 rule3-no-loops               tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  1
 rule3-no-self-recursion      tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
 rule3-no-mutual-recursion    tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
-rule1-local-state            tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  63
+rule1-local-state            tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  65
 rule1-lvalue-reference-params tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  1
 rule1-no-reference-returns   tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
 rule1-no-escaping-reference-captures tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0

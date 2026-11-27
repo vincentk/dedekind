@@ -16,7 +16,11 @@
 # a const function, so nothing tells it from a copy.  Not exempt, and still
 # refused: a reference to a parameter, a local, a static, a temporary (a
 # field of a call's result), a non-const member function, a function that is
-# not a member, a mutable reference.  Three conditions close what the reading
+# not a member, a mutable reference; a field that is a reference, or reached
+# through a pointer field, which the object does not own; an element by []
+# through a pointer, or by operator[] on anything but an owning sequence of
+# the standard (std::array, vector, basic_string, deque: a span's elements
+# are not its own).  Three conditions close what the reading
 # would change: no field on the path is mutable (rule1-local-state refuses
 # such a return, there being no matcher for a mutable field); no reference
 # local is bound to the reference a call returns (rule1-local-state too: on a
@@ -24,12 +28,16 @@
 # result's type is not observed by decltype or a type trait, which the author
 # holds (std::is_reference_v gives true in C++, false in the reading).
 # Fixtures: sugar-conditions.cpp, local-state.cpp.
+let ownfield fieldDecl(unless(hasType(referenceType())))
 let selfref expr(anyOf(cxxThisExpr(),
-    memberExpr(member(fieldDecl()), unless(hasObjectExpression(unless(cxxThisExpr()))))))
-let own memberExpr(member(fieldDecl()), unless(hasObjectExpression(unless(selfref))))
+    memberExpr(member(fieldDecl(unless(hasType(anyOf(referenceType(), pointerType()))))),
+        unless(hasObjectExpression(unless(cxxThisExpr()))))))
+let own memberExpr(member(ownfield), unless(hasObjectExpression(unless(selfref))))
 let ownelement expr(anyOf(own,
-    arraySubscriptExpr(hasBase(ignoringParenImpCasts(own))),
-    cxxOperatorCallExpr(hasOverloadedOperatorName("[]"), hasArgument(0, ignoringParenImpCasts(own)))))
+    arraySubscriptExpr(hasBase(ignoringParenImpCasts(expr(own, hasType(arrayType()))))),
+    cxxOperatorCallExpr(hasOverloadedOperatorName("[]"), hasArgument(0, ignoringParenImpCasts(expr(own,
+        hasType(hasUnqualifiedDesugaredType(recordType(hasDeclaration(classTemplateSpecializationDecl(
+            hasAnyName("::std::array", "::std::vector", "::std::basic_string", "::std::deque"))))))))))))
 let accessor cxxMethodDecl(isConst(), returns(hasCanonicalType(references(qualType(isConstQualified())))),
     hasBody(stmt(hasDescendant(returnStmt()),
         unless(hasDescendant(returnStmt(unless(hasReturnValue(ignoringParenImpCasts(ownelement)))))))))

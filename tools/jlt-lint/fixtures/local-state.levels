@@ -82,3 +82,11 @@ make_boxed FJlt
 through_returned_reference refused
 bound_to_temporary Jlt
 through_accessor_of_constant Jlt
+Outer Jlt
+make_outer FJlt
+dangling_through_field refused
+dangling_through_member refused
+extended_through_fields Jlt
+Tag FJlt
+Tagged Jlt
+accessor_with_tag Jlt

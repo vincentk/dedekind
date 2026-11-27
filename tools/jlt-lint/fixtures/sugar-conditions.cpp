@@ -7,6 +7,7 @@
 // yet, so neither its sound uses nor these two are classed.
 // Standalone, no imports, so it is checked without the build.
 #include <array>
+#include <span>
 #include <initializer_list>
 #include <concepts>
 #include <cstddef>
@@ -320,6 +321,20 @@ struct Writable {  // refused: a non-const member function, a mutable reference
 struct Cached {  // refused: a mutable field
   mutable std::size_t v;
   constexpr const std::size_t& get() const { return v; }
+};
+// What the object does not own: a reference field, a field reached through
+// a pointer field, a span's elements.  The referent can die before the object.
+struct Borrowed {  // refused: a reference field
+  const std::size_t& v;
+  constexpr const std::size_t& get() const { return v; }
+};
+struct Pointing {  // refused: a field through a pointer field
+  const Held* p;
+  constexpr const std::size_t& get() const { return p->v; }
+};
+struct Spanning {  // refused: an element of a span field
+  std::span<const std::size_t, 1> s;
+  constexpr const std::size_t& first() const { return s[0]; }
 };
 static_assert(Held{2}.get() == 2 && Indexed{{4, 5}}.second() == 5 && Nested{Held{6}}.inner() == 6 &&
               Shared{}.get() == 3 && Cached{7}.get() == 7);

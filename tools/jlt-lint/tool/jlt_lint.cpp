@@ -5644,26 +5644,74 @@ class LocalState : public clang::ASTConsumer {
           // A temporary of class type, or one materialised to bind a
           // reference parameter: an index or a count passed by value, a
           // prvalue of an atom, binds nothing and cannot dangle.
-          const auto temporary = [](const clang::Expr* a) {
-            for (int k = 0; a && k < 8; ++k) {
-              if (llvm::isa<clang::MaterializeTemporaryExpr, clang::CXXBindTemporaryExpr>(a)) return true;
-              if (const auto* c = llvm::dyn_cast<clang::ImplicitCastExpr>(a);
-                  c && (c->getCastKind() == clang::CK_NoOp || c->getCastKind() == clang::CK_DerivedToBase))
+          // The storage a reference names, followed through fields (not
+          // through ->) and elements of built-in arrays, on the initialiser
+          // and on a call's object: make_outer().get().v and
+          // make_outer().h.get() dangle, make_outer().h.v is extended.  An
+          // argument counts only where it binds a reference parameter: one
+          // passed by value is a copy the result cannot name.
+          const auto strip = [](const clang::Expr* a) {
+            for (int k = 0; a && k < 16; ++k) {
+              if (const auto* w = llvm::dyn_cast<clang::ExprWithCleanups>(a)) a = w->getSubExpr();
+              else if (const auto* c = llvm::dyn_cast<clang::ImplicitCastExpr>(a);
+                       c && (c->getCastKind() == clang::CK_NoOp || c->getCastKind() == clang::CK_DerivedToBase ||
+                             c->getCastKind() == clang::CK_UncheckedDerivedToBase))
                 a = c->getSubExpr();
-              else if (const auto* q = llvm::dyn_cast<clang::ParenExpr>(a))
-                a = q->getSubExpr();
-              else
-                return a->isPRValue() && a->getType()->isRecordType();
+              else if (const auto* q = llvm::dyn_cast<clang::ParenExpr>(a)) a = q->getSubExpr();
+              else break;
+            }
+            return a;
+          };
+          const auto subobject = [&](const clang::Expr* a) -> const clang::Expr* {
+            if (const auto* m = llvm::dyn_cast<clang::MemberExpr>(a); m && !m->isArrow())
+              return m->getBase();
+            if (const auto* x = llvm::dyn_cast<clang::ArraySubscriptExpr>(a);
+                x && x->getBase()->IgnoreParenImpCasts()->getType()->isArrayType())
+              return x->getBase()->IgnoreParenImpCasts();
+            return nullptr;
+          };
+          std::function<bool(const clang::Expr*)> temporary, fromTemporary;
+          // A call returning a reference whose object, or an argument bound
+          // to a reference parameter, is a temporary.
+          fromTemporary = [&](const clang::Expr* e) {
+            const auto* call = llvm::dyn_cast<clang::CallExpr>(e);
+            if (!call || !e->isGLValue()) return false;
+            const clang::FunctionDecl* g = call->getDirectCallee();
+            unsigned shift = 0;
+            if (const auto* mc = llvm::dyn_cast<clang::CXXMemberCallExpr>(call)) {
+              if (temporary(mc->getImplicitObjectArgument())) return true;
+            } else if (const auto* oc = llvm::dyn_cast<clang::CXXOperatorCallExpr>(call);
+                       oc && g && llvm::isa<clang::CXXMethodDecl>(g) &&
+                       !llvm::cast<clang::CXXMethodDecl>(g)->isStatic()) {
+              if (oc->getNumArgs() > 0 && temporary(oc->getArg(0))) return true;
+              shift = 1;
+            }
+            for (unsigned i = shift; i < call->getNumArgs(); ++i) {
+              const unsigned j = i - shift;
+              const bool byReference = !g || j >= g->getNumParams() ||
+                                       g->getParamDecl(j)->getType()->isReferenceType();
+              if (byReference && temporary(call->getArg(i))) return true;
             }
             return false;
           };
-          if (const auto* call = llvm::dyn_cast<clang::CallExpr>(e); call && e->isGLValue()) {
-            bool fromTemporary = false;
-            if (const auto* mc = llvm::dyn_cast<clang::CXXMemberCallExpr>(call))
-              fromTemporary = temporary(mc->getImplicitObjectArgument());
-            for (const clang::Expr* a : call->arguments()) fromTemporary = fromTemporary || temporary(a);
-            if (fromTemporary) (*report)(v->getLocation());
+          temporary = [&](const clang::Expr* a) {
+            for (int k = 0; a && k < 16; ++k) {
+              a = strip(a);
+              if (llvm::isa<clang::MaterializeTemporaryExpr, clang::CXXBindTemporaryExpr>(a)) return true;
+              if (const auto* sub = subobject(a)) { a = sub; continue; }
+              if (fromTemporary(a)) return true;
+              return a->isPRValue() && a->getType()->isRecordType();
+            }
+            return false;
+          };
+          // The initialiser, down its fields and elements to a call.
+          const clang::Expr* named = strip(e);
+          for (int k = 0; named && k < 16; ++k) {
+            const auto* sub = subobject(named);
+            if (!sub) break;
+            named = strip(sub);
           }
+          if (named && fromTemporary(named)) (*report)(v->getLocation());
         }
         // A local whose copies share storage (a view, a pointer, a tuple of
         // references) initialised from local state: a second name for it.

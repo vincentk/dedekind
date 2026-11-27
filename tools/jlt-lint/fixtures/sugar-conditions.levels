@@ -78,3 +78,6 @@ Passing refused
 Shared refused
 Writable refused
 Cached refused
+Borrowed refused
+Pointing refused
+Spanning refused

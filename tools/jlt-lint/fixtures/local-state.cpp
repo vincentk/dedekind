@@ -555,8 +555,40 @@ constexpr std::size_t through_accessor_of_constant() {  // sound
   const std::size_t& r = b.get();
   return r;
 }
+// Through fields and calls on both sides: a field of what a call on a
+// temporary returns, and an accessor called on a field of a temporary,
+// dangle; a field of a field of a temporary is extended with it.
+struct Outer {
+  Boxed h;
+  constexpr const Boxed& get() const { return h; }
+};
+constexpr Outer make_outer() { return Outer{Boxed{6}}; }
+constexpr std::size_t dangling_through_field() {  // refused
+  const std::size_t& r = make_outer().get().v;
+  return r + 0;
+}
+constexpr std::size_t dangling_through_member() {  // refused
+  const std::size_t& r = make_outer().h.get();
+  return r + 0;
+}
+constexpr std::size_t extended_through_fields() {  // sound
+  const std::size_t& r = make_outer().h.v;
+  return r;
+}
+// A temporary passed by value is a copy the result cannot name.
+struct Tag {};
+struct Tagged {
+  std::size_t v;
+  constexpr const std::size_t& get(Tag) const { return v; }
+};
+constexpr std::size_t accessor_with_tag() {  // sound
+  const Tagged b{5};
+  const std::size_t& r = b.get(Tag{});
+  return r;
+}
 static_assert(written_through_temporary() == 0 &&
               written_through_comma() == 1 && written_by_lambda() == 9 && half(4) == 2uz &&
-              bound_to_temporary() == 4 && through_accessor_of_constant() == 5);
+              bound_to_temporary() == 4 && through_accessor_of_constant() == 5 &&
+              extended_through_fields() == 6 && accessor_with_tag() == 5);
 
 }  // namespace jlt_listing
