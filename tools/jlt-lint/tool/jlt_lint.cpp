@@ -3827,16 +3827,16 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   /// the second asks for a type computed from a number, which System F has
   /// not.  A type passed the number counts as a size even where it only uses
   /// it as one; decltype(N), which names only N's type, does not count.
-  bool TraverseTypeLoc(clang::TypeLoc tl) {
+  bool TraverseTypeLoc(clang::TypeLoc tl, bool traverseQualifier = true) {
     if (!tl.isNull() && tl.getAs<clang::DecltypeTypeLoc>()) {
       const int saved = inType;
       inType = 0;
-      const bool r = clang::RecursiveASTVisitor<Kinds>::TraverseTypeLoc(tl);
+      const bool r = clang::RecursiveASTVisitor<Kinds>::TraverseTypeLoc(tl, traverseQualifier);
       inType = saved;
       return r;
     }
     ++inType;
-    const bool r = clang::RecursiveASTVisitor<Kinds>::TraverseTypeLoc(tl);
+    const bool r = clang::RecursiveASTVisitor<Kinds>::TraverseTypeLoc(tl, traverseQualifier);
     --inType;
     return r;
   }
