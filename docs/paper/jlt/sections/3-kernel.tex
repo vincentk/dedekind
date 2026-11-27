@@ -177,19 +177,21 @@ That a closed program has the same value in \Cpp{} and in its image is the paper
 \label{hyp:adequacy}
 Let $p$ be a closed program of Jlt of an atom, and $p'$ its reading in the kernel (Definition~\ref{def:sugar}).
 Wherever the compiler's path gives a value,
-\[
+\begin{equation}
+\label{eq:adequacy}
 \mathit{run}\,(\texttt{clang++}\;p) \;=\; \mathit{eval}\,\llbracket p' \rrbracket .
-\]
+\end{equation}
 \end{hypothesis}
 
-\noindent The equation is a chain of four, and each link has its own standing, drawn as the lines of Figure~\ref{fig:arrows} are, $=$ for solid, $\approx$ for dashed and $\doteq$ for dotted:
-\[
+\noindent Equation~\eqref{eq:adequacy} is a chain of four, and each link has its own standing, drawn as the lines of Figure~\ref{fig:arrows} are, $=$ for solid, $\approx$ for dashed and $\doteq$ for dotted:
+\begin{equation}
+\label{eq:adequacy-chain}
 \mathit{run}\,(\texttt{clang++}\;p)
 \;\underset{\text{trusted}}{\doteq}\; \mathit{std}\,p
 \;\underset{\text{argued, tested}}{\approx}\; \mathit{std}\,p'
 \;\underset{\text{assumed}}{\doteq}\; v \text{ with } p' \Downarrow v
 \;\underset{\text{proved}}{=}\; \mathit{eval}\,\llbracket p' \rrbracket ,
-\]
+\end{equation}
 where $\mathit{std}$ is the value the standard gives a program, and $\Downarrow$ FJlt's own evaluation (Appendix~\ref{app:fjlt:evaluation}).
 The first link trusts the compiler, the second is the sugar (Definition~\ref{def:sugar}), the third takes constant evaluation as its reference, and the fourth is Theorem~\ref{thm:simulation}, under its assumptions.
 The chain is as sure as its weakest link, and the results below are about the image.
