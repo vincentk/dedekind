@@ -5198,9 +5198,13 @@ class LocalState : public clang::ASTConsumer {
       /// read as x, a copy, where nothing can observe what the move leaves
       /// in x (#1223): no use of x follows the move in source order in the
       /// function, no lambda after it captures x, and the move is in no loop
-      /// and no lambda.  Without goto, which the posture has not, and with
-      /// loops excluded, source order bounds the order of evaluation, so a
-      /// use that does not follow the move cannot run after it; a reference
+      /// and no lambda, and the move's own full-expression mentions x only
+      /// in the move.  Without goto, which the posture has not, and with
+      /// loops excluded, source order bounds the order of evaluation between
+      /// full-expressions, so a use in an earlier one cannot run after the
+      /// move; within one it does not ([intro.execution]/10: the operands of
+      /// + and the arguments of a call are unsequenced or indeterminately
+      /// sequenced), so f(x, std::move(x)) is refused; a reference
       /// to x that could outlive the move is refused on its own (a reference
       /// local, a reference capture).  The condition is syntactic and
       /// strict: any later mention refuses, even one that cannot run.
@@ -5219,6 +5223,24 @@ class LocalState : public clang::ASTConsumer {
             return false;
           if (n.get<clang::FunctionDecl>()) break;
         }
+        // The move's full-expression: the outermost expression above it.
+        const clang::Stmt* full = move;
+        for (int k = 0; k < 256; ++k) {
+          auto ps = ctx->getParents(*full);
+          if (ps.empty() || !ps[0].get<clang::Expr>()) break;
+          full = ps[0].get<clang::Expr>();
+        }
+        struct Mentions : clang::RecursiveASTVisitor<Mentions> {
+          const clang::VarDecl* x;
+          int n = 0;
+          bool VisitDeclRefExpr(clang::DeclRefExpr* d) {
+            if (d->getDecl() == x) ++n;
+            return true;
+          }
+        } mentions;
+        mentions.x = x;
+        mentions.TraverseStmt(const_cast<clang::Stmt*>(full));
+        if (mentions.n > 1) return false;
         struct Later : clang::RecursiveASTVisitor<Later> {
           const clang::VarDecl* x;
           clang::SourceLocation end;
