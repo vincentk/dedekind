@@ -38,7 +38,7 @@ before Jlt
 code Jlt
 from_code Jlt
 Untyped undecided
-is_a undecided
+is_a refused
 by_switch_on refused
 modulo undecided
 first_of undecided

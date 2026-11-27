@@ -143,7 +143,9 @@ static_assert(above(Side::Above) && before(Rel::Lt, Rel::Gt) && code(from_code(7
 // An unscoped one has no fixed type: a conversion outside its enumerators'
 // width is undefined, so it stays open.
 enum Untyped { untyped_a, untyped_b };                                    // undecided
-constexpr bool is_a(Untyped p) { return p == untyped_a; }                 // undecided
+// Compared, it is promoted implicitly to int, which the narrowing check
+// refuses: the implicit conversion a scoped one does not have.
+constexpr bool is_a(Untyped p) { return p == untyped_a; }                 // refused
 // A switch over a scoped enumeration has its own conditions, not yet a row.
 constexpr int by_switch_on(Rel r) {                                       // undecided
   switch (r) {
