@@ -141,6 +141,10 @@ add_custom_target(lint
             --levels ${_jlt_parts}/all-levels.json
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/table.py
             --report ${CMAKE_BINARY_DIR}/jlt-lint/report.txt
+    # Where coverage is held back, every reason ranked by what fixing it alone
+    # would show, three examples each as compiler remarks: printed, not checked.
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/summary.py
+            --levels ${_jlt_parts}/all-levels.json --diagnostic 3
     # The paper's summary of the levels over the listings, the library and
     # Catch2: compared, so that it cannot drift from the code.
     COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/summary.py

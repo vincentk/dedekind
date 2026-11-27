@@ -18,7 +18,8 @@ that the paper's table cannot drift from the code.
 
 --diagnostic [N] prints, for each body, every reason a definition is refused
 or undecided, ranked by how many definitions it alone holds back (they would
-be shown if it went), with N of them each as path:line name, and stops: where
+be shown if it went), with N of them each as a remark in the compiler's style,
+path:line:col: remark: ..., and stops: where
 to start when raising the coverage.  jlt_lint.py --diagnostic prints the same
 for the part it lints.
 
@@ -122,7 +123,7 @@ def diagnostic(levels, member=lambda key: True, examples=3):
     fixing it alone would gain: first by how many definitions have it as
     their only reason (they would be shown if it went), then by how many
     have it at all; each with a few of the definitions it alone holds back,
-    as path:line name, to start from.  For one body, or for whatever run of
+    as the compiler writes a remark, path:line:col: remark: ..., to start from.  For one body, or for whatever run of
     the linter wrote the levels (a part, a file)."""
     out = []
     for level in ("refused", "undecided"):
@@ -140,11 +141,14 @@ def diagnostic(levels, member=lambda key: True, examples=3):
                 if len(ws) == 1 and not (also and also[0]):
                     alone[ws[0]] += 1
                     if len(where[ws[0]]) < examples:
-                        where[ws[0]].append(f"{path}:{line} {name}")
+                        where[ws[0]].append((path, line, name))
         out.append(f"  {level} ({n}), by what fixing a reason alone would show:")
         for w, c in sorted(count.items(), key=lambda wc: (-alone[wc[0]], -wc[1], wc[0])):
             out.append(f"    {alone[w]:>5} alone of {c:>5}  {w}")
-            out += [f"           {e}" for e in where[w]]
+            # The examples in the compiler's house style, so that an editor
+            # or a CI problem matcher can jump to them.
+            out += [f"{path}:{line}:1: remark: {name} is {level} by {w} alone [jlt-lint-diagnostic]"
+                    for path, line, name in where[w]]
     return "\n".join(out) + "\n"
 
 
