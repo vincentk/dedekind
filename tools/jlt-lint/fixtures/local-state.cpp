@@ -534,4 +534,36 @@ constexpr std::size_t huge_product() {
 static_assert(written_through_temporary() == 0 &&
               written_through_comma() == 1 && written_by_lambda() == 9 && half(4) == 2uz);
 
+// std::move of a local at its last use is read as the local, a copy
+// (#1223): nothing after it can see what the move leaves behind.
+constexpr std::size_t moved_into_local(std::array<std::size_t, 3> a) {  // sound
+  std::array<std::size_t, 3> b = std::move(a);
+  return b[0];
+}
+constexpr std::array<std::size_t, 2> moved_in_return(std::array<std::size_t, 2> a) {  // sound
+  return std::move(a);
+}
+constexpr std::size_t sum_of(std::array<std::size_t, 2> a) { return a[0] + a[1]; }
+constexpr std::size_t moved_last(std::array<std::size_t, 2> a) {  // sound
+  a[0] = 5;
+  return sum_of(std::move(a));
+}
+// Near misses: a use after the move, a move in a loop, a reference moved.
+constexpr std::size_t used_after_move(std::array<std::size_t, 2> a) {  // refused
+  std::array<std::size_t, 2> b = std::move(a);
+  return b[0] + a[1];
+}
+constexpr std::size_t moved_in_loop(std::array<std::size_t, 2> a) {  // refused
+  std::size_t s = 0;
+  for (std::size_t i = 0; i < 2; ++i) s = s + sum_of(std::move(a));
+  return s;
+}
+constexpr std::size_t moved_reference(std::array<std::size_t, 2> a) {  // refused
+  std::array<std::size_t, 2>& r = a;
+  return sum_of(std::move(r));
+}
+static_assert(moved_into_local({1, 2, 3}) == 1 && moved_in_return({1, 2})[1] == 2 &&
+              moved_last({1, 2}) == 7 && used_after_move({1, 2}) == 3 &&
+              moved_in_loop({1, 2}) == 6 && moved_reference({1, 2}) == 3);
+
 }  // namespace jlt_listing
