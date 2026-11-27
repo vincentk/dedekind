@@ -198,6 +198,10 @@ Cast:static derived
 # (Figure 2's own form; in a template the same spelling is an unresolved
 # construction, kernel above).
 Stmt:BracedValue kernel
+# T(x) to a class type, with parentheses, and T(a, b) to an aggregate: the
+# construction T{x} or T{a, b}, its arguments' conversions read by the
+# narrowing check.
+Stmt:ParenValue derived
 # Conditions of Table 7's rows that the kinds show (the audit of 2026-11-25).
 # A return where the reading of statements has no place for it: in a loop, or
 # in a branch that only sometimes returns.  At the end of the function, of
@@ -250,6 +254,8 @@ Stmt:CharacterLiteral open
 Stmt:CXXStdInitializerListExpr open
 Stmt:CXXNoexceptExpr open
 Stmt:UnaryExprOrTypeTraitExpr open
+# sizeof and alignof of a type that is not dependent: a constant of size_t.
+Stmt:SizeConstant derived
 Decl:NonTypeTemplateParm open
 Decl:CXXConstructor open
 Decl:Friend open
@@ -260,4 +266,7 @@ Type:ConstantArray open
 Type:IncompleteArray open
 Type:DependentSizedArray open
 Decl:CXXDestructor open
+# A destructor that does nothing, defaulted or with an empty body, and not
+# virtual: scaffolding, as a defaulted copy is.
+Decl:EmptyDestructor scaffolding
 Stmt:ImplicitValueInitExpr open
