@@ -161,6 +161,7 @@ Appendix~\ref{app:derived} gives the forms shown so far to be sugar, each with i
 Two of them carry most programs: a finite range, as an array or a view, is its length and the function that reads it, folded over by the kernel's iteration over that count, and a mutable local is the state of such a fold.
 That a form meets (b) is argued and tested for that form, and not proved, the standard of evidence of the work on JavaScript~\cite{guha2010essence}: a test sets the form beside its reading and lets constant evaluation compare the two (Listing~\ref{lst:running-sum}).
 That is also how the fragment grows, a form at a time: a row, a test, and a check in the linter.
+The burden lies with whoever adds a form: until its reading is argued and tested, a definition that uses it is undecided.
 % TODO(derived): the standard's clauses for the first group are to be cited;
 % a test beside its kernel form exists for local state and for a variant
 % (tools/jlt-lint/fixtures); the other rows are to get theirs.
