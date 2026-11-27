@@ -5219,16 +5219,23 @@ class LocalState : public clang::ASTConsumer {
         // A move written in a macro: an expansion's tokens share one
         // expansion location, so source order inside it is not seen.
         if (move->getBeginLoc().isMacroID() || move->getEndLoc().isMacroID()) return false;
+        // Up to the function, without a bound (a parent chain is finite):
+        // a walk that stopped short could miss an enclosing loop.
         clang::DynTypedNode n = clang::DynTypedNode::create(*move);
-        for (int k = 0; k < 256; ++k) {
+        bool reached = false;
+        for (;;) {
           auto ps = ctx->getParents(n);
           if (ps.empty()) break;
           n = ps[0];
           if (n.get<clang::ForStmt>() || n.get<clang::CXXForRangeStmt>() || n.get<clang::WhileStmt>() ||
               n.get<clang::DoStmt>() || n.get<clang::LambdaExpr>())
             return false;
-          if (n.get<clang::FunctionDecl>()) break;
+          if (n.get<clang::FunctionDecl>()) {
+            reached = true;
+            break;
+          }
         }
+        if (!reached) return false;
         // Mentions in unevaluated operands (a type, as in decltype(x);
         // sizeof, alignof, noexcept) cannot observe the move and are not
         // counted; typeid may evaluate its operand and is.
@@ -5256,7 +5263,7 @@ class LocalState : public clang::ASTConsumer {
         // ([expr.cond]/1).  A mention there runs before the move.
         const clang::Stmt* full = move;
         int before = 0;
-        for (int k = 0; k < 256; ++k) {
+        for (;;) {
           auto ps = ctx->getParents(*full);
           const auto* up = ps.empty() ? nullptr : ps[0].get<clang::Expr>();
           if (!up) break;
