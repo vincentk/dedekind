@@ -575,6 +575,23 @@ constexpr std::size_t extended_through_fields() {  // sound
   const std::size_t& r = make_outer().h.v;
   return r;
 }
+// Through ?: and the comma: what the result names is an arm's, the right's.
+constexpr std::size_t dangling_through_conditional() {  // refused
+  const std::size_t& r = true ? make_boxed().get() : make_boxed().get();
+  return r + 0;
+}
+constexpr std::size_t dangling_through_comma_operator() {  // refused
+  const std::size_t& r = (0, make_boxed().get());
+  return r + 0;
+}
+// A static member is its own storage, not the temporary's.
+struct Holder {
+  static constexpr Boxed h{6};
+};
+constexpr std::size_t through_static_member() {  // sound
+  const std::size_t& r = Holder{}.h.get();
+  return r;
+}
 // A temporary passed by value is a copy the result cannot name.
 struct Tag {};
 struct Tagged {
@@ -589,6 +606,7 @@ constexpr std::size_t accessor_with_tag() {  // sound
 static_assert(written_through_temporary() == 0 &&
               written_through_comma() == 1 && written_by_lambda() == 9 && half(4) == 2uz &&
               bound_to_temporary() == 4 && through_accessor_of_constant() == 5 &&
-              extended_through_fields() == 6 && accessor_with_tag() == 5);
+              extended_through_fields() == 6 && accessor_with_tag() == 5 &&
+              through_static_member() == 6);
 
 }  // namespace jlt_listing

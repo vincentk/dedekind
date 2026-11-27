@@ -87,6 +87,10 @@ make_outer FJlt
 dangling_through_field refused
 dangling_through_member refused
 extended_through_fields Jlt
+dangling_through_conditional refused
+dangling_through_comma_operator refused
+Holder Jlt
+through_static_member Jlt
 Tag FJlt
 Tagged Jlt
 accessor_with_tag Jlt

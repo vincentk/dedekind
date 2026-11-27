@@ -5663,7 +5663,10 @@ class LocalState : public clang::ASTConsumer {
             return a;
           };
           const auto subobject = [&](const clang::Expr* a) -> const clang::Expr* {
-            if (const auto* m = llvm::dyn_cast<clang::MemberExpr>(a); m && !m->isArrow())
+            // A non-static field only: a static member is its own storage,
+            // and ends the path (Holder{}.h.get() with h static is safe).
+            if (const auto* m = llvm::dyn_cast<clang::MemberExpr>(a);
+                m && !m->isArrow() && llvm::isa<clang::FieldDecl>(m->getMemberDecl()))
               return m->getBase();
             if (const auto* x = llvm::dyn_cast<clang::ArraySubscriptExpr>(a);
                 x && x->getBase()->IgnoreParenImpCasts()->getType()->isArrayType())
@@ -5698,20 +5701,39 @@ class LocalState : public clang::ASTConsumer {
             for (int k = 0; a && k < 16; ++k) {
               a = strip(a);
               if (llvm::isa<clang::MaterializeTemporaryExpr, clang::CXXBindTemporaryExpr>(a)) return true;
+              // Either arm of ?:, the right of a comma: what the result names.
+              if (const auto* c = llvm::dyn_cast<clang::ConditionalOperator>(a))
+                return temporary(c->getTrueExpr()) || temporary(c->getFalseExpr());
+              if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(a); b && b->isCommaOp()) {
+                a = b->getRHS();
+                continue;
+              }
               if (const auto* sub = subobject(a)) { a = sub; continue; }
               if (fromTemporary(a)) return true;
               return a->isPRValue() && a->getType()->isRecordType();
             }
             return false;
           };
-          // The initialiser, down its fields and elements to a call.
-          const clang::Expr* named = strip(e);
-          for (int k = 0; named && k < 16; ++k) {
-            const auto* sub = subobject(named);
-            if (!sub) break;
-            named = strip(sub);
-          }
-          if (named && fromTemporary(named)) (*report)(v->getLocation());
+          // The initialiser, down its fields and elements, both arms of ?:
+          // and the right of a comma, to a call.
+          std::function<bool(const clang::Expr*)> dangles = [&](const clang::Expr* a) {
+            for (int k = 0; a && k < 16; ++k) {
+              a = strip(a);
+              if (const auto* c = llvm::dyn_cast<clang::ConditionalOperator>(a))
+                return dangles(c->getTrueExpr()) || dangles(c->getFalseExpr());
+              if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(a); b && b->isCommaOp()) {
+                a = b->getRHS();
+                continue;
+              }
+              if (const auto* sub = subobject(a)) {
+                a = sub;
+                continue;
+              }
+              return fromTemporary(a);
+            }
+            return false;
+          };
+          if (dangles(e)) (*report)(v->getLocation());
         }
         // A local whose copies share storage (a view, a pointer, a tuple of
         // references) initialised from local state: a second name for it.
