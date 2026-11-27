@@ -16,7 +16,14 @@
 # a const function, so nothing tells it from a copy.  Not exempt, and still
 # refused: a reference to a parameter, a local, a static, a temporary (a
 # field of a call's result), a non-const member function, a function that is
-# not a member, a mutable reference.  Fixture: sugar-conditions.cpp.
+# not a member, a mutable reference.  Three conditions close what the reading
+# would change: no field on the path is mutable (rule1-local-state refuses
+# such a return, there being no matcher for a mutable field); no reference
+# local is bound to the reference a call returns (rule1-local-state too: on a
+# temporary, make_box().get() dangles in C++ and not in the reading); and the
+# result's type is not observed by decltype or a type trait, which the author
+# holds (std::is_reference_v gives true in C++, false in the reading).
+# Fixtures: sugar-conditions.cpp, local-state.cpp.
 let selfref expr(anyOf(cxxThisExpr(),
     memberExpr(member(fieldDecl()), unless(hasObjectExpression(unless(cxxThisExpr()))))))
 let own memberExpr(member(fieldDecl()), unless(hasObjectExpression(unless(selfref))))

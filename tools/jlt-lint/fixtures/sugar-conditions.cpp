@@ -315,7 +315,13 @@ struct Writable {  // refused: a non-const member function, a mutable reference
   std::size_t v;
   constexpr std::size_t& get() { return v; }
 };
+// A mutable field can change under a const function: the reference is not
+// the value, and rule1-local-state refuses the return.
+struct Cached {  // refused: a mutable field
+  mutable std::size_t v;
+  constexpr const std::size_t& get() const { return v; }
+};
 static_assert(Held{2}.get() == 2 && Indexed{{4, 5}}.at(1) == 5 && Nested{Held{6}}.inner() == 6 &&
-              Shared{}.get() == 3);
+              Shared{}.get() == 3 && Cached{7}.get() == 7);
 
 }  // namespace jlt_listing

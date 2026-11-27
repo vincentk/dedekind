@@ -4802,6 +4802,12 @@ class Definitions : public clang::ASTConsumer {
 ///   - a write (an assignment, ++, --) that is not a statement of its own,
 ///     the for increment aside: two writes in one expression, a write in a
 ///     condition or an argument;
+///   - a reference local bound to the reference a call returns, whatever the
+///     call's object (its lifetime is the object's, which it does not
+///     control: const auto& r = make_box().get(); dangles);
+///   - a return, in a const member function returning a reference, of a
+///     mutable field or of an element of one (the condition of the const
+///     accessor's reading, which the rule's matcher cannot see);
 ///   - a lambda capturing a mutable local by reference;
 ///   - a mutable local with no initialiser that writes it, read before it is
 ///     written perhaps (none, or a trivial default construction).
@@ -5613,6 +5619,26 @@ class LocalState : public clang::ASTConsumer {
       bool VisitVarDecl(clang::VarDecl* v) {
         if (v->hasLocalStorage() && v->getType()->isReferenceType() && v->getInit())
           if (aliasesLocalState(v->getInit())) (*report)(v->getLocation());
+        // A reference local bound to the reference a call returns, whatever
+        // the call's object: its lifetime is that object's, which it does not
+        // control (const auto& r = make_box().get(); dangles, since a
+        // temporary's life is extended only when the reference binds to it
+        // directly, [class.temporary]).  A temporary bound directly, T{...}
+        // or a call returning by value, is no such reference.  A range-for's
+        // loop variable and a parameter's default argument aside.
+        if (v->hasLocalStorage() && !llvm::isa<clang::ParmVarDecl>(v) && !v->isCXXForRangeDecl() &&
+            v->getType()->isReferenceType() && v->getInit()) {
+          const clang::Expr* e = v->getInit();
+          for (;;) {
+            if (const auto* w = llvm::dyn_cast<clang::ExprWithCleanups>(e)) e = w->getSubExpr();
+            else if (const auto* p = llvm::dyn_cast<clang::ParenExpr>(e)) e = p->getSubExpr();
+            else if (const auto* c = llvm::dyn_cast<clang::ImplicitCastExpr>(e);
+                     c && c->getCastKind() == clang::CK_NoOp)
+              e = c->getSubExpr();
+            else break;
+          }
+          if (llvm::isa<clang::CallExpr>(e) && e->isGLValue()) (*report)(v->getLocation());
+        }
         // A local whose copies share storage (a view, a pointer, a tuple of
         // references) initialised from local state: a second name for it.
         if (v->hasLocalStorage() && !llvm::isa<clang::ParmVarDecl>(v) &&
@@ -5809,6 +5835,42 @@ class LocalState : public clang::ASTConsumer {
     judge.vs = &vs;
     judge.report = &report;
     judge.TraverseStmt(f->getBody());
+    // A const member function returning a reference to a mutable field, or
+    // into one: the field can change under a const function, so the
+    // reference is not the value (the condition of the const accessor's
+    // reading, which the matcher of rule1-no-reference-returns cannot see,
+    // there being no matcher for a mutable field).  Each such return.
+    if (const auto* m = llvm::dyn_cast<clang::CXXMethodDecl>(f);
+        m && m->isConst() && m->getReturnType()->isReferenceType()) {
+      struct Returns : clang::RecursiveASTVisitor<Returns> {
+        Report* report;
+        static bool intoMutable(const clang::Expr* e) {
+          for (int k = 0; e && k < 16; ++k) {
+            e = e->IgnoreParenImpCasts();
+            if (const auto* me = llvm::dyn_cast<clang::MemberExpr>(e)) {
+              if (const auto* fd = llvm::dyn_cast<clang::FieldDecl>(me->getMemberDecl()); fd && fd->isMutable())
+                return true;
+              e = me->getBase();
+            } else if (const auto* s = llvm::dyn_cast<clang::ArraySubscriptExpr>(e)) {
+              e = s->getBase();
+            } else if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(e);
+                       o && o->getOperator() == clang::OO_Subscript && o->getNumArgs() > 0) {
+              e = o->getArg(0);
+            } else {
+              return false;
+            }
+          }
+          return false;
+        }
+        bool VisitReturnStmt(clang::ReturnStmt* r) {
+          if (r->getRetValue() && intoMutable(r->getRetValue())) (*report)(r->getBeginLoc());
+          return true;
+        }
+        bool TraverseLambdaExpr(clang::LambdaExpr*) { return true; }  // its returns are its own
+      } returns;
+      returns.report = &report;
+      returns.TraverseStmt(f->getBody());
+    }
   }
 };
 
@@ -5947,8 +6009,18 @@ std::optional<DynTypedMatcher> parseMatcher(
 /// and cannot change under a const function.  Held by narrowing the
 /// deny-rule rule1-no-reference-returns (its file's header says how); a
 /// reference to a parameter, a local, a static or a temporary, a non-const
-/// member function and a mutable reference stay refused (#1223).  Fixture:
-/// sugar-conditions.cpp.
+/// member function and a mutable reference stay refused (#1223).  Three
+/// conditions close what the reading would change (value categories): a
+/// field on the path is not mutable, which rule1-local-state checks (the
+/// matcher cannot see mutable); a reference local is not bound to the
+/// reference a call returns, which rule1-local-state checks too, so that no
+/// reference outlives the object it was called on (make_box().get() on a
+/// temporary dangles in C++ and not in the reading); and the result's type
+/// is not observed, by decltype or a type trait (std::is_reference_v gives
+/// true in C++ and false in the reading), which the author holds (A).
+/// Overloading on value category and an address are refused elsewhere
+/// (rvalue and forwarding parameters, &).  Fixtures: sugar-conditions.cpp,
+/// local-state.cpp.
 /// Read the scope probe and the rule files into queryRules.  In a file, a
 /// command is `match <matcher>`, `let <name> <matcher>` (a name for the rest
 /// of the file, as in clang-query) or the first `set traversal <kind>`; a line

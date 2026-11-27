@@ -77,3 +77,7 @@ at_in_range Jlt
 keep FJlt
 dangling_through_keep refused
 huge_product refused
+Boxed Jlt
+make_boxed FJlt
+through_returned_reference refused
+bound_to_temporary Jlt

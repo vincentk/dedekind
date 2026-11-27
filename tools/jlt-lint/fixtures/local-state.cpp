@@ -531,7 +531,25 @@ constexpr std::size_t huge_product() {
   a[0] = 3;
   return a[m * n];
 }
+// A reference local bound to the reference a call returns: its lifetime is
+// the call's object's.  Here the object is a temporary, gone at the end of
+// the declaration, so r dangles; the reading of the accessor would copy.
+struct Boxed {
+  std::size_t v;
+  constexpr const std::size_t& get() const { return v; }
+};
+constexpr Boxed make_boxed() { return Boxed{4}; }
+constexpr std::size_t through_returned_reference() {  // refused
+  const std::size_t& r = make_boxed().get();
+  return r + 0;
+}
+// A temporary bound directly lives as long as the reference: no finding.
+constexpr std::size_t bound_to_temporary() {  // sound
+  const std::size_t& r = make_boxed().v;
+  return r;
+}
 static_assert(written_through_temporary() == 0 &&
-              written_through_comma() == 1 && written_by_lambda() == 9 && half(4) == 2uz);
+              written_through_comma() == 1 && written_by_lambda() == 9 && half(4) == 2uz &&
+              bound_to_temporary() == 4);
 
 }  // namespace jlt_listing
