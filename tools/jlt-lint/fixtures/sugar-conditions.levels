@@ -26,6 +26,11 @@ quotient undecided
 halved FJlt
 shifted undecided
 doubled FJlt
+negated_quotient undecided
+negated_remainder undecided
+negated_in_place undecided
+remainder_in_place undecided
+signed_halved FJlt
 bound undecided
 by_evaluation undecided
 by_observer undecided

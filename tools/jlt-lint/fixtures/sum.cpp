@@ -270,4 +270,24 @@ concept ConstantSum = requires { typename std::integral_constant<double, A + B>;
 static_assert(ConstantSum<1.0, 2.0>);
 static_assert(!ConstantSum<std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()>);
 
+// ---- Copilot on #1226: what only an instance tells. ----
+// A choice whose branches differ in type as written, in a template: at
+// T = size_t the 0 converts, which the choice's row does not read.
+template <std::integral T>
+constexpr T first_or_zero(const std::variant<T, bool> d) {  // undecided
+  return d.index() == 0 ? std::get<0>(d) : 0;
+}
+template <std::integral T>
+constexpr T first_or_same(const std::variant<T, bool> d, T z) {  // sound: T for T
+  return d.index() == 0 ? std::get<0>(d) : z;
+}
+static_assert(first_or_zero<std::size_t>(std::variant<std::size_t, bool>(std::in_place_index<0>, 3uz)) == 3 &&
+              first_or_same<std::size_t>(std::variant<std::size_t, bool>(std::in_place_index<1>, true), 4uz) == 4);
+// Two arguments written, a pack among them: as many alternatives as the pack
+// has, and more than two at Box<int, char>.
+template <typename... Ts>
+struct Box {  // undecided
+  std::variant<Ts..., bool> value;
+};
+
 }  // namespace jlt_listing

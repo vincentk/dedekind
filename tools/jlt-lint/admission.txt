@@ -234,6 +234,9 @@ Sum:payload-converted refused
 # alternative's: only an instance tells whether it converts (T = int and -1
 # give SIZE_MAX).  Undecided until instances are read.
 Sum:payload-dependent open
+# a choice on index() in a template whose branches differ in type as written,
+# one of them dependent: they agree, or one converts, only at an instance
+Sum:case-dependent open
 # The copairing written as a choice on the index, x.index() == 0 ? e1 : e2
 # (or by if, negated, joined by && or ||, or as an early exit), with x a
 # const variable, std::get<0>(x) only where alternative 0 is known and

@@ -115,6 +115,21 @@ constexpr std::size_t quotient(std::size_t a, std::size_t b) { return a / b; }  
 constexpr std::size_t halved(std::size_t a) { return a / 2; }                    // sound
 constexpr std::size_t shifted(std::size_t a, std::size_t i) { return a << i; }   // undecided
 constexpr std::size_t doubled(std::size_t a) { return a << 1; }                  // sound
+// A signed division or remainder by -1 overflows at the least value
+// (Copilot on #1226): by a constant, but not one defined at every argument.
+constexpr long negated_quotient(long a) { return a / -1; }   // undecided
+constexpr long negated_remainder(long a) { return a % -1; }  // undecided
+constexpr long negated_in_place(long a) {  // undecided
+  long q = a;
+  q /= -1;
+  return q;
+}
+constexpr long remainder_in_place(long a) {  // undecided
+  long r = a;
+  r %= -1;
+  return r;
+}
+constexpr long signed_halved(long a) { return a / 2; }       // sound
 // A structured binding has no row yet.
 constexpr std::size_t bound(std::pair<std::size_t, std::size_t> p) {  // undecided
   auto [a, b] = p;

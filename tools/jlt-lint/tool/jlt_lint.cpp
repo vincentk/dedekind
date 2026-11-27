@@ -4271,6 +4271,13 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       if (const auto* c = llvm::dyn_cast<clang::ConditionalOperator>(s)) {
         const auto [t, f] = indexTest(c->getCond(), x);
         if (child != c->getCond() || (t < 0 && f < 0)) break;
+        // In a template the conversions are not yet in the tree: branches
+        // whose types differ as written, one of them dependent, agree or not
+        // only at an instance (Copilot on #1226), so the choice is open.
+        const clang::QualType tt = c->getTrueExpr()->getType(), ft = c->getFalseExpr()->getType();
+        if ((tt->isDependentType() || ft->isDependentType()) &&
+            !ctx->hasSameUnqualifiedType(tt.getNonReferenceType(), ft.getNonReferenceType()))
+          return "Sum:case-dependent";
         return converted(c->getTrueExpr()) || converted(c->getFalseExpr()) ? "Sum:case-converted" : "Sum:case-sugar";
       }
       if (const auto* i = llvm::dyn_cast<clang::IfStmt>(s)) {
@@ -4602,7 +4609,10 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       if (const auto* ts = tl.getTypePtr()->getAs<clang::TemplateSpecializationType>())
         if (const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl())
           if (td->getIdentifier() && inStd(td)) {
-            if (td->getName() == "variant" && ts->template_arguments().size() != 2)
+            // Counted by its alternatives, a pack expanded, not by the
+            // arguments written: variant<Ts..., bool> may have more than
+            // two, and an unexpanded pack leaves it open (Copilot on #1226).
+            if (td->getName() == "variant" && alternatives(tl.getType()).size() != 2)
               kinds.insert("Sugar:variant");
             if (td->getName() == "expected")
               kinds.insert(expectedVoid(tl.getType()) ? "Sum:expected-void" : "Sum:expected");
