@@ -82,6 +82,7 @@ moved_in_return FJlt
 sum_of Jlt
 moved_last Jlt
 used_after_move refused
+moved_beside_its_type FJlt
 moved_beside_use refused
 moved_in_loop refused
 moved_reference refused

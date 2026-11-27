@@ -5230,9 +5230,15 @@ class LocalState : public clang::ASTConsumer {
           if (ps.empty() || !ps[0].get<clang::Expr>()) break;
           full = ps[0].get<clang::Expr>();
         }
+        // Mentions in unevaluated operands (a type, as in decltype(x);
+        // sizeof, alignof, noexcept) cannot observe the move and are not
+        // counted; typeid may evaluate its operand and is.
         struct Mentions : clang::RecursiveASTVisitor<Mentions> {
           const clang::VarDecl* x;
           int n = 0;
+          bool TraverseTypeLoc(clang::TypeLoc, bool = true) { return true; }
+          bool TraverseUnaryExprOrTypeTraitExpr(clang::UnaryExprOrTypeTraitExpr*) { return true; }
+          bool TraverseCXXNoexceptExpr(clang::CXXNoexceptExpr*) { return true; }
           bool VisitDeclRefExpr(clang::DeclRefExpr* d) {
             if (d->getDecl() == x) ++n;
             return true;
