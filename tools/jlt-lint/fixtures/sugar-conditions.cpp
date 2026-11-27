@@ -130,6 +130,7 @@ constexpr long remainder_in_place(long a) {  // undecided
   return r;
 }
 constexpr long signed_halved(long a) { return a / 2; }       // sound
+<<<<<<< HEAD
 // A scoped enumeration is a record of one field of its underlying type
 // (#1233): its enumerators, comparisons and conversions are sugar.
 enum class Side : bool { Below, Above };                                  // sound
@@ -151,6 +152,8 @@ constexpr int by_switch_on(Rel r) {                                       // und
     default: return 1;
   }
 }
+=======
+>>>>>>> origin/main
 // A structured binding has no row yet.
 constexpr std::size_t bound(std::pair<std::size_t, std::size_t> p) {  // undecided
   auto [a, b] = p;
