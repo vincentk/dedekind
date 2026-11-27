@@ -60,27 +60,28 @@ Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964m
 \begin{figure}[tb]
 \centering
 \begin{tikzcd}[column sep=3.6em, row sep=2.4em]
-\text{FJlt} \arrow[d, "\llbracket\cdot\rrbracket"] \arrow[dd, bend right=70, "\Downarrow"']
+\text{FJlt} \arrow[d, "\llbracket\cdot\rrbracket"']
   & \text{Jlt} \arrow[l, dashed, "{-}\,\text{sugar}"']
   & \text{Posture} \arrow[l, harpoon', dashed, "{+}\,\text{lint}"']
   & \text{\Cpp{23}} \arrow[l, harpoon', "{+}\,\text{rules}"'] \arrow[d, "\texttt{clang++}"] \\
-\text{System~F} \arrow[d, "\text{eval}"]
+\text{System~F} \arrow[d, "\text{eval}"']
   &
   &
   & \text{LLVM IR} \arrow[d, "\text{run}"] \\
-\text{value} \arrow[rrr, dashed, "\text{hypothesis}"']
+\text{value} \arrow[rrr, dotted, "\text{hypothesis}"']
   &
   &
   & \text{value}
 \end{tikzcd}
 \caption{The factorisation of the paper.
 The right-hand path is what a \Cpp{23} program computes, and the upper path factors it through System~F, on a part of the language.
-A harpoon is a partial map, the identity where it is defined: $+$rules on the programs that keep the three rules, the posture, and $+$lint on those of them that the sugar reads, form by form, from a list the linter holds (Table~\ref{tab:derived}), which are Jlt.
-$-$sugar rewrites a program of Jlt into the kernel, FJlt, and $\llbracket\cdot\rrbracket$ translates the kernel.
-A solid arrow is a map the paper defines or takes as given.
-$\Downarrow$ is FJlt's own evaluation, and that it agrees with $\mathit{eval}$ after $\llbracket\cdot\rrbracket$ is proved on paper, under stated assumptions (Theorem~\ref{thm:simulation}).
-The dashed arrows above are argued and tested, not proved: the linter's verdict that a definition is in Jlt, and the sugar.
-The bottom arrow is the hypothesis that the two paths compute one value, assumed, and tested against constant evaluation.}
+An arrow's head says what kind of map it is: a full head is a map defined on all of its source, and a half head a partial one, the identity where it is defined.
+$+$rules is defined on the programs that keep the three rules, the posture, and $+$lint on those of them that the sugar reads, form by form, from a list the linter holds (Table~\ref{tab:derived}), which are Jlt; $-$sugar rewrites a program of Jlt into the kernel, FJlt, and $\llbracket\cdot\rrbracket$ translates the kernel.
+An arrow's line says how far the paper goes for it.
+Solid: the paper defines the map or takes it as given, and what it proves on paper is about these, that $\llbracket\cdot\rrbracket$ keeps types and that $\mathit{eval}$ after it gives the kernel program's value (Theorems~\ref{thm:preservation} and~\ref{thm:simulation}).
+Dashed: argued and tested, the linter's verdict that a definition is in Jlt, and the sugar.
+Dotted: assumed, and tested against constant evaluation, the hypothesis that the two paths give one value.
+The paper's confidence in a path is that of its weakest arrow.}
 \label{fig:arrows}
 \end{figure}
 
