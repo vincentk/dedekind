@@ -63,19 +63,21 @@ Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964m
 \text{FJlt} \arrow[d, "\llbracket\cdot\rrbracket"']
   & \text{Jlt} \arrow[l, dashed, "{-}\,\text{sugar}"']
   & \text{Posture} \arrow[l, harpoon', dashed, "{+}\,\text{lint}"']
-  & \text{\Cpp{23}} \arrow[l, harpoon', "{+}\,\text{rules}"'] \arrow[d, "\texttt{clang++}"] \\
+  & \text{\Cpp{23}} \arrow[l, harpoon', "{+}\,\text{rules}"'] \arrow[d, harpoon, "\texttt{clang++}"] \\
 \text{System~F} \arrow[d, "\text{eval}"']
   &
   &
-  & \text{LLVM IR} \arrow[d, "\text{run}"] \\
+  & \text{LLVM IR} \arrow[d, harpoon, "\text{run}"] \\
 \text{value} \arrow[rrr, dotted, "\text{hypothesis}"']
   &
   &
   & \text{value}
 \end{tikzcd}
 \caption{The factorisation of the paper.
-The right-hand path is what a \Cpp{23} program computes, and the upper path factors it through System~F, on a part of the language.
-An arrow's head says what kind of map it is: a full head is a map defined on all of its source, and a half head a partial one, the identity where it is defined.
+The right-hand path is what a \Cpp{23} program computes, and the upper path factors it, on a part of the language, through System~F extended with atoms, sums and an iterator; a value is a truth value or a count.
+An arrow's head says what kind of map it is: a full head is a map defined on all of its source, and a half head a partial one.
+The compiler's path is partial, since a program may not compile, and may not end or may meet undefined behaviour when run; $\mathit{eval}$ is total.
+The two partial maps on the upper path are the identity where they are defined.
 $+$rules is defined on the programs that keep the three rules, the posture, and $+$lint on those of them that the sugar reads, form by form, from a list the linter holds (Table~\ref{tab:derived}), which are Jlt; $-$sugar rewrites a program of Jlt into the kernel, FJlt, and $\llbracket\cdot\rrbracket$ translates the kernel.
 An arrow's line says how far the paper goes for it.
 Solid: the paper defines the map or takes it as given, and what it proves on paper is about these (Theorems~\ref{thm:preservation} and~\ref{thm:simulation}).
