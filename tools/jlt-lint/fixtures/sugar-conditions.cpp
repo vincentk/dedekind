@@ -130,6 +130,27 @@ constexpr long remainder_in_place(long a) {  // undecided
   return r;
 }
 constexpr long signed_halved(long a) { return a / 2; }       // sound
+// A scoped enumeration is a record of one field of its underlying type
+// (#1233): its enumerators, comparisons and conversions are sugar.
+enum class Side : bool { Below, Above };                                  // sound
+enum class Rel { Lt, Eq, Gt };                                            // sound
+constexpr bool above(Side s) { return s == Side::Above; }                 // sound
+constexpr bool before(Rel a, Rel b) { return a < b; }                     // sound
+constexpr int code(Rel r) { return static_cast<int>(r); }                 // sound
+constexpr Rel from_code(int n) { return static_cast<Rel>(n); }            // sound: every int is a Rel
+static_assert(above(Side::Above) && before(Rel::Lt, Rel::Gt) && code(from_code(7)) == 7);
+// An unscoped one has no fixed type: a conversion outside its enumerators'
+// width is undefined, so it stays open.
+enum Plain { plain_a, plain_b };                                          // undecided
+constexpr bool is_a(Plain p) { return p == plain_a; }                     // undecided
+// A switch over a scoped enumeration has its own conditions, not yet a row.
+constexpr int by_switch_on(Rel r) {                                       // undecided
+  switch (r) {
+    case Rel::Lt: return -1;
+    case Rel::Eq: return 0;
+    default: return 1;
+  }
+}
 // A structured binding has no row yet.
 constexpr std::size_t bound(std::pair<std::size_t, std::size_t> p) {  // undecided
   auto [a, b] = p;

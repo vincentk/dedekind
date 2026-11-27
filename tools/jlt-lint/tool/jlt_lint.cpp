@@ -530,6 +530,17 @@ std::string stmtKind(const clang::Stmt* st) {
         to->isArithmeticType() && from.getNonReferenceType()->isArithmeticType() && !to->isEnumeralType() &&
         !from->isEnumeralType() && c->getConversionFunction() == nullptr)
       return "Cast:static";
+    // Between a scoped enumeration and an integer type, either way: the
+    // record's field written out or read (#1233).
+    const auto scoped = [](clang::QualType t) {
+      const auto* e = t->getAs<clang::EnumType>();
+      return e && e->getDecl()->isScoped();
+    };
+    if (!to->isDependentType() && !to->isReferenceType() && !from.isNull() && !from->isDependentType() &&
+        c->getConversionFunction() == nullptr &&
+        ((scoped(to) && from.getNonReferenceType()->isIntegralOrUnscopedEnumerationType()) ||
+         (scoped(from.getNonReferenceType()) && to->isIntegerType())))
+      return "Cast:enum";
   }
   if (const auto* c = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(st)) {
     if (c->getType()->isArithmeticType()) return "Stmt:ArithmeticConversion";
@@ -606,6 +617,11 @@ std::string declKind(const clang::Decl* d) {
   if (const auto* a = llvm::dyn_cast<clang::TypeAliasDecl>(d))
     if (a->getName() == "type" && llvm::isa<clang::CXXRecordDecl>(a->getDeclContext()))
       return "Decl:AssociatedTypeEntry";
+  if (const auto* e = llvm::dyn_cast<clang::EnumDecl>(d))
+    if (!e->isScoped()) return "Enum:unscoped";
+  if (const auto* c = llvm::dyn_cast<clang::EnumConstantDecl>(d))
+    if (const auto* e = llvm::dyn_cast<clang::EnumDecl>(c->getDeclContext()); e && !e->isScoped())
+      return "Enum:unscoped";
   return std::string("Decl:") + d->getDeclKindName();
 }
 
@@ -614,7 +630,24 @@ std::string declKind(const clang::Decl* d) {
 /// sugar the standard defines as the type it stands for
 /// ([temp.alias]).  The standard's own, range_value_t, is a read the kernel
 /// is given, and stays a template specialization.
+/// \sugar{a scoped enumeration} enum class E : U { a, b } is read as a
+/// record of one field of its underlying type, struct E { U i; }, its
+/// enumerators constants of that record, its comparisons the field's, and
+/// static_cast between E and an integer type the field written out
+/// (Cast:enum).  Exact, not an approximation: a scoped enumeration's
+/// underlying type is fixed, int unless written ([dcl.enum]/5), and the
+/// values of an enumeration with a fixed underlying type are those of that
+/// type ([dcl.enum]/8), so a conversion from it is defined at every value
+/// ([expr.static.cast]/8).  It converts to no integer implicitly
+/// ([conv.prom]) and has no built-in arithmetic ([over.built]).  An unscoped
+/// enumeration is open (Enum:unscoped): without a fixed type its values are
+/// only those of the smallest width that holds its enumerators, and a
+/// conversion outside them is undefined.  A switch over either stays open:
+/// a value no case names runs no statement, or reaches default
+/// ([stmt.switch]/5).  Fixture: sugar-conditions.cpp (#1233).
 std::string typeKind(clang::TypeLoc tl) {
+  if (const auto* et = tl.getType()->getAs<clang::EnumType>())
+    if (!et->getDecl()->isScoped()) return "Enum:unscoped";
   if (const auto* ts =
           llvm::dyn_cast<clang::TemplateSpecializationType>(tl.getTypePtr()))
     if (ts->isTypeAlias())

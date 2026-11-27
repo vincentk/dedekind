@@ -317,9 +317,14 @@ Stmt:SizeConstant sugar
 Decl:NonTypeTemplateParm open
 Decl:CXXConstructor open
 Decl:Friend open
-Decl:Enum open
-Decl:EnumConstant open
-Type:Enum open
+# A scoped enumeration, its enumerators and its type: a record of one field of
+# its underlying type (#1233; the reading is documented at typeKind in
+# tool/jlt_lint.cpp).  An unscoped one is open.
+Decl:Enum sugar
+Decl:EnumConstant sugar
+Type:Enum sugar
+Enum:unscoped open
+Cast:enum sugar
 Type:ConstantArray open
 Type:IncompleteArray open
 Type:DependentSizedArray open
