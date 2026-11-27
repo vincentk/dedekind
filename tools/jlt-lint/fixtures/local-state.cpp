@@ -548,8 +548,15 @@ constexpr std::size_t bound_to_temporary() {  // sound
   const std::size_t& r = make_boxed().v;
   return r;
 }
+// A reference from a call on an object that outlives it: no temporary, no
+// dangling, and a constant is no local state to alias.
+constexpr std::size_t through_accessor_of_constant() {  // sound
+  const Boxed b{5};
+  const std::size_t& r = b.get();
+  return r;
+}
 static_assert(written_through_temporary() == 0 &&
               written_through_comma() == 1 && written_by_lambda() == 9 && half(4) == 2uz &&
-              bound_to_temporary() == 4);
+              bound_to_temporary() == 4 && through_accessor_of_constant() == 5);
 
 }  // namespace jlt_listing

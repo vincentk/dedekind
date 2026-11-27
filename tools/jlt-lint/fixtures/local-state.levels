@@ -81,3 +81,4 @@ Boxed Jlt
 make_boxed FJlt
 through_returned_reference refused
 bound_to_temporary Jlt
+through_accessor_of_constant Jlt

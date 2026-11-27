@@ -4802,9 +4802,9 @@ class Definitions : public clang::ASTConsumer {
 ///   - a write (an assignment, ++, --) that is not a statement of its own,
 ///     the for increment aside: two writes in one expression, a write in a
 ///     condition or an argument;
-///   - a reference local bound to the reference a call returns, whatever the
-///     call's object (its lifetime is the object's, which it does not
-///     control: const auto& r = make_box().get(); dangles);
+///   - a reference local bound to the reference a call returns, where the
+///     call's object or an argument is a temporary (its lifetime is the
+///     temporary's: const auto& r = make_box().get(); dangles);
 ///   - a return, in a const member function returning a reference, of a
 ///     mutable field or of an element of one (the condition of the const
 ///     accessor's reading, which the rule's matcher cannot see);
@@ -5619,9 +5619,9 @@ class LocalState : public clang::ASTConsumer {
       bool VisitVarDecl(clang::VarDecl* v) {
         if (v->hasLocalStorage() && v->getType()->isReferenceType() && v->getInit())
           if (aliasesLocalState(v->getInit())) (*report)(v->getLocation());
-        // A reference local bound to the reference a call returns, whatever
-        // the call's object: its lifetime is that object's, which it does not
-        // control (const auto& r = make_box().get(); dangles, since a
+        // A reference local bound to the reference a call returns, the
+        // call's object or an argument a temporary: its lifetime is that
+        // temporary's, which ends with the full-expression (const auto& r = make_box().get(); dangles, since a
         // temporary's life is extended only when the reference binds to it
         // directly, [class.temporary]).  A temporary bound directly, T{...}
         // or a call returning by value, is no such reference.  A range-for's
@@ -5637,7 +5637,33 @@ class LocalState : public clang::ASTConsumer {
               e = c->getSubExpr();
             else break;
           }
-          if (llvm::isa<clang::CallExpr>(e) && e->isGLValue()) (*report)(v->getLocation());
+          // Only where the call's object or an argument is a temporary can
+          // the reference outlive what it names: arr[i] on a local or
+          // std::get<0>(t) on a parameter is a second name, which the alias
+          // check judges, and no dangling.
+          // A temporary of class type, or one materialised to bind a
+          // reference parameter: an index or a count passed by value, a
+          // prvalue of an atom, binds nothing and cannot dangle.
+          const auto temporary = [](const clang::Expr* a) {
+            for (int k = 0; a && k < 8; ++k) {
+              if (llvm::isa<clang::MaterializeTemporaryExpr, clang::CXXBindTemporaryExpr>(a)) return true;
+              if (const auto* c = llvm::dyn_cast<clang::ImplicitCastExpr>(a);
+                  c && (c->getCastKind() == clang::CK_NoOp || c->getCastKind() == clang::CK_DerivedToBase))
+                a = c->getSubExpr();
+              else if (const auto* q = llvm::dyn_cast<clang::ParenExpr>(a))
+                a = q->getSubExpr();
+              else
+                return a->isPRValue() && a->getType()->isRecordType();
+            }
+            return false;
+          };
+          if (const auto* call = llvm::dyn_cast<clang::CallExpr>(e); call && e->isGLValue()) {
+            bool fromTemporary = false;
+            if (const auto* mc = llvm::dyn_cast<clang::CXXMemberCallExpr>(call))
+              fromTemporary = temporary(mc->getImplicitObjectArgument());
+            for (const clang::Expr* a : call->arguments()) fromTemporary = fromTemporary || temporary(a);
+            if (fromTemporary) (*report)(v->getLocation());
+          }
         }
         // A local whose copies share storage (a view, a pointer, a tuple of
         // references) initialised from local state: a second name for it.
