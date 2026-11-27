@@ -16,6 +16,13 @@ undecided.
 --check regenerates the rows and fails, printing them, if OUT differs, so
 that the paper's table cannot drift from the code.
 
+--diagnostic [N] prints, for each body, every reason a definition is refused
+or undecided, ranked by how many definitions it alone holds back (they would
+be shown if it went), with N of them each as a remark in the compiler's style,
+path:line:col: remark: ..., and stops: where
+to start when raising the coverage.  jlt_lint.py --diagnostic prints the same
+for the part it lints.
+
 Every run also prints, for each body, the most frequent reasons of its
 refused and its undecided definitions (a definition with several reasons
 counts once for each), and after each reason, in parentheses, how many
@@ -90,6 +97,18 @@ def row(name, n, level, by_type):
             + " / ".join(str(by_type[k]) for k in BY_TYPE) + " \\\\")
 
 
+def blockers(why, by_type, also):
+    """Everything that keeps a definition from being shown, once each: the
+    reason its level gives, the other refused or open kinds it uses, and the
+    type check's undecided outcome where the reason does not already say so
+    (Copilot on #1232)."""
+    ws = [w.strip() for w in why.split(",") if w.strip()]
+    ws += [k for k in (also or []) if k not in ws]
+    if by_type == "undecided" and "by type" not in ws:
+        ws.append("by type")
+    return ws
+
+
 def reasons(levels, top=8):
     """For each body and for refused and undecided, the most frequent reasons."""
     out = []
@@ -99,16 +118,60 @@ def reasons(levels, top=8):
             for key, defs in levels.items():
                 if not member(key):
                     continue
-                for _name, _line, lv, why, _bt, *also in defs:
+                for _name, _line, lv, why, bt, *also in defs:
                     if lv == level:
                         n += 1
-                        ws = [w.strip() for w in why.split(",") if w.strip()]
+                        ws = blockers(why, bt, also[0] if also else [])
                         count.update(ws)
-                        if len(ws) == 1 and not (also and also[0]):
+                        if len(ws) == 1:
                             alone[ws[0]] += 1
             out.append(f"summary.py: {name}, {level} ({n}): "
                        + ", ".join(f"{w} {c} ({alone[w]} alone)" for w, c in count.most_common(top)))
     return "\n".join(out) + "\n"
+
+
+def diagnostic(levels, member=lambda key: True, examples=3):
+    """Every reason a definition is refused or undecided, ranked by what
+    fixing it alone would gain: first by how many definitions have it as
+    their only reason (they would be shown if it went), then by how many
+    have it at all; each with a few of the definitions it alone holds back,
+    as the compiler writes a remark, path:line:col: remark: ..., to start from.  For one body, or for whatever run of
+    the linter wrote the levels (a part, a file)."""
+    out = []
+    for level in ("refused", "undecided"):
+        count, alone, where, n = collections.Counter(), collections.Counter(), collections.defaultdict(list), 0
+        for key, defs in levels.items():
+            if not member(key):
+                continue
+            path = key.split()[0]
+            for name, line, lv, why, bt, *also in defs:
+                if lv != level:
+                    continue
+                n += 1
+                ws = blockers(why, bt, also[0] if also else [])
+                count.update(ws)
+                if len(ws) == 1:
+                    alone[ws[0]] += 1
+                    if len(where[ws[0]]) < examples:
+                        where[ws[0]].append((path, line, name))
+        out.append(f"  {level} ({n}), by what fixing a reason alone would show:")
+        for w, c in sorted(count.items(), key=lambda wc: (-alone[wc[0]], -wc[1], wc[0])):
+            out.append(f"    {alone[w]:>5} alone of {c:>5}  {w}")
+            # The examples in the compiler's house style, so that an editor
+            # or a CI problem matcher can jump to them.
+            out += [f"{path}:{line}:1: remark: {name} is {level} by {w} alone [jlt-lint-diagnostic]"
+                    for path, line, name in where[w]]
+    return "\n".join(out) + "\n"
+
+
+def diagnose(levels, examples=3):
+    """The diagnostic of each body of code that has definitions."""
+    out = []
+    for name, member in BODIES:
+        if any(member(key) for key in levels):
+            out.append(f"summary.py: --diagnostic, {name}")
+            out.append(diagnostic(levels, member, examples))
+    return "\n".join(out)
 
 
 FACTS = [("CatchSources", "Catch2, sources"), ("CatchHeaders", "Catch2, headers")]
@@ -149,8 +212,15 @@ def main():
     args.add_argument("--check-facts", type=pathlib.Path, help="fail if the macros differ")
     args.add_argument("--counts", type=pathlib.Path, help="write each body's levels as counts")
     args.add_argument("--check-counts", type=pathlib.Path, help="fail if the counts differ")
+    args.add_argument("--diagnostic", nargs="?", type=int, const=3, metavar="N",
+                      help="print every reason a definition is refused or undecided, ranked by "
+                           "what fixing it alone would show, with N example definitions each "
+                           "(default 3), and stop")
     a = args.parse_args()
     levels = json.loads(a.levels.read_text())
+    if a.diagnostic is not None:
+        sys.stdout.write(diagnose(levels, a.diagnostic))
+        return
     text = ("% regenerated by tools/jlt-lint/summary.py from the build; checked by every build\n"
             + rows(levels))
     sys.stdout.write(reasons(levels))

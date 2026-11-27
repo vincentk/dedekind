@@ -164,6 +164,13 @@ format-check: ## Check formatting without changing files
 jlt-lint: $(BUILD_DIR)/CMakeCache.txt ## The Jlt linter, building what it reads
 	cmake --build $(BUILD_DIR) --target lint --parallel $(JOBS)
 
+# Where the coverage is held back: every reason a definition is refused or
+# undecided, ranked by what fixing it alone would show, with examples, from the
+# levels of the last lint run.  N=<examples> (default 3).
+.PHONY: jlt-lint-diagnostic
+jlt-lint-diagnostic: ## The linter's reasons, ranked by what fixing each would show
+	python3 tools/jlt-lint/summary.py --levels $(BUILD_DIR)/jlt-lint/parts/all-levels.json --diagnostic $(or $(N),3)
+
 install-hooks: ## Install the pre-push git hook
 	git config core.hooksPath .githooks
 	chmod +x .githooks/pre-push

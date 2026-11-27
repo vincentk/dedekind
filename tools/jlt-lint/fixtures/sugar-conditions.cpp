@@ -6,6 +6,7 @@
 // if constexpr is undecided wherever it stands: its two rows have no check
 // yet, so neither its sound uses nor these two are classed.
 // Standalone, no imports, so it is checked without the build.
+#include <array>
 #include <initializer_list>
 #include <concepts>
 #include <cstddef>
@@ -130,6 +131,40 @@ constexpr long remainder_in_place(long a) {  // undecided
   return r;
 }
 constexpr long signed_halved(long a) { return a / 2; }       // sound
+// A scoped enumeration is a record of one field of its underlying type
+// (#1233): its enumerators, comparisons and conversions are sugar.
+enum class Side : bool { Below, Above };                                  // sound
+enum class Rel { Lt, Eq, Gt };                                            // sound
+constexpr bool above(Side s) { return s == Side::Above; }                 // sound
+constexpr bool before(Rel a, Rel b) { return a < b; }                     // sound
+constexpr int code(Rel r) { return static_cast<int>(r); }                 // sound
+constexpr Rel from_code(int n) { return static_cast<Rel>(n); }            // sound: every int is a Rel
+static_assert(above(Side::Above) && before(Rel::Lt, Rel::Gt) && code(from_code(7)) == 7);
+// An unscoped one has no fixed type: a conversion outside its enumerators'
+// width is undefined, so it stays open.
+enum Untyped { untyped_a, untyped_b };                                    // undecided
+// Compared, it is promoted implicitly to int, which the narrowing check
+// refuses: the implicit conversion a scoped one does not have.
+constexpr bool is_a(Untyped p) { return p == untyped_a; }                 // refused
+// A switch over a scoped enumeration has its own conditions, not yet a row.
+constexpr int by_switch_on(Rel r) {                                       // undecided
+  switch (r) {
+    case Rel::Lt: return -1;
+    case Rel::Eq: return 0;
+    default: return 1;
+  }
+}
+// A value among a template's parameters: as a number, or as a size, which
+// asks for a type computed from a number (both open, counted apart).
+template <std::size_t N>
+constexpr std::size_t modulo(std::size_t x) {  // undecided (Value:number)
+  return x % N;
+}
+template <std::size_t N>
+constexpr std::size_t first_of(std::array<std::size_t, N> a) {  // undecided (Value:size)
+  return a[0];
+}
+static_assert(modulo<3>(7) == 1 && first_of<2>({5, 6}) == 5);
 // A structured binding has no row yet.
 constexpr std::size_t bound(std::pair<std::size_t, std::size_t> p) {  // undecided
   auto [a, b] = p;

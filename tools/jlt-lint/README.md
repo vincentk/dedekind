@@ -49,6 +49,13 @@ in that check's comment, or in the rule file's header.
 - A listing's test file keeps the listing in a namespace of its own and the
   test cases outside it: Catch2's macros expand to loops and non-`constexpr`
   functions, which the rules would count against the listing.
+- Where coverage is held back: `make jlt-lint-diagnostic` (after `make jlt-lint`)
+  prints every reason a definition is refused or undecided, for each body of
+  code, ranked by how many definitions that reason alone holds back, with a
+  few of them as compiler remarks, `path:line:col: remark: …`, which an editor or a
+  problem matcher reads; `jlt_lint.py --part <part> --diagnostic` does
+  the same for one part.  Fixing the top reason, a row of sugar or a change to
+  the code, raises the count that the ratchet then holds.
 - `jlt_lint.py`: parses each file once, by the tool, with all its rules
   (`--query=<rule files>` and `--check=a,b,...`, each rule's findings in its
   own section), prints gate

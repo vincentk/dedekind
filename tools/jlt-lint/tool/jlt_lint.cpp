@@ -530,6 +530,17 @@ std::string stmtKind(const clang::Stmt* st) {
         to->isArithmeticType() && from.getNonReferenceType()->isArithmeticType() && !to->isEnumeralType() &&
         !from->isEnumeralType() && c->getConversionFunction() == nullptr)
       return "Cast:static";
+    // Between a scoped enumeration and an integer type, either way: the
+    // record's field written out or read (#1233).
+    const auto scoped = [](clang::QualType t) {
+      const auto* e = t->getAs<clang::EnumType>();
+      return e && e->getDecl()->isScoped();
+    };
+    if (!to->isDependentType() && !to->isReferenceType() && !from.isNull() && !from->isDependentType() &&
+        c->getConversionFunction() == nullptr &&
+        ((scoped(to) && from.getNonReferenceType()->isIntegralOrUnscopedEnumerationType()) ||
+         (scoped(from.getNonReferenceType()) && to->isIntegerType())))
+      return "Cast:enum";
   }
   if (const auto* c = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(st)) {
     if (c->getType()->isArithmeticType()) return "Stmt:ArithmeticConversion";
@@ -606,6 +617,11 @@ std::string declKind(const clang::Decl* d) {
   if (const auto* a = llvm::dyn_cast<clang::TypeAliasDecl>(d))
     if (a->getName() == "type" && llvm::isa<clang::CXXRecordDecl>(a->getDeclContext()))
       return "Decl:AssociatedTypeEntry";
+  if (const auto* e = llvm::dyn_cast<clang::EnumDecl>(d))
+    if (!e->isScoped()) return "Enum:unscoped";
+  if (const auto* c = llvm::dyn_cast<clang::EnumConstantDecl>(d))
+    if (const auto* e = llvm::dyn_cast<clang::EnumDecl>(c->getDeclContext()); e && !e->isScoped())
+      return "Enum:unscoped";
   return std::string("Decl:") + d->getDeclKindName();
 }
 
@@ -614,7 +630,24 @@ std::string declKind(const clang::Decl* d) {
 /// sugar the standard defines as the type it stands for
 /// ([temp.alias]).  The standard's own, range_value_t, is a read the kernel
 /// is given, and stays a template specialization.
+/// \sugar{a scoped enumeration} enum class E : U { a, b } is read as a
+/// record of one field of its underlying type, struct E { U i; }, its
+/// enumerators constants of that record, its comparisons the field's, and
+/// static_cast between E and an integer type the field written out
+/// (Cast:enum).  Exact, not an approximation: a scoped enumeration's
+/// underlying type is fixed, int unless written ([dcl.enum]/5), and the
+/// values of an enumeration with a fixed underlying type are those of that
+/// type ([dcl.enum]/8), so a conversion from it is defined at every value
+/// ([expr.static.cast]/8).  It converts to no integer implicitly
+/// ([conv.prom]) and has no built-in arithmetic ([over.built]).  An unscoped
+/// enumeration is open (Enum:unscoped): without a fixed type its values are
+/// only those of the smallest width that holds its enumerators, and a
+/// conversion outside them is undefined.  A switch over either stays open:
+/// a value no case names runs no statement, or reaches default
+/// ([stmt.switch]/5).  Fixture: sugar-conditions.cpp (#1233).
 std::string typeKind(clang::TypeLoc tl) {
+  if (const auto* et = tl.getType()->getAs<clang::EnumType>())
+    if (!et->getDecl()->isScoped()) return "Enum:unscoped";
   if (const auto* ts =
           llvm::dyn_cast<clang::TemplateSpecializationType>(tl.getTypePtr()))
     if (ts->isTypeAlias())
@@ -3774,10 +3807,41 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     // The variable a variable template declares is the template, not a
     // local variable: counted as the VarTemplate.
     const auto* v = llvm::dyn_cast_or_null<clang::VarDecl>(d);
-    if (d && !d->isImplicit() && !(v && v->getDescribedVarTemplate()))
+    if (const auto* p = llvm::dyn_cast_or_null<clang::NonTypeTemplateParmDecl>(d))
+      values.insert(p);
+    else if (d && !d->isImplicit() && !(v && v->getDescribedVarTemplate()))
       kinds.insert(declKind(d));
-    return clang::RecursiveASTVisitor<Kinds>::TraverseDecl(d);
+    ++depth;
+    const bool r = clang::RecursiveASTVisitor<Kinds>::TraverseDecl(d);
+    if (--depth == 0) {
+      for (const auto* p : values) kinds.insert(sizes.count(p) ? "Value:size" : "Value:number");
+      values.clear();
+      sizes.clear();
+    }
+    return r;
   }
+  /// A value among a template's parameters, two kinds (#1232): used only
+  /// as a number, in expressions, Value:number; named inside a type, as
+  /// array<T, N> or Window<N>, Value:size.  The first has a reading as a
+  /// type parameter at a type with one value, its uses that type's value;
+  /// the second asks for a type computed from a number, which System F has
+  /// not.  A type passed the number counts as a size even where it only uses
+  /// it as one; decltype(N), which names only N's type, does not count.
+  bool TraverseTypeLoc(clang::TypeLoc tl, bool traverseQualifier = true) {
+    if (!tl.isNull() && tl.getAs<clang::DecltypeTypeLoc>()) {
+      const int saved = inType;
+      inType = 0;
+      const bool r = clang::RecursiveASTVisitor<Kinds>::TraverseTypeLoc(tl, traverseQualifier);
+      inType = saved;
+      return r;
+    }
+    ++inType;
+    const bool r = clang::RecursiveASTVisitor<Kinds>::TraverseTypeLoc(tl, traverseQualifier);
+    --inType;
+    return r;
+  }
+  int depth = 0, inType = 0;
+  std::set<const clang::NonTypeTemplateParmDecl*> values, sizes;
   /// \sugar{a range} The one form of sugar no syntax kind shows.  A
   /// parameter constrained by a standard range concept (Sugar:range), or a
   /// standard view other than the counted iota the kernel iterates over
@@ -3797,6 +3861,8 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     return true;
   }
   bool VisitDeclRefExpr(clang::DeclRefExpr* e) {
+    if (const auto* p = llvm::dyn_cast<clang::NonTypeTemplateParmDecl>(e->getDecl()); p && inType > 0)
+      sizes.insert(p);
     // The view objects themselves (views::transform), not their call
     // operators, whose names are operator().
     const clang::ValueDecl* d = e->getDecl();

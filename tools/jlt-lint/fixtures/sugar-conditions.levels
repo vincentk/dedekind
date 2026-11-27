@@ -31,6 +31,17 @@ negated_remainder undecided
 negated_in_place undecided
 remainder_in_place undecided
 signed_halved FJlt
+Side Jlt
+Rel Jlt
+above Jlt
+before Jlt
+code Jlt
+from_code Jlt
+Untyped undecided
+is_a refused
+by_switch_on refused
+modulo undecided
+first_of undecided
 bound undecided
 by_evaluation undecided
 by_observer undecided

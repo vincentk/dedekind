@@ -446,6 +446,10 @@ def main():
                            "declarations written in the file, a rule whose evidence leaves the "
                            "file following it there; deep, everything the file includes or "
                            "imports, to test that choice. Default from JLT_LINT_SCAN.")
+    args.add_argument("--diagnostic", nargs="?", type=int, const=3, metavar="N",
+                      help="after the report, every reason a definition is refused or undecided, "
+                           "ranked by what fixing it alone would show, with N example "
+                           "definitions each (default 3); see summary.py")
     a = args.parse_args()
     global SCAN
     SCAN = a.scan
@@ -462,6 +466,9 @@ def main():
             (a.out / f"{name}-levels.json").write_text(json.dumps(LEVELS))
             (a.out / f"{name}.txt").write_text(text)
     sys.stdout.write(text)
+    if a.diagnostic is not None and not a.join:
+        import summary  # noqa: E402, beside this file
+        sys.stdout.write("\njlt-lint: --diagnostic\n" + summary.diagnostic(LEVELS, examples=a.diagnostic))
     return 1 if failures else 0
 
 

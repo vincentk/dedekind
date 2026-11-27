@@ -314,12 +314,20 @@ Stmt:CXXNoexceptExpr open
 Stmt:UnaryExprOrTypeTraitExpr open
 # sizeof and alignof of a type that is not dependent: a constant of size_t.
 Stmt:SizeConstant sugar
-Decl:NonTypeTemplateParm open
+# A value among a template's parameters (#1232): used only as a number, or
+# named inside a type; both open, counted apart.
+Value:number open
+Value:size open
 Decl:CXXConstructor open
 Decl:Friend open
-Decl:Enum open
-Decl:EnumConstant open
-Type:Enum open
+# A scoped enumeration, its enumerators and its type: a record of one field of
+# its underlying type (#1233; the reading is documented at typeKind in
+# tool/jlt_lint.cpp).  An unscoped one is open.
+Decl:Enum sugar
+Decl:EnumConstant sugar
+Type:Enum sugar
+Enum:unscoped open
+Cast:enum sugar
 Type:ConstantArray open
 Type:IncompleteArray open
 Type:DependentSizedArray open

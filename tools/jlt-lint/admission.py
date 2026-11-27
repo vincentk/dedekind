@@ -42,7 +42,10 @@ def inventories(text):
         if head:
             current = out.setdefault(head.group(1), {})
             continue
-        kind = re.match(r"\s+((?:Decl|Stmt|Type)\S*:\S+) (\d+)$", line)
+        # Any kind the inventory prints, Decl:, Stmt:, Type:, Cast:, Enum:,
+        # Value:, ...: a prefix list would end the block at a new one
+        # (Copilot on #1232).
+        kind = re.match(r"\s+([A-Z][A-Za-z]*:\S+) (\d+)$", line)
         if kind and current is not None:
             current[kind.group(1)] = int(kind.group(2))
         else:
