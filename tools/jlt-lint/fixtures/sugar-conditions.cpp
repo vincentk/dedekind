@@ -296,9 +296,9 @@ struct Held {  // sound
   std::size_t v;
   constexpr const std::size_t& get() const { return v; }
 };
-struct Indexed {  // sound: an element of a std::array field
+struct Indexed {  // sound: an element of a std::array field, at an index in range
   std::array<std::size_t, 2> a;
-  constexpr const std::size_t& at(std::size_t i) const { return a[i]; }
+  constexpr const std::size_t& second() const { return a[1]; }
 };
 struct Nested {  // sound: a field of a field
   Held h;
@@ -321,7 +321,7 @@ struct Cached {  // refused: a mutable field
   mutable std::size_t v;
   constexpr const std::size_t& get() const { return v; }
 };
-static_assert(Held{2}.get() == 2 && Indexed{{4, 5}}.at(1) == 5 && Nested{Held{6}}.inner() == 6 &&
+static_assert(Held{2}.get() == 2 && Indexed{{4, 5}}.second() == 5 && Nested{Held{6}}.inner() == 6 &&
               Shared{}.get() == 3 && Cached{7}.get() == 7);
 
 }  // namespace jlt_listing
