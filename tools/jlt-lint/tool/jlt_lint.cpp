@@ -489,6 +489,25 @@ bool inStd(const clang::Decl* d) {
   return false;
 }
 
+/// Whether a class has a constructor that list-initialisation prefers
+/// ([over.match.list]): one whose first parameter is std::initializer_list,
+/// by value or by reference, the rest defaulted.  T{x} would choose it where
+/// T(x) does not.
+bool hasInitListConstructor(const clang::CXXRecordDecl* r) {
+  for (const clang::CXXConstructorDecl* c : r->ctors()) {
+    if (c->getNumParams() == 0) continue;
+    clang::QualType p = c->getParamDecl(0)->getType().getNonReferenceType().getUnqualifiedType();
+    const auto* rd = p->getAsCXXRecordDecl();
+    if (!rd) continue;
+    if (const auto* sp = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(rd)) rd = sp->getSpecializedTemplate()->getTemplatedDecl();
+    if (rd->getName() != "initializer_list" || !inStd(rd)) continue;
+    bool rest = true;
+    for (unsigned i = 1; i < c->getNumParams(); ++i) rest = rest && c->getParamDecl(i)->hasDefaultArg();
+    if (rest) return true;
+  }
+  return false;
+}
+
 /// The kind of a statement, as admission.txt classes it.  A conversion to an
 /// arithmetic type written as a call, size_t(e) or int(i), is the kernel's
 /// written conversion (Figure 2, Table 7), a kind of its own; a value of a
@@ -515,7 +534,25 @@ std::string stmtKind(const clang::Stmt* st) {
   if (const auto* c = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(st)) {
     if (c->getType()->isArithmeticType()) return "Stmt:ArithmeticConversion";
     if (c->isListInitialization() && c->getType()->isRecordType()) return "Stmt:BracedValue";
+    // T(x) to a class type, with parentheses: the construction T{x}, whose
+    // arguments' conversions the narrowing check reads as it reads any,
+    // where braces choose as parentheses do: no constructor taking an
+    // initializer_list, which T{x} would prefer.
+    if (c->getType()->isRecordType() && !c->getType()->isDependentType())
+      if (const auto* r = c->getType()->getAsCXXRecordDecl(); r && r->hasDefinition() && !hasInitListConstructor(r))
+        return "Stmt:ParenValue";
   }
+  // T(a, b) to an aggregate, C++20's parenthesised aggregate initialisation:
+  // the same construction with braces.
+  if (const auto* c = llvm::dyn_cast<clang::CXXParenListInitExpr>(st); c && !c->getType()->isDependentType())
+    return "Stmt:ParenValue";
+  // sizeof and alignof of a type that is not dependent: a constant of
+  // size_t, fixed by the type (at a type variable they observe the type,
+  // which rule2-no-type-observation refuses).
+  if (const auto* u = llvm::dyn_cast<clang::UnaryExprOrTypeTraitExpr>(st))
+    if ((u->getKind() == clang::UETT_SizeOf || u->getKind() == clang::UETT_AlignOf) && !u->isValueDependent() &&
+        !u->isTypeDependent() && !u->isInstantiationDependent())
+      return "Stmt:SizeConstant";
   // if consteval chooses by how the call is evaluated, and a generic lambda
   // is a template with no constraint: kinds of their own, apart from the if
   // statement and the lambda of Table 7.
@@ -530,10 +567,42 @@ std::string stmtKind(const clang::Stmt* st) {
   return std::string("Stmt:") + st->getStmtClassName();
 }
 
+/// Whether destroying a value of a class does nothing: its destructor
+/// trivial, or not virtual and defaulted or with an empty body, and the same
+/// of every base and every member's class, since a destructor destroys them
+/// too.
+bool destroysNothing(const clang::CXXRecordDecl* r, const clang::CXXDestructorDecl* x) {
+  if (!r || !r->hasDefinition()) return false;
+  r = r->getDefinition();
+  if (!x) x = r->getDestructor();
+  if (!x || x->isTrivial()) return true;
+  if (x->isVirtual()) return false;
+  const auto* body = llvm::dyn_cast_or_null<clang::CompoundStmt>(x->getBody());
+  if (!x->isDefaulted() && !(body && body->body_empty())) return false;
+  auto sub = [](clang::QualType t) {
+    t = t.getCanonicalType();
+    while (const auto* a = llvm::dyn_cast<clang::ArrayType>(t.getTypePtr())) t = a->getElementType().getCanonicalType();
+    const auto* rd = t->getAsCXXRecordDecl();
+    return !rd || destroysNothing(rd, nullptr);
+  };
+  for (const auto& b : r->bases())
+    if (!sub(b.getType())) return false;
+  for (const clang::FieldDecl* fd : r->fields())
+    if (!fd->getType()->isReferenceType() && !sub(fd->getType())) return false;
+  return true;
+}
+
 /// The kind of a declaration, as admission.txt classes it.  The member
 /// `using type = T;` of a struct is Figure 2's entry of an associated type,
 /// a form of the kernel, and not Table 7's alias.
 std::string declKind(const clang::Decl* d) {
+  // A destructor that does nothing: defaulted, or with an empty body, and
+  // not virtual, and destroying bases and members that do nothing either.
+  // Its class's values are values; the destructor is scaffolding, as a
+  // defaulted copy is.
+  if (const auto* x = llvm::dyn_cast<clang::CXXDestructorDecl>(d))
+    if (!x->isVirtual() && destroysNothing(x->getParent(), x))
+      return "Decl:EmptyDestructor";
   if (const auto* a = llvm::dyn_cast<clang::TypeAliasDecl>(d))
     if (a->getName() == "type" && llvm::isa<clang::CXXRecordDecl>(a->getDeclContext()))
       return "Decl:AssociatedTypeEntry";
@@ -3793,10 +3862,35 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     // A floating value to an integer: undefined out of range, so the one
     // narrowing at which the two binding times can part.
     if (c->getCastKind() == clang::CK_FloatingToIntegral) return true;
+    // To a narrower floating type, or an integer to a floating one: narrowing
+    // ([dcl.init.list]) unless the source is a constant the destination
+    // holds, within range for the first, exactly for the second.
+    if (c->getCastKind() == clang::CK_FloatingCast || c->getCastKind() == clang::CK_IntegralToFloating)
+      return floatNarrows(c->getSubExpr(), c->getType(), c->getCastKind() == clang::CK_FloatingCast);
     if (c->getCastKind() != clang::CK_IntegralCast &&
         c->getCastKind() != clang::CK_IntegralToBoolean)
       return false;
     return narrows(c->getSubExpr(), c->getType());
+  }
+  /// [dcl.init.list]: a floating value to a type of lower rank, unless a
+  /// constant whose value is within the destination's range; an integer to
+  /// a floating type, unless a constant that converts back to itself.
+  bool floatNarrows(const clang::Expr* e, clang::QualType to, bool floating) const {
+    const clang::QualType from = e->getType();
+    if (from->isDependentType() || to->isDependentType() || e->isValueDependent()) return false;
+    const auto& sem = ctx->getFloatTypeSemantics(to);
+    if (floating) {
+      if (ctx->getFloatingTypeOrder(to, from) >= 0) return false;  // the same rank or higher
+      llvm::APFloat v(0.0);
+      if (!e->isCXX11ConstantExpr(*ctx) || !e->EvaluateAsFloat(v, *ctx)) return true;
+      bool lost = false;
+      return (v.convert(sem, llvm::APFloat::rmNearestTiesToEven, &lost) & llvm::APFloat::opOverflow) != 0;
+    }
+    if (auto v = e->getIntegerConstantExpr(*ctx)) {
+      llvm::APFloat f(sem);
+      return f.convertFromAPInt(*v, v->isSigned(), llvm::APFloat::rmNearestTiesToEven) != llvm::APFloat::opOK;
+    }
+    return true;
   }
   /// Whether every value of the integer type from is a value of to.
   bool fits(clang::QualType from, clang::QualType to) const {
