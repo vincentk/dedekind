@@ -5,6 +5,6 @@
 # a standard concept used as a value, at a dependent type, observes the type
 # outside any shape: an archetype answers it for itself, so the second stage
 # would admit a body that is not parametric (the cold reads of #1212).  The
-# condition of an if constexpr is not judged here (Table 7's derived form; the
+# condition of an if constexpr is not judged here (Table 7's sugar; the
 # second stage leaves such a body undecided).  Hence the tool.
 tool type-observation

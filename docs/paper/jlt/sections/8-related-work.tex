@@ -11,7 +11,7 @@ Dictionary passing is Wadler and Blott's~\cite{wadler1989adhoc}.
 Table~\ref{tab:image} is that translation, and a shape is satisfied structurally, which has no counterpart in a nominal type-class system, a difference Bernardy et al.~\cite{bernardy2010generic} weigh in their comparison of concepts and type classes.
 Coherence, that a program has one meaning however its constraints are resolved, is where the designs diverge: Racordon et al.~\cite{racordon2025coherence} survey how Haskell, Swift, Rust and Scala keep or trade it, between unique instances and context-dependent resolution.
 FJlt takes the strict side by construction, since an instance is an entry of a trait and FJlt admits one per head.
-Jlt thus sits between Rust and standard \Cpp{}: it takes Rust's discipline of declared dependencies and coherent resolution~\cite{rustreference}, in \Cpp{23} as it ships, and keeps \Cpp{}'s dispatch on overloads where a function declares it (Section~\ref{sec:posture}).
+The posture thus sits between Rust and standard \Cpp{}: it takes Rust's discipline of declared dependencies and coherent resolution~\cite{rustreference}, in \Cpp{23} as it ships, and keeps \Cpp{}'s dispatch on overloads where a function declares it (Section~\ref{sec:posture}).
 Rust and Swift also check a generic body against its bounds: a comparison on an unconstrained type parameter is a compile error in both, and Rust's message names the missing bound~\cite{klabnik2023rust,swift2026generics}.
 That is Rule~2 as a compiler check, the half \Cpp{20} dropped, and the posture, together with the linter of Section~\ref{sec:check}, is what recovering it by hand costs.
 
@@ -57,7 +57,7 @@ Jlt is that arrangement taken further in one respect: Python's checkers claim no
 \paragraph{Coding standards and profiles.}
 The documents an audit of \Cpp{} works from are rule catalogues: MISRA \Cpp{}~\cite{misra2023cpp} and the SEI CERT standard~\cite{ballman2016cert} list hundreds of rules between them, each justified by the defects it prevents, with no statement of what a compliant program computes.
 Jlt is narrower, a pure computational core with no I/O, and so complements them rather than replacing them; where they meet they can differ, as MISRA forbids recursion except in constant evaluation and Rule~3 admits structural recursion on the strength of a termination argument.
-The nearest relatives are the safety profiles, now aimed at \Cpp{29}~\cite{sutter2025profiles,sutter2026london}, named sets of rules the compiler would enforce, and the criticism that a profile should come with the invariant it upholds~\cite{muller2025principled}: Jlt reads as a functional profile, held by review and a linter rather than wholly by the compiler, and its three rules state theirs.
+The nearest relatives are the safety profiles, now aimed at \Cpp{29}~\cite{sutter2025profiles,sutter2026london}, named sets of rules the compiler would enforce, and the criticism that a profile should come with the invariant it upholds~\cite{muller2025principled}: the posture reads as a functional profile, held by review and a linter rather than wholly by the compiler, and its three rules state theirs.
 
 \subsubsection*{The nearest tool}
 Ding and Zhang synthesise the constraints of a \Cpp{} function template from its body, in Clang, with a small calculus and measurements on the standard library's algorithms and on a Boost library~\cite{ding2025constraint}.

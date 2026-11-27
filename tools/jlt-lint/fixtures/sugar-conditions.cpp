@@ -1,6 +1,6 @@
 // The conditions of Table 7's rows, tested: beside each definition that
 // breaks a row's condition, a twin that keeps it.  The levels the linter
-// gives are pinned definition by definition in derived-conditions.levels
+// gives are pinned definition by definition in sugar-conditions.levels
 // (levels.py --expect), so that a condition once checked stays checked.
 // The audit of 2026-11-25 found each of the broken ones classed Jlt or FJlt.
 // if constexpr is undecided wherever it stands: its two rows have no check
@@ -115,6 +115,21 @@ constexpr std::size_t quotient(std::size_t a, std::size_t b) { return a / b; }  
 constexpr std::size_t halved(std::size_t a) { return a / 2; }                    // sound
 constexpr std::size_t shifted(std::size_t a, std::size_t i) { return a << i; }   // undecided
 constexpr std::size_t doubled(std::size_t a) { return a << 1; }                  // sound
+// A signed division or remainder by -1 overflows at the least value
+// (Copilot on #1226): by a constant, but not one defined at every argument.
+constexpr long negated_quotient(long a) { return a / -1; }   // undecided
+constexpr long negated_remainder(long a) { return a % -1; }  // undecided
+constexpr long negated_in_place(long a) {  // undecided
+  long q = a;
+  q /= -1;
+  return q;
+}
+constexpr long remainder_in_place(long a) {  // undecided
+  long r = a;
+  r %= -1;
+  return r;
+}
+constexpr long signed_halved(long a) { return a / 2; }       // sound
 // A structured binding has no row yet.
 constexpr std::size_t bound(std::pair<std::size_t, std::size_t> p) {  // undecided
   auto [a, b] = p;
@@ -169,8 +184,8 @@ constexpr std::size_t truncated_float(double x) { return std::size_t(x); }
 constexpr int truncated_static(double x) { return static_cast<int>(x); }
 static_assert(truncated_float(2.5) == 2 && truncated_static(2.5) == 2);
 
-// A sum as the standard's variant: undecided until its row exists.  Beside it
-// the record it is to be read as, a tag and a field for each alternative.
+// A sum read through std::visit: sugar not yet written, so
+// undecided.  Its twin, the copairing of the two arrows, is in sum.cpp.
 struct Area {
   constexpr std::size_t operator()(std::size_t side) const { return side * side; }
   constexpr std::size_t operator()(std::pair<std::size_t, std::size_t> sides) const {
@@ -180,16 +195,7 @@ struct Area {
 constexpr std::size_t area(std::variant<std::size_t, std::pair<std::size_t, std::size_t>> shape) {
   return std::visit(Area{}, shape);
 }
-struct Tagged {
-  bool second;
-  std::size_t side;
-  std::pair<std::size_t, std::size_t> sides;
-};
-constexpr std::size_t area_as_read(Tagged shape) {  // sound
-  return shape.second ? Area{}(shape.sides) : Area{}(shape.side);
-}
-static_assert(area(3uz) == area_as_read({false, 3, {}}) &&
-              area(std::pair{2uz, 5uz}) == area_as_read({true, 0, {2, 5}}));
+static_assert(area(3uz) == 9 && area(std::pair{2uz, 5uz}) == 10);
 
 // A destructor that does nothing is scaffolding; one that is virtual is not
 // (and its class is refused for subtyping).

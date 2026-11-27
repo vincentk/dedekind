@@ -1,3 +1,2 @@
 # Gates allowed to move the wrong way in this pull request, each with its
 # reason: <rule> <file> <reason>.  Read by ratchet.py; emptied once merged.
-levels Catch2,_sources two definitions are no longer FJlt but undecided under the stricter readings of #1229 (a construction with parentheses where braces would choose an initializer_list constructor, a floating conversion that narrows, a destructor whose members destroy something), which ask what the earlier reading took for granted

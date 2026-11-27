@@ -14,6 +14,22 @@ findings are read there.  `lint-<layer>` lints one layer's lines of `scope`
 once that layer and its tests are built, and `lint-fixtures` the fixtures,
 for a look at one part; each writes `parts/<part>.txt`.
 
+## Reference
+
+`make doxygen-jlt-lint` generates the linter's reference from its sources into
+`build/docs-jlt-lint/html`, published with the library's at
+<https://vincentk.github.io/dedekind/jlt-lint/>.  Nothing in it is written twice:
+
+- *The sugar, row by row* collects the `\sugar{row}` entries, one at each check
+  in `tool/jlt_lint.cpp` that holds a row of the paper's table of sugar: what
+  the check reads, what it leaves undecided, and the fixture that pins it.
+- Each `rules/<rule>.query` is a page: its header comment, then its matchers.
+- `admission.txt` is a page: every syntax kind with its class, the comments
+  beside the kinds they explain.
+
+A new row of sugar is documented where it is checked, by a `\sugar{row}` line
+in that check's comment, or in the rule file's header.
+
 ## Layout
 
 - `rules/<rule>.query`: one `clang-query` matcher per check, named for the rule
@@ -93,7 +109,7 @@ Each rule is one file under `rules/`, named for the rule of the paper it checks.
 | `rule2-constrained-templates` | a function template with an unconstrained type parameter and no `requires` clause: a **proxy** for Rule 2, reported only (a parameter the body never uses needs no constraint) |
 | `rule2-definition` | the tool's `definition` check, Rule 2 at the level of names: an operation on a value of parameter type that no *declared* constraint names (the type constraints, the `requires` clauses, the enclosing class templates', followed through the library's concepts; standard concepts and traits from a hand-made list; a concept's written arguments count). Not vocabulary of the value: standard functions, non-template functions, the library's constrained templates, `constexpr` templates returning `bool` (traits in function spelling), the control operators. An inline `requires` or concept test in the body is **not** a constraint. A constraint that applies a concept to a standard function object (`IsMonoid<T, std::plus<T>>`) grants that object's operator (`+`), since the standard defines the call by it; a default argument (`typename Op = std::plus<T>`) grants nothing. Inside `if constexpr` on concepts applied to types, the branch's concepts grant their operations in the then-branch (the instance chain); a `requires` expression or a concept on `decltype(op(x))` there grants nothing. A conversion into a parameter type, `T(n)`, `T{n}` or `static_cast<T>(n)` from a value of another type, is an operation of `T` like any other: `constructible_from` or `convertible_to` names it, as do the integral concepts and a requirement that writes it; default construction and copies are what `semiregular` grants. Silent where it cannot read a constraint |
 | `rule2-no-inline-requires` | the tool's `inline-requires` check: an `if`, constexpr or not, whose condition contains a requires-expression, a constraint tested in the body instead of declared (#1068); the fix is a named shape |
-| `rule2-no-type-observation` | the tool's `type-observation` check: in a function template's body, `sizeof`, `alignof`, `typeid`, a standard type trait (`std::is_integral_v<T>`, `std::is_same<T, U>::value`, `__is_same`) or a standard concept used as a value, at a dependent type: an observation of a type no shape names, which an archetype would answer for itself.  The condition of an `if constexpr` is not judged (Table 7's derived form; the second stage leaves such a body undecided) |
+| `rule2-no-type-observation` | the tool's `type-observation` check: in a function template's body, `sizeof`, `alignof`, `typeid`, a standard type trait (`std::is_integral_v<T>`, `std::is_same<T, U>::value`, `__is_same`) or a standard concept used as a value, at a dependent type: an observation of a type no shape names, which an archetype would answer for itself.  The condition of an `if constexpr` is not judged (Table 7's sugar; the second stage leaves such a body undecided) |
 | `rule2-decided-resolution` | the tool's `undecided-resolution` check, GHC's rule: a call at a value of parameter type to an overload set (candidates of viable arity) whose constraints differ in an atom, a concept on the argument the call passes with its polarity, that the enclosing constraints neither guarantee nor refute (conjunctions read through the library's concepts with arguments substituted; a disjunction guarantees nothing). Not seen: trait reads through class and variable templates (specialisations differ by pattern), candidates that differ by head alone, calls through a helper. Gated at zero on the listings and on `category` |
 | `rule2-context-order` | the tool's `context-order` check, the well-formedness of resolution: an instance with a context whose head has no proper part (a bare type parameter, a concrete type) names in its context only shapes declared before the trait's primary; otherwise resolving the trait entails a shape whose requirement calls the trait, a satisfaction that depends on itself, which the compiler reads as unsatisfied and does not report. A structured head descends by its parts and is not judged |
 | `rule2-converted-result` | the tool's `converted-result` check, the conversion discipline (#1143): the result of `{ e } -> std::convertible_to<T>` is used only at `T`. A finding where it is an operand of a further operation, has a member read, or is held in an `auto`; a condition, `!`, `&&` and `\|\|` are at `bool`. A call's argument is not judged, its parameter being unknown in a template |
