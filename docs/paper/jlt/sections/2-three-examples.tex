@@ -593,6 +593,6 @@ A proper part is smaller than its whole, so the compiler's search ends.
 The rule keeps out a loop with no stated end and a function that calls itself.
 It keeps a loop whose count is fixed before its first step: that is a fold written as a loop, and it ends if its body does~\cite{meyer1967loop}.
 
-The three rules are a heuristic: what a programmer keeps in mind.
-They do not define a language, and keeping them does not by itself put a program inside one.
-The rest of the paper supplies that: a small language in which a signature means what it says (Section~\ref{sec:kernel}), and a check that a program is written in it (Section~\ref{sec:check}).
+The three rules define the posture: the programs that keep them.
+They are what a programmer keeps in mind, and they give no test of membership: whether a program keeps them is, in general, for its author and a reviewer to say.
+The rest of the paper supplies what can be tested: a small language inside the posture in which a signature means what it says (Section~\ref{sec:kernel}), and a check that a program is written in it (Section~\ref{sec:check}).
