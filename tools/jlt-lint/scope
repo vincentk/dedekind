@@ -411,8 +411,8 @@ rule1-no-escaping-reference-captures src/main/modules/dedekind/order/[!o]*.cppm 
 rule1-no-inheritance         src/main/modules/dedekind/order/[!o]*.cppm  order  0
 rule1-no-mutable-globals     src/main/modules/dedekind/order/[!o]*.cppm  order  0
 rule1-no-reference-returns   src/main/modules/dedekind/order/[!hor]*.cppm  order  0
-rule1-no-reference-returns   src/main/modules/dedekind/order/halfspace.cppm  order  1
-rule1-no-reference-returns   src/main/modules/dedekind/order/runs.cppm  order  1
+rule1-no-reference-returns   src/main/modules/dedekind/order/halfspace.cppm  order  0
+rule1-no-reference-returns   src/main/modules/dedekind/order/runs.cppm  order  0
 rule1-no-static-locals       src/main/modules/dedekind/order/[!o]*.cppm  order  0
 rule1-no-throw               src/main/modules/dedekind/order/[!hor]*.cppm  order  0
 definitions                          src/main/modules/dedekind/order/[!hor]*.cppm  order  report
