@@ -563,6 +563,18 @@ constexpr bool moved_after_its_test(std::array<std::size_t, 2> a) {  // sound: &
 constexpr std::size_t moved_beside_use(std::array<std::size_t, 2> a) {  // refused
   return a[0] + sum_of(std::move(a));
 }
+// A move in a macro (its order not seen), and a write through what a move
+// yields (a span's elements are the caller's).
+#define JLT_MOVE_THEN_READ(a)                \
+  std::array<std::size_t, 2> b = std::move(a); \
+  return b[0] + a[1]
+constexpr std::size_t moved_in_macro(std::array<std::size_t, 2> a) {  // refused
+  JLT_MOVE_THEN_READ(a);
+}
+constexpr std::size_t written_through_move(std::span<std::size_t, 1> s) {  // refused
+  std::move(s)[0] = 7;
+  return 0;
+}
 constexpr std::size_t moved_in_loop(std::array<std::size_t, 2> a) {  // refused
   std::size_t s = 0;
   for (std::size_t i = 0; i < 2; ++i) s = s + sum_of(std::move(a));
@@ -574,7 +586,7 @@ constexpr std::size_t moved_reference(std::array<std::size_t, 2> a) {  // refuse
 }
 static_assert(moved_into_local({1, 2, 3}) == 1 && moved_in_return({1, 2})[1] == 2 &&
               moved_last({1, 2}) == 7 && used_after_move({1, 2}) == 3 &&
-              moved_beside_use({1, 2}) == 4 && moved_after_its_test({1, 2}) && moved_beside_its_type({1, 2})[1] == 2 && moved_in_loop({1, 2}) == 6 &&
+              moved_beside_use({1, 2}) == 4 && moved_in_macro({1, 2}) == 3 && moved_after_its_test({1, 2}) && moved_beside_its_type({1, 2})[1] == 2 && moved_in_loop({1, 2}) == 6 &&
               moved_reference({1, 2}) == 3);
 
 }  // namespace jlt_listing

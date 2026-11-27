@@ -5207,12 +5207,18 @@ class LocalState : public clang::ASTConsumer {
       /// sequenced), so f(x, std::move(x)) is refused; a reference
       /// to x that could outlive the move is refused on its own (a reference
       /// local, a reference capture).  The condition is syntactic and
-      /// strict: any later mention refuses, even one that cannot run.
+      /// strict: any later mention refuses, even one that cannot run, and a
+      /// move written in a macro refuses.  Then what consumes the move is
+      /// judged as a use of x would be: a copy or move construction reads,
+      /// a write through it (std::move(s)[0] = v on a span) does not.
       /// Fixture: local-state.cpp.
       bool lastUse(const clang::VarDecl* x, const clang::CallExpr* move) {
         if (!fn || !fn->getBody() || x->getType()->isReferenceType() || !x->hasLocalStorage() ||
             x->getParentFunctionOrMethod() != fn)
           return false;
+        // A move written in a macro: an expansion's tokens share one
+        // expansion location, so source order inside it is not seen.
+        if (move->getBeginLoc().isMacroID() || move->getEndLoc().isMacroID()) return false;
         clang::DynTypedNode n = clang::DynTypedNode::create(*move);
         for (int k = 0; k < 256; ++k) {
           auto ps = ctx->getParents(n);
@@ -5599,8 +5605,11 @@ class LocalState : public clang::ASTConsumer {
               if (i < c->getNumArgs() && named("swap") && c->getNumArgs() == 2)
                 return disjoint(c, *ctx) && standsAlone(c);
               if (i < c->getNumArgs() && named("get")) { cur = e; continue; }
-              if (i == 0 && named("move") && c->getNumArgs() == 1 && cur == d)
-                return lastUse(var, c);
+              if (i == 0 && named("move") && c->getNumArgs() == 1 && cur == d) {
+                if (!lastUse(var, c)) return false;
+                cur = e;  // what consumes the move is judged as a use of x
+                continue;
+              }
               return i < c->getNumArgs() && std::all_of(ds.begin(), ds.end(), readerDecl) &&
                      !(std::any_of(ds.begin(), ds.end(), borrows) && escapes(c));
             }
@@ -5609,8 +5618,11 @@ class LocalState : public clang::ASTConsumer {
               if (g->getName() == "swap" && c->getNumArgs() == 2)  // e
                 return disjoint(c, *ctx) && standsAlone(c);
               if (g->getName() == "get" && c->isGLValue()) { cur = e; continue; }  // c
-              if (g->getName() == "move" && c->getNumArgs() == 1 && cur == d)  // f
-                return lastUse(var, c);
+              if (g->getName() == "move" && c->getNumArgs() == 1 && cur == d) {  // f
+                if (!lastUse(var, c)) return false;
+                cur = e;  // what consumes the move is judged as a use of x
+                continue;
+              }
             }
             if (reader(c)) return !(borrows(readerNamed(c)) && escapes(c));
             const int b = binds(g, i, c);
