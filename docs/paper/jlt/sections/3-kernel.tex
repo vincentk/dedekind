@@ -171,8 +171,28 @@ The burden lies with whoever adds a form: until its reading is argued and tested
 
 The meaning of a kernel program is its image in System~F with truth values, counts and an iterator over a count.
 A function of several arguments is curried in the image and a record of several fields is a product, the textbook's treatment of both~\cite{pierce2002tapl}.
-That a closed program of an atom has the same value in \Cpp{} and in its image is this paper's hypothesis of adequacy.
-Its part between FJlt's own evaluation (Appendix~\ref{app:fjlt:evaluation}) and the image Appendix~\ref{app:fjlt:theorems} proves on paper; that \Cpp{} evaluates a kernel program as FJlt does is assumed, and the results below are about the image.
+That a closed program has the same value in \Cpp{} and in its image is the paper's one hypothesis, the bottom arrow of Figure~\ref{fig:arrows}.
+
+\begin{hypothesis}[Adequacy]
+\label{hyp:adequacy}
+Let $p$ be a closed program of Jlt of an atom, and $p'$ its reading in the kernel (Definition~\ref{def:sugar}).
+Wherever the compiler's path gives a value,
+\[
+\mathit{run}\,(\texttt{clang++}\;p) \;=\; \mathit{eval}\,\llbracket p' \rrbracket .
+\]
+\end{hypothesis}
+
+\noindent The equation is a chain of four, and each link has its own standing:
+\[
+\mathit{run}\,(\texttt{clang++}\;p)
+\;\underset{\text{trusted}}{=}\; \mathit{std}\,p
+\;\underset{\text{argued, tested}}{=}\; \mathit{std}\,p'
+\;\underset{\text{assumed}}{=}\; v \text{ with } p' \Downarrow v
+\;\underset{\text{proved}}{=}\; \mathit{eval}\,\llbracket p' \rrbracket ,
+\]
+where $\mathit{std}$ is the value the standard gives a program, and $\Downarrow$ FJlt's own evaluation (Appendix~\ref{app:fjlt:evaluation}).
+The first link trusts the compiler, the second is the sugar (Definition~\ref{def:sugar}), the third takes constant evaluation as its reference, and the fourth is Theorem~\ref{thm:simulation}, under its assumptions.
+The chain is as sure as its weakest link, and the results below are about the image.
 The translation is the one that gives Haskell's type classes their meaning, dictionary passing~\cite{wadler1989adhoc,jones1994qualified}, and Table~\ref{tab:image} states it, Appendix~\ref{app:fjlt:translation} in full.
 The images below the panels of the listings were made by hand according to it.
 

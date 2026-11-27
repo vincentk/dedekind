@@ -63,32 +63,33 @@ Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964m
 \text{FJlt} \arrow[d, "\llbracket\cdot\rrbracket"']
   & \text{Jlt} \arrow[l, dashed, "{-}\,\text{sugar}"']
   & \text{Posture} \arrow[l, harpoon', dashed, "{+}\,\text{forms}"']
-  & \text{\Cpp{23}} \arrow[l, harpoon', "{+}\,\text{rules}"'] \arrow[d, harpoon, "\texttt{clang++}"] \\
+  & \text{\Cpp{23}} \arrow[l, harpoon', "{+}\,\text{rules}"'] \arrow[d, harpoon, dotted, "\texttt{clang++}"] \\
 \text{System~F} \arrow[d, "\text{eval}"']
   &
   &
-  & \text{LLVM IR} \arrow[d, harpoon, "\text{run}"] \\
+  & \text{LLVM IR} \arrow[d, harpoon, dotted, "\text{run}"] \\
 \text{value} \arrow[rrr, dotted, "\text{hypothesis}"']
   &
   &
   & \text{value}
 \end{tikzcd}
 \caption{The factorisation of the paper.
-The right-hand path is what a \Cpp{23} program computes, and the upper path factors it, on a part of the language, through System~F extended with atoms, sums and an iterator; a value is a truth value or a count.
+The right-hand path is what a \Cpp{23} program computes, and the upper path factors it on Jlt through System~F extended with atoms, sums and an iterator, the equation being Hypothesis~\ref{hyp:adequacy}; a value is a truth value or a count.
 An arrow's head says what kind of map it is: a full head is a map defined on all of its source, and a half head a partial one.
 The compiler's path is partial, since a program may not compile, and may not end or may meet undefined behaviour when run; $\mathit{eval}$ is total.
 The two partial maps on the upper path are the identity where they are defined.
 $+$rules is defined on the programs that keep the three rules, the posture (Definition~\ref{def:posture}), and $+$forms on those of them written in the kernel's forms and in sugar, which are Jlt (Definition~\ref{def:sugar}); $-$sugar rewrites a program of Jlt into the kernel, FJlt, and $\llbracket\cdot\rrbracket$ translates the kernel.
-An arrow's line says how far the paper goes for it.
-Solid: the paper defines the map or takes it as given, and what it proves on paper is about these (Theorems~\ref{thm:preservation} and~\ref{thm:simulation}).
+An arrow's line says its standing.
+Solid: the paper defines the map, and what it proves on paper is about these (Theorems~\ref{thm:preservation} and~\ref{thm:simulation}).
 Dashed: argued and tested, form by form, that a form is sugar and that its reading keeps values; the linter's verdict on a definition is the evidence for it, as its other checks are, in part, for $+$rules.
-Dotted: assumed, and tested against constant evaluation, the hypothesis that the two paths give one value.
+Dotted: trusted, the compiler and the hypothesis that the two paths give one value, which is tested against constant evaluation.
 The paper's confidence in a path is that of its weakest arrow.}
 \label{fig:arrows}
 \end{figure}
 
 \paragraph{Contributions.}
-Each step from \Cpp{23} to System~F is known, and the contribution is that the steps connect.
+Each step from \Cpp{23} to System~F is known.
+What is new is the kernel's theorem, that its translation keeps types and values, and with it an account, for \Cpp{} as shipped, of everything that theorem rests on, each step with its standing (Figure~\ref{fig:arrows}).
 \begin{enumerate}
 \item The posture: three rules on standard \Cpp{23}, drawn from four listings of functions the reader already knows, each rule with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:examples}).
 Among them is an observation about \Cpp{20} concepts: with overlapping constrained overloads, a generic function's behaviour can depend on a constraint it never declared, by default and silently (Listing~\ref{lst:declare}), which GHC's rule for overlapping instances refuses and the posture's second rule forbids.
