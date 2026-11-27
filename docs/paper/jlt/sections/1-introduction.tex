@@ -51,7 +51,10 @@ The fragment is the \emph{Juliet Posture}, and the language inside it, the part 
 The name refers to structural typing, in the classification of Cardelli and of Pierce~\cite{cardelli1996typesystems,pierce2002tapl}: whether a type may stand where a constraint asks is decided by its structure, not by its name or lineage.\footnote{``A rose by any other name would smell as sweet''~\cite{shakespeare1597romeo}.}
 A \cppinline{concept} is such a predicate on the calls a type has; a law is the exception, since no structure shows it, and it is declared for a type by name.
 It is called a posture because it asks only for a style of programming: every ingredient is in the ISO standard~\cite{cpp23standard} and implemented by toolchains in wide use, the compiler holds some of the rules and the programmer the rest, and a linter helps but is not required to compile (Table~\ref{tab:posture}).
-Figure~\ref{fig:arrows} draws it with the languages of the paper and the maps between them, and two boundaries matter most.
+Figure~\ref{fig:arrows} draws it with the languages of the paper and the maps between them, and Table~\ref{tab:support} says of each map how far the paper goes for it.
+The compiler's path on the right is partial: a program may not compile, and may not end or may meet undefined behaviour when run.
+The upper path factors it on a part of the language, and ends in an evaluation that is total; a path is as sure as its weakest arrow.
+Two boundaries matter most.
 The outer one is drawn by the three rules (Section~\ref{sec:posture}): one keeps substitution of equals valid, one keeps generic code to its declared constraints, and one makes every recursion end.
 The inner one is drawn by a translation: the \emph{kernel}, Featherweight Jlt (FJlt), is the part of the posture on which a translation $\llbracket\cdot\rrbracket$ is defined into System~F, extended with truth values, counts and an iterator over a count (Appendix~\ref{app:fjlt:translation}).
 The translation is proved on paper to preserve types and values, under stated assumptions and with the textbook cases omitted, and from its target the kernel inherits termination and, by the cited abstraction theorem, argued to extend to the target's constants, parametricity (Section~\ref{sec:translation}).
@@ -73,19 +76,35 @@ Between the two boundaries lies \emph{sugar}, in Landin's word~\cite{landin1964m
   &
   & \text{value}
 \end{tikzcd}
-\caption{The factorisation of the paper.
-The right-hand path is what a \Cpp{23} program computes, and the upper path factors it on Jlt through System~F extended with atoms, sums and an iterator, the equation being Hypothesis~\ref{hyp:adequacy}; a value is a truth value or a count.
-An arrow's head says what kind of map it is: a full head is a map defined on all of its source, and a half head a partial one.
-The compiler's path is partial, since a program may not compile, and may not end or may meet undefined behaviour when run; $\mathit{eval}$ is total.
-The two partial maps on the upper path are the identity where they are defined.
-$+$rules is defined on the programs that keep the three rules, the posture (Definition~\ref{def:posture}), and $+$forms on those of them written in the kernel's forms and in sugar, which are Jlt (Definition~\ref{def:sugar}); $-$sugar rewrites a program of Jlt into the kernel, FJlt, and $\llbracket\cdot\rrbracket$ translates the kernel.
-An arrow's line says its standing.
-Solid: the paper defines the map, and what it proves on paper is about these (Theorems~\ref{thm:preservation} and~\ref{thm:simulation}).
-Dashed: argued and tested, form by form, that a form is sugar and that its reading keeps values; the linter's verdict on a definition is the evidence for it, as its other checks are, in part, for $+$rules.
-Dotted: trusted, the compiler and the hypothesis that the two paths give one value, which is tested against constant evaluation.
-The paper's confidence in a path is that of its weakest arrow.}
+\caption{The factorisation of the paper: the upper path factors the compiler's path on Jlt (Hypothesis~\ref{hyp:adequacy}).
+A full head is a map defined on all of its source, and a half head a partial one.
+A solid line is a map the paper defines, a dashed one is argued and tested, and a dotted one is trusted (Table~\ref{tab:support}).}
 \label{fig:arrows}
 \end{figure}
+
+\begin{table}[tbp]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.25\linewidth}>{\raggedright\arraybackslash}p{0.25\linewidth}l@{}}
+\toprule
+arrow & standing & rests on & checked by & \S \\
+\midrule
+$+$rules & defined (Definition~\ref{def:posture}) & the three rules & compiler, linter, review, each in part & \ref{sec:examples} \\
+$+$forms & defined (Definition~\ref{def:sugar}); membership argued and tested & the forms shown so far (Table~\ref{tab:derived}) & the linter & \ref{sec:kernel:derived} \\
+$-$sugar & argued and tested, form by form & a test for each form & the tests & \ref{sec:kernel:derived} \\
+$\llbracket\cdot\rrbracket$ & keeps types and values: proved on paper & \ref{wf:shapes} to~\ref{wf:acyclic}; three assumptions & the linter, in part (\ref{wf:stable}, \ref{wf:order}, \ref{wf:acyclic}) & \ref{sec:translation} \\
+$\mathit{eval}$ & total: proved on paper & an assumption on the carriers & --- & \ref{sec:translation} \\
+hypothesis & trusted (Hypothesis~\ref{hyp:adequacy}) & constant evaluation & \texttt{static\_assert} & \ref{sec:translation} \\
+\texttt{clang++}, run & trusted & the standard & --- & \ref{sec:binding} \\
+\midrule
+\multicolumn{5}{@{}l}{\emph{not arrows}} \\
+declared laws & listed, not checked & the author & the linter's list & \ref{sec:examples} \\
+the type check & Conjecture~\ref{conj:archetypes} & eight hypotheses & where it decides (Table~\ref{tab:summary}) & \ref{sec:check} \\
+\bottomrule
+\end{tabularx}
+\caption{The standing of each arrow of Figure~\ref{fig:arrows}, and of two things the figure does not draw.}
+\label{tab:support}
+\end{table}
 
 \paragraph{Contributions.}
 Each step from \Cpp{23} to System~F is known.

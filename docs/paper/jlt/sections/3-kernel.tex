@@ -182,12 +182,12 @@ Wherever the compiler's path gives a value,
 \]
 \end{hypothesis}
 
-\noindent The equation is a chain of four, and each link has its own standing:
+\noindent The equation is a chain of four, and each link has its own standing, drawn as the lines of Figure~\ref{fig:arrows} are, $=$ for solid, $\approx$ for dashed and $\doteq$ for dotted:
 \[
 \mathit{run}\,(\texttt{clang++}\;p)
-\;\underset{\text{trusted}}{=}\; \mathit{std}\,p
-\;\underset{\text{argued, tested}}{=}\; \mathit{std}\,p'
-\;\underset{\text{assumed}}{=}\; v \text{ with } p' \Downarrow v
+\;\underset{\text{trusted}}{\doteq}\; \mathit{std}\,p
+\;\underset{\text{argued, tested}}{\approx}\; \mathit{std}\,p'
+\;\underset{\text{assumed}}{\doteq}\; v \text{ with } p' \Downarrow v
 \;\underset{\text{proved}}{=}\; \mathit{eval}\,\llbracket p' \rrbracket ,
 \]
 where $\mathit{std}$ is the value the standard gives a program, and $\Downarrow$ FJlt's own evaluation (Appendix~\ref{app:fjlt:evaluation}).
