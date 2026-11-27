@@ -5939,6 +5939,16 @@ std::optional<DynTypedMatcher> parseMatcher(
   return m;
 }
 
+/// \sugar{a const accessor} A const member function returning const T& whose
+/// every return gives a field of its own object, or an element of one (a[i]
+/// on a built-in array or by operator[]), reached from this, implicitly or
+/// written, through fields only, is read as returning that field or element
+/// by value: the storage is the object's own, lives as long as the object
+/// and cannot change under a const function.  Held by narrowing the
+/// deny-rule rule1-no-reference-returns (its file's header says how); a
+/// reference to a parameter, a local, a static or a temporary, a non-const
+/// member function and a mutable reference stay refused (#1223).  Fixture:
+/// sugar-conditions.cpp.
 /// Read the scope probe and the rule files into queryRules.  In a file, a
 /// command is `match <matcher>`, `let <name> <matcher>` (a name for the rest
 /// of the file, as in clang-query) or the first `set traversal <kind>`; a line

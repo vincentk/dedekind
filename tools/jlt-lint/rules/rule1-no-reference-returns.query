@@ -6,4 +6,24 @@
 # one.  Exempt: the standard iterator protocol (a nested iterator or
 # sentinel, by exact name), which Rule 3's folds run on.  Blind spot: decltype(auto) in a
 # template pattern is undeduced and not seen.
-match functionDecl(isExpansionInMainFile(), returns(hasCanonicalType(referenceType())), unless(anyOf(isImplicit(), isDefaulted(), isDeleted(), cxxMethodDecl(ofClass(cxxRecordDecl(isLambda()))), cxxMethodDecl(ofClass(cxxRecordDecl(matchesName("::(const_)?iterator$|::sentinel$")))))), hasAncestor(scope))
+#
+# Sugar, a const accessor (#1223): a const member function returning const T&
+# whose every return gives a field of its own object, or an element of one
+# (a[i] on a built-in array or by operator[]), reached from this alone,
+# implicitly or written, through fields only, is read as returning that
+# field or element by value.  The reference is to the object's own storage,
+# which lives as long as the object it was called on and cannot change under
+# a const function, so nothing tells it from a copy.  Not exempt, and still
+# refused: a reference to a parameter, a local, a static, a temporary (a
+# field of a call's result), a non-const member function, a function that is
+# not a member, a mutable reference.  Fixture: sugar-conditions.cpp.
+let selfref expr(anyOf(cxxThisExpr(),
+    memberExpr(member(fieldDecl()), unless(hasObjectExpression(unless(cxxThisExpr()))))))
+let own memberExpr(member(fieldDecl()), unless(hasObjectExpression(unless(selfref))))
+let ownelement expr(anyOf(own,
+    arraySubscriptExpr(hasBase(ignoringParenImpCasts(own))),
+    cxxOperatorCallExpr(hasOverloadedOperatorName("[]"), hasArgument(0, ignoringParenImpCasts(own)))))
+let accessor cxxMethodDecl(isConst(), returns(hasCanonicalType(references(qualType(isConstQualified())))),
+    hasBody(stmt(hasDescendant(returnStmt()),
+        unless(hasDescendant(returnStmt(unless(hasReturnValue(ignoringParenImpCasts(ownelement)))))))))
+match functionDecl(isExpansionInMainFile(), returns(hasCanonicalType(referenceType())), unless(anyOf(isImplicit(), isDefaulted(), isDeleted(), accessor, cxxMethodDecl(ofClass(cxxRecordDecl(isLambda()))), cxxMethodDecl(ofClass(cxxRecordDecl(matchesName("::(const_)?iterator$|::sentinel$")))))), hasAncestor(scope))

@@ -288,4 +288,34 @@ struct Owner {
 constexpr std::size_t owned(std::size_t n) { return Owner{Counted{n}}.c.v; }
 static_assert(owned(4) == 4);
 
+
+// A const accessor (#1223): a const member function returning const T& to a
+// field of its own object, or an element of one, is read as returning it by
+// value; any other reference returned stays refused.
+struct Held {  // sound
+  std::size_t v;
+  constexpr const std::size_t& get() const { return v; }
+};
+struct Indexed {  // sound: an element of a std::array field
+  std::array<std::size_t, 2> a;
+  constexpr const std::size_t& at(std::size_t i) const { return a[i]; }
+};
+struct Nested {  // sound: a field of a field
+  Held h;
+  constexpr const std::size_t& inner() const { return h.v; }
+};
+struct Passing {  // refused: a reference to a parameter
+  constexpr const std::size_t& pick(const std::size_t& x) const { return x; }
+};
+struct Shared {  // refused: a reference to a static
+  static constexpr std::size_t s = 3;
+  constexpr const std::size_t& get() const { return s; }
+};
+struct Writable {  // refused: a non-const member function, a mutable reference
+  std::size_t v;
+  constexpr std::size_t& get() { return v; }
+};
+static_assert(Held{2}.get() == 2 && Indexed{{4, 5}}.at(1) == 5 && Nested{Held{6}}.inner() == 6 &&
+              Shared{}.get() == 3);
+
 }  // namespace jlt_listing
