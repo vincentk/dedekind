@@ -61,5 +61,5 @@ Unknown FJlt
 is_number FJlt
 ConstantSum undecided
 first_or_zero undecided
-first_or_same Jlt
+first_or_same undecided
 Box undecided

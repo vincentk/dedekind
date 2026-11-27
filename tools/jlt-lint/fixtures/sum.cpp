@@ -278,7 +278,10 @@ constexpr T first_or_zero(const std::variant<T, bool> d) {  // undecided
   return d.index() == 0 ? std::get<0>(d) : 0;
 }
 template <std::integral T>
-constexpr T first_or_same(const std::variant<T, bool> d, T z) {  // sound: T for T
+// The same choice with branches T and T is sound, but in the template
+// get<0>(d) has no type yet, only an unresolved call: open too, the check
+// erring on the side of undecided.
+constexpr T first_or_same(const std::variant<T, bool> d, T z) {  // undecided
   return d.index() == 0 ? std::get<0>(d) : z;
 }
 static_assert(first_or_zero<std::size_t>(std::variant<std::size_t, bool>(std::in_place_index<0>, 3uz)) == 3 &&
