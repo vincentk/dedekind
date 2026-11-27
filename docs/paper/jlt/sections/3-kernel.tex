@@ -4,7 +4,7 @@
 
 Section~\ref{sec:examples} drew the posture, by the three rules, and this section defines Jlt inside it, in two steps, the arrows $-$sugar and $\llbracket\cdot\rrbracket$ of Figure~\ref{fig:arrows}.
 The kernel, FJlt (Section~\ref{sec:intro}), is a subset of \Cpp{} whose meaning is its image under $\llbracket\cdot\rrbracket$.
-Jlt is the kernel with sugar, each form of which is a way of writing something the kernel can already say.
+Jlt is the kernel with sugar, each form of which is a way of writing something the kernel can already say (Definition~\ref{def:sugar}).
 The first step follows Featherweight Java~\cite{igarashi2001featherweight}: a kernel small enough to reason about, every program of which is a program of the full language.
 The second follows the treatment of JavaScript by a small core and a desugaring into it~\cite{guha2010essence}.
 % TODO(related): the bare language and derived forms of the Definition of
@@ -145,11 +145,22 @@ several call operators on one type & an entry that stands below a use that could
 
 \paragraph{Sugar.}
 \label{sec:kernel:derived}
-A form of sugar is a rewrite of a Jlt program into FJlt that may change types inside the program and leave every observable value unchanged, the value of a closed term at an atom, while compiling and while running.
-Time is not observed, so a program and its rewrite may differ in cost and in nothing else.
-Appendix~\ref{app:derived} lists every form with its reading and the condition it rests on.
+\begin{definition}[Sugar, Jlt]
+\label{def:sugar}
+A \emph{form} is a shape of a program's syntax tree, as the compiler builds it.
+A form is \emph{sugar} when
+(a) it is recognised on the tree, by its shape and a condition decidable there;
+(b) it has a \emph{reading}, a program in the kernel's forms or in sugar already admitted, which has the form's value wherever the condition holds, the value of a closed term at an atom as \Cpp{23} defines it, while compiling and while running; and
+(c) no other reading applies to it.
+\emph{Jlt} is the set of programs of the posture written in the kernel's forms and in sugar.
+\end{definition}
+
+\noindent A reading may change types inside the program, and time is not observed, so a program and its reading may differ in cost and in nothing else.
+The definition is by what a form must meet, and no list of forms is part of it: \Cpp{} moves, and so does what has been shown.
+Appendix~\ref{app:derived} gives the forms shown so far to be sugar, each with its reading and its condition, and a form not among them leaves a definition that uses it undecided.
 Two of them carry most programs: a finite range, as an array or a view, is its length and the function that reads it, folded over by the kernel's iteration over that count, and a mutable local is the state of such a fold.
-That a form preserves values is argued and tested, not proved, the standard of evidence of the work on JavaScript~\cite{guha2010essence}: a test sets a form beside its kernel reading and lets constant evaluation compare the two (Listing~\ref{lst:running-sum}).
+That a form meets (b) is argued and tested for that form, and not proved, the standard of evidence of the work on JavaScript~\cite{guha2010essence}: a test sets the form beside its reading and lets constant evaluation compare the two (Listing~\ref{lst:running-sum}).
+That is also how the fragment grows, a form at a time: a row, a test, and a check in the linter.
 % TODO(derived): the standard's clauses for the first group are to be cited;
 % a test beside its kernel form exists for local state and for a variant
 % (tools/jlt-lint/fixtures); the other rows are to get theirs.
