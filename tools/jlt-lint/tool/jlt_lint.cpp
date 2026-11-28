@@ -4146,8 +4146,10 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(e)) {
       const clang::CXXMethodDecl* g = m->getMethodDecl();
       return g && (llvm::isa<clang::CXXConversionDecl>(g) || (g->getIdentifier() && g->getName() == "has_value")) &&
-             (isExpected(m->getImplicitObjectArgument()->getType()) ||
-              isOptional(m->getImplicitObjectArgument()->getType())) &&
+             // The object as written: libc++ declares has_value() in a base,
+             // so the call's object is converted to it.
+             (isExpected(m->getImplicitObjectArgument()->IgnoreParenImpCasts()->getType()) ||
+              isOptional(m->getImplicitObjectArgument()->IgnoreParenImpCasts()->getType())) &&
              named(m->getImplicitObjectArgument()) == x;
     }
     if (const auto* c = llvm::dyn_cast<clang::CallExpr>(e))
@@ -4219,7 +4221,10 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(st)) {
         const clang::CXXMethodDecl* g = m->getMethodDecl();
         if (g && (llvm::isa<clang::CXXConversionDecl>(g) || (g->getIdentifier() && g->getName() == "has_value")))
-          tested = m->getImplicitObjectArgument();
+          tested = m->getImplicitObjectArgument()->IgnoreParenImpCasts();
+        // o.operator*() and o.operator->() written out: the reading, as *o.
+        else if (g && (g->getOverloadedOperator() == clang::OO_Star || g->getOverloadedOperator() == clang::OO_Arrow))
+          obj = m->getImplicitObjectArgument()->IgnoreParenImpCasts();
       } else if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st)) {
         if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens());
             d && !d->isImplicitAccess() && !d->isArrow() && d->getMember().isIdentifier() &&

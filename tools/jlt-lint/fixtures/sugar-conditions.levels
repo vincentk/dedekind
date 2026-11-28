@@ -17,6 +17,7 @@ guarded_by_exit Jlt
 guarded_declaration Jlt
 guarded_reference Jlt
 unguarded_read refused
+unguarded_explicit_read refused
 read_on_the_empty_side refused
 read_not_const refused
 reference_across_statements refused

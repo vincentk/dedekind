@@ -77,6 +77,8 @@ constexpr std::size_t guarded_declaration(std::size_t n) {  // sound
 // A reference: the test and the reading in one expression.
 constexpr bool guarded_reference(const std::optional<std::size_t>& o) { return o && *o > 1; }  // sound
 constexpr std::size_t unguarded_read(const std::optional<std::size_t> o) { return *o; }
+// The operator written out is the same reading.
+constexpr std::size_t unguarded_explicit_read(const std::optional<std::size_t> o) { return o.operator*(); }
 constexpr std::size_t read_on_the_empty_side(const std::optional<std::size_t> o) { return o ? 0uz : *o; }
 constexpr std::size_t read_not_const(std::optional<std::size_t> o) { return o ? *o : 0uz; }
 constexpr std::size_t reference_across_statements(const std::optional<std::size_t>& o) {
@@ -112,7 +114,7 @@ static_assert(guarded_arrow(Pair{1, 2}) == 1 && unguarded_arrow(Pair{3, 4}) == 3
               unguarded_arrow_generic<std::size_t>(Pair{7, 8}) == 7 && dependent_branches<std::size_t>(9uz) == 9 &&
               nested_test<std::size_t>(std::optional<std::size_t>{1uz}) == 1);
 static_assert(guarded_read(2uz) == 2 && guarded_by_exit(std::nullopt) == 0 && guarded_declaration(3) == 3 &&
-              guarded_reference(2uz) && unguarded_read(4uz) == 4 && read_on_the_empty_side(5uz) == 0 &&
+              guarded_reference(2uz) && unguarded_read(4uz) == 4 && unguarded_explicit_read(4uz) == 4 && read_on_the_empty_side(5uz) == 0 &&
               read_not_const(6uz) == 6 && reference_across_statements(7uz) == 7);
 // (void)x; as a statement of its own, x a name: dropped.  Any other operand
 // is a computation discarded, refused.
