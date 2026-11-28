@@ -4203,8 +4203,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   /// of A and the empty type: *x and x->m are the reading of alternative 0
   /// where the nearest test of x, x.has_value() or x as a truth value, makes
   /// it known, under the conditions of the choice on a sum's alternative
-  /// (Sum:case-sugar).  None anywhere else, so that the operator keeps its
-  /// kind: unguarded, *x has no value where x holds none.
+  /// (Sum:case-sugar); refused anywhere else, where x may hold none.
   std::optional<std::string> optionalUse(const clang::Stmt* st) const {
     const clang::Expr* obj = nullptr;
     // The test, x.has_value() or x as a truth value: the choice's kind, so
@@ -4237,10 +4236,12 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       if (!d->isImplicitAccess() && d->isArrow()) obj = d->getBase();
     }
     if (!obj || !isOptional(obj->getType())) return std::nullopt;
+    // Anywhere else a reading of the sum that may find no value: refused,
+    // Sum:not-const where a const local would make it sugar (Copilot on
+    // #1238: o->m unguarded was left undecided).
     const clang::ValueDecl* x = named(obj);
-    if (!x || (!constant(x) && llvm::isa<clang::VarDecl>(x))) return std::nullopt;
-    if (knownSide(st, x) == 0) return std::string("Sum:case-sugar");
-    return std::nullopt;
+    if (!x) return std::string("Sum:other");
+    return reading(st, x, 0);
   }
   static bool namedStd(clang::QualType t, llvm::StringRef name) {
     t = t.getNonReferenceType().getUnqualifiedType();
@@ -4638,9 +4639,12 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       return true;
     }
     // \sugar{a discarded name} (void)x; as a statement of its own, x a name:
-    // it computes nothing and is dropped, as an unused parameter's mark.
+    // it computes nothing and is dropped, as an unused parameter's mark.  Not
+    // x volatile, whose read is observable, declared wherever (Copilot on
+    // #1238).
     if (const auto* c = llvm::dyn_cast<clang::CStyleCastExpr>(st))
-      if (c->getType()->isVoidType() && named(c->getSubExpr()) && statement(c)) {
+      if (c->getType()->isVoidType() && named(c->getSubExpr()) && statement(c) &&
+          !c->getSubExpr()->IgnoreParenImpCasts()->getType().isVolatileQualified()) {
         kinds.insert("Cast:discard");
         return true;
       }

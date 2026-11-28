@@ -17,6 +17,9 @@
 #include <utility>
 #include <variant>
 
+// A volatile object outside the judged scope, as a device's register.
+inline volatile std::size_t hw_status = 0;
+
 namespace jlt_listing {
 
 // An implicit conversion of an arithmetic value: it does not narrow.
@@ -83,6 +86,19 @@ constexpr std::size_t reference_across_statements(const std::optional<std::size_
 // The branches of one type: 0 is an int, converted to std::size_t.
 constexpr std::size_t converted_branches(const std::optional<std::size_t> o) { return o ? *o : 0; }
 static_assert(converted_branches(std::nullopt) == 0);
+// x->m: as *x, under its test; unguarded, refused, resolved or in a template.
+using Pair = std::pair<std::size_t, std::size_t>;
+constexpr std::size_t guarded_arrow(const std::optional<Pair> o) { return o ? o->first : 0uz; }  // sound
+constexpr std::size_t unguarded_arrow(const std::optional<Pair> o) { return o->first; }
+template <typename T>
+constexpr T guarded_arrow_generic(const std::optional<std::pair<T, T>> o) {  // sound
+  return o ? o->first : T{};
+}
+template <typename T>
+constexpr T unguarded_arrow_generic(const std::optional<std::pair<T, T>> o) { return o->first; }
+static_assert(guarded_arrow(Pair{1, 2}) == 1 && unguarded_arrow(Pair{3, 4}) == 3 &&
+              guarded_arrow_generic<std::size_t>(Pair{5, 6}) == 5 &&
+              unguarded_arrow_generic<std::size_t>(Pair{7, 8}) == 7);
 static_assert(guarded_read(2uz) == 2 && guarded_by_exit(std::nullopt) == 0 && guarded_declaration(3) == 3 &&
               guarded_reference(2uz) && unguarded_read(4uz) == 4 && read_on_the_empty_side(5uz) == 0 &&
               read_not_const(6uz) == 6 && reference_across_statements(7uz) == 7);
@@ -94,6 +110,11 @@ constexpr std::size_t discarded(std::size_t n) {  // sound
 }
 constexpr std::size_t discarded_in_branch(std::size_t n) {  // sound: an unbraced body
   if (n > 1) (void)n;
+  return 0uz;
+}
+// A volatile name's read is observable: not dropped.
+constexpr std::size_t discarded_volatile() {
+  (void)::hw_status;
   return 0uz;
 }
 constexpr std::size_t discarded_computation(std::size_t n) {
