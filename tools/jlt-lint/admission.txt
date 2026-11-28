@@ -166,6 +166,9 @@ Stmt:BreakStmt refused
 Stmt:ContinueStmt refused
 Stmt:CompoundAssignOperator sugar
 Stmt:CStyleCastExpr refused
+# (void)x; as a statement of its own, x a name not volatile: it computes nothing and is
+# dropped, the mark of an unused parameter.
+Cast:discard sugar
 Stmt:CXXNullPtrLiteralExpr refused
 Type:Pointer refused
 Type:MemberPointer refused
@@ -282,6 +285,12 @@ Sum:expected sugar
 # until it has a row of its own (optional<B> turned around).
 Sum:expected-void open
 Sugar:expected open
+# std::optional<A>, read as the sum of A and the empty type: *x and x->m
+# where the nearest test of x (x.has_value(), x as a truth value) makes
+# alternative 0 known are its reading, Sum:case-sugar, under that row's
+# conditions, written out (o.operator*()) or not, resolved or in a template;
+# unguarded or on the empty side Sum:other, on a variable not const
+# Sum:not-const, both refused.
 # value() of a std::optional: it throws where no value is held, which Rule 1
 # keeps out.  Open until optional has its row.
 Sugar:sum-value open

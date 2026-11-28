@@ -4132,21 +4132,31 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     }
     if (isHasValueOf(cond, x)) return {0, 1};
     if (isIndexOf(cond, x)) return {1, 0};
+    // x as a truth value in a template: the conversion to bool is not yet in
+    // the tree, only x, as the condition or an operand of !, && or ||.
+    if (named(cond) == x && cond->isTypeDependent() && (isOptional(x->getType()) || isExpected(x->getType())))
+      return {0, 1};
     return none;
   }
-  /// Whether e is x.has_value() on a variable x of a std::expected type.
+  /// Whether e is x.has_value() or x as a truth value on a variable x of a
+  /// std::expected or a std::optional type.
   static bool isHasValueOf(const clang::Expr* e, const clang::ValueDecl* x) {
     if (!e || !x) return false;
     e = e->IgnoreParenImpCasts();
     if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(e)) {
       const clang::CXXMethodDecl* g = m->getMethodDecl();
       return g && (llvm::isa<clang::CXXConversionDecl>(g) || (g->getIdentifier() && g->getName() == "has_value")) &&
-             isExpected(m->getImplicitObjectArgument()->getType()) && named(m->getImplicitObjectArgument()) == x;
+             // The object as written: libc++ declares has_value() in a base,
+             // so the call's object is converted to it.
+             (isExpected(m->getImplicitObjectArgument()->IgnoreParenImpCasts()->getType()) ||
+              isOptional(m->getImplicitObjectArgument()->IgnoreParenImpCasts()->getType())) &&
+             named(m->getImplicitObjectArgument()) == x;
     }
     if (const auto* c = llvm::dyn_cast<clang::CallExpr>(e))
       if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens()))
-        return !d->isImplicitAccess() && d->getMember().isIdentifier() && d->getMember().getAsString() == "has_value" &&
-               isExpected(d->getBaseType()) && named(d->getBase()) == x;
+        return !d->isImplicitAccess() && !d->isArrow() && d->getMember().isIdentifier() &&
+               d->getMember().getAsString() == "has_value" &&
+               (isExpected(d->getBaseType()) || isOptional(d->getBaseType())) && named(d->getBase()) == x;
     return false;
   }
   /// Whether t is std::expected<A, B>, written or deduced, dependent or not.
@@ -4159,6 +4169,108 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       if (const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl())
         return td->getIdentifier() && td->getName() == "expected" && inStd(td);
     return false;
+  }
+  /// Whether e stands as a statement of its own, parentheses aside: in a
+  /// block, or the unbraced body of an if, a loop or a label, not a
+  /// condition or a loop's header (Copilot on #1238).
+  bool statement(const clang::Expr* e) const {
+    if (!ctx) return false;
+    const clang::Stmt* child = e;
+    clang::DynTypedNode n = clang::DynTypedNode::create(*e);
+    for (int k = 0; k < 16; ++k) {
+      auto ps = const_cast<clang::ASTContext*>(ctx)->getParents(n);
+      if (ps.empty()) return false;
+      n = ps[0];
+      const clang::Stmt* s = n.get<clang::Stmt>();
+      if (!s) return false;
+      if (llvm::isa<clang::ParenExpr>(s)) { child = s; continue; }
+      if (llvm::isa<clang::CompoundStmt, clang::LabelStmt, clang::CaseStmt, clang::DefaultStmt>(s))
+        return !llvm::isa<clang::CaseStmt>(s) || llvm::cast<clang::CaseStmt>(s)->getSubStmt() == child;
+      if (const auto* i = llvm::dyn_cast<clang::IfStmt>(s)) return child == i->getThen() || child == i->getElse();
+      if (const auto* f = llvm::dyn_cast<clang::ForStmt>(s)) return child == f->getBody();
+      if (const auto* f = llvm::dyn_cast<clang::CXXForRangeStmt>(s)) return child == f->getBody();
+      if (const auto* w = llvm::dyn_cast<clang::WhileStmt>(s)) return child == w->getBody();
+      if (const auto* d = llvm::dyn_cast<clang::DoStmt>(s)) return child == d->getBody();
+      return false;
+    }
+    return false;
+  }
+  /// Whether t is std::optional<A>, written or deduced, dependent or not.
+  static bool isOptional(clang::QualType t) {
+    if (t.isNull()) return false;
+    t = t.getNonReferenceType().getUnqualifiedType();
+    if (const auto* r = t->getAsCXXRecordDecl())
+      return r->getIdentifier() && r->getName() == "optional" && inStd(r);
+    if (const auto* ts = t->getAs<clang::TemplateSpecializationType>())
+      if (const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl())
+        return td->getIdentifier() && td->getName() == "optional" && inStd(td);
+    return false;
+  }
+  /// \sugar{std::optional} A reading of a std::optional<A>, read as the sum
+  /// of A and the empty type: *x and x->m are the reading of alternative 0
+  /// where the nearest test of x, x.has_value() or x as a truth value, makes
+  /// it known, under the conditions of the choice on a sum's alternative
+  /// (Sum:case-sugar); refused anywhere else, where x may hold none.
+  std::optional<std::string> optionalUse(const clang::Stmt* st) const {
+    const clang::Expr* obj = nullptr;
+    // The test, x.has_value() or x as a truth value: the choice's kind, so
+    // that branches of different types are refused, or undecided in a
+    // template, as for the other sums (Copilot on #1238).
+    {
+      const clang::Expr* tested = nullptr;
+      if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(st)) {
+        const clang::CXXMethodDecl* g = m->getMethodDecl();
+        if (g && (llvm::isa<clang::CXXConversionDecl>(g) || (g->getIdentifier() && g->getName() == "has_value")))
+          tested = m->getImplicitObjectArgument()->IgnoreParenImpCasts();
+        // o.operator*() and o.operator->() written out: the reading, as *o.
+        else if (g && (g->getOverloadedOperator() == clang::OO_Star || g->getOverloadedOperator() == clang::OO_Arrow))
+          obj = m->getImplicitObjectArgument()->IgnoreParenImpCasts();
+      } else if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st)) {
+        if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens());
+            d && !d->isImplicitAccess() && !d->isArrow()) {
+          const clang::DeclarationName name = d->getMember();
+          if (name.isIdentifier() && name.getAsString() == "has_value") tested = d->getBase();
+          // In a template, o.operator*() and o.operator->() written out are
+          // the reading; o.value() throws where o holds none, open as the
+          // resolved one is (independent review of #1238).
+          else if (name.getNameKind() == clang::DeclarationName::CXXOperatorName &&
+                   (name.getCXXOverloadedOperator() == clang::OO_Star ||
+                    name.getCXXOverloadedOperator() == clang::OO_Arrow))
+            obj = d->getBase();
+          else if (name.isIdentifier() && name.getAsString() == "value" &&
+                   (isOptional(d->getBaseType()) || isExpected(d->getBaseType())))
+            return std::string("Sugar:sum-value");
+        }
+      }
+      // x alone as the test in a template, its conversion to bool not yet in
+      // the tree (Copilot on #1238), an optional or an expected.
+      if (const auto* r = llvm::dyn_cast<clang::DeclRefExpr>(st);
+          r && r->isTypeDependent() && (isOptional(r->getType()) || isExpected(r->getType()))) {
+        const std::string k = indexKind(st, named(r));
+        if (k == "Sum:case-converted" || k == "Sum:case-dependent") return k;
+        return std::nullopt;
+      }
+      if (tested && isOptional(tested->getType())) {
+        const std::string k = indexKind(st, named(tested));
+        if (k == "Sum:case-converted" || k == "Sum:case-dependent") return k;
+        return std::nullopt;
+      }
+    }
+    if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(st)) {
+      if (o->getNumArgs() == 1 && (o->getOperator() == clang::OO_Star || o->getOperator() == clang::OO_Arrow))
+        obj = o->getArg(0);
+    } else if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(st)) {
+      if (u->getOpcode() == clang::UO_Deref) obj = u->getSubExpr();
+    } else if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(st)) {
+      if (!d->isImplicitAccess() && d->isArrow()) obj = d->getBase();
+    }
+    if (!obj || !isOptional(obj->getType())) return std::nullopt;
+    // Anywhere else a reading of the sum that may find no value: refused,
+    // Sum:not-const where a const local would make it sugar (Copilot on
+    // #1238: o->m unguarded was left undecided).
+    const clang::ValueDecl* x = named(obj);
+    if (!x) return std::string("Sum:other");
+    return reading(st, x, 0);
   }
   static bool namedStd(clang::QualType t, llvm::StringRef name) {
     t = t.getNonReferenceType().getUnqualifiedType();
@@ -4221,9 +4333,18 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       name = llvm::isa<clang::CXXConversionDecl>(g) ? "bool" : (g->getIdentifier() ? g->getName().str() : "");
     } else if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st)) {
       const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens());
-      if (!d || d->isImplicitAccess() || d->isArrow() || !isExpected(d->getBaseType()) || !d->getMember().isIdentifier())
+      if (!d || d->isImplicitAccess() || d->isArrow() || !isExpected(d->getBaseType())) return std::nullopt;
+      // e.operator*() and e.operator->() written out, in a template: the
+      // reading, as *e (independent review of #1238).
+      if (d->getMember().getNameKind() == clang::DeclarationName::CXXOperatorName &&
+          (d->getMember().getCXXOverloadedOperator() == clang::OO_Star ||
+           d->getMember().getCXXOverloadedOperator() == clang::OO_Arrow))
+        name = "*";
+      else if (d->getMember().isIdentifier())
+        name = d->getMember().getAsString();
+      else
         return std::nullopt;
-      name = d->getMember().getAsString(); obj = d->getBase();
+      obj = d->getBase();
     } else if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(st)) {
       if (d->isImplicitAccess() || !d->isArrow() || !isExpected(d->getBaseType())) return std::nullopt;
       name = "->"; obj = d->getBase();
@@ -4551,6 +4672,20 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       kinds.insert(*k);
       return true;
     }
+    if (auto k = optionalUse(st)) {
+      kinds.insert(*k);
+      return true;
+    }
+    // \sugar{a discarded name} (void)x; as a statement of its own, x a name:
+    // it computes nothing and is dropped, as an unused parameter's mark.  Not
+    // x volatile, whose read is observable, declared wherever (Copilot on
+    // #1238).
+    if (const auto* c = llvm::dyn_cast<clang::CStyleCastExpr>(st))
+      if (c->getType()->isVoidType() && named(c->getSubExpr()) && statement(c) &&
+          !c->getSubExpr()->IgnoreParenImpCasts()->getType().isVolatileQualified()) {
+        kinds.insert("Cast:discard");
+        return true;
+      }
     // c += n converts the result back to c's type with no node of its own.
     // The value stored back is of the computation's type (c += 1 with c an
     // unsigned char computes in int, and 256 becomes 0): narrowing where that
