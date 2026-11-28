@@ -782,8 +782,8 @@ constexpr std::size_t pushed_construction_generic(std::vector<T> v, const T& s) 
 static_assert(pushed_construction({}, "ab") == 1 && pushed_bounded({}) == 1 &&
               pushed_construction_generic<std::string>({}, "ab") == 1);
 // A string's update; a bitset<255> at an unsigned char, 255 out of range.
-constexpr std::string appended_char(std::string s) {  // sound
-  s.push_back('a');
+constexpr std::string appended_char(std::string s, char c) {  // sound
+  s.push_back(c);
   return s;
 }
 constexpr std::bitset<255> marked_past_end(std::bitset<255> b, unsigned char c) {
@@ -817,7 +817,7 @@ constexpr std::size_t pushed_with_allocator_generic(std::vector<T, A> v) {
   v.push_back(T{});
   return v.size();
 }
-static_assert(appended_char("").size() == 1 && marked_past_end({}, 3).test(3) &&
+static_assert(appended_char("", 97).size() == 1 && marked_past_end({}, 3).test(3) &&
               pushed_back_of_generic<std::size_t>({1}).size() == 2 &&
               pushed_converted_generic<std::size_t>({}, 1).size() == 1 &&
               pushed_with_allocator_generic<std::size_t, std::allocator<std::size_t>>({}) == 1);
