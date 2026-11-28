@@ -25,7 +25,7 @@ member_element Jlt
 counted_over refused
 aliased_through_iterator refused
 read_through_iterator refused
-built refused
+built Jlt
 comma_sequenced undecided
 Slot undecided
 by_enumerator Jlt
@@ -118,5 +118,5 @@ pushed_address refused
 Pile refused
 pushed_on_own_type refused
 pushed_in_condition refused
-appended_generic Jlt
+appended_generic FJlt
 popped_generic refused

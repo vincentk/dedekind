@@ -233,9 +233,10 @@ constexpr std::size_t read_through_iterator(const std::array<std::size_t, 2>& a)
 static_assert(aliased_through_iterator() == 7 &&
               read_through_iterator({1, 2}) == 1);
 // A default-constructed class template in a template (its constructor
-// writes it) is not refused, nor is v.size(); push_back, a mutating member
-// call, is (no row of Table 7 reads it: the theoretician's C8).  Two writes
-// the comma operator sequences are not refused.
+// writes it) is not refused, nor is v.size(), nor push_back, a mutating
+// member call that Table 7 now reads as the container's update (the
+// theoretician's C8 once refused it).  Two writes the comma operator
+// sequences are not refused.
 template <typename T>
 constexpr std::size_t built() {
   std::vector<T> v;
