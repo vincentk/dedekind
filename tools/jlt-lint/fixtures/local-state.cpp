@@ -531,8 +531,83 @@ constexpr std::size_t huge_product() {
   a[0] = 3;
   return a[m * n];
 }
+// A reference local bound to the reference a call returns: its lifetime is
+// the call's object's.  Here the object is a temporary, gone at the end of
+// the declaration, so r dangles; the reading of the accessor would copy.
+struct Boxed {
+  std::size_t v;
+  constexpr const std::size_t& get() const { return v; }
+};
+constexpr Boxed make_boxed() { return Boxed{4}; }
+constexpr std::size_t through_returned_reference() {  // refused
+  const std::size_t& r = make_boxed().get();
+  return r + 0;
+}
+// A temporary bound directly lives as long as the reference: no finding.
+constexpr std::size_t bound_to_temporary() {  // sound
+  const std::size_t& r = make_boxed().v;
+  return r;
+}
+// A reference from a call on an object that outlives it: no temporary, no
+// dangling, and a constant is no local state to alias.
+constexpr std::size_t through_accessor_of_constant() {  // sound
+  const Boxed b{5};
+  const std::size_t& r = b.get();
+  return r;
+}
+// Through fields and calls on both sides: a field of what a call on a
+// temporary returns, and an accessor called on a field of a temporary,
+// dangle; a field of a field of a temporary is extended with it.
+struct Outer {
+  Boxed h;
+  constexpr const Boxed& get() const { return h; }
+};
+constexpr Outer make_outer() { return Outer{Boxed{6}}; }
+constexpr std::size_t dangling_through_field() {  // refused
+  const std::size_t& r = make_outer().get().v;
+  return r + 0;
+}
+constexpr std::size_t dangling_through_member() {  // refused
+  const std::size_t& r = make_outer().h.get();
+  return r + 0;
+}
+constexpr std::size_t extended_through_fields() {  // sound
+  const std::size_t& r = make_outer().h.v;
+  return r;
+}
+// Through ?: and the comma: what the result names is an arm's, the right's.
+constexpr std::size_t dangling_through_conditional() {  // refused
+  const std::size_t& r = true ? make_boxed().get() : make_boxed().get();
+  return r + 0;
+}
+constexpr std::size_t dangling_through_comma_operator() {  // refused
+  const std::size_t& r = (0, make_boxed().get());
+  return r + 0;
+}
+// A static member is its own storage, not the temporary's.
+struct Holder {
+  static constexpr Boxed h{6};
+};
+constexpr std::size_t through_static_member() {  // sound
+  const std::size_t& r = Holder{}.h.get();
+  return r;
+}
+// A temporary passed by value is a copy the result cannot name.
+struct Tag {};
+struct Tagged {
+  std::size_t v;
+  constexpr const std::size_t& get(Tag) const { return v; }
+};
+constexpr std::size_t accessor_with_tag() {  // sound
+  const Tagged b{5};
+  const std::size_t& r = b.get(Tag{});
+  return r;
+}
 static_assert(written_through_temporary() == 0 &&
-              written_through_comma() == 1 && written_by_lambda() == 9 && half(4) == 2uz);
+              written_through_comma() == 1 && written_by_lambda() == 9 && half(4) == 2uz &&
+              bound_to_temporary() == 4 && through_accessor_of_constant() == 5 &&
+              extended_through_fields() == 6 && accessor_with_tag() == 5 &&
+              through_static_member() == 6);
 
 // std::move of a local at its last use is read as the local, a copy
 // (#1223): nothing after it can see what the move leaves behind.

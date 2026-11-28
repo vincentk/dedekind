@@ -7,6 +7,7 @@
 // yet, so neither its sound uses nor these two are classed.
 // Standalone, no imports, so it is checked without the build.
 #include <array>
+#include <span>
 #include <initializer_list>
 #include <concepts>
 #include <cstddef>
@@ -287,5 +288,55 @@ struct Owner {
 };
 constexpr std::size_t owned(std::size_t n) { return Owner{Counted{n}}.c.v; }
 static_assert(owned(4) == 4);
+
+
+// A const accessor (#1223): a const member function returning const T& to a
+// field of its own object, or an element of one, is read as returning it by
+// value; any other reference returned stays refused.
+struct Held {  // sound
+  std::size_t v;
+  constexpr const std::size_t& get() const { return v; }
+};
+struct Indexed {  // sound: an element of a std::array field, at an index in range
+  std::array<std::size_t, 2> a;
+  constexpr const std::size_t& second() const { return a[1]; }
+};
+struct Nested {  // sound: a field of a field
+  Held h;
+  constexpr const std::size_t& inner() const { return h.v; }
+};
+struct Passing {  // refused: a reference to a parameter
+  constexpr const std::size_t& pick(const std::size_t& x) const { return x; }
+};
+struct Shared {  // refused: a reference to a static
+  static constexpr std::size_t s = 3;
+  constexpr const std::size_t& get() const { return s; }
+};
+struct Writable {  // refused: a non-const member function, a mutable reference
+  std::size_t v;
+  constexpr std::size_t& get() { return v; }
+};
+// A mutable field can change under a const function: the reference is not
+// the value, and rule1-local-state refuses the return.
+struct Cached {  // refused: a mutable field
+  mutable std::size_t v;
+  constexpr const std::size_t& get() const { return v; }
+};
+// What the object does not own: a reference field, a field reached through
+// a pointer field, a span's elements.  The referent can die before the object.
+struct Borrowed {  // refused: a reference field
+  const std::size_t& v;
+  constexpr const std::size_t& get() const { return v; }
+};
+struct Pointing {  // refused: a field through a pointer field
+  const Held* p;
+  constexpr const std::size_t& get() const { return p->v; }
+};
+struct Spanning {  // refused: an element of a span field
+  std::span<const std::size_t, 1> s;
+  constexpr const std::size_t& first() const { return s[0]; }
+};
+static_assert(Held{2}.get() == 2 && Indexed{{4, 5}}.second() == 5 && Nested{Held{6}}.inner() == 6 &&
+              Shared{}.get() == 3 && Cached{7}.get() == 7);
 
 }  // namespace jlt_listing

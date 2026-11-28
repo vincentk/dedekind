@@ -21,7 +21,7 @@ rule3-no-mutual-recursion    tools/jlt-lint/fixtures/rule3-mutual.cpp  jlt_listi
 rule3-no-loops               tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  1
 rule3-no-self-recursion      tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
 rule3-no-mutual-recursion    tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
-rule1-local-state            tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  68
+rule1-local-state            tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  73
 rule1-lvalue-reference-params tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  1
 rule1-no-reference-returns   tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
 rule1-no-escaping-reference-captures tools/jlt-lint/fixtures/local-state.cpp  jlt_listing  0
@@ -411,8 +411,8 @@ rule1-no-escaping-reference-captures src/main/modules/dedekind/order/[!o]*.cppm 
 rule1-no-inheritance         src/main/modules/dedekind/order/[!o]*.cppm  order  0
 rule1-no-mutable-globals     src/main/modules/dedekind/order/[!o]*.cppm  order  0
 rule1-no-reference-returns   src/main/modules/dedekind/order/[!hor]*.cppm  order  0
-rule1-no-reference-returns   src/main/modules/dedekind/order/halfspace.cppm  order  1
-rule1-no-reference-returns   src/main/modules/dedekind/order/runs.cppm  order  1
+rule1-no-reference-returns   src/main/modules/dedekind/order/halfspace.cppm  order  0
+rule1-no-reference-returns   src/main/modules/dedekind/order/runs.cppm  order  0
 rule1-no-static-locals       src/main/modules/dedekind/order/[!o]*.cppm  order  0
 rule1-no-throw               src/main/modules/dedekind/order/[!hor]*.cppm  order  0
 definitions                          src/main/modules/dedekind/order/[!hor]*.cppm  order  report

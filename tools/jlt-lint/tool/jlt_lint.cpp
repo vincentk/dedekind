@@ -4802,6 +4802,12 @@ class Definitions : public clang::ASTConsumer {
 ///   - a write (an assignment, ++, --) that is not a statement of its own,
 ///     the for increment aside: two writes in one expression, a write in a
 ///     condition or an argument;
+///   - a reference local bound to the reference a call returns, where the
+///     call's object or an argument is a temporary (its lifetime is the
+///     temporary's: const auto& r = make_box().get(); dangles);
+///   - a return, in a const member function returning a reference, of a
+///     mutable field or of an element of one (the condition of the const
+///     accessor's reading, which the rule's matcher cannot see);
 ///   - a lambda capturing a mutable local by reference;
 ///   - a mutable local with no initialiser that writes it, read before it is
 ///     written perhaps (none, or a trivial default construction).
@@ -5731,6 +5737,122 @@ class LocalState : public clang::ASTConsumer {
       bool VisitVarDecl(clang::VarDecl* v) {
         if (v->hasLocalStorage() && v->getType()->isReferenceType() && v->getInit())
           if (aliasesLocalState(v->getInit())) (*report)(v->getLocation());
+        // A reference local bound to the reference a call returns, the
+        // call's object or an argument a temporary: its lifetime is that
+        // temporary's, which ends with the full-expression (const auto& r = make_box().get(); dangles, since a
+        // temporary's life is extended only when the reference binds to it
+        // directly, [class.temporary]).  A temporary bound directly, T{...}
+        // or a call returning by value, is no such reference.  A range-for's
+        // loop variable and a parameter's default argument aside.
+        if (v->hasLocalStorage() && !llvm::isa<clang::ParmVarDecl>(v) && !v->isCXXForRangeDecl() &&
+            v->getType()->isReferenceType() && v->getInit()) {
+          const clang::Expr* e = v->getInit();
+          for (;;) {
+            if (const auto* w = llvm::dyn_cast<clang::ExprWithCleanups>(e)) e = w->getSubExpr();
+            else if (const auto* p = llvm::dyn_cast<clang::ParenExpr>(e)) e = p->getSubExpr();
+            else if (const auto* c = llvm::dyn_cast<clang::ImplicitCastExpr>(e);
+                     c && c->getCastKind() == clang::CK_NoOp)
+              e = c->getSubExpr();
+            else break;
+          }
+          // Only where the call's object or an argument is a temporary can
+          // the reference outlive what it names: arr[i] on a local or
+          // std::get<0>(t) on a parameter is a second name, which the alias
+          // check judges, and no dangling.
+          // A temporary of class type, or one materialised to bind a
+          // reference parameter: an index or a count passed by value, a
+          // prvalue of an atom, binds nothing and cannot dangle.
+          // The storage a reference names, followed through fields (not
+          // through ->) and elements of built-in arrays, on the initialiser
+          // and on a call's object: make_outer().get().v and
+          // make_outer().h.get() dangle, make_outer().h.v is extended.  An
+          // argument counts only where it binds a reference parameter: one
+          // passed by value is a copy the result cannot name.
+          const auto strip = [](const clang::Expr* a) {
+            for (int k = 0; a && k < 16; ++k) {
+              if (const auto* w = llvm::dyn_cast<clang::ExprWithCleanups>(a)) a = w->getSubExpr();
+              else if (const auto* c = llvm::dyn_cast<clang::ImplicitCastExpr>(a);
+                       c && (c->getCastKind() == clang::CK_NoOp || c->getCastKind() == clang::CK_DerivedToBase ||
+                             c->getCastKind() == clang::CK_UncheckedDerivedToBase))
+                a = c->getSubExpr();
+              else if (const auto* q = llvm::dyn_cast<clang::ParenExpr>(a)) a = q->getSubExpr();
+              else break;
+            }
+            return a;
+          };
+          const auto subobject = [&](const clang::Expr* a) -> const clang::Expr* {
+            // A non-static field only: a static member is its own storage,
+            // and ends the path (Holder{}.h.get() with h static is safe).
+            if (const auto* m = llvm::dyn_cast<clang::MemberExpr>(a);
+                m && !m->isArrow() && llvm::isa<clang::FieldDecl>(m->getMemberDecl()))
+              return m->getBase();
+            if (const auto* x = llvm::dyn_cast<clang::ArraySubscriptExpr>(a);
+                x && x->getBase()->IgnoreParenImpCasts()->getType()->isArrayType())
+              return x->getBase()->IgnoreParenImpCasts();
+            return nullptr;
+          };
+          std::function<bool(const clang::Expr*)> temporary, fromTemporary;
+          // A call returning a reference whose object, or an argument bound
+          // to a reference parameter, is a temporary.
+          fromTemporary = [&](const clang::Expr* e) {
+            const auto* call = llvm::dyn_cast<clang::CallExpr>(e);
+            if (!call || !e->isGLValue()) return false;
+            const clang::FunctionDecl* g = call->getDirectCallee();
+            unsigned shift = 0;
+            if (const auto* mc = llvm::dyn_cast<clang::CXXMemberCallExpr>(call)) {
+              if (temporary(mc->getImplicitObjectArgument())) return true;
+            } else if (const auto* oc = llvm::dyn_cast<clang::CXXOperatorCallExpr>(call);
+                       oc && g && llvm::isa<clang::CXXMethodDecl>(g) &&
+                       !llvm::cast<clang::CXXMethodDecl>(g)->isStatic()) {
+              if (oc->getNumArgs() > 0 && temporary(oc->getArg(0))) return true;
+              shift = 1;
+            }
+            for (unsigned i = shift; i < call->getNumArgs(); ++i) {
+              const unsigned j = i - shift;
+              const bool byReference = !g || j >= g->getNumParams() ||
+                                       g->getParamDecl(j)->getType()->isReferenceType();
+              if (byReference && temporary(call->getArg(i))) return true;
+            }
+            return false;
+          };
+          temporary = [&](const clang::Expr* a) {
+            for (int k = 0; a && k < 16; ++k) {
+              a = strip(a);
+              if (llvm::isa<clang::MaterializeTemporaryExpr, clang::CXXBindTemporaryExpr>(a)) return true;
+              // Either arm of ?:, the right of a comma: what the result names.
+              if (const auto* c = llvm::dyn_cast<clang::ConditionalOperator>(a))
+                return temporary(c->getTrueExpr()) || temporary(c->getFalseExpr());
+              if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(a); b && b->isCommaOp()) {
+                a = b->getRHS();
+                continue;
+              }
+              if (const auto* sub = subobject(a)) { a = sub; continue; }
+              if (fromTemporary(a)) return true;
+              return a->isPRValue() && a->getType()->isRecordType();
+            }
+            return false;
+          };
+          // The initialiser, down its fields and elements, both arms of ?:
+          // and the right of a comma, to a call.
+          std::function<bool(const clang::Expr*)> dangles = [&](const clang::Expr* a) {
+            for (int k = 0; a && k < 16; ++k) {
+              a = strip(a);
+              if (const auto* c = llvm::dyn_cast<clang::ConditionalOperator>(a))
+                return dangles(c->getTrueExpr()) || dangles(c->getFalseExpr());
+              if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(a); b && b->isCommaOp()) {
+                a = b->getRHS();
+                continue;
+              }
+              if (const auto* sub = subobject(a)) {
+                a = sub;
+                continue;
+              }
+              return fromTemporary(a);
+            }
+            return false;
+          };
+          if (dangles(e)) (*report)(v->getLocation());
+        }
         // A local whose copies share storage (a view, a pointer, a tuple of
         // references) initialised from local state: a second name for it.
         if (v->hasLocalStorage() && !llvm::isa<clang::ParmVarDecl>(v) &&
@@ -5928,6 +6050,42 @@ class LocalState : public clang::ASTConsumer {
     judge.report = &report;
     judge.fn = f;
     judge.TraverseStmt(f->getBody());
+    // A const member function returning a reference to a mutable field, or
+    // into one: the field can change under a const function, so the
+    // reference is not the value (the condition of the const accessor's
+    // reading, which the matcher of rule1-no-reference-returns cannot see,
+    // there being no matcher for a mutable field).  Each such return.
+    if (const auto* m = llvm::dyn_cast<clang::CXXMethodDecl>(f);
+        m && m->isConst() && m->getReturnType()->isReferenceType()) {
+      struct Returns : clang::RecursiveASTVisitor<Returns> {
+        Report* report;
+        static bool intoMutable(const clang::Expr* e) {
+          for (int k = 0; e && k < 16; ++k) {
+            e = e->IgnoreParenImpCasts();
+            if (const auto* me = llvm::dyn_cast<clang::MemberExpr>(e)) {
+              if (const auto* fd = llvm::dyn_cast<clang::FieldDecl>(me->getMemberDecl()); fd && fd->isMutable())
+                return true;
+              e = me->getBase();
+            } else if (const auto* s = llvm::dyn_cast<clang::ArraySubscriptExpr>(e)) {
+              e = s->getBase();
+            } else if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(e);
+                       o && o->getOperator() == clang::OO_Subscript && o->getNumArgs() > 0) {
+              e = o->getArg(0);
+            } else {
+              return false;
+            }
+          }
+          return false;
+        }
+        bool VisitReturnStmt(clang::ReturnStmt* r) {
+          if (r->getRetValue() && intoMutable(r->getRetValue())) (*report)(r->getBeginLoc());
+          return true;
+        }
+        bool TraverseLambdaExpr(clang::LambdaExpr*) { return true; }  // its returns are its own
+      } returns;
+      returns.report = &report;
+      returns.TraverseStmt(f->getBody());
+    }
   }
 };
 
@@ -6058,6 +6216,26 @@ std::optional<DynTypedMatcher> parseMatcher(
   return m;
 }
 
+/// \sugar{a const accessor} A const member function returning const T& whose
+/// every return gives a field of its own object, or an element of one (a[i]
+/// on a built-in array or by operator[]), reached from this, implicitly or
+/// written, through fields only, is read as returning that field or element
+/// by value: the storage is the object's own, lives as long as the object
+/// and cannot change under a const function.  Held by narrowing the
+/// deny-rule rule1-no-reference-returns (its file's header says how); a
+/// reference to a parameter, a local, a static or a temporary, a non-const
+/// member function and a mutable reference stay refused (#1223).  Three
+/// conditions close what the reading would change (value categories): a
+/// field on the path is not mutable, which rule1-local-state checks (the
+/// matcher cannot see mutable); a reference local is not bound to the
+/// reference a call returns, which rule1-local-state checks too, so that no
+/// reference outlives the object it was called on (make_box().get() on a
+/// temporary dangles in C++ and not in the reading); and the result's type
+/// is not observed, by decltype or a type trait (std::is_reference_v gives
+/// true in C++ and false in the reading), which the author holds (A).
+/// Overloading on value category and an address are refused elsewhere
+/// (rvalue and forwarding parameters, &).  Fixtures: sugar-conditions.cpp,
+/// local-state.cpp.
 /// Read the scope probe and the rule files into queryRules.  In a file, a
 /// command is `match <matcher>`, `let <name> <matcher>` (a name for the rest
 /// of the file, as in clang-query) or the first `set traversal <kind>`; a line
