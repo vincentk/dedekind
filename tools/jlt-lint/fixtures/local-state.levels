@@ -130,3 +130,10 @@ OneAllocator refused
 pushed_bounded refused
 pushed_on_deque_generic refused
 pushed_construction_generic refused
+appended_char Jlt
+marked_past_end refused
+pushed_through_const_span refused
+pushed_through_span refused
+pushed_back_of_generic refused
+pushed_converted_generic refused
+pushed_with_allocator_generic refused

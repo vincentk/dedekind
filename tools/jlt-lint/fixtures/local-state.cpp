@@ -781,6 +781,46 @@ constexpr std::size_t pushed_construction_generic(std::vector<T> v, const T& s) 
 }
 static_assert(pushed_construction({}, "ab") == 1 && pushed_bounded({}) == 1 &&
               pushed_construction_generic<std::string>({}, "ab") == 1);
+// A string's update; a bitset<255> at an unsigned char, 255 out of range.
+constexpr std::string appended_char(std::string s) {  // sound
+  s.push_back('a');
+  return s;
+}
+constexpr std::bitset<255> marked_past_end(std::bitset<255> b, unsigned char c) {
+  b.set(c);
+  return b;
+}
+// A mutating call through storage the function does not own: a const span's
+// element, a mutable span local's element.
+constexpr std::size_t pushed_through_const_span(const std::span<std::vector<std::size_t>, 1> s) {
+  s[0].push_back(1);
+  return 1;
+}
+constexpr std::size_t pushed_through_span(std::span<std::vector<std::size_t>, 1> s) {
+  s[0].push_back(1);
+  return 1;
+}
+// In a template: back() of a sequence that may be empty; an argument
+// converted to the element at an instance; an allocator not the standard's.
+template <typename T>
+constexpr std::vector<T> pushed_back_of_generic(std::vector<T> v) {
+  v.push_back(v.back());
+  return v;
+}
+template <typename T>
+constexpr std::vector<T> pushed_converted_generic(std::vector<T> v, std::size_t n) {
+  v.push_back(n);
+  return v;
+}
+template <typename T, typename A>
+constexpr std::size_t pushed_with_allocator_generic(std::vector<T, A> v) {
+  v.push_back(T{});
+  return v.size();
+}
+static_assert(appended_char("").size() == 1 && marked_past_end({}, 3).test(3) &&
+              pushed_back_of_generic<std::size_t>({1}).size() == 2 &&
+              pushed_converted_generic<std::size_t>({}, 1).size() == 1 &&
+              pushed_with_allocator_generic<std::size_t, std::allocator<std::size_t>>({}) == 1);
 static_assert(appended({1}, 2).size() == 2 && marked_byte({}, 3).test(3) && emptied({4}) == 0 &&
               grown({}).xs.size() == 1 && popped({1, 2}) == 1 && marked_anywhere({}, 2).test(2) &&
               inserted_at({}) == 1 && pushed_address(1) == 1 && pushed_on_own_type({}) == 1 &&
