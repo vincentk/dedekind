@@ -4134,19 +4134,22 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     if (isIndexOf(cond, x)) return {1, 0};
     return none;
   }
-  /// Whether e is x.has_value() on a variable x of a std::expected type.
+  /// Whether e is x.has_value() or x as a truth value on a variable x of a
+  /// std::expected or a std::optional type.
   static bool isHasValueOf(const clang::Expr* e, const clang::ValueDecl* x) {
     if (!e || !x) return false;
     e = e->IgnoreParenImpCasts();
     if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(e)) {
       const clang::CXXMethodDecl* g = m->getMethodDecl();
       return g && (llvm::isa<clang::CXXConversionDecl>(g) || (g->getIdentifier() && g->getName() == "has_value")) &&
-             isExpected(m->getImplicitObjectArgument()->getType()) && named(m->getImplicitObjectArgument()) == x;
+             (isExpected(m->getImplicitObjectArgument()->getType()) ||
+              isOptional(m->getImplicitObjectArgument()->getType())) &&
+             named(m->getImplicitObjectArgument()) == x;
     }
     if (const auto* c = llvm::dyn_cast<clang::CallExpr>(e))
       if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens()))
         return !d->isImplicitAccess() && d->getMember().isIdentifier() && d->getMember().getAsString() == "has_value" &&
-               isExpected(d->getBaseType()) && named(d->getBase()) == x;
+               (isExpected(d->getBaseType()) || isOptional(d->getBaseType())) && named(d->getBase()) == x;
     return false;
   }
   /// Whether t is std::expected<A, B>, written or deduced, dependent or not.
@@ -4159,6 +4162,39 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       if (const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl())
         return td->getIdentifier() && td->getName() == "expected" && inStd(td);
     return false;
+  }
+  /// Whether t is std::optional<A>, written or deduced, dependent or not.
+  static bool isOptional(clang::QualType t) {
+    if (t.isNull()) return false;
+    t = t.getNonReferenceType().getUnqualifiedType();
+    if (const auto* r = t->getAsCXXRecordDecl())
+      return r->getIdentifier() && r->getName() == "optional" && inStd(r);
+    if (const auto* ts = t->getAs<clang::TemplateSpecializationType>())
+      if (const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl())
+        return td->getIdentifier() && td->getName() == "optional" && inStd(td);
+    return false;
+  }
+  /// \sugar{std::optional} A reading of a std::optional<A>, read as the sum
+  /// of A and the empty type: *x and x->m are the reading of alternative 0
+  /// where the nearest test of x, x.has_value() or x as a truth value, makes
+  /// it known, under the conditions of the choice on a sum's alternative
+  /// (Sum:case-sugar).  None anywhere else, so that the operator keeps its
+  /// kind: unguarded, *x has no value where x holds none.
+  std::optional<std::string> optionalUse(const clang::Stmt* st) const {
+    const clang::Expr* obj = nullptr;
+    if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(st)) {
+      if (o->getNumArgs() == 1 && (o->getOperator() == clang::OO_Star || o->getOperator() == clang::OO_Arrow))
+        obj = o->getArg(0);
+    } else if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(st)) {
+      if (u->getOpcode() == clang::UO_Deref) obj = u->getSubExpr();
+    } else if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(st)) {
+      if (!d->isImplicitAccess() && d->isArrow()) obj = d->getBase();
+    }
+    if (!obj || !isOptional(obj->getType())) return std::nullopt;
+    const clang::ValueDecl* x = named(obj);
+    if (!x || (!constant(x) && llvm::isa<clang::VarDecl>(x))) return std::nullopt;
+    if (knownSide(st, x) == 0) return std::string("Sum:case-sugar");
+    return std::nullopt;
   }
   static bool namedStd(clang::QualType t, llvm::StringRef name) {
     t = t.getNonReferenceType().getUnqualifiedType();
@@ -4551,6 +4587,20 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       kinds.insert(*k);
       return true;
     }
+    if (auto k = optionalUse(st)) {
+      kinds.insert(*k);
+      return true;
+    }
+    // \sugar{a discarded name} (void)x; as a statement of its own, x a name:
+    // it computes nothing and is dropped, as an unused parameter's mark.
+    if (const auto* c = llvm::dyn_cast<clang::CStyleCastExpr>(st))
+      if (c->getType()->isVoidType() && named(c->getSubExpr()) && ctx) {
+        auto ps = const_cast<clang::ASTContext*>(ctx)->getParents(*c);
+        if (!ps.empty() && ps[0].get<clang::CompoundStmt>()) {
+          kinds.insert("Cast:discard");
+          return true;
+        }
+      }
     // c += n converts the result back to c's type with no node of its own.
     // The value stored back is of the computation's type (c += 1 with c an
     // unsigned char computes in int, and 256 becomes 0): narrowing where that
