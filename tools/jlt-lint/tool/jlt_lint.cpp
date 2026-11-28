@@ -4132,6 +4132,10 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     }
     if (isHasValueOf(cond, x)) return {0, 1};
     if (isIndexOf(cond, x)) return {1, 0};
+    // x as a truth value in a template: the conversion to bool is not yet in
+    // the tree, only x, as the condition or an operand of !, && or ||.
+    if (named(cond) == x && cond->isTypeDependent() && (isOptional(x->getType()) || isExpected(x->getType())))
+      return {0, 1};
     return none;
   }
   /// Whether e is x.has_value() or x as a truth value on a variable x of a
