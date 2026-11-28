@@ -124,3 +124,9 @@ pushed_in_return_generic refused
 emplaced_generic refused
 pushed_in_return refused
 emplaced refused
+pushed_construction refused
+pushed_on_deque refused
+OneAllocator refused
+pushed_bounded refused
+pushed_on_deque_generic refused
+pushed_construction_generic refused

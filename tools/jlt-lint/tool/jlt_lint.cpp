@@ -5507,23 +5507,22 @@ class LocalState : public clang::ASTConsumer {
         return !through && (!rhs || !mentionsMutable(rhs));
       }
       /// \sugar{a container's update on a local} A mutating call of a
-      /// standard sequence or bitset on a local, v.push_back(e), b.set(i)
-      /// (no emplace form, whose element construction may throw: Copilot on
-      /// #1239):
-      /// the assignment of the container updated, v = with(v, e),
-      /// under that row's conditions.  A closed list of methods of a closed
-      /// list of containers, each giving the container its standard
-      /// specifies, none taking a position; a statement of its own; no
-      /// argument a pointer, so that none reaches into the container
-      /// written; a bitset's
-      /// position of a type whose values all lie in range; no pop_back or
-      /// pop_front, undefined on an empty container, and no resize, which
-      /// throws past max_size(); the
-      /// arguments, as an assignment's right side, sharing no storage with
-      /// local state; through a field or an element only on a deep value.
+      /// std::vector, std::string or std::bitset on a local, v.push_back(e),
+      /// b.set(i), as an expression statement: the assignment of the
+      /// container updated, v = with(v, e), under that row's conditions.  The
+      /// methods push_back, push_front, clear, and a bitset's set, reset and
+      /// flip, each constexpr in C++23 and total: no position, no pop
+      /// (undefined on an empty container), no resize or emplace (they throw,
+      /// or construct by a constructor that may), the standard's allocator
+      /// (another may bound max_size()), no argument built by a constructor
+      /// other than a copy or a move, none a pointer, and a bitset's position
+      /// of a type whose values all lie in range.  The arguments, as an
+      /// assignment's right side, share no storage with local state; through
+      /// a field or an element, only on a deep value (Copilot on #1239).
       bool update(const clang::VarDecl* v, const clang::CXXMemberCallExpr* call, bool through) {
-        static const std::set<std::string> containers{
-            "vector", "deque", "list", "forward_list", "basic_string", "bitset"};
+        // The containers whose updates are constexpr in C++23 (Copilot on
+        // #1239: deque's, list's and forward_list's are not).
+        static const std::set<std::string> containers{"vector", "basic_string", "bitset"};
         static const std::set<std::string> updates{
             "push_back", "push_front", "clear", "set", "reset", "flip"};
         const clang::CXXMethodDecl* g = call->getMethodDecl();
@@ -5532,6 +5531,15 @@ class LocalState : public clang::ASTConsumer {
             !r->getIdentifier() || !containers.count(r->getName().str()) || !statementPosition(call))
           return false;
         const std::string of = r->getName().str();
+        // The standard's allocator: another may bound max_size(), past which
+        // push_back throws (Copilot on #1239).
+        if (of != "bitset") {
+          const auto* spec = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(r);
+          if (!spec || spec->getTemplateArgs().size() < 2) return false;
+          const clang::TemplateArgument& al = spec->getTemplateArgs()[spec->getTemplateArgs().size() - 1];
+          const auto* ar = al.getKind() == clang::TemplateArgument::Type ? al.getAsType()->getAsCXXRecordDecl() : nullptr;
+          if (!ar || !ar->getIdentifier() || ar->getName() != "allocator" || !inStd(ar)) return false;
+        }
         // A bitset's position: out of range it throws, so its type's values
         // all lie in range, bitset<256> at an unsigned char.
         if (of == "bitset" && call->getNumArgs() > 0) {
@@ -5545,17 +5553,37 @@ class LocalState : public clang::ASTConsumer {
         }
         for (const clang::Expr* a : call->arguments()) {
           const clang::QualType at = a->getType().getNonReferenceType();
-          if (at->isPointerType() || at->isArrayType()) return false;
+          if (at->isPointerType() || at->isArrayType() || constructs(a)) return false;
           if (!writable(v, a, through)) return false;
         }
         return call->getNumArgs() > 0 || writable(v, nullptr, through);
+      }
+      /// An argument built in place by a constructor other than a copy or a
+      /// move, v.push_back({s, 1}): the constructor may throw (std::string's
+      /// does where s is empty), so the update is not known total (Copilot on
+      /// #1239).  In a template, a construction with arguments.
+      static bool constructs(const clang::Expr* a) {
+        for (int k = 0; a && k < 8; ++k) {
+          a = a->IgnoreParenImpCasts();
+          if (const auto* m = llvm::dyn_cast<clang::MaterializeTemporaryExpr>(a)) { a = m->getSubExpr(); continue; }
+          if (const auto* b = llvm::dyn_cast<clang::CXXBindTemporaryExpr>(a)) { a = b->getSubExpr(); continue; }
+          if (const auto* f = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(a);
+              f && f->getType()->isRecordType()) { a = f->getSubExpr(); continue; }
+          break;
+        }
+        if (!a) return false;
+        if (llvm::isa<clang::InitListExpr, clang::CXXParenListInitExpr>(a)) return true;
+        if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(a))
+          return !c->getConstructor()->isCopyOrMoveConstructor();
+        if (const auto* u = llvm::dyn_cast<clang::CXXUnresolvedConstructExpr>(a)) return u->getNumArgs() > 0;
+        return false;
       }
       /// The update above in a template, h.push_back(e) with h of a standard
       /// sequence's type as written (std::vector<N>): the same methods,
       /// none of a bitset, whose position's range only an instance gives.
       bool dependentUpdate(const clang::VarDecl* v, const clang::CXXDependentScopeMemberExpr* m,
                            const clang::CallExpr* call, bool through) {
-        static const std::set<std::string> sequences{"vector", "deque", "list", "forward_list", "basic_string"};
+        static const std::set<std::string> sequences{"vector", "basic_string"};
         static const std::set<std::string> updates{"push_back", "push_front", "clear"};
         if (m->isArrow() || !m->getMember().isIdentifier() || !updates.count(m->getMember().getAsString()) ||
             !statementPosition(call))
@@ -5564,9 +5592,22 @@ class LocalState : public clang::ASTConsumer {
         const auto* ts = bt->getAs<clang::TemplateSpecializationType>();
         const clang::TemplateDecl* td = ts ? ts->getTemplateName().getAsTemplateDecl() : nullptr;
         if (!td || !td->getIdentifier() || !inStd(td) || !sequences.count(td->getName().str())) return false;
+        // The allocator as written: none, the default, std::allocator.
+        {
+          const auto args = ts->template_arguments();
+          const std::size_t defaulted = td->getName() == "vector" ? 1 : 2;
+          if (args.size() > defaulted) {
+            const clang::TemplateArgument& al = args.back();
+            const auto* ats = al.getKind() == clang::TemplateArgument::Type
+                                  ? al.getAsType()->getAs<clang::TemplateSpecializationType>()
+                                  : nullptr;
+            const clang::TemplateDecl* ad = ats ? ats->getTemplateName().getAsTemplateDecl() : nullptr;
+            if (!ad || !ad->getIdentifier() || ad->getName() != "allocator" || !inStd(ad)) return false;
+          }
+        }
         for (const clang::Expr* a : call->arguments()) {
           const clang::QualType at = a->getType().getNonReferenceType();
-          if (at->isPointerType() || at->isArrayType()) return false;
+          if (at->isPointerType() || at->isArrayType() || constructs(a)) return false;
           if (!writable(v, a, through)) return false;
         }
         return call->getNumArgs() > 0 || writable(v, nullptr, through);

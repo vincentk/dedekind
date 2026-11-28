@@ -18,12 +18,14 @@
 #include <array>
 #include <bit>
 #include <bitset>
+#include <deque>
 #include <cstddef>
 #include <expected>
 #include <functional>
 #include <optional>
 #include <ranges>
 #include <span>
+#include <string>
 #include <string_view>
 #include <tuple>
 #include <utility>
@@ -742,6 +744,43 @@ constexpr std::size_t emplaced(std::vector<std::size_t> v) {
   v.emplace_back(1uz);
   return v.size();
 }
+// Not total: an element built by a constructor that may throw, a container
+// whose updates are not constexpr, an allocator that bounds max_size().
+constexpr std::size_t pushed_construction(std::vector<std::string> v, const std::string& s) {
+  v.push_back({s, 1uz});
+  return v.size();
+}
+constexpr std::size_t pushed_on_deque(std::deque<std::size_t> d) {
+  d.push_back(1);
+  return d.size();
+}
+template <typename T>
+struct OneAllocator {
+  using value_type = T;
+  constexpr OneAllocator() = default;
+  template <typename U>
+  constexpr OneAllocator(const OneAllocator<U>&) {}
+  constexpr T* allocate(std::size_t n) { return std::allocator<T>{}.allocate(n); }
+  constexpr void deallocate(T* p, std::size_t n) { std::allocator<T>{}.deallocate(p, n); }
+  constexpr std::size_t max_size() const { return 1; }
+  constexpr bool operator==(const OneAllocator&) const = default;
+};
+constexpr std::size_t pushed_bounded(std::vector<std::size_t, OneAllocator<std::size_t>> v) {
+  v.push_back(1);
+  return v.size();
+}
+template <typename T>
+constexpr std::size_t pushed_on_deque_generic(std::deque<T> d) {
+  d.push_back(T{});
+  return d.size();
+}
+template <typename T>
+constexpr std::size_t pushed_construction_generic(std::vector<T> v, const T& s) {
+  v.push_back(T(s, 1uz));
+  return v.size();
+}
+static_assert(pushed_construction({}, "ab") == 1 && pushed_bounded({}) == 1 &&
+              pushed_construction_generic<std::string>({}, "ab") == 1);
 static_assert(appended({1}, 2).size() == 2 && marked_byte({}, 3).test(3) && emptied({4}) == 0 &&
               grown({}).xs.size() == 1 && popped({1, 2}) == 1 && marked_anywhere({}, 2).test(2) &&
               inserted_at({}) == 1 && pushed_address(1) == 1 && pushed_on_own_type({}) == 1 &&
