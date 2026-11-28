@@ -12,6 +12,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdlib>
+#include <expected>
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -109,6 +110,24 @@ constexpr std::size_t nested_test(const std::optional<std::optional<T>> o) {  //
   if (o) return o->has_value() ? 1uz : 0uz;
   return 0uz;
 }
+// The reading written out: guarded, resolved; unguarded, in a template;
+// value() in a template, open as the resolved one.
+constexpr std::size_t guarded_explicit_arrow(const std::optional<Pair> o) { return o ? o.operator->()->first : 0uz; }  // sound
+template <typename T>
+constexpr T explicit_read_generic(const std::optional<T> o) { return o.operator*(); }
+template <typename T>
+constexpr T explicit_arrow_generic(const std::optional<std::pair<T, T>> o) { return o.operator->()->first; }
+template <typename T>
+constexpr T value_generic(const std::optional<T> o) { return o.value(); }
+// A bare test of an expected in a template, its branches' types differing
+// as written: undecided.
+template <typename T>
+constexpr T expected_generic(const std::expected<T, bool> e) { return e ? *e : T{}; }
+template <typename T>
+constexpr T expected_explicit_generic(const std::expected<T, bool> e) { return e.operator*(); }
+static_assert(guarded_explicit_arrow(Pair{1, 2}) == 1 && explicit_read_generic<std::size_t>(3uz) == 3 &&
+              explicit_arrow_generic<std::size_t>(Pair{4, 5}) == 4 && value_generic<std::size_t>(6uz) == 6 &&
+              expected_generic<std::size_t>(7uz) == 7 && expected_explicit_generic<std::size_t>(8uz) == 8);
 static_assert(guarded_arrow(Pair{1, 2}) == 1 && unguarded_arrow(Pair{3, 4}) == 3 &&
               guarded_arrow_generic<std::size_t>(Pair{5, 6}) == 5 &&
               unguarded_arrow_generic<std::size_t>(Pair{7, 8}) == 7 && dependent_branches<std::size_t>(9uz) == 9 &&
@@ -131,11 +150,16 @@ constexpr std::size_t discarded_volatile() {
   (void)::hw_status;
   return 0uz;
 }
+// Not a statement of its own: an if's initialiser.
+constexpr std::size_t discarded_in_initialiser(std::size_t n) {
+  if ((void)n; n > 0) return 1uz;
+  return 0uz;
+}
 constexpr std::size_t discarded_computation(std::size_t n) {
   (void)written_out(n);
   return 0uz;
 }
-static_assert(discarded(1) == 0 && discarded_in_branch(2) == 0 && discarded_computation(1) == 0);
+static_assert(discarded(1) == 0 && discarded_in_branch(2) == 0 && discarded_in_initialiser(1) == 1 && discarded_computation(1) == 0);
 // A builtin that ends the program, or has no behaviour when reached: no value
 // at any argument (Copilot on #1219).
 constexpr std::size_t trapped(std::size_t n) {

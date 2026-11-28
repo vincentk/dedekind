@@ -29,9 +29,16 @@ guarded_arrow_generic undecided
 unguarded_arrow_generic refused
 dependent_branches undecided
 nested_test Jlt
+guarded_explicit_arrow Jlt
+explicit_read_generic refused
+explicit_arrow_generic refused
+value_generic undecided
+expected_generic undecided
+expected_explicit_generic refused
 discarded Jlt
 discarded_in_branch Jlt
 discarded_volatile refused
+discarded_in_initialiser refused
 discarded_computation refused
 trapped refused
 unreached refused

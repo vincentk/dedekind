@@ -4227,9 +4227,20 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
           obj = m->getImplicitObjectArgument()->IgnoreParenImpCasts();
       } else if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st)) {
         if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens());
-            d && !d->isImplicitAccess() && !d->isArrow() && d->getMember().isIdentifier() &&
-            d->getMember().getAsString() == "has_value")
-          tested = d->getBase();
+            d && !d->isImplicitAccess() && !d->isArrow()) {
+          const clang::DeclarationName name = d->getMember();
+          if (name.isIdentifier() && name.getAsString() == "has_value") tested = d->getBase();
+          // In a template, o.operator*() and o.operator->() written out are
+          // the reading; o.value() throws where o holds none, open as the
+          // resolved one is (independent review of #1238).
+          else if (name.getNameKind() == clang::DeclarationName::CXXOperatorName &&
+                   (name.getCXXOverloadedOperator() == clang::OO_Star ||
+                    name.getCXXOverloadedOperator() == clang::OO_Arrow))
+            obj = d->getBase();
+          else if (name.isIdentifier() && name.getAsString() == "value" &&
+                   (isOptional(d->getBaseType()) || isExpected(d->getBaseType())))
+            return std::string("Sugar:sum-value");
+        }
       }
       // x alone as the test in a template, its conversion to bool not yet in
       // the tree (Copilot on #1238), an optional or an expected.
@@ -4322,9 +4333,18 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       name = llvm::isa<clang::CXXConversionDecl>(g) ? "bool" : (g->getIdentifier() ? g->getName().str() : "");
     } else if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st)) {
       const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens());
-      if (!d || d->isImplicitAccess() || d->isArrow() || !isExpected(d->getBaseType()) || !d->getMember().isIdentifier())
+      if (!d || d->isImplicitAccess() || d->isArrow() || !isExpected(d->getBaseType())) return std::nullopt;
+      // e.operator*() and e.operator->() written out, in a template: the
+      // reading, as *e (independent review of #1238).
+      if (d->getMember().getNameKind() == clang::DeclarationName::CXXOperatorName &&
+          (d->getMember().getCXXOverloadedOperator() == clang::OO_Star ||
+           d->getMember().getCXXOverloadedOperator() == clang::OO_Arrow))
+        name = "*";
+      else if (d->getMember().isIdentifier())
+        name = d->getMember().getAsString();
+      else
         return std::nullopt;
-      name = d->getMember().getAsString(); obj = d->getBase();
+      obj = d->getBase();
     } else if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(st)) {
       if (d->isImplicitAccess() || !d->isArrow() || !isExpected(d->getBaseType())) return std::nullopt;
       name = "->"; obj = d->getBase();
