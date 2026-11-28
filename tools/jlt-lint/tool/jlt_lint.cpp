@@ -4787,7 +4787,7 @@ class Definitions : public clang::ASTConsumer {
 /// read (an allowlist, Judge::allowed): read or copied; the left side of a
 /// write; the base of a field or an element; an argument bound to a copy or
 /// a const reference; an operand of std::swap, disjoint, in a statement of
-/// its own.  Any other use is a finding: a call that may write it, a
+/// its own; the argument of std::move at its last use (Judge::lastUse).  Any other use is a finding: a call that may write it, a
 /// mutating member call, its address.
 /// Refused besides, a finding each:
 ///   - a reference local whose initialiser reaches a mutable local (a second
@@ -5192,6 +5192,113 @@ class LocalState : public clang::ASTConsumer {
       clang::ASTContext* ctx;
       Values* vs;
       Report* report;
+      const clang::FunctionDecl* fn = nullptr;
+      /// \sugar{std::move of a local at its last use} std::move(x), x a
+      /// local variable or a by-value parameter of the function judged, is
+      /// read as x, a copy, where nothing can observe what the move leaves
+      /// in x (#1223): no use of x follows the move in source order in the
+      /// function, no lambda after it captures x, and the move is in no loop
+      /// and no lambda, and the move's own full-expression mentions x only
+      /// in the move.  Without goto, which the posture has not, and with
+      /// loops excluded, source order bounds the order of evaluation between
+      /// full-expressions, so a use in an earlier one cannot run after the
+      /// move; within one it does not ([intro.execution]/10: the operands of
+      /// + and the arguments of a call are unsequenced or indeterminately
+      /// sequenced), so f(x, std::move(x)) is refused; a reference
+      /// to x that could outlive the move is refused on its own (a reference
+      /// local, a reference capture).  The condition is syntactic and
+      /// strict: any later mention refuses, even one that cannot run, and a
+      /// move written in a macro refuses.  Then what consumes the move is
+      /// judged as a use of x would be: a copy or move construction reads,
+      /// a write through it (std::move(s)[0] = v on a span) does not.
+      /// Fixture: local-state.cpp.
+      bool lastUse(const clang::VarDecl* x, const clang::CallExpr* move) {
+        if (!fn || !fn->getBody() || x->getType()->isReferenceType() || !x->hasLocalStorage() ||
+            x->getParentFunctionOrMethod() != fn)
+          return false;
+        // A move written in a macro: an expansion's tokens share one
+        // expansion location, so source order inside it is not seen.
+        if (move->getBeginLoc().isMacroID() || move->getEndLoc().isMacroID()) return false;
+        // Up to the function, without a bound (a parent chain is finite):
+        // a walk that stopped short could miss an enclosing loop.
+        clang::DynTypedNode n = clang::DynTypedNode::create(*move);
+        bool reached = false;
+        for (;;) {
+          auto ps = ctx->getParents(n);
+          if (ps.empty()) break;
+          n = ps[0];
+          if (n.get<clang::ForStmt>() || n.get<clang::CXXForRangeStmt>() || n.get<clang::WhileStmt>() ||
+              n.get<clang::DoStmt>() || n.get<clang::LambdaExpr>())
+            return false;
+          if (n.get<clang::FunctionDecl>()) {
+            reached = true;
+            break;
+          }
+        }
+        if (!reached) return false;
+        // Mentions in unevaluated operands (a type, as in decltype(x);
+        // sizeof, alignof, noexcept) cannot observe the move and are not
+        // counted; typeid may evaluate its operand and is.
+        struct Mentions : clang::RecursiveASTVisitor<Mentions> {
+          const clang::VarDecl* x;
+          int n = 0;
+          bool TraverseTypeLoc(clang::TypeLoc, bool = true) { return true; }
+          bool TraverseUnaryExprOrTypeTraitExpr(clang::UnaryExprOrTypeTraitExpr*) { return true; }
+          bool TraverseCXXNoexceptExpr(clang::CXXNoexceptExpr*) { return true; }
+          bool VisitDeclRefExpr(clang::DeclRefExpr* d) {
+            if (d->getDecl() == x) ++n;
+            return true;
+          }
+        };
+        const auto count = [x](const clang::Stmt* s) {
+          Mentions m;
+          m.x = x;
+          m.TraverseStmt(const_cast<clang::Stmt*>(s));
+          return m.n;
+        };
+        // The move's full-expression, the outermost expression above it;
+        // on the way up, the operands sequenced before the move's side are
+        // set aside: the left of &&, || and the comma ([expr.log.and]/2,
+        // [expr.log.or]/2, [expr.comma]/1), the condition of ?:
+        // ([expr.cond]/1).  A mention there runs before the move.
+        const clang::Stmt* full = move;
+        int before = 0;
+        for (;;) {
+          auto ps = ctx->getParents(*full);
+          const auto* up = ps.empty() ? nullptr : ps[0].get<clang::Expr>();
+          if (!up) break;
+          if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(up);
+              b && (b->isLogicalOp() || b->isCommaOp()) && b->getRHS() == full)
+            before += count(b->getLHS());
+          else if (const auto* c = llvm::dyn_cast<clang::ConditionalOperator>(up); c && c->getCond() != full)
+            before += count(c->getCond());
+          full = up;
+        }
+        if (count(full) - before > 1) return false;
+        struct Later : clang::RecursiveASTVisitor<Later> {
+          const clang::VarDecl* x;
+          clang::SourceLocation end;
+          const clang::SourceManager* sm;
+          bool found = false;
+          bool after(clang::SourceLocation l) const {
+            return l.isValid() && sm->isBeforeInTranslationUnit(end, sm->getExpansionLoc(l));
+          }
+          bool VisitDeclRefExpr(clang::DeclRefExpr* d) {
+            if (d->getDecl() == x && after(d->getBeginLoc())) found = true;
+            return !found;
+          }
+          bool VisitLambdaExpr(clang::LambdaExpr* l) {
+            for (const clang::LambdaCapture& c : l->captures())
+              if (c.capturesVariable() && c.getCapturedVar() == x && after(l->getBeginLoc())) found = true;
+            return !found;
+          }
+        } later;
+        later.x = x;
+        later.sm = &ctx->getSourceManager();
+        later.end = later.sm->getExpansionLoc(move->getEndLoc());
+        later.TraverseStmt(fn->getBody());
+        return !later.found;
+      }
       /// The node above e, wrappers aside.
       const clang::DynTypedNode* above(const clang::Expr* e, clang::DynTypedNode& keep) {
         auto ps = ctx->getParents(*e);
@@ -5366,7 +5473,8 @@ class LocalState : public clang::ASTConsumer {
       ///   d. an argument bound to a by-value or const reference parameter,
       ///      or the object of a const member call;
       ///   e. an operand of std::swap, in a statement of its own, the two
-      ///      evidently disjoint.
+      ///      evidently disjoint;
+      ///   f. the argument of std::move at the local's last use (lastUse).
       /// Anything else is a finding: a non-const reference parameter, a
       /// mutating member call, the address.  A dependent call, its callee
       /// known only at instantiation, is read as binding by value, which
@@ -5504,6 +5612,11 @@ class LocalState : public clang::ASTConsumer {
               if (i < c->getNumArgs() && named("swap") && c->getNumArgs() == 2)
                 return disjoint(c, *ctx) && standsAlone(c);
               if (i < c->getNumArgs() && named("get")) { cur = e; continue; }
+              if (i == 0 && named("move") && c->getNumArgs() == 1 && cur == d) {
+                if (!lastUse(var, c)) return false;
+                cur = e;  // what consumes the move is judged as a use of x
+                continue;
+              }
               return i < c->getNumArgs() && std::all_of(ds.begin(), ds.end(), readerDecl) &&
                      !(std::any_of(ds.begin(), ds.end(), borrows) && escapes(c));
             }
@@ -5512,6 +5625,11 @@ class LocalState : public clang::ASTConsumer {
               if (g->getName() == "swap" && c->getNumArgs() == 2)  // e
                 return disjoint(c, *ctx) && standsAlone(c);
               if (g->getName() == "get" && c->isGLValue()) { cur = e; continue; }  // c
+              if (g->getName() == "move" && c->getNumArgs() == 1 && cur == d) {  // f
+                if (!lastUse(var, c)) return false;
+                cur = e;  // what consumes the move is judged as a use of x
+                continue;
+              }
             }
             if (reader(c)) return !(borrows(readerNamed(c)) && escapes(c));
             const int b = binds(g, i, c);
@@ -5808,6 +5926,7 @@ class LocalState : public clang::ASTConsumer {
     judge.ctx = &ctx;
     judge.vs = &vs;
     judge.report = &report;
+    judge.fn = f;
     judge.TraverseStmt(f->getBody());
   }
 };

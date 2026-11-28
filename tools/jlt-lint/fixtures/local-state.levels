@@ -77,3 +77,15 @@ at_in_range Jlt
 keep FJlt
 dangling_through_keep refused
 huge_product refused
+moved_into_local Jlt
+moved_in_return FJlt
+sum_of Jlt
+moved_last Jlt
+used_after_move refused
+moved_beside_its_type FJlt
+moved_after_its_test Jlt
+moved_beside_use refused
+moved_in_macro refused
+written_through_move refused
+moved_in_loop refused
+moved_reference refused
