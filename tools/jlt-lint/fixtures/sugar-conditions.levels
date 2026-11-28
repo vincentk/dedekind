@@ -12,7 +12,6 @@ low_byte refused
 wrapped_byte refused
 empty_value Jlt
 engaged_value undecided
-converted_branches refused
 guarded_read Jlt
 guarded_by_exit Jlt
 guarded_declaration Jlt
@@ -21,6 +20,7 @@ unguarded_read refused
 read_on_the_empty_side refused
 read_not_const refused
 reference_across_statements refused
+converted_branches refused
 discarded Jlt
 discarded_in_branch Jlt
 discarded_computation refused
