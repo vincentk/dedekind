@@ -90,8 +90,10 @@ static_assert(converted_branches(std::nullopt) == 0);
 using Pair = std::pair<std::size_t, std::size_t>;
 constexpr std::size_t guarded_arrow(const std::optional<Pair> o) { return o ? o->first : 0uz; }  // sound
 constexpr std::size_t unguarded_arrow(const std::optional<Pair> o) { return o->first; }
+// In a template the branches' types, o->first and T{}, agree only at an
+// instance: undecided, as a choice whose branches differ as written.
 template <typename T>
-constexpr T guarded_arrow_generic(const std::optional<std::pair<T, T>> o) {  // sound
+constexpr T guarded_arrow_generic(const std::optional<std::pair<T, T>> o) {
   return o ? o->first : T{};
 }
 template <typename T>
@@ -101,9 +103,9 @@ template <typename T>
 constexpr T dependent_branches(const std::optional<T> o) { return o ? *o : 0; }
 // o->has_value() tests the inner optional, not o: the outer test decides.
 template <typename T>
-constexpr T nested_test(const std::optional<std::optional<T>> o) {  // sound
-  if (o) return o->has_value() ? T{1} : T{};
-  return T{};
+constexpr std::size_t nested_test(const std::optional<std::optional<T>> o) {  // sound
+  if (o) return o->has_value() ? 1uz : 0uz;
+  return 0uz;
 }
 static_assert(guarded_arrow(Pair{1, 2}) == 1 && unguarded_arrow(Pair{3, 4}) == 3 &&
               guarded_arrow_generic<std::size_t>(Pair{5, 6}) == 5 &&
