@@ -9,6 +9,7 @@
 // std::expected are sugar, each beside the kernel program it is read
 // as; the other uses of a variant are refused or undecided.  The levels are
 // pinned definition by definition in sum.levels (levels.py --expect).
+#include <concepts>
 #include <cstddef>
 #include <expected>
 #include <limits>
