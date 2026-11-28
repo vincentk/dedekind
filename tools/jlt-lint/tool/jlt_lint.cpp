@@ -4551,6 +4551,15 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       kinds.insert(*k);
       return true;
     }
+    // A container's update in a template, h.push_back(e) with h of a
+    // dependent type: the member call it is at every instance, sugar (the
+    // row of the container's update), not a kernel call.
+    if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st))
+      if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens());
+          d && d->getMember().isIdentifier()) {
+        static const std::set<std::string> updates{"push_back", "emplace_back", "push_front", "emplace_front", "clear"};
+        if (updates.count(d->getMember().getAsString())) kinds.insert("Stmt:CXXMemberCallExpr");
+      }
     // c += n converts the result back to c's type with no node of its own.
     // The value stored back is of the computation's type (c += 1 with c an
     // unsigned char computes in int, and 256 becomes 0): narrowing where that
