@@ -5572,10 +5572,18 @@ class LocalState : public clang::ASTConsumer {
           break;
         }
         if (!a) return false;
-        if (llvm::isa<clang::InitListExpr, clang::CXXParenListInitExpr>(a)) return true;
+        // Value-initialisation, {} or T{}, is no constructor's choice: in a
+        // template T{} may be held as a construction from an empty list.
+        const auto empty = [](const clang::Expr* e) {
+          const auto* l = llvm::dyn_cast<clang::InitListExpr>(e->IgnoreParenImpCasts());
+          return l && l->getNumInits() == 0;
+        };
+        if (const auto* l = llvm::dyn_cast<clang::InitListExpr>(a)) return l->getNumInits() > 0;
+        if (llvm::isa<clang::CXXParenListInitExpr>(a)) return true;
         if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(a))
-          return !c->getConstructor()->isCopyOrMoveConstructor();
-        if (const auto* u = llvm::dyn_cast<clang::CXXUnresolvedConstructExpr>(a)) return u->getNumArgs() > 0;
+          return c->getNumArgs() > 0 && !c->getConstructor()->isCopyOrMoveConstructor();
+        if (const auto* u = llvm::dyn_cast<clang::CXXUnresolvedConstructExpr>(a))
+          return !(u->getNumArgs() == 0 || (u->getNumArgs() == 1 && empty(u->getArg(0))));
         return false;
       }
       /// The update above in a template, h.push_back(e) with h of a standard
