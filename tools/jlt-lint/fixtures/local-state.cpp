@@ -716,6 +716,17 @@ constexpr std::size_t pushed_on_own_type(Pile p) {
 constexpr bool pushed_in_condition(std::vector<std::size_t> v) {
   return (v.push_back(1), v.size()) == 1;
 }
+template <typename T>
+constexpr std::vector<T> appended_generic(std::vector<T> v, T x) {  // sound: in a template
+  v.push_back(x);
+  return v;
+}
+template <typename T>
+constexpr std::size_t popped_generic(std::vector<T> v) {
+  v.pop_back();
+  return v.size();
+}
+static_assert(appended_generic<std::size_t>({}, 1).size() == 1 && popped_generic<std::size_t>({1}) == 0);
 static_assert(appended({1}, 2).size() == 2 && marked_byte({}, 3).test(3) && emptied({4}) == 0 &&
               grown({}).xs.size() == 1 && popped({1, 2}) == 1 && marked_anywhere({}, 2).test(2) &&
               inserted_at({}) == 1 && pushed_address(1) == 1 && pushed_on_own_type({}) == 1 &&

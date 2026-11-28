@@ -5512,6 +5512,27 @@ class LocalState : public clang::ASTConsumer {
         }
         return call->getNumArgs() > 0 || writable(v, nullptr, through);
       }
+      /// The update above in a template, h.push_back(e) with h of a standard
+      /// sequence's type as written (std::vector<N>): the same methods,
+      /// none of a bitset, whose position's range only an instance gives.
+      bool dependentUpdate(const clang::VarDecl* v, const clang::CXXDependentScopeMemberExpr* m,
+                           const clang::CallExpr* call, bool through) {
+        static const std::set<std::string> sequences{"vector", "deque", "list", "forward_list", "basic_string"};
+        static const std::set<std::string> updates{"push_back", "emplace_back", "push_front", "emplace_front", "clear"};
+        if (m->isArrow() || !m->getMember().isIdentifier() || !updates.count(m->getMember().getAsString()) ||
+            !standsAlone(call))
+          return false;
+        const clang::QualType bt = m->getBaseType().getNonReferenceType();
+        const auto* ts = bt->getAs<clang::TemplateSpecializationType>();
+        const clang::TemplateDecl* td = ts ? ts->getTemplateName().getAsTemplateDecl() : nullptr;
+        if (!td || !td->getIdentifier() || !inStd(td) || !sequences.count(td->getName().str())) return false;
+        for (const clang::Expr* a : call->arguments()) {
+          const clang::QualType at = a->getType().getNonReferenceType();
+          if (at->isPointerType() || at->isArrayType()) return false;
+          if (!writable(v, a, through)) return false;
+        }
+        return call->getNumArgs() > 0 || writable(v, nullptr, through);
+      }
       /// Whether an occurrence of a mutable local stands where the rows of
       /// Table 7 read it (an allowlist; the theoretician's positions a-e):
       ///   a. read (an lvalue-to-rvalue conversion), or copied;
@@ -5591,7 +5612,7 @@ class LocalState : public clang::ASTConsumer {
               case 2:
                 if (call->isGLValue() || call->isTypeDependent()) { cur = call; continue; }
                 return true;
-              default: return false;
+              default: return !chosen && dependentUpdate(var, m, call, cur != d);  // g
             }
           }
           if (llvm::isa<clang::UnresolvedMemberExpr>(e)) return false;
