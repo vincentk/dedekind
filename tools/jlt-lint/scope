@@ -753,7 +753,7 @@ definitions                          src/main/modules/dedekind/sequences/net.cpp
 rule1-local-state                    src/main/modules/dedekind/sequences/net.cppm  sequences  0
 rule1-no-throw                       src/main/modules/dedekind/sequences/path.cppm  sequences  0
 definitions                          src/main/modules/dedekind/sequences/path.cppm  sequences  report
-rule1-local-state                    src/main/modules/dedekind/sequences/path.cppm  sequences  20
+rule1-local-state                    src/main/modules/dedekind/sequences/path.cppm  sequences  17
 rule1-no-throw                       src/main/modules/dedekind/sequences/pst.cppm  sequences  0
 definitions                          src/main/modules/dedekind/sequences/pst.cppm  sequences  report
 rule1-local-state                    src/main/modules/dedekind/sequences/pst.cppm  sequences  0
@@ -1363,7 +1363,7 @@ admitted                     src/main/modules/dedekind/numbers/approx.cppm  numb
 admitted                     src/main/modules/dedekind/numbers/ieee.cppm  numbers  3
 rule1-local-state            src/main/modules/dedekind/algebra/initial_ring.cppm  algebra  8
 rule1-local-state            src/main/modules/dedekind/algebra/modules.cppm  algebra  1
-rule1-local-state            src/main/modules/dedekind/algebra/polynomial.cppm  algebra  23
+rule1-local-state            src/main/modules/dedekind/algebra/polynomial.cppm  algebra  17
 rule1-local-state            src/main/modules/dedekind/analysis/forms.cppm  analysis  2
 rule1-local-state            src/main/modules/dedekind/category/action.cppm  category  0
 rule1-local-state            src/main/modules/dedekind/category/adjunction.cppm  category  0
@@ -1386,7 +1386,7 @@ rule1-local-state            src/main/modules/dedekind/category/logic.cppm  cate
 rule1-local-state            src/main/modules/dedekind/category/morphism.cppm  category  2
 rule1-local-state            src/main/modules/dedekind/category/natural.cppm  category  0
 rule1-local-state            src/main/modules/dedekind/category/numeric.cppm  category  3
-rule1-local-state            src/main/modules/dedekind/category/periodic.cppm  category  38
+rule1-local-state            src/main/modules/dedekind/category/periodic.cppm  category  37
 rule1-local-state            src/main/modules/dedekind/category/pullback.cppm  category  0
 rule1-local-state            src/main/modules/dedekind/category/runs.cppm  category  3
 rule1-local-state            src/main/modules/dedekind/category/topoi.cppm  category  11
