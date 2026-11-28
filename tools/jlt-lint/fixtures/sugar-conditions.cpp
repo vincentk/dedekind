@@ -12,10 +12,14 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdlib>
+#include <expected>
 #include <optional>
 #include <type_traits>
 #include <utility>
 #include <variant>
+
+// A volatile object outside the judged scope, as a device's register.
+inline volatile std::size_t hw_status = 0;
 
 namespace jlt_listing {
 
@@ -59,6 +63,103 @@ constexpr std::size_t empty_value() {
 }
 constexpr std::size_t engaged_value(std::optional<std::size_t> o) { return o.value(); }
 static_assert(empty_value() == 0 && engaged_value(3uz) == 3);
+// *x where the nearest test of x makes a value known: the reading of the
+// sum's alternative 0, x const.  Unguarded, on the other side of the test, or
+// on a variable not const: refused, as the operator is.
+constexpr std::size_t guarded_read(const std::optional<std::size_t> o) { return o.has_value() ? *o : 0uz; }  // sound
+constexpr std::size_t guarded_by_exit(const std::optional<std::size_t> o) {  // sound
+  if (!o) return 0uz;
+  return *o;
+}
+constexpr std::size_t guarded_declaration(std::size_t n) {  // sound
+  if (const auto o = std::optional{n}) return *o;
+  return 0uz;
+}
+// A reference: the test and the reading in one expression.
+constexpr bool guarded_reference(const std::optional<std::size_t>& o) { return o && *o > 1; }  // sound
+constexpr std::size_t unguarded_read(const std::optional<std::size_t> o) { return *o; }
+// The operator written out is the same reading.
+constexpr std::size_t unguarded_explicit_read(const std::optional<std::size_t> o) { return o.operator*(); }
+constexpr std::size_t read_on_the_empty_side(const std::optional<std::size_t> o) { return o ? 0uz : *o; }
+constexpr std::size_t read_not_const(std::optional<std::size_t> o) { return o ? *o : 0uz; }
+constexpr std::size_t reference_across_statements(const std::optional<std::size_t>& o) {
+  if (!o) return 0uz;
+  return *o;
+}
+// The branches of one type: 0 is an int, converted to std::size_t.
+constexpr std::size_t converted_branches(const std::optional<std::size_t> o) { return o ? *o : 0; }
+static_assert(converted_branches(std::nullopt) == 0);
+// x->m: as *x, under its test; unguarded, refused, resolved or in a template.
+using Pair = std::pair<std::size_t, std::size_t>;
+constexpr std::size_t guarded_arrow(const std::optional<Pair> o) { return o ? o->first : 0uz; }  // sound
+constexpr std::size_t unguarded_arrow(const std::optional<Pair> o) { return o->first; }
+// In a template the branches' types, o->first and T{}, agree only at an
+// instance: undecided, as a choice whose branches differ as written.
+template <typename T>
+constexpr T guarded_arrow_generic(const std::optional<std::pair<T, T>> o) {
+  return o ? o->first : T{};
+}
+template <typename T>
+constexpr T unguarded_arrow_generic(const std::optional<std::pair<T, T>> o) { return o->first; }
+// In a template, the branches' types known only at an instance: undecided.
+template <typename T>
+constexpr T dependent_branches(const std::optional<T> o) { return o ? *o : 0; }
+// o->has_value() tests the inner optional, not o: the outer test decides.
+template <typename T>
+constexpr std::size_t nested_test(const std::optional<std::optional<T>> o) {  // sound
+  if (o) return o->has_value() ? 1uz : 0uz;
+  return 0uz;
+}
+// The reading written out: guarded, resolved; unguarded, in a template;
+// value() in a template, open as the resolved one.
+constexpr std::size_t guarded_explicit_arrow(const std::optional<Pair> o) { return o ? o.operator->()->first : 0uz; }  // sound
+template <typename T>
+constexpr T explicit_read_generic(const std::optional<T> o) { return o.operator*(); }
+template <typename T>
+constexpr T explicit_arrow_generic(const std::optional<std::pair<T, T>> o) { return o.operator->()->first; }
+template <typename T>
+constexpr T value_generic(const std::optional<T> o) { return o.value(); }
+// A bare test of an expected in a template, its branches' types differing
+// as written: undecided.
+template <typename T>
+constexpr T expected_generic(const std::expected<T, bool> e) { return e ? *e : T{}; }
+template <typename T>
+constexpr T expected_explicit_generic(const std::expected<T, bool> e) { return e.operator*(); }
+static_assert(guarded_explicit_arrow(Pair{1, 2}) == 1 && explicit_read_generic<std::size_t>(3uz) == 3 &&
+              explicit_arrow_generic<std::size_t>(Pair{4, 5}) == 4 && value_generic<std::size_t>(6uz) == 6 &&
+              expected_generic<std::size_t>(7uz) == 7 && expected_explicit_generic<std::size_t>(8uz) == 8);
+static_assert(guarded_arrow(Pair{1, 2}) == 1 && unguarded_arrow(Pair{3, 4}) == 3 &&
+              guarded_arrow_generic<std::size_t>(Pair{5, 6}) == 5 &&
+              unguarded_arrow_generic<std::size_t>(Pair{7, 8}) == 7 && dependent_branches<std::size_t>(9uz) == 9 &&
+              nested_test<std::size_t>(std::optional<std::size_t>{1uz}) == 1);
+static_assert(guarded_read(2uz) == 2 && guarded_by_exit(std::nullopt) == 0 && guarded_declaration(3) == 3 &&
+              guarded_reference(2uz) && unguarded_read(4uz) == 4 && unguarded_explicit_read(4uz) == 4 && read_on_the_empty_side(5uz) == 0 &&
+              read_not_const(6uz) == 6 && reference_across_statements(7uz) == 7);
+// (void)x; as a statement of its own, x a name: dropped.  Any other operand
+// is a computation discarded, refused.
+constexpr std::size_t discarded(std::size_t n) {  // sound
+  (void)n;
+  return 0uz;
+}
+constexpr std::size_t discarded_in_branch(std::size_t n) {  // sound: an unbraced body
+  if (n > 1) (void)n;
+  return 0uz;
+}
+// A volatile name's read is observable: not dropped.
+constexpr std::size_t discarded_volatile() {
+  (void)::hw_status;
+  return 0uz;
+}
+// Not a statement of its own: an if's initialiser.
+constexpr std::size_t discarded_in_initialiser(std::size_t n) {
+  if ((void)n; n > 0) return 1uz;
+  return 0uz;
+}
+constexpr std::size_t discarded_computation(std::size_t n) {
+  (void)written_out(n);
+  return 0uz;
+}
+static_assert(discarded(1) == 0 && discarded_in_branch(2) == 0 && discarded_in_initialiser(1) == 1 && discarded_computation(1) == 0);
 // A builtin that ends the program, or has no behaviour when reached: no value
 // at any argument (Copilot on #1219).
 constexpr std::size_t trapped(std::size_t n) {
