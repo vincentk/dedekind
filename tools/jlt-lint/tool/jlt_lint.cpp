@@ -4163,6 +4163,31 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
         return td->getIdentifier() && td->getName() == "expected" && inStd(td);
     return false;
   }
+  /// Whether e stands as a statement of its own, parentheses aside: in a
+  /// block, or the unbraced body of an if, a loop or a label, not a
+  /// condition or a loop's header (Copilot on #1238).
+  bool statement(const clang::Expr* e) const {
+    if (!ctx) return false;
+    const clang::Stmt* child = e;
+    clang::DynTypedNode n = clang::DynTypedNode::create(*e);
+    for (int k = 0; k < 16; ++k) {
+      auto ps = const_cast<clang::ASTContext*>(ctx)->getParents(n);
+      if (ps.empty()) return false;
+      n = ps[0];
+      const clang::Stmt* s = n.get<clang::Stmt>();
+      if (!s) return false;
+      if (llvm::isa<clang::ParenExpr>(s)) { child = s; continue; }
+      if (llvm::isa<clang::CompoundStmt, clang::LabelStmt, clang::CaseStmt, clang::DefaultStmt>(s))
+        return !llvm::isa<clang::CaseStmt>(s) || llvm::cast<clang::CaseStmt>(s)->getSubStmt() == child;
+      if (const auto* i = llvm::dyn_cast<clang::IfStmt>(s)) return child == i->getThen() || child == i->getElse();
+      if (const auto* f = llvm::dyn_cast<clang::ForStmt>(s)) return child == f->getBody();
+      if (const auto* f = llvm::dyn_cast<clang::CXXForRangeStmt>(s)) return child == f->getBody();
+      if (const auto* w = llvm::dyn_cast<clang::WhileStmt>(s)) return child == w->getBody();
+      if (const auto* d = llvm::dyn_cast<clang::DoStmt>(s)) return child == d->getBody();
+      return false;
+    }
+    return false;
+  }
   /// Whether t is std::optional<A>, written or deduced, dependent or not.
   static bool isOptional(clang::QualType t) {
     if (t.isNull()) return false;
@@ -4182,6 +4207,27 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
   /// kind: unguarded, *x has no value where x holds none.
   std::optional<std::string> optionalUse(const clang::Stmt* st) const {
     const clang::Expr* obj = nullptr;
+    // The test, x.has_value() or x as a truth value: the choice's kind, so
+    // that branches of different types are refused, or undecided in a
+    // template, as for the other sums (Copilot on #1238).
+    {
+      const clang::Expr* tested = nullptr;
+      if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(st)) {
+        const clang::CXXMethodDecl* g = m->getMethodDecl();
+        if (g && (llvm::isa<clang::CXXConversionDecl>(g) || (g->getIdentifier() && g->getName() == "has_value")))
+          tested = m->getImplicitObjectArgument();
+      } else if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st)) {
+        if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens());
+            d && !d->isImplicitAccess() && !d->isArrow() && d->getMember().isIdentifier() &&
+            d->getMember().getAsString() == "has_value")
+          tested = d->getBase();
+      }
+      if (tested && isOptional(tested->getType())) {
+        const std::string k = indexKind(st, named(tested));
+        if (k == "Sum:case-converted" || k == "Sum:case-dependent") return k;
+        return std::nullopt;
+      }
+    }
     if (const auto* o = llvm::dyn_cast<clang::CXXOperatorCallExpr>(st)) {
       if (o->getNumArgs() == 1 && (o->getOperator() == clang::OO_Star || o->getOperator() == clang::OO_Arrow))
         obj = o->getArg(0);
@@ -4594,12 +4640,9 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     // \sugar{a discarded name} (void)x; as a statement of its own, x a name:
     // it computes nothing and is dropped, as an unused parameter's mark.
     if (const auto* c = llvm::dyn_cast<clang::CStyleCastExpr>(st))
-      if (c->getType()->isVoidType() && named(c->getSubExpr()) && ctx) {
-        auto ps = const_cast<clang::ASTContext*>(ctx)->getParents(*c);
-        if (!ps.empty() && ps[0].get<clang::CompoundStmt>()) {
-          kinds.insert("Cast:discard");
-          return true;
-        }
+      if (c->getType()->isVoidType() && named(c->getSubExpr()) && statement(c)) {
+        kinds.insert("Cast:discard");
+        return true;
       }
     // c += n converts the result back to c's type with no node of its own.
     // The value stored back is of the computation's type (c += 1 with c an

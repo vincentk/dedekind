@@ -80,6 +80,9 @@ constexpr std::size_t reference_across_statements(const std::optional<std::size_
   if (!o) return 0uz;
   return *o;
 }
+// The branches of one type: 0 is an int, converted to std::size_t.
+constexpr std::size_t converted_branches(const std::optional<std::size_t> o) { return o ? *o : 0; }
+static_assert(converted_branches(std::nullopt) == 0);
 static_assert(guarded_read(2uz) == 2 && guarded_by_exit(std::nullopt) == 0 && guarded_declaration(3) == 3 &&
               guarded_reference(2uz) && unguarded_read(4uz) == 4 && read_on_the_empty_side(5uz) == 0 &&
               read_not_const(6uz) == 6 && reference_across_statements(7uz) == 7);
@@ -89,11 +92,15 @@ constexpr std::size_t discarded(std::size_t n) {  // sound
   (void)n;
   return 0uz;
 }
+constexpr std::size_t discarded_in_branch(std::size_t n) {  // sound: an unbraced body
+  if (n > 1) (void)n;
+  return 0uz;
+}
 constexpr std::size_t discarded_computation(std::size_t n) {
   (void)written_out(n);
   return 0uz;
 }
-static_assert(discarded(1) == 0 && discarded_computation(1) == 0);
+static_assert(discarded(1) == 0 && discarded_in_branch(2) == 0 && discarded_computation(1) == 0);
 // A builtin that ends the program, or has no behaviour when reached: no value
 // at any argument (Copilot on #1219).
 constexpr std::size_t trapped(std::size_t n) {
