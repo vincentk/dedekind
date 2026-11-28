@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <bitset>
 #include <cstddef>
 #include <expected>
 #include <functional>
@@ -663,5 +664,61 @@ static_assert(moved_into_local({1, 2, 3}) == 1 && moved_in_return({1, 2})[1] == 
               moved_last({1, 2}) == 7 && used_after_move({1, 2}) == 3 &&
               moved_beside_use({1, 2}) == 4 && moved_in_macro({1, 2}) == 3 && moved_after_its_test({1, 2}) && moved_beside_its_type({1, 2})[1] == 2 && moved_in_loop({1, 2}) == 6 &&
               moved_reference({1, 2}) == 3);
+
+// A standard container's update on a local, in a statement of its own: the
+// assignment of the container updated.  A position, an empty container's
+// pop, a bitset's position that may lie out of range, an argument that
+// shares storage, a container not of the standard: refused.
+constexpr std::vector<std::size_t> appended(std::vector<std::size_t> v, std::size_t x) {  // sound
+  v.push_back(x);
+  return v;
+}
+constexpr std::bitset<256> marked_byte(std::bitset<256> b, unsigned char c) {  // sound
+  b.set(c);
+  return b;
+}
+constexpr std::size_t emptied(std::vector<std::size_t> v) {  // sound
+  v.clear();
+  return v.size();
+}
+struct Grown {
+  std::vector<std::size_t> xs;
+};
+constexpr Grown grown(Grown g) {  // sound: through a field of a deep value
+  g.xs.push_back(1);
+  return g;
+}
+constexpr std::size_t popped(std::vector<std::size_t> v) {
+  v.pop_back();
+  return v.size();
+}
+constexpr std::bitset<8> marked_anywhere(std::bitset<8> b, std::size_t i) {
+  b.set(i);
+  return b;
+}
+constexpr std::size_t inserted_at(std::vector<std::size_t> v) {
+  v.insert(v.begin(), 1);
+  return v.size();
+}
+constexpr std::size_t pushed_address(std::size_t x) {
+  std::vector<const std::size_t*> v;
+  v.push_back(&x);
+  return v.size();
+}
+struct Pile {
+  std::size_t n = 0;
+  constexpr void push_back(std::size_t) { ++n; }
+};
+constexpr std::size_t pushed_on_own_type(Pile p) {
+  p.push_back(1);
+  return p.n;
+}
+constexpr bool pushed_in_condition(std::vector<std::size_t> v) {
+  return (v.push_back(1), v.size()) == 1;
+}
+static_assert(appended({1}, 2).size() == 2 && marked_byte({}, 3).test(3) && emptied({4}) == 0 &&
+              grown({}).xs.size() == 1 && popped({1, 2}) == 1 && marked_anywhere({}, 2).test(2) &&
+              inserted_at({}) == 1 && pushed_address(1) == 1 && pushed_on_own_type({}) == 1 &&
+              pushed_in_condition({}));
 
 }  // namespace jlt_listing

@@ -106,3 +106,15 @@ moved_in_macro refused
 written_through_move refused
 moved_in_loop refused
 moved_reference refused
+appended Jlt
+marked_byte Jlt
+emptied Jlt
+Grown FJlt
+grown Jlt
+popped refused
+marked_anywhere refused
+inserted_at refused
+pushed_address refused
+Pile refused
+pushed_on_own_type refused
+pushed_in_condition refused

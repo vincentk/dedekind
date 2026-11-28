@@ -5469,6 +5469,49 @@ class LocalState : public clang::ASTConsumer {
         if (deepValue(v->getType())) return true;
         return !through && (!rhs || !mentionsMutable(rhs));
       }
+      /// \sugar{a container's update on a local} A mutating call of a
+      /// standard sequence or bitset on a local, v.push_back(e), b.set(i):
+      /// the assignment of the container updated, v = with(v, e),
+      /// under that row's conditions.  A closed list of methods of a closed
+      /// list of containers, each giving the container its standard
+      /// specifies, none taking a position; a statement of its own; no
+      /// argument a pointer, so that none reaches into the container
+      /// written; a bitset's
+      /// position of a type whose values all lie in range; no pop_back or
+      /// pop_front, undefined on an empty container, and no resize, which
+      /// throws past max_size(); the
+      /// arguments, as an assignment's right side, sharing no storage with
+      /// local state; through a field or an element only on a deep value.
+      bool update(const clang::VarDecl* v, const clang::CXXMemberCallExpr* call, bool through) {
+        static const std::set<std::string> containers{
+            "vector", "deque", "list", "forward_list", "basic_string", "bitset"};
+        static const std::set<std::string> updates{
+            "push_back", "emplace_back", "push_front", "emplace_front",
+            "clear", "set", "reset", "flip"};
+        const clang::CXXMethodDecl* g = call->getMethodDecl();
+        const clang::CXXRecordDecl* r = g ? g->getParent() : nullptr;
+        if (!g || !r || !g->getIdentifier() || !updates.count(g->getName().str()) || !inStd(r) ||
+            !r->getIdentifier() || !containers.count(r->getName().str()) || !standsAlone(call))
+          return false;
+        const std::string of = r->getName().str();
+        // A bitset's position: out of range it throws, so its type's values
+        // all lie in range, bitset<256> at an unsigned char.
+        if (of == "bitset" && call->getNumArgs() > 0) {
+          const auto* spec = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(r);
+          const clang::QualType pt = call->getArg(0)->IgnoreParenImpCasts()->getType();
+          if (!spec || spec->getTemplateArgs().size() < 1 ||
+              spec->getTemplateArgs()[0].getKind() != clang::TemplateArgument::Integral ||
+              !pt->isUnsignedIntegerType() || ctx->getIntWidth(pt) >= 64 ||
+              (1ull << ctx->getIntWidth(pt)) > spec->getTemplateArgs()[0].getAsIntegral().getZExtValue())
+            return false;
+        }
+        for (const clang::Expr* a : call->arguments()) {
+          const clang::QualType at = a->getType().getNonReferenceType();
+          if (at->isPointerType() || at->isArrayType()) return false;
+          if (!writable(v, a, through)) return false;
+        }
+        return call->getNumArgs() > 0 || writable(v, nullptr, through);
+      }
       /// Whether an occurrence of a mutable local stands where the rows of
       /// Table 7 read it (an allowlist; the theoretician's positions a-e):
       ///   a. read (an lvalue-to-rvalue conversion), or copied;
@@ -5481,6 +5524,8 @@ class LocalState : public clang::ASTConsumer {
       ///   e. an operand of std::swap, in a statement of its own, the two
       ///      evidently disjoint;
       ///   f. the argument of std::move at the local's last use (lastUse).
+      ///   g. the object of a standard container's update, in a statement
+      ///      of its own (update).
       /// Anything else is a finding: a non-const reference parameter, a
       /// mutating member call, the address.  A dependent call, its callee
       /// known only at instantiation, is read as binding by value, which
@@ -5529,7 +5574,7 @@ class LocalState : public clang::ASTConsumer {
               if (call->isGLValue()) { cur = call; continue; }  // c
               return true;  // d
             }
-            return false;
+            return !chosen && update(var, call, cur != d);  // g
           }
           if (const auto* m = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(e)) {
             clang::DynTypedNode up;
