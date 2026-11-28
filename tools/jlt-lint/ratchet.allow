@@ -1,2 +1,4 @@
 # Gates allowed to move the wrong way in this pull request, each with its
 # reason: <rule> <file> <reason>.  Read by ratchet.py; emptied once merged.
+rule1-local-state src/main/modules/dedekind/algebra/polynomial.cppm front(), back() and at() of a std::vector in a template are now judged as the resolved calls are, an index not shown in range (#1239)
+rule1-local-state src/main/modules/dedekind/order/runs.cppm front(), back() and at() of a std::vector in a template are now judged as the resolved calls are, an index not shown in range (#1239)

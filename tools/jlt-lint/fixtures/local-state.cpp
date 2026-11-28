@@ -17,12 +17,15 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <bitset>
+#include <deque>
 #include <cstddef>
 #include <expected>
 #include <functional>
 #include <optional>
 #include <ranges>
 #include <span>
+#include <string>
 #include <string_view>
 #include <tuple>
 #include <utility>
@@ -232,9 +235,10 @@ constexpr std::size_t read_through_iterator(const std::array<std::size_t, 2>& a)
 static_assert(aliased_through_iterator() == 7 &&
               read_through_iterator({1, 2}) == 1);
 // A default-constructed class template in a template (its constructor
-// writes it) is not refused, nor is v.size(); push_back, a mutating member
-// call, is (no row of Table 7 reads it: the theoretician's C8).  Two writes
-// the comma operator sequences are not refused.
+// writes it) is not refused, nor is v.size(), nor push_back, a mutating
+// member call that Table 7 now reads as the container's update (the
+// theoretician's C8 once refused it).  Two writes the comma operator
+// sequences are not refused.
 template <typename T>
 constexpr std::size_t built() {
   std::vector<T> v;
@@ -663,5 +667,163 @@ static_assert(moved_into_local({1, 2, 3}) == 1 && moved_in_return({1, 2})[1] == 
               moved_last({1, 2}) == 7 && used_after_move({1, 2}) == 3 &&
               moved_beside_use({1, 2}) == 4 && moved_in_macro({1, 2}) == 3 && moved_after_its_test({1, 2}) && moved_beside_its_type({1, 2})[1] == 2 && moved_in_loop({1, 2}) == 6 &&
               moved_reference({1, 2}) == 3);
+
+// A standard container's update on a local, in a statement of its own: the
+// assignment of the container updated.  A position, an empty container's
+// pop, a bitset's position that may lie out of range, an argument that
+// shares storage, a container not of the standard: refused.
+constexpr std::vector<std::size_t> appended(std::vector<std::size_t> v, std::size_t x) {  // sound
+  v.push_back(x);
+  return v;
+}
+constexpr std::bitset<256> marked_byte(std::bitset<256> b, unsigned char c) {  // sound
+  b.set(c);
+  return b;
+}
+constexpr std::size_t emptied(std::vector<std::size_t> v) {  // sound
+  v.clear();
+  return v.size();
+}
+struct Grown {
+  std::vector<std::size_t> xs;
+};
+constexpr Grown grown(Grown g) {  // sound: through a field of a deep value
+  g.xs.push_back(1);
+  return g;
+}
+constexpr std::size_t popped(std::vector<std::size_t> v) {
+  v.pop_back();
+  return v.size();
+}
+constexpr std::bitset<8> marked_anywhere(std::bitset<8> b, std::size_t i) {
+  b.set(i);
+  return b;
+}
+constexpr std::size_t inserted_at(std::vector<std::size_t> v) {
+  v.insert(v.begin(), 1);
+  return v.size();
+}
+constexpr std::size_t pushed_address(std::size_t x) {
+  std::vector<const std::size_t*> v;
+  v.push_back(&x);
+  return v.size();
+}
+struct Pile {
+  std::size_t n = 0;
+  constexpr void push_back(std::size_t) { ++n; }
+};
+constexpr std::size_t pushed_on_own_type(Pile p) {
+  p.push_back(1);
+  return p.n;
+}
+constexpr bool pushed_in_condition(std::vector<std::size_t> v) {
+  return (v.push_back(1), v.size()) == 1;
+}
+template <typename T>
+constexpr std::vector<T> appended_generic(std::vector<T> v, T x) {  // sound: in a template
+  v.push_back(x);
+  return v;
+}
+template <typename T>
+constexpr std::size_t popped_generic(std::vector<T> v) {
+  v.pop_back();
+  return v.size();
+}
+template <typename T>
+constexpr void pushed_in_return_generic(std::vector<T> v) { return v.push_back(T{}); }
+template <typename T>
+constexpr std::size_t emplaced_generic(std::vector<T> v) {
+  v.emplace_back();
+  return v.size();
+}
+static_assert(appended_generic<std::size_t>({}, 1).size() == 1 && popped_generic<std::size_t>({1}) == 0 &&
+              emplaced_generic<std::size_t>({}) == 1);
+// Not in an expression statement: a return's operand, a condition.
+constexpr void pushed_in_return(std::vector<std::size_t> v) { return v.push_back(1); }
+constexpr std::size_t emplaced(std::vector<std::size_t> v) {
+  v.emplace_back(1uz);
+  return v.size();
+}
+// Not total: an element built by a constructor that may throw, a container
+// whose updates are not constexpr, an allocator that bounds max_size().
+constexpr std::size_t pushed_construction(std::vector<std::string> v, const std::string& s) {
+  v.push_back({s, 1uz});
+  return v.size();
+}
+constexpr std::size_t pushed_on_deque(std::deque<std::size_t> d) {
+  d.push_back(1);
+  return d.size();
+}
+template <typename T>
+struct OneAllocator {
+  using value_type = T;
+  constexpr OneAllocator() = default;
+  template <typename U>
+  constexpr OneAllocator(const OneAllocator<U>&) {}
+  constexpr T* allocate(std::size_t n) { return std::allocator<T>{}.allocate(n); }
+  constexpr void deallocate(T* p, std::size_t n) { std::allocator<T>{}.deallocate(p, n); }
+  constexpr std::size_t max_size() const { return 1; }
+  constexpr bool operator==(const OneAllocator&) const = default;
+};
+constexpr std::size_t pushed_bounded(std::vector<std::size_t, OneAllocator<std::size_t>> v) {
+  v.push_back(1);
+  return v.size();
+}
+template <typename T>
+constexpr std::size_t pushed_on_deque_generic(std::deque<T> d) {
+  d.push_back(T{});
+  return d.size();
+}
+template <typename T>
+constexpr std::size_t pushed_construction_generic(std::vector<T> v, const T& s) {
+  v.push_back(T(s, 1uz));
+  return v.size();
+}
+static_assert(pushed_construction({}, "ab") == 1 && pushed_bounded({}) == 1 &&
+              pushed_construction_generic<std::string>({}, "ab") == 1);
+// A string's update; a bitset<255> at an unsigned char, 255 out of range.
+constexpr std::string appended_char(std::string s, char c) {  // sound
+  s.push_back(c);
+  return s;
+}
+constexpr std::bitset<255> marked_past_end(std::bitset<255> b, unsigned char c) {
+  b.set(c);
+  return b;
+}
+// A mutating call through storage the function does not own: a const span's
+// element, a mutable span local's element.
+constexpr std::size_t pushed_through_const_span(const std::span<std::vector<std::size_t>, 1> s) {
+  s[0].push_back(1);
+  return 1;
+}
+constexpr std::size_t pushed_through_span(std::span<std::vector<std::size_t>, 1> s) {
+  s[0].push_back(1);
+  return 1;
+}
+// In a template: back() of a sequence that may be empty; an argument
+// converted to the element at an instance; an allocator not the standard's.
+template <typename T>
+constexpr std::vector<T> pushed_back_of_generic(std::vector<T> v) {
+  v.push_back(v.back());
+  return v;
+}
+template <typename T>
+constexpr std::vector<T> pushed_converted_generic(std::vector<T> v, std::size_t n) {
+  v.push_back(n);
+  return v;
+}
+template <typename T, typename A>
+constexpr std::size_t pushed_with_allocator_generic(std::vector<T, A> v) {
+  v.push_back(T{});
+  return v.size();
+}
+static_assert(appended_char("", 97).size() == 1 && marked_past_end({}, 3).test(3) &&
+              pushed_back_of_generic<std::size_t>({1}).size() == 2 &&
+              pushed_converted_generic<std::size_t>({}, 1).size() == 1 &&
+              pushed_with_allocator_generic<std::size_t, std::allocator<std::size_t>>({}) == 1);
+static_assert(appended({1}, 2).size() == 2 && marked_byte({}, 3).test(3) && emptied({4}) == 0 &&
+              grown({}).xs.size() == 1 && popped({1, 2}) == 1 && marked_anywhere({}, 2).test(2) &&
+              inserted_at({}) == 1 && pushed_address(1) == 1 && pushed_on_own_type({}) == 1 &&
+              pushed_in_condition({}) && emplaced({}) == 1);
 
 }  // namespace jlt_listing

@@ -4672,6 +4672,15 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
       kinds.insert(*k);
       return true;
     }
+    // A container's update in a template, h.push_back(e) with h of a
+    // dependent type: the member call it is at every instance, sugar (the
+    // row of the container's update), not a kernel call.
+    if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st))
+      if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens());
+          d && d->getMember().isIdentifier()) {
+        static const std::set<std::string> updates{"push_back", "clear"};
+        if (updates.count(d->getMember().getAsString())) kinds.insert("Stmt:CXXMemberCallExpr");
+      }
     if (auto k = optionalUse(st)) {
       kinds.insert(*k);
       return true;
@@ -5465,6 +5474,34 @@ class LocalState : public clang::ASTConsumer {
         }
         return false;
       }
+      /// An expression statement: in a block, a label, a case, or the unbraced
+      /// body of an if or a loop, wrappers and the comma operator aside; not
+      /// a return's operand, a condition or a loop's header (Copilot on #1239).
+      bool statementPosition(const clang::Expr* s) {
+        const clang::Stmt* child = s;
+        clang::DynTypedNode n = clang::DynTypedNode::create(*s);
+        for (int k = 0; k < 16; ++k) {
+          auto ps = ctx->getParents(n);
+          if (ps.empty()) return false;
+          n = ps[0];
+          const clang::Stmt* p = n.get<clang::Stmt>();
+          if (!p) return false;
+          if (llvm::isa<clang::ExprWithCleanups, clang::ParenExpr>(p)) { child = p; continue; }
+          if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(p); b && b->getOpcode() == clang::BO_Comma) {
+            child = p;
+            continue;
+          }
+          if (llvm::isa<clang::CompoundStmt, clang::LabelStmt, clang::DefaultStmt>(p)) return true;
+          if (const auto* c = llvm::dyn_cast<clang::CaseStmt>(p)) return c->getSubStmt() == child;
+          if (const auto* i = llvm::dyn_cast<clang::IfStmt>(p)) return child == i->getThen() || child == i->getElse();
+          if (const auto* f = llvm::dyn_cast<clang::ForStmt>(p)) return child == f->getBody();
+          if (const auto* f = llvm::dyn_cast<clang::CXXForRangeStmt>(p)) return child == f->getBody();
+          if (const auto* w = llvm::dyn_cast<clang::WhileStmt>(p)) return child == w->getBody();
+          if (const auto* d = llvm::dyn_cast<clang::DoStmt>(p)) return child == d->getBody();
+          return false;
+        }
+        return false;
+      }
       /// Inside an operand that is not evaluated (sizeof, decltype, noexcept,
       /// a requires-expression): no use at all.
       bool unevaluated(const clang::Expr* e) {
@@ -5604,6 +5641,151 @@ class LocalState : public clang::ASTConsumer {
         if (deepValue(v->getType())) return true;
         return !through && (!rhs || !mentionsMutable(rhs));
       }
+      /// \sugar{a container's update on a local} A mutating call of a
+      /// std::vector, std::string or std::bitset on a local, v.push_back(e),
+      /// b.set(i), as an expression statement: the assignment of the
+      /// container updated, v = with(v, e), under that row's conditions.  The
+      /// methods push_back, clear, and a bitset's set, reset and
+      /// flip (a string's traits the standard's; in a template, an argument
+      /// of the element type as written, or dependent), each constexpr in
+      /// C++23 and total: no position, no pop
+      /// (undefined on an empty container), no resize or emplace (they throw,
+      /// or construct by a constructor that may), the standard's allocator
+      /// (another may bound max_size()), no argument built by a constructor
+      /// other than a copy or a move, none a pointer, and a bitset's position
+      /// of a type whose values all lie in range.  The arguments, as an
+      /// assignment's right side, share no storage with local state; through
+      /// a field or an element, only on a deep value (Copilot on #1239).
+      bool update(const clang::VarDecl* v, const clang::CXXMemberCallExpr* call, bool through) {
+        // The containers whose updates are constexpr in C++23 (Copilot on
+        // #1239: deque's, list's and forward_list's are not).
+        static const std::set<std::string> containers{"vector", "basic_string", "bitset"};
+        static const std::set<std::string> updates{
+            "push_back", "clear", "set", "reset", "flip"};
+        const clang::CXXMethodDecl* g = call->getMethodDecl();
+        const clang::CXXRecordDecl* r = g ? g->getParent() : nullptr;
+        if (!g || !r || !g->getIdentifier() || !updates.count(g->getName().str()) || !inStd(r) ||
+            !r->getIdentifier() || !containers.count(r->getName().str()) || !statementPosition(call))
+          return false;
+        const std::string of = r->getName().str();
+        // set, reset and flip are a bitset's (vector<bool>::flip is not read).
+        if (of != "bitset" && g->getName() != "push_back" && g->getName() != "clear") return false;
+        // A string's traits the standard's: another's assign may throw or not
+        // be constexpr.
+        if (of == "basic_string") {
+          const auto* spec = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(r);
+          const auto* tr = spec && spec->getTemplateArgs().size() > 1 &&
+                                   spec->getTemplateArgs()[1].getKind() == clang::TemplateArgument::Type
+                               ? spec->getTemplateArgs()[1].getAsType()->getAsCXXRecordDecl()
+                               : nullptr;
+          if (!tr || !tr->getIdentifier() || tr->getName() != "char_traits" || !inStd(tr)) return false;
+        }
+        // The standard's allocator: another may bound max_size(), past which
+        // push_back throws (Copilot on #1239).
+        if (of != "bitset") {
+          const auto* spec = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(r);
+          if (!spec || spec->getTemplateArgs().size() < 2) return false;
+          const clang::TemplateArgument& al = spec->getTemplateArgs()[spec->getTemplateArgs().size() - 1];
+          const auto* ar = al.getKind() == clang::TemplateArgument::Type ? al.getAsType()->getAsCXXRecordDecl() : nullptr;
+          if (!ar || !ar->getIdentifier() || ar->getName() != "allocator" || !inStd(ar)) return false;
+        }
+        // A bitset's position: out of range it throws, so its type's values
+        // all lie in range, bitset<256> at an unsigned char.
+        if (of == "bitset" && call->getNumArgs() > 0) {
+          const auto* spec = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(r);
+          const clang::QualType pt = call->getArg(0)->IgnoreParenImpCasts()->getType();
+          if (!spec || spec->getTemplateArgs().size() < 1 ||
+              spec->getTemplateArgs()[0].getKind() != clang::TemplateArgument::Integral ||
+              !pt->isUnsignedIntegerType() || ctx->getIntWidth(pt) >= 64 ||
+              (1ull << ctx->getIntWidth(pt)) > spec->getTemplateArgs()[0].getAsIntegral().getZExtValue())
+            return false;
+        }
+        for (const clang::Expr* a : call->arguments()) {
+          const clang::QualType at = a->getType().getNonReferenceType();
+          if (at->isPointerType() || at->isArrayType() || constructs(a)) return false;
+          if (!writable(v, a, through)) return false;
+        }
+        return call->getNumArgs() > 0 || writable(v, nullptr, through);
+      }
+      /// An argument built in place by a constructor other than a copy or a
+      /// move, v.push_back({s, 1}): the constructor may throw (std::string's
+      /// does where s is empty), so the update is not known total (Copilot on
+      /// #1239).  In a template, a construction with arguments.
+      static bool constructs(const clang::Expr* a) {
+        for (int k = 0; a && k < 8; ++k) {
+          a = a->IgnoreParenImpCasts();
+          if (const auto* m = llvm::dyn_cast<clang::MaterializeTemporaryExpr>(a)) { a = m->getSubExpr(); continue; }
+          if (const auto* b = llvm::dyn_cast<clang::CXXBindTemporaryExpr>(a)) { a = b->getSubExpr(); continue; }
+          if (const auto* f = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(a);
+              f && f->getType()->isRecordType()) { a = f->getSubExpr(); continue; }
+          break;
+        }
+        if (!a) return false;
+        // Value-initialisation, {} or T{}, is no constructor's choice: in a
+        // template T{} may be held as a construction from an empty list.
+        const auto empty = [](const clang::Expr* e) {
+          const auto* l = llvm::dyn_cast<clang::InitListExpr>(e->IgnoreParenImpCasts());
+          return l && l->getNumInits() == 0;
+        };
+        if (const auto* l = llvm::dyn_cast<clang::InitListExpr>(a)) return l->getNumInits() > 0;
+        if (llvm::isa<clang::CXXParenListInitExpr>(a)) return true;
+        if (const auto* c = llvm::dyn_cast<clang::CXXConstructExpr>(a))
+          return c->getNumArgs() > 0 && !c->getConstructor()->isCopyOrMoveConstructor();
+        if (const auto* u = llvm::dyn_cast<clang::CXXUnresolvedConstructExpr>(a))
+          return !(u->getNumArgs() == 0 || (u->getNumArgs() == 1 && empty(u->getArg(0))));
+        return false;
+      }
+      /// The update above in a template, h.push_back(e) with h of a standard
+      /// sequence's type as written (std::vector<N>): the same methods,
+      /// none of a bitset, whose position's range only an instance gives.
+      bool dependentUpdate(const clang::VarDecl* v, const clang::CXXDependentScopeMemberExpr* m,
+                           const clang::CallExpr* call, bool through) {
+        static const std::set<std::string> sequences{"vector", "basic_string"};
+        static const std::set<std::string> updates{"push_back", "clear"};
+        if (m->isArrow() || !m->getMember().isIdentifier() || !updates.count(m->getMember().getAsString()) ||
+            !statementPosition(call))
+          return false;
+        const clang::QualType bt = m->getBaseType().getNonReferenceType();
+        const auto* ts = bt->getAs<clang::TemplateSpecializationType>();
+        const clang::TemplateDecl* td = ts ? ts->getTemplateName().getAsTemplateDecl() : nullptr;
+        if (!td || !td->getIdentifier() || !inStd(td) || !sequences.count(td->getName().str())) return false;
+        // The allocator as written: none, the default, std::allocator.
+        {
+          const auto args = ts->template_arguments();
+          const std::size_t defaulted = td->getName() == "vector" ? 1 : 2;
+          if (td->getName() == "basic_string" && args.size() > 1) {
+            const auto* tts = args[1].getKind() == clang::TemplateArgument::Type
+                                  ? args[1].getAsType()->getAs<clang::TemplateSpecializationType>()
+                                  : nullptr;
+            const clang::TemplateDecl* tt = tts ? tts->getTemplateName().getAsTemplateDecl() : nullptr;
+            if (!tt || !tt->getIdentifier() || tt->getName() != "char_traits" || !inStd(tt)) return false;
+          }
+          if (args.size() > defaulted) {
+            const clang::TemplateArgument& al = args.back();
+            const auto* ats = al.getKind() == clang::TemplateArgument::Type
+                                  ? al.getAsType()->getAs<clang::TemplateSpecializationType>()
+                                  : nullptr;
+            const clang::TemplateDecl* ad = ats ? ats->getTemplateName().getAsTemplateDecl() : nullptr;
+            if (!ad || !ad->getIdentifier() || ad->getName() != "allocator" || !inStd(ad)) return false;
+          }
+        }
+        // An argument of a type known in the template is converted to the
+        // element's at an instance, by a constructor the template does not
+        // show: only one of the element type as written, or dependent.
+        const auto targs = ts->template_arguments();
+        const clang::QualType elem = !targs.empty() && targs[0].getKind() == clang::TemplateArgument::Type
+                                         ? targs[0].getAsType() : clang::QualType();
+        for (const clang::Expr* a : call->arguments()) {
+          const clang::QualType at = a->getType().getNonReferenceType();
+          if (at->isPointerType() || at->isArrayType() || constructs(a)) return false;
+          if (!a->isTypeDependent() &&
+              (elem.isNull() || elem->isDependentType() ||
+               !ctx->hasSameUnqualifiedType(at, elem.getNonReferenceType())))
+            return false;
+          if (!writable(v, a, through)) return false;
+        }
+        return call->getNumArgs() > 0 || writable(v, nullptr, through);
+      }
       /// Whether an occurrence of a mutable local stands where the rows of
       /// Table 7 read it (an allowlist; the theoretician's positions a-e):
       ///   a. read (an lvalue-to-rvalue conversion), or copied;
@@ -5616,6 +5798,8 @@ class LocalState : public clang::ASTConsumer {
       ///   e. an operand of std::swap, in a statement of its own, the two
       ///      evidently disjoint;
       ///   f. the argument of std::move at the local's last use (lastUse).
+      ///   g. the object of a standard container's update, in a statement
+      ///      of its own (update).
       /// Anything else is a finding: a non-const reference parameter, a
       /// mutating member call, the address.  A dependent call, its callee
       /// known only at instantiation, is read as binding by value, which
@@ -5664,7 +5848,7 @@ class LocalState : public clang::ASTConsumer {
               if (call->isGLValue()) { cur = call; continue; }  // c
               return true;  // d
             }
-            return false;
+            return !chosen && update(var, call, cur != d);  // g
           }
           if (const auto* m = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(e)) {
             clang::DynTypedNode up;
@@ -5681,7 +5865,7 @@ class LocalState : public clang::ASTConsumer {
               case 2:
                 if (call->isGLValue() || call->isTypeDependent()) { cur = call; continue; }
                 return true;
-              default: return false;
+              default: return !chosen && dependentUpdate(var, m, call, cur != d);  // g
             }
           }
           if (llvm::isa<clang::UnresolvedMemberExpr>(e)) return false;
@@ -6144,7 +6328,48 @@ class LocalState : public clang::ASTConsumer {
           return o->getNumArgs() ? o->getArg(0) : nullptr;
         return nullptr;
       }
+      /// The object a mutating member call writes, or none: a method neither
+      /// const nor static, resolved, or in a template one not known to be
+      /// const (Copilot's stand-in on #1239: s[0].push_back(1) with s a const
+      /// std::span writes its caller's storage, as s[0] = {} does).
+      static const clang::Expr* mutated(const clang::Stmt* s) {
+        if (const auto* m = llvm::dyn_cast<clang::CXXMemberCallExpr>(s)) {
+          const clang::CXXMethodDecl* g = m->getMethodDecl();
+          if (g && !g->isConst() && !g->isStatic() && !llvm::isa<clang::CXXConversionDecl>(g))
+            return m->getImplicitObjectArgument();
+          return nullptr;
+        }
+        if (const auto* c = llvm::dyn_cast<clang::CallExpr>(s))
+          if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens());
+              d && !d->isImplicitAccess() && dependentMethod(d) == 0)
+            return d->getBase();
+        return nullptr;
+      }
+      /// front(), back() and at() of a standard sequence in a template, its
+      /// type written as one (std::vector<T>): an index not shown in range,
+      /// as the resolved call is (Copilot's stand-in on #1239).
+      bool VisitCallExpr(clang::CallExpr* c) {
+        const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens());
+        if (!d || d->isImplicitAccess() || !d->getMember().isIdentifier()) return true;
+        const std::string n = d->getMember().getAsString();
+        if (n != "front" && n != "back" && n != "at") return true;
+        const clang::QualType bt = d->isArrow() ? d->getBaseType()->getPointeeType() : d->getBaseType();
+        const auto* ts = bt.isNull() ? nullptr : bt.getNonReferenceType()->getAs<clang::TemplateSpecializationType>();
+        const clang::TemplateDecl* td = ts ? ts->getTemplateName().getAsTemplateDecl() : nullptr;
+        if (td && td->getIdentifier() && inStd(td) &&
+            (td->getName() == "vector" || td->getName() == "basic_string" || td->getName() == "deque"))
+          (*report)(c->getExprLoc());
+        return true;
+      }
       bool VisitStmt(clang::Stmt* s) {
+        if (const clang::Expr* w = mutated(s)) {
+          const clang::Expr* e = w->IgnoreParenImpCasts();
+          if (!llvm::isa<clang::DeclRefExpr, clang::CXXThisExpr>(e))
+            if (const clang::VarDecl* b = base(e))
+              if (!mutableLocal(b) && !b->getType()->isReferenceType() && !deepValue(b->getType()))
+                (*report)(s->getBeginLoc());
+          return true;
+        }
         if (!isWrite(s)) return true;
         // A write through a variable that is not a mutable local, to an
         // element or a field: through a span or a pointer held by value,
