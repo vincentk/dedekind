@@ -4152,7 +4152,8 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     }
     if (const auto* c = llvm::dyn_cast<clang::CallExpr>(e))
       if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens()))
-        return !d->isImplicitAccess() && d->getMember().isIdentifier() && d->getMember().getAsString() == "has_value" &&
+        return !d->isImplicitAccess() && !d->isArrow() && d->getMember().isIdentifier() &&
+               d->getMember().getAsString() == "has_value" &&
                (isExpected(d->getBaseType()) || isOptional(d->getBaseType())) && named(d->getBase()) == x;
     return false;
   }
@@ -4224,6 +4225,14 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
             d && !d->isImplicitAccess() && !d->isArrow() && d->getMember().isIdentifier() &&
             d->getMember().getAsString() == "has_value")
           tested = d->getBase();
+      }
+      // x alone as the test in a template, its conversion to bool not yet in
+      // the tree (Copilot on #1238), an optional or an expected.
+      if (const auto* r = llvm::dyn_cast<clang::DeclRefExpr>(st);
+          r && r->isTypeDependent() && (isOptional(r->getType()) || isExpected(r->getType()))) {
+        const std::string k = indexKind(st, named(r));
+        if (k == "Sum:case-converted" || k == "Sum:case-dependent") return k;
+        return std::nullopt;
       }
       if (tested && isOptional(tested->getType())) {
         const std::string k = indexKind(st, named(tested));

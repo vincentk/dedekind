@@ -26,6 +26,8 @@ guarded_arrow Jlt
 unguarded_arrow refused
 guarded_arrow_generic Jlt
 unguarded_arrow_generic refused
+dependent_branches undecided
+nested_test Jlt
 discarded Jlt
 discarded_in_branch Jlt
 discarded_volatile refused

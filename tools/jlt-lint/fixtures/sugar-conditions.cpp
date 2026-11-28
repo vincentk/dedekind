@@ -96,9 +96,19 @@ constexpr T guarded_arrow_generic(const std::optional<std::pair<T, T>> o) {  // 
 }
 template <typename T>
 constexpr T unguarded_arrow_generic(const std::optional<std::pair<T, T>> o) { return o->first; }
+// In a template, the branches' types known only at an instance: undecided.
+template <typename T>
+constexpr T dependent_branches(const std::optional<T> o) { return o ? *o : 0; }
+// o->has_value() tests the inner optional, not o: the outer test decides.
+template <typename T>
+constexpr T nested_test(const std::optional<std::optional<T>> o) {  // sound
+  if (o) return o->has_value() ? T{1} : T{};
+  return T{};
+}
 static_assert(guarded_arrow(Pair{1, 2}) == 1 && unguarded_arrow(Pair{3, 4}) == 3 &&
               guarded_arrow_generic<std::size_t>(Pair{5, 6}) == 5 &&
-              unguarded_arrow_generic<std::size_t>(Pair{7, 8}) == 7);
+              unguarded_arrow_generic<std::size_t>(Pair{7, 8}) == 7 && dependent_branches<std::size_t>(9uz) == 9 &&
+              nested_test<std::size_t>(std::optional<std::size_t>{1uz}) == 1);
 static_assert(guarded_read(2uz) == 2 && guarded_by_exit(std::nullopt) == 0 && guarded_declaration(3) == 3 &&
               guarded_reference(2uz) && unguarded_read(4uz) == 4 && read_on_the_empty_side(5uz) == 0 &&
               read_not_const(6uz) == 6 && reference_across_statements(7uz) == 7);
