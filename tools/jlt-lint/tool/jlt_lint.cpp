@@ -4557,7 +4557,7 @@ class Kinds : public clang::RecursiveASTVisitor<Kinds> {
     if (const auto* c = llvm::dyn_cast<clang::CallExpr>(st))
       if (const auto* d = llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(c->getCallee()->IgnoreParens());
           d && d->getMember().isIdentifier()) {
-        static const std::set<std::string> updates{"push_back", "emplace_back", "push_front", "emplace_front", "clear"};
+        static const std::set<std::string> updates{"push_back", "push_front", "clear"};
         if (updates.count(d->getMember().getAsString())) kinds.insert("Stmt:CXXMemberCallExpr");
       }
     // c += n converts the result back to c's type with no node of its own.
@@ -5339,6 +5339,34 @@ class LocalState : public clang::ASTConsumer {
         }
         return false;
       }
+      /// An expression statement: in a block, a label, a case, or the unbraced
+      /// body of an if or a loop, wrappers and the comma operator aside; not
+      /// a return's operand, a condition or a loop's header (Copilot on #1239).
+      bool statementPosition(const clang::Expr* s) {
+        const clang::Stmt* child = s;
+        clang::DynTypedNode n = clang::DynTypedNode::create(*s);
+        for (int k = 0; k < 16; ++k) {
+          auto ps = ctx->getParents(n);
+          if (ps.empty()) return false;
+          n = ps[0];
+          const clang::Stmt* p = n.get<clang::Stmt>();
+          if (!p) return false;
+          if (llvm::isa<clang::ExprWithCleanups, clang::ParenExpr>(p)) { child = p; continue; }
+          if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(p); b && b->getOpcode() == clang::BO_Comma) {
+            child = p;
+            continue;
+          }
+          if (llvm::isa<clang::CompoundStmt, clang::LabelStmt, clang::DefaultStmt>(p)) return true;
+          if (const auto* c = llvm::dyn_cast<clang::CaseStmt>(p)) return c->getSubStmt() == child;
+          if (const auto* i = llvm::dyn_cast<clang::IfStmt>(p)) return child == i->getThen() || child == i->getElse();
+          if (const auto* f = llvm::dyn_cast<clang::ForStmt>(p)) return child == f->getBody();
+          if (const auto* f = llvm::dyn_cast<clang::CXXForRangeStmt>(p)) return child == f->getBody();
+          if (const auto* w = llvm::dyn_cast<clang::WhileStmt>(p)) return child == w->getBody();
+          if (const auto* d = llvm::dyn_cast<clang::DoStmt>(p)) return child == d->getBody();
+          return false;
+        }
+        return false;
+      }
       /// Inside an operand that is not evaluated (sizeof, decltype, noexcept,
       /// a requires-expression): no use at all.
       bool unevaluated(const clang::Expr* e) {
@@ -5479,7 +5507,9 @@ class LocalState : public clang::ASTConsumer {
         return !through && (!rhs || !mentionsMutable(rhs));
       }
       /// \sugar{a container's update on a local} A mutating call of a
-      /// standard sequence or bitset on a local, v.push_back(e), b.set(i):
+      /// standard sequence or bitset on a local, v.push_back(e), b.set(i)
+      /// (no emplace form, whose element construction may throw: Copilot on
+      /// #1239):
       /// the assignment of the container updated, v = with(v, e),
       /// under that row's conditions.  A closed list of methods of a closed
       /// list of containers, each giving the container its standard
@@ -5495,12 +5525,11 @@ class LocalState : public clang::ASTConsumer {
         static const std::set<std::string> containers{
             "vector", "deque", "list", "forward_list", "basic_string", "bitset"};
         static const std::set<std::string> updates{
-            "push_back", "emplace_back", "push_front", "emplace_front",
-            "clear", "set", "reset", "flip"};
+            "push_back", "push_front", "clear", "set", "reset", "flip"};
         const clang::CXXMethodDecl* g = call->getMethodDecl();
         const clang::CXXRecordDecl* r = g ? g->getParent() : nullptr;
         if (!g || !r || !g->getIdentifier() || !updates.count(g->getName().str()) || !inStd(r) ||
-            !r->getIdentifier() || !containers.count(r->getName().str()) || !standsAlone(call))
+            !r->getIdentifier() || !containers.count(r->getName().str()) || !statementPosition(call))
           return false;
         const std::string of = r->getName().str();
         // A bitset's position: out of range it throws, so its type's values
@@ -5527,9 +5556,9 @@ class LocalState : public clang::ASTConsumer {
       bool dependentUpdate(const clang::VarDecl* v, const clang::CXXDependentScopeMemberExpr* m,
                            const clang::CallExpr* call, bool through) {
         static const std::set<std::string> sequences{"vector", "deque", "list", "forward_list", "basic_string"};
-        static const std::set<std::string> updates{"push_back", "emplace_back", "push_front", "emplace_front", "clear"};
+        static const std::set<std::string> updates{"push_back", "push_front", "clear"};
         if (m->isArrow() || !m->getMember().isIdentifier() || !updates.count(m->getMember().getAsString()) ||
-            !standsAlone(call))
+            !statementPosition(call))
           return false;
         const clang::QualType bt = m->getBaseType().getNonReferenceType();
         const auto* ts = bt->getAs<clang::TemplateSpecializationType>();

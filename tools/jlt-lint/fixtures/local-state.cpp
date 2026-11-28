@@ -727,10 +727,24 @@ constexpr std::size_t popped_generic(std::vector<T> v) {
   v.pop_back();
   return v.size();
 }
-static_assert(appended_generic<std::size_t>({}, 1).size() == 1 && popped_generic<std::size_t>({1}) == 0);
+template <typename T>
+constexpr void pushed_in_return_generic(std::vector<T> v) { return v.push_back(T{}); }
+template <typename T>
+constexpr std::size_t emplaced_generic(std::vector<T> v) {
+  v.emplace_back();
+  return v.size();
+}
+static_assert(appended_generic<std::size_t>({}, 1).size() == 1 && popped_generic<std::size_t>({1}) == 0 &&
+              emplaced_generic<std::size_t>({}) == 1);
+// Not in an expression statement: a return's operand, a condition.
+constexpr void pushed_in_return(std::vector<std::size_t> v) { return v.push_back(1); }
+constexpr std::size_t emplaced(std::vector<std::size_t> v) {
+  v.emplace_back(1uz);
+  return v.size();
+}
 static_assert(appended({1}, 2).size() == 2 && marked_byte({}, 3).test(3) && emptied({4}) == 0 &&
               grown({}).xs.size() == 1 && popped({1, 2}) == 1 && marked_anywhere({}, 2).test(2) &&
               inserted_at({}) == 1 && pushed_address(1) == 1 && pushed_on_own_type({}) == 1 &&
-              pushed_in_condition({}));
+              pushed_in_condition({}) && emplaced({}) == 1);
 
 }  // namespace jlt_listing
